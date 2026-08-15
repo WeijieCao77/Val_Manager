@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Modal, OvrBadge, RoleTag } from './common'
+import { Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import { ratingOf } from '../engine/match'
 import type { Fixture, MapScore } from '../engine/types'
@@ -86,7 +86,12 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
         </div>
       )}
 
-      {map && <Scoreboard map={map} teamA={fixture.teamA} teamB={fixture.teamB} onPlayer={openPlayer} mvp={r.mvp} />}
+      {map && (
+        <Scoreboard
+          map={map} teamA={fixture.teamA} teamB={fixture.teamB}
+          onPlayer={openPlayer} mvp={r.mvp} lineups={r.lineups}
+        />
+      )}
 
       {r.highlights.length > 0 && (
         <div style={{ marginTop: 14 }}>
@@ -108,19 +113,26 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
 }
 
 function Scoreboard({
-  map, teamA, teamB, onPlayer, mvp,
+  map, teamA, teamB, onPlayer, mvp, lineups,
 }: {
   map: MapScore; teamA: string; teamB: string
   onPlayer: (id: string) => void; mvp: string | null
+  lineups?: { a: string[]; b: string[] }
 }) {
   const { game } = useGame()
 
-  const rows = (teamId: string) =>
-    Object.entries(map.lines)
-      .filter(([pid]) => game.players[pid]?.teamId === teamId)
-      .map(([pid, l]) => ({ p: game.players[pid], l }))
-      .filter((x) => x.p)
+  // Prefer the lineup captured at match time. Falling back to current club
+  // membership drops anyone who has since transferred.
+  const rows = (teamId: string) => {
+    const side = teamId === teamA ? lineups?.a : lineups?.b
+    const ids = side?.length
+      ? side.filter((pid) => map.lines[pid])
+      : Object.keys(map.lines).filter((pid) => game.players[pid]?.teamId === teamId)
+    return ids
+      .map((pid) => ({ p: game.players[pid], l: map.lines[pid] }))
+      .filter((x) => x.p && x.l)
       .sort((x, y) => y.l.acs - x.l.acs)
+  }
 
   const block = (teamId: string) => {
     const list = rows(teamId)
@@ -148,7 +160,7 @@ function Scoreboard({
                       <b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
                     </td>
-                    <td><RoleTag role={p.role} /></td>
+                    <td><Roles p={p} /></td>
                     <td className="num">
                       <b className={rat >= 1.15 ? 'pos' : rat < 0.85 ? 'muted' : ''}>{rat.toFixed(2)}</b>
                     </td>
@@ -189,7 +201,7 @@ export function TeamStrip({ ids }: { ids: string[] }) {
         if (!p) return null
         return (
           <span key={id} className="row" style={{ gap: 4 }}>
-            <RoleTag role={p.role} />
+            <Roles p={p} />
             <span className="small">{p.ign}</span>
             <OvrBadge value={p.overall} />
           </span>

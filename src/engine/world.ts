@@ -12,6 +12,7 @@ interface RawTeam {
 }
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
+  roles?: string[]; flex?: boolean
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
   vlr?: { rating: number | null; acs: number | null; rounds: number }
   age: number; isIgl: boolean; attrs: Attrs; overall: number; potential: number
@@ -77,7 +78,9 @@ export function createNewGame(myTeamId: string, managerName: string, seed?: numb
       ...rp,
       region: rp.region as Player['region'],
       role: rp.role as Role,
-      agentPool: pickAgents(rp.role as Role, prng),
+      roles: (rp.roles as Role[] | undefined) ?? [rp.role as Role],
+      agentPool: ((rp.roles as Role[] | undefined) ?? [rp.role as Role])
+        .flatMap((r) => pickAgents(r, prng)),
       season: emptyStats(),
       career: emptyStats(),
       injuredUntil: 0,

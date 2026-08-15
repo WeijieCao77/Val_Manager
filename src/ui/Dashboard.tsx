@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Bar, Condition, money, OvrBadge, Panel, RoleTag, Stat, fmtDay } from './common'
+import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, nextFixtureFor, stageName } from '../engine/season'
 import { sortStandings } from '../engine/league'
 import { squadOf, wageBill } from '../engine/world'
@@ -157,7 +157,7 @@ export default function Dashboard() {
                   return (
                     <tr key={id} className="clickable" onClick={() => openPlayer(id)}>
                       <td><b>{p.ign}</b>{p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}</td>
-                      <td><RoleTag role={p.role} /></td>
+                      <td><Roles p={p} /></td>
                       <td className="num"><OvrBadge value={p.overall} /></td>
                       <td className="num mono">{Math.round(p.form)}</td>
                       <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>

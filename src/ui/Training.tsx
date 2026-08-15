@@ -1,5 +1,5 @@
 import { useGame } from './ctx'
-import { Bar, Condition, OvrBadge, Panel, RoleTag } from './common'
+import { Bar, Condition, OvrBadge, Panel, Roles } from './common'
 import { squadOf } from '../engine/world'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Attrs, Player } from '../engine/types'
@@ -78,7 +78,7 @@ export default function Training() {
                 return (
                   <tr key={p.id}>
                     <td className="clickable" onClick={() => openPlayer(p.id)}><b>{p.ign}</b></td>
-                    <td><RoleTag role={p.role} /></td>
+                    <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
                     <td className="num muted">{p.potential}</td>
                     <td>

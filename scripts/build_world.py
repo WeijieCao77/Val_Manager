@@ -284,7 +284,8 @@ def main():
         rec = {
             "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
-            "role": p["role"], "age": p["age"], "ageEstimated": p["ageEstimated"],
+            "role": p["role"], "roles": [p["role"]], "flex": False,
+            "age": p["age"], "ageEstimated": p["ageEstimated"],
             "isIgl": False, "attrs": dict(p["attrs"]), "overall": p["overall"],
             "potential": p["potential"], "form": p["form"], "morale": p["morale"],
             "fatigue": p["fatigue"], "salary": salary_for(p["overall"], tier),
@@ -307,18 +308,35 @@ def main():
         rng = Rng(seed_of("t:" + display))
         squad = [emit(p, team_id, tier, region) for p in squad_src[:7]]
 
-        # vlr's role filter reports a player's most-played agent role, so a squad
-        # can come back with two controllers and no sentinel. Rather than invent
-        # a role for someone, the lower-rated of a duplicated pair is recorded as
-        # 自由人 (flex) — which is what covering a second role actually means.
+        # vlr reports a player's most-played agent role, so a real squad can come
+        # back with two controllers and no sentinel — which is not a data error,
+        # it is how modern VALORANT works: players cover more than one role
+        # (smokes + sentinel being the classic pairing).
+        #
+        # So instead of overwriting anyone's real role, the duplicate keeps it and
+        # additionally covers whichever core role the squad is short of. Both are
+        # recorded in `roles`, and the engine treats every listed role as covered.
+        CORE = ["决斗者", "先锋", "控场", "哨卫"]
+        for p in squad:
+            p["roles"] = [p["role"]]
         seen = {}
-        for p in sorted(squad, key=lambda x: -x["overall"]):
-            if p["role"] == "自由人":
-                continue
+        dupes = []
+        for p in sorted(squad[:5], key=lambda x: -x["overall"]):
             if p["role"] in seen:
-                p["role"] = "自由人"
+                dupes.append(p)
             else:
                 seen[p["role"]] = p
+        gaps = [r for r in CORE if r not in seen]
+        for p, gap in zip(dupes, gaps):
+            p["roles"] = [p["role"], gap]
+            p["flex"] = True
+            # covering a second role is a real skill: nudge the axes it leans on
+            if gap in ("控场", "哨卫"):
+                p["attrs"]["utility"] = int(clamp(p["attrs"]["utility"] + 3, 20, 99))
+            if gap == "哨卫":
+                p["attrs"]["awareness"] = int(clamp(p["attrs"]["awareness"] + 2, 20, 99))
+            p["overall"] = int(round(clamp(
+                sum(p["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
 
         igl = max(squad, key=lambda p: p["attrs"]["igl"] +
                   (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))

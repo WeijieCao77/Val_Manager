@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Condition, money, OvrBadge, Panel, RoleTag } from './common'
+import { Condition, money, OvrBadge, Panel, Roles } from './common'
 import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
@@ -50,8 +50,9 @@ export default function Squad() {
     toast(`${p.ign} 已离队。`)
   }
 
+  // count every role a player covers, so a flexed second role closes the gap
   const roleCount = squad.reduce<Record<string, number>>((acc, p) => {
-    acc[p.role] = (acc[p.role] ?? 0) + 1
+    for (const r of p.roles?.length ? p.roles : [p.role]) acc[r] = (acc[r] ?? 0) + 1
     return acc
   }, {})
 
@@ -81,9 +82,7 @@ export default function Squad() {
             <span key={r} className="tag">{r} × {n}</span>
           ))}
           {['决斗者', '先锋', '控场', '哨卫'].filter((r) => !roleCount[r]).map((r) => (
-            <span key={r} className="tag" style={{ borderColor: 'var(--red)', color: 'var(--red)' }}>
-              缺少 {r}
-            </span>
+            <span key={r} className="tag warn">缺少 {r}</span>
           ))}
         </div>
 
@@ -134,7 +133,7 @@ export default function Squad() {
                       {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
                       {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--gold)', color: 'var(--gold)' }}>挂牌</span>}
                     </td>
-                    <td><RoleTag role={p.role} /></td>
+                    <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
                     <td className="num muted">{p.potential}</td>
                     <td className="num">{p.age}</td>

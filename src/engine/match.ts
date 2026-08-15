@@ -70,16 +70,19 @@ export function selectLineup(state: GameState, teamId: string): Player[] {
 }
 
 function compositionScore(players: Player[]): number {
-  const have = new Set(players.map((p) => p.role))
-  const flex = players.filter((p) => p.role === '自由人').length
+  // a player covers every role they actually play, not just their primary
+  const have = new Set(players.flatMap((p) => p.roles ?? [p.role]))
+  const flex = players.filter((p) => p.flex || p.role === '自由人').length
   let score = 0
   // a functioning comp wants smokes and a lockdown presence above all
-  if (!have.has('控场') && flex === 0) score -= 7
-  if (!have.has('哨卫') && flex === 0) score -= 5
-  if (!have.has('先锋') && flex === 0) score -= 4
-  if (!have.has('决斗者') && flex === 0) score -= 4
-  const dupes = players.length - have.size - flex
-  score -= Math.max(0, dupes) * 1.5
+  if (!have.has('控场')) score -= 7
+  if (!have.has('哨卫')) score -= 5
+  if (!have.has('先锋')) score -= 4
+  if (!have.has('决斗者')) score -= 4
+  // doubling up is workable but costs a little cohesion
+  const covered = players.reduce((n, p) => n + (p.roles?.length ?? 1), 0)
+  score -= Math.max(0, covered - have.size) * 1.2
+  if (flex > 2) score -= (flex - 2) * 1.5
   return score
 }
 
@@ -473,6 +476,8 @@ export function simulateMatch(
   const need = Math.ceil(bo / 2)
   const played: MapScore[] = []
   const highlights: string[] = []
+  const seenA = new Set<string>()
+  const seenB = new Set<string>()
   let wonA = 0
   let wonB = 0
 
@@ -480,6 +485,8 @@ export function simulateMatch(
     if (wonA >= need || wonB >= need) break
     const A = buildLineup(state, aId, m)
     const B = buildLineup(state, bId, m)
+    for (const p of A.players) seenA.add(p.id)
+    for (const p of B.players) seenB.add(p.id)
     const { score, highlights: mapHl } = simulateMap(m, A, B, rng)
     played.push(score)
     for (const h of mapHl) if (highlights.length < 10) highlights.push(`[${m}] ${h}`)
@@ -512,7 +519,10 @@ export function simulateMatch(
     }
   }
 
-  return { mapsWonA: wonA, mapsWonB: wonB, maps: played, vetoLog: log, mvp, highlights }
+  return {
+    mapsWonA: wonA, mapsWonB: wonB, maps: played, vetoLog: log, mvp, highlights,
+    lineups: { a: [...seenA], b: [...seenB] },
+  }
 }
 
 /** Roll the match's per-map lines into a player's season + career totals. */

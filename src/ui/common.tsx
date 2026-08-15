@@ -22,6 +22,26 @@ export function RoleTag({ role }: { role: Role }) {
   return <span className="role" style={{ background: roleColor(role) }}>{role}</span>
 }
 
+/** Primary role plus any second role the player actually covers. */
+export function Roles({ p }: { p: Player }) {
+  const list = p.roles?.length ? p.roles : [p.role]
+  return (
+    <span className="row" style={{ gap: 3 }}>
+      <RoleTag role={list[0]} />
+      {list.slice(1).map((r) => (
+        <span
+          key={r}
+          className="role"
+          style={{ background: 'transparent', color: roleColor(r), boxShadow: `inset 0 0 0 1px ${roleColor(r)}` }}
+          title={`兼任 ${r}`}
+        >
+          {r}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function Bar({ value, max = 100, color }: { value: number; max?: number; color?: string }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
   const c = color ?? (pct >= 75 ? 'var(--teal)' : pct >= 45 ? 'var(--gold)' : 'var(--red)')

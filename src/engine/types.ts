@@ -68,7 +68,16 @@ export interface Player {
   ageEstimated?: boolean
   /** the real statistical line this player's attributes were derived from */
   vlr?: VlrLine
+  /** primary role — the one they play most */
   role: Role
+  /**
+   * Every role this player actually covers. Modern VALORANT players routinely
+   * double up (smokes + sentinel is the classic pairing), so composition checks
+   * count all of these, not just `role`.
+   */
+  roles?: Role[]
+  /** true when they cover a second role for their club */
+  flex?: boolean
   age: number
   isIgl: boolean
   attrs: Attrs
@@ -188,6 +197,12 @@ export interface MatchResult {
   maps: MapScore[]
   vetoLog: string[]
   mvp: string | null
+  /**
+   * Who actually played for each side, captured at match time. Scoreboards must
+   * use this rather than a player's current club — otherwise anyone transferred
+   * afterwards silently disappears from matches they played in.
+   */
+  lineups?: { a: string[]; b: string[] }
   /** short round-by-round narrative from the decisive map */
   highlights: string[]
 }

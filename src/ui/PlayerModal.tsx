@@ -1,4 +1,4 @@
-import { Bar, Modal, OvrBadge, Radar, RoleTag, money, moneyFull } from './common'
+import { Bar, Modal, OvrBadge, Radar, Roles, money, moneyFull } from './common'
 import { useGame } from './ctx'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
@@ -36,7 +36,7 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
       title={
         <span className="row" style={{ gap: 10 }}>
           <span>{p.ign}</span>
-          <RoleTag role={p.role} />
+          <Roles p={p} />
           <OvrBadge value={p.overall} />
           {p.isIgl && <span className="tag">IGL</span>}
         </span>

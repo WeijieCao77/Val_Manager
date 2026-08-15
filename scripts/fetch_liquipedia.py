@@ -22,7 +22,12 @@ UA = ("ValManagerGameBuild/0.1 (hobby esports-manager project; "
       "contact yankejing711@gmail.com)")
 API = "https://liquipedia.net/valorant/api.php"
 BATCH = 50
-DELAY = 3.0
+# Liquipedia rate-limits per action: action=parse is roughly one request every
+# 30s, while action=query is far more permissive. This script therefore only
+# ever uses action=query, batched 50 titles at a time, so all ~340 players cost
+# about seven requests. Do not lower this delay, and do not add a parse loop —
+# that is what got the IP temporarily blocked the first time around.
+DELAY = 4.0
 
 TEAM_PAGES = {
     "LEV": "Leviatán", "NRG": "NRG Esports", "G2": "G2 Esports", "MIBR": "MIBR",
