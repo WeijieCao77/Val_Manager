@@ -2,7 +2,8 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm ci && npm run build"
+    "// note": "Nixpacks installs dependencies in its own phase with a cache mount on node_modules/.cache. Running `npm ci` here as well fails with EBUSY trying to remove that mount, so this only builds.",
+    "buildCommand": "npm run build"
   },
   "deploy": {
     "startCommand": "npm start",
