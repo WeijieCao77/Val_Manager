@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, nextFixtureFor, stageName } from '../engine/season'
+import { advanceDay, advanceToNextMatch, makeFriendly, nextFixtureFor, stageName } from '../engine/season'
 import { sortStandings } from '../engine/league'
 import { squadOf, wageBill } from '../engine/world'
 import { ratingOf } from '../engine/match'
@@ -9,17 +9,18 @@ import { statLine } from '../engine/player'
 import type { DayReport } from '../engine/season'
 
 export default function Dashboard() {
-  const { game, commit, toast, openPlayer, openMatch, go } = useGame()
+  const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
   const [busy, setBusy] = useState(false)
   const me = game.teams[game.myTeam]
   const squad = squadOf(game, game.myTeam)
   const next = nextFixtureFor(game, game.myTeam)
 
   const handleReports = (reports: DayReport[]) => {
-    const played = reports.flatMap((r) => r.playedMine)
     const notes = reports.flatMap((r) => r.notes)
+    const pending = reports.map((r) => r.pendingMine).filter(Boolean)[0]
     commit()
-    if (played.length) openMatch(played[played.length - 1])
+    // your own match is handed to the live view, which offers watch or skip
+    if (pending) playLive(pending)
     else if (notes.length) toast(notes[notes.length - 1])
   }
 
@@ -29,12 +30,27 @@ export default function Dashboard() {
     // let the button paint its disabled state before the sim blocks the thread
     window.setTimeout(() => {
       try {
-        handleReports(fast ? advanceToNextMatch(game) : [advanceDay(game)])
+        handleReports(
+          fast
+            ? advanceToNextMatch(game, 40, { deferMine: true })
+            : [advanceDay(game, { deferMine: true })],
+        )
       } finally {
         setBusy(false)
       }
     }, 10)
   }
+
+  // the most recent result, shown compactly rather than forced open
+  const lastId = game.lastResults[game.lastResults.length - 1]
+  const lastFixture = lastId ? game.fixtures.find((f) => f.id === lastId) : undefined
+
+  // long gaps between fixtures are where scrims belong
+  const gapDays = next ? next.day - game.day : 0
+  const scrimOpponents = Object.values(game.teams)
+    .filter((t) => t.id !== game.myTeam && t.region === me.region)
+    .sort((a, b) => Math.abs(a.rating - me.rating) - Math.abs(b.rating - me.rating))
+    .slice(0, 4)
 
   const myComp = Object.values(game.comps).find(
     (c) => c.teams.includes(game.myTeam) && !c.champion &&
@@ -93,6 +109,26 @@ export default function Dashboard() {
                 ? '休赛期是处理转会与续约的好时机。'
                 : ''}
             </div>
+          )}
+          {lastFixture?.result && (
+            <button
+              className="last-result"
+              onClick={() => openMatch(lastFixture)}
+              title="点击查看完整数据与回合走势"
+            >
+              <span className="tiny faint">上一场</span>
+              <b>{game.teams[lastFixture.teamA]?.name}</b>
+              <span className="mono">
+                {lastFixture.result.mapsWonA} : {lastFixture.result.mapsWonB}
+              </span>
+              <b>{game.teams[lastFixture.teamB]?.name}</b>
+              {lastFixture.result.mvp && (
+                <span className="tiny muted">
+                  MVP {game.players[lastFixture.result.mvp]?.ign}
+                </span>
+              )}
+              <span className="tiny faint right">查看详情 ›</span>
+            </button>
           )}
           {injured.length > 0 && (
             <p className="small neg" style={{ marginBottom: 0 }}>
@@ -200,6 +236,30 @@ export default function Dashboard() {
           )}
         </Panel>
       </div>
+
+      {gapDays >= 4 && (
+        <Panel title={`空档期 · 距下一场还有 ${gapDays} 天`}>
+          <p className="small muted" style={{ marginTop: 0 }}>
+            安排一场训练赛：赢球涨状态，输了也比闲着强，但会消耗体能。不计入积分榜与个人数据。
+          </p>
+          <div className="row wrap" style={{ gap: 8 }}>
+            {scrimOpponents.map((t) => (
+              <button
+                key={t.id}
+                className="sm"
+                onClick={() => {
+                  const f = makeFriendly(game, t.id, game.day + 1)
+                  commit()
+                  toast(`已约战 ${t.name}，明天进行。`)
+                  void f
+                }}
+              >
+                {t.name} <span className="tiny faint">实力 {t.rating}</span>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <Panel title="新闻" flush>
         {recentNews.length ? (

@@ -257,6 +257,8 @@ function allocateRound(
   ctx: MapCtx,
   rng: Rng,
   mapName: string,
+  /** when the round is being played around one player, they see more of it */
+  focusId?: string,
 ): void {
   const kill = (killers: Player[], victims: Player[], count: number, firstOf: boolean) => {
     const vPool = victims.slice()
@@ -267,7 +269,7 @@ function allocateRound(
       // out-frags a support by roughly 1.5x over a season, as in real VCT data
       const kw = killers.map(
         (p) => (70 + (p.attrs.aim * 0.55 + p.attrs.reaction * 0.3 + p.attrs.clutch * 0.15) * 0.45) *
-          KILL_WEIGHT[p.role] * (0.9 + p.form / 500),
+          KILL_WEIGHT[p.role] * (0.9 + p.form / 500) * (p.id === focusId ? 1.55 : 1),
       )
       const dw = vPool.map(
         (p) => (120 - p.attrs.awareness * 0.35 - p.attrs.clutch * 0.2) * DEATH_WEIGHT[p.role],
@@ -327,132 +329,328 @@ function allocateRound(
   }
 }
 
-function simulateMap(
-  mapName: string,
-  A: Lineup,
-  B: Lineup,
-  rng: Rng,
-): { score: MapScore; highlights: string[] } {
-  const ctx: MapCtx = { lines: {}, highlights: [], rounds: [] }
-  for (const p of [...A.players, ...B.players]) ctx.lines[p.id] = blankLine()
+/** A tactical instruction called during a timeout; decays over a few rounds. */
+export interface TacticalCall {
+  kind: 'focus' | 'rush' | 'steady'
+  /** for 'focus': who the round is played around */
+  playerId?: string
+  roundsLeft: number
+}
 
-  const ecoA = new Economy()
-  const ecoB = new Economy()
-  let a = 0
-  let b = 0
-  // A attacks the first half by convention
-  let aAttacking = true
-  let round = 0
+export type Side = 'a' | 'b'
 
-  const playRound = (isPistol: boolean) => {
-    round++
-    const buyA = isPistol ? 'eco' : ecoA.decide(rng)
-    const buyB = isPistol ? 'eco' : ecoB.decide(rng)
-    if (!isPistol) {
-      ecoA.spend(buyA)
-      ecoB.spend(buyB)
+/**
+ * One map, played a round at a time.
+ *
+ * Watch mode drives this from the UI so it can stop for timeouts; skip mode
+ * runs it straight to the end. Both share this exact code path, so a match you
+ * watched and one you skipped are generated the same way.
+ */
+export class MapSim {
+  readonly map: string
+  readonly A: Lineup
+  readonly B: Lineup
+  a = 0
+  b = 0
+  /** rounds completed */
+  round = 0
+  timeouts: Record<Side, number> = { a: 2, b: 2 }
+  calls: Record<Side, TacticalCall | null> = { a: null, b: null }
+
+  private rng: Rng
+  private ctx: MapCtx
+  private ecoA = new Economy()
+  private ecoB = new Economy()
+  private halfA = 0
+  private halfB = 0
+  private otAnnounced = false
+
+  constructor(map: string, A: Lineup, B: Lineup, rng: Rng) {
+    this.map = map
+    this.A = A
+    this.B = B
+    this.rng = rng
+    this.ctx = { lines: {}, highlights: [], rounds: [] }
+    for (const p of [...A.players, ...B.players]) this.ctx.lines[p.id] = blankLine()
+  }
+
+  /** Side, pistol status and half for the round about to be played. */
+  private phase() {
+    const r = this.round + 1
+    if (r <= 12) return { aAttack: true, pistol: r === 1, half: 1 }
+    if (r <= 24) return { aAttack: false, pistol: r === 13, half: 2 }
+    const ot = r - 25
+    return { aAttack: ot % 2 === 0, pistol: false, half: 3 }
+  }
+
+  get over(): boolean {
+    return (this.a >= 13 || this.b >= 13) && Math.abs(this.a - this.b) >= 2
+  }
+
+  get rounds(): RoundLog[] {
+    return this.ctx.rounds
+  }
+
+  get highlights(): string[] {
+    return this.ctx.highlights
+  }
+
+  /** True when this side still has a timeout and the map is live. */
+  canTimeout(side: Side): boolean {
+    return !this.over && this.timeouts[side] > 0 && this.round > 0
+  }
+
+  callTimeout(side: Side, call: Omit<TacticalCall, 'roundsLeft'>): boolean {
+    if (!this.canTimeout(side)) return false
+    this.timeouts[side]--
+    this.calls[side] = { ...call, roundsLeft: 3 }
+    return true
+  }
+
+  /** Strength adjustment from an active tactical call. */
+  private callMod(call: TacticalCall | null, attacking: boolean): number {
+    if (!call) return 0
+    if (call.kind === 'rush') return attacking ? 2.4 : -1.6
+    if (call.kind === 'steady') return attacking ? -1.2 : 2.0
+    return 0.6 // focus: a small lift from playing to a known strength
+  }
+
+  playRound(): void {
+    if (this.over) return
+    const { aAttack, pistol } = this.phase()
+    this.round++
+
+    // economies reset at each half and at the start of every overtime pair
+    if (this.round === 1 || this.round === 13 ||
+        (this.round >= 25 && (this.round - 25) % 2 === 0)) {
+      this.ecoA.reset()
+      this.ecoB.reset()
+    }
+    if (this.round === 13) {
+      this.halfA = this.a
+      this.halfB = this.b
+    }
+    if (this.round === 25 && !this.otAnnounced) {
+      this.otAnnounced = true
+      this.ctx.highlights.push(HL.overtime())
+      // each side gets one extra timeout for overtime, as in the real rules
+      this.timeouts.a++
+      this.timeouts.b++
     }
 
-    const strA = (aAttacking ? A.atk : A.def) + (isPistol ? 0 : BUY_MOD[buyA])
-    const strB = (aAttacking ? B.def : B.atk) + (isPistol ? 0 : BUY_MOD[buyB])
+    const rng = this.rng
+    const buyA = pistol ? 'eco' : this.ecoA.decide(rng)
+    const buyB = pistol ? 'eco' : this.ecoB.decide(rng)
+    if (!pistol) {
+      this.ecoA.spend(buyA)
+      this.ecoB.spend(buyB)
+    }
+
+    const strA = (aAttack ? this.A.atk : this.A.def) + (pistol ? 0 : BUY_MOD[buyA]) +
+      this.callMod(this.calls.a, aAttack)
+    const strB = (aAttack ? this.B.def : this.B.atk) + (pistol ? 0 : BUY_MOD[buyB]) +
+      this.callMod(this.calls.b, !aAttack)
 
     // trailing side leans on mid-round calling to steady the ship
-    const swingA = a < b ? A.midRound * 0.35 : 0
-    const swingB = b < a ? B.midRound * 0.35 : 0
+    const swingA = this.a < this.b ? this.A.midRound * 0.35 : 0
+    const swingB = this.b < this.a ? this.B.midRound * 0.35 : 0
 
     // sensitivity is deliberately shallow: in real VCT even the strongest side
     // only takes ~60% of rounds off the field over a season
     const diff = strA + swingA - (strB + swingB)
-    const sens = isPistol ? 22 : 17
+    const sens = pistol ? 22 : 17
     const p = 1 / (1 + Math.exp(-diff / sens))
     const aWins = rng.chance(p)
 
     // how many fell on each side — tuned so total kills land near the real
     // ~7 per round (KPR ≈ 0.7 across ten players)
-    const elim = rng.chance(0.75)
+    const rushing = (aWins ? this.calls.a : this.calls.b)?.kind === 'rush'
+    const steady = (aWins ? this.calls.a : this.calls.b)?.kind === 'steady'
+    const elim = rng.chance(rushing ? 0.82 : 0.75)
     const losersLost = elim ? 5 : rng.int(2, 4)
     const closeness = Math.abs(p - 0.5)
     const winnersLost = rng.weighted([0, 1, 2, 3, 4], [
-      1.2 - closeness, 2.6, 3.4, 2.8, 1.6 + closeness * 1.5,
+      (1.2 - closeness) * (steady ? 1.6 : 1),
+      2.6, 3.4, 2.8,
+      (1.6 + closeness * 1.5) * (rushing ? 1.4 : steady ? 0.7 : 1),
     ])
 
-    const winners = aWins ? A.players : B.players
-    const losers = aWins ? B.players : A.players
-    allocateRound(winners, losers, winnersLost, losersLost, ctx, rng, mapName)
+    const winners = aWins ? this.A.players : this.B.players
+    const losers = aWins ? this.B.players : this.A.players
+    const focus = (aWins ? this.calls.a : this.calls.b)
+    allocateRound(
+      winners, losers, winnersLost, losersLost, this.ctx, rng, this.map,
+      focus?.kind === 'focus' ? focus.playerId : undefined,
+    )
 
     if (aWins) {
-      a++
-      ecoA.onWin(losersLost)
-      ecoB.onLoss(winnersLost)
+      this.a++
+      this.ecoA.onWin(losersLost)
+      this.ecoB.onLoss(winnersLost)
     } else {
-      b++
-      ecoB.onWin(losersLost)
-      ecoA.onLoss(winnersLost)
+      this.b++
+      this.ecoB.onWin(losersLost)
+      this.ecoA.onLoss(winnersLost)
     }
 
     // record how the round resolved for the broadcast round ribbon
-    const attackersWon = aWins === aAttacking
+    const attackersWon = aWins === aAttack
     const end: RoundLog['end'] = elim
       ? 'elim'
       : attackersWon
         ? 'spike'
         : rng.chance(0.55) ? 'defuse' : 'time'
-    ctx.rounds.push({
-      n: round, winner: aWins ? 'A' : 'B', aAttack: aAttacking, end,
+    this.ctx.rounds.push({
+      n: this.round, winner: aWins ? 'A' : 'B', aAttack, end,
       buyA: buyA as 'eco' | 'force' | 'full', buyB: buyB as 'eco' | 'force' | 'full',
     })
 
-    if (isPistol && ctx.highlights.length < 8 && rng.chance(0.3)) {
-      ctx.highlights.push(HL.eco(aWins ? A.team.name : B.team.name))
+    if (pistol && this.ctx.highlights.length < 8 && rng.chance(0.3)) {
+      this.ctx.highlights.push(HL.eco(aWins ? this.A.team.name : this.B.team.name))
+    }
+
+    for (const side of ['a', 'b'] as Side[]) {
+      const c = this.calls[side]
+      if (c && --c.roundsLeft <= 0) this.calls[side] = null
     }
   }
 
-  // first half
-  ecoA.reset()
-  ecoB.reset()
-  for (let i = 0; i < 12 && a < 13 && b < 13; i++) playRound(i === 0)
+  /** Finalise per-player lines and hand back the map result. */
+  result(): { score: MapScore; highlights: string[] } {
+    if ((this.halfA <= 3 && this.a > this.b) || (this.halfB <= 3 && this.b > this.a)) {
+      const t = this.a > this.b ? this.A.team.name : this.B.team.name
+      const from = this.a > this.b ? this.halfA : this.halfB
+      if (this.ctx.highlights.length < 8) this.ctx.highlights.push(HL.comeback(t, from))
+    }
+    const total = this.a + this.b
+    for (const id of Object.keys(this.ctx.lines)) {
+      const l = this.ctx.lines[id]
+      l.damage = Math.round(l.damage)
+      l.rounds = total
+      l.acs = total ? Math.round((l.damage / total) * 1.45) : 0
+    }
+    return {
+      score: {
+        map: this.map, scoreA: this.a, scoreB: this.b,
+        lines: this.ctx.lines, rounds: this.ctx.rounds,
+      },
+      highlights: this.ctx.highlights,
+    }
+  }
 
-  const halfA = a
-  const halfB = b
-
-  // second half — sides switch, economies reset
-  aAttacking = !aAttacking
-  ecoA.reset()
-  ecoB.reset()
-  for (let i = 0; i < 12 && a < 13 && b < 13; i++) playRound(i === 0)
-
-  // overtime: alternate sides, win by two
-  if (a === 12 && b === 12) {
-    ctx.highlights.push(HL.overtime())
+  /** Run the remaining rounds without stopping. */
+  runOut(): void {
     let guard = 0
-    while (Math.abs(a - b) < 2 && guard < 30) {
-      ecoA.reset()
-      ecoB.reset()
-      playRound(false)
-      aAttacking = !aAttacking
-      playRound(false)
-      aAttacking = !aAttacking
-      guard++
+    while (!this.over && guard++ < 80) this.playRound()
+  }
+}
+
+/**
+ * A whole match, map by map. The veto runs up front; each map is then a MapSim
+ * the caller can step through or run out. `simulateMatch` below is just this
+ * class driven to completion, so watched and skipped matches agree.
+ */
+export class MatchSim {
+  readonly maps: string[]
+  readonly vetoLog: string[]
+  readonly need: number
+  readonly aId: string
+  readonly bId: string
+  wonA = 0
+  wonB = 0
+  played: MapScore[] = []
+  highlights: string[] = []
+  current: MapSim | null = null
+  mapIndex = -1
+
+  private state: GameState
+  private rng: Rng
+  private seenA = new Set<string>()
+  private seenB = new Set<string>()
+
+  constructor(state: GameState, aId: string, bId: string, bo: 1 | 3 | 5, rng: Rng) {
+    this.state = state
+    this.aId = aId
+    this.bId = bId
+    this.rng = rng
+    this.need = Math.ceil(bo / 2)
+    const pool = activePool(state.seed + state.year)
+    const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
+    this.maps = maps
+    this.vetoLog = log
+  }
+
+  get decided(): boolean {
+    return this.wonA >= this.need || this.wonB >= this.need
+  }
+
+  /** Which side the managed club is on, for timeout routing. */
+  sideOf(teamId: string): 'a' | 'b' | null {
+    return teamId === this.aId ? 'a' : teamId === this.bId ? 'b' : null
+  }
+
+  /** Begin the next map. Returns false when the match is already decided. */
+  nextMap(): boolean {
+    if (this.decided || this.mapIndex + 1 >= this.maps.length) return false
+    this.mapIndex++
+    const m = this.maps[this.mapIndex]
+    const A = buildLineup(this.state, this.aId, m)
+    const B = buildLineup(this.state, this.bId, m)
+    for (const p of A.players) this.seenA.add(p.id)
+    for (const p of B.players) this.seenB.add(p.id)
+    this.current = new MapSim(m, A, B, this.rng)
+    return true
+  }
+
+  /** Fold the finished map into the match tally. */
+  closeMap(): void {
+    if (!this.current) return
+    const { score, highlights } = this.current.result()
+    this.played.push(score)
+    for (const h of highlights) {
+      if (this.highlights.length < 10) this.highlights.push(`[${score.map}] ${h}`)
+    }
+    if (score.scoreA > score.scoreB) this.wonA++
+    else this.wonB++
+    this.current = null
+  }
+
+  finish(): MatchResult {
+    const totals: Record<string, { acs: number; maps: number }> = {}
+    for (const ms of this.played) {
+      for (const [pid, l] of Object.entries(ms.lines)) {
+        const t = (totals[pid] ??= { acs: 0, maps: 0 })
+        t.acs += l.acs
+        t.maps++
+      }
+    }
+    const winnerIds = new Set(
+      (this.wonA > this.wonB ? this.state.teams[this.aId] : this.state.teams[this.bId])?.roster ?? [],
+    )
+    let mvp: string | null = null
+    let best = -1
+    for (const [pid, t] of Object.entries(totals)) {
+      if (!t.maps) continue
+      const s = t.acs / t.maps + (winnerIds.has(pid) ? 18 : 0)
+      if (s > best) {
+        best = s
+        mvp = pid
+      }
+    }
+    return {
+      mapsWonA: this.wonA, mapsWonB: this.wonB, maps: this.played,
+      vetoLog: this.vetoLog, mvp, highlights: this.highlights,
+      lineups: { a: [...this.seenA], b: [...this.seenB] },
     }
   }
 
-  if ((halfA <= 3 && a > b) || (halfB <= 3 && b > a)) {
-    const t = a > b ? A.team.name : B.team.name
-    const from = a > b ? halfA : halfB
-    if (ctx.highlights.length < 8) ctx.highlights.push(HL.comeback(t, from))
-  }
-
-  const totalRounds = a + b
-  for (const id of Object.keys(ctx.lines)) {
-    const l = ctx.lines[id]
-    l.damage = Math.round(l.damage)
-    l.rounds = totalRounds
-    l.acs = totalRounds ? Math.round((l.damage / totalRounds) * 1.45) : 0
-  }
-
-  return {
-    score: { map: mapName, scoreA: a, scoreB: b, lines: ctx.lines, rounds: ctx.rounds },
-    highlights: ctx.highlights,
+  /** Play everything that is left without stopping. */
+  runOut(): MatchResult {
+    while (!this.decided && this.nextMap()) {
+      this.current!.runOut()
+      this.closeMap()
+    }
+    return this.finish()
   }
 }
 
@@ -470,59 +668,7 @@ export function simulateMatch(
   bo: 1 | 3 | 5,
   rng: Rng,
 ): MatchResult {
-  const pool = activePool(state.seed + state.year)
-  const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
-
-  const need = Math.ceil(bo / 2)
-  const played: MapScore[] = []
-  const highlights: string[] = []
-  const seenA = new Set<string>()
-  const seenB = new Set<string>()
-  let wonA = 0
-  let wonB = 0
-
-  for (const m of maps) {
-    if (wonA >= need || wonB >= need) break
-    const A = buildLineup(state, aId, m)
-    const B = buildLineup(state, bId, m)
-    for (const p of A.players) seenA.add(p.id)
-    for (const p of B.players) seenB.add(p.id)
-    const { score, highlights: mapHl } = simulateMap(m, A, B, rng)
-    played.push(score)
-    for (const h of mapHl) if (highlights.length < 10) highlights.push(`[${m}] ${h}`)
-    if (score.scoreA > score.scoreB) wonA++
-    else wonB++
-  }
-
-  // aggregate ACS over the match to crown an MVP
-  const totals: Record<string, { acs: number; maps: number; kills: number }> = {}
-  for (const ms of played) {
-    for (const [pid, l] of Object.entries(ms.lines)) {
-      const t = (totals[pid] ??= { acs: 0, maps: 0, kills: 0 })
-      t.acs += l.acs
-      t.maps++
-      t.kills += l.kills
-    }
-  }
-  let mvp: string | null = null
-  let bestScore = -1
-  const winnerIds = new Set(
-    (wonA > wonB ? state.teams[aId] : state.teams[bId]).roster,
-  )
-  for (const [pid, t] of Object.entries(totals)) {
-    if (!t.maps) continue
-    // winners get the nod on a tie, as in real MVP voting
-    const s = t.acs / t.maps + (winnerIds.has(pid) ? 18 : 0)
-    if (s > bestScore) {
-      bestScore = s
-      mvp = pid
-    }
-  }
-
-  return {
-    mapsWonA: wonA, mapsWonB: wonB, maps: played, vetoLog: log, mvp, highlights,
-    lineups: { a: [...seenA], b: [...seenB] },
-  }
+  return new MatchSim(state, aId, bId, bo, rng).runOut()
 }
 
 /** Roll the match's per-map lines into a player's season + career totals. */

@@ -1,5 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import { applyMatchStats, simulateMatch, stripRoundLogs } from './match'
+import type { MatchResult } from './types'
 import {
   CHAMP_POINTS, advanceBracket, applyResultToStandings, makeFixture, newStandings,
   resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket,
@@ -233,9 +234,80 @@ export interface DayReport {
   playedMine: Fixture[]
   notes: string[]
   seasonEnded: boolean
+  /** set when the manager's own match was left for them to play */
+  pendingMine?: Fixture
 }
 
-export function advanceDay(state: GameState): DayReport {
+export interface AdvanceOpts {
+  /** hand the manager's own fixture back unplayed so they can watch it */
+  deferMine?: boolean
+}
+
+/** Each fixture gets its own stream, so a result never depends on play order. */
+export const fixtureRng = (state: GameState, f: Fixture) =>
+  new Rng(hashStr(`match:${state.seed}:${state.year}:${f.id}`))
+
+export const isScrim = (f: Fixture) => f.comp === 'friendly'
+
+/** Apply a result the UI produced, then move the competition forward. */
+export function commitFixture(state: GameState, f: Fixture, result: MatchResult): void {
+  const isMine = f.teamA === state.myTeam || f.teamB === state.myTeam
+  if (!isMine) stripRoundLogs(result)
+  f.result = result
+  f.played = true
+  const rng = fixtureRng(state, f)
+  // scrims build form and cost condition but never enter the record books
+  if (isScrim(f)) {
+    applyMatchFatigue(state, f.teamA, result.maps.length, rng)
+    applyMatchFatigue(state, f.teamB, result.maps.length, rng)
+    const aWon = result.mapsWonA > result.mapsWonB
+    for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
+      for (const pid of state.teams[teamId]?.starters ?? []) {
+        const p = state.players[pid]
+        if (!p) continue
+        p.form = clamp(p.form + (won ? rng.range(0.5, 2.5) : rng.range(-0.5, 1.2)), 30, 99)
+        p.morale = clamp(p.morale + (won ? rng.range(0, 2) : -rng.range(0, 1.5)), 10, 100)
+      }
+    }
+    if (isMine) state.lastResults.push(f.id)
+    state.news.push({
+      day: state.day, kind: 'club',
+      text: `训练赛｜${state.teams[f.teamA]?.name} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.name}`,
+    })
+    return
+  }
+  applyMatchStats(state, result)
+  applyMatchFatigue(state, f.teamA, result.maps.length, rng)
+  applyMatchFatigue(state, f.teamB, result.maps.length, rng)
+
+  const comp = state.comps[f.comp]
+  if (comp && !f.label.startsWith('KO:')) applyResultToStandings(comp, f)
+
+  const aWon = result.mapsWonA > result.mapsWonB
+  for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
+    for (const pid of state.teams[teamId]?.starters ?? []) {
+      const p = state.players[pid]
+      if (p) p.morale = clamp(p.morale + (won ? rng.range(1, 5) : -rng.range(1, 5)), 10, 100)
+    }
+  }
+
+  if (isMine) {
+    state.lastResults.push(f.id)
+    const mine = f.teamA === state.myTeam
+    const myWin = mine ? aWon : !aWon
+    state.boardConfidence = clamp(state.boardConfidence + (myWin ? 1.2 : -1.4), 0, 100)
+  }
+
+  state.news.push({
+    day: state.day,
+    kind: 'match',
+    text: `${comp?.name ?? f.comp}｜${state.teams[f.teamA]?.name} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.name}`,
+    important: isMine,
+  })
+  progressCompetitions(state)
+}
+
+export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport {
   const rng = new Rng(hashStr(`day:${state.seed}:${state.year}:${state.day}`))
   const prevStage = state.stage
   state.day++
@@ -251,6 +323,7 @@ export function advanceDay(state: GameState): DayReport {
   }
 
   // ---- play today's matches
+  let pendingMine: Fixture | undefined
   const today = state.fixtures.filter((f) => f.day === state.day && !f.played)
   for (const f of today) {
     const a = state.teams[f.teamA]
@@ -259,45 +332,18 @@ export function advanceDay(state: GameState): DayReport {
       f.played = true
       continue
     }
-    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, rng)
     const isMine = f.teamA === state.myTeam || f.teamB === state.myTeam
-    // full round detail is only retained for the manager's own matches
-    if (!isMine) stripRoundLogs(result)
-    f.result = result
-    f.played = true
-    applyMatchStats(state, result)
-    applyMatchFatigue(state, f.teamA, result.maps.length, rng)
-    applyMatchFatigue(state, f.teamB, result.maps.length, rng)
-
-    const comp = state.comps[f.comp]
-    if (comp && !f.label.startsWith('KO:')) applyResultToStandings(comp, f)
-
-    const aWon = result.mapsWonA > result.mapsWonB
-    // morale swings with the result
-    for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
-      for (const pid of state.teams[teamId]?.starters ?? []) {
-        const p = state.players[pid]
-        if (p) p.morale = clamp(p.morale + (won ? rng.range(1, 5) : -rng.range(1, 5)), 10, 100)
-      }
+    if (isMine && opts.deferMine && !pendingMine) {
+      // leave it for the manager to watch or skip
+      pendingMine = f
+      continue
     }
-
-    if (f.teamA === state.myTeam || f.teamB === state.myTeam) {
-      playedMine.push(f)
-      state.lastResults.push(f.id)
-      const mine = f.teamA === state.myTeam
-      const myWin = mine ? aWon : !aWon
-      state.boardConfidence = clamp(state.boardConfidence + (myWin ? 1.2 : -1.4), 0, 100)
-    }
-
-    state.news.push({
-      day: state.day,
-      kind: 'match',
-      text: `${comp?.name ?? f.comp}｜${a.name} ${result.mapsWonA}-${result.mapsWonB} ${b.name}`,
-      important: f.teamA === state.myTeam || f.teamB === state.myTeam,
-    })
+    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f))
+    commitFixture(state, f, result)
+    if (isMine) playedMine.push(f)
   }
 
-  progressCompetitions(state)
+  if (!pendingMine) progressCompetitions(state)
 
   // ---- weekly upkeep
   if (state.day % 7 === 0) {
@@ -316,7 +362,7 @@ export function advanceDay(state: GameState): DayReport {
     seasonEnded = true
   }
 
-  return { day: state.day, stage: state.stage, stageChanged, playedMine, notes, seasonEnded }
+  return { day: state.day, stage: state.stage, stageChanged, playedMine, notes, seasonEnded, pendingMine }
 }
 
 /** Promotion, contracts, ageing, then a fresh calendar. */
@@ -455,12 +501,14 @@ export const fixturesFor = (state: GameState, teamId: string): Fixture[] =>
     .sort((a, b) => a.day - b.day)
 
 /** Fast-forward until something the manager should look at happens. */
-export function advanceToNextMatch(state: GameState, maxDays = 40): DayReport[] {
+export function advanceToNextMatch(
+  state: GameState, maxDays = 40, opts: AdvanceOpts = {},
+): DayReport[] {
   const reports: DayReport[] = []
   for (let i = 0; i < maxDays; i++) {
-    const r = advanceDay(state)
+    const r = advanceDay(state, opts)
     reports.push(r)
-    if (r.playedMine.length || r.seasonEnded) break
+    if (r.playedMine.length || r.pendingMine || r.seasonEnded) break
     const next = nextFixtureFor(state, state.myTeam)
     if (next && next.day === state.day + 1) break
   }

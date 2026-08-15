@@ -13,6 +13,7 @@ import Finances from './ui/Finances'
 import Saves from './ui/Saves'
 import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
+import MatchLive from './ui/MatchLive'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextFixtureFor, stageName } from './engine/season'
 import { money } from './ui/common'
@@ -37,6 +38,7 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [fixture, setFixture] = useState<Fixture | null>(null)
+  const [live, setLive] = useState<Fixture | null>(null)
   const [booted, setBooted] = useState(false)
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function App() {
       toast,
       openPlayer: setPlayerId,
       openMatch: setFixture,
+      playLive: setLive,
       go: setScreen,
     }),
     // gameRef is stable; bump() drives re-renders, so recompute on every render
@@ -154,6 +157,17 @@ export default function App() {
           <PlayerModal playerId={playerId} onClose={() => setPlayerId(null)} />
         )}
         {fixture && <MatchModal fixture={fixture} onClose={() => setFixture(null)} />}
+        {live && (
+          <MatchLive
+            key={live.id}
+            fixture={live}
+            onDone={(watched) => {
+              setLive(null)
+              // watching already showed the match; skipping just leaves a banner
+              if (watched) setFixture(live)
+            }}
+          />
+        )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>
     </GameCtx.Provider>

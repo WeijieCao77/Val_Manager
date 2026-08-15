@@ -254,6 +254,16 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .tag.warn { border-color: var(--warn); color: var(--warn); }
 .tag.win { border-color: var(--win); color: var(--win); }
 
+/* last result — a banner you can ignore, not a modal you must dismiss */
+.last-result {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin-top: 10px; padding: 8px 12px; text-align: left;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-left: 2px solid var(--accent); border-radius: var(--radius);
+}
+.last-result .mono { font-size: 15px; font-weight: 700; }
+.last-result:hover { background: var(--panel-3); }
+
 /* trait chips — strengths read green, real weaknesses amber, never hidden */
 .trait {
   display: inline-block; padding: 2px 8px; border-radius: 2px;

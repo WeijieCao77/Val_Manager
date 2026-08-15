@@ -8,6 +8,8 @@ export interface GameCtxValue {
   toast: (msg: string) => void
   openPlayer: (id: string) => void
   openMatch: (f: Fixture) => void
+  /** hand a fixture to the live match view (watch or skip) */
+  playLive: (f: Fixture) => void
   go: (screen: string) => void
 }
 

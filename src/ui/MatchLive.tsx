@@ -1,0 +1,216 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useGame } from './ctx'
+import { Modal, OvrBadge, Roles } from './common'
+import RoundRibbon, { RibbonLegend } from './RoundRibbon'
+import { MatchSim } from '../engine/match'
+import type { Side } from '../engine/match'
+import { commitFixture, fixtureRng } from '../engine/season'
+import type { Fixture } from '../engine/types'
+
+type Phase = 'choose' | 'watching' | 'timeout' | 'done'
+
+const TICK_MS = 420
+
+/**
+ * Playing out one of the manager's own matches.
+ *
+ * Skipping runs the same MatchSim straight to the end, so watching costs you
+ * nothing but time and gains you the two tactical timeouts a real team gets.
+ */
+export default function MatchLive({
+  fixture, onDone,
+}: { fixture: Fixture; onDone: (watched: boolean) => void }) {
+  const { game, commit, toast } = useGame()
+  const simRef = useRef<MatchSim | null>(null)
+  const [, bump] = useState(0)
+  const [phase, setPhase] = useState<Phase>('choose')
+  const rerender = useCallback(() => bump((x) => x + 1), [])
+
+  if (!simRef.current) {
+    simRef.current = new MatchSim(game, fixture.teamA, fixture.teamB, fixture.bo, fixtureRng(game, fixture))
+  }
+  const sim = simRef.current
+  const mySide: Side | null = sim.sideOf(game.myTeam)
+  const a = game.teams[fixture.teamA]
+  const b = game.teams[fixture.teamB]
+
+  const finishUp = useCallback((watched: boolean) => {
+    const result = sim.finish()
+    commitFixture(game, fixture, result)
+    commit()
+    setPhase('done')
+    onDone(watched)
+  }, [sim, game, fixture, commit, onDone])
+
+  const skip = useCallback(() => {
+    // finish whatever is in flight, then run the rest out
+    if (sim.current) {
+      sim.current.runOut()
+      sim.closeMap()
+    }
+    while (!sim.decided && sim.nextMap()) {
+      sim.current!.runOut()
+      sim.closeMap()
+    }
+    finishUp(false)
+  }, [sim, finishUp])
+
+  const step = useCallback(() => {
+    const m = sim.current
+    if (!m) {
+      if (!sim.nextMap()) {
+        finishUp(true)
+        return
+      }
+      rerender()
+      return
+    }
+    if (m.over) {
+      sim.closeMap()
+      if (sim.decided || !sim.nextMap()) finishUp(true)
+      rerender()
+      return
+    }
+    m.playRound()
+    rerender()
+  }, [sim, finishUp, rerender])
+
+  useEffect(() => {
+    if (phase !== 'watching') return
+    const id = window.setInterval(step, TICK_MS)
+    return () => window.clearInterval(id)
+  }, [phase, step])
+
+  const map = sim.current
+  const canTimeout = !!mySide && !!map && map.canTimeout(mySide)
+
+  const callTimeout = (kind: 'rush' | 'steady' | 'focus', playerId?: string) => {
+    if (!mySide || !map) return
+    if (map.callTimeout(mySide, { kind, playerId })) {
+      const label = kind === 'rush' ? '强攻' : kind === 'steady' ? '稳守' : '打核心'
+      toast(`暂停已用：${label}（持续 3 回合）`)
+      setPhase('watching')
+      rerender()
+    }
+  }
+
+  // ---------------------------------------------------------------- choose
+  if (phase === 'choose') {
+    return (
+      <Modal title={`${game.comps[fixture.comp]?.name ?? fixture.comp} · BO${fixture.bo}`} onClose={skip}>
+        <div className="score-line">
+          <div className="t a">{a?.name}</div>
+          <div className="s muted" style={{ fontSize: 22 }}>VS</div>
+          <div className="t">{b?.name}</div>
+        </div>
+        <p className="center small muted" style={{ marginTop: -6 }}>
+          {fixture.label.replace(/^KO:\d+:/, '')}
+        </p>
+        <div className="row" style={{ gap: 10, justifyContent: 'center', marginTop: 18 }}>
+          <button className="primary" onClick={() => setPhase('watching')}>
+            观战（可用 2 次暂停）
+          </button>
+          <button onClick={skip}>快进到结果</button>
+        </div>
+        <p className="tiny faint center" style={{ marginTop: 14, marginBottom: 0 }}>
+          两种方式使用同一套模拟逻辑，结果不会因为你是否观战而不同。<br />
+          观战时每张图有 2 次暂停，进入加时后双方各加 1 次。
+        </p>
+      </Modal>
+    )
+  }
+
+  if (phase === 'done') return null
+
+  // ---------------------------------------------------------------- watching
+  const mineIsA = fixture.teamA === game.myTeam
+  const scoreA = map ? map.a : sim.wonA
+  const scoreB = map ? map.b : sim.wonB
+
+  return (
+    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${map?.round ?? 0} 回合`} onClose={skip}>
+      <div className="row" style={{ gap: 8, justifyContent: 'center', marginBottom: 6 }}>
+        {sim.played.map((m, i) => (
+          <span key={i} className="tag">
+            {m.map} {m.scoreA}-{m.scoreB}
+          </span>
+        ))}
+        <span className="tag t1">大比分 {sim.wonA} - {sim.wonB}</span>
+      </div>
+
+      <div className="score-line" style={{ padding: '10px 0' }}>
+        <div className={`t a ${scoreA > scoreB ? 'win' : ''}`}>{a?.name}</div>
+        <div className="s">{scoreA} : {scoreB}</div>
+        <div className={`t ${scoreB > scoreA ? 'win' : ''}`}>{b?.name}</div>
+      </div>
+
+      {map && map.rounds.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <RoundRibbon rounds={map.rounds} mineIsA={mineIsA} />
+          <div style={{ marginTop: 8 }}>
+            <RibbonLegend mine={mineIsA ? a!.name : b!.name} theirs={mineIsA ? b!.name : a!.name} />
+          </div>
+        </div>
+      )}
+
+      {phase === 'timeout' && map && mySide ? (
+        <div className="panel own">
+          <div className="panel-head"><h2>暂停 · 剩余 {map.timeouts[mySide]} 次</h2></div>
+          <div className="panel-body">
+            <p className="small muted" style={{ marginTop: 0 }}>选择接下来 3 个回合的打法：</p>
+            <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
+              <button onClick={() => callTimeout('rush')}>
+                强攻 <span className="tiny faint">进攻端更强，但更容易被打穿</span>
+              </button>
+              <button onClick={() => callTimeout('steady')}>
+                稳守 <span className="tiny faint">减少伤亡与波动，适合领先或缺钱</span>
+              </button>
+            </div>
+            <div className="small muted" style={{ marginBottom: 6 }}>或者围绕一名选手打：</div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {(mySide === 'a' ? map.A : map.B).players.map((p) => (
+                <button key={p.id} className="sm" onClick={() => callTimeout('focus', p.id)}>
+                  {p.ign} <OvrBadge value={p.overall} />
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <button className="ghost sm" onClick={() => setPhase('watching')}>取消，继续比赛</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="row" style={{ gap: 10, justifyContent: 'center' }}>
+          <button
+            className="primary"
+            disabled={!canTimeout}
+            onClick={() => setPhase('timeout')}
+          >
+            叫暂停{map && mySide ? `（${map.timeouts[mySide]}）` : ''}
+          </button>
+          <button onClick={skip}>跳过剩余</button>
+        </div>
+      )}
+
+      {map && mySide && map.calls[mySide] && (
+        <p className="center small" style={{ color: 'var(--accent)', marginBottom: 0 }}>
+          战术生效中：
+          {map.calls[mySide]!.kind === 'rush' ? '强攻'
+            : map.calls[mySide]!.kind === 'steady' ? '稳守'
+            : `围绕 ${game.players[map.calls[mySide]!.playerId!]?.ign} 打`}
+          （剩 {map.calls[mySide]!.roundsLeft} 回合）
+        </p>
+      )}
+
+      {map && (
+        <div className="row wrap tiny faint" style={{ gap: 10, justifyContent: 'center', marginTop: 10 }}>
+          {(mySide === 'a' ? map.A : map.B).players.map((p) => (
+            <span key={p.id} className="row" style={{ gap: 4 }}>
+              <Roles p={p} /><span>{p.ign}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </Modal>
+  )
+}
