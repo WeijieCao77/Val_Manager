@@ -18,10 +18,20 @@
     "actual agent-pool breadth. Until that is available, correct teams here."
   ],
 
-  "igl": {
-    "PRX": "f0rsakeN"
-  },
+  "_igl_note": [
+    "IGLs now come from Liquipedia's team infobox `igl=` field (47/53 teams),",
+    "which is a real source — so nothing is pinned here. Only add an entry if a",
+    "club's infobox is wrong or missing AND you can verify the caller."
+  ],
+  "igl": {},
 
+  "_roles_note": [
+    "Role breadth is the one thing neither source gives directly: vlr's filter",
+    "reports only a player's most-played role, and Liquipedia's infobox has no",
+    "per-player role field. Entries below are hand-verified stand-ins until the",
+    "per-role round distribution can be scraped from vlr",
+    "(role=duelist|initiator|controller|sentinel), which is the real fix."
+  ],
   "roles": {
     "f0rsakeN": ["自由人", "控场", "哨卫", "决斗者", "先锋"],
     "something": ["决斗者"]
