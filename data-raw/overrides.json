@@ -36,7 +36,6 @@
     "(role=duelist|initiator|controller|sentinel), which is the real fix."
   ],
   "roles": {
-    "f0rsakeN": ["自由人", "控场", "哨卫", "决斗者", "先锋"],
-    "something": ["决斗者"]
+    "f0rsakeN": ["自由人", "控场", "哨卫", "决斗者", "先锋"]
   }
 }

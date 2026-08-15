@@ -5,3 +5,7 @@ dist-ssr
 .DS_Store
 .vite
 *.log
+
+# never commit API keys
+.env
+.env.local

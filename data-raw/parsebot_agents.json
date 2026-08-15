@@ -1,0 +1,980 @@
+{
+ "slowly": {
+  "team": "TYL",
+  "agents": [
+   "Chamber",
+   "Astra",
+   "Omen"
+  ],
+  "rounds": "333",
+  "rating": "1.38"
+ },
+ "Asuna": {
+  "team": "100T",
+  "agents": [
+   "Phoenix"
+  ],
+  "rounds": "269",
+  "rating": "1.30"
+ },
+ "vo0kashu": {
+  "team": "DRG",
+  "agents": [
+   "Cypher",
+   "Viper"
+  ],
+  "rounds": "561",
+  "rating": "1.27"
+ },
+ "basic": {
+  "team": "FUR",
+  "agents": [
+   "Harbor",
+   "Kayo",
+   "Phoenix"
+  ],
+  "rounds": "330",
+  "rating": "1.26"
+ },
+ "marteen": {
+  "team": "M8",
+  "agents": [
+   "Phoenix",
+   "Raze",
+   "Yoru"
+  ],
+  "rounds": "344",
+  "rating": "1.23"
+ },
+ "Foxy9": {
+  "team": "VL",
+  "agents": [
+   "Cypher",
+   "Viper",
+   "Chamber"
+  ],
+  "rounds": "291",
+  "rating": "1.22"
+ },
+ "Scales": {
+  "team": "TYL",
+  "agents": [
+   "Viper",
+   "Cypher",
+   "Sage"
+  ],
+  "rounds": "333",
+  "rating": "1.22"
+ },
+ "kozzy": {
+  "team": "EP",
+  "agents": [
+   "Neon",
+   "Raze"
+  ],
+  "rounds": "104",
+  "rating": "1.22"
+ },
+ "Meteor": {
+  "team": "T1",
+  "agents": [
+   "Chamber",
+   "Jett",
+   "Yoru"
+  ],
+  "rounds": "249",
+  "rating": "1.20"
+ },
+ "lukxo": {
+  "team": "LOUD",
+  "agents": [
+   "Chamber",
+   "Harbor",
+   "Viper"
+  ],
+  "rounds": "258",
+  "rating": "1.20"
+ },
+ "azury": {
+  "team": "SGE",
+  "agents": [
+   "Breach",
+   "Omen",
+   "Viper"
+  ],
+  "rounds": "152",
+  "rating": "1.19"
+ },
+ "lovers rock": {
+  "team": "BBL",
+  "agents": [
+   "Yoru",
+   "Neon"
+  ],
+  "rounds": "277",
+  "rating": "1.19"
+ },
+ "something": {
+  "team": "PRX",
+  "agents": [
+   "Jett",
+   "Yoru",
+   "Brimstone"
+  ],
+  "rounds": "432",
+  "rating": "1.18"
+ },
+ "Verno": {
+  "team": "MIBR",
+  "agents": [
+   "Sova",
+   "Omen"
+  ],
+  "rounds": "229",
+  "rating": "1.18"
+ },
+ "XuNa": {
+  "team": "VL",
+  "agents": [
+   "Fade",
+   "Sova",
+   "Tejo"
+  ],
+  "rounds": "291",
+  "rating": "1.18"
+ },
+ "swagzor": {
+  "team": "NOVA",
+  "agents": [
+   "Neon",
+   "Raze",
+   "Waylay"
+  ],
+  "rounds": "325",
+  "rating": "1.18"
+ },
+ "Avez": {
+  "team": "KC",
+  "agents": [
+   "Fade",
+   "Sova"
+  ],
+  "rounds": "270",
+  "rating": "1.17"
+ },
+ "invy": {
+  "team": "PRX",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Skye"
+  ],
+  "rounds": "432",
+  "rating": "1.17"
+ },
+ "keiko": {
+  "team": "NRG",
+  "agents": [
+   "Jett",
+   "Brimstone",
+   "Chamber"
+  ],
+  "rounds": "256",
+  "rating": "1.17"
+ },
+ "primmie": {
+  "team": "FS",
+  "agents": [
+   "Deadlock",
+   "Waylay",
+   "Jett"
+  ],
+  "rounds": "356",
+  "rating": "1.17"
+ },
+ "Neon": {
+  "team": "LEV",
+  "agents": [
+   "Chamber",
+   "Omen",
+   "Jett"
+  ],
+  "rounds": "443",
+  "rating": "1.17"
+ },
+ "Chronicle": {
+  "team": "VIT",
+  "agents": [
+   "Viper",
+   "Chamber",
+   "Vyse"
+  ],
+  "rounds": "355",
+  "rating": "1.16"
+ },
+ "aspas": {
+  "team": "MIBR",
+  "agents": [
+   "Neon",
+   "Jett"
+  ],
+  "rounds": "229",
+  "rating": "1.16"
+ },
+ "OXY": {
+  "team": "C9",
+  "agents": [
+   "Neon",
+   "Raze",
+   "Jett"
+  ],
+  "rounds": "311",
+  "rating": "1.16"
+ },
+ "Rarga": {
+  "team": "XLG",
+  "agents": [
+   "Chamber",
+   "Jett",
+   "Phoenix"
+  ],
+  "rounds": "359",
+  "rating": "1.16"
+ },
+ "Sayonara": {
+  "team": "VIT",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Viper"
+  ],
+  "rounds": "355",
+  "rating": "1.16"
+ },
+ "SiuFatBB": {
+  "team": "TYL",
+  "agents": [
+   "Fade",
+   "Sova",
+   "Skye"
+  ],
+  "rounds": "333",
+  "rating": "1.15"
+ },
+ "LewN": {
+  "team": "KC",
+  "agents": [
+   "Neon",
+   "Raze"
+  ],
+  "rounds": "270",
+  "rating": "1.15"
+ },
+ "N4RRATE": {
+  "team": "KC",
+  "agents": [
+   "Chamber",
+   "Phoenix",
+   "Sage"
+  ],
+  "rounds": "270",
+  "rating": "1.15"
+ },
+ "splash": {
+  "team": "TYL",
+  "agents": [
+   "Neon",
+   "Raze",
+   "Jett"
+  ],
+  "rounds": "333",
+  "rating": "1.15"
+ },
+ "Favian": {
+  "team": "EF",
+  "agents": [
+   "Veto",
+   "Neon",
+   "Phoenix"
+  ],
+  "rounds": "271",
+  "rating": "1.15"
+ },
+ "kamyk": {
+  "team": "JL",
+  "agents": [
+   "Omen",
+   "Viper",
+   "Astra"
+  ],
+  "rounds": "246",
+  "rating": "1.14"
+ },
+ "Monyet": {
+  "team": "RRQ",
+  "agents": [
+   "Omen",
+   "Astra",
+   "Harbor"
+  ],
+  "rounds": "343",
+  "rating": "1.14"
+ },
+ "skuba": {
+  "team": "NRG",
+  "agents": [
+   "Viper",
+   "Cypher",
+   "Omen"
+  ],
+  "rounds": "256",
+  "rating": "1.14"
+ },
+ "Wo0t": {
+  "team": "TH",
+  "agents": [
+   "Chamber",
+   "Jett",
+   "Raze"
+  ],
+  "rounds": "371",
+  "rating": "1.14"
+ },
+ "Xross": {
+  "team": "NS",
+  "agents": [
+   "Phoenix",
+   "Sova",
+   "Fade"
+  ],
+  "rounds": "318",
+  "rating": "1.14"
+ },
+ "Erv": {
+  "team": "TYL",
+  "agents": [
+   "Omen",
+   "Kayo",
+   "Waylay"
+  ],
+  "rounds": "333",
+  "rating": "1.14"
+ },
+ "BuZz": {
+  "team": "T1",
+  "agents": [
+   "Phoenix",
+   "Omen",
+   "Raze"
+  ],
+  "rounds": "249",
+  "rating": "1.13"
+ },
+ "johnqt": {
+  "team": "SEN",
+  "agents": [
+   "Harbor",
+   "Cypher",
+   "Viper"
+  ],
+  "rounds": "232",
+  "rating": "1.13"
+ },
+ "trexx": {
+  "team": "TL",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Astra"
+  ],
+  "rounds": "231",
+  "rating": "1.13"
+ },
+ "brawk": {
+  "team": "NRG",
+  "agents": [
+   "Sova",
+   "Vyse"
+  ],
+  "rounds": "256",
+  "rating": "1.13"
+ },
+ "Akame": {
+  "team": "DFM",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Skye"
+  ],
+  "rounds": "342",
+  "rating": "1.13"
+ },
+ "kamo": {
+  "team": "TL",
+  "agents": [
+   "Phoenix",
+   "Raze"
+  ],
+  "rounds": "231",
+  "rating": "1.13"
+ },
+ "Apinya": {
+  "team": "SP",
+  "agents": [
+   "Phoenix",
+   "Sage",
+   "Sova"
+  ],
+  "rounds": "127",
+  "rating": "1.13"
+ },
+ "HYUNMIN": {
+  "team": "KRX",
+  "agents": [
+   "Phoenix",
+   "Raze",
+   "Yoru"
+  ],
+  "rounds": "347",
+  "rating": "1.13"
+ },
+ "Fizzy": {
+  "team": "SGE",
+  "agents": [
+   "Astra",
+   "Cypher",
+   "Omen"
+  ],
+  "rounds": "152",
+  "rating": "1.12"
+ },
+ "xavi8k": {
+  "team": "GE",
+  "agents": [
+   "Astra",
+   "Omen",
+   "Cypher"
+  ],
+  "rounds": "266",
+  "rating": "1.12"
+ },
+ "deLb": {
+  "team": "TE",
+  "agents": [
+   "Cypher",
+   "Viper",
+   "Vyse"
+  ],
+  "rounds": "569",
+  "rating": "1.12"
+ },
+ "RieNs": {
+  "team": "TH",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Viper"
+  ],
+  "rounds": "371",
+  "rating": "1.12"
+ },
+ "runneR": {
+  "team": "JL",
+  "agents": [
+   "Raze",
+   "Kayo",
+   "Jett"
+  ],
+  "rounds": "246",
+  "rating": "1.12"
+ },
+ "Sato": {
+  "team": "LEV",
+  "agents": [
+   "Phoenix",
+   "Omen",
+   "Raze"
+  ],
+  "rounds": "443",
+  "rating": "1.12"
+ },
+ "Loita": {
+  "team": "BBL",
+  "agents": [
+   "Omen",
+   "Astra"
+  ],
+  "rounds": "277",
+  "rating": "1.12"
+ },
+ "hiro": {
+  "team": "NAVI",
+  "agents": [
+   "Cypher",
+   "Viper",
+   "Chamber"
+  ],
+  "rounds": "400",
+  "rating": "1.12"
+ },
+ "Karon": {
+  "team": "GEN",
+  "agents": [
+   "Omen",
+   "Astra",
+   "Harbor"
+  ],
+  "rounds": "312",
+  "rating": "1.12"
+ },
+ "Autumn": {
+  "team": "GE",
+  "agents": [
+   "Veto",
+   "Yoru",
+   "Phoenix"
+  ],
+  "rounds": "266",
+  "rating": "1.11"
+ },
+ "f4ngeer": {
+  "team": "AG",
+  "agents": [
+   "Neon",
+   "Jett",
+   "Chamber"
+  ],
+  "rounds": "490",
+  "rating": "1.11"
+ },
+ "blowz": {
+  "team": "LEV",
+  "agents": [
+   "Fade",
+   "Sova",
+   "Skye"
+  ],
+  "rounds": "443",
+  "rating": "1.11"
+ },
+ "Ezeir": {
+  "team": "NOVA",
+  "agents": [
+   "Omen",
+   "Astra",
+   "Harbor"
+  ],
+  "rounds": "325",
+  "rating": "1.11"
+ },
+ "coconut": {
+  "team": "FPX",
+  "agents": [
+   "Sova",
+   "Fade",
+   "Tejo"
+  ],
+  "rounds": "438",
+  "rating": "1.10"
+ },
+ "Spring": {
+  "team": "WOL",
+  "agents": [
+   "Viper",
+   "Omen"
+  ],
+  "rounds": "519",
+  "rating": "1.10"
+ },
+ "happywei": {
+  "team": "XLG",
+  "agents": [
+   "Omen",
+   "Viper",
+   "Cypher"
+  ],
+  "rounds": "359",
+  "rating": "1.10"
+ },
+ "BABYBAY": {
+  "team": "G2",
+  "agents": [
+   "Chamber",
+   "Vyse",
+   "Neon"
+  ],
+  "rounds": "257",
+  "rating": "1.09"
+ },
+ "MONSTEERR": {
+  "team": "SGE",
+  "agents": [
+   "Vyse",
+   "Phoenix",
+   "Waylay"
+  ],
+  "rounds": "152",
+  "rating": "1.09"
+ },
+ "zekken": {
+  "team": "MIBR",
+  "agents": [
+   "Phoenix",
+   "Neon",
+   "Raze"
+  ],
+  "rounds": "229",
+  "rating": "1.09"
+ },
+ "whzy": {
+  "team": "BLG",
+  "agents": [
+   "Raze",
+   "Neon",
+   "Yoru"
+  ],
+  "rounds": "391",
+  "rating": "1.09"
+ },
+ "Derke": {
+  "team": "VIT",
+  "agents": [
+   "Jett",
+   "Neon",
+   "Raze"
+  ],
+  "rounds": "355",
+  "rating": "1.09"
+ },
+ "kiNgg": {
+  "team": "LEV",
+  "agents": [
+   "Viper",
+   "Omen",
+   "Astra"
+  ],
+  "rounds": "443",
+  "rating": "1.09"
+ },
+ "trent": {
+  "team": "G2",
+  "agents": [
+   "Skye",
+   "Sova"
+  ],
+  "rounds": "257",
+  "rating": "1.09"
+ },
+ "Shr1mp": {
+  "team": "AG",
+  "agents": [
+   "Fade",
+   "Sova",
+   "Skye"
+  ],
+  "rounds": "490",
+  "rating": "1.09"
+ },
+ "nAts": {
+  "team": "TL",
+  "agents": [
+   "Cypher",
+   "Viper"
+  ],
+  "rounds": "197",
+  "rating": "1.08"
+ },
+ "Cryocells": {
+  "team": "100T",
+  "agents": [
+   "Cypher",
+   "Viper"
+  ],
+  "rounds": "269",
+  "rating": "1.08"
+ },
+ "UdoTan": {
+  "team": "GE",
+  "agents": [
+   "Raze",
+   "Neon",
+   "Jett"
+  ],
+  "rounds": "266",
+  "rating": "1.08"
+ },
+ "Knight": {
+  "team": "BLG",
+  "agents": [
+   "Sova",
+   "Cypher",
+   "Fade"
+  ],
+  "rounds": "391",
+  "rating": "1.08"
+ },
+ "heat": {
+  "team": "KRÜ",
+  "agents": [
+   "Chamber",
+   "Raze",
+   "Phoenix"
+  ],
+  "rounds": "295",
+  "rating": "1.08"
+ },
+ "t3xture": {
+  "team": "GEN",
+  "agents": [
+   "Chamber",
+   "Raze",
+   "Phoenix"
+  ],
+  "rounds": "312",
+  "rating": "1.08"
+ },
+ "Ruxic": {
+  "team": "NAVI",
+  "agents": [
+   "Omen",
+   "Astra",
+   "Harbor"
+  ],
+  "rounds": "400",
+  "rating": "1.08"
+ },
+ "NIZ": {
+  "team": "SP",
+  "agents": [
+   "Sova",
+   "Omen"
+  ],
+  "rounds": "127",
+  "rating": "1.08"
+ },
+ "yosemite": {
+  "team": "WOL",
+  "agents": [
+   "Vyse",
+   "Cypher",
+   "Killjoy"
+  ],
+  "rounds": "519",
+  "rating": "1.07"
+ },
+ "Crewen": {
+  "team": "BBL",
+  "agents": [
+   "Cypher",
+   "Vyse",
+   "Viper"
+  ],
+  "rounds": "277",
+  "rating": "1.07"
+ },
+ "cb": {
+  "team": "NOVA",
+  "agents": [
+   "Phoenix",
+   "Killjoy",
+   "Skye"
+  ],
+  "rounds": "325",
+  "rating": "1.07"
+ },
+ "cortezia": {
+  "team": "SEN",
+  "agents": [
+   "Viper",
+   "Vyse",
+   "Omen"
+  ],
+  "rounds": "303",
+  "rating": "1.06"
+ },
+ "Alfajer": {
+  "team": "FNC",
+  "agents": [
+   "Neon",
+   "Chamber",
+   "Cypher"
+  ],
+  "rounds": "398",
+  "rating": "1.06"
+ },
+ "dos9": {
+  "team": "KC",
+  "agents": [
+   "Omen",
+   "Harbor"
+  ],
+  "rounds": "270",
+  "rating": "1.06"
+ },
+ "Pa1ze": {
+  "team": "JL",
+  "agents": [
+   "Neon",
+   "Jett"
+  ],
+  "rounds": "246",
+  "rating": "1.06"
+ },
+ "iZu": {
+  "team": "T1",
+  "agents": [
+   "Neon",
+   "Sova",
+   "Skye"
+  ],
+  "rounds": "249",
+  "rating": "1.06"
+ },
+ "Coco": {
+  "team": "TEC",
+  "agents": [
+   "Omen",
+   "Viper",
+   "Astra"
+  ],
+  "rounds": "596",
+  "rating": "1.06"
+ },
+ "Raxcal": {
+  "team": "GEN",
+  "agents": [
+   "Sage",
+   "Phoenix",
+   "Vyse"
+  ],
+  "rounds": "312",
+  "rating": "1.06"
+ },
+ "Ying": {
+  "team": "KBG",
+  "agents": [
+   "Viper",
+   "Breach",
+   "Iso"
+  ],
+  "rounds": "112",
+  "rating": "1.06"
+ },
+ "paTiTek": {
+  "team": "EP",
+  "agents": [
+   "Omen",
+   "Brimstone"
+  ],
+  "rounds": "104",
+  "rating": "1.05"
+ },
+ "Boo": {
+  "team": "TH",
+  "agents": [
+   "Omen",
+   "Astra",
+   "Fade"
+  ],
+  "rounds": "371",
+  "rating": "1.05"
+ },
+ "eKo": {
+  "team": "ZETA",
+  "agents": [
+   "Yoru",
+   "Kayo",
+   "Sova"
+  ],
+  "rounds": "342",
+  "rating": "1.05"
+ },
+ "mada": {
+  "team": "NRG",
+  "agents": [
+   "Neon",
+   "Harbor",
+   "Raze"
+  ],
+  "rounds": "256",
+  "rating": "1.05"
+ },
+ "Layla": {
+  "team": "AT",
+  "agents": [
+   "Sage",
+   "Chamber",
+   "Cypher"
+  ],
+  "rounds": "118",
+  "rating": "1.05"
+ },
+ "Ethan": {
+  "team": "NRG",
+  "agents": [
+   "Kayo",
+   "Phoenix",
+   "Fade"
+  ],
+  "rounds": "256",
+  "rating": "1.05"
+ },
+ "PatMen": {
+  "team": "GE",
+  "agents": [
+   "Omen",
+   "Viper",
+   "Skye"
+  ],
+  "rounds": "266",
+  "rating": "1.05"
+ },
+ "CHICHOO": {
+  "team": "EDG",
+  "agents": [
+   "Cypher",
+   "Viper",
+   "Omen"
+  ],
+  "rounds": "605",
+  "rating": "1.05"
+ },
+ "spike": {
+  "team": "LEV",
+  "agents": [
+   "Neon",
+   "Omen"
+  ],
+  "rounds": "443",
+  "rating": "1.05"
+ },
+ "oonzmlp": {
+  "team": "VL",
+  "agents": [
+   "Sage",
+   "Phoenix",
+   "Astra"
+  ],
+  "rounds": "291",
+  "rating": "1.05"
+ },
+ "Lysoar": {
+  "team": "XLG",
+  "agents": [
+   "Omen",
+   "Harbor",
+   "Vyse"
+  ],
+  "rounds": "359",
+  "rating": "1.05"
+ },
+ "ra1ny": {
+  "team": "TEC",
+  "agents": [
+   "Neon",
+   "Raze"
+  ],
+  "rounds": "370",
+  "rating": "1.05"
+ }
+}

@@ -29,7 +29,29 @@ SRC = os.path.join(RAW, "vlr_vct2026_players.txt")
 BIRTHS = os.path.join(RAW, "liquipedia_players.json")
 COACHES = os.path.join(RAW, "liquipedia_coaches.json")
 VLRAPI = os.path.join(RAW, "vlrapi_teams.json")
+AGENTS_F = os.path.join(RAW, "parsebot_agents.json")
 OVERRIDES = os.path.join(RAW, "overrides.json")
+
+# which role each agent belongs to, so a real agent pool yields a real role set
+AGENT_ROLE = {}
+for _role, _names in {
+    "决斗者": ["Jett", "Raze", "Phoenix", "Reyna", "Yoru", "Neon", "Iso", "Waylay"],
+    "先锋": ["Sova", "Breach", "Skye", "KAY/O", "Kayo", "Fade", "Gekko", "Tejo"],
+    "控场": ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove"],
+    "哨卫": ["Sage", "Cypher", "Killjoy", "Chamber", "Deadlock", "Vyse"],
+}.items():
+    for _n in _names:
+        AGENT_ROLE[_n.lower()] = _role
+
+
+def roles_from_agents(agents):
+    """Ordered role set implied by the agents a player actually used."""
+    out = []
+    for a in agents or []:
+        r = AGENT_ROLE.get(str(a).strip().lower())
+        if r and r not in out:
+            out.append(r)
+    return out
 OUT = os.path.join(ROOT, "src", "data", "world.json")
 
 SEASON_YEAR = 2026
@@ -217,6 +239,7 @@ def main():
         if not cur.get("name"):
             cur["name"] = rec["coach"]
             cur["assistants"] = rec.get("assistants") or []
+    agent_pools = load_json(AGENTS_F)
     ov = load_json(OVERRIDES)
     ov_igl = ov.get("igl", {})
     ov_roles = ov.get("roles", {})
@@ -298,6 +321,7 @@ def main():
             "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
             "role": p["role"], "roles": [p["role"]], "flex": False,
+            "agentPool": [], "roleSource": "vlr-primary",
             "age": p["age"], "ageEstimated": p["ageEstimated"],
             "isIgl": False, "attrs": dict(p["attrs"]), "overall": p["overall"],
             "potential": p["potential"], "form": p["form"], "morale": p["morale"],
@@ -333,14 +357,29 @@ def main():
         for p in squad:
             p["roles"] = [p["role"]]
 
-        # hand-verified role sets win over anything inferred below
+        # Evidence first: a player's real agent pool tells us exactly which
+        # roles they cover, which neither vlr's single "most-played role" nor
+        # Liquipedia can express.
         pinned = set()
+        for p in squad:
+            pool = (agent_pools.get(p["ign"]) or {}).get("agents") or []
+            derived = roles_from_agents(pool)
+            if derived:
+                p["agentPool"] = pool
+                p["roles"] = derived
+                p["role"] = derived[0]
+                p["flex"] = len(derived) > 1
+                p["roleSource"] = "agents"
+                pinned.add(p["ign"])
+
+        # hand-verified sets still win, for players the snapshot does not cover
         for p in squad:
             fixed = ov_roles.get(p["ign"])
             if fixed:
                 p["roles"] = list(fixed)
                 p["role"] = fixed[0]
                 p["flex"] = len(fixed) > 1
+                p["roleSource"] = "verified"
                 pinned.add(p["ign"])
 
         seen = {}
