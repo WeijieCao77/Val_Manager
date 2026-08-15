@@ -1,0 +1,29 @@
+{
+  "_README": [
+    "Hand-verified corrections that override what is inferred from vlr.gg.",
+    "",
+    "vlr's role filter reports a player's MOST-PLAYED agent role. That is a poor",
+    "signal for two things the game cares about:",
+    "  1. who calls (IGL) — vlr does not publish this at all, so the builder",
+    "     otherwise guesses 'highest igl attribute among support roles'",
+    "  2. who is genuinely flex — the builder otherwise picks whichever duplicate",
+    "     is lower rated, which is arbitrary and demonstrably wrong",
+    "",
+    "Anything listed here is real information entered by hand and wins over the",
+    "inference. Anything NOT listed keeps the inferred value. Nothing in this file",
+    "is invented — leave a team out rather than guess at it.",
+    "",
+    "The systematic fix is to scrape each player's per-role round distribution",
+    "from vlr (role=duelist|initiator|controller|sentinel) and take flex from",
+    "actual agent-pool breadth. Until that is available, correct teams here."
+  ],
+
+  "igl": {
+    "PRX": "f0rsakeN"
+  },
+
+  "roles": {
+    "f0rsakeN": ["自由人", "控场", "哨卫", "决斗者", "先锋"],
+    "something": ["决斗者"]
+  }
+}

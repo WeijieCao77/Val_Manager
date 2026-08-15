@@ -28,6 +28,7 @@ RAW = os.path.join(ROOT, "data-raw")
 SRC = os.path.join(RAW, "vlr_vct2026_players.txt")
 BIRTHS = os.path.join(RAW, "liquipedia_players.json")
 COACHES = os.path.join(RAW, "liquipedia_coaches.json")
+OVERRIDES = os.path.join(RAW, "overrides.json")
 OUT = os.path.join(ROOT, "src", "data", "world.json")
 
 SEASON_YEAR = 2026
@@ -207,6 +208,9 @@ def main():
     rows = parse_rows()
     births = load_json(BIRTHS)
     coaches = load_json(COACHES)
+    ov = load_json(OVERRIDES)
+    ov_igl = ov.get("igl", {})
+    ov_roles = ov.get("roles", {})
 
     P = {k: pctiles(rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
     P["fdpr"] = pctiles(rows, "fdpr", invert=True)
@@ -319,13 +323,26 @@ def main():
         CORE = ["决斗者", "先锋", "控场", "哨卫"]
         for p in squad:
             p["roles"] = [p["role"]]
+
+        # hand-verified role sets win over anything inferred below
+        pinned = set()
+        for p in squad:
+            fixed = ov_roles.get(p["ign"])
+            if fixed:
+                p["roles"] = list(fixed)
+                p["role"] = fixed[0]
+                p["flex"] = len(fixed) > 1
+                pinned.add(p["ign"])
+
         seen = {}
         dupes = []
         for p in sorted(squad[:5], key=lambda x: -x["overall"]):
-            if p["role"] in seen:
+            for r in p["roles"]:
+                seen.setdefault(r, p)
+            if p["ign"] in pinned:
+                continue
+            if seen.get(p["role"]) is not p:
                 dupes.append(p)
-            else:
-                seen[p["role"]] = p
         gaps = [r for r in CORE if r not in seen]
         for p, gap in zip(dupes, gaps):
             p["roles"] = [p["role"], gap]
@@ -338,8 +355,13 @@ def main():
             p["overall"] = int(round(clamp(
                 sum(p["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
 
-        igl = max(squad, key=lambda p: p["attrs"]["igl"] +
-                  (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
+        # a verified caller if we have one on record, otherwise the best guess:
+        # the most support-shaped player on the roster
+        named = ov_igl.get(tag) or ov_igl.get(display)
+        igl = next((p for p in squad if p["ign"] == named), None) if named else None
+        if igl is None:
+            igl = max(squad, key=lambda p: p["attrs"]["igl"] +
+                      (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
         igl["isIgl"] = True
         igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
         igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
