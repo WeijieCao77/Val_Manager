@@ -54,7 +54,7 @@ export function roleFit(state: GameState, p: Player, team: Team, promised: Squad
   const gap = ROLE_ORDER.indexOf(promised) - ROLE_ORDER.indexOf(deserved)
   if (gap >= 0) return gap                       // at or above expectations
   // below expectations, but only benching actually stings
-  if (promised === 'starter') return gap * 0.25  // "not the star" — a shrug
+  if (promised === 'starter') return gap * 0.5   // wants to be THE star, but will not walk over it alone
   return gap                                     // 轮换 / 替补 — the real snub
 }
 
@@ -153,12 +153,20 @@ export function offerOutlook(s: OfferScore): { level: 'good' | 'fair' | 'poor'; 
 
 const moneyish = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
+/** A club must always be able to field five; only the human may go thin. */
+export function canSell(state: GameState, p: Player): boolean {
+  if (!p.teamId || p.teamId === state.myTeam) return true
+  return squadOf(state, p.teamId).length > 5
+}
+
 export function doTransfer(
   state: GameState, p: Player, toTeamId: string, fee: number, terms: Contract,
 ): void {
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
   if (!to) return
+  // refuse a move that would leave the selling club unable to play
+  if (from && from.id !== state.myTeam && squadOf(state, from.id).length <= 5) return
 
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
@@ -302,12 +310,148 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
     }
   }
 
-  // clubs list players they no longer want
-  for (const team of teams) {
-    if (!rng.chance(0.05)) continue
-    const squad = squadOf(state, team.id).sort((a, b) => a.overall - b.overall)
-    if (squad.length > 5 && squad[0]) squad[0].listed = true
+  refreshListings(state, rng)
+  bidForOurPlayers(state, rng)
+}
+
+/**
+ * Clubs put players on the market so there is something to buy.
+ *
+ * Without this the window opens onto an empty shop: only free agents were ever
+ * available, and nobody sells. Squad depth, unhappiness and being surplus to
+ * the starting five all push a player onto the list; being needed pulls them
+ * back off it.
+ */
+export function refreshListings(state: GameState, rng: Rng): void {
+  for (const team of Object.values(state.teams)) {
+    if (team.id === state.myTeam) continue
+    const squad = squadOf(state, team.id).sort((a, b) => b.overall - a.overall)
+    for (const p of squad) {
+      const benched = !team.starters.includes(p.id)
+      const surplus = squad.length > 6 && benched
+      const unhappy = (p.grievance ?? 0) > 40
+      const expiring = p.contractYears <= 1
+      const aging = p.age >= 29 && benched
+
+      let chance = 0
+      if (surplus) chance += 0.22
+      if (unhappy) chance += 0.3
+      if (expiring && benched) chance += 0.15
+      if (aging) chance += 0.12
+      // a club will not sell someone it needs
+      if (!benched && squad.length <= 5) chance = 0
+
+      if (squad.length <= 5) chance = 0
+      if (!p.listed && chance > 0 && rng.chance(chance)) {
+        p.listed = true
+      } else if (p.listed && !benched && !unhappy && rng.chance(0.25)) {
+        p.listed = false // back in the plans
+      }
+    }
   }
+}
+
+/**
+ * Rival clubs come after our players.
+ *
+ * This is what makes a release clause or a no-poach clause worth anything: a
+ * bid that meets a release clause goes through whether we like it or not,
+ * everything else lands as an offer we answer.
+ */
+export function bidForOurPlayers(state: GameState, rng: Rng): void {
+  // Bids arrive whatever the squad size — receiving one costs nothing, since
+  // the manager decides. Only accepting can leave us short, and the agenda
+  // already flags a squad under five.
+  const mine = squadOf(state, state.myTeam)
+  if (!mine.length) return
+
+  for (const team of Object.values(state.teams)) {
+    if (team.id === state.myTeam) continue
+    if (!rng.chance(0.12)) continue
+
+    const need = weakestRole(state, team)
+    const targets = mine.filter(
+      (p) =>
+        p.overall > (need?.strength ?? 0) + 2 &&
+        (p.listed || (p.grievance ?? 0) > 30 || !!p.contract?.releaseClause || rng.chance(0.25)),
+    )
+    const target = targets.sort((a, b) => b.overall - a.overall)[0]
+    if (!target) continue
+    if (target.contract?.noPoach && !target.listed) continue
+
+    const clause = target.contract?.releaseClause ?? 0
+    const ask = askingPrice(target)
+    const room = team.budget - wageBill(state, team.id) * 0.6
+    // a club will pay the clause exactly when it can afford it
+    const fee = clause > 0 && clause <= room
+      ? clause
+      : Math.round(ask * rng.range(0.8, 1.2))
+    if (fee > room) continue
+
+    const terms: Contract = {
+      ...defaultContract(Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.25)), rng.int(2, 3)),
+      promisedRole: target.overall >= (need?.strength ?? 0) + 8 ? 'star' : 'starter',
+    }
+    if (!playerAcceptsTerms(state, target, team, terms, rng).ok) continue
+
+    const forced = clause > 0 && fee >= clause
+    state.offers.push({
+      id: `IN${state.offers.length}_${state.day}`,
+      playerId: target.id,
+      fromTeam: state.myTeam,
+      toTeam: team.id,
+      fee, salary: terms.salary, years: terms.years, terms,
+      day: state.day,
+      respondOn: state.day,
+      status: 'pending',
+      note: forced ? 'release-clause' : undefined,
+    })
+
+    if (forced) {
+      doTransfer(state, target, team.id, fee, terms)
+      state.offers[state.offers.length - 1].status = 'accepted'
+      state.news.push({
+        day: state.day, kind: 'transfer', important: true,
+        text: `${team.name} 支付了 ${target.ign} 合同中的解约金 $${fee.toLocaleString()}，我们无权拒绝。`,
+      })
+    } else {
+      state.news.push({
+        day: state.day, kind: 'transfer', important: true,
+        text: `${team.name} 报价 $${fee.toLocaleString()} 求购 ${target.ign}，等待我们答复。`,
+      })
+    }
+  }
+}
+
+/** Offers other clubs have made for our players, awaiting our answer. */
+export const incomingOffers = (state: GameState) =>
+  state.offers.filter(
+    (o) => o.status === 'pending' && o.fromTeam === state.myTeam && o.toTeam !== state.myTeam,
+  )
+
+/** Accept or reject a bid for one of our players. */
+export function answerIncoming(state: GameState, offerId: string, accept: boolean): string {
+  const o = state.offers.find((x) => x.id === offerId)
+  if (!o || o.status !== 'pending') return '这份报价已经失效。'
+  const p = state.players[o.playerId]
+  const to = state.teams[o.toTeam]
+  if (!p || !to) {
+    o.status = 'expired'
+    return '这份报价已经失效。'
+  }
+  if (!accept) {
+    o.status = 'rejected'
+    // turning down a move a player wanted does not go unnoticed
+    if ((p.grievance ?? 0) > 30 || p.listed) {
+      p.grievance = clamp((p.grievance ?? 0) + 12, 0, 100)
+      p.morale = clamp(p.morale - 6, 0, 100)
+      return `已拒绝 ${to.name} 对 ${p.ign} 的报价。他本人对此并不高兴。`
+    }
+    return `已拒绝 ${to.name} 对 ${p.ign} 的报价。`
+  }
+  doTransfer(state, p, to.id, o.fee, o.terms ?? defaultContract(o.salary, o.years))
+  o.status = 'accepted'
+  return `${p.ign} 以 $${o.fee.toLocaleString()} 转会至 ${to.name}。`
 }
 
 export function makeOffer(
@@ -340,6 +484,15 @@ export function resolveDueOffers(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   for (const offer of state.offers) {
     if (offer.status !== 'pending') continue
+    // bids for our own players wait on us — but not forever
+    if (offer.fromTeam === state.myTeam && offer.toTeam !== state.myTeam) {
+      if (state.day - offer.day >= 7) {
+        offer.status = 'expired'
+        const p = state.players[offer.playerId]
+        notes.push(`${state.teams[offer.toTeam]?.name} 撤回了对 ${p?.ign} 的报价。`)
+      }
+      continue
+    }
     if (state.day < (offer.respondOn ?? offer.day)) continue
 
     const p = state.players[offer.playerId]

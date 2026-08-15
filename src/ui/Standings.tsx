@@ -10,17 +10,29 @@ import type { Competition } from '../engine/types'
 function Table({ comp }: { comp: Competition }) {
   const { game, openPlayer } = useGame()
   void openPlayer
-  const order = comp.champion && comp.finished.length ? comp.finished : sortStandings(comp)
+  const concluded = !!comp.champion && comp.finished.length > 0
+  const order = concluded ? comp.finished : sortStandings(comp)
   const hasPlayed = Object.values(comp.standings).some((r) => r.w + r.l > 0)
+
+  // where each club went out, so a strong regular season that ended early reads
+  // as what it was rather than looking like a sorting bug
+  const exitAt: Record<string, string> = {}
+  for (const f of game.fixtures) {
+    if (f.comp !== comp.key || !f.label.startsWith('KO:') || !f.result) continue
+    const round = f.label.split(':')[2] ?? ''
+    const loser = f.result.mapsWonA > f.result.mapsWonB ? f.teamB : f.teamA
+    exitAt[loser] = round
+  }
 
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th className="num">#</th><th>战队</th>
-            <th className="num">胜</th><th className="num">负</th>
+            <th className="num">{concluded ? '名次' : '#'}</th><th>战队</th>
+            <th className="num">常规赛</th>
             <th className="num">小局</th><th className="num">净胜局</th><th className="num">回合差</th>
+            {concluded && <th>季后赛</th>}
           </tr>
         </thead>
         <tbody>
@@ -38,19 +50,29 @@ function Table({ comp }: { comp: Competition }) {
                 <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--red)' : '2px solid transparent' }}>
                   {game.teams[id]?.name}
                 </td>
-                <td className="num">{r.w}</td>
-                <td className="num">{r.l}</td>
+                <td className="num mono">{r.w}-{r.l}</td>
                 <td className="num muted">{r.mapW}-{r.mapL}</td>
                 <td className={`num mono ${r.mapW - r.mapL >= 0 ? 'pos' : 'neg'}`}>
                   {r.mapW - r.mapL > 0 ? '+' : ''}{r.mapW - r.mapL}
                 </td>
                 <td className="num muted mono">{r.roundW - r.roundL > 0 ? '+' : ''}{r.roundW - r.roundL}</td>
+                {concluded && (
+                  <td className="small muted">
+                    {comp.champion === id ? '冠军' : exitAt[id] ? `止步${exitAt[id]}` : '未进季后赛'}
+                  </td>
+                )}
               </tr>
             )
           })}
         </tbody>
       </table>
       {!hasPlayed && <div className="empty">尚未开赛。</div>}
+      {concluded && (
+        <p className="tiny faint" style={{ padding: '9px 13px', margin: 0 }}>
+          本赛段已结束，排序为<b>最终名次</b>（由季后赛决定），「常规赛」列仍是循环赛战绩——
+          常规赛第一但止步淘汰赛是正常结果。
+        </p>
+      )}
     </div>
   )
 }

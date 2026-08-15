@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
-import { askingPrice, committedFunds, makeOffer, windowOpen } from '../engine/transfer'
+import { answerIncoming, askingPrice, committedFunds, incomingOffers, makeOffer, windowOpen } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
@@ -39,6 +39,7 @@ export default function Transfers() {
   const bill = wageBill(game, game.myTeam)
   const pending = game.offers.filter((o) => o.status === 'pending' && o.toTeam === game.myTeam)
   const committed = committedFunds(game)
+  const incoming = incomingOffers(game)
 
   return (
     <>
@@ -68,6 +69,55 @@ export default function Transfers() {
         <p className="small neg">
           转会窗口目前关闭。开放时段：季前准备（第 0–20 天）、Masters II 期间（第 169–194 天）、休赛期（第 311 天起）。
         </p>
+      )}
+
+      {incoming.length > 0 && (
+        <Panel title={`收到报价 · ${incoming.length} 份`} className="alert" flush>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>我方选手</th><th>求购方</th><th className="num">转会费</th>
+                  <th className="num">对方开价</th><th className="num">身价</th><th />
+                </tr>
+              </thead>
+              <tbody>
+                {incoming.map((o) => {
+                  const p = game.players[o.playerId]
+                  if (!p) return null
+                  return (
+                    <tr key={o.id}>
+                      <td className="clickable" onClick={() => openPlayer(p.id)}>
+                        <b>{p.ign}</b>
+                        {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
+                        {!!p.grievance && p.grievance > 30 && (
+                          <span className="tag warn" style={{ marginLeft: 6 }}>想走</span>
+                        )}
+                      </td>
+                      <td className="small muted">{game.teams[o.toTeam]?.name}</td>
+                      <td className="num mono pos">{money(o.fee)}</td>
+                      <td className="num mono muted">{money(o.salary)}/年</td>
+                      <td className="num mono muted">{money(p.value)}</td>
+                      <td>
+                        <div className="row" style={{ gap: 6 }}>
+                          <button className="primary sm" onClick={() => {
+                            toast(answerIncoming(game, o.id, true)); commit()
+                          }}>接受</button>
+                          <button className="sm" onClick={() => {
+                            toast(answerIncoming(game, o.id, false)); commit()
+                          }}>拒绝</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="tiny faint" style={{ padding: '10px 13px', margin: 0 }}>
+            拒绝一名想走的选手会加深他的不满。合同里写了解约金的，对方付到价可以直接带走，无需我们同意。
+          </p>
+        </Panel>
       )}
 
       {pending.length > 0 && (

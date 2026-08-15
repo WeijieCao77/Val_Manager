@@ -261,6 +261,8 @@ function allocateRound(
   focusId?: string,
 ): void {
   const kill = (killers: Player[], victims: Player[], count: number, firstOf: boolean) => {
+    // a club fielding fewer than five still has to play; never divide by nobody
+    if (!killers.length) return
     const vPool = victims.slice()
     for (let i = 0; i < count && vPool.length; i++) {
       // the flat term keeps role players on the scoreboard: even a star only
