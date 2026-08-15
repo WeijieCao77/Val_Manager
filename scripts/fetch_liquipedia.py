@@ -70,8 +70,10 @@ def api(params, tries=4):
 def fetch_pages(titles):
     """Return {title: wikitext} for a batch of page titles."""
     out = {}
+    empty_streak = 0
     for i in range(0, len(titles), BATCH):
         chunk = titles[i:i + BATCH]
+        before = len(out)
         d = api({
             "action": "query", "prop": "revisions", "rvprop": "content",
             "rvslots": "main", "titles": "|".join(chunk),
@@ -93,6 +95,13 @@ def fetch_pages(titles):
             if red["to"] in out:
                 out[red["from"]] = out[red["to"]]
         print(f"  batch {i // BATCH + 1}: {len(out)} pages so far", flush=True)
+        # a rate-limit cooldown makes every batch empty; stop rather than spend
+        # half an hour backing off into a wall
+        empty_streak = empty_streak + 1 if len(out) == before else 0
+        if empty_streak >= 2:
+            print("  two empty batches — Liquipedia is cooling us down, "
+                  "stopping. Re-run later to fill in the rest.", flush=True)
+            break
         time.sleep(DELAY)
     return out
 
@@ -116,14 +125,24 @@ def main():
                 igns.append(p[0].strip())
     igns = list(dict.fromkeys(igns))
 
-    print(f"players: {len(igns)} across {-(-len(igns) // BATCH)} batches", flush=True)
-    pages = fetch_pages(igns)
-
+    # Never discard what we already have: a rate-limited run must not wipe the
+    # cache from a successful one. Only players we have no real data for are
+    # re-requested.
     players = {}
-    for ign in igns:
+    if os.path.exists(OUT_P):
+        try:
+            players = json.load(open(OUT_P, encoding="utf-8"))
+        except ValueError:
+            players = {}
+    todo = [i for i in igns if not (players.get(i) or {}).get("birth")]
+    print(f"players: {len(igns)} total, {len(igns) - len(todo)} already known, "
+          f"{len(todo)} to fetch across {-(-len(todo) // BATCH)} batches", flush=True)
+
+    pages = fetch_pages(todo) if todo else {}
+    for ign in todo:
         w = pages.get(ign) or pages.get(ign.capitalize()) or ""
         if not w:
-            players[ign] = {"miss": True}
+            players.setdefault(ign, {"miss": True})
             continue
         players[ign] = {
             "birth": field(w, "birth_date"),
@@ -135,8 +154,13 @@ def main():
     print(f"birthdates: {hit}/{len(igns)}", flush=True)
 
     print("teams…", flush=True)
-    tpages = fetch_pages(sorted(set(TEAM_PAGES.values())))
     coaches = {}
+    if os.path.exists(OUT_C):
+        try:
+            coaches = json.load(open(OUT_C, encoding="utf-8"))
+        except ValueError:
+            coaches = {}
+    tpages = fetch_pages(sorted(set(TEAM_PAGES.values())))
     for tag, title in TEAM_PAGES.items():
         w = tpages.get(title) or ""
         if not w:

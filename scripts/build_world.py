@@ -307,6 +307,19 @@ def main():
         rng = Rng(seed_of("t:" + display))
         squad = [emit(p, team_id, tier, region) for p in squad_src[:7]]
 
+        # vlr's role filter reports a player's most-played agent role, so a squad
+        # can come back with two controllers and no sentinel. Rather than invent
+        # a role for someone, the lower-rated of a duplicated pair is recorded as
+        # 自由人 (flex) — which is what covering a second role actually means.
+        seen = {}
+        for p in sorted(squad, key=lambda x: -x["overall"]):
+            if p["role"] == "自由人":
+                continue
+            if p["role"] in seen:
+                p["role"] = "自由人"
+            else:
+                seen[p["role"]] = p
+
         igl = max(squad, key=lambda p: p["attrs"]["igl"] +
                   (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
         igl["isIgl"] = True
