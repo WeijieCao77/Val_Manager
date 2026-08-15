@@ -355,10 +355,14 @@ def main():
             p["overall"] = int(round(clamp(
                 sum(p["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
 
-        # a verified caller if we have one on record, otherwise the best guess:
-        # the most support-shaped player on the roster
-        named = ov_igl.get(tag) or ov_igl.get(display)
-        igl = next((p for p in squad if p["ign"] == named), None) if named else None
+        # Who calls, in order of trust: a hand-verified override, then the
+        # `igl=` field on the club's Liquipedia infobox, then — only if neither
+        # exists — the most support-shaped player on the roster.
+        lp = coaches.get(tag) or coaches.get(display) or {}
+        named = ov_igl.get(tag) or ov_igl.get(display) or lp.get("igl")
+        igl = None
+        if named:
+            igl = next((p for p in squad if p["ign"].lower() == str(named).lower()), None)
         if igl is None:
             igl = max(squad, key=lambda p: p["attrs"]["igl"] +
                       (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
@@ -372,11 +376,12 @@ def main():
         rating = int(round(sum(p["overall"] for p in top5) / len(top5)))
 
         # a real coach if Liquipedia gave us one, otherwise no named coach at all
-        c = coaches.get(tag) or coaches.get(display) or {}
+        c = lp
         coach = None
         if c.get("name"):
             coach = {
                 "name": c["name"],
+                "assistants": c.get("assistants") or [],
                 "tactics": int(clamp(round(rng.norm(rating - 6, 6)), 35, 95)),
                 "development": int(clamp(round(rng.norm(rating - 8, 7)), 30, 95)),
                 "motivation": int(clamp(round(rng.norm(rating - 7, 7)), 30, 95)),

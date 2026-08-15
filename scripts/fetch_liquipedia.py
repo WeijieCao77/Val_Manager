@@ -22,12 +22,32 @@ UA = ("ValManagerGameBuild/0.1 (hobby esports-manager project; "
       "contact yankejing711@gmail.com)")
 API = "https://liquipedia.net/valorant/api.php"
 BATCH = 50
-# Liquipedia rate-limits per action: action=parse is roughly one request every
-# 30s, while action=query is far more permissive. This script therefore only
-# ever uses action=query, batched 50 titles at a time, so all ~340 players cost
-# about seven requests. Do not lower this delay, and do not add a parse loop —
-# that is what got the IP temporarily blocked the first time around.
-DELAY = 4.0
+
+# ---------------------------------------------------------------- rate limits
+# Straight from https://liquipedia.net/api-terms-of-use:
+#
+#   "Rate limit all HTTP requests to no more than 1 request per 2 seconds.
+#    API action=parse requests should not exceed 1 request per 30 seconds as
+#    these are more resource intensive."
+#
+# These are enforced below rather than merely documented: every call goes
+# through _throttle(), action=parse is refused outright, and a 429 aborts the
+# run instead of retrying into the block. Violating this once already earned a
+# temporary IP ban, and their page warns that repeat offences become permanent.
+MIN_INTERVAL = {"parse": 31.0, "_default": 2.5}
+_last_request = [0.0]
+
+
+class RateLimited(Exception):
+    """Liquipedia asked us to stop. Stop."""
+
+
+def _throttle(action):
+    gap = MIN_INTERVAL.get(action, MIN_INTERVAL["_default"])
+    wait = gap - (time.monotonic() - _last_request[0])
+    if wait > 0:
+        time.sleep(wait)
+    _last_request[0] = time.monotonic()
 
 TEAM_PAGES = {
     "LEV": "Leviatán", "NRG": "NRG Esports", "G2": "G2 Esports", "MIBR": "MIBR",
@@ -50,40 +70,55 @@ TEAM_PAGES = {
 }
 
 
-def api(params, tries=4):
+def api(params):
+    action = params.get("action", "")
+    if action == "parse":
+        # one page per 30s makes bulk parse useless anyway; action=query with
+        # 50 titles per call does the same job in a fraction of the requests
+        raise RuntimeError("action=parse is not used by this script by design")
+
+    _throttle(action)
     q = urllib.parse.urlencode(params)
     req = urllib.request.Request(f"{API}?{q}", headers={
         "User-Agent": UA, "Accept-Encoding": "gzip", "Accept": "application/json",
     })
-    for attempt in range(tries):
-        try:
-            with urllib.request.urlopen(req, timeout=40) as r:
-                raw = r.read()
-                if r.headers.get("Content-Encoding") == "gzip":
-                    raw = gzip.decompress(raw)
-                return json.loads(raw.decode("utf-8", "replace"))
-        except urllib.error.HTTPError as e:
-            if e.code == 429:
-                wait = 20 * (attempt + 1)
-                print(f"    429 — backing off {wait}s", flush=True)
-                time.sleep(wait)
-                continue
-            raise
-    return {}
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            raw = r.read()
+            if r.headers.get("Content-Encoding") == "gzip":
+                raw = gzip.decompress(raw)
+            return json.loads(raw.decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            retry = e.headers.get("Retry-After") if e.headers else None
+            raise RateLimited(
+                f"Liquipedia returned 429{f' (Retry-After: {retry})' if retry else ''}. "
+                "Stopping so we do not make it worse — whatever is cached has been "
+                "saved. Unblock at https://liquipedia.net and re-run later."
+            ) from e
+        raise
 
 
 def fetch_pages(titles):
-    """Return {title: wikitext} for a batch of page titles."""
+    """
+    Return {title: wikitext} for a batch of page titles.
+
+    Stops cleanly and returns whatever it has if Liquipedia rate-limits us, so
+    a partial run is still cached rather than thrown away.
+    """
     out = {}
-    empty_streak = 0
     for i in range(0, len(titles), BATCH):
         chunk = titles[i:i + BATCH]
-        before = len(out)
-        d = api({
-            "action": "query", "prop": "revisions", "rvprop": "content",
-            "rvslots": "main", "titles": "|".join(chunk),
-            "format": "json", "redirects": "1", "formatversion": "2",
-        })
+        try:
+            d = api({
+                "action": "query", "prop": "revisions", "rvprop": "content",
+                "rvslots": "main", "titles": "|".join(chunk),
+                "format": "json", "redirects": "1", "formatversion": "2",
+            })
+        except RateLimited as e:
+            print(f"  {e}", flush=True)
+            break
+
         for page in d.get("query", {}).get("pages", []):
             if page.get("missing"):
                 continue
@@ -99,15 +134,8 @@ def fetch_pages(titles):
         for red in d.get("query", {}).get("redirects", []):
             if red["to"] in out:
                 out[red["from"]] = out[red["to"]]
-        print(f"  batch {i // BATCH + 1}: {len(out)} pages so far", flush=True)
-        # a rate-limit cooldown makes every batch empty; stop rather than spend
-        # half an hour backing off into a wall
-        empty_streak = empty_streak + 1 if len(out) == before else 0
-        if empty_streak >= 2:
-            print("  two empty batches — Liquipedia is cooling us down, "
-                  "stopping. Re-run later to fill in the rest.", flush=True)
-            break
-        time.sleep(DELAY)
+        print(f"  batch {i // BATCH + 1}/{-(-len(titles) // BATCH)}: "
+              f"{len(out)} pages so far", flush=True)
     return out
 
 
@@ -119,6 +147,44 @@ def field(text, key):
     v = re.sub(r"<!--.*?-->", "", v).strip()          # strip source comments
     v = re.sub(r"\[\[([^\]|]+\|)?([^\]]+)\]\]", r"\2", v)  # unwrap wiki links
     return v or None
+
+
+def infobox_names(text, key):
+    """
+    Pull the player names out of an infobox field.
+
+    Team infoboxes write staff as a mix of templates and links, several deep:
+        |coaches={{Flag|fr}} [[alecks]]<br>{{player|Wendler|flag=us}}
+        |igl={{Flag|my}} [[d4v41]]
+    so a naive regex picks up '{{Flag' or 'false' instead of a person.
+    """
+    m = re.search(r"\|\s*" + key + r"\s*=([^\n]*)", text)
+    if not m:
+        return []
+    raw = re.sub(r"<!--.*?-->", "", m.group(1))
+    out = []
+    for part in re.split(r"<br\s*/?>|,", raw):
+        part = re.sub(r"\{\{\s*Flag[^}]*\}\}", " ", part, flags=re.I)
+        name = None
+        t = re.search(r"\{\{\s*player\s*\|\s*([^|}]+)", part, re.I)
+        if t:
+            name = t.group(1)
+        else:
+            w = re.search(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]", part)
+            if w:
+                name = w.group(2) or w.group(1)
+            else:
+                stripped = re.sub(r"\{\{[^}]*\}\}", " ", part)
+                stripped = stripped.replace("'''", "").strip()
+                if stripped and not re.fullmatch(r"(true|false|)", stripped, re.I):
+                    name = stripped
+        if name:
+            name = name.strip().strip("'\"")
+            # a page title like 'alecks (player)' still displays as 'alecks'
+            name = re.sub(r"\s*\(.*?\)$", "", name).strip()
+            if name and len(name) < 30:
+                out.append(name)
+    return out
 
 
 def main():
@@ -170,19 +236,21 @@ def main():
         w = tpages.get(title) or ""
         if not w:
             continue
-        # squad rows carry a role; head coaches are tagged Coach / Head Coach
-        m = re.search(
-            r"\{\{SquadPlayer\s*\|([^|}]+)[^}]*?\|\s*(?:role|position)\s*=\s*"
-            r"(?:Head\s*)?Coach\b", w, re.I)
-        if not m:
-            m = re.search(r"\|\s*coach\s*=\s*([^\n|}]+)", w, re.I)
-        if m:
-            name = re.sub(r"\[\[([^\]|]+\|)?([^\]]+)\]\]", r"\2", m.group(1)).strip()
-            name = re.sub(r"<!--.*?-->", "", name).strip()
-            if name and len(name) < 40:
-                coaches[tag] = {"name": name, "team": title}
+        staff = infobox_names(w, "coaches") or infobox_names(w, "coach")
+        igls = infobox_names(w, "igl")
+        if not staff and not igls:
+            continue
+        coaches[tag] = {
+            "team": title,
+            "name": staff[0] if staff else None,          # head coach
+            "assistants": staff[1:],
+            "igl": igls[0] if igls else None,
+        }
     json.dump(coaches, open(OUT_C, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"coaches: {len(coaches)}/{len(TEAM_PAGES)} -> {OUT_C}")
+    named = sum(1 for v in coaches.values() if v.get("name"))
+    with_igl = sum(1 for v in coaches.values() if v.get("igl"))
+    print(f"teams: {named}/{len(TEAM_PAGES)} head coaches, "
+          f"{with_igl}/{len(TEAM_PAGES)} IGLs -> {OUT_C}")
 
 
 if __name__ == "__main__":

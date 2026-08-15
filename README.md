@@ -16,7 +16,8 @@
 | --- | --- | --- |
 | 战队、阵容、国籍、位置 | [vlr.gg](https://www.vlr.gg) | VCT 2026 赛季 |
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
-| 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 通过官方 API 获取 |
+| 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
+| 主教练、助教、IGL（指挥） | Liquipedia 战队 infobox | 49/53 教练，47/53 IGL |
 | 一级联赛参赛名单 | vlr.gg 赛区筛选 + 赛事页 | 四大赛区各 12 队，逐队核对 |
 
 ### 能力值是怎么来的
@@ -141,8 +142,22 @@ npx tsx scripts/smoke.ts 3
 
 ## 数据抓取说明
 
-抓取脚本遵守各站点规则：Liquipedia 使用官方 API，携带标识性 User-Agent、启用 gzip、
-批量查询（一次 50 个页面而不是逐页请求）并在收到 429 时退避。请不要把间隔调短。
+抓取脚本严格遵守 [Liquipedia API 条款](https://liquipedia.net/api-terms-of-use)，
+而且是**代码强制**而非口头承诺：
+
+- 所有请求走统一节流器，**≥ 2.5 秒/次**（条款要求 ≥ 2 秒）
+- **`action=parse` 被直接禁用**（条款限 30 秒/次）。改用 `action=query` 一次查 50 个页面，
+  340 名选手只需 7 个请求
+- 收到 429 **立即中止并保存已有结果**，绝不重试硬撞
+- 携带标识性 User-Agent（含联系方式）+ gzip
+- 结果全部落盘缓存，重跑只补缺失的部分
+
+请不要调低 `MIN_INTERVAL`。违规会导致 IP 临时封禁，反复触发会变成永久封禁
+（本项目开发时就踩过一次，是用 `action=parse` 每 2.2 秒请求造成的）。
+
+**关于付费 API**：Liquipedia 另有商业化的 LiquipediaDB API，但 Basic / Premium 档位
+目前不可用，只剩 Enterprise 自定义报价，面向商业伙伴。本项目用免费的 MediaWiki API
+已经拿到 94% 的生日与全部教练/IGL，没有申请必要。
 
 ---
 
