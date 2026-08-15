@@ -146,7 +146,7 @@ export function Traits({ traits, max }: { traits?: Trait[]; max?: number }) {
 
 /** Radar that can overlay several series on the same axes, for comparison. */
 export function MultiRadar({
-  axes, series, size = 230,
+  axes, series, size = 300,
 }: {
   axes: string[]
   series: { label: string; color: string; values: number[] }[]
@@ -154,7 +154,7 @@ export function MultiRadar({
 }) {
   const cx = size / 2
   const cy = size / 2
-  const r = size / 2 - 30
+  const r = size / 2 - 44
   const n = axes.length
   const pt = (i: number, mag: number) => {
     const a = (Math.PI * 2 * i) / n - Math.PI / 2
@@ -179,11 +179,26 @@ export function MultiRadar({
           fill={s.color} fillOpacity={0.22} stroke={s.color} strokeWidth={2}
         />
       ))}
+      {series.map((s) =>
+        s.values.map((v, i) => {
+          const [x, y] = pt(i, Math.max(0.04, Math.min(1, v / 100)))
+          return <circle key={`${s.label}-${i}`} cx={x} cy={y} r={2.6} fill={s.color} />
+        }),
+      )}
       {axes.map((l, i) => {
-        const [x, y] = pt(i, 1.19)
+        const [x, y] = pt(i, 1.2)
         return (
-          <text key={l} x={x} y={y} fill="#7d93ab" fontSize={10}
-            textAnchor="middle" dominantBaseline="middle">{l}</text>
+          <g key={l}>
+            <text x={x} y={y - 6} fill="#7d93ab" fontSize={11} fontWeight={600}
+              textAnchor="middle" dominantBaseline="middle">{l}</text>
+            <text x={x} y={y + 7} fontSize={10} textAnchor="middle" dominantBaseline="middle"
+              fontFamily="var(--mono)" fill={series[0]?.color ?? '#55697f'}>
+              {Math.round(series[0]?.values[i] ?? 0)}
+              {series[1] ? (
+                <tspan fill={series[1].color}> / {Math.round(series[1].values[i])}</tspan>
+              ) : null}
+            </text>
+          </g>
         )
       })}
     </svg>

@@ -53,11 +53,14 @@ export default function NewGame({
     return set
   }, [])
 
-  const list = useMemo(
-    () => WORLD_TEAMS.filter((t) => t.region === region)
-      .sort((a, b) => (squadStrength[b.id] ?? 0) - (squadStrength[a.id] ?? 0)),
-    [region, squadStrength],
-  )
+  const byTier = useMemo(() => {
+    const inRegion = WORLD_TEAMS.filter((t) => t.region === region)
+      .sort((a, b) => (squadStrength[b.id] ?? 0) - (squadStrength[a.id] ?? 0))
+    return {
+      1: inRegion.filter((t) => t.tier === 1),
+      2: inRegion.filter((t) => t.tier === 2),
+    }
+  }, [region, squadStrength])
 
   const available = (t: (typeof WORLD_TEAMS)[number]) =>
     !!manager && canManage(manager.reputation, t.reputation, lockedTop.has(t.id))
@@ -171,8 +174,20 @@ export default function NewGame({
                     onClick={() => { setRegion(r); setTeamId(null) }}>{REGION_CN[r]}</button>
                 ))}
               </div>
-              <div className="team-pick">
-                {list.map((t) => {
+              {([1, 2] as const).map((tier) => byTier[tier].length > 0 && (
+                <div key={tier} style={{ marginBottom: 16 }}>
+                  <div className="nav-group" style={{ padding: '0 0 7px' }}>
+                    {tier === 1
+                      ? `一级联赛 · VCT ${REGION_CN[region]}（${byTier[tier].length} 队）`
+                      : `次级联赛 · Challengers ${REGION_CN[region]}（${byTier[tier].length} 队）`}
+                    <span className="tiny faint" style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0 }}>
+                      {tier === 1
+                        ? 'Kickoff → Stage 1 → Stage 2，可争夺 Masters 与 Champions'
+                        : '两个赛段，冠军通过 Ascension 升入 VCT'}
+                    </span>
+                  </div>
+                  <div className="team-pick">
+                {byTier[tier].map((t) => {
                   const ok = available(t)
                   const top = lockedTop.has(t.id)
                   return (
@@ -181,7 +196,12 @@ export default function NewGame({
                       disabled={!ok}
                       title={top ? '联赛顶尖球队，需要靠成绩解锁' : ok ? '' : '你的声望还不足以接手这支球队'}
                       onClick={() => { setTeamId(t.id); setErr(null) }}>
-                      <div className="n">{t.name}</div>
+                      <div className="row" style={{ justifyContent: 'space-between', gap: 6 }}>
+                        <div className="n">{t.name}</div>
+                        <span className={`tag ${t.tier === 1 ? 't1' : ''}`}>
+                          {t.tier === 1 ? 'VCT' : 'CHAL'}
+                        </span>
+                      </div>
                       <div className="row small muted" style={{ gap: 8 }}>
                         <OvrBadge value={squadStrength[t.id] ?? 0} />
                         <span>{money(t.budget)}</span>
@@ -190,7 +210,9 @@ export default function NewGame({
                     </button>
                   )
                 })}
-              </div>
+                  </div>
+                </div>
+              ))}
               <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
                 声望决定哪些俱乐部愿意请你。每个赛区最强的三支球队开局永远锁定——
                 那是靠成绩换来的位置，不是开局能挑的。

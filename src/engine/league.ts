@@ -47,12 +47,31 @@ export function makeFixture(
   }
 }
 
+/**
+ * How many times a league plays itself through.
+ *
+ * A twelve-team league needs one pass to give everyone eleven games. A small
+ * Challengers league of three would only get two, which is not a season — so
+ * small leagues cycle several times, the way real lower divisions do.
+ */
+export function cyclesFor(teamCount: number, targetGames = 10): number {
+  const perCycle = Math.max(1, teamCount - 1)
+  return Math.max(1, Math.ceil(targetGames / perCycle))
+}
+
 /** Spread round-robin rounds across the days available in a stage window. */
 export function scheduleRegularSeason(
   comp: Competition, stage: StageKey, startDay: number, endDay: number,
   bo: 1 | 3 | 5, rng: Rng, labelPrefix = '常规赛',
 ): Fixture[] {
-  const rounds = roundRobin(comp.teams, rng)
+  const cycles = cyclesFor(comp.teams.length)
+  const rounds: [string, string][][] = []
+  for (let c = 0; c < cycles; c++) {
+    // reversing every other pass keeps home/away alternating across cycles
+    for (const pairs of roundRobin(comp.teams, rng)) {
+      rounds.push(c % 2 === 0 ? pairs : pairs.map(([a, b]) => [b, a] as [string, string]))
+    }
+  }
   if (!rounds.length) return []
   const span = Math.max(1, endDay - startDay)
   const step = Math.max(2, Math.floor(span / rounds.length))

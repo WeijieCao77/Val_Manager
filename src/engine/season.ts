@@ -103,7 +103,8 @@ export function setupSeason(state: GameState): void {
     state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 196, 264, 3, rng))
 
     // ---- Challengers: two splits, running alongside the tier-1 calendar
-    if (t2.length >= 4) {
+    // even a two-club Challengers league is playable now that small leagues cycle
+    if (t2.length >= 2) {
       const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
       state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 138, 3, rng, '常规赛'))
 

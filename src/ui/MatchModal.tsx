@@ -151,6 +151,8 @@ function Performance({
   lineups?: { a: string[]; b: string[] }
 }) {
   const { game } = useGame()
+  const [mode, setMode] = useState<'team' | 'player'>('team')
+  const [picked, setPicked] = useState<string[]>([])
 
   const idsFor = (teamId: string) => {
     const side = teamId === teamA ? lineups?.a : lineups?.b
@@ -162,39 +164,69 @@ function Performance({
 
   const aIds = idsFor(teamA)
   const bIds = idsFor(teamB)
-  const mine = game.myTeam === teamB ? bIds : aIds
+  const mineIds = game.myTeam === teamB ? bIds : aIds
+  const all = [...aIds, ...bIds]
+
+  const toggle = (pid: string) =>
+    setPicked((cur) =>
+      cur.includes(pid) ? cur.filter((x) => x !== pid) : [...cur, pid].slice(-2))
+
+  const PALETTE = ['var(--accent)', '#5fa8d3']
+  const series = mode === 'team'
+    ? [
+        { label: game.teams[teamA]?.name ?? 'A', color: PALETTE[0], values: avgPerf(aIds.map((id) => map.lines[id])) },
+        { label: game.teams[teamB]?.name ?? 'B', color: PALETTE[1], values: avgPerf(bIds.map((id) => map.lines[id])) },
+      ]
+    : picked.map((pid, i) => ({
+        label: game.players[pid]?.ign ?? pid,
+        color: PALETTE[i] ?? PALETTE[0],
+        values: perfOf(map.lines[pid]),
+      }))
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div className="nav-group" style={{ padding: '0 0 8px' }}>表现对比 · {map.map}</div>
+      <div className="row" style={{ gap: 10, marginBottom: 10 }}>
+        <div className="nav-group" style={{ padding: 0 }}>表现对比 · {map.map}</div>
+        <div className="spacer" style={{ flex: 1 }} />
+        <div className="seg">
+          <button className={mode === 'team' ? 'on' : ''} onClick={() => setMode('team')}>队伍</button>
+          <button className={mode === 'player' ? 'on' : ''} onClick={() => setMode('player')}>选手</button>
+        </div>
+      </div>
+
+      {mode === 'player' && (
+        <div className="row wrap" style={{ gap: 5, marginBottom: 10 }}>
+          {all.map((pid) => {
+            const p = game.players[pid]
+            if (!p) return null
+            const on = picked.indexOf(pid)
+            return (
+              <button key={pid} className={`sm${on >= 0 ? ' primary' : ''}`} onClick={() => toggle(pid)}>
+                {p.ign}
+                {on >= 0 && <span className="tiny"> ●</span>}
+              </button>
+            )
+          })}
+          <span className="tiny faint">最多选两人对比</span>
+        </div>
+      )}
+
       <div className="grid c2" style={{ alignItems: 'center' }}>
         <div className="radar-wrap">
-          <MultiRadar
-            axes={PERF_AXES}
-            series={[
-              {
-                label: game.teams[teamA]?.name ?? 'A',
-                color: 'var(--accent)',
-                values: avgPerf(aIds.map((id) => map.lines[id])),
-              },
-              {
-                label: game.teams[teamB]?.name ?? 'B',
-                color: '#5fa8d3',
-                values: avgPerf(bIds.map((id) => map.lines[id])),
-              },
-            ]}
-          />
+          {series.length ? (
+            <MultiRadar axes={PERF_AXES} series={series} />
+          ) : (
+            <div className="empty">选择 1–2 名选手进行对比。</div>
+          )}
         </div>
         <div>
           <div className="row wrap tiny" style={{ gap: 12, marginBottom: 10 }}>
-            <span className="row" style={{ gap: 5 }}>
-              <i style={{ width: 9, height: 9, background: 'var(--accent)', display: 'inline-block' }} />
-              {game.teams[teamA]?.name}
-            </span>
-            <span className="row" style={{ gap: 5 }}>
-              <i style={{ width: 9, height: 9, background: '#5fa8d3', display: 'inline-block' }} />
-              {game.teams[teamB]?.name}
-            </span>
+            {series.map((sr) => (
+              <span key={sr.label} className="row" style={{ gap: 5 }}>
+                <i style={{ width: 9, height: 9, background: sr.color, display: 'inline-block' }} />
+                {sr.label}
+              </span>
+            ))}
           </div>
           <div className="table-wrap">
             <table>
@@ -202,7 +234,7 @@ function Performance({
                 <tr><th>本队选手</th><th className="num">本场</th><th className="num">赛季</th><th className="num">发挥</th></tr>
               </thead>
               <tbody>
-                {mine.map((pid) => {
+                {mineIds.map((pid) => {
                   const p = game.players[pid]
                   const l = map.lines[pid]
                   if (!p || !l) return null
@@ -210,12 +242,12 @@ function Performance({
                   const base = p.season.maps ? ratingOf(p.season) : now
                   const d = now - base
                   return (
-                    <tr key={pid}>
+                    <tr key={pid} className="clickable" onClick={() => { setMode('player'); toggle(pid) }}>
                       <td>{p.ign}</td>
                       <td className="num mono">{now.toFixed(2)}</td>
                       <td className="num mono muted">{base.toFixed(2)}</td>
                       <td className={`num mono ${d >= 0.08 ? 'pos' : d <= -0.08 ? 'neg' : 'muted'}`}>
-                        {d > 0 ? '▲' : d < 0 ? '▼' : '–'} {Math.abs(d).toFixed(2)}
+                        {d > 0 ? '\u25b2' : d < 0 ? '\u25bc' : '\u2013'} {Math.abs(d).toFixed(2)}
                       </td>
                     </tr>
                   )
@@ -224,7 +256,7 @@ function Performance({
             </table>
           </div>
           <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-            「发挥」= 本场评分与该选手赛季均值之差。持续下滑通常是状态或疲劳问题。
+            「发挥」= 本场评分与该选手赛季均值之差。点击一行可将他加入雷达对比。
           </p>
         </div>
       </div>
