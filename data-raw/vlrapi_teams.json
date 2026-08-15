@@ -1,0 +1,418 @@
+{
+ "VIT": {
+  "vlrId": "2059",
+  "name": "Team Vitality",
+  "coach": "PAL",
+  "assistants": [],
+  "roster": [
+   "Jamppi",
+   "PROFEK",
+   "Derke",
+   "Chronicle",
+   "Sayonara"
+  ]
+ },
+ "TH": {
+  "vlrId": "1001",
+  "name": "Team Heretics",
+  "coach": "neilzinho",
+  "assistants": [],
+  "roster": [
+   "Boo",
+   "koshmaras",
+   "Wo0t",
+   "RieNs",
+   "benjyfishy"
+  ]
+ },
+ "FNC": {
+  "vlrId": "2593",
+  "name": "FNATIC",
+  "coach": "ENGH",
+  "assistants": [
+   "Desmo"
+  ],
+  "roster": [
+   "Boaster",
+   "crashies",
+   "kaajak",
+   "Cloud",
+   "Alfajer"
+  ]
+ },
+ "FUT": {
+  "vlrId": "1184",
+  "name": "FUT Esports",
+  "coach": "Vlad",
+  "assistants": [
+   "Bambino"
+  ],
+  "roster": [
+   "sociablEE",
+   "s0pp",
+   "xeus",
+   "yetujey",
+   "KROSTALY"
+  ]
+ },
+ "GX": {
+  "vlrId": "14419",
+  "name": "GIANTX",
+  "coach": "pipsoN",
+  "assistants": [
+   "wayLander"
+  ],
+  "roster": [
+   "Flickless",
+   "westside",
+   "ara",
+   "Jesse",
+   "neT"
+  ]
+ },
+ "BBL": {
+  "vlrId": "397",
+  "name": "BBL Esports",
+  "coach": "KEY",
+  "assistants": [
+   "Viento"
+  ],
+  "roster": [
+   "Rosé",
+   "Crewen",
+   "Lar0k",
+   "Loita",
+   "lovers rock"
+  ]
+ },
+ "TL": {
+  "vlrId": "17297",
+  "name": "Team Liquid Academy",
+  "coach": "Bacon9",
+  "assistants": [
+   "getdeluxe"
+  ],
+  "roster": [
+   "rexxtoned",
+   "GSR",
+   "Prti",
+   "WanZeru"
+  ]
+ },
+ "EF": {
+  "vlrId": "6392",
+  "name": "Eternal Fire",
+  "coach": "afr0nfire",
+  "assistants": [
+   "casteLL0"
+  ],
+  "roster": [
+   "nekky",
+   "Spear",
+   "audaz",
+   "Favian",
+   "echo"
+  ]
+ },
+ "PCF": {
+  "vlrId": "19882",
+  "name": "PCIFIC Akademi",
+  "coach": null,
+  "assistants": [],
+  "roster": [
+   "n1tze",
+   "krish"
+  ]
+ },
+ "M8": {
+  "vlrId": "12694",
+  "name": "Gentle Mates",
+  "coach": "KUNDIKUNDI",
+  "assistants": [
+   "Mavera"
+  ],
+  "roster": [
+   "starxo",
+   "Proxh",
+   "marteen",
+   "H1ber",
+   "Minny"
+  ]
+ },
+ "NAVI": {
+  "vlrId": "21715",
+  "name": "Natus Vincere Junior",
+  "coach": "Johnta",
+  "assistants": [],
+  "roster": [
+   "Javelin",
+   "Kolosha",
+   "Darxcioo",
+   "avey",
+   "sizo"
+  ]
+ },
+ "KC": {
+  "vlrId": "8877",
+  "name": "Karmine Corp",
+  "coach": "ZE1SH",
+  "assistants": [
+   "simoz"
+  ],
+  "roster": [
+   "Avez",
+   "dos9",
+   "LewN",
+   "SUYGETSU",
+   "N4RRATE"
+  ]
+ },
+ "PRX": {
+  "vlrId": "624",
+  "name": "Paper Rex",
+  "coach": "alecks",
+  "assistants": [
+   "Wendler"
+  ],
+  "roster": [
+   "invy",
+   "Jinggg",
+   "f0rsakeN",
+   "d4v41",
+   "something"
+  ]
+ },
+ "TS": {
+  "vlrId": "6199",
+  "name": "Team Secret",
+  "coach": "Spin",
+  "assistants": [],
+  "roster": [
+   "kellyS",
+   "natz",
+   "STYRON",
+   "Zeus",
+   "Sylvan"
+  ]
+ },
+ "RRQ": {
+  "vlrId": "878",
+  "name": "Rex Regum Qeon",
+  "coach": "Jovi",
+  "assistants": [
+   "Warbirds"
+  ],
+  "roster": [
+   "crazyguy",
+   "Monyet",
+   "xffero",
+   "Xan",
+   "Jemkin",
+   "Kushy"
+  ]
+ },
+ "FS": {
+  "vlrId": "4050",
+  "name": "FULL SENSE",
+  "coach": "FrosT",
+  "assistants": [
+   "Sushiboys"
+  ],
+  "roster": [
+   "Crws",
+   "Killua",
+   "primmie",
+   "JitBoyS",
+   "seph1roth"
+  ]
+ },
+ "GE": {
+  "vlrId": "918",
+  "name": "Global Esports",
+  "coach": "Platoon",
+  "assistants": [
+   "Aimix Strange"
+  ],
+  "roster": [
+   "xavi8k",
+   "PatMen",
+   "UdoTan",
+   "Kr1stal",
+   "Autumn"
+  ]
+ },
+ "EDG": {
+  "vlrId": "1120",
+  "name": "EDward Gaming",
+  "coach": "Autumn",
+  "assistants": [],
+  "roster": [
+   "nobody",
+   "ZmjjKK",
+   "CHICHOO",
+   "Smoggy",
+   "Jieni7"
+  ]
+ },
+ "XLG": {
+  "vlrId": "13581",
+  "name": "Xi Lai Gaming",
+  "coach": "hvoya",
+  "assistants": [
+   "steady"
+  ],
+  "roster": [
+   "WsLeo",
+   "Sharks",
+   "Lysoar",
+   "NoMan",
+   "Rarga",
+   "happywei"
+  ]
+ },
+ "TYL": {
+  "vlrId": "731",
+  "name": "TYLOO",
+  "coach": "hypnotizing",
+  "assistants": [
+   "Billyo",
+   "sword9"
+  ],
+  "roster": [
+   "SiuFatBB",
+   "splash",
+   "Scales",
+   "Erv",
+   "slowly",
+   "xihe"
+  ]
+ },
+ "WOL": {
+  "vlrId": "13790",
+  "name": "Wolves Esports",
+  "coach": "alexRr",
+  "assistants": [],
+  "roster": [
+   "glacier",
+   "yosemite",
+   "Spring",
+   "Deryeon",
+   "aluba"
+  ]
+ },
+ "FPX": {
+  "vlrId": "11328",
+  "name": "FunPlus Phoenix",
+  "coach": "LEGIJA",
+  "assistants": [
+   "York"
+  ],
+  "roster": [
+   "AAAAY",
+   "KovaQ",
+   "coconut",
+   "Xlele",
+   "Setrod"
+  ]
+ },
+ "NOVA": {
+  "vlrId": "12064",
+  "name": "Nova Esports",
+  "coach": "24K",
+  "assistants": [],
+  "roster": [
+   "qiutiaN",
+   "cb",
+   "Ezeir",
+   "GuanG",
+   "swagzor"
+  ]
+ },
+ "BLG": {
+  "vlrId": "12010",
+  "name": "Bilibili Gaming",
+  "coach": "Anaks",
+  "assistants": [],
+  "roster": [
+   "whzy",
+   "rushia",
+   "nephh",
+   "yilai",
+   "Knight",
+   "bud",
+   "FT"
+  ]
+ },
+ "AG": {
+  "vlrId": "1119",
+  "name": "All Gamers",
+  "coach": "ED101",
+  "assistants": [],
+  "roster": [
+   "Shr1mp",
+   "K1ra",
+   "Bai",
+   "f4ngeer",
+   "iamgrq"
+  ]
+ },
+ "TE": {
+  "vlrId": "12685",
+  "name": "Trace Esports",
+  "coach": "destroyeR",
+  "assistants": [],
+  "roster": [
+   "LuoK1ng",
+   "Kai",
+   "FengF",
+   "FKEY",
+   "deLb"
+  ]
+ },
+ "JDG": {
+  "vlrId": "13576",
+  "name": "JD Gaming",
+  "coach": "bail",
+  "assistants": [
+   "Desire"
+  ],
+  "roster": [
+   "jkuro",
+   "zhe",
+   "Yuicaw",
+   "crownfisher",
+   "BerLIN"
+  ]
+ },
+ "DRG": {
+  "vlrId": "11981",
+  "name": "Dragon Ranger Gaming",
+  "coach": "NaThanD",
+  "assistants": [
+   "1t"
+  ],
+  "roster": [
+   "Nicc",
+   "Flex1n",
+   "Life",
+   "vo0kashu",
+   "Verse",
+   "SpiritZ1"
+  ]
+ },
+ "TEC": {
+  "vlrId": "14137",
+  "name": "Titan Esports Club",
+  "coach": "AfteR",
+  "assistants": [
+   "3water"
+  ],
+  "roster": [
+   "Haodong",
+   "lucas",
+   "Dynamite",
+   "ra1ny",
+   "Coco"
+  ]
+ }
+}

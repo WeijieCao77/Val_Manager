@@ -28,6 +28,7 @@ RAW = os.path.join(ROOT, "data-raw")
 SRC = os.path.join(RAW, "vlr_vct2026_players.txt")
 BIRTHS = os.path.join(RAW, "liquipedia_players.json")
 COACHES = os.path.join(RAW, "liquipedia_coaches.json")
+VLRAPI = os.path.join(RAW, "vlrapi_teams.json")
 OVERRIDES = os.path.join(RAW, "overrides.json")
 OUT = os.path.join(ROOT, "src", "data", "world.json")
 
@@ -208,6 +209,14 @@ def main():
     rows = parse_rows()
     births = load_json(BIRTHS)
     coaches = load_json(COACHES)
+    # the community VLR API fills clubs whose Liquipedia infobox omits a coach
+    for tag, rec in load_json(VLRAPI).items():
+        if not rec.get("coach"):
+            continue
+        cur = coaches.setdefault(tag, {})
+        if not cur.get("name"):
+            cur["name"] = rec["coach"]
+            cur["assistants"] = rec.get("assistants") or []
     ov = load_json(OVERRIDES)
     ov_igl = ov.get("igl", {})
     ov_roles = ov.get("roles", {})

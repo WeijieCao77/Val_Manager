@@ -23,7 +23,10 @@
     "which is a real source — so nothing is pinned here. Only add an entry if a",
     "club's infobox is wrong or missing AND you can verify the caller."
   ],
-  "igl": {},
+  "igl": {
+    "TYL": "SiuFatBB",
+    "WOL": "aluba"
+  },
 
   "_roles_note": [
     "Role breadth is the one thing neither source gives directly: vlr's filter",
