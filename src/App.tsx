@@ -16,6 +16,7 @@ import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextFixtureFor, stageName } from './engine/season'
+import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 
@@ -135,17 +136,21 @@ export default function App() {
 
         <div className="body">
           <nav className="nav">
-            {SCREENS.map((s) => (
-              <div key={s.key}>
-                {s.group && <div className="nav-group">{s.group}</div>}
-                <button
-                  className={screen === s.key ? 'active' : ''}
-                  onClick={() => setScreen(s.key)}
-                >
-                  {s.label}
-                </button>
-              </div>
-            ))}
+            {SCREENS.map((s) => {
+              const lock = screenLocked(s.key, game)
+              return (
+                <div key={s.key}>
+                  {s.group && <div className="nav-group">{s.group}</div>}
+                  <button
+                    className={`${screen === s.key ? 'active' : ''}${lock ? ' locked' : ''}`}
+                    title={lock ?? ''}
+                    onClick={() => setScreen(s.key)}
+                  >
+                    {s.label}{lock ? ' 🔒' : ''}
+                  </button>
+                </div>
+              )
+            })}
           </nav>
 
           <main className="main">

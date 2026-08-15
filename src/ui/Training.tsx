@@ -1,6 +1,7 @@
 import { useGame } from './ctx'
 import { Bar, Condition, OvrBadge, Panel, Roles } from './common'
 import { squadOf } from '../engine/world'
+import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Attrs, Player } from '../engine/types'
 
@@ -51,7 +52,7 @@ export default function Training() {
   return (
     <>
       <Panel
-        title="每周训练安排"
+        title={`训练计划 · ${stageName(game.stage)}`}
         actions={
           <div className="row" style={{ gap: 8 }}>
             <button className="sm" onClick={restTired}>让疲劳选手休息</button>
@@ -155,7 +156,8 @@ export default function Training() {
       </div>
 
       <p className="tiny muted">
-        训练每 7 天结算一次。疲劳超过 70 会大幅拖慢成长，年轻选手（≤20 岁）的成长速度约为 27 岁以上选手的三倍。
+        训练计划设一次就会一直生效到你改动为止，<b>不需要每天来管</b>；系统每 7 天结算一次收益。
+        疲劳超过 70 会大幅拖慢成长，年轻选手（≤20 岁）的成长速度约为 27 岁以上选手的三倍。
         能力值达到潜力上限后，继续训练只能维持状态。
       </p>
     </>

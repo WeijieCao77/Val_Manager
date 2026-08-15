@@ -328,8 +328,10 @@ export interface TransferOffer {
   years: number
   /** the full package offered, when the UI produced one */
   terms?: Contract
-  /** day the offer was made; offers expire */
+  /** day the offer was made */
   day: number
+  /** day the other side comes back to you */
+  respondOn?: number
   status: 'pending' | 'accepted' | 'rejected' | 'expired'
   /** null when the club accepted but the player still has to agree */
   note?: string
@@ -337,6 +339,20 @@ export interface TransferOffer {
 
 export interface Inbox {
   items: NewsItem[]
+}
+
+/**
+ * A target the board sets at the start of a competitive stage and judges at the
+ * end of it. Stage-length rather than daily, so it gives the season a shape
+ * without asking the manager to do anything every morning.
+ */
+export interface StageObjective {
+  stage: StageKey
+  /** finish at or above this position in the league table */
+  placeAtLeast: number
+  text: string
+  settled?: boolean
+  met?: boolean
 }
 
 export interface GameState {
@@ -368,5 +384,7 @@ export interface GameState {
   /** last processed match ids so the UI can surface results */
   lastResults: string[]
   boardConfidence: number
+  /** what the board asked for this stage, and how it was judged */
+  objective?: StageObjective
   gameOver?: string
 }

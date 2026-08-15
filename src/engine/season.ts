@@ -6,7 +6,7 @@ import {
   resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket,
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
-import { aiTransferTick } from './transfer'
+import { aiTransferTick, resolveDueOffers } from './transfer'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
@@ -227,6 +227,73 @@ function progressCompetitions(state: GameState): void {
   }
 }
 
+/** Stages the board actually judges you on. */
+const JUDGED: StageKey[] = ['kickoff', 'stage1', 'stage2']
+
+/** Where in its own league does the club sit by strength? */
+function expectedPlace(state: GameState): { place: number; size: number } {
+  const me = state.teams[state.myTeam]
+  const peers = Object.values(state.teams)
+    .filter((t) => t.region === me.region && t.tier === me.tier)
+    .sort((a, b) => b.rating - a.rating)
+  return { place: peers.findIndex((t) => t.id === me.id) + 1, size: peers.length }
+}
+
+/**
+ * Ask the board what it wants from this stage.
+ *
+ * The target is pinned to the squad you actually have — a bottom side is asked
+ * to survive, a favourite to win it — so overachieving is possible from
+ * anywhere and the goal never reads as arbitrary.
+ */
+function setObjective(state: GameState, notes: string[]): void {
+  if (!JUDGED.includes(state.stage)) {
+    state.objective = undefined
+    return
+  }
+  const { place, size } = expectedPlace(state)
+  const target = clamp(Math.round(place - 1), 1, Math.max(1, size - 1))
+  const text =
+    target === 1 ? '董事会要求：拿下本赛段冠军。'
+      : target <= Math.ceil(size / 4) ? `董事会要求：本赛段进入前 ${target} 名。`
+        : target <= Math.ceil(size / 2) ? `董事会期望：本赛段打进前 ${target} 名（季后赛区）。`
+          : `董事会目标：本赛段不低于第 ${target} 名。`
+  state.objective = { stage: state.stage, placeAtLeast: target, text }
+  notes.push(text)
+  state.news.push({ day: state.day, kind: 'club', important: true, text })
+}
+
+/** Judge the stage that just ended, and move board confidence accordingly. */
+function settleObjective(state: GameState, endedStage: StageKey, notes: string[]): void {
+  const obj = state.objective
+  if (!obj || obj.settled || obj.stage !== endedStage) return
+  const comp = state.comps[`${endedStage}:${state.teams[state.myTeam]?.region}`]
+  if (!comp) return
+
+  const order = comp.finished.length ? comp.finished : sortStandings(comp)
+  const place = order.indexOf(state.myTeam) + 1
+  if (place <= 0) return
+
+  obj.settled = true
+  obj.met = place <= obj.placeAtLeast
+  const swing = obj.met
+    ? Math.min(16, 6 + (obj.placeAtLeast - place) * 3)
+    : -Math.min(18, 5 + (place - obj.placeAtLeast) * 3)
+  state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
+
+  const msg = obj.met
+    ? `✅ 赛段目标达成：第 ${place} 名（要求前 ${obj.placeAtLeast}）。董事会满意。`
+    : `❌ 赛段目标未达成：第 ${place} 名（要求前 ${obj.placeAtLeast}）。董事会不满。`
+  notes.push(msg)
+  state.news.push({ day: state.day, kind: 'club', important: true, text: msg })
+
+  if (state.boardConfidence <= 12) {
+    const warn = '⚠ 董事会已对你失去耐心，下个赛段再无起色就会换人。'
+    notes.push(warn)
+    state.news.push({ day: state.day, kind: 'club', important: true, text: warn })
+  }
+}
+
 export interface DayReport {
   day: number
   stage: StageKey
@@ -320,6 +387,8 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const stageChanged = state.stage !== prevStage
   if (stageChanged) {
     notes.push(`—— 进入 ${stageName(state.stage)} ——`)
+    settleObjective(state, prevStage, notes)
+    setObjective(state, notes)
   }
 
   // ---- play today's matches
@@ -344,6 +413,9 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
 
   if (!pendingMine) progressCompetitions(state)
+
+  // ---- offers whose waiting period is up
+  notes.push(...resolveDueOffers(state, rng))
 
   // ---- weekly upkeep
   if (state.day % 7 === 0) {

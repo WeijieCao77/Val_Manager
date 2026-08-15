@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, makeFriendly, nextFixtureFor, stageName } from '../engine/season'
+import { advanceDay, advanceToNextMatch, makeFriendly, nextFixtureFor, stageName, STAGES } from '../engine/season'
 import { sortStandings } from '../engine/league'
+import { agendaFor } from '../engine/agenda'
 import { squadOf, wageBill } from '../engine/world'
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
@@ -68,8 +69,32 @@ export default function Dashboard() {
     .sort((a, b) => ratingOf(b.season) - ratingOf(a.season))
     .slice(0, 5)
 
+  const agenda = agendaFor(game)
+  const stageDef = STAGES.find((x) => x.key === game.stage)
+  const daysLeft = stageDef ? stageDef.end - game.day : 0
+
   return (
     <>
+      <Panel
+        title={`${stageName(game.stage)}${daysLeft > 0 ? ` · 还剩 ${daysLeft} 天` : ''}`}
+        className={agenda.some((a) => a.tone === 'urgent') ? 'alert' : 'own'}
+      >
+        {agenda.length ? (
+          <div className="agenda">
+            {agenda.map((a) => (
+              <button key={a.key} className={`agenda-item ${a.tone}`}
+                onClick={() => a.go && go(a.go)}>
+                <span className="dot" />
+                <span>{a.text}</span>
+                {a.go && a.go !== 'dashboard' && <span className="tiny faint right">前往 ›</span>}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="small muted">目前没有需要处理的事，可以直接推进。</div>
+        )}
+      </Panel>
+
       <div className="grid c4">
         <Panel><Stat k="联赛排名" v={myRank >= 0 ? `${myRank + 1} / ${table.length}` : '—'} /></Panel>
         <Panel><Stat k="资金" v={money(game.finances.balance)} /></Panel>

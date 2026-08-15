@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
 import ContractTerms from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
-import { Rng, hashStr } from '../engine/rng'
-import { askingPrice, makeOffer, resolveMyOffer, windowOpen } from '../engine/transfer'
+import { askingPrice, committedFunds, makeOffer, windowOpen } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
@@ -38,11 +37,21 @@ export default function Transfers() {
 
   const squad = squadOf(game, game.myTeam)
   const bill = wageBill(game, game.myTeam)
+  const pending = game.offers.filter((o) => o.status === 'pending' && o.toTeam === game.myTeam)
+  const committed = committedFunds(game)
 
   return (
     <>
       <div className="grid c4">
-        <Panel><div className="stat"><span className="k">可用资金</span><span className="v">{money(game.finances.balance)}</span></div></Panel>
+        <Panel>
+          <div className="stat">
+            <span className="k">可用资金</span>
+            <span className="v">{money(game.finances.balance - committed)}</span>
+          </div>
+          {committed > 0 && (
+            <div className="tiny faint">其中 {money(committed)} 已被待回应的报价占用</div>
+          )}
+        </Panel>
         <Panel><div className="stat"><span className="k">阵容人数</span><span className="v">{squad.length}</span></div></Panel>
         <Panel><div className="stat"><span className="k">赛季薪资</span><span className="v">{money(bill)}</span></div></Panel>
         <Panel>
@@ -59,6 +68,41 @@ export default function Transfers() {
         <p className="small neg">
           转会窗口目前关闭。开放时段：季前准备（第 0–20 天）、Masters II 期间（第 169–194 天）、休赛期（第 311 天起）。
         </p>
+      )}
+
+      {pending.length > 0 && (
+        <Panel title={`等待回应 · ${pending.length} 份报价`} flush>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>选手</th><th>现俱乐部</th><th className="num">转会费</th>
+                  <th className="num">年薪</th><th className="num">还需等待</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((o) => {
+                  const p = game.players[o.playerId]
+                  const left = (o.respondOn ?? game.day) - game.day
+                  return (
+                    <tr key={o.id}>
+                      <td><b>{p?.ign ?? '—'}</b></td>
+                      <td className="small muted">
+                        {o.fromTeam ? game.teams[o.fromTeam]?.name : '自由人'}
+                      </td>
+                      <td className="num mono">{money(o.fee)}</td>
+                      <td className="num mono">{money(o.salary)}</td>
+                      <td className="num mono">{left > 0 ? `${left} 天` : '今日答复'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="tiny faint" style={{ padding: '10px 13px', margin: 0 }}>
+            报价期间资金已被预留，别的俱乐部也可能抢先签下目标。
+          </p>
+        </Panel>
       )}
 
       <Panel
@@ -128,10 +172,8 @@ export default function Transfers() {
           onClose={() => setTarget(null)}
           onSubmit={(fee, terms) => {
             const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
-            const rng = new Rng(hashStr(`${game.seed}:${offer.id}`))
-            const msg = resolveMyOffer(game, offer, rng)
             commit()
-            toast(msg)
+            toast(`报价已提交给 ${target.ign}，${(offer.respondOn ?? game.day) - game.day} 天后给你答复。`)
             setTarget(null)
           }}
         />

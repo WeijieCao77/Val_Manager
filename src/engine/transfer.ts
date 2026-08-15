@@ -1,4 +1,4 @@
-import { Rng, clamp } from './rng'
+import { Rng, clamp, hashStr } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, squadOf, wageBill } from './world'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
@@ -243,17 +243,71 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
 export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer {
+  // nobody signs on the spot: the other side takes a week or so to come back,
+  // and a rival can get there first in the meantime
+  const rng = new Rng(hashStr(`offer:${state.seed}:${playerId}:${state.day}`))
   const offer: TransferOffer = {
     id: `O${state.offers.length}_${state.day}`,
     playerId,
     fromTeam: state.players[playerId]?.teamId ?? null,
     toTeam, fee, salary: terms.salary, years: terms.years, terms,
     day: state.day,
+    respondOn: state.day + rng.int(7, 10),
     status: 'pending',
   }
   state.offers.push(offer)
   return offer
 }
+
+/**
+ * Answer any offers whose waiting period is up.
+ *
+ * Deciding late rather than on submission is what makes an offer a commitment:
+ * the money is not yours to spend twice, the player can be signed by someone
+ * else while you wait, and the window can close underneath you.
+ */
+export function resolveDueOffers(state: GameState, rng: Rng): string[] {
+  const notes: string[] = []
+  for (const offer of state.offers) {
+    if (offer.status !== 'pending') continue
+    if (state.day < (offer.respondOn ?? offer.day)) continue
+
+    const p = state.players[offer.playerId]
+    const to = state.teams[offer.toTeam]
+    if (!p || !to) {
+      offer.status = 'expired'
+      continue
+    }
+    // somebody else got there first
+    if (p.teamId === offer.toTeam) {
+      offer.status = 'expired'
+      continue
+    }
+    if (p.teamId !== offer.fromTeam) {
+      offer.status = 'expired'
+      offer.note = `${p.ign} 已经加盟了 ${state.teams[p.teamId ?? '']?.name ?? '别的俱乐部'}。`
+      notes.push(offer.note)
+      state.news.push({ day: state.day, kind: 'transfer', text: offer.note, important: true })
+      continue
+    }
+
+    const msg = resolveMyOffer(state, offer, rng)
+    const signed = (offer.status as TransferOffer['status']) === 'accepted'
+    notes.push(msg)
+    state.news.push({ day: state.day, kind: 'transfer', text: msg, important: signed })
+  }
+  // keep the list from growing without bound
+  if (state.offers.length > 60) {
+    state.offers = state.offers.filter((o) => o.status === 'pending').slice(-60)
+  }
+  return notes
+}
+
+/** Money committed to offers still awaiting an answer. */
+export const committedFunds = (state: GameState): number =>
+  state.offers
+    .filter((o) => o.status === 'pending' && o.toTeam === state.myTeam)
+    .reduce((s, o) => s + o.fee + (o.terms?.signingBonus ?? 0), 0)
 
 /** Resolve an offer the human manager submitted. */
 export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng): string {
