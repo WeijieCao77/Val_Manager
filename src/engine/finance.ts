@@ -1,0 +1,57 @@
+import { squadOf, wageBill } from './world'
+import type { GameState, StageKey } from './types'
+
+/** Prize money by competition and placement (USD). */
+export const PRIZE: Record<string, number[]> = {
+  kickoff: [200000, 120000, 70000, 45000, 25000, 25000, 12000, 12000],
+  stage1: [300000, 180000, 110000, 70000, 45000, 30000, 20000, 20000],
+  stage2: [300000, 180000, 110000, 70000, 45000, 30000, 20000, 20000],
+  masters1: [350000, 200000, 130000, 90000, 55000, 55000, 35000, 35000],
+  masters2: [350000, 200000, 130000, 90000, 55000, 55000, 35000, 35000],
+  champions: [1000000, 500000, 300000, 200000, 120000, 120000, 80000, 80000],
+  challengers1: [40000, 24000, 15000, 10000, 6000, 6000, 3000, 3000],
+  challengers2: [60000, 36000, 22000, 15000, 9000, 9000, 5000, 5000],
+}
+
+export function awardPrize(state: GameState, stage: StageKey, order: string[]): void {
+  const table = PRIZE[stage]
+  if (!table) return
+  order.forEach((teamId, i) => {
+    const amount = table[i] ?? 0
+    if (!amount) return
+    const team = state.teams[teamId]
+    if (!team) return
+    team.budget += amount
+    team.seasonPrize += amount
+    if (teamId === state.myTeam) {
+      state.finances.balance += amount
+      state.finances.log.push({ day: state.day, label: `奖金 · ${stage} 第${i + 1}名`, amount })
+    }
+  })
+}
+
+/** Weekly payroll and sponsorship, charged to every club. */
+export function weeklyFinance(state: GameState): void {
+  for (const team of Object.values(state.teams)) {
+    const wages = Math.round(wageBill(state, team.id) / 48)
+    const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / 48)
+    const upkeep = Math.round((team.facilities * 900 + squadOf(state, team.id).length * 1400) / 4)
+    const net = sponsor - wages - upkeep
+    team.budget += net
+
+    if (team.id === state.myTeam) {
+      state.finances.balance += net
+      state.finances.log.push({ day: state.day, label: '赞助收入', amount: sponsor })
+      state.finances.log.push({ day: state.day, label: '选手薪资', amount: -wages })
+      state.finances.log.push({ day: state.day, label: '运营开支', amount: -upkeep })
+      if (state.finances.log.length > 200) {
+        state.finances.log.splice(0, state.finances.log.length - 200)
+      }
+    }
+  }
+}
+
+export const seasonWageBill = (state: GameState, teamId: string) => wageBill(state, teamId)
+
+export const sponsorIncome = (state: GameState, teamId: string) =>
+  state.teams[teamId]?.sponsors.reduce((s, x) => s + x.perSeason, 0) ?? 0

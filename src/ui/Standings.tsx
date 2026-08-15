@@ -1,0 +1,168 @@
+import { useState } from 'react'
+import { useGame } from './ctx'
+import { OvrBadge, Panel } from './common'
+import { sortStandings } from '../engine/league'
+import { ratingOf } from '../engine/match'
+import { statLine } from '../engine/player'
+import { REGION_CN, REGIONS } from '../engine/types'
+import type { Competition } from '../engine/types'
+
+function Table({ comp }: { comp: Competition }) {
+  const { game, openPlayer } = useGame()
+  void openPlayer
+  const order = comp.champion && comp.finished.length ? comp.finished : sortStandings(comp)
+  const hasPlayed = Object.values(comp.standings).some((r) => r.w + r.l > 0)
+
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th className="num">#</th><th>战队</th>
+            <th className="num">胜</th><th className="num">负</th>
+            <th className="num">小局</th><th className="num">净胜局</th><th className="num">回合差</th>
+          </tr>
+        </thead>
+        <tbody>
+          {order.map((id, i) => {
+            const r = comp.standings[id]
+            if (!r) return null
+            const cut = comp.stage === 'challengers1' || comp.stage === 'challengers2' ? 4 : 8
+            return (
+              <tr key={id} className={id === game.myTeam ? 'me' : ''}>
+                <td className="num muted">
+                  {i + 1}
+                  {comp.champion === id && ' 🏆'}
+                  {!comp.champion && i + 1 === cut && ''}
+                </td>
+                <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--red)' : '2px solid transparent' }}>
+                  {game.teams[id]?.name}
+                </td>
+                <td className="num">{r.w}</td>
+                <td className="num">{r.l}</td>
+                <td className="num muted">{r.mapW}-{r.mapL}</td>
+                <td className={`num mono ${r.mapW - r.mapL >= 0 ? 'pos' : 'neg'}`}>
+                  {r.mapW - r.mapL > 0 ? '+' : ''}{r.mapW - r.mapL}
+                </td>
+                <td className="num muted mono">{r.roundW - r.roundL > 0 ? '+' : ''}{r.roundW - r.roundL}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {!hasPlayed && <div className="empty">尚未开赛。</div>}
+    </div>
+  )
+}
+
+export default function Standings() {
+  const { game, openPlayer } = useGame()
+  const [tab, setTab] = useState<'leagues' | 'players'>('leagues')
+  const myRegion = game.teams[game.myTeam]?.region
+  const [region, setRegion] = useState(myRegion ?? 'China')
+
+  const comps = Object.values(game.comps).filter((c) => !c.region || c.region === region)
+  const international = Object.values(game.comps).filter((c) => !c.region)
+  const regional = comps.filter((c) => c.region === region)
+
+  const leaders = Object.values(game.players)
+    .filter((p) => p.season.maps >= 8 && p.teamId)
+    .sort((a, b) => ratingOf(b.season) - ratingOf(a.season))
+    .slice(0, 40)
+
+  return (
+    <>
+      <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
+        <div className="seg">
+          <button className={tab === 'leagues' ? 'on' : ''} onClick={() => setTab('leagues')}>联赛</button>
+          <button className={tab === 'players' ? 'on' : ''} onClick={() => setTab('players')}>选手榜</button>
+        </div>
+        {tab === 'leagues' && (
+          <div className="seg">
+            {REGIONS.map((r) => (
+              <button key={r} className={region === r ? 'on' : ''} onClick={() => setRegion(r)}>
+                {REGION_CN[r]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {tab === 'leagues' ? (
+        <>
+          {regional.length === 0 && <div className="empty">该赛区本阶段没有进行中的赛事。</div>}
+          {regional.map((c) => (
+            <Panel
+              key={c.key}
+              title={`${c.name}${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}
+              flush
+            >
+              <Table comp={c} />
+            </Panel>
+          ))}
+          {international.map((c) => (
+            <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`} flush>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th className="num">#</th><th>战队</th><th>赛区</th></tr>
+                  </thead>
+                  <tbody>
+                    {(c.finished.length ? c.finished : c.teams).map((id, i) => (
+                      <tr key={id} className={id === game.myTeam ? 'me' : ''}>
+                        <td className="num muted">{i + 1}{c.champion === id && ' 🏆'}</td>
+                        <td>{game.teams[id]?.name}</td>
+                        <td className="small muted">{REGION_CN[game.teams[id]?.region]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          ))}
+        </>
+      ) : (
+        <Panel title="赛季选手排行（至少 8 张图）" flush>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="num">#</th><th>选手</th><th>战队</th><th className="num">能力</th>
+                  <th className="num">评分</th><th className="num">ACS</th><th className="num">K/D</th>
+                  <th className="num">ADR</th><th className="num">KPR</th>
+                  <th className="num">首杀差</th><th className="num">场次</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaders.map((p, i) => {
+                  const s = statLine(p.season)
+                  return (
+                    <tr
+                      key={p.id}
+                      className={`clickable ${p.teamId === game.myTeam ? 'me' : ''}`}
+                      onClick={() => openPlayer(p.id)}
+                    >
+                      <td className="num muted">{i + 1}</td>
+                      <td><b>{p.ign}</b></td>
+                      <td className="small muted">{game.teams[p.teamId ?? '']?.name}</td>
+                      <td className="num"><OvrBadge value={p.overall} /></td>
+                      <td className="num"><b>{ratingOf(p.season).toFixed(2)}</b></td>
+                      <td className="num mono">{s.acs.toFixed(0)}</td>
+                      <td className="num mono">{s.kd.toFixed(2)}</td>
+                      <td className="num mono">{s.adr.toFixed(0)}</td>
+                      <td className="num mono">{s.kpr.toFixed(2)}</td>
+                      <td className={`num mono ${s.fkDiff >= 0 ? 'pos' : 'neg'}`}>
+                        {s.fkDiff > 0 ? '+' : ''}{s.fkDiff}
+                      </td>
+                      <td className="num muted">{p.season.maps}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+    </>
+  )
+}
