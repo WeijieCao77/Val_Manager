@@ -32,56 +32,126 @@ export function clubAcceptsFee(p: Player, fee: number, rng: Rng): boolean {
   return rng.chance((ratio - 0.7) / 0.5)
 }
 
-/** How believable a promised standing is for this player at this club. */
+const ROLE_ORDER: SquadRole[] = ['bench', 'rotation', 'starter', 'star']
+
+/** What standing this player would expect at this club, given the squad. */
+export function deservedRole(state: GameState, p: Player, team: Team): SquadRole {
+  const squad = squadOf(state, team.id).filter((x) => x.id !== p.id)
+  const better = squad.filter((x) => x.overall > p.overall).length
+  return better === 0 ? 'star' : better < 5 ? 'starter' : better < 7 ? 'rotation' : 'bench'
+}
+
+/**
+ * How a promised standing lands with the player.
+ *
+ * The key asymmetry: 首发 already means full playing time, so it is never an
+ * insult — a star offered 首发 rather than 核心 is mildly underwhelmed, not
+ * offended. Only 轮换 and 替补 promise *less* than a starting place, and those
+ * are what a player good enough to start will actually refuse over.
+ */
 export function roleFit(state: GameState, p: Player, team: Team, promised: SquadRole): number {
-  const squad = squadOf(state, team.id)
-    .filter((x) => x.id !== p.id)
-    .sort((a, b) => b.overall - a.overall)
-  const rank = squad.filter((x) => x.overall > p.overall).length
-  // being promised a role above your standing is flattering; below it, an insult
-  const deserved: SquadRole = rank === 0 ? 'star' : rank < 5 ? 'starter' : rank < 7 ? 'rotation' : 'bench'
-  const order: SquadRole[] = ['bench', 'rotation', 'starter', 'star']
-  return order.indexOf(promised) - order.indexOf(deserved)
+  const deserved = deservedRole(state, p, team)
+  const gap = ROLE_ORDER.indexOf(promised) - ROLE_ORDER.indexOf(deserved)
+  if (gap >= 0) return gap                       // at or above expectations
+  // below expectations, but only benching actually stings
+  if (promised === 'starter') return gap * 0.25  // "not the star" — a shrug
+  return gap                                     // 轮换 / 替补 — the real snub
+}
+
+export interface OfferScore {
+  /** raw appeal; 0 is a coin flip */
+  score: number
+  /** probability the player says yes */
+  chance: number
+  /** the single term hurting the offer most, if any */
+  worst?: { key: string; why: string }
+  /** true when the wage is so low the offer is not worth making */
+  insulting: boolean
+}
+
+/**
+ * Score an offer without rolling for it.
+ *
+ * Kept separate from the accept/reject roll so the UI can show an honest
+ * read-out before the manager commits — an offer costs 7-10 days of waiting,
+ * and blind-guessing terms for that price is not a decision, it is a lottery.
+ */
+export function scoreOffer(
+  state: GameState, p: Player, toTeam: Team, terms: Contract,
+): OfferScore {
+  const want = expectedSalary(p, toTeam.tier)
+  const { salary, years, signingBonus, bonusShare, promisedRole, releaseClause, noPoach } = terms
+  if (salary < want * 0.7) {
+    return {
+      score: -99, chance: 0, insulting: true,
+      worst: { key: 'salary', why: `薪资远低于他的期望（约 ${moneyish(want)}/年）` },
+    }
+  }
+
+  const from = p.teamId ? state.teams[p.teamId] : null
+  const fit = roleFit(state, p, toTeam, promisedRole)
+
+  // every term's contribution is kept so the refusal can name the real blocker
+  // rather than blaming whatever happens to be checked first
+  const parts: { key: string; v: number; why: string }[] = [
+    { key: 'salary', v: (salary / want - 1) * 60, why: `薪资低于他的期望（约 ${moneyish(want)}/年）` },
+    { key: 'bonus', v: (signingBonus / Math.max(1, want)) * 26, why: '签字费缺乏吸引力' },
+    { key: 'share', v: (bonusShare - 10) * 0.9, why: '奖金分成偏低' },
+    {
+      key: 'role',
+      v: fit >= 0 ? fit * 11 : fit * 16,
+      // a starting place is never refused; falling short of 核心 is only a wish
+      why: promisedRole === 'starter'
+        ? '他希望被当作球队核心'
+        : `不接受「${SQUAD_ROLE_CN[promisedRole]}」这种替补定位`,
+    },
+    { key: 'rep', v: (toTeam.reputation - (from?.reputation ?? 30)) * 0.9, why: '认为这支球队不如他现在的平台' },
+    { key: 'tier', v: from ? (toTeam.tier < from.tier ? 18 : toTeam.tier > from.tier ? -22 : 0) : 0, why: '不愿意降级去次级联赛' },
+    { key: 'loyal', v: from ? -(p.loyalty - 50) * 0.35 : 0, why: '对现在的俱乐部感情很深' },
+    { key: 'lock', v: noPoach ? -13 : 0, why: '不愿接受转会限制条款' },
+  ]
+  let score = parts.reduce((s, x) => s + x.v, 0)
+  score += (p.ambition - 55) * 0.25 * (toTeam.reputation > (from?.reputation ?? 0) ? 1 : -1)
+  if (from && !from.starters.includes(p.id)) score += 14
+  if (years >= 3) score += p.age >= 27 ? 8 : 3
+  if (releaseClause > 0) score += 7
+  score += (p.grievance ?? 0) * 0.25   // unhappy players are easier to move
+
+  const worst = parts.filter((x) => x.v < -1).sort((a, b) => a.v - b.v)[0]
+  return {
+    score,
+    chance: 1 / (1 + Math.exp(-score / 14)),
+    worst: worst ? { key: worst.key, why: worst.why } : undefined,
+    insulting: false,
+  }
 }
 
 /** Would the player sign for this club on these terms? */
 export function playerAcceptsTerms(
   state: GameState, p: Player, toTeam: Team, terms: Contract, rng: Rng,
 ): { ok: boolean; reason?: string } {
-  const want = expectedSalary(p, toTeam.tier)
-  const { salary, years, signingBonus, bonusShare, promisedRole, releaseClause, noPoach } = terms
-  if (salary < want * 0.7) {
-    return { ok: false, reason: `${p.ign} 认为薪资太低（期望约 $${want.toLocaleString()}/年）。` }
+  const s = scoreOffer(state, p, toTeam, terms)
+  if (s.insulting) {
+    return { ok: false, reason: `${p.ign} 认为这份报价缺乏诚意：${s.worst?.why}。` }
   }
-
-  const from = p.teamId ? state.teams[p.teamId] : null
-  let score = 0
-  score += (salary / want - 1) * 60
-  // cash up front is worth more to a player than the same money spread out
-  score += (signingBonus / Math.max(1, want)) * 26
-  score += (bonusShare - 10) * 0.9
-  // a promise above their standing is a real draw; below it, they walk
-  const fit = roleFit(state, p, toTeam, promisedRole)
-  score += fit >= 0 ? fit * 11 : fit * 16
-  score += (toTeam.reputation - (from?.reputation ?? 30)) * 0.9
-  if (from && toTeam.tier < from.tier) score += 18
-  if (from && toTeam.tier > from.tier) score -= 22
-  score += (p.ambition - 55) * 0.25 * (toTeam.reputation > (from?.reputation ?? 0) ? 1 : -1)
-  if (from) score -= (p.loyalty - 50) * 0.35
-  if (from && !from.starters.includes(p.id)) score += 14
-  if (years >= 3) score += p.age >= 27 ? 8 : 3
-  // an exit route is reassuring; being locked in is not
-  if (releaseClause > 0) score += 7
-  if (noPoach) score -= 13
-  score += (p.grievance ?? 0) * 0.25   // unhappy players are easier to move
-
-  const pOk = 1 / (1 + Math.exp(-score / 14))
-  if (rng.chance(pOk)) return { ok: true }
-  if (fit < 0) {
-    return { ok: false, reason: `${p.ign} 不接受「${SQUAD_ROLE_CN[promisedRole]}」的定位，他认为自己值更多出场时间。` }
+  if (rng.chance(s.chance)) return { ok: true }
+  return {
+    ok: false,
+    reason: s.worst
+      ? `${p.ign} 拒绝了报价：${s.worst.why}。`
+      : `${p.ign} 拒绝了报价，他对目前的处境还算满意。`,
   }
-  return { ok: false, reason: `${p.ign} 拒绝了这份合同，他对目前的处境还算满意。` }
 }
+
+/** Coarse, honest read-out of how an offer is likely to land. */
+export function offerOutlook(s: OfferScore): { level: 'good' | 'fair' | 'poor'; label: string } {
+  if (s.insulting) return { level: 'poor', label: '几乎不可能' }
+  if (s.chance >= 0.72) return { level: 'good', label: '很可能接受' }
+  if (s.chance >= 0.38) return { level: 'fair', label: '有机会' }
+  return { level: 'poor', label: '希望不大' }
+}
+
+const moneyish = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
 export function doTransfer(
   state: GameState, p: Player, toTeamId: string, fee: number, terms: Contract,

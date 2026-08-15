@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull } from './common'
-import ContractTerms from './ContractTerms'
+import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
 import { playerAcceptsTerms } from '../engine/transfer'
 import { SQUAD_ROLE_CN, defaultContract } from '../engine/types'
@@ -176,6 +176,7 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
               <div className="panel-head"><h2>续约谈判</h2></div>
               <div className="panel-body">
                 <ContractTerms terms={terms} onChange={setTerms} want={want} />
+                <OfferVerdict state={game} player={p} team={me} terms={terms} />
                 <div className="row" style={{ gap: 10, marginTop: 16 }}>
                   <button className="primary" onClick={submitRenewal}>提交</button>
                   <button onClick={() => setRenewing(false)}>取消</button>

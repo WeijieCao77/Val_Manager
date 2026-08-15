@@ -443,3 +443,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .agenda-item.todo .dot { background: var(--accent); }
 
 .nav button.locked { opacity: .45; }
+
+/* how an offer is likely to land, shown before you commit to the wait */
+.verdict {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 14px; padding: 9px 12px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--loss); border-radius: var(--radius);
+}

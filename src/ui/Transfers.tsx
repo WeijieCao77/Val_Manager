@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
-import ContractTerms from './ContractTerms'
+import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
 import { askingPrice, committedFunds, makeOffer, windowOpen } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
@@ -231,6 +231,7 @@ function OfferModal({
       )}
 
       <ContractTerms terms={terms} onChange={setTerms} want={want} />
+      <OfferVerdict state={game} player={player} team={me} terms={terms} />
 
       {!afford && (
         <div className="tiny neg" style={{ marginTop: 10 }}>

@@ -1,6 +1,36 @@
 import { SQUAD_ROLE_CN } from '../engine/types'
 import type { Contract, SquadRole } from '../engine/types'
+import { offerOutlook, scoreOffer } from '../engine/transfer'
+import type { GameState, Player, Team } from '../engine/types'
 import { moneyFull } from './common'
+
+/**
+ * An honest read on how the offer will land, before it is sent.
+ *
+ * An offer costs 7-10 days of waiting, so guessing blindly at terms is not a
+ * decision. The read-out is deliberately coarse — three bands and the single
+ * worst term — which teaches the negotiation without solving it.
+ */
+export function OfferVerdict({
+  state, player, team, terms,
+}: { state: GameState; player: Player; team: Team; terms: Contract }) {
+  const s = scoreOffer(state, player, team, terms)
+  const o = offerOutlook(s)
+  const color = o.level === 'good' ? 'var(--win)' : o.level === 'fair' ? 'var(--warn)' : 'var(--loss)'
+  return (
+    <div className="verdict" style={{ borderLeftColor: color }}>
+      <b style={{ color }}>{o.label}</b>
+      {/* only frame a term as an obstacle when it is actually holding the offer back */}
+      {s.worst && o.level !== 'good' && (
+        <span className="small muted">最大阻力：{s.worst.why}</span>
+      )}
+      {s.worst && o.level === 'good' && (
+        <span className="small faint">唯一保留：{s.worst.why}</span>
+      )}
+      {!s.worst && o.level === 'good' && <span className="small muted">条件足够有说服力。</span>}
+    </div>
+  )
+}
 
 const ROLES: SquadRole[] = ['star', 'starter', 'rotation', 'bench']
 
