@@ -412,3 +412,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 
 .empty { padding: 28px; text-align: center; color: var(--faint); font-size: var(--t-small); }
+
+/* origin cards — three dealt from eight, pick one */
+.origin-card {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px; text-align: left;
+  display: block; width: 100%;
+}
+.origin-card:hover { border-color: #3c536b; }
+.origin-card.sel { border-color: var(--accent); background: var(--accent-wash); }
+
+.team-card.locked { opacity: .42; cursor: not-allowed; }
+.team-card.locked:hover { border-color: var(--line); }

@@ -2,6 +2,11 @@ import { useMemo, useState } from 'react'
 import { createNewGame, WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
 import { setupSeason } from '../engine/season'
 import { importSave } from '../engine/save'
+import { hashStr } from '../engine/rng'
+import {
+  AGE_MAX, AGE_MIN, SKILL_CN, SKILL_HINT, ageBand, canManage, createManager, dealOrigins,
+} from '../engine/manager'
+import type { ManagerOrigin } from '../engine/manager'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { GameState, Region } from '../engine/types'
 import { money, OvrBadge } from './common'
@@ -9,44 +14,60 @@ import { money, OvrBadge } from './common'
 export default function NewGame({
   onStart, canContinue, onContinue,
 }: { onStart: (g: GameState) => void; canContinue: boolean; onContinue: () => void }) {
-  const [region, setRegion] = useState<Region>('China')
-  const [tier, setTier] = useState<1 | 2>(1)
-  const [teamId, setTeamId] = useState<string | null>(null)
   const [name, setName] = useState('')
+  const [age, setAge] = useState(24)
+  const [originKey, setOriginKey] = useState<string | null>(null)
+  const [region, setRegion] = useState<Region>('China')
+  const [teamId, setTeamId] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
+  // the three on offer are dealt from the eight, and stay fixed for this run
+  const [dealSeed] = useState(() => (hashStr(String(Date.now())) >>> 0))
+  const offered = useMemo(() => dealOrigins(dealSeed, 3), [dealSeed])
+  const origin = offered.find((o) => o.key === originKey) ?? null
+
+  const manager = useMemo(
+    () => (origin ? createManager(name, age, origin.key) : null),
+    [name, age, origin],
+  )
+  const band = ageBand(age)
+
   const squadStrength = useMemo(() => {
-    const byTeam: Record<string, number> = {}
+    const by: Record<string, number> = {}
     for (const t of WORLD_TEAMS) {
-      const squad = WORLD_PLAYERS.filter((p) => p.teamId === t.id)
-        .sort((a, b) => b.overall - a.overall)
-        .slice(0, 5)
-      byTeam[t.id] = squad.length
-        ? Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length)
-        : 0
+      const s = WORLD_PLAYERS.filter((p) => p.teamId === t.id)
+        .sort((a, b) => b.overall - a.overall).slice(0, 5)
+      by[t.id] = s.length ? Math.round(s.reduce((n, p) => n + p.overall, 0) / s.length) : 0
     }
-    return byTeam
+    return by
+  }, [])
+
+  // the strongest three in each league are never on offer at the start
+  const lockedTop = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of REGIONS) {
+      WORLD_TEAMS.filter((t) => t.region === r && t.tier === 1)
+        .sort((a, b) => b.rating - a.rating).slice(0, 3)
+        .forEach((t) => set.add(t.id))
+    }
+    return set
   }, [])
 
   const list = useMemo(
-    () => WORLD_TEAMS
-      .filter((t) => t.region === region && t.tier === tier)
+    () => WORLD_TEAMS.filter((t) => t.region === region)
       .sort((a, b) => (squadStrength[b.id] ?? 0) - (squadStrength[a.id] ?? 0)),
-    [region, tier, squadStrength],
+    [region, squadStrength],
   )
+
+  const available = (t: (typeof WORLD_TEAMS)[number]) =>
+    !!manager && canManage(manager.reputation, t.reputation, lockedTop.has(t.id))
 
   const selected = teamId ? WORLD_TEAMS.find((t) => t.id === teamId) : null
 
   const begin = () => {
-    if (!teamId) {
-      setErr('请先选择一支战队。')
-      return
-    }
-    if (tier === 2 && list.length < 4) {
-      setErr('该赛区暂无可运行的次级联赛，请先选择其他赛区或一级联赛战队。')
-      return
-    }
-    const g = createNewGame(teamId, name.trim() || '无名经理')
+    if (!manager) return setErr('请先选择一个出身。')
+    if (!teamId) return setErr('请先选择一支战队。')
+    const g = createNewGame(teamId, manager.name, undefined, manager)
     setupSeason(g)
     onStart(g)
   }
@@ -66,124 +87,169 @@ export default function NewGame({
   return (
     <div className="newgame">
       <h1>VAL<span className="r"> MANAGER</span></h1>
-      <p className="muted" style={{ marginTop: 0, marginBottom: 26 }}>
+      <p className="muted" style={{ marginTop: 0, marginBottom: 24 }}>
         无畏契约电竞经理 · 执掌一支战队，征战 VCT 四大赛区与次级联赛
       </p>
 
-      <div className="row wrap" style={{ marginBottom: 22 }}>
-        {canContinue && (
-          <button className="primary" onClick={onContinue}>继续上次存档</button>
-        )}
-        <label className="row" style={{ gap: 6 }}>
+      <div className="row wrap" style={{ marginBottom: 20 }}>
+        {canContinue && <button className="primary" onClick={onContinue}>继续上次存档</button>}
+        <label>
           <span className="tag" style={{ cursor: 'pointer', padding: '7px 14px' }}>导入存档文件</span>
-          <input
-            type="file" accept=".json,.valsave" style={{ display: 'none' }}
-            onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
-          />
+          <input type="file" accept=".json" style={{ display: 'none' }}
+            onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
         </label>
       </div>
 
+      {/* ---------------------------------------------------------- 1 你是谁 */}
       <div className="panel">
-        <div className="panel-head">
-          <h2>1 · 选择赛区</h2>
-        </div>
+        <div className="panel-head"><h2>1 · 你是谁</h2></div>
         <div className="panel-body">
-          <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
-            <div className="seg">
-              {REGIONS.map((r) => (
-                <button key={r} className={region === r ? 'on' : ''} onClick={() => { setRegion(r); setTeamId(null) }}>
-                  {REGION_CN[r]}
-                </button>
-              ))}
+          <div className="grid c2">
+            <div>
+              <label className="small muted">名字</label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="输入你的名字" maxLength={20} />
             </div>
-            <div className="seg">
-              <button className={tier === 1 ? 'on' : ''} onClick={() => { setTier(1); setTeamId(null) }}>
-                一级联赛 VCT
-              </button>
-              <button className={tier === 2 ? 'on' : ''} onClick={() => { setTier(2); setTeamId(null) }}>
-                次级联赛 Challengers
-              </button>
+            <div>
+              <label className="small muted">
+                年龄 · <b>{band.label}</b>
+              </label>
+              <div className="row" style={{ gap: 10 }}>
+                <input type="range" min={AGE_MIN} max={AGE_MAX} value={age}
+                  onChange={(e) => { setAge(Number(e.target.value)); setTeamId(null) }} />
+                <input type="number" min={AGE_MIN} max={AGE_MAX} value={age}
+                  style={{ width: 74 }}
+                  onChange={(e) => { setAge(Number(e.target.value) || AGE_MIN); setTeamId(null) }} />
+              </div>
+              <div className="tiny faint" style={{ marginTop: 4 }}>{band.note}</div>
             </div>
           </div>
-          <p className="small muted" style={{ marginTop: 0 }}>
-            {tier === 1
-              ? '一级联赛：资源充足、对手强劲，目标直指 Masters 与 Champions。'
-              : '次级联赛：预算有限，需要通过 Ascension 升级赛打进 VCT——更硬核的开局。'}
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- 2 出身 */}
+      <div className="panel">
+        <div className="panel-head">
+          <h2>2 · 出身（随机抽到 3 个，选 1 个）</h2>
+        </div>
+        <div className="panel-body">
+          <div className="grid c3">
+            {offered.map((o) => (
+              <OriginCard
+                key={o.key} origin={o}
+                selected={originKey === o.key}
+                onPick={() => { setOriginKey(o.key); setTeamId(null); setErr(null) }}
+              />
+            ))}
+          </div>
+          <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
+            每个出身都是 2 强 1 弱、幅度相同，没有强弱之分，差别只在你拿到哪些工具。
+            出身主要影响背景故事与起步声望。
           </p>
-          {tier === 2 && list.length < 4 && (
-            <p className="small neg" style={{ marginBottom: 0 }}>
-              该赛区目前收录的次级联赛战队不足 4 支，无法组成联赛。本作只使用真实战队与真实
-              选手，不会用虚构队伍凑数——待补全 vlr.gg 的 Challengers 数据后即可开放。
-            </p>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- 3 球队 */}
+      <div className="panel">
+        <div className="panel-head">
+          <h2>3 · 选择战队</h2>
+          {manager && (
+            <>
+              <div className="spacer" />
+              <span className="tag t1">声望 {manager.reputation}</span>
+            </>
+          )}
+        </div>
+        <div className="panel-body">
+          {!manager ? (
+            <div className="empty">先确定你的年龄与出身，才知道哪些俱乐部愿意请你。</div>
+          ) : (
+            <>
+              <div className="seg" style={{ marginBottom: 14 }}>
+                {REGIONS.map((r) => (
+                  <button key={r} className={region === r ? 'on' : ''}
+                    onClick={() => { setRegion(r); setTeamId(null) }}>{REGION_CN[r]}</button>
+                ))}
+              </div>
+              <div className="team-pick">
+                {list.map((t) => {
+                  const ok = available(t)
+                  const top = lockedTop.has(t.id)
+                  return (
+                    <button key={t.id}
+                      className={`team-card${teamId === t.id ? ' sel' : ''}${ok ? '' : ' locked'}`}
+                      disabled={!ok}
+                      title={top ? '联赛顶尖球队，需要靠成绩解锁' : ok ? '' : '你的声望还不足以接手这支球队'}
+                      onClick={() => { setTeamId(t.id); setErr(null) }}>
+                      <div className="n">{t.name}</div>
+                      <div className="row small muted" style={{ gap: 8 }}>
+                        <OvrBadge value={squadStrength[t.id] ?? 0} />
+                        <span>{money(t.budget)}</span>
+                        {!ok && <span className="tiny">{top ? '🔒 顶级' : '🔒 声望不足'}</span>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
+                声望决定哪些俱乐部愿意请你。每个赛区最强的三支球队开局永远锁定——
+                那是靠成绩换来的位置，不是开局能挑的。
+              </p>
+            </>
           )}
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>2 · 选择战队</h2>
-        </div>
-        <div className="panel-body">
-          <div className="team-pick">
-            {list.map((t) => (
-              <button
-                key={t.id}
-                className={`team-card${teamId === t.id ? ' sel' : ''}`}
-                onClick={() => { setTeamId(t.id); setErr(null) }}
-              >
-                <div className="n">{t.name}</div>
-                <div className="row small muted" style={{ gap: 8 }}>
-                  <OvrBadge value={squadStrength[t.id] ?? 0} />
-                  <span>{money(t.budget)}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>3 · 经理信息</h2>
-        </div>
-        <div className="panel-body">
-          <div className="grid c2">
-            <div>
-              <label className="small muted">经理名字</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="输入你的名字"
-                maxLength={20}
-              />
+      {selected && manager && (
+        <div className="panel own">
+          <div className="panel-body">
+            <div className="row wrap" style={{ gap: 10 }}>
+              <b style={{ fontSize: 17 }}>{selected.name}</b>
+              <span className="tag">{REGION_CN[selected.region as Region]}</span>
+              <span className="tag">阵容强度 {squadStrength[selected.id]}</span>
+              <span className="tag">{manager.age} 岁 · {origin?.label}</span>
             </div>
-            {selected && (
-              <div>
-                <label className="small muted">已选择</label>
-                <div className="row" style={{ gap: 10, paddingTop: 7 }}>
-                  <b style={{ fontSize: 17 }}>{selected.name}</b>
-                  <span className="tag">{REGION_CN[selected.region as Region]}</span>
-                  <span className="tag">阵容强度 {squadStrength[selected.id]}</span>
-                  <span className="tag">预算 {money(selected.budget)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-          {err && <p className="neg small">{err}</p>}
-          <div style={{ marginTop: 16 }}>
-            <button className="primary" onClick={begin} disabled={!teamId}>开始职业生涯 →</button>
           </div>
         </div>
+      )}
+
+      {err && <p className="neg small">{err}</p>}
+      <div style={{ marginTop: 14 }}>
+        <button className="primary" onClick={begin} disabled={!manager || !teamId}>
+          开始职业生涯 →
+        </button>
       </div>
 
       <p className="tiny muted" style={{ marginTop: 24, lineHeight: 1.8 }}>
-        游戏内所有战队与选手均为真实人物，没有任何虚构角色。阵容、国籍、位置与全部
-        比赛数据（Rating / ACS / K/D / KAST / ADR / KPR / 首杀率）取自 <b>vlr.gg</b> 的
-        VCT 2026 赛季统计；选手真名与生日取自 <b>Liquipedia</b>。
-        八项能力值由这些真实数据按分位映射得出——枪法来自实际 ACS / ADR / 爆头率，
-        意识来自实际 KAST 与首死率，因此能力值反映的是他们真实的表现水平。
-        合同、薪资与俱乐部预算为游戏平衡所需的估算值。
+        游戏内所有战队与选手均为真实人物。阵容、国籍、位置与全部比赛数据取自 <b>vlr.gg</b> 的
+        VCT 2026 赛季统计；真名、生日、教练与指挥取自 <b>Liquipedia</b>；英雄池取自真实出场记录。
+        八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡所需的估算值。
       </p>
     </div>
+  )
+}
+
+function OriginCard({
+  origin, selected, onPick,
+}: { origin: ManagerOrigin; selected: boolean; onPick: () => void }) {
+  return (
+    <button className={`origin-card${selected ? ' sel' : ''}`} onClick={onPick}>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <b style={{ fontSize: 15 }}>{origin.label}</b>
+        <span className="tiny faint">声望 {origin.repMod >= 0 ? '+' : ''}{origin.repMod}</span>
+      </div>
+      <p className="tiny muted" style={{ margin: '6px 0 10px', lineHeight: 1.6 }}>{origin.blurb}</p>
+      <div className="row wrap" style={{ gap: 4 }}>
+        {origin.strong.map((s) => (
+          <span key={s} className="trait" data-good="y" title={SKILL_HINT[s]}>{SKILL_CN[s]}</span>
+        ))}
+        <span className="trait" data-good="n" title={SKILL_HINT[origin.weak]}>{SKILL_CN[origin.weak]}</span>
+      </div>
+      {!!origin.startingFunds && (
+        <div className="tiny pos" style={{ marginTop: 8 }}>
+          自带启动资金 {money(origin.startingFunds)}
+        </div>
+      )}
+    </button>
   )
 }

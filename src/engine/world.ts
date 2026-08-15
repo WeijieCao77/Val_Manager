@@ -3,6 +3,8 @@ import { Rng, clamp, hashStr } from './rng'
 import { AGENTS, MAPS, SPONSOR_NAMES } from './content'
 import { defaultTactics, emptyStats, ROLES } from './types'
 import type { Attrs, GameState, Player, Role, Sponsor, Team } from './types'
+import { ORIGINS } from './manager'
+import type { Manager } from './manager'
 
 interface RawTeam {
   id: string; name: string; tag: string; region: string; tier: number; league: string
@@ -68,7 +70,16 @@ export function autoStarters(state: GameState, teamId: string): string[] {
   return chosen.slice(0, 5).map((p) => p.id)
 }
 
-export function createNewGame(myTeamId: string, managerName: string, seed?: number): GameState {
+/** Extra cash some backgrounds bring with them. */
+function startingFunds(m?: Manager): number {
+  if (!m) return 0
+  const o = ORIGINS.find((x) => x.key === m.originKey)
+  return o?.startingFunds ?? 0
+}
+
+export function createNewGame(
+  myTeamId: string, managerName: string, seed?: number, manager?: Manager,
+): GameState {
   const s = seed ?? (hashStr(myTeamId + managerName + String(Date.now())) >>> 0)
   const rng = new Rng(s)
 
@@ -120,7 +131,8 @@ export function createNewGame(myTeamId: string, managerName: string, seed?: numb
     year: 2026,
     stage: 'preseason',
     myTeam: myTeamId,
-    managerName,
+    managerName: manager?.name ?? managerName,
+    manager,
     players,
     teams,
     comps: {},
@@ -128,7 +140,7 @@ export function createNewGame(myTeamId: string, managerName: string, seed?: numb
     news: [],
     offers: [],
     training: {},
-    finances: { balance: teams[myTeamId].budget, log: [] },
+    finances: { balance: teams[myTeamId].budget + startingFunds(manager), log: [] },
     honours: [],
     lastResults: [],
     boardConfidence: 62,

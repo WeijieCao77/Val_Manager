@@ -1,3 +1,5 @@
+import type { Manager } from './manager'
+
 export type Region = 'Americas' | 'EMEA' | 'Pacific' | 'China'
 export type Role = '决斗者' | '先锋' | '控场' | '哨卫' | '自由人'
 export type Tier = 1 | 2
@@ -347,6 +349,8 @@ export interface GameState {
   /** the team the human manages */
   myTeam: string
   managerName: string
+  /** the manager's own background and skills */
+  manager?: Manager
   players: Record<string, Player>
   teams: Record<string, Team>
   comps: Record<string, Competition>
