@@ -44,6 +44,40 @@ for _role, _names in {
         AGENT_ROLE[_n.lower()] = _role
 
 
+# ---------------------------------------------------------------- traits
+# Character, read straight off the real numbers. Each entry is
+#   (key, label, positive?, predicate over a player's percentile dict)
+# Percentiles are within the whole scraped population, so a trait always means
+# "top/bottom of the professional field", never an invented flourish.
+TRAITS = [
+    ("entry", "突破手", True, lambda g: g("fkpr") >= 0.86),
+    ("carry", "核心火力", True, lambda g: g("acs") >= 0.88),
+    ("headshot", "爆头机器", True, lambda g: g("hs") >= 0.88),
+    ("anchor", "定海神针", True, lambda g: g("kast") >= 0.88),
+    ("survivor", "生存大师", True, lambda g: g("fdpr") >= 0.88),
+    ("enabler", "串联核心", True, lambda g: g("apr") >= 0.86),
+    ("clutch", "残局王", True, lambda g: g("clutch_pct") >= 0.88),
+    ("consistent", "稳定输出", True,
+     lambda g: g("kast") >= 0.7 and g("fdpr") >= 0.7 and g("acs") >= 0.6),
+    # negatives — shown in amber, and just as honest
+    ("baiter", "苟", False,
+     lambda g: g("fkpr") <= 0.2 and g("fdpr") >= 0.75 and g("acs") <= 0.45),
+    ("glass", "玻璃大炮", False,
+     lambda g: g("acs") >= 0.72 and g("fdpr") <= 0.15),
+]
+
+
+def traits_for(get_pct):
+    out = []
+    for key, label, good, pred in TRAITS:
+        try:
+            if pred(get_pct):
+                out.append({"key": key, "label": label, "good": good})
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def roles_from_agents(agents):
     """Ordered role set implied by the agents a player actually used."""
     out = []
@@ -247,6 +281,16 @@ def main():
     P = {k: pctiles(rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
     P["fdpr"] = pctiles(rows, "fdpr", invert=True)
 
+    # clutch rate only exists in the parse.bot snapshot, so rank within it
+    cl_rows = []
+    for ign, rec in agent_pools.items():
+        v = str(rec.get("clutch_pct") or "").replace("%", "").strip()
+        try:
+            cl_rows.append({"ign": ign, "clutch_pct": float(v)})
+        except ValueError:
+            continue
+    P["clutch_pct"] = pctiles(cl_rows, "clutch_pct") if cl_rows else {}
+
     ROLE_UTIL = {"控场": 1.0, "先锋": 0.95, "哨卫": 0.7, "自由人": 0.55, "决斗者": 0.25}
     ROLE_COMM = {"控场": 0.8, "先锋": 0.85, "哨卫": 0.6, "自由人": 0.7, "决斗者": 0.4}
 
@@ -270,6 +314,7 @@ def main():
         rng = Rng(seed_of("p:" + ign))
         g = lambda k: P[k].get(ign, 0.5)  # noqa: E731
 
+        traits = traits_for(g)
         q = g("R")  # overall quality percentile, from the player's real rating
         a = {
             "aim": scale(axis(0.5 * g("acs") + 0.3 * g("adr") + 0.2 * g("hs"), q)),
@@ -298,6 +343,7 @@ def main():
 
         built[ign] = {
             "ign": ign, "tag": r["tag"], "nat": r["nat"], "role": r["role"],
+            "traits": traits,
             "realName": (lp.get("real") or None), "birth": lp.get("birth"),
             "age": age, "ageEstimated": estimated,
             "attrs": a, "overall": ovr,
@@ -321,6 +367,7 @@ def main():
             "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
             "role": p["role"], "roles": [p["role"]], "flex": False,
+            "traits": p.get("traits") or [],
             "agentPool": [], "roleSource": "vlr-primary",
             "age": p["age"], "ageEstimated": p["ageEstimated"],
             "isIgl": False, "attrs": dict(p["attrs"]), "overall": p["overall"],

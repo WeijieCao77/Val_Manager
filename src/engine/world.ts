@@ -13,6 +13,7 @@ interface RawTeam {
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
   roles?: string[]; flex?: boolean; agentPool?: string[]; roleSource?: string
+  traits?: { key: string; label: string; good: boolean }[]
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
   vlr?: { rating: number | null; acs: number | null; rounds: number }
   age: number; isIgl: boolean; attrs: Attrs; overall: number; potential: number

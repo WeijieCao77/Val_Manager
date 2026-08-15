@@ -254,6 +254,21 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .tag.warn { border-color: var(--warn); color: var(--warn); }
 .tag.win { border-color: var(--win); color: var(--win); }
 
+/* trait chips — strengths read green, real weaknesses amber, never hidden */
+.trait {
+  display: inline-block; padding: 2px 8px; border-radius: 2px;
+  font-size: var(--t-tiny); font-weight: 650; letter-spacing: .02em;
+  white-space: nowrap;
+}
+.trait[data-good="y"] {
+  background: var(--win-wash); color: var(--win);
+  box-shadow: inset 0 0 0 1px rgba(61, 214, 140, .45);
+}
+.trait[data-good="n"] {
+  background: var(--warn-wash); color: var(--warn);
+  box-shadow: inset 0 0 0 1px rgba(232, 178, 58, .45);
+}
+
 /* result pill — W/L legible as shape and colour, not just a letter */
 .pill {
   display: inline-flex; align-items: center; justify-content: center;

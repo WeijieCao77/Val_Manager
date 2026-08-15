@@ -55,6 +55,7 @@ def main():
             "agents": p.get("agents") or [],
             "rounds": p.get("rounds"),
             "rating": p.get("rating"),
+            "clutch_pct": p.get("cl_percent"),
         }
         for p in players
         if p.get("player")

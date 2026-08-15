@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Modal, OvrBadge, Roles } from './common'
+import { Modal, MultiRadar, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import { ratingOf } from '../engine/match'
-import type { Fixture, MapScore } from '../engine/types'
+import type { Fixture, MapLine, MapScore } from '../engine/types'
 
 export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onClose: () => void }) {
   const { game, openPlayer } = useGame()
@@ -87,6 +87,10 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       )}
 
       {map && (
+        <Performance map={map} teamA={fixture.teamA} teamB={fixture.teamB} lineups={r.lineups} />
+      )}
+
+      {map && (
         <Scoreboard
           map={map} teamA={fixture.teamA} teamB={fixture.teamB}
           onPlayer={openPlayer} mvp={r.mvp} lineups={r.lineups}
@@ -109,6 +113,122 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
         </div>
       </details>
     </Modal>
+  )
+}
+
+/** Six axes computed from what the sim actually records for a map. */
+const PERF_AXES = ['火力', '输出', '生存', '突破', '串联', '残局']
+
+function perfOf(l: MapLine): number[] {
+  const r = Math.max(1, l.rounds)
+  const pct = (v: number, full: number) => Math.max(0, Math.min(100, (v / full) * 100))
+  return [
+    pct(l.acs, 320),
+    pct(l.damage / r, 210),
+    pct(1 - l.deaths / r, 0.45),
+    pct(l.firstKills / r, 0.22),
+    pct(l.assists / r, 0.5),
+    pct(l.clutches, 2),
+  ]
+}
+
+const avgPerf = (lines: MapLine[]): number[] => {
+  if (!lines.length) return PERF_AXES.map(() => 0)
+  const sums = PERF_AXES.map(() => 0)
+  for (const l of lines) perfOf(l).forEach((v, i) => (sums[i] += v))
+  return sums.map((s) => s / lines.length)
+}
+
+/**
+ * Post-match read-out. The radar answers "where did this match get decided",
+ * and the table answers "who over- or under-performed their own season" —
+ * which is the part that actually drives a lineup decision.
+ */
+function Performance({
+  map, teamA, teamB, lineups,
+}: {
+  map: MapScore; teamA: string; teamB: string
+  lineups?: { a: string[]; b: string[] }
+}) {
+  const { game } = useGame()
+
+  const idsFor = (teamId: string) => {
+    const side = teamId === teamA ? lineups?.a : lineups?.b
+    return (side?.length
+      ? side
+      : Object.keys(map.lines).filter((pid) => game.players[pid]?.teamId === teamId)
+    ).filter((pid) => map.lines[pid])
+  }
+
+  const aIds = idsFor(teamA)
+  const bIds = idsFor(teamB)
+  const mine = game.myTeam === teamB ? bIds : aIds
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="nav-group" style={{ padding: '0 0 8px' }}>表现对比 · {map.map}</div>
+      <div className="grid c2" style={{ alignItems: 'center' }}>
+        <div className="radar-wrap">
+          <MultiRadar
+            axes={PERF_AXES}
+            series={[
+              {
+                label: game.teams[teamA]?.name ?? 'A',
+                color: 'var(--accent)',
+                values: avgPerf(aIds.map((id) => map.lines[id])),
+              },
+              {
+                label: game.teams[teamB]?.name ?? 'B',
+                color: '#5fa8d3',
+                values: avgPerf(bIds.map((id) => map.lines[id])),
+              },
+            ]}
+          />
+        </div>
+        <div>
+          <div className="row wrap tiny" style={{ gap: 12, marginBottom: 10 }}>
+            <span className="row" style={{ gap: 5 }}>
+              <i style={{ width: 9, height: 9, background: 'var(--accent)', display: 'inline-block' }} />
+              {game.teams[teamA]?.name}
+            </span>
+            <span className="row" style={{ gap: 5 }}>
+              <i style={{ width: 9, height: 9, background: '#5fa8d3', display: 'inline-block' }} />
+              {game.teams[teamB]?.name}
+            </span>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>本队选手</th><th className="num">本场</th><th className="num">赛季</th><th className="num">发挥</th></tr>
+              </thead>
+              <tbody>
+                {mine.map((pid) => {
+                  const p = game.players[pid]
+                  const l = map.lines[pid]
+                  if (!p || !l) return null
+                  const now = ratingOf({ ...l, rounds: l.rounds })
+                  const base = p.season.maps ? ratingOf(p.season) : now
+                  const d = now - base
+                  return (
+                    <tr key={pid}>
+                      <td>{p.ign}</td>
+                      <td className="num mono">{now.toFixed(2)}</td>
+                      <td className="num mono muted">{base.toFixed(2)}</td>
+                      <td className={`num mono ${d >= 0.08 ? 'pos' : d <= -0.08 ? 'neg' : 'muted'}`}>
+                        {d > 0 ? '▲' : d < 0 ? '▼' : '–'} {Math.abs(d).toFixed(2)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
+            「发挥」= 本场评分与该选手赛季均值之差。持续下滑通常是状态或疲劳问题。
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 

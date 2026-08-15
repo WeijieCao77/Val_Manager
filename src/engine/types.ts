@@ -46,6 +46,16 @@ export const emptyStats = (): Stats => ({
   firstKills: 0, firstDeaths: 0, damage: 0, clutches: 0, mvps: 0,
 })
 
+/**
+ * A characteristic read off the player's real numbers — top or bottom decile of
+ * the professional field on some axis. `good: false` marks a real weakness.
+ */
+export interface Trait {
+  key: string
+  label: string
+  good: boolean
+}
+
 /** What vlr.gg actually recorded for this player, kept for reference in the UI. */
 export interface VlrLine {
   rating: number | null
@@ -78,6 +88,8 @@ export interface Player {
   roles?: Role[]
   /** true when they cover a second role for their club */
   flex?: boolean
+  /** derived from real statistics, not authored */
+  traits?: Trait[]
   age: number
   isIgl: boolean
   attrs: Attrs

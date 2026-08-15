@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Condition, money, OvrBadge, Panel, Roles } from './common'
+import { Condition, money, OvrBadge, Panel, Roles, Traits } from './common'
 import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
@@ -131,7 +131,10 @@ export default function Squad() {
                     <td className="clickable" onClick={() => openPlayer(p.id)}>
                       <b>{p.ign}</b>
                       {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
-                      {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--gold)', color: 'var(--gold)' }}>挂牌</span>}
+                      {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
+                      {p.traits?.length ? (
+                        <div style={{ marginTop: 3 }}><Traits traits={p.traits} max={3} /></div>
+                      ) : null}
                     </td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>

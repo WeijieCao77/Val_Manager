@@ -1,4 +1,4 @@
-import { Bar, Modal, OvrBadge, Radar, Roles, money, moneyFull } from './common'
+import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull } from './common'
 import { useGame } from './ctx'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
@@ -64,6 +64,11 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
             )}
             {p.listed && <span className="tag warn">已挂牌</span>}
           </div>
+          {p.traits?.length ? (
+            <div style={{ marginBottom: 12 }}>
+              <Traits traits={p.traits} />
+            </div>
+          ) : null}
 
           {ATTR_KEYS.map((k) => (
             <div key={k} className="row" style={{ gap: 10, marginBottom: 5 }}>

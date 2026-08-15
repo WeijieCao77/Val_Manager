@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
-import type { Player, Role } from '../engine/types'
+import type { Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
   const abs = Math.abs(n)
@@ -122,6 +122,72 @@ export const fmtDay = (day: number): string => {
   const d = new Date(Date.UTC(2000, 0, 1))
   d.setUTCDate(d.getUTCDate() + day)
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`
+}
+
+/** Characteristics derived from the player's real statistics. */
+export function Traits({ traits, max }: { traits?: Trait[]; max?: number }) {
+  if (!traits?.length) return null
+  const list = max ? traits.slice(0, max) : traits
+  return (
+    <span className="row wrap" style={{ gap: 4 }}>
+      {list.map((t) => (
+        <span
+          key={t.key}
+          className="trait"
+          data-good={t.good ? 'y' : 'n'}
+          title={t.good ? '该项处于职业选手前列' : '该项明显低于职业平均'}
+        >
+          {t.label}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Radar that can overlay several series on the same axes, for comparison. */
+export function MultiRadar({
+  axes, series, size = 230,
+}: {
+  axes: string[]
+  series: { label: string; color: string; values: number[] }[]
+  size?: number
+}) {
+  const cx = size / 2
+  const cy = size / 2
+  const r = size / 2 - 30
+  const n = axes.length
+  const pt = (i: number, mag: number) => {
+    const a = (Math.PI * 2 * i) / n - Math.PI / 2
+    return [cx + Math.cos(a) * r * mag, cy + Math.sin(a) * r * mag]
+  }
+  return (
+    <svg width={size} height={size} role="img" aria-label="表现对比雷达图">
+      {[0.25, 0.5, 0.75, 1].map((g) => (
+        <polygon
+          key={g} points={axes.map((_, i) => pt(i, g).join(',')).join(' ')}
+          fill="none" stroke="#263344" strokeWidth={1}
+        />
+      ))}
+      {axes.map((_, i) => {
+        const [x, y] = pt(i, 1)
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#263344" />
+      })}
+      {series.map((s) => (
+        <polygon
+          key={s.label}
+          points={s.values.map((v, i) => pt(i, Math.max(0.04, Math.min(1, v / 100))).join(',')).join(' ')}
+          fill={s.color} fillOpacity={0.22} stroke={s.color} strokeWidth={2}
+        />
+      ))}
+      {axes.map((l, i) => {
+        const [x, y] = pt(i, 1.19)
+        return (
+          <text key={l} x={x} y={y} fill="#7d93ab" fontSize={10}
+            textAnchor="middle" dominantBaseline="middle">{l}</text>
+        )
+      })}
+    </svg>
+  )
 }
 
 /** Simple 8-axis radar for a player's attributes. */
