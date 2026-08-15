@@ -1,4 +1,10 @@
+import { useState } from 'react'
 import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull } from './common'
+import ContractTerms from './ContractTerms'
+import { Rng, hashStr } from '../engine/rng'
+import { playerAcceptsTerms } from '../engine/transfer'
+import { SQUAD_ROLE_CN, defaultContract } from '../engine/types'
+import type { Contract } from '../engine/types'
 import { useGame } from './ctx'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
@@ -14,14 +20,33 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
   const mine = p.teamId === game.myTeam
   const me = game.teams[game.myTeam]
 
-  const renew = () => {
-    const ask = Math.round(expectedSalary(p, me.tier) * 1.08)
-    if (!window.confirm(`与 ${p.ign} 续约 2 年，年薪 ${moneyFull(ask)}？`)) return
-    p.salary = ask
-    p.contractYears = 2
+  const want = expectedSalary(p, me.tier)
+  const [renewing, setRenewing] = useState(false)
+  const [terms, setTerms] = useState<Contract>(() => ({
+    ...(p.contract ?? defaultContract(p.salary || want, 2)),
+    salary: Math.round((p.salary || want) * 1.08),
+    years: 2,
+  }))
+
+  const submitRenewal = () => {
+    const rng = new Rng(hashStr(`renew:${game.seed}:${p.id}:${game.day}`))
+    const verdict = playerAcceptsTerms(game, p, me, terms, rng)
+    if (!verdict.ok) {
+      toast(verdict.reason ?? `${p.ign} 拒绝了这份续约。`)
+      return
+    }
+    p.contract = { ...terms }
+    p.salary = terms.salary
+    p.contractYears = terms.years
+    p.grievance = 0
     p.morale = Math.min(100, p.morale + 8)
+    if (terms.signingBonus > 0) {
+      game.finances.balance -= terms.signingBonus
+      game.finances.log.push({ day: game.day, label: `续约签字费 ${p.ign}`, amount: -terms.signingBonus })
+    }
     commit()
-    toast(`${p.ign} 已续约 2 年。`)
+    setRenewing(false)
+    toast(`${p.ign} 续约 ${terms.years} 年。`)
   }
 
   const toggleList = () => {
@@ -131,10 +156,39 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
           <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
             <span className="tag">忠诚 {p.loyalty}</span>
             <span className="tag">野心 {p.ambition}</span>
+            {p.contract && (
+              <>
+                <span className="tag">月薪 {money(Math.round(p.contract.salary / 12))}</span>
+                <span className="tag">奖金分成 {p.contract.bonusShare}%</span>
+                <span className="tag">承诺 {SQUAD_ROLE_CN[p.contract.promisedRole]}</span>
+                {!!p.contract.releaseClause && (
+                  <span className="tag warn">解约金 {money(p.contract.releaseClause)}</span>
+                )}
+                {p.contract.noPoach && <span className="tag">转会限制</span>}
+              </>
+            )}
+            {!!p.grievance && p.grievance > 15 && (
+              <span className="tag warn">不满 {Math.round(p.grievance)}</span>
+            )}
           </div>
+          {renewing && mine && (
+            <div className="panel own" style={{ marginTop: 14 }}>
+              <div className="panel-head"><h2>续约谈判</h2></div>
+              <div className="panel-body">
+                <ContractTerms terms={terms} onChange={setTerms} want={want} />
+                <div className="row" style={{ gap: 10, marginTop: 16 }}>
+                  <button className="primary" onClick={submitRenewal}>提交</button>
+                  <button onClick={() => setRenewing(false)}>取消</button>
+                  <span className="right tiny muted">
+                    立即支付 {moneyFull(terms.signingBonus)} · 合同总额 {moneyFull(terms.salary * terms.years)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           {mine && (
             <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
-              <button className="primary sm" onClick={renew}>续约 2 年</button>
+              <button className="primary sm" onClick={() => setRenewing(true)}>续约 / 谈条件</button>
               <button className="sm" onClick={toggleList}>
                 {p.listed ? '取消挂牌' : '挂牌出售'}
               </button>

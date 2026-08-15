@@ -1,7 +1,8 @@
 import { Rng, clamp } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, squadOf, wageBill } from './world'
-import type { GameState, Player, Team, TransferOffer } from './types'
+import { SQUAD_ROLE_CN, defaultContract } from './types'
+import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 
 export const TRANSFER_WINDOWS: [number, number][] = [
   [0, 20],    // 季前
@@ -31,32 +32,59 @@ export function clubAcceptsFee(p: Player, fee: number, rng: Rng): boolean {
   return rng.chance((ratio - 0.7) / 0.5)
 }
 
+/** How believable a promised standing is for this player at this club. */
+export function roleFit(state: GameState, p: Player, team: Team, promised: SquadRole): number {
+  const squad = squadOf(state, team.id)
+    .filter((x) => x.id !== p.id)
+    .sort((a, b) => b.overall - a.overall)
+  const rank = squad.filter((x) => x.overall > p.overall).length
+  // being promised a role above your standing is flattering; below it, an insult
+  const deserved: SquadRole = rank === 0 ? 'star' : rank < 5 ? 'starter' : rank < 7 ? 'rotation' : 'bench'
+  const order: SquadRole[] = ['bench', 'rotation', 'starter', 'star']
+  return order.indexOf(promised) - order.indexOf(deserved)
+}
+
 /** Would the player sign for this club on these terms? */
 export function playerAcceptsTerms(
-  state: GameState, p: Player, toTeam: Team, salary: number, years: number, rng: Rng,
+  state: GameState, p: Player, toTeam: Team, terms: Contract, rng: Rng,
 ): { ok: boolean; reason?: string } {
   const want = expectedSalary(p, toTeam.tier)
-  if (salary < want * 0.85) return { ok: false, reason: `${p.ign} 认为薪资太低（期望约 $${want.toLocaleString()}/年）。` }
+  const { salary, years, signingBonus, bonusShare, promisedRole, releaseClause, noPoach } = terms
+  if (salary < want * 0.7) {
+    return { ok: false, reason: `${p.ign} 认为薪资太低（期望约 $${want.toLocaleString()}/年）。` }
+  }
 
   const from = p.teamId ? state.teams[p.teamId] : null
   let score = 0
   score += (salary / want - 1) * 60
+  // cash up front is worth more to a player than the same money spread out
+  score += (signingBonus / Math.max(1, want)) * 26
+  score += (bonusShare - 10) * 0.9
+  // a promise above their standing is a real draw; below it, they walk
+  const fit = roleFit(state, p, toTeam, promisedRole)
+  score += fit >= 0 ? fit * 11 : fit * 16
   score += (toTeam.reputation - (from?.reputation ?? 30)) * 0.9
   if (from && toTeam.tier < from.tier) score += 18
   if (from && toTeam.tier > from.tier) score -= 22
   score += (p.ambition - 55) * 0.25 * (toTeam.reputation > (from?.reputation ?? 0) ? 1 : -1)
   if (from) score -= (p.loyalty - 50) * 0.35
-  // a bench player is easier to tempt
   if (from && !from.starters.includes(p.id)) score += 14
   if (years >= 3) score += p.age >= 27 ? 8 : 3
+  // an exit route is reassuring; being locked in is not
+  if (releaseClause > 0) score += 7
+  if (noPoach) score -= 13
+  score += (p.grievance ?? 0) * 0.25   // unhappy players are easier to move
 
-  const p_ok = 1 / (1 + Math.exp(-score / 14))
-  if (rng.chance(p_ok)) return { ok: true }
+  const pOk = 1 / (1 + Math.exp(-score / 14))
+  if (rng.chance(pOk)) return { ok: true }
+  if (fit < 0) {
+    return { ok: false, reason: `${p.ign} 不接受「${SQUAD_ROLE_CN[promisedRole]}」的定位，他认为自己值更多出场时间。` }
+  }
   return { ok: false, reason: `${p.ign} 拒绝了这份合同，他对目前的处境还算满意。` }
 }
 
 export function doTransfer(
-  state: GameState, p: Player, toTeamId: string, fee: number, salary: number, years: number,
+  state: GameState, p: Player, toTeamId: string, fee: number, terms: Contract,
 ): void {
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
@@ -81,9 +109,19 @@ export function doTransfer(
   }
 
   p.teamId = toTeamId
-  p.salary = salary
-  p.contractYears = years
+  p.contract = { ...terms }
+  p.salary = terms.salary
+  p.contractYears = terms.years
+  p.grievance = 0
   p.listed = false
+  // the signing fee is paid on the day, by the buying club
+  if (terms.signingBonus > 0) {
+    to.budget -= terms.signingBonus
+    if (to.id === state.myTeam) {
+      state.finances.balance -= terms.signingBonus
+      state.finances.log.push({ day: state.day, label: `签字费 ${p.ign}`, amount: -terms.signingBonus })
+    }
+  }
   p.morale = clamp(p.morale + 8, 0, 100)
   refreshValue(p)
 
@@ -161,9 +199,10 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
         .sort((a, b) => b.overall - a.overall)[0]
       if (target) {
         const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.15))
-        const verdict = playerAcceptsTerms(state, target, team, salary, rng.int(1, 3), rng)
-        if (verdict.ok) {
-          doTransfer(state, target, team.id, 0, salary, rng.int(1, 3))
+        const yrs = rng.int(1, 3)
+        const terms = defaultContract(salary, yrs)
+        if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
+          doTransfer(state, target, team.id, 0, terms)
           agents.splice(agents.indexOf(target), 1)
         }
       }
@@ -186,8 +225,10 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
       if (fee > room) continue
       if (!clubAcceptsFee(target, fee, rng)) continue
       const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.2))
-      const verdict = playerAcceptsTerms(state, target, team, salary, rng.int(2, 3), rng)
-      if (verdict.ok) doTransfer(state, target, team.id, fee, salary, rng.int(2, 3))
+      const terms = defaultContract(salary, rng.int(2, 3))
+      if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
+        doTransfer(state, target, team.id, fee, terms)
+      }
     }
   }
 
@@ -200,13 +241,13 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
 }
 
 export function makeOffer(
-  state: GameState, playerId: string, toTeam: string, fee: number, salary: number, years: number,
+  state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer {
   const offer: TransferOffer = {
     id: `O${state.offers.length}_${state.day}`,
     playerId,
     fromTeam: state.players[playerId]?.teamId ?? null,
-    toTeam, fee, salary, years,
+    toTeam, fee, salary: terms.salary, years: terms.years, terms,
     day: state.day,
     status: 'pending',
   }
@@ -222,7 +263,7 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     offer.status = 'rejected'
     return '目标不存在。'
   }
-  const cost = offer.fee
+  const cost = offer.fee + (offer.terms?.signingBonus ?? 0)
   if (cost > state.finances.balance) {
     offer.status = 'rejected'
     return '资金不足，无法支付这笔转会费。'
@@ -234,12 +275,13 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
       return `${state.teams[p.teamId]?.name} 拒绝了报价，他们的心理价位在 $${ask.toLocaleString()} 左右。`
     }
   }
-  const verdict = playerAcceptsTerms(state, p, to, offer.salary, offer.years, rng)
+  const terms = offer.terms ?? defaultContract(offer.salary, offer.years)
+  const verdict = playerAcceptsTerms(state, p, to, terms, rng)
   if (!verdict.ok) {
     offer.status = 'rejected'
     return verdict.reason ?? '选手拒绝了这份合同。'
   }
-  doTransfer(state, p, to.id, offer.fee, offer.salary, offer.years)
+  doTransfer(state, p, to.id, offer.fee, terms)
   offer.status = 'accepted'
   return `签约完成：${p.ign} 加盟 ${to.name}。`
 }

@@ -56,6 +56,40 @@ export interface Trait {
   good: boolean
 }
 
+/** The standing a player was promised when they signed. */
+export type SquadRole = 'star' | 'starter' | 'rotation' | 'bench'
+
+export const SQUAD_ROLE_CN: Record<SquadRole, string> = {
+  star: '核心', starter: '首发', rotation: '轮换', bench: '替补',
+}
+
+/**
+ * Everything agreed at signing, not just a wage. Each term is a lever the
+ * manager can trade against the others: cash up front instead of salary, a
+ * bigger prize cut instead of either, or a promise about playing time that the
+ * club then has to honour.
+ */
+export interface Contract {
+  /** annual base, in USD */
+  salary: number
+  years: number
+  /** one-off payment on signing */
+  signingBonus: number
+  /** share of prize money paid to the player, percent */
+  bonusShare: number
+  /** the standing the club committed to */
+  promisedRole: SquadRole
+  /** fixed fee another club can trigger; 0 means none */
+  releaseClause: number
+  /** the player agreed not to be sold without consent */
+  noPoach: boolean
+}
+
+export const defaultContract = (salary: number, years: number): Contract => ({
+  salary, years, signingBonus: 0, bonusShare: 10,
+  promisedRole: 'starter', releaseClause: 0, noPoach: false,
+})
+
 /** What vlr.gg actually recorded for this player, kept for reference in the UI. */
 export interface VlrLine {
   rating: number | null
@@ -102,6 +136,10 @@ export interface Player {
   salary: number
   value: number
   contractYears: number
+  /** full terms; older saves fall back to salary/contractYears alone */
+  contract?: Contract
+  /** how let down they feel about promises the club has not kept, 0-100 */
+  grievance?: number
   loyalty: number
   ambition: number
   agentPool: string[]
@@ -286,6 +324,8 @@ export interface TransferOffer {
   fee: number
   salary: number
   years: number
+  /** the full package offered, when the UI produced one */
+  terms?: Contract
   /** day the offer was made; offers expire */
   day: number
   status: 'pending' | 'accepted' | 'rejected' | 'expired'

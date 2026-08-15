@@ -79,6 +79,23 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         else state.training[p.id] = saved
       }
 
+      // A promised standing is a commitment. Bench a player you called a core
+      // and the grievance builds until they want out; honour it and it fades.
+      const promised = p.contract?.promisedRole
+      if (promised) {
+        const starting = team.starters.includes(p.id)
+        const expects = promised === 'star' || promised === 'starter'
+        if (expects && !starting) {
+          p.grievance = clamp((p.grievance ?? 0) + (promised === 'star' ? 7 : 4.5), 0, 100)
+          p.morale = clamp(p.morale - (promised === 'star' ? 3 : 2), 10, 100)
+          if (isMine && (p.grievance ?? 0) > 55 && rng.chance(0.25) && !p.listed) {
+            notes.push(`😠 ${p.ign} 对出场时间不满，已经在考虑离队（承诺是${promised === 'star' ? '核心' : '首发'}）。`)
+          }
+        } else {
+          p.grievance = clamp((p.grievance ?? 0) - 3, 0, 100)
+        }
+      }
+
       // form drifts back toward the player's true level
       const pull = (p.overall - p.form) * 0.06
       p.form = clamp(p.form + pull + rng.range(-3.5, 3.5), 30, 99)

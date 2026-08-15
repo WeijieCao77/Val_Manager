@@ -21,11 +21,22 @@ export function awardPrize(state: GameState, stage: StageKey, order: string[]): 
     if (!amount) return
     const team = state.teams[teamId]
     if (!team) return
-    team.budget += amount
-    team.seasonPrize += amount
+    // players take their contracted cut before the club banks the rest
+    let share = 0
+    for (const pid of team.roster) {
+      const c = state.players[pid]?.contract
+      if (c?.bonusShare) share += (amount * c.bonusShare) / 100 / Math.max(1, team.roster.length)
+    }
+    share = Math.round(share)
+    const net = amount - share
+    team.budget += net
+    team.seasonPrize += net
     if (teamId === state.myTeam) {
-      state.finances.balance += amount
-      state.finances.log.push({ day: state.day, label: `奖金 · ${stage} 第${i + 1}名`, amount })
+      state.finances.balance += net
+      state.finances.log.push({ day: state.day, label: `奖金 · ${stage} 第${i + 1}名`, amount: net })
+      if (share > 0) {
+        state.finances.log.push({ day: state.day, label: '选手奖金分成', amount: -share })
+      }
     }
   })
 }

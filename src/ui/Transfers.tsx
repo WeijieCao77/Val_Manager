@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
-import { Modal, OvrBadge, Panel, RoleTag, money, moneyFull } from './common'
+import ContractTerms from './ContractTerms'
+import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
 import { Rng, hashStr } from '../engine/rng'
 import { askingPrice, makeOffer, resolveMyOffer, windowOpen } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
-import { REGION_CN, ROLES } from '../engine/types'
-import type { Player, Role } from '../engine/types'
+import { defaultContract, REGION_CN, ROLES } from '../engine/types'
+import type { Contract, Player, Role } from '../engine/types'
 
 export default function Transfers() {
   const { game, commit, toast, openPlayer } = useGame()
@@ -102,7 +103,7 @@ export default function Transfers() {
                     {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
                     {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--gold)', color: 'var(--gold)' }}>挂牌</span>}
                   </td>
-                  <td><RoleTag role={p.role} /></td>
+                  <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>
                   <td className="num muted">{p.potential}</td>
                   <td className="num">{p.age}</td>
@@ -125,8 +126,8 @@ export default function Transfers() {
         <OfferModal
           player={target}
           onClose={() => setTarget(null)}
-          onSubmit={(fee, salary, years) => {
-            const offer = makeOffer(game, target.id, game.myTeam, fee, salary, years)
+          onSubmit={(fee, terms) => {
+            const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
             const rng = new Rng(hashStr(`${game.seed}:${offer.id}`))
             const msg = resolveMyOffer(game, offer, rng)
             commit()
@@ -141,23 +142,26 @@ export default function Transfers() {
 
 function OfferModal({
   player, onClose, onSubmit,
-}: { player: Player; onClose: () => void; onSubmit: (fee: number, salary: number, years: number) => void }) {
+}: {
+  player: Player; onClose: () => void
+  onSubmit: (fee: number, terms: Contract) => void
+}) {
   const { game } = useGame()
   const me = game.teams[game.myTeam]
   const ask = player.teamId ? askingPrice(player) : 0
   const want = expectedSalary(player, me.tier)
   const [fee, setFee] = useState(ask)
-  const [salary, setSalary] = useState(Math.round(want * 1.05))
-  const [years, setYears] = useState(2)
+  const [terms, setTerms] = useState<Contract>(() =>
+    defaultContract(Math.round(want * 1.05), 2))
 
-  const afford = fee <= game.finances.balance
+  const upfront = fee + terms.signingBonus
+  const afford = upfront <= game.finances.balance
   const feeOk = !player.teamId || fee >= ask * 0.85
-  const salaryOk = salary >= want * 0.9
 
   return (
     <Modal title={`向 ${player.ign} 报价`} onClose={onClose}>
-      <div className="row wrap" style={{ gap: 10, marginBottom: 16 }}>
-        <RoleTag role={player.role} />
+      <div className="row wrap" style={{ gap: 10, marginBottom: 14 }}>
+        <Roles p={player} />
         <OvrBadge value={player.overall} />
         <span className="tag">潜力 {player.potential}</span>
         <span className="tag">{player.age} 岁</span>
@@ -165,42 +169,40 @@ function OfferModal({
         <span className="tag">{player.teamId ? game.teams[player.teamId]?.name : '自由人'}</span>
       </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label className="small muted">转会费（对方要价约 {moneyFull(ask)}）</label>
-        <input
-          type="number" value={fee} min={0} step={10000}
-          onChange={(e) => setFee(Math.max(0, Number(e.target.value)))}
-          disabled={!player.teamId}
-        />
-        {!afford && <div className="tiny neg">资金不足，你目前只有 {moneyFull(game.finances.balance)}。</div>}
-        {player.teamId && !feeOk && <div className="tiny neg">低于对方心理价位，很可能被拒绝。</div>}
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <label className="small muted">年薪（选手期望约 {moneyFull(want)}）</label>
-        <input
-          type="number" value={salary} min={0} step={5000}
-          onChange={(e) => setSalary(Math.max(0, Number(e.target.value)))}
-        />
-        {!salaryOk && <div className="tiny neg">低于选手期望，谈判大概率破裂。</div>}
-      </div>
-
-      <div style={{ marginBottom: 18 }}>
-        <label className="small muted">合同年限</label>
-        <div className="seg" style={{ marginTop: 6 }}>
-          {[1, 2, 3].map((y) => (
-            <button key={y} className={years === y ? 'on' : ''} onClick={() => setYears(y)}>{y} 年</button>
-          ))}
+      {player.teamId && (
+        <div style={{ marginBottom: 14 }}>
+          <label className="small muted">转会费（对方要价约 {moneyFull(ask)}）</label>
+          <input
+            type="number" value={fee} min={0} step={10000}
+            onChange={(e) => setFee(Math.max(0, Number(e.target.value)))}
+          />
+          {!feeOk && <div className="tiny neg">低于对方心理价位，很可能被拒绝。</div>}
+          {player.contract?.noPoach && (
+            <div className="tiny neg">该选手合同含转会限制条款，原俱乐部可以直接拒绝。</div>
+          )}
+          {!!player.contract?.releaseClause && (
+            <div className="tiny pos">
+              解约金 {moneyFull(player.contract.releaseClause)} —— 出到这个价对方必须放人。
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      <div className="row" style={{ gap: 10 }}>
-        <button className="primary" disabled={!afford} onClick={() => onSubmit(fee, salary, years)}>
+      <ContractTerms terms={terms} onChange={setTerms} want={want} />
+
+      {!afford && (
+        <div className="tiny neg" style={{ marginTop: 10 }}>
+          资金不足：需要立刻支付 {moneyFull(upfront)}，你只有 {moneyFull(game.finances.balance)}。
+        </div>
+      )}
+
+      <div className="row" style={{ gap: 10, marginTop: 18 }}>
+        <button className="primary" disabled={!afford} onClick={() => onSubmit(fee, terms)}>
           提交报价
         </button>
         <button onClick={onClose}>取消</button>
         <span className="right tiny muted">
-          总支出：{moneyFull(fee + salary * years)}
+          立即支付 {moneyFull(upfront)} · 合同总额 {moneyFull(terms.salary * terms.years)}
         </span>
       </div>
     </Modal>
