@@ -7,7 +7,7 @@ import {
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
-import { offerGigs, runGigsToday } from './commercial'
+import { offerGigs, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { resolveStaffOffers } from './staff'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
@@ -584,6 +584,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
 
   // ---- weekly upkeep
   if (state.day % 7 === 0) {
+    streamWeek(state, rng, notes)
     notes.push(...weeklyTick(state, rng))
     weeklyFinance(state)
     aiTransferTick(state, rng)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useGame } from './ctx'
 import { Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
+import TacticSliders from './TacticSliders'
 import { MatchSim } from '../engine/match'
 import type { Side } from '../engine/match'
 import { commitFixture, fixtureRng } from '../engine/season'
@@ -106,6 +107,16 @@ export default function MatchLive({
         <p className="center small muted" style={{ marginTop: -6 }}>
           {fixture.label.replace(/^KO:\d+:/, '')}
         </p>
+        <div className="panel" style={{ marginTop: 14 }}>
+          <div className="panel-head"><h2>赛前战术</h2></div>
+          <div className="panel-body">
+            <p className="tiny faint" style={{ marginTop: 0 }}>
+              针对这个对手定好打法。改动会保存下来，观战时叫暂停还能再调。
+            </p>
+            <TacticSliders game={game} commit={commit} compact />
+          </div>
+        </div>
+
         <div className="row" style={{ gap: 10, justifyContent: 'center', marginTop: 18 }}>
           <button className="primary" onClick={() => setPhase('watching')}>
             观战（可用 2 次暂停）
@@ -166,6 +177,11 @@ export default function MatchLive({
                 稳守 <span className="tiny faint">减少伤亡与波动，适合领先或缺钱</span>
               </button>
             </div>
+            <div className="small muted" style={{ marginBottom: 6 }}>调整战术（立刻生效，持续整场）：</div>
+            <div style={{ marginBottom: 12 }}>
+              <TacticSliders game={game} commit={commit} compact />
+            </div>
+
             <div className="small muted" style={{ marginBottom: 6 }}>或者围绕一名选手打：</div>
             <div className="row wrap" style={{ gap: 6 }}>
               {(mySide === 'a' ? map.A : map.B).players.map((p) => (

@@ -205,6 +205,8 @@ export interface Player {
   injuryNote?: string
   /** per-attribute training progress 0-100, rolls over into a +1 */
   xp: Partial<Record<keyof Attrs, number>>
+  /** a streaming contract this player has signed */
+  stream?: StreamDeal
   /** set when the player has been transfer-listed by their club */
   listed?: boolean
   /** the day they went on the list, so a stale listing can be withdrawn */
@@ -304,6 +306,28 @@ export interface Gig {
   accepted?: boolean
   attendees?: string[]
   done?: boolean
+}
+
+/** A club-run event the manager organises, rather than one they are invited to. */
+export type VentureKind = 'openday' | 'bootcamp' | 'watchparty' | 'merch'
+
+export interface Venture {
+  kind: VentureKind
+  /** day it pays out */
+  day: number
+  cost: number
+  heads: number
+  attendees: string[]
+}
+
+/** A player's streaming deal: steady money, at a cost to their week. */
+export interface StreamDeal {
+  platform: string
+  /** paid per season */
+  fee: number
+  /** hours a week, which is what makes it a trade-off */
+  nights: number
+  since: number
 }
 
 export interface Sponsor {
@@ -532,6 +556,10 @@ export interface GameState {
   bonds?: Record<string, number>
   /** commercial offers on the table and already booked */
   gigs?: Gig[]
+  /** club-run events currently being organised */
+  ventures?: Venture[]
+  /** day a sponsor pitch can next be made, so it is not spammable */
+  pitchCooldown?: number
   /**
    * Days each player spent on commercial work this week.
    *

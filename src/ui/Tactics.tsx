@@ -3,24 +3,12 @@ import { Bar, Panel, RoleTag } from './common'
 import { buildLineup, selectLineup } from '../engine/match'
 import { activePool } from '../engine/match'
 import { MAPS } from '../engine/content'
-import type { Tactics } from '../engine/types'
-
-const SLIDERS: { key: keyof Tactics; label: string; lo: string; hi: string; hint: string }[] = [
-  { key: 'pace', label: '节奏', lo: '慢速运营', hi: '快速突破', hint: '快节奏提升进攻端压制力，但防守容易被拉扯。' },
-  { key: 'utility', label: '道具', lo: '节省', hi: '全开', hint: '道具开销大能提升整体执行力，对道具能力强的阵容收益更高。' },
-  { key: 'aggression', label: '侵略性', lo: '保守', hi: '激进', hint: '激进打法进攻收益高，防守端风险更大。' },
-  { key: 'adaptability', label: '中局应变', lo: '照战术板', hi: '随机应变', hint: '应变能力依赖指挥（IGL），落后时更容易翻盘。' },
-]
+import { SLIDERS } from './TacticSliders'
 
 export default function Tactics() {
-  const { game, commit } = useGame()
+  const { game } = useGame()
   const me = game.teams[game.myTeam]
   const pool = activePool(game.seed + game.year)
-
-  const set = (k: keyof Tactics, v: number) => {
-    me.tactics = { ...me.tactics, [k]: v }
-    commit()
-  }
 
   const lineup = selectLineup(game, game.myTeam)
   const preview = buildLineup(game, game.myTeam, pool[0])
@@ -28,28 +16,26 @@ export default function Tactics() {
   return (
     <>
       <div className="grid c2">
-        <Panel title="战术设置">
-          {SLIDERS.map((s) => (
-            <div key={s.key} style={{ marginBottom: 16 }}>
-              <div className="slider-row">
-                <span className="small">{s.label}</span>
-                <input
-                  type="range" min={0} max={100} value={me.tactics[s.key]}
-                  onChange={(e) => set(s.key, Number(e.target.value))}
-                />
-                <span className="mono small right">{me.tactics[s.key]}</span>
+        <Panel title="战术板">
+          <p className="small muted" style={{ marginTop: 0 }}>
+            四条战术滑杆已经移到<b>比赛开始前</b>设置——每场比赛的对手和地图都不一样，
+            赛季初定一次然后一直不动是不合理的。观战时<b>叫暂停也能临场调整</b>。
+          </p>
+          <div className="grid c2" style={{ gap: 10 }}>
+            {SLIDERS.map((s) => (
+              <div key={s.key}>
+                <div className="row" style={{ gap: 8 }}>
+                  <span className="small" style={{ width: 56 }}>{s.label}</span>
+                  <Bar value={me.tactics[s.key]} />
+                  <span className="mono small" style={{ width: 24 }}>{me.tactics[s.key]}</span>
+                </div>
+                <div className="tiny faint" style={{ marginTop: 2 }}>{s.hint}</div>
               </div>
-              <div className="row tiny muted" style={{ justifyContent: 'space-between', marginTop: -6 }}>
-                <span>{s.lo}</span><span>{s.hi}</span>
-              </div>
-              <div className="tiny muted" style={{ marginTop: 4 }}>{s.hint}</div>
-            </div>
-          ))}
-          <div className="row" style={{ gap: 8 }}>
-            <button className="sm" onClick={() => { me.tactics = { pace: 50, utility: 55, aggression: 50, adaptability: 50 }; commit() }}>
-              重置为默认
-            </button>
+            ))}
           </div>
+          <p className="tiny faint" style={{ marginBottom: 0 }}>
+            以上是当前保存的设置，下一场比赛会以此为起点。
+          </p>
         </Panel>
 
         <Panel title="当前阵容评估">

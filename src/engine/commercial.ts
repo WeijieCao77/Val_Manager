@@ -1,7 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
 import { skillMod } from './manager'
-import type { GameState, Gig, GigKind, Player } from './types'
+import type { GameState, Gig, GigKind, Player, StreamDeal, VentureKind } from './types'
 
 /**
  * The commercial side of running a club.
@@ -151,6 +151,7 @@ export function cancelGig(state: GameState, gigId: string): string {
 export function runGigsToday(state: GameState, notes: string[]): void {
   const team = state.teams[state.myTeam]
   if (!team) return
+  runVentures(state, gigRng(state), notes)
   for (const gig of state.gigs ?? []) {
     if (gig.done || !gig.accepted || gig.day !== state.day) continue
     gig.done = true
@@ -180,6 +181,211 @@ export function runGigsToday(state: GameState, notes: string[]): void {
       day: state.day, kind: 'club', important: false,
       text: `💼 ${team.name} 参加了${gig.partner}的${gig.label}。`,
     })
+  }
+}
+
+// ---------------------------------------------------------------- 主动出击
+//
+// Waiting to be asked made the manager a passenger on the one part of the club
+// they should be driving. These are the two things you can start yourself.
+
+const VENTURES: Record<VentureKind, {
+  label: string; cost: number; heads: number; lead: [number, number]
+  pay: [number, number]; fans: [number, number]; fatigue: number; morale: number; blurb: string
+}> = {
+  openday: {
+    label: '俱乐部开放日', cost: 60_000, heads: 5, lead: [5, 12],
+    pay: [0.8, 2.2], fans: [6, 12], fatigue: 10, morale: 4,
+    blurb: '把主场开放给粉丝，全队到场。人气收益最高，办砸了也最丢人。',
+  },
+  bootcamp: {
+    label: '线下训练营', cost: 120_000, heads: 5, lead: [7, 14],
+    pay: [0.2, 0.8], fans: [2, 5], fatigue: -12, morale: 6,
+    blurb: '拉出去集训：几乎不赚钱，但恢复体能、提振士气，赛前很值。',
+  },
+  watchparty: {
+    label: '观赛派对', cost: 30_000, heads: 2, lead: [3, 8],
+    pay: [0.7, 2.0], fans: [3, 7], fatigue: 5, morale: 3,
+    blurb: '和粉丝一起看比赛，成本低，两个人就能撑场。',
+  },
+  merch: {
+    label: '周边发售', cost: 90_000, heads: 1, lead: [6, 12],
+    pay: [0.9, 2.5], fans: [1, 4], fatigue: 3, morale: 1,
+    blurb: '出一批联名周边，回报最高但压资金，人气拉动有限。',
+  },
+}
+
+export function ventureInfo(kind: VentureKind) {
+  return VENTURES[kind]
+}
+
+/** Start organising a club event. It pays out on the day, not now. */
+export function startVenture(
+  state: GameState, kind: VentureKind, attendees: string[],
+): string {
+  const v = VENTURES[kind]
+  const squad = squadOf(state, state.myTeam)
+  const need = Math.min(v.heads, squad.length)
+  if (attendees.length !== need) return `需要 ${need} 名选手参与。`
+  if (state.finances.balance < v.cost) return `资金不足，需要先垫付 ${Math.round(v.cost / 1000)}K。`
+
+  const rng = gigRng(state)
+  const day = state.day + rng.int(v.lead[0], v.lead[1])
+  if (state.fixtures.some((f) => f.day === day && !f.result &&
+      (f.teamA === state.myTeam || f.teamB === state.myTeam))) {
+    return '筹备日期正好撞上比赛，换个时间再试。'
+  }
+
+  state.finances.balance -= v.cost
+  state.finances.log.push({ day: state.day, label: `筹备${v.label}`, amount: -v.cost })
+  state.ventures = [...(state.ventures ?? []),
+    { kind, day, cost: v.cost, heads: need, attendees }]
+  return `${v.label}已开始筹备，${day - state.day} 天后举办。`
+}
+
+/** Club events happening today. */
+function runVentures(state: GameState, rng: Rng, notes: string[]): void {
+  const team = state.teams[state.myTeam]
+  if (!team) return
+  const due = (state.ventures ?? []).filter((v) => v.day === state.day)
+  if (!due.length) return
+  state.ventures = (state.ventures ?? []).filter((v) => v.day !== state.day)
+
+  for (const v of due) {
+    const t = VENTURES[v.kind]
+    // turnout rides on how well known the club is — a big name fills the room
+    // turnout is what makes this a bet: a club nobody has heard of cannot fill
+    // a room, and even a big one has quiet nights
+    const turnout = clamp(0.35 + (team.reputation - 55) * 0.018, 0.2, 1.5) *
+      rng.range(0.7, 1.35)
+    const take = Math.round(v.cost * rng.range(t.pay[0], t.pay[1]) * turnout)
+    state.finances.balance += take
+    state.finances.log.push({ day: state.day, label: v.kind === 'bootcamp' ? '训练营收入' : `${t.label}收入`, amount: take })
+    team.reputation = clamp(team.reputation + rng.int(t.fans[0], t.fans[1]) * 0.05 * turnout, 0, 99)
+
+    for (const id of v.attendees) {
+      const p = state.players[id]
+      if (!p || p.teamId !== state.myTeam) continue
+      p.fatigue = clamp(p.fatigue + t.fatigue, 0, 100)
+      p.morale = clamp(p.morale + t.morale, 0, 100)
+      if (t.fatigue > 0) {
+        state.commercialDays = {
+          ...(state.commercialDays ?? {}),
+          [id]: (state.commercialDays?.[id] ?? 0) + 1,
+        }
+      }
+    }
+    const net = take - v.cost
+    notes.push(
+      `🎪 ${t.label}结束，票房与销售 ${Math.round(take / 1000)}K（净 ${net >= 0 ? '+' : ''}${Math.round(net / 1000)}K）。`,
+    )
+  }
+}
+
+/**
+ * Go looking for a sponsor instead of waiting to be approached.
+ *
+ * Costs nothing but the cooldown, and can simply come back no — a club nobody
+ * has heard of does not land deals by asking harder.
+ */
+export function pitchSponsor(state: GameState): string {
+  if ((state.pitchCooldown ?? 0) > state.day) {
+    return `刚谈过一轮，${(state.pitchCooldown ?? 0) - state.day} 天后可以再找。`
+  }
+  const team = state.teams[state.myTeam]
+  if (!team) return '找不到俱乐部。'
+  state.pitchCooldown = state.day + 21
+
+  const rng = gigRng(state)
+  const odds = clamp(
+    0.2 + (team.reputation - 55) * 0.012 + state.honours.length * 0.03, 0.08, 0.7,
+  ) * skillMod(state.manager, 'business', 0.01)
+  if (!rng.chance(odds)) {
+    return '这一轮没谈成——对方觉得现在还不是合适的时机。'
+  }
+
+  const base = team.sponsors.reduce((s, x) => s + x.perSeason, 0) / Math.max(1, team.sponsors.length)
+  const deal = {
+    name: rng.pick(PITCH_PARTNERS),
+    perSeason: Math.round(base * rng.range(0.35, 0.85) * skillMod(state.manager, 'business', 0.006)),
+    bonusPlacement: rng.int(2, 6),
+    bonus: Math.round(base * rng.range(0.15, 0.4)),
+  }
+  team.sponsors = [...team.sponsors, deal]
+  state.news.push({
+    day: state.day, kind: 'club', important: true,
+    text: `🤝 ${team.name} 与 ${deal.name} 达成赞助协议，年额 ${Math.round(deal.perSeason / 1000)}K。`,
+  })
+  return `谈成了：${deal.name}，年额 ${Math.round(deal.perSeason / 1000)}K，前 ${deal.bonusPlacement} 名另有奖金。`
+}
+
+const PITCH_PARTNERS = [
+  '本地能源饮料', '外设品牌', '游戏椅厂商', '运动服饰', '手机品牌',
+  '连锁网咖', '显示器厂商', '快消零食', '银行信用卡', '新能源车企',
+]
+
+// ---------------------------------------------------------------- 直播合同
+
+const PLATFORMS = ['斗鱼', '虎牙', 'B 站直播', 'Twitch', '快手电竞']
+
+/** What a platform would pay this player, and what it would cost him. */
+export function streamOffer(state: GameState, playerId: string): StreamDeal | null {
+  const p = state.players[playerId]
+  if (!p || p.teamId !== state.myTeam || p.stream) return null
+  const team = state.teams[state.myTeam]
+  const rng = new Rng(hashStr(`stream:${state.seed}:${state.year}:${playerId}`))
+  // platforms pay for an audience: ability, and the club's profile behind him
+  const draw = p.overall - 55 + (team ? (team.reputation - 55) * 0.5 : 0)
+  if (draw <= 0) return null
+  return {
+    platform: rng.pick(PLATFORMS),
+    fee: Math.round((18_000 + draw * draw * 55) * rng.range(0.85, 1.2)),
+    nights: rng.int(2, 4),
+    since: state.day,
+  }
+}
+
+export function signStream(state: GameState, playerId: string): string {
+  const p = state.players[playerId]
+  const offer = streamOffer(state, playerId)
+  if (!p || !offer) return '这名选手目前没有直播合同可签。'
+  p.stream = offer
+  p.morale = clamp(p.morale + 4, 0, 100)   // the money is welcome
+  return `${p.ign} 与 ${offer.platform} 签下直播合同，年额 ${Math.round(offer.fee / 1000)}K，每周 ${offer.nights} 晚。`
+}
+
+export function endStream(state: GameState, playerId: string): string {
+  const p = state.players[playerId]
+  if (!p?.stream) return '没有可解除的直播合同。'
+  const name = p.stream.platform
+  p.stream = undefined
+  p.morale = clamp(p.morale - 3, 0, 100)
+  return `${p.ign} 已终止与 ${name} 的直播合同。`
+}
+
+/**
+ * The weekly price of streaming.
+ *
+ * Money arrives without the squad leaving the building, so the cost has to be
+ * real: late nights are late nights, and the more of them the worse the week.
+ */
+export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
+  for (const p of squadOf(state, state.myTeam)) {
+    if (!p.stream) continue
+    const weekly = Math.round(p.stream.fee / 48)
+    state.finances.balance += weekly
+    state.finances.log.push({ day: state.day, label: `直播分成 ${p.ign}`, amount: weekly })
+    p.fatigue = clamp(p.fatigue + p.stream.nights * rng.range(1.6, 3.2), 0, 100)
+    // a night streaming is a night not practising, though milder than a shoot
+    if (p.stream.nights >= 3) {
+      state.commercialDays = {
+        ...(state.commercialDays ?? {}),
+        [p.id]: (state.commercialDays?.[p.id] ?? 0) + 1,
+      }
+    }
+    if (p.fatigue > 82 && rng.chance(0.22)) {
+      notes.push(`📺 ${p.ign} 直播强度偏高，状态开始受影响。`)
+    }
   }
 }
 
