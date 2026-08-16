@@ -26,8 +26,28 @@ export const ACTION_CN: Record<ActionKind, string> = {
   stream: '直播合同', scrim: '约训练赛', staff: '教练组', facility: '设施升级',
 }
 
+/**
+ * How many days one turn covers.
+ *
+ * In-season a day is a day: matches are close together and what you do on any
+ * given one matters. In a long gap — preseason, between splits — clicking
+ * through three weeks one day at a time is just work, so a turn becomes a week
+ * and the same three actions cover it.
+ */
+export function cycleDays(state: GameState): number {
+  const next = state.fixtures
+    .filter((f) => !f.played && f.comp !== 'scrim' &&
+      (f.teamA === state.myTeam || f.teamB === state.myTeam))
+    .sort((a, b) => a.day - b.day)[0]
+  const gap = next ? next.day - state.day : 99
+  return gap >= 7 ? 7 : 1
+}
+
 function slot(state: GameState): { day: number; used: number } {
-  if (!state.actions || state.actions.day !== state.day) {
+  const span = cycleDays(state)
+  // the budget belongs to the turn, not the date, so advancing a day at a time
+  // inside a week-long turn does not hand out three fresh actions each morning
+  if (!state.actions || state.day < state.actions.day || state.day >= state.actions.day + span) {
     state.actions = { day: state.day, used: 0 }
   }
   return state.actions

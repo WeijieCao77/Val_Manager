@@ -8,6 +8,7 @@ import { sortStandings } from '../engine/league'
 import { agendaFor, activityOn, logActivity } from '../engine/agenda'
 import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { useAction } from './useAction'
+import { cycleDays } from '../engine/actions'
 import { squadOf, wageBill } from '../engine/world'
 import { ATTR_CN } from '../engine/types'
 
@@ -45,11 +46,21 @@ export default function Dashboard() {
     // let the button paint its disabled state before the sim blocks the thread
     window.setTimeout(() => {
       try {
-        handleReports(
-          fast
-            ? advanceToNextMatch(game, 40, { deferMine: true })
-            : [advanceDay(game, { deferMine: true })],
-        )
+        // one turn is a day in-season and a week in a long gap, so the plain
+        // advance follows the same cadence the action budget is granted on
+        const span = cycleDays(game)
+        const reports: DayReport[] = []
+        if (fast) {
+          reports.push(...advanceToNextMatch(game, 40, { deferMine: true }))
+        } else {
+          for (let i = 0; i < span; i++) {
+            reports.push(advanceDay(game, { deferMine: true }))
+            // stop early if a match or something urgent lands mid-week
+            const last = reports[reports.length - 1]
+            if (last.pendingMine || last.playedMine.length || last.seasonEnded) break
+          }
+        }
+        handleReports(reports)
       } finally {
         setBusy(false)
       }
@@ -189,7 +200,9 @@ export default function Dashboard() {
           title="下一场比赛"
           actions={
             <div className="row" style={{ gap: 8 }}>
-              <button className="sm" disabled={busy} onClick={() => step(false)}>推进一天</button>
+              <button className="sm" disabled={busy} onClick={() => step(false)}>
+                推进{cycleDays(game) > 1 ? `${cycleDays(game)}天` : '一天'}
+              </button>
               <button className="primary sm" disabled={busy} onClick={() => step(true)}>
                 {busy ? '模拟中…' : '推进到下一场 ▶'}
               </button>

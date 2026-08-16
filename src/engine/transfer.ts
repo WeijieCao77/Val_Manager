@@ -531,6 +531,78 @@ export function answerIncoming(state: GameState, offerId: string, accept: boolea
   return `${p.ign} 以 $${o.fee.toLocaleString()} 转会至 ${to.name}。`
 }
 
+/**
+ * Ask about a player who is not for sale.
+ *
+ * The market screen only ever showed listed players and free agents, which
+ * meant the ones worth wanting were invisible. An enquiry is free of money and
+ * costs a day's action: the club names a price and the player says whether he
+ * is interested, and only then do you decide whether to bid.
+ */
+export const INTEREST_CN = {
+  keen: '很有兴趣', open: '愿意谈', reluctant: '不太情愿', no: '明确拒绝',
+} as const
+
+export function enquireAbout(state: GameState, playerId: string): string {
+  const p = state.players[playerId]
+  if (!p) return '找不到这名选手。'
+  if (!p.teamId) return '他是自由人，直接报价即可。'
+  if (p.teamId === state.myTeam) return '他已经在你的队里了。'
+  if (state.enquiries?.some((e) => e.playerId === playerId && !e.answer)) {
+    return `已经在等 ${p.ign} 那边的答复了。`
+  }
+  const rng = new Rng(hashStr(`enq:${state.seed}:${state.day}:${playerId}`))
+  state.enquiries = [...(state.enquiries ?? []), {
+    id: `EQ${state.day}_${playerId}`,
+    playerId, teamId: p.teamId,
+    day: state.day,
+    replyOn: state.day + rng.int(2, 5),
+  }]
+  return `已就 ${p.ign} 向 ${state.teams[p.teamId]?.name} 问价，等待答复。`
+}
+
+/** Enquiries answered today. */
+export function resolveEnquiries(state: GameState, rng: Rng): string[] {
+  const notes: string[] = []
+  for (const e of state.enquiries ?? []) {
+    if (e.answer || e.replyOn > state.day) continue
+    const p = state.players[e.playerId]
+    const holder = p?.teamId ? state.teams[p.teamId] : null
+    if (!p || !holder || p.teamId !== e.teamId) {
+      e.answer = 'closed'
+      e.reason = '这名选手的情况已经变了'
+      continue
+    }
+
+    // a club names a price whether or not it wants to sell; an untouchable
+    // player simply gets an absurd one
+    const squad = squadOf(state, holder.id)
+    const key = holder.starters.includes(p.id) && p.overall >= 78
+    const thin = squad.length <= 5
+    const premium = (key ? 1.9 : 1.15) * (thin ? 1.35 : 1) *
+      (p.listed ? 0.8 : 1) * rng.range(0.9, 1.15)
+    e.askingFee = Math.round(askingPrice(p) * premium)
+
+    // and the player answers for himself
+    const wants = (p.grievance ?? 0) > 35 || p.morale < 45 || p.contractYears <= 1
+    const better = (state.teams[state.myTeam]?.reputation ?? 0) - holder.reputation
+    const score = better * 1.4 + (wants ? 25 : 0) + (p.listed ? 20 : 0) -
+      (p.loyalty - 50) * 0.5 + rng.range(-12, 12)
+    e.interest = score > 28 ? 'keen' : score > 6 ? 'open' : score > -18 ? 'reluctant' : 'no'
+    e.answer = e.interest === 'no' ? 'closed' : 'open'
+    if (e.interest === 'no') {
+      e.reason = better < 0 ? '不愿意去平台更差的球队' : '现在不想离开'
+    }
+
+    const label = INTEREST_CN[e.interest as keyof typeof INTEREST_CN]
+    notes.push(
+      `📋 ${holder.name} 对 ${p.ign} 的要价约 ${Math.round((e.askingFee ?? 0) / 1000)}K，本人${label}。`,
+    )
+  }
+  state.enquiries = (state.enquiries ?? []).filter((e) => !e.answer || e.replyOn > state.day - 30)
+  return notes
+}
+
 export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer {

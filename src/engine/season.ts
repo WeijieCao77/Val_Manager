@@ -6,7 +6,7 @@ import {
   resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket,
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
-import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
+import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
@@ -598,6 +598,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   notes.push(...resolveApplications(state, rng))
 
   // ---- offers whose waiting period is up
+  notes.push(...resolveEnquiries(state, rng))
   notes.push(...resolveDueOffers(state, rng))
 
   // ---- weekly upkeep

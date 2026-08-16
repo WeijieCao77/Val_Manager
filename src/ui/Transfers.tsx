@@ -4,7 +4,10 @@ import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
-import { answerIncoming, askingPrice, committedFunds, incomingOffers, makeOffer, windowOpen } from '../engine/transfer'
+import {
+  answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
+  INTEREST_CN, makeOffer, windowOpen,
+} from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
@@ -13,6 +16,8 @@ import type { Contract, Player, Role } from '../engine/types'
 export default function Transfers() {
   const { game, toast, openPlayer } = useGame()
   const act = useAction()
+  // enquiries indexed by player, so each row knows what we have already asked
+  const enq = new Map((game.enquiries ?? []).map((e) => [e.playerId, e]))
   const me = game.teams[game.myTeam]
   const [tab, setTab] = useState<'free' | 'listed' | 'all'>('free')
   const [role, setRole] = useState<Role | 'all'>('all')
@@ -208,10 +213,52 @@ export default function Transfers() {
                   <td className="num">{p.age}</td>
                   <td className="small muted">{REGION_CN[p.region]}</td>
                   <td className="small muted">{p.teamId ? game.teams[p.teamId]?.name : '自由人'}</td>
-                  <td className="num mono">{p.teamId ? money(askingPrice(p)) : '免签'}</td>
+                  <td className="num mono">
+                    {(() => {
+                      const e = enq.get(p.id)
+                      if (!p.teamId) return '免签'
+                      // once you have asked, show what they actually want
+                      if (e?.askingFee) {
+                        return (
+                          <span title="对方俱乐部的实际要价" style={{ color: 'var(--warn)' }}>
+                            {money(e.askingFee)}
+                          </span>
+                        )
+                      }
+                      return <span className="faint">{money(askingPrice(p))}</span>
+                    })()}
+                  </td>
                   <td className="num mono">{money(expectedSalary(p, me.tier))}</td>
                   <td>
-                    <button className="sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
+                    {(() => {
+                      const e = enq.get(p.id)
+                      // free agents and listed players are already on the market
+                      const onMarket = !p.teamId || p.listed
+                      if (onMarket || e?.answer === 'open') {
+                        return (
+                          <div className="row" style={{ gap: 5 }}>
+                            {e?.interest && (
+                              <span className="tag" title={e.reason ?? ''}>
+                                {INTEREST_CN[e.interest]}
+                              </span>
+                            )}
+                            <button className="sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
+                          </div>
+                        )
+                      }
+                      if (e && !e.answer) {
+                        return <span className="tiny faint">问价中（{Math.max(0, e.replyOn - game.day)} 天）</span>
+                      }
+                      if (e?.answer === 'closed') {
+                        return <span className="tiny faint">{e.reason ?? '对方无意出售'}</span>
+                      }
+                      return (
+                        <button className="sm" disabled={!open} onClick={() => act('offer', () => {
+                          toast(enquireAbout(game, p.id))
+                          logActivity(game, 'transfer', `就 ${p.ign} 向 ${game.teams[p.teamId!]?.name} 问价`)
+                        })}>问价</button>
+                      )
+                    })()}
                   </td>
                 </tr>
               ))}

@@ -384,6 +384,29 @@ export interface StreamDeal {
   since: number
 }
 
+/**
+ * An enquiry about a player who is not for sale.
+ *
+ * Most players a manager actually wants are neither listed nor free agents.
+ * Asking costs nothing but time and tells you two things you could not
+ * otherwise know: what the club would want for him, and whether he would even
+ * consider the move.
+ */
+export interface PlayerEnquiry {
+  id: string
+  playerId: string
+  /** the club that holds his contract */
+  teamId: string
+  day: number
+  replyOn: number
+  answer?: 'open' | 'closed'
+  /** what the club says they would want, once they have answered */
+  askingFee?: number
+  /** how the player himself feels about it */
+  interest?: 'keen' | 'open' | 'reluctant' | 'no'
+  reason?: string
+}
+
 export interface Sponsor {
   name: string
   perSeason: number
@@ -671,6 +694,8 @@ export interface GameState {
   staffOffers?: StaffOffer[]
   /** clubs we have asked about their coach */
   staffApproaches?: StaffApproach[]
+  /** players we have enquired about who were not on the market */
+  enquiries?: PlayerEnquiry[]
   /** clubs currently trying to hire us away */
   jobOffers?: JobOffer[]
   /** jobs we have applied for ourselves */
