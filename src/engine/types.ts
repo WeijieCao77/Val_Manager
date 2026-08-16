@@ -58,6 +58,31 @@ export interface Trait {
   good: boolean
 }
 
+/**
+ * A squad-wide drill run alongside each player's individual focus.
+ *
+ * Individual practice only ever moved one number on one player, which made the
+ * training screen a row of identical dropdowns. These are the sessions a real
+ * team actually runs, and each touches several things at once.
+ */
+export type TeamDrill =
+  | { kind: 'none' }
+  /** run the map until everyone knows it: map comfort plus cohesion */
+  | { kind: 'map'; map: string }
+  /** the coach takes them through the tape: reading the game, and calling it */
+  | { kind: 'review' }
+  /** two players drilling together: trades, timings, and talking */
+  | { kind: 'duo'; a: string; b: string }
+  /** learning an agent from a role they do not yet cover */
+  | { kind: 'agent'; playerId: string; role: Role; progress: number }
+
+/** Something the manager did, so the day can be recounted. */
+export interface Activity {
+  day: number
+  kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics'
+  text: string
+}
+
 /** The standing a player was promised when they signed. */
 export type SquadRole = 'star' | 'starter' | 'rotation' | 'bench'
 
@@ -377,6 +402,10 @@ export interface GameState {
   offers: TransferOffer[]
   /** per-player weekly training focus */
   training: Record<string, keyof Attrs | 'rest'>
+  /** the squad-wide drill running alongside it */
+  drill?: TeamDrill
+  /** a log of what the manager did, so today can be recounted */
+  activity?: Activity[]
   finances: {
     balance: number
     log: { day: number; label: string; amount: number }[]

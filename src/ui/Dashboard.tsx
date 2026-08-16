@@ -5,8 +5,13 @@ import { advanceDay, advanceToNextMatch, makeScrim, scrimReply, nextFixtureFor, 
 import type { ScrimFormat } from '../engine/season'
 import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
-import { agendaFor } from '../engine/agenda'
+import { agendaFor, activityOn, logActivity } from '../engine/agenda'
 import { squadOf, wageBill } from '../engine/world'
+import { ATTR_CN } from '../engine/types'
+
+const ACT_CN: Record<string, string> = {
+  training: '训练', scrim: '训练赛', transfer: '转会', squad: '阵容', tactics: '战术',
+}
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
 import type { DayReport } from '../engine/season'
@@ -322,6 +327,8 @@ export default function Dashboard() {
                   return
                 }
                 makeScrim(game, scrimOpp, game.day + 1, scrimMap, scrimFmt)
+                logActivity(game, 'scrim',
+                  `约战 ${game.teams[scrimOpp]?.name} @ ${scrimMap}（${scrimFmt === 'full24' ? '24 回合' : '先到 13'}）`)
                 commit()
                 toast(`已约战 ${game.teams[scrimOpp]?.name}，明天在 ${scrimMap} 进行。`)
                 setScrimOpp('')
@@ -340,6 +347,59 @@ export default function Dashboard() {
           </p>
         </Panel>
       )}
+
+      <Panel title="今日操作" flush>
+        {(() => {
+          const acts = activityOn(game, game.day)
+          const drill = game.drill
+          const drillText =
+            !drill || drill.kind === 'none' ? null
+              : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
+                : drill.kind === 'review' ? '教练复盘'
+                  : drill.kind === 'duo'
+                    ? `双排练 · ${game.players[drill.a]?.ign} + ${game.players[drill.b]?.ign}`
+                    : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(drill.progress)}%）`
+          const focuses = me.starters
+            .map((id) => game.players[id])
+            .filter(Boolean)
+            .map((p) => {
+              const f = game.training[p!.id] ?? 'rest'
+              return `${p!.ign}：${f === 'rest' ? '休息' : ATTR_CN[f as keyof typeof ATTR_CN]}`
+            })
+          const scrimToday = game.fixtures.filter(
+            (f) => f.comp === 'scrim' && f.day >= game.day &&
+              (f.teamA === game.myTeam || f.teamB === game.myTeam) && !f.played,
+          )
+          return (
+            <>
+              {acts.length === 0 && !drillText && (
+                <div className="news-item"><span className="muted small">今天还没有任何操作。</span></div>
+              )}
+              {acts.map((a, i) => (
+                <div key={i} className="news-item">
+                  <span className="d">{ACT_CN[a.kind]}</span><span>{a.text}</span>
+                </div>
+              ))}
+              <div className="news-item">
+                <span className="d">训练</span>
+                <span className="small">
+                  {drillText ? <b>{drillText}</b> : <span className="muted">未安排团队训练</span>}
+                  <span className="faint"> · 个人：{focuses.join('，')}</span>
+                </span>
+              </div>
+              {scrimToday.map((f) => (
+                <div key={f.id} className="news-item">
+                  <span className="d">训练赛</span>
+                  <span className="small">
+                    已约 {game.teams[f.teamA === game.myTeam ? f.teamB : f.teamA]?.name}
+                    {f.scrim ? ` @ ${f.scrim.map}` : ''}，{f.day - game.day <= 0 ? '今天' : `${f.day - game.day} 天后`}进行
+                  </span>
+                </div>
+              ))}
+            </>
+          )
+        })()}
+      </Panel>
 
       <Panel title="新闻" flush>
         {recentNews.length ? (

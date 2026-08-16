@@ -1,7 +1,20 @@
 import { squadOf, wageBill } from './world'
 import { windowOpen } from './transfer'
 import { nextFixtureFor, stageName } from './season'
-import type { GameState, StageKey } from './types'
+import type { Activity, GameState, StageKey } from './types'
+
+/** Record something the manager did today. */
+export function logActivity(state: GameState, kind: Activity['kind'], text: string): void {
+  state.activity ??= []
+  // one line per distinct action per day; repeating an action just updates it
+  const existing = state.activity.find((a) => a.day === state.day && a.text === text)
+  if (existing) return
+  state.activity.push({ day: state.day, kind, text })
+  if (state.activity.length > 300) state.activity.splice(0, state.activity.length - 300)
+}
+
+export const activityOn = (state: GameState, day: number): Activity[] =>
+  (state.activity ?? []).filter((a) => a.day === day)
 
 /**
  * What actually deserves the manager's attention right now.

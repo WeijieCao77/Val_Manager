@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
+import { logActivity } from '../engine/agenda'
 import { Condition, money, OvrBadge, Panel, Roles, Traits } from './common'
 import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
@@ -47,6 +48,7 @@ export default function Squad() {
     if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。`)) return
     releasePlayer(game, p)
     commit()
+    logActivity(game, 'squad', `与 ${p.ign} 解约`)
     toast(`${p.ign} 已离队。`)
   }
 

@@ -1,7 +1,8 @@
 import { Rng, clamp } from './rng'
 import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift } from './player'
-import { coachOr } from './world'
+import { coachOr, squadOf } from './world'
+import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
 
@@ -49,9 +50,105 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
   return null
 }
 
+/** Add progress toward an attribute, converting a full bar into a point. */
+function addXp(p: Player, k: keyof Attrs, amount: number): boolean {
+  p.xp[k] = (p.xp[k] ?? 0) + amount
+  if ((p.xp[k] ?? 0) < 100) return false
+  p.xp[k] = (p.xp[k] ?? 0) - 100
+  p.attrs[k] = clamp(p.attrs[k] + 1, 20, 99)
+  recomputeOverall(p)
+  refreshValue(p)
+  return true
+}
+
+/**
+ * The squad-wide drill for this week.
+ *
+ * Each of these moves several things at once, which is the point: a team does
+ * not improve by everyone grinding one stat in isolation.
+ */
+function runDrill(state: GameState, rng: Rng, notes: string[]): void {
+  const drill = state.drill
+  if (!drill || drill.kind === 'none') return
+  const team = state.teams[state.myTeam]
+  if (!team) return
+  const squad = squadOf(state, state.myTeam).filter((p) => p.injuredUntil <= state.day)
+  if (!squad.length) return
+
+  const coachDev = (coachOr(team, 'development') - 55) / 100
+  const coachTac = (coachOr(team, 'tactics') - 55) / 100
+  const facility = (team.facilities - 55) / 130
+  const gain = (base: number) => base * (1 + coachDev + facility) * rng.range(0.8, 1.2)
+
+  switch (drill.kind) {
+    case 'map': {
+      // running one map raises comfort on it and pulls the side together
+      const before = team.mapPrefs[drill.map] ?? 50
+      // comfort climbs, but not to mastery in a single split
+      team.mapPrefs[drill.map] = Math.round(clamp(before + gain(1.8), 0, 95))
+      for (const p of squad) {
+        addXp(p, 'teamwork', gain(9))
+        addXp(p, 'awareness', gain(5))
+        p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      }
+      if (team.mapPrefs[drill.map] > before) {
+        notes.push(`🗺 ${drill.map} 熟练度提升到 ${team.mapPrefs[drill.map]}。`)
+      }
+      break
+    }
+    case 'review': {
+      // tape work is worth what the coach is worth
+      for (const p of squad) {
+        addXp(p, 'awareness', gain(6) * (1 + coachTac))
+        if (p.isIgl) addXp(p, 'igl', gain(7) * (1 + coachTac))
+        addXp(p, 'communication', gain(3))
+        p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
+      }
+      notes.push(team.coach ? `🎬 ${team.coach.name} 带队复盘，全队意识提升。` : '🎬 全队复盘录像。')
+      break
+    }
+    case 'duo': {
+      const pair = [drill.a, drill.b].map((id) => state.players[id]).filter(Boolean) as Player[]
+      for (const p of pair) {
+        if (p.injuredUntil > state.day) continue
+        addXp(p, 'teamwork', gain(10))
+        addXp(p, 'communication', gain(8))
+        addXp(p, 'reaction', gain(5))
+        p.fatigue = clamp(p.fatigue + rng.range(5, 10), 0, 100)
+        p.morale = clamp(p.morale + rng.range(0, 2), 0, 100)
+      }
+      break
+    }
+    case 'agent': {
+      const p = state.players[drill.playerId]
+      if (!p) break
+      drill.progress += gain(14)
+      addXp(p, 'utility', gain(4))
+      p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      if (drill.progress >= 100) {
+        const pool = AGENTS[drill.role].filter((a) => !p.agentPool.includes(a))
+        const learned = pool.length ? rng.pick(pool) : null
+        if (learned) p.agentPool = [...p.agentPool, learned]
+        // learning an agent from a new role means he now covers it
+        const roles = p.roles?.length ? p.roles : [p.role]
+        if (!roles.includes(drill.role)) {
+          p.roles = [...roles, drill.role]
+          p.flex = true
+        }
+        notes.push(`🎓 ${p.ign} 练成了 ${learned ?? drill.role}，现在可以兼任${drill.role}。`)
+        state.drill = { kind: 'none' }
+      }
+      break
+    }
+    default:
+      break
+  }
+}
+
 /** Weekly tick: training, condition, morale drift, injury rolls. */
 export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
+  runDrill(state, rng, notes)
   for (const team of Object.values(state.teams)) {
     const isMine = team.id === state.myTeam
     for (const pid of team.roster) {

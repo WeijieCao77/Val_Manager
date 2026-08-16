@@ -2,7 +2,10 @@ import { useGame } from './ctx'
 import { Bar, Condition, OvrBadge, Panel, Roles } from './common'
 import { squadOf } from '../engine/world'
 import { stageName } from '../engine/season'
-import { ATTR_CN, ATTR_KEYS } from '../engine/types'
+import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
+import type { Role } from '../engine/types'
+import { activePool } from '../engine/match'
+import { logActivity } from '../engine/agenda'
 import type { Attrs, Player } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
@@ -26,6 +29,8 @@ export default function Training() {
 
   const setFocus = (id: string, v: keyof Attrs | 'rest') => {
     game.training[id] = v
+    logActivity(game, 'training',
+      `${game.players[id]?.ign} 的训练重点设为${v === 'rest' ? '休息' : ATTR_CN[v]}`)
     commit()
   }
 
@@ -49,8 +54,115 @@ export default function Training() {
     toast('已按短板自动分配训练重点。')
   }
 
+  const drill = game.drill ?? { kind: 'none' as const }
+  const setDrill = (d: typeof drill, label: string) => {
+    game.drill = d
+    logActivity(game, 'training', `本周团队训练：${label}`)
+    commit()
+    toast(`本周团队训练：${label}`)
+  }
+  const pool = activePool(game.seed + game.year)
+  const fit = squad.filter((p) => p.injuredUntil <= game.day)
+
   return (
     <>
+      <Panel title="团队训练 · 每周一项">
+        <p className="small muted" style={{ marginTop: 0 }}>
+          团队训练与每位选手的个人专项**同时生效**，而且一次影响多个方面。
+        </p>
+        <div className="grid c2" style={{ gap: 12 }}>
+          <div className="drill-card">
+            <b>跑图</b>
+            <p className="tiny muted">提升指定地图熟练度，同时练全队协同与意识。</p>
+            <div className="row wrap" style={{ gap: 5 }}>
+              {pool.map((m) => (
+                <button key={m}
+                  className={`sm${drill.kind === 'map' && drill.map === m ? ' primary' : ''}`}
+                  onClick={() => setDrill({ kind: 'map', map: m }, `跑图 ${m}`)}>
+                  {m} <span className="tiny faint">{me.mapPrefs[m] ?? 50}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="drill-card">
+            <b>教练复盘</b>
+            <p className="tiny muted">
+              全队意识与指挥提升，效果取决于教练战术水平；还能恢复少量体能。
+            </p>
+            <button
+              className={drill.kind === 'review' ? 'primary' : ''}
+              onClick={() => setDrill({ kind: 'review' }, '教练复盘')}>
+              安排复盘{me.coach ? `（${me.coach.name}）` : ''}
+            </button>
+          </div>
+
+          <div className="drill-card">
+            <b>双排练</b>
+            <p className="tiny muted">两人配合训练：协同、沟通、反应，收益比单练高但更累。</p>
+            <div className="row wrap" style={{ gap: 5 }}>
+              {fit.map((p) => {
+                const on = drill.kind === 'duo' && (drill.a === p.id || drill.b === p.id)
+                return (
+                  <button key={p.id} className={`sm${on ? ' primary' : ''}`}
+                    onClick={() => {
+                      const cur = drill.kind === 'duo' ? [drill.a, drill.b] : []
+                      const next = cur.includes(p.id)
+                        ? cur.filter((x) => x !== p.id) : [...cur, p.id].slice(-2)
+                      if (next.length === 2) {
+                        setDrill({ kind: 'duo', a: next[0], b: next[1] },
+                          `双排练 ${game.players[next[0]]?.ign} + ${game.players[next[1]]?.ign}`)
+                      }
+                    }}>
+                    {p.ign}
+                  </button>
+                )
+              })}
+              <span className="tiny faint">选两人</span>
+            </div>
+          </div>
+
+          <div className="drill-card">
+            <b>练新英雄</b>
+            <p className="tiny muted">
+              让一名选手学习别的位置的英雄。练成后他就能<b>兼任该位置</b>，阵容更灵活。
+            </p>
+            <div className="row wrap" style={{ gap: 5 }}>
+              {fit.map((p) => (
+                <select key={p.id} className="sm" style={{ width: 'auto', padding: '4px 7px', fontSize: 12 }}
+                  value={drill.kind === 'agent' && drill.playerId === p.id ? drill.role : ''}
+                  onChange={(e) => {
+                    const role = e.target.value as Role
+                    if (!role) return
+                    setDrill({ kind: 'agent', playerId: p.id, role, progress: 0 },
+                      `${p.ign} 学习${role}英雄`)
+                  }}>
+                  <option value="">{p.ign}…</option>
+                  {ROLES.filter((r) => r !== '自由人' && !(p.roles ?? [p.role]).includes(r))
+                    .map((r) => <option key={r} value={r}>{p.ign} 学 {r}</option>)}
+                </select>
+              ))}
+            </div>
+            {drill.kind === 'agent' && (
+              <div className="row" style={{ gap: 8, marginTop: 8 }}>
+                <span className="tiny muted">
+                  {game.players[drill.playerId]?.ign} 学习{drill.role}中
+                </span>
+                <Bar value={drill.progress} color="var(--violet)" />
+                <span className="tiny mono">{Math.round(drill.progress)}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+        {drill.kind !== 'none' && (
+          <div className="row" style={{ gap: 10, marginTop: 12 }}>
+            <button className="sm ghost" onClick={() => setDrill({ kind: 'none' }, '取消团队训练')}>
+              取消团队训练
+            </button>
+          </div>
+        )}
+      </Panel>
+
       <Panel
         title={`训练计划 · ${stageName(game.stage)}`}
         actions={

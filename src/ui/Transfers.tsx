@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
+import { logActivity } from '../engine/agenda'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
 import { answerIncoming, askingPrice, committedFunds, incomingOffers, makeOffer, windowOpen } from '../engine/transfer'
@@ -101,9 +102,11 @@ export default function Transfers() {
                       <td>
                         <div className="row" style={{ gap: 6 }}>
                           <button className="primary sm" onClick={() => {
+                            logActivity(game, 'transfer', `接受了 ${game.teams[o.toTeam]?.name} 对 ${p.ign} 的报价`)
                             toast(answerIncoming(game, o.id, true)); commit()
                           }}>接受</button>
                           <button className="sm" onClick={() => {
+                            logActivity(game, 'transfer', `拒绝了 ${game.teams[o.toTeam]?.name} 对 ${p.ign} 的报价`)
                             toast(answerIncoming(game, o.id, false)); commit()
                           }}>拒绝</button>
                         </div>
@@ -223,6 +226,7 @@ export default function Transfers() {
           onSubmit={(fee, terms) => {
             const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
             commit()
+            logActivity(game, 'transfer', `向 ${target.ign} 提交报价（转会费 ${money(fee)}，年薪 ${money(terms.salary)}）`)
             toast(`报价已提交给 ${target.ign}，${(offer.respondOn ?? game.day) - game.day} 天后给你答复。`)
             setTarget(null)
           }}

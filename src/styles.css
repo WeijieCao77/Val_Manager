@@ -474,3 +474,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .bracket-side.win { color: var(--text); font-weight: 650; box-shadow: inset 2px 0 0 var(--win); }
 .bracket-side .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bracket-side .sc { font-variant-numeric: tabular-nums; }
+
+.drill-card {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 11px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.drill-card p { margin: 0; line-height: 1.6; }
