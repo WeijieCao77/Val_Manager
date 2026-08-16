@@ -516,11 +516,14 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
 }
 .tour-card.anchored { margin-left: min(240px, 18vw); }
+.tour-bg.pass-nav { pointer-events: none; }
+.tour-bg.pass-nav .tour-card { pointer-events: auto; }
 .nav-item.tour-lit {
   position: relative; z-index: 95;
   background: var(--accent-wash) !important;
   border-color: var(--accent) !important;
   color: var(--text) !important;
   box-shadow: 0 0 0 2px var(--accent), 0 0 26px rgba(255, 70, 85, .45);
+  pointer-events: auto;   /* the one thing still clickable through the overlay */
 }
 @media (max-width: 720px) { .tour-card.anchored { margin-left: 0; } }

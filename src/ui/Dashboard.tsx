@@ -382,10 +382,7 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        
-      </div>
-
-      {gapDays >= 4 && (
+        {gapDays >= 4 && (
         <Panel title={`空档期 · 距下一场还有 ${gapDays} 天`}>
           <p className="small muted" style={{ marginTop: 0 }}>
             约一场训练赛：不计积分与个人数据，但会影响状态与体能。训练赛没有 BP，
@@ -457,7 +454,9 @@ export default function Dashboard() {
             对方可能拒绝：即将与我们打正赛的球队不愿暴露战术，实力远高于我们的球队也未必愿意。
           </p>
         </Panel>
-      )}
+        )}
+      </div>
+
 
       
 

@@ -202,7 +202,7 @@ export default function App() {
         {game.gameOver && (
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
-        {tour && !game.gameOver && <Tour onDone={() => setTour(false)} />}
+        {tour && !game.gameOver && <Tour screen={screen} onDone={() => setTour(false)} />}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>
     </GameCtx.Provider>

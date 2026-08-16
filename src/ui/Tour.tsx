@@ -20,7 +20,7 @@ export const TOUR: TourStep[] = [
   {
     target: null,
     title: '欢迎接手球队',
-    body: '花一分钟认识一下界面。每一步都会点亮左边的一个页面，告诉你它是干什么的。随时可以跳过。',
+    body: '花一分钟认识一下界面。我会一页一页点亮左边的标签，你点进去，我再告诉你这一页是干什么的。随时可以跳过。',
   },
   {
     target: 'dashboard',
@@ -59,8 +59,18 @@ export const TOUR: TourStep[] = [
   },
   {
     target: 'schedule',
-    title: '赛程与积分榜',
-    body: '看完整赛程、点开任何一场看详细数据，以及当前分区的排名。',
+    title: '赛程 · 什么时候打谁',
+    body: '完整赛程在这里，打完的比赛点开就能看逐回合数据和记分板，训练赛也一样。',
+  },
+  {
+    target: 'standings',
+    title: '积分榜 · 你排第几',
+    body: '当前分区的排名。董事会的赛段目标就是按这个排名算的，达不到会先警告、再下课。',
+  },
+  {
+    target: 'career',
+    title: '经理 · 你自己',
+    body: '你的声望、天赋、荣誉和合同都在这一页。还可以主动向别的球队投执教申请——不必干等着别人来挖你，也可以跟现在的董事会谈涨薪。',
   },
   {
     target: null,
@@ -87,9 +97,21 @@ export function markTourSeen(): void {
   }
 }
 
-export default function Tour({ onDone }: { onDone: () => void }) {
+/**
+ * The walkthrough drives the real navigation rather than describing it.
+ *
+ * Reading about eight screens from the dashboard teaches nothing — you have to
+ * have been there once. Each step therefore waits for the player to actually
+ * click the tab it is pointing at, and only then explains what they are
+ * looking at.
+ */
+export default function Tour({
+  screen, onDone,
+}: { screen: string; onDone: () => void }) {
   const [i, setI] = useState(0)
   const step = TOUR[i]
+  // a step is 'arrived' once the player is standing on the screen it describes
+  const arrived = !step.target || screen === step.target
 
   // move the spotlight onto whichever nav item this step is about
   useEffect(() => {
@@ -103,15 +125,26 @@ export default function Tour({ onDone }: { onDone: () => void }) {
 
   const finish = () => { markTourSeen(); onDone() }
 
+  // the description is for the screen you are on, so wait until you are on it
+  const label = step.title.split(' · ')[0]
+
   return (
-    <div className="tour-bg" onClick={(e) => e.target === e.currentTarget && finish()}>
+    <div className={`tour-bg${step.target ? ' pass-nav' : ''}`}>
       <div className={`tour-card${step.target ? ' anchored' : ''}`}>
         <div className="tiny faint">{i + 1} / {TOUR.length}</div>
         <h3 style={{ margin: '6px 0 8px' }}>{step.title}</h3>
-        <p className="small" style={{ lineHeight: 1.75, margin: '0 0 14px' }}>{step.body}</p>
+        {arrived ? (
+          <p className="small" style={{ lineHeight: 1.75, margin: '0 0 14px' }}>{step.body}</p>
+        ) : (
+          <p className="small" style={{ lineHeight: 1.75, margin: '0 0 14px' }}>
+            点击左侧高亮的 <b style={{ color: 'var(--accent)' }}>{label}</b>，看看这一页长什么样。
+          </p>
+        )}
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           {i > 0 && <button className="sm ghost" onClick={() => setI(i - 1)}>上一步</button>}
-          {i < TOUR.length - 1 ? (
+          {!arrived ? (
+            <span className="tiny faint">等你点开这一页…</span>
+          ) : i < TOUR.length - 1 ? (
             <button className="primary sm" onClick={() => setI(i + 1)}>下一步</button>
           ) : (
             <button className="primary sm" onClick={finish}>开始吧</button>
