@@ -8,6 +8,7 @@ import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
+import { cycleDays } from '../engine/actions'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
   facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, staffMarket, upgradeFacility,
@@ -71,6 +72,9 @@ export default function Training() {
 
   const drill = game.drill ?? { kind: 'none' as const }
   // the plan is only committed on 确定, so picking is free until then
+  // the plan is committed for one turn, not a fixed week: downtime advances a
+  // week at a time anyway, and in-season you should be able to react each day
+  const turn = cycleDays(game)
   const locked = (game.drillLock ?? 0) > game.day
 
   const setDrill = (d: typeof drill, _label: string) => {
@@ -99,7 +103,7 @@ export default function Training() {
   }
 
   const confirmPlan = () => {
-    game.drillLock = game.day + untilRun
+    game.drillLock = game.day + turn
     const focus = squad
       .map((p) => {
         const f = game.training[p.id] ?? 'rest'
@@ -116,7 +120,9 @@ export default function Training() {
   return (
     <>
       <Panel
-        title={`团队训练 · ${locked ? `本周已确定，${untilRun} 天后可重新安排` : `还有 ${untilRun} 天结算`}`}
+        title={`团队训练 · ${locked
+          ? `本回合已确定，推进后可重新安排`
+          : `${untilRun} 天后结算训练效果`}`}
         className={locked ? '' : 'own'}
       >
         <p className="small muted" style={{ marginTop: 0 }}>
@@ -235,13 +241,15 @@ export default function Training() {
         <div className="row wrap" style={{ gap: 10, marginTop: 14, alignItems: 'center' }}>
           {locked ? (
             <>
-              <span className="tag t1">本周已确定</span>
+              <span className="tag t1">本回合已确定</span>
               <span className="small">{describe()}</span>
-              <span className="tiny faint">· {untilRun} 天后结算，届时可重新安排</span>
+              <span className="tiny faint">
+                · {untilRun} 天后结算训练效果，推进到下个回合就能改
+              </span>
               <button className="sm ghost" onClick={() => {
                 if (!window.confirm(
-                  '撤销后，本周的团队训练直接作废，不会产生任何效果。\n' +
-                  '新计划要等下一个 7 天周期才开始生效。确定吗？',
+                  '撤销后，本周期的团队训练直接作废，不会产生任何效果。\n' +
+                  '新计划要等下一次结算才开始生效。确定吗？',
                 )) return
                 game.drillLock = undefined
                 game.drillVoid = true

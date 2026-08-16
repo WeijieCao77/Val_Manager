@@ -19,7 +19,7 @@ import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
-import { ACTIONS_PER_DAY, actionsLeft } from './engine/actions'
+import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tour, { tourSeen } from './ui/Tour'
 import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
@@ -138,10 +138,10 @@ export default function App() {
           <div className="chip" title="可用资金">💰 <b>{money(game.finances.balance)}</b></div>
           <div
             className={`chip actions${actionsLeft(game) === 0 ? ' spent' : ''}`}
-            title={`每天 ${ACTIONS_PER_DAY} 点行动力。报价、商务、约战、教练组等对外事务各花 1 点；\n首发、战术、训练安排不花点数。`}
+            title={`本回合 ${actionsForTurn(game)} 点行动力（赛季中每天 2 点，空档期每周 6 点）。\n报价、问价、商务、约战、教练组、挂牌解约等对外事务各花 1 点；\n首发、战术、训练安排不花点数。`}
           >
             ⚡ 行动力
-            <b style={{ marginLeft: 4 }}>{actionsLeft(game)}/{ACTIONS_PER_DAY}</b>
+            <b style={{ marginLeft: 4 }}>{actionsLeft(game)}/{actionsForTurn(game)}</b>
           </div>
           <div className="chip" title="董事会信任度">
             🏛 <b>{Math.round(game.boardConfidence)}%</b>

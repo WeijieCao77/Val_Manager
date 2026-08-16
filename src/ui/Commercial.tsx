@@ -268,7 +268,7 @@ export default function Commercial() {
             <thead>
               <tr>
                 <th>选手</th><th className="num">能力</th><th>体能</th>
-                <th className="num">士气</th><th className="num">本周商务</th><th>直播合同</th>
+                <th className="num">士气</th><th className="num">本周商务占用</th><th>直播合同</th>
               </tr>
             </thead>
             <tbody>
@@ -282,9 +282,9 @@ export default function Commercial() {
                     <td className="num mono">{Math.round(p.morale)}</td>
                     <td className="num">
                       {used === 0
-                        ? <span className="faint">—</span>
+                        ? <span className="faint" title="本周没有参加任何商务活动">未占用</span>
                         : <span style={{ color: used >= 2 ? 'var(--accent)' : 'var(--warn)' }}>
-                            {used} 天（训练 −{Math.min(100, used * 25)}%）
+                            占用 {used} 天 · 本周训练 −{Math.min(100, used * 25)}%
                           </span>}
                     </td>
                     <td>

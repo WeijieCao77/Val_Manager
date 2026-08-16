@@ -13,7 +13,21 @@ import type { GameState } from './types'
  * worse five to save an errand, and because those are the decisions players
  * most want to fiddle with.
  */
-export const ACTIONS_PER_DAY = 3
+/**
+ * The budget for one turn.
+ *
+ * The first version gave three a day regardless, which had it backwards: in
+ * season the transfer window is shut and commercial work risks condition before
+ * a fixture, so two of the three went unused — while a downtime week, with the
+ * window open and every negotiation available, was squeezed into the same
+ * three. The budget now follows how much there actually is to do.
+ */
+export const ACTIONS_IN_SEASON = 2
+export const ACTIONS_PER_WEEK = 6
+
+export function actionsForTurn(state: GameState): number {
+  return cycleDays(state) > 1 ? ACTIONS_PER_WEEK : ACTIONS_IN_SEASON
+}
 
 export type ActionKind =
   | 'offer' | 'reply' | 'list' | 'release'
@@ -54,7 +68,7 @@ function slot(state: GameState): { day: number; used: number } {
 }
 
 export function actionsLeft(state: GameState): number {
-  return Math.max(0, ACTIONS_PER_DAY - slot(state).used)
+  return Math.max(0, actionsForTurn(state) - slot(state).used)
 }
 
 export function canAct(state: GameState): boolean {
@@ -67,7 +81,7 @@ export function canAct(state: GameState): boolean {
  */
 export function spendAction(state: GameState, _kind: ActionKind): boolean {
   const s = slot(state)
-  if (s.used >= ACTIONS_PER_DAY) return false
+  if (s.used >= actionsForTurn(state)) return false
   s.used += 1
   return true
 }
