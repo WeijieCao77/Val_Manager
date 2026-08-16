@@ -195,20 +195,29 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Advancing time is the one thing you always need and the thing players
+          could not find, so it gets its own bar rather than a corner button. */}
+      <div className="advance-bar">
+        <button className="advance-main" disabled={busy} onClick={() => step(false)}>
+          {busy ? '模拟中…' : `推进 ${cycleDays(game) > 1 ? `${cycleDays(game)} 天` : '一天'} ▶`}
+        </button>
+        <button className="advance-alt" disabled={busy} onClick={() => step(true)}>
+          直接推进到下一场比赛
+        </button>
+        <div className="advance-note">
+          {cycleDays(game) > 1 ? (
+            <>
+              <b>现在是空档期，一回合 = 7 天</b>，行动力仍是每回合 3 点。
+              中途遇到比赛会自动停下。临近比赛时会自动变回一天一回合。
+            </>
+          ) : (
+            <>比赛期间一天一回合，行动力每天 3 点。</>
+          )}
+        </div>
+      </div>
+
       <div className="grid c2">
-        <Panel
-          title="下一场比赛"
-          actions={
-            <div className="row" style={{ gap: 8 }}>
-              <button className="sm" disabled={busy} onClick={() => step(false)}>
-                推进{cycleDays(game) > 1 ? `${cycleDays(game)}天` : '一天'}
-              </button>
-              <button className="primary sm" disabled={busy} onClick={() => step(true)}>
-                {busy ? '模拟中…' : '推进到下一场 ▶'}
-              </button>
-            </div>
-          }
-        >
+        <Panel title="下一场比赛">
           {next ? (
             <>
               <div className="score-line" style={{ padding: '6px 0 14px' }}>
