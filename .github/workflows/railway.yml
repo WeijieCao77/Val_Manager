@@ -1,4 +1,4 @@
-name: Deploy to Railway
+name: Build and deploy
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # read the secret once at job level so the deploy step can test for it;
+    # a secret cannot be referenced directly from an `if:` expression
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,8 +25,16 @@ jobs:
       - run: npm run build
 
       - name: Deploy
+        if: env.RAILWAY_TOKEN != ''
         run: |
           npm i -g @railway/cli
           railway up --service val-manager --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      # Without the secret this workflow used to fail on every single push and
+      # mail a failure notice each time. The build above is worth running on its
+      # own, so a missing token now skips the deploy instead of failing the run.
+      - name: Deploy skipped
+        if: env.RAILWAY_TOKEN == ''
+        run: |
+          echo "::notice::RAILWAY_TOKEN is not set — build verified, deploy skipped."
+          echo "Add it under Settings → Secrets and variables → Actions to deploy automatically."
