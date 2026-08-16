@@ -4,6 +4,7 @@ import { recomputeOverall, refreshValue, ageDrift } from './player'
 import { coachOr, squadOf } from './world'
 import { duoBonded, weeklyBonds } from './bonds'
 import { staffBonus } from './staff'
+import { weeklyTrust } from './trust'
 import { skillMod } from './manager'
 import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
@@ -203,6 +204,7 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   runDrill(state, rng, notes)
   weeklyBonds(state, rng, notes)
+  weeklyTrust(state, rng, notes)
   const missed = Object.entries(state.commercialDays ?? {})
     .filter(([, d]) => d >= 2)
     .map(([id]) => state.players[id]?.ign)

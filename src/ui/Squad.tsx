@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
-import { Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
+import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
 import { releasePlayer } from '../engine/transfer'
 import { bondBetween, notableBonds, squadHarmony } from '../engine/bonds'
+import { departureImpact, trustLabel, trustOf, trustOnBench } from '../engine/trust'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Player } from '../engine/types'
 
@@ -33,6 +34,8 @@ export default function Squad() {
   const toggleStarter = (p: Player) => {
     const idx = me.starters.indexOf(p.id)
     if (idx >= 0) {
+      // benching someone who is playing well reads as arbitrary, and costs trust
+      trustOnBench(p)
       me.starters = me.starters.filter((id) => id !== p.id)
     } else {
       if (me.starters.length >= 5) {
@@ -46,7 +49,11 @@ export default function Squad() {
 
   const release = (p: Player) => {
     const payoff = Math.round(p.salary * Math.max(0, p.contractYears) * 0.4)
-    if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。`)) return
+    const hurt = departureImpact(game, p)
+    const warn = hurt.length
+      ? `\n\n更衣室反应：${hurt.map((h) => `${h.p.ign} 信任 −${h.hit.toFixed(0)}`).join('，')}`
+      : ''
+    if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。${warn}`)) return
     releasePlayer(game, p)
     commit()
     logActivity(game, 'squad', `与 ${p.ign} 解约`)
@@ -117,6 +124,7 @@ export default function Squad() {
                     <th className="num clickable" onClick={() => setSort('form')}>状态</th>
                     <th>体能</th>
                     <th className="num">士气</th>
+                    <th>信任</th>
                     <th className="num clickable" onClick={() => setSort('salary')}>年薪</th>
                     <th className="num">合同</th>
                     <th />
@@ -162,6 +170,21 @@ export default function Squad() {
                         <td className="num mono">{Math.round(p.form)}</td>
                         <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>
                         <td className="num mono">{Math.round(p.morale)}</td>
+                        <td>
+                          {(() => {
+                            const t = trustOf(p)
+                            const c = t >= 66 ? 'var(--win)' : t >= 48 ? 'var(--muted)'
+                              : t >= 30 ? 'var(--warn)' : 'var(--accent)'
+                            return (
+                              <span className="row" style={{ gap: 6 }}>
+                                <Bar value={t} color={c} />
+                                <span className="tiny" style={{ color: c, whiteSpace: 'nowrap' }}>
+                                  {trustLabel(t)}
+                                </span>
+                              </span>
+                            )
+                          })()}
+                        </td>
                         <td className="num mono">{money(p.salary)}</td>
                         <td className="num muted">{p.contractYears > 0 ? `${p.contractYears}年` : '到期'}</td>
                         <td>

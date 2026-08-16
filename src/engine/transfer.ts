@@ -3,6 +3,7 @@ import { expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, squadOf, wageBill } from './world'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
 import { skillMod } from './manager'
+import { trustOf, trustOnDeparture, TRUST_START } from './trust'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 
 export const TRANSFER_WINDOWS: [number, number][] = [
@@ -122,6 +123,16 @@ export function scoreOffer(
   // the club alone could not — and this is the real reward for a career going
   // well: not a menu unlocking, but better players taking your call.
   if (toTeam.id === state.myTeam && state.manager) {
+    // Re-signing is where trust is spent. A player who thinks you have used him
+    // badly wants a lot more money to stay, and one who trusts you takes less.
+    if (from?.id === state.myTeam) {
+      parts.push({
+        key: 'trust',
+        v: (trustOf(p) - TRUST_START) * 0.55,
+        why: '不再信任俱乐部对他的安排',
+      })
+      score += (trustOf(p) - TRUST_START) * 0.55
+    }
     // 谈判 is worth a few points of persuasion on top of your name
     score += (skillMod(state.manager, 'negotiation', 0.5) - 1) * 30
     const pull = (state.manager.reputation - toTeam.reputation) * 0.55
@@ -183,6 +194,14 @@ export function doTransfer(
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
   if (!to) return
+  // the dressing room notices who you sold
+  if (from?.id === state.myTeam) {
+    const notes: string[] = []
+    trustOnDeparture(state, p, notes)
+    for (const t of notes) {
+      state.news.push({ day: state.day, kind: 'club', important: true, text: t })
+    }
+  }
   // refuse a move that would leave the selling club unable to field a team
   if (from && from.id !== state.myTeam && !canSell(state, p)) return
 
@@ -236,6 +255,13 @@ export function doTransfer(
 
 export function releasePlayer(state: GameState, p: Player): void {
   const from = p.teamId ? state.teams[p.teamId] : null
+  if (from?.id === state.myTeam) {
+    const notes: string[] = []
+    trustOnDeparture(state, p, notes)
+    for (const t of notes) {
+      state.news.push({ day: state.day, kind: 'club', important: true, text: t })
+    }
+  }
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
     from.starters = from.starters.filter((id) => id !== p.id)

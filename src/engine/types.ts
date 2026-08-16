@@ -212,6 +212,13 @@ export interface Player {
    * absent where vlr does not record it.
    */
   joined?: string
+  /**
+   * How much this player trusts the manager, 0-100.
+   *
+   * Slower and more cumulative than morale, and about you rather than about
+   * results — see engine/trust.ts.
+   */
+  trust?: number
   /** a streaming contract this player has signed */
   stream?: StreamDeal
   /** set when the player has been transfer-listed by their club */

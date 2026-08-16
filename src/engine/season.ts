@@ -9,6 +9,7 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
 import { offerGigs, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
+import { trustAfterMatch } from './trust'
 import { resolveStaffOffers } from './staff'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
@@ -475,7 +476,10 @@ export function commitFixture(state: GameState, f: Fixture, result: MatchResult)
   // how the dressing room took it, for our club only
   if (isMine) {
     const notes: string[] = []
-    applyMatchBonds(state, result, state.myTeam, f.teamA === state.myTeam, rng, notes)
+    const isA = f.teamA === state.myTeam
+    const won = (result.mapsWonA > result.mapsWonB) === isA
+    trustAfterMatch(state, won, (isA ? result.lineups?.a : result.lineups?.b) ?? [])
+    applyMatchBonds(state, result, state.myTeam, isA, rng, notes)
     for (const t of notes) {
       state.news.push({ day: state.day, kind: 'club', important: true, text: t })
     }

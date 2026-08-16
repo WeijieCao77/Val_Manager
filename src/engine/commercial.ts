@@ -1,6 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
 import { skillMod } from './manager'
+import { duoBonded } from './bonds'
 import type { GameState, Gig, GigKind, Player, StreamDeal, VentureKind } from './types'
 
 /**
@@ -201,7 +202,7 @@ const VENTURES: Record<VentureKind, {
   bootcamp: {
     label: '线下训练营', cost: 120_000, heads: 5, lead: [7, 14],
     pay: [0.2, 0.8], fans: [2, 5], fatigue: -12, morale: 6,
-    blurb: '拉出去集训：几乎不赚钱，但恢复体能、提振士气，赛前很值。',
+    blurb: '拉出去集训：几乎不赚钱，但恢复体能、提振士气，而且是少数能直接拉近全队关系的手段。',
   },
   watchparty: {
     label: '观赛派对', cost: 30_000, heads: 2, lead: [3, 8],
@@ -262,6 +263,20 @@ function runVentures(state: GameState, rng: Rng, notes: string[]): void {
     state.finances.balance += take
     state.finances.log.push({ day: state.day, label: v.kind === 'bootcamp' ? '训练营收入' : `${t.label}收入`, amount: take })
     team.reputation = clamp(team.reputation + rng.int(t.fans[0], t.fans[1]) * 0.05 * turnout, 0, 99)
+
+    // A week away together is the one thing on this screen that genuinely
+    // builds a squad rather than just paying for it — a bootcamp pulls every
+    // pair at it closer, an open day a little, a shoot not at all.
+    const closeness = v.kind === 'bootcamp' ? rng.range(5, 9)
+      : v.kind === 'openday' || v.kind === 'watchparty' ? rng.range(1, 3) : 0
+    if (closeness > 0) {
+      for (let i = 0; i < v.attendees.length; i++) {
+        for (let j = i + 1; j < v.attendees.length; j++) {
+          duoBonded(state, v.attendees[i], v.attendees[j], closeness)
+        }
+      }
+      if (v.kind === 'bootcamp') notes.push('🤝 集训期间全队关系明显拉近。')
+    }
 
     for (const id of v.attendees) {
       const p = state.players[id]
