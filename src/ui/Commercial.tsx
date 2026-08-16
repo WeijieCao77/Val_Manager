@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useGame } from './ctx'
 import { Condition, money, OvrBadge, Panel, Stat } from './common'
 import {
-  bookGig, cancelGig, endStream, openGigs, pitchSponsor, signStream,
-  startVenture, streamOffer, ventureInfo,
+  bookGig, cancelGig, declineSponsor, endStream, openGigs, pitchSponsor, signSponsor,
+  signStream, startVenture, streamOffer, ventureInfo,
 } from '../engine/commercial'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
@@ -92,9 +92,45 @@ export default function Commercial() {
           <span className="tiny faint">
             {(game.pitchCooldown ?? 0) > game.day
               ? `${(game.pitchCooldown ?? 0) - game.day} 天后可以再谈`
-              : '免费，但每 21 天只能谈一轮，且不一定谈得成'}
+              : '免费，每 14 天一轮。3 天后对方给出具体条件，你再决定签不签'}
           </span>
         </div>
+
+        {(game.sponsorTalks ?? []).filter((t) => !t.answer && t.replyOn <= game.day).map((t) => (
+          <div key={t.id} className="drill-card own" style={{ marginBottom: 12 }}>
+            <div className="row wrap" style={{ gap: 8, alignItems: 'baseline' }}>
+              <b style={{ fontSize: 15 }}>{t.name}</b>
+              <span className="tag">{t.industry}</span>
+            </div>
+            <div className="row wrap" style={{ gap: 8, margin: '8px 0' }}>
+              <span className="tag" style={{ borderColor: 'var(--win)', color: 'var(--win)' }}>
+                保底 {money(t.base)}/赛季
+              </span>
+              <span className="tag">前 {t.bonusPlacement} 名另奖 {money(t.bonus)}</span>
+            </div>
+            <div className="tiny muted" style={{ marginBottom: 8 }}>
+              {t.demands.length ? (
+                <>对方要求：{t.demands.map((d) => d.text).join('；')}。<b>要求越多，保底越高。</b></>
+              ) : '没有附加要求，保底也相应低一些。'}
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="primary sm" onClick={() => {
+                toast(signSponsor(game, t.id))
+                logActivity(game, 'commercial', `签下赞助商 ${t.name}`)
+                commit()
+              }}>签下</button>
+              <button className="sm ghost" onClick={() => { toast(declineSponsor(game, t.id)); commit() }}>
+                拒绝
+              </button>
+            </div>
+          </div>
+        ))}
+        {(game.sponsorTalks ?? []).some((t) => !t.answer && t.replyOn > game.day) && (
+          <div className="small" style={{ marginBottom: 12, color: 'var(--warn)' }}>
+            ⏳ 正在等待赞助商给出方案（{Math.max(0, Math.min(...(game.sponsorTalks ?? [])
+              .filter((t) => !t.answer && t.replyOn > game.day).map((t) => t.replyOn - game.day)))} 天）
+          </div>
+        )}
 
         <div className="grid c2" style={{ gap: 12 }}>
           {(['openday', 'bootcamp', 'watchparty', 'merch'] as VentureKind[]).map((k) => {

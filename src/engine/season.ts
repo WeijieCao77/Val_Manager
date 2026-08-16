@@ -7,7 +7,7 @@ import {
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
-import { offerGigs, runGigsToday, streamWeek } from './commercial'
+import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -470,6 +470,15 @@ export interface DayReport {
 export interface AdvanceOpts {
   /** hand the manager's own fixture back unplayed so they can watch it */
   deferMine?: boolean
+  /**
+   * Play scrims automatically instead of handing them over.
+   *
+   * A scrim booked for tomorrow used to halt a week-long turn on its first day,
+   * so the rest of the week — and everything scheduled inside it — never ran
+   * until the manager clicked through. Practice matches resolve themselves when
+   * a turn covers several days; the scoreboard is still there to open.
+   */
+  autoScrims?: boolean
 }
 
 /** Each fixture gets its own stream, so a result never depends on play order. */
@@ -576,7 +585,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       continue
     }
     const isMine = f.teamA === state.myTeam || f.teamB === state.myTeam
-    if (isMine && opts.deferMine && !pendingMine) {
+    if (isMine && opts.deferMine && !pendingMine && !(opts.autoScrims && isScrim(f))) {
       // leave it for the manager to watch or skip
       pendingMine = f
       continue
@@ -591,6 +600,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   // ---- commercial work booked for today, then any new approach
   runGigsToday(state, notes)
   offerGigs(state, rng, notes)
+  notes.push(...resolveSponsorTalks(state, rng))
 
   // ---- coaches and clubs answering today
   notes.push(...resolveApproaches(state, rng))

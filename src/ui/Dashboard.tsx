@@ -54,10 +54,11 @@ export default function Dashboard() {
           reports.push(...advanceToNextMatch(game, 40, { deferMine: true }))
         } else {
           for (let i = 0; i < span; i++) {
-            reports.push(advanceDay(game, { deferMine: true }))
-            // stop early if a match or something urgent lands mid-week
+            // over a multi-day turn, practice matches play themselves so the
+            // week actually runs; a competitive fixture still stops for you
+            reports.push(advanceDay(game, { deferMine: true, autoScrims: span > 1 }))
             const last = reports[reports.length - 1]
-            if (last.pendingMine || last.playedMine.length || last.seasonEnded) break
+            if (last.pendingMine || last.seasonEnded) break
           }
         }
         handleReports(reports)

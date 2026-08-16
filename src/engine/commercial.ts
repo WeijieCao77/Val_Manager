@@ -2,7 +2,7 @@ import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
 import { skillMod } from './manager'
 import { duoBonded } from './bonds'
-import type { GameState, Gig, GigKind, Player, StreamDeal, VentureKind } from './types'
+import type { GameState, Gig, GigKind, Player, SponsorTalk, StreamDeal, VentureKind } from './types'
 
 /**
  * The commercial side of running a club.
@@ -309,34 +309,99 @@ export function pitchSponsor(state: GameState): string {
   }
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
-  state.pitchCooldown = state.day + 21
+  // 14 days, per the shorter cycle: a fortnight between approaches
+  state.pitchCooldown = state.day + 14
 
   const rng = gigRng(state)
-  const odds = clamp(
-    0.2 + (team.reputation - 55) * 0.012 + state.honours.length * 0.03, 0.08, 0.7,
-  ) * skillMod(state.manager, 'business', 0.01)
-  if (!rng.chance(odds)) {
-    return '这一轮没谈成——对方觉得现在还不是合适的时机。'
-  }
-
+  const partner = rng.pick(PITCH_PARTNERS)
   const base = team.sponsors.reduce((s, x) => s + x.perSeason, 0) / Math.max(1, team.sponsors.length)
-  const deal = {
-    name: rng.pick(PITCH_PARTNERS),
-    perSeason: Math.round(base * rng.range(0.35, 0.85) * skillMod(state.manager, 'business', 0.006)),
+  const pull = skillMod(state.manager, 'business', 0.006)
+
+  // what they want in return, which is what makes one deal different from
+  // another rather than just a bigger number
+  const pool: SponsorTalk['demands'] = [
+    { key: 'gigs', text: '每赛季至少出席 3 次商务活动' },
+    { key: 'placing', text: `赛段排名进入前 ${rng.int(4, 8)}` },
+    { key: 'stream', text: '至少一名选手签约直播平台' },
+    { key: 'exclusive', text: '同行业不得再签第二家赞助' },
+  ]
+  const demands = pool.filter(() => rng.chance(0.45)).slice(0, 2)
+  const generous = demands.length >= 2 ? 1.25 : demands.length === 1 ? 1.0 : 0.8
+
+  const talk: SponsorTalk = {
+    id: `SP${state.day}`,
+    name: partner.name,
+    industry: partner.industry,
+    base: Math.round(base * rng.range(0.3, 0.8) * pull * generous),
+    bonus: Math.round(base * rng.range(0.15, 0.45) * pull),
     bonusPlacement: rng.int(2, 6),
-    bonus: Math.round(base * rng.range(0.15, 0.4)),
+    demands,
+    day: state.day,
+    replyOn: state.day + 3,      // they come back in three days
   }
-  team.sponsors = [...team.sponsors, deal]
+  state.sponsorTalks = [...(state.sponsorTalks ?? []), talk]
+  return `已联系 ${talk.name}，3 天后给出具体条件。`
+}
+
+/** Sponsors coming back with terms, and deals we already accepted. */
+export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
+  const notes: string[] = []
+  const team = state.teams[state.myTeam]
+  if (!team) return notes
+  for (const t of state.sponsorTalks ?? []) {
+    if (t.answer || t.replyOn > state.day) continue
+    const odds = clamp(
+      0.32 + (team.reputation - 55) * 0.012 + state.honours.length * 0.03, 0.1, 0.85,
+    ) * skillMod(state.manager, 'business', 0.008)
+    if (rng.chance(odds)) {
+      // terms are on the table; the manager decides
+      notes.push(`🤝 ${t.name} 提出了赞助方案，等待你答复。`)
+    } else {
+      t.answer = 'reject'
+      t.reason = team.reputation < 55 ? '认为俱乐部影响力还不够' : '本季的预算已经排满'
+      notes.push(`❌ ${t.name} 婉拒了合作：${t.reason}`)
+    }
+  }
+  state.sponsorTalks = (state.sponsorTalks ?? [])
+    .filter((t) => t.answer !== 'reject' || t.replyOn > state.day - 14)
+  return notes
+}
+
+/** Sign a sponsorship whose terms are on the table. */
+export function signSponsor(state: GameState, id: string): string {
+  const t = state.sponsorTalks?.find((x) => x.id === id)
+  const team = state.teams[state.myTeam]
+  if (!t || !team || t.answer) return '这份方案已经失效。'
+  t.answer = 'accept'
+  team.sponsors = [...team.sponsors, {
+    name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,
+  }]
   state.news.push({
     day: state.day, kind: 'club', important: true,
-    text: `🤝 ${team.name} 与 ${deal.name} 达成赞助协议，年额 ${Math.round(deal.perSeason / 1000)}K。`,
+    text: `🤝 ${team.name} 与 ${t.name} 达成赞助协议，保底 ${Math.round(t.base / 1000)}K/赛季。`,
   })
-  return `谈成了：${deal.name}，年额 ${Math.round(deal.perSeason / 1000)}K，前 ${deal.bonusPlacement} 名另有奖金。`
+  return `已签下 ${t.name}，保底 ${Math.round(t.base / 1000)}K/赛季。`
+}
+
+export function declineSponsor(state: GameState, id: string): string {
+  const t = state.sponsorTalks?.find((x) => x.id === id)
+  if (!t) return '这份方案已经失效。'
+  t.answer = 'reject'
+  t.reason = '你拒绝了这份条件'
+  return `已拒绝 ${t.name} 的方案。`
 }
 
 const PITCH_PARTNERS = [
-  '本地能源饮料', '外设品牌', '游戏椅厂商', '运动服饰', '手机品牌',
-  '连锁网咖', '显示器厂商', '快消零食', '银行信用卡', '新能源车企',
+  { name: '雷霆能量饮料', industry: '功能饮料' },
+  { name: 'HyperEdge 外设', industry: '游戏外设' },
+  { name: '座界人体工学', industry: '电竞座椅' },
+  { name: '骋越运动', industry: '运动服饰' },
+  { name: '星芒手机', industry: '消费电子' },
+  { name: '连星网咖', industry: '连锁网咖' },
+  { name: '视界显示器', industry: '显示设备' },
+  { name: '咔嚓零食', industry: '快消零食' },
+  { name: '晟通银行信用卡', industry: '金融' },
+  { name: '骐骥新能源', industry: '汽车' },
 ]
 
 // ---------------------------------------------------------------- 直播合同

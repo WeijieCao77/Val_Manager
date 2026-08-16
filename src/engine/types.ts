@@ -419,6 +419,24 @@ export interface PlayerEnquiry {
   reason?: string
 }
 
+/** A sponsorship being negotiated, before it becomes a Sponsor. */
+export interface SponsorTalk {
+  id: string
+  name: string
+  industry: string
+  /** guaranteed money per season */
+  base: number
+  /** extra per league placement above the threshold */
+  bonus: number
+  bonusPlacement: number
+  /** what they want in return */
+  demands: { key: 'gigs' | 'placing' | 'stream' | 'exclusive'; text: string }[]
+  day: number
+  replyOn: number
+  answer?: 'accept' | 'reject'
+  reason?: string
+}
+
 export interface Sponsor {
   name: string
   perSeason: number
@@ -679,6 +697,8 @@ export interface GameState {
   ventures?: Venture[]
   /** day a sponsor pitch can next be made, so it is not spammable */
   pitchCooldown?: number
+  /** sponsorship offers on the table, awaiting our answer or theirs */
+  sponsorTalks?: SponsorTalk[]
   /**
    * Days each player spent on commercial work this week.
    *
