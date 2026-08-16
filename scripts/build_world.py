@@ -207,6 +207,7 @@ def parse_rows():
 
 
 CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
+TENURE_CACHE = os.path.join(ROOT, "scripts", "cache", "liquipedia_tenure.json")
 
 
 # Where a player belongs when their club is not one of the modelled leagues.
@@ -372,6 +373,10 @@ def value_for(ovr, age, pot):
 
 def main():
     rows = parse_rows()
+    tenure = load_json(TENURE_CACHE)
+    if tenure:
+        dated = sum(1 for v in tenure.values() if any(not x.get("to") for x in v))
+        print(f"tenure: club histories for {len(tenure)} players, {dated} currently signed")
     known = {r["ign"] for r in rows}
     vcl_rows, vcl_agents, vcl_regions = parse_challengers_rows()
     # a Challengers player who has since moved up is already in the tier-1 pull
@@ -456,8 +461,15 @@ def main():
         head = (rng.range(7, 16) if age <= 20 else rng.range(3, 10) if age <= 23
                 else rng.range(1, 5) if age <= 26 else rng.range(0, 2))
 
+        # how long they have been at their club, for team-mate chemistry.
+        # Liquipedia gives the whole history; the open-ended stint is current.
+        stints = tenure.get(ign) or []
+        current = [x for x in stints if not x.get("to")]
+        joined = current[0]["from"][:7] if current else None
+
         built[ign] = {
             "ign": ign, "tag": r["tag"], "nat": r["nat"], "role": r["role"],
+            "joined": joined,
             "traits": traits,
             "realName": (lp.get("real") or None), "birth": lp.get("birth"),
             "age": age, "ageEstimated": estimated,
@@ -481,6 +493,7 @@ def main():
         rec = {
             "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
+            "joined": p.get("joined"),
             "role": p["role"], "roles": [p["role"]], "flex": False,
             "traits": p.get("traits") or [],
             "agentPool": [], "roleSource": "vlr-primary",

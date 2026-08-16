@@ -17,6 +17,8 @@ interface RawPlayer {
   roles?: string[]; flex?: boolean; agentPool?: string[]; roleSource?: string
   traits?: { key: string; label: string; good: boolean }[]
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
+  /** YYYY-MM they joined their club, where vlr.gg records it */
+  joined?: string | null
   vlr?: { rating: number | null; acs: number | null; rounds: number }
   age: number; isIgl: boolean; attrs: Attrs; overall: number; potential: number
   form: number; morale: number; fatigue: number; salary: number; value: number
@@ -88,6 +90,8 @@ export function createNewGame(
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
     players[rp.id] = {
       ...rp,
+      // the scrape leaves this null when vlr does not record a join date
+      joined: rp.joined ?? undefined,
       region: rp.region as Player['region'],
       role: rp.role as Role,
       roles: (rp.roles as Role[] | undefined) ?? [rp.role as Role],

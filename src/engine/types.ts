@@ -205,6 +205,13 @@ export interface Player {
   injuryNote?: string
   /** per-attribute training progress 0-100, rolls over into a +1 */
   xp: Partial<Record<keyof Attrs, number>>
+  /**
+   * Month the player joined their club, as YYYY-MM, from vlr.gg.
+   *
+   * Used to work out how long two team-mates have actually played together —
+   * absent where vlr does not record it.
+   */
+  joined?: string
   /** a streaming contract this player has signed */
   stream?: StreamDeal
   /** set when the player has been transfer-listed by their club */

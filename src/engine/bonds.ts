@@ -23,6 +23,22 @@ function key(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`
 }
 
+/**
+ * How many months two players have been team-mates.
+ *
+ * Both joined dates are club join dates, so the overlap starts at the later of
+ * the two and runs to today. Missing data means no bonus rather than a guess.
+ */
+function sharedMonths(a: string | undefined, b: string | undefined, state: GameState): number {
+  if (!a || !b) return 0
+  const later = a > b ? a : b
+  const [y, m] = later.split('-').map(Number)
+  if (!y || !m) return 0
+  // the season calendar starts in January of state.year
+  const now = state.year * 12 + Math.floor(state.day / 28) + 1
+  return Math.max(0, now - (y * 12 + m))
+}
+
 /** Pairs that spend the round working off each other. */
 const PAIRED: Record<string, string> = {
   决斗者: '先锋',   // the entry and the one opening space for him
@@ -46,6 +62,17 @@ export function initialBond(state: GameState, aId: string, bId: string): number 
   if (!a || !b) return NEUTRAL
 
   let v = 2
+
+  // Years side by side. This is the strongest signal there is: a core that has
+  // been together for three seasons is not in the same room as the man who
+  // signed in January, and it is the one thing the other factors cannot fake.
+  // The curve is square-root because the first year together is worth far more
+  // than the fifth: 1yr +15, 2yr +21, 4yr +29, capped at 34. Scaled against the
+  // real spread — a median player joined about a year ago, and only ~12% have
+  // been at their club since 2023 or earlier, so a long core should stand out.
+  const months = sharedMonths(a.joined, b.joined, state)
+  if (months > 0) v += Math.min(34, Math.sqrt(months) * 4.2)
+
   // sharing a first language is the single biggest divider in a real roster
   if (a.nat && b.nat && a.nat === b.nat) v += 13
   else if (a.nat && b.nat) v -= 3
@@ -66,7 +93,7 @@ export function initialBond(state: GameState, aId: string, bId: string): number 
 
   // a little grit so two similar pairs are not identical
   const jitter = (hashStr(`bond:${key(aId, bId)}`) % 9) - 4
-  return clamp(Math.round(v + jitter), -25, 45)
+  return clamp(Math.round(v + jitter), -25, 60)
 }
 
 export function bondBetween(state: GameState, a: string, b: string): number {
