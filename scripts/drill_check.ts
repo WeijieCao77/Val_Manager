@@ -13,7 +13,7 @@ function run(label: string, setup: (g: ReturnType<typeof createNewGame>) => void
   const before = {
     tw: squad.reduce((s, p) => s + p.attrs.teamwork, 0),
     aw: squad.reduce((s, p) => s + p.attrs.awareness, 0),
-    map: g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50,
+    map: Math.round(g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50),
     roles: squad.reduce((s, p) => s + (p.roles?.length ?? 1), 0),
     pro: squad.reduce((s, p) => s + Math.max(0, ...Object.values(p.rolePro ?? {})), 0),
   }
@@ -21,7 +21,7 @@ function run(label: string, setup: (g: ReturnType<typeof createNewGame>) => void
   const after = {
     tw: squad.reduce((s, p) => s + p.attrs.teamwork, 0),
     aw: squad.reduce((s, p) => s + p.attrs.awareness, 0),
-    map: g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50,
+    map: Math.round(g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50),
     roles: squad.reduce((s, p) => s + (p.roles?.length ?? 1), 0),
     pro: squad.reduce((s, p) => s + Math.max(0, ...Object.values(p.rolePro ?? {})), 0),
   }
