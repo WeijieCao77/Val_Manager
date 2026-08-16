@@ -78,9 +78,13 @@ def api(params):
         raise RuntimeError("action=parse is not used by this script by design")
 
     _throttle(action)
-    q = urllib.parse.urlencode(params)
-    req = urllib.request.Request(f"{API}?{q}", headers={
+    # POST the query rather than putting it in the URL: a batch of 50 titles
+    # overflows the URI limit once club names get long (HTTP 414), and MediaWiki
+    # accepts action=query over POST. Still one request per batch either way.
+    body = urllib.parse.urlencode(params).encode("utf-8")
+    req = urllib.request.Request(API, data=body, headers={
         "User-Agent": UA, "Accept-Encoding": "gzip", "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
     })
     try:
         with urllib.request.urlopen(req, timeout=40) as r:
@@ -89,6 +93,10 @@ def api(params):
                 raw = gzip.decompress(raw)
             return json.loads(raw.decode("utf-8", "replace"))
     except urllib.error.HTTPError as e:
+        if e.code == 414:
+            raise RuntimeError(
+                "Liquipedia refused the batch as too large — lower BATCH."
+            ) from e
         if e.code == 429:
             retry = e.headers.get("Retry-After") if e.headers else None
             raise RateLimited(
@@ -187,6 +195,32 @@ def infobox_names(text, key):
     return out
 
 
+VCL_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
+
+
+def challengers():
+    """Clubs and players pulled from the Challengers scrape, if it has run.
+
+    Those players arrive from vlr.gg with no birthdate and their clubs with no
+    coach, which is exactly what Liquipedia is good for — so the same throttled
+    client covers them instead of a second, sloppier scraper.
+    """
+    if not os.path.exists(VCL_CACHE):
+        return [], {}
+    try:
+        cache = json.load(open(VCL_CACHE, encoding="utf-8"))
+    except ValueError:
+        return [], {}
+    igns, teams = [], {}
+    for t in cache.get("teams", {}).values():
+        players = [p for p in t.get("roster", []) if p.get("role") == "player"]
+        if len(players) < 5:
+            continue
+        teams[t["name"]] = t["name"]
+        igns.extend(p["ign"] for p in players)
+    return igns, teams
+
+
 def main():
     igns = []
     with open(SRC, encoding="utf-8") as f:
@@ -194,7 +228,13 @@ def main():
             p = line.split("|")
             if p and p[0].strip():
                 igns.append(p[0].strip())
+    vcl_igns, vcl_teams = challengers()
+    igns.extend(vcl_igns)
     igns = list(dict.fromkeys(igns))
+    team_pages = dict(TEAM_PAGES)
+    team_pages.update(vcl_teams)
+    print(f"including {len(vcl_igns)} Challengers players and "
+          f"{len(vcl_teams)} Challengers clubs", flush=True)
 
     # Never discard what we already have: a rate-limited run must not wipe the
     # cache from a successful one. Only players we have no real data for are
@@ -231,8 +271,8 @@ def main():
             coaches = json.load(open(OUT_C, encoding="utf-8"))
         except ValueError:
             coaches = {}
-    tpages = fetch_pages(sorted(set(TEAM_PAGES.values())))
-    for tag, title in TEAM_PAGES.items():
+    tpages = fetch_pages(sorted(set(team_pages.values())))
+    for tag, title in team_pages.items():
         w = tpages.get(title) or ""
         if not w:
             continue
@@ -249,8 +289,8 @@ def main():
     json.dump(coaches, open(OUT_C, "w", encoding="utf-8"), ensure_ascii=False)
     named = sum(1 for v in coaches.values() if v.get("name"))
     with_igl = sum(1 for v in coaches.values() if v.get("igl"))
-    print(f"teams: {named}/{len(TEAM_PAGES)} head coaches, "
-          f"{with_igl}/{len(TEAM_PAGES)} IGLs -> {OUT_C}")
+    print(f"teams: {named}/{len(team_pages)} head coaches, "
+          f"{with_igl}/{len(team_pages)} IGLs -> {OUT_C}")
 
 
 if __name__ == "__main__":

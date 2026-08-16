@@ -173,6 +173,10 @@ npx tsx scripts/smoke.ts 3
 请不要调低 `MIN_INTERVAL`。违规会导致 IP 临时封禁，反复触发会变成永久封禁
 （本项目开发时就踩过一次，是用 `action=parse` 每 2.2 秒请求造成的）。
 
+次级战队的**教练、IGL 与生日**由 `scripts/fetch_liquipedia.py` 补齐——同一套合规客户端
+（≥2.5 秒/次、禁用 `action=parse`、429 立即中止），把 Challengers 的选手与俱乐部一并纳入
+批量查询。补完后：真实生日 318→376，真实教练 51→67，次级战队缺教练 25→9。
+
 Challengers 数据由 `scripts/fetch_vlr_challengers.py` 抓取：先读各国 Challengers 赛事页拿到
 参赛队与名单，再读**赛事统计页**一次性拿到该赛事所有选手的真实数据——一个联赛一个请求，
 而不是一名选手一个请求（省下约 250 次请求）。只有统计页为空的联赛（如中国大陆的
