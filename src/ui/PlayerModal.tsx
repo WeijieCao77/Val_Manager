@@ -6,6 +6,7 @@ import { playerAcceptsTerms } from '../engine/transfer'
 import { SQUAD_ROLE_CN, defaultContract } from '../engine/types'
 import type { Contract } from '../engine/types'
 import { useGame } from './ctx'
+import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
@@ -52,6 +53,7 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
   }
 
   const toggleList = () => {
+    if (!spendAction(game, 'list')) { toast(NO_ACTIONS_LEFT); return }
     p.listed = !p.listed
     commit()
     logActivity(game, 'transfer', p.listed ? `将 ${p.ign} 挂牌出售` : `取消 ${p.ign} 的挂牌`)

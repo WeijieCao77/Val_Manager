@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
+import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { squadOf, autoStarters } from '../engine/world'
@@ -54,6 +55,7 @@ export default function Squad() {
       ? `\n\n更衣室反应：${hurt.map((h) => `${h.p.ign} 信任 −${h.hit.toFixed(0)}`).join('，')}`
       : ''
     if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。${warn}`)) return
+    if (!spendAction(game, 'release')) { toast(NO_ACTIONS_LEFT); return }
     releasePlayer(game, p)
     commit()
     logActivity(game, 'squad', `与 ${p.ign} 解约`)
