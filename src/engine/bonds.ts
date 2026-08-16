@@ -1,4 +1,4 @@
-import { Rng, clamp } from './rng'
+import { Rng, clamp, hashStr } from './rng'
 import { ratingOf } from './player'
 import { squadOf } from './world'
 import { skillMod } from './manager'
@@ -23,14 +23,61 @@ function key(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`
 }
 
+/** Pairs that spend the round working off each other. */
+const PAIRED: Record<string, string> = {
+  决斗者: '先锋',   // the entry and the one opening space for him
+  先锋: '决斗者',
+  控场: '哨卫',     // the two holding the site together
+  哨卫: '控场',
+}
+
+/**
+ * What two players think of each other before they have played a game.
+ *
+ * A flat starting value made every squad identical on day one, which is both
+ * dull and wrong: a roster is not five strangers drawn at random. The factors
+ * below are the ones the data actually supports — who shares a language, who is
+ * the same age, who works directly with whom in a round, and how easy each of
+ * them is to get on with. Deterministic, so a save reloads to the same room.
+ */
+export function initialBond(state: GameState, aId: string, bId: string): number {
+  const a = state.players[aId]
+  const b = state.players[bId]
+  if (!a || !b) return NEUTRAL
+
+  let v = 2
+  // sharing a first language is the single biggest divider in a real roster
+  if (a.nat && b.nat && a.nat === b.nat) v += 13
+  else if (a.nat && b.nat) v -= 3
+
+  const ageGap = Math.abs(a.age - b.age)
+  if (ageGap <= 2) v += 6
+  else if (ageGap >= 7) v -= 5
+
+  // the two who have to talk every round get closer faster
+  const ra = a.role
+  const rb = b.role
+  if (PAIRED[ra] === rb) v += 7
+  if (ra === rb) v += 3          // same role, same problems
+
+  // some people are simply easier to play with
+  v += (a.attrs.teamwork + b.attrs.teamwork - 140) * 0.12
+  v += (a.attrs.communication + b.attrs.communication - 140) * 0.08
+
+  // a little grit so two similar pairs are not identical
+  const jitter = (hashStr(`bond:${key(aId, bId)}`) % 9) - 4
+  return clamp(Math.round(v + jitter), -25, 45)
+}
+
 export function bondBetween(state: GameState, a: string, b: string): number {
   if (a === b) return 100
-  return state.bonds?.[key(a, b)] ?? NEUTRAL
+  const stored = state.bonds?.[key(a, b)]
+  return stored ?? initialBond(state, a, b)
 }
 
 function shift(state: GameState, a: string, b: string, delta: number): number {
   const k = key(a, b)
-  const now = clamp((state.bonds?.[k] ?? NEUTRAL) + delta, -100, 100)
+  const now = clamp(bondBetween(state, a, b) + delta, -100, 100)
   state.bonds = { ...(state.bonds ?? {}), [k]: now }
   return now
 }
