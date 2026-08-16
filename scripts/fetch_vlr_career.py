@@ -76,6 +76,7 @@ def career_line(html: str) -> dict | None:
     rows = re.findall(r'<td class="mod-agent">(.*?)</tr>', html, re.S)
     tot = {k: 0.0 for k in ("rnd", "k", "d", "a", "fk", "fd")}
     wsum = {k: 0.0 for k in ("R", "acs", "kd", "kast", "adr", "kpr", "apr")}
+    seen: dict[str, float] = {}          # rounds backing each column
     agents: list[str] = []
 
     def f(x):
@@ -86,29 +87,35 @@ def career_line(html: str) -> dict | None:
 
     for blob in rows:
         am = re.search(r"/img/vlr/game/agents/([a-z0-9_-]+)\.png", blob)
+        # The capture starts inside the agent cell, so findall already skips it:
+        # cells[0] is Use, cells[1] is Rnd. An earlier version dropped one more,
+        # which shifted every column — ACS was read as rating and K:D as ACS.
+        #   Use  Rnd  R  ACS  K:D  KAST  ADR  KPR  APR  FK:FD  K  D  A  FK  FD
         cells = [re.sub(r"<[^>]+>", "", c).strip()
                  for c in re.findall(r"<td[^>]*>(.*?)</td>", blob, re.S)]
-        vals = cells[1:]                       # drop the agent icon cell
-        if len(vals) < 14:
+        if len(cells) < 15:
             continue
-        rnd = f(vals[1])
+        rnd = f(cells[1])
         if not rnd:
             continue
         if am:
             agents.append(am.group(1))
         tot["rnd"] += rnd
         for i, k in ((10, "k"), (11, "d"), (12, "a"), (13, "fk"), (14, "fd")):
-            if i < len(vals) and f(vals[i]) is not None:
-                tot[k] += f(vals[i])
+            if f(cells[i]) is not None:
+                tot[k] += f(cells[i])
+        # R and KAST are blank on older splits; weight only what is present
         for i, k in ((2, "R"), (3, "acs"), (4, "kd"), (5, "kast"),
                      (6, "adr"), (7, "kpr"), (8, "apr")):
-            v = f(vals[i]) if i < len(vals) else None
+            v = f(cells[i])
             if v is not None:
                 wsum[k] += v * rnd
+                seen[k] = seen.get(k, 0) + rnd
 
     if not tot["rnd"]:
         return None
-    out = {k: round(v / tot["rnd"], 3) for k, v in wsum.items()}
+    # divide by the rounds that actually carried that column, not every round
+    out = {k: round(v / seen[k], 3) for k, v in wsum.items() if seen.get(k)}
     out["kast"] = round(out["kast"] / 100, 3) if out["kast"] > 1 else out["kast"]
     out["fkpr"] = round(tot["fk"] / tot["rnd"], 3)
     out["fdpr"] = round(tot["fd"] / tot["rnd"], 3)

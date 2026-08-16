@@ -547,3 +547,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   .advance-main { width: 100%; }
   .advance-alt { width: 100%; }
 }
+
+/* maker's credit, tucked under the wordmark without competing with it */
+.brand { position: relative; }
+.brand .by {
+  display: block; font-style: normal; font-size: 9px; letter-spacing: 2.5px;
+  color: var(--faint); margin-top: -2px;
+}
+@media (max-width: 720px) { .brand .by { display: none; } }

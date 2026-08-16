@@ -125,7 +125,10 @@ export default function App() {
     <GameCtx.Provider value={ctxValue}>
       <div className="app">
         <header className="topbar">
-          <div className="brand">VAL<span>MANAGER</span></div>
+          <div className="brand" title="大小猪之家制作">
+            VAL<span>MANAGER</span>
+            <em className="by">大小猪之家</em>
+          </div>
           <div className="chip" title="所属俱乐部">
             <b>{myTeam?.name}</b>
             <span className={`tag ${myTeam?.tier === 1 ? 't1' : 't2'}`}>

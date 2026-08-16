@@ -111,6 +111,10 @@ export default function Saves() {
         </div>
       </Panel>
     </>
+      <p className="tiny faint" style={{ textAlign: 'center', marginTop: 20 }}>
+        VAL MANAGER · 大小猪之家 制作<br />
+        战队与选手数据取自 vlr.gg 与 Liquipedia，均为真实人物。
+      </p>
     </>
   )
 }

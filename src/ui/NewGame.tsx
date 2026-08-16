@@ -292,7 +292,10 @@ export default function NewGame({
         </button>
       </div>
 
-      <p className="tiny muted" style={{ marginTop: 24, lineHeight: 1.8 }}>
+      <p className="tiny faint" style={{ marginTop: 20, marginBottom: 0 }}>
+        大小猪之家 制作
+      </p>
+      <p className="tiny muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
         游戏内所有战队与选手均为真实人物。阵容、国籍、位置与全部比赛数据取自 <b>vlr.gg</b> 的
         VCT 2026 赛季统计；真名、生日、教练与指挥取自 <b>Liquipedia</b>；英雄池取自真实出场记录。
         八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡所需的估算值。
