@@ -11,7 +11,8 @@ import {
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
-import type { Contract, Player, Role } from '../engine/types'
+import { REGIONS } from '../engine/types'
+import type { Contract, Player, Role, Region } from '../engine/types'
 
 export default function Transfers() {
   const { game, toast, openPlayer } = useGame()
@@ -20,6 +21,8 @@ export default function Transfers() {
   const enq = new Map((game.enquiries ?? []).map((e) => [e.playerId, e]))
   const me = game.teams[game.myTeam]
   const [tab, setTab] = useState<'free' | 'listed' | 'all'>('free')
+  const [askClub, setAskClub] = useState<string | null>(null)
+  const [askRegion, setAskRegion] = useState<string>('all')
   const [role, setRole] = useState<Role | 'all'>('all')
   const [maxOvr, setMaxOvr] = useState(99)
   const [search, setSearch] = useState('')
@@ -165,6 +168,106 @@ export default function Transfers() {
         </Panel>
       )}
 
+
+      <Panel title="问价 · 找不在市场上的人">
+        <p className="small muted" style={{ marginTop: 0 }}>
+          真正想要的人多半既没挂牌也不是自由人。<b>先选一支俱乐部，再挑他们的选手问价</b>——
+          花 1 点行动力、不花钱，2~5 天后同时得到<b>对方的真实要价</b>和<b>本人的意向</b>。
+          核心球员的要价可能是估值的一倍以上。
+        </p>
+
+        <div className="row wrap" style={{ gap: 6, marginBottom: 10 }}>
+          <div className="seg">
+            {['all', ...REGIONS].map((r) => (
+              <button key={r} className={askRegion === r ? 'on' : ''}
+                onClick={() => { setAskRegion(r); setAskClub(null) }}>
+                {r === 'all' ? '全部赛区' : REGION_CN[r as Region]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!askClub ? (
+          <div className="row wrap" style={{ gap: 6 }}>
+            {Object.values(game.teams)
+              .filter((t) => t.id !== game.myTeam && (askRegion === 'all' || t.region === askRegion))
+              .sort((a, b) => b.reputation - a.reputation)
+              .map((t) => (
+                <button key={t.id} className="sm" onClick={() => setAskClub(t.id)}>
+                  {t.name}
+                  <span className="tiny faint"> · {t.tier === 1 ? '一级' : '次级'}</span>
+                </button>
+              ))}
+          </div>
+        ) : (() => {
+          const club = game.teams[askClub]
+          const roster = squadOf(game, askClub)
+          return (
+            <div>
+              <div className="row wrap" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <button className="sm ghost" onClick={() => setAskClub(null)}>← 换一支俱乐部</button>
+                <b>{club?.name}</b>
+                <span className="tag">声望 {club?.reputation}</span>
+                <span className="tag">{roster.length} 人</span>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>选手</th><th>位置</th><th className="num">能力</th>
+                      <th className="num">潜力</th><th className="num">年龄</th>
+                      <th className="num">估值</th><th>问价结果</th><th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roster.map((p) => {
+                      const e = enq.get(p.id)
+                      const starter = club?.starters.includes(p.id)
+                      return (
+                        <tr key={p.id}>
+                          <td className="clickable" onClick={() => openPlayer(p.id)}>
+                            <b>{p.ign}</b>
+                            {starter && <span className="tag" style={{ marginLeft: 5 }}>首发</span>}
+                            {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
+                          </td>
+                          <td><Roles p={p} /></td>
+                          <td className="num"><OvrBadge value={p.overall} /></td>
+                          <td className="num"><Potential p={p} game={game} /></td>
+                          <td className="num">{p.age}</td>
+                          <td className="num mono faint">{money(askingPrice(p))}</td>
+                          <td className="small">
+                            {e?.askingFee ? (
+                              <span>
+                                <span style={{ color: 'var(--warn)' }}>要价 {money(e.askingFee)}</span>
+                                {e.interest && <span className="tag" style={{ marginLeft: 6 }}>{INTEREST_CN[e.interest]}</span>}
+                              </span>
+                            ) : e && !e.answer ? (
+                              <span className="tiny faint">等待答复（{Math.max(0, e.replyOn - game.day)} 天）</span>
+                            ) : e?.answer === 'closed' ? (
+                              <span className="tiny faint">{e.reason ?? '对方无意出售'}</span>
+                            ) : <span className="tiny faint">未问价</span>}
+                          </td>
+                          <td>
+                            {e?.answer === 'open' || p.listed ? (
+                              <button className="sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
+                            ) : e ? null : (
+                              <button className="sm" disabled={!open} onClick={() => act('offer', () => {
+                                toast(enquireAbout(game, p.id))
+                                logActivity(game, 'transfer', `就 ${p.ign} 向 ${club?.name} 问价`)
+                              })}>问价</button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        })()}
+      </Panel>
+
       <Panel
         title="转会市场"
         actions={
@@ -252,12 +355,8 @@ export default function Transfers() {
                       if (e?.answer === 'closed') {
                         return <span className="tiny faint">{e.reason ?? '对方无意出售'}</span>
                       }
-                      return (
-                        <button className="sm" disabled={!open} onClick={() => act('offer', () => {
-                          toast(enquireAbout(game, p.id))
-                          logActivity(game, 'transfer', `就 ${p.ign} 向 ${game.teams[p.teamId!]?.name} 问价`)
-                        })}>问价</button>
-                      )
+                      // enquiries are made club-first in the panel above
+                      return <span className="tiny faint">去上面「问价」按俱乐部找</span>
                     })()}
                   </td>
                 </tr>
