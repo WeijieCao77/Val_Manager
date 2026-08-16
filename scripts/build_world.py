@@ -209,6 +209,26 @@ def parse_rows():
 CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
 
 
+# Where a player belongs when their club is not one of the modelled leagues.
+# Free agents were all being stamped "Americas" because the region lookup only
+# consulted TIER1, and a free agent's club is by definition not in it.
+NAT_REGION = {
+    "us": "Americas", "ca": "Americas", "br": "Americas", "ar": "Americas",
+    "cl": "Americas", "mx": "Americas", "pe": "Americas", "co": "Americas",
+    "uy": "Americas", "do": "Americas", "ec": "Americas", "bo": "Americas",
+    "cn": "China", "hk": "China", "mo": "China", "tw": "China",
+    "kr": "Pacific", "jp": "Pacific", "id": "Pacific", "th": "Pacific",
+    "ph": "Pacific", "sg": "Pacific", "my": "Pacific", "vn": "Pacific",
+    "in": "Pacific", "au": "Pacific", "nz": "Pacific",
+    "gb": "EMEA", "fr": "EMEA", "de": "EMEA", "es": "EMEA", "tr": "EMEA",
+    "ru": "EMEA", "pl": "EMEA", "se": "EMEA", "dk": "EMEA", "ua": "EMEA",
+    "it": "EMEA", "nl": "EMEA", "be": "EMEA", "fi": "EMEA", "no": "EMEA",
+    "pt": "EMEA", "cz": "EMEA", "ro": "EMEA", "gr": "EMEA", "il": "EMEA",
+    "ch": "EMEA", "at": "EMEA", "hu": "EMEA", "rs": "EMEA", "bg": "EMEA",
+    "kg": "EMEA", "kz": "EMEA", "az": "EMEA", "ma": "EMEA", "sa": "EMEA",
+}
+
+
 def vcl_tag(name):
     """A short, stable tag for a Challengers club, derived from its real name."""
     cleaned = re.sub(r"[^A-Za-z0-9 ]", "", name).split()
@@ -230,12 +250,13 @@ def parse_challengers_rows():
     """
     cache = load_json(CHALLENGERS_CACHE)
     if not cache:
-        return [], {}
+        return [], {}, {}
 
     # club abbreviation as it appears in the stats table -> our team tag
-    roster_of = {}
+    roster_of, tag_of_region = {}, {}
     for t in cache.get("teams", {}).values():
         roster_of[t["name"]] = {p["ign"].lower() for p in t["roster"] if p["role"] == "player"}
+        tag_of_region[t["name"]] = t.get("region", "")
 
     def num(x):
         try:
@@ -243,7 +264,7 @@ def parse_challengers_rows():
         except (TypeError, ValueError):
             return None
 
-    rows, agents = [], {}
+    rows, agents, tag_region = [], {}, {}
     for lines in cache.get("stats", {}).values():
         for r in lines:
             club = r.get("club") or ""
@@ -267,6 +288,7 @@ def parse_challengers_rows():
                 "hs": num(r.get("hs")),
             })
             agents[r["ign"]] = r.get("agents") or []
+            tag_region[vcl_tag(tag)] = tag_of_region.get(tag, "")
 
     # leagues with no stats tab were filled in from each player's own page
     for r in cache.get("players", {}).values():
@@ -282,12 +304,13 @@ def parse_challengers_rows():
             "fkpr": r.get("fkpr"), "fdpr": r.get("fdpr"), "hs": None,
         })
         agents[r["ign"]] = r.get("agents") or []
+        tag_region[vcl_tag(club)] = tag_of_region.get(club, "")
 
     best = {}
     for r in rows:
         if r["ign"] not in best or (r["rnd"] or 0) > (best[r["ign"]]["rnd"] or 0):
             best[r["ign"]] = r
-    return list(best.values()), agents
+    return list(best.values()), agents, tag_region
 
 
 def pctiles(rows, key, invert=False):
@@ -350,7 +373,7 @@ def value_for(ovr, age, pot):
 def main():
     rows = parse_rows()
     known = {r["ign"] for r in rows}
-    vcl_rows, vcl_agents = parse_challengers_rows()
+    vcl_rows, vcl_agents, vcl_regions = parse_challengers_rows()
     # a Challengers player who has since moved up is already in the tier-1 pull
     vcl_rows = [r for r in vcl_rows if r["ign"] not in known]
     rows += vcl_rows
@@ -602,7 +625,14 @@ def main():
         if tag in used_tags:
             continue
         for p in group:
-            region = next((r for r, l in TIER1.items() if any(t == tag for t, _ in l)), None)
+            # a free agent belongs to the region their club or passport says,
+            # not to whichever region happens to be first in the table
+            region = (
+                next((r for r, l in TIER1.items() if any(t == tag for t, _ in l)), None)
+                or next((r for r, l in TIER2.items() if any(t == tag for t, _ in l)), None)
+                or vcl_regions.get(tag)
+                or NAT_REGION.get((p.get("nat") or "").lower())
+            )
             emit(p, None, 2, region or "Americas")
             out_players[-1]["contractYears"] = 0
             fa += 1

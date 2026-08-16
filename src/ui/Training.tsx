@@ -7,8 +7,8 @@ import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
-import { facilityCost, hireCoach, staffMarket, upgradeFacility } from '../engine/staff'
-import type { Attrs, Player } from '../engine/types'
+import { askingSalary, facilityCost, offerToStaff, releaseStaff, ROLE_CN, staffMarket, upgradeFacility } from '../engine/staff'
+import type { Attrs, Player, StaffRole } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
   { key: 'rest', label: '休息' },
@@ -27,6 +27,10 @@ function suggest(p: Player): keyof Attrs {
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
   const [hiring, setHiring] = useState(false)
+  const [role, setRole] = useState<StaffRole>('head')
+  const [bidOn, setBidOn] = useState<string | null>(null)
+  const [bidPay, setBidPay] = useState(0)
+  const [bidYears, setBidYears] = useState(2)
   const [duoPick, setDuoPick] = useState<string[]>(
     game.duo ? [game.duo.a, game.duo.b] : [],
   )
@@ -34,7 +38,6 @@ export default function Training() {
   const me = game.teams[game.myTeam]
 
   const setFocus = (id: string, v: keyof Attrs | 'rest') => {
-    if (locked) return
     game.training[id] = v
     commit()
   }
@@ -228,8 +231,18 @@ export default function Training() {
               <span className="tag t1">本周已确定</span>
               <span className="small">{describe()}</span>
               <span className="tiny faint">· {untilRun} 天后结算，届时可重新安排</span>
-              <button className="sm ghost" onClick={() => { game.drillLock = undefined; commit() }}>
-                改主意（撤销确定）
+              <button className="sm ghost" onClick={() => {
+                if (!window.confirm(
+                  '撤销后，本周的团队训练直接作废，不会产生任何效果。\n' +
+                  '新计划要等下一个 7 天周期才开始生效。确定吗？',
+                )) return
+                game.drillLock = undefined
+                game.drillVoid = true
+                logActivity(game, 'training', '撤销本周训练计划（本周作废）')
+                commit()
+                toast('本周团队训练已作废，新计划从下个周期开始生效。')
+              }}>
+                改主意（本周作废）
               </button>
             </>
           ) : (
@@ -368,43 +381,106 @@ export default function Training() {
               没有教练时按队伍整体水平计算训练与战术加成。
             </p>
           )}
+          {(game.staff ?? []).length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="tiny faint" style={{ marginBottom: 5 }}>教练组其他成员</div>
+              {(game.staff ?? []).map((m) => (
+                <div key={m.name} className="row" style={{ gap: 8, marginBottom: 5 }}>
+                  <span className="small" style={{ flex: 1 }}>
+                    <b>{m.name}</b> <span className="tag">{ROLE_CN[m.role]}</span>
+                  </span>
+                  <span className="tiny faint">战 {m.tactics} / 培 {m.development} / 激 {m.motivation}</span>
+                  <span className="tiny mono">{money(m.salary)}</span>
+                  <button className="sm ghost" onClick={() => {
+                    if (!window.confirm(`确定与 ${m.name} 解约？`)) return
+                    toast(releaseStaff(game, m.name)); commit()
+                  }}>解约</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(game.staffOffers ?? []).filter((o) => !o.answer).length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="tiny faint" style={{ marginBottom: 5 }}>等待答复</div>
+              {(game.staffOffers ?? []).filter((o) => !o.answer).map((o) => (
+                <div key={o.id} className="small" style={{ padding: '3px 0' }}>
+                  ⏳ {o.name} · {ROLE_CN[o.role]} · {money(o.salary)}/年 ·
+                  <span className="faint"> {Math.max(0, o.replyOn - game.day)} 天内答复</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div style={{ marginTop: 10 }}>
             <button className="sm" onClick={() => setHiring((x) => !x)}>
-              {hiring ? '收起' : '聘请教练'}
+              {hiring ? '收起' : '聘请教练 / 助教 / 分析师'}
             </button>
           </div>
+
           {hiring && (
             <div style={{ marginTop: 10 }}>
+              <div className="seg" style={{ marginBottom: 8 }}>
+                {(['head', 'assistant', 'analyst'] as StaffRole[]).map((r) => (
+                  <button key={r} className={role === r ? 'on' : ''} onClick={() => setRole(r)}>
+                    {ROLE_CN[r]}
+                  </button>
+                ))}
+              </div>
               <p className="tiny faint" style={{ marginTop: 0 }}>
-                以下都是各队真实的助理教练，可以挖来当主教练。签约费为年薪的一半，
-                之后年薪计入薪资总额。
+                都是各队真实的助理教练。发出邀请后对方会在 <b>1~7 天内答复</b>，可能拒绝——
+                薪资、俱乐部声望和你的执教履历都会影响他的决定。
+                聘请新主教练时，<b>原主教练会转为助理教练</b>而不是凭空消失。
+                助教加成「培养」，分析师加成「战术」。
               </p>
-              <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+              <div className="table-wrap" style={{ maxHeight: 250, overflowY: 'auto' }}>
                 <table>
                   <thead>
                     <tr>
                       <th>教练</th><th className="num">战术</th><th className="num">培养</th>
-                      <th className="num">激励</th><th className="num">年薪</th><th />
+                      <th className="num">激励</th><th className="num">要价</th><th />
                     </tr>
                   </thead>
                   <tbody>
-                    {staffMarket(game).slice(0, 20).map((c) => (
-                      <tr key={c.name}>
-                        <td><b>{c.name}</b><div className="tiny faint">原 {c.from} 助教</div></td>
-                        <td className="num mono">{c.tactics}</td>
-                        <td className="num mono">{c.development}</td>
-                        <td className="num mono">{c.motivation}</td>
-                        <td className="num mono">{money(c.salary)}</td>
-                        <td>
-                          <button className="sm" onClick={() => {
-                            toast(hireCoach(game, c.name))
-                            logActivity(game, 'squad', `聘请教练 ${c.name}`)
-                            commit()
-                            setHiring(false)
-                          }}>聘请</button>
-                        </td>
-                      </tr>
-                    ))}
+                    {staffMarket(game).slice(0, 20).map((c) => {
+                      const ask = askingSalary(c, role)
+                      const bidding = bidOn === c.name
+                      return (
+                        <tr key={c.name}>
+                          <td><b>{c.name}</b><div className="tiny faint">原 {c.from} 助教</div></td>
+                          <td className="num mono">{c.tactics}</td>
+                          <td className="num mono">{c.development}</td>
+                          <td className="num mono">{c.motivation}</td>
+                          <td className="num mono">{money(ask)}</td>
+                          <td>
+                            {bidding ? (
+                              <div className="row" style={{ gap: 5 }}>
+                                <input
+                                  type="number" className="sm" style={{ width: 92 }}
+                                  value={bidPay} step={5000}
+                                  onChange={(e) => setBidPay(Number(e.target.value))}
+                                />
+                                <select className="sm" style={{ width: 62 }} value={bidYears}
+                                  onChange={(e) => setBidYears(Number(e.target.value))}>
+                                  <option value={1}>1年</option>
+                                  <option value={2}>2年</option>
+                                  <option value={3}>3年</option>
+                                </select>
+                                <button className="sm primary" onClick={() => {
+                                  toast(offerToStaff(game, c.name, role, bidPay, bidYears))
+                                  logActivity(game, 'squad', `向 ${c.name} 发出${ROLE_CN[role]}邀请`)
+                                  commit(); setBidOn(null)
+                                }}>发出</button>
+                              </div>
+                            ) : (
+                              <button className="sm" onClick={() => { setBidOn(c.name); setBidPay(ask) }}>
+                                报价
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

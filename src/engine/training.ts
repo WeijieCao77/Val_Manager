@@ -3,6 +3,7 @@ import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift } from './player'
 import { coachOr, squadOf } from './world'
 import { duoBonded, weeklyBonds } from './bonds'
+import { staffBonus } from './staff'
 import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
@@ -34,7 +35,9 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
     return null
   }
 
-  const coach = (coachOr(team, 'development') - 55) / 100
+  // the staff behind the head coach count too
+  const help = team.id === state.myTeam ? staffBonus(state, 'development') : 0
+  const coach = (coachOr(team, 'development') - 55 + help) / 100
   const facility = (team.facilities - 55) / 130
   const age = p.age <= 20 ? 1.35 : p.age <= 23 ? 1.1 : p.age <= 26 ? 0.8 : 0.45
   const tired = p.fatigue > 70 ? 0.5 : p.fatigue > 45 ? 0.8 : 1
@@ -105,6 +108,12 @@ function runDuo(state: GameState, team: Team, rng: Rng): void {
 function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   const team = state.teams[state.myTeam]
   if (!team) return
+  // a week that was torn up mid-cycle produces nothing
+  if (state.drillVoid) {
+    state.drillVoid = false
+    notes.push('⚠️ 本周训练计划中途作废，团队训练没有产生效果。')
+    return
+  }
   runDuo(state, team, rng)
   const drill = state.drill
   if (!drill || drill.kind === 'none') return
@@ -113,8 +122,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   )
   if (!squad.length) return
 
-  const coachDev = (coachOr(team, 'development') - 55) / 100
-  const coachTac = (coachOr(team, 'tactics') - 55) / 100
+  const coachDev = (coachOr(team, 'development') - 55 + staffBonus(state, 'development')) / 100
+  const coachTac = (coachOr(team, 'tactics') - 55 + staffBonus(state, 'tactics')) / 100
   const facility = (team.facilities - 55) / 130
   const gain = (base: number) => base * (1 + coachDev + facility) * rng.range(0.8, 1.2)
 

@@ -172,4 +172,8 @@ export const freeAgents = (state: GameState): Player[] =>
 export const wageBill = (state: GameState, teamId: string): number =>
   squadOf(state, teamId).reduce((s, p) => s + p.salary, 0) +
   // a coach the manager hired is paid like everyone else
-  (state.teams[teamId]?.coach?.salary ?? 0)
+  (state.teams[teamId]?.coach?.salary ?? 0) +
+  // assistants and analysts are on the payroll too, for our club only
+  (teamId === state.myTeam
+    ? (state.staff ?? []).reduce((s, m) => s + m.salary, 0)
+    : 0)

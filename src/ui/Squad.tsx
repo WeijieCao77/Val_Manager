@@ -6,7 +6,7 @@ import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
 import { releasePlayer } from '../engine/transfer'
-import { notableBonds, squadHarmony } from '../engine/bonds'
+import { bondBetween, notableBonds, squadHarmony } from '../engine/bonds'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Player } from '../engine/types'
 
@@ -61,8 +61,16 @@ export default function Squad() {
 
   const harmony = squadHarmony(game, game.myTeam)
   const bonds = notableBonds(game, game.myTeam)
-  const bondColor = (v: number) =>
-    v <= -25 ? 'var(--accent)' : v < 0 ? 'var(--warn)' : v >= 35 ? 'var(--win)' : 'var(--muted)'
+  const worst = bonds[0]
+  // one continuous scale, so a glance reads the room rather than a lookup table
+  const bondBg = (v: number) => {
+    const t = Math.min(1, Math.abs(v) / 70)
+    return v < 0
+      ? `rgba(255, 70, 85, ${0.08 + t * 0.42})`
+      : `rgba(61, 214, 140, ${0.06 + t * 0.34})`
+  }
+  const bondFg = (v: number) =>
+    Math.abs(v) < 18 ? 'var(--muted)' : v < 0 ? '#ffb3ba' : '#a9f0cc'
 
   return (
     <>
@@ -192,34 +200,60 @@ export default function Squad() {
         </div>
       </Panel>
 
-      <Panel title={`更衣室 · 全队默契 ${harmony >= 0 ? '+' : ''}${harmony.toFixed(0)}`}>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          每两名选手之间都有独立的关系值（−100 ~ +100）。<b>赢球会让所有人更亲近</b>；
-          输球时，如果一个人打得明显好而另一个明显差，差的那一方会被记账——
-          矛盾还会滚雪球，越积越难解。用<b>双排练</b>把两个人放在一起是最直接的修复手段。
+      <Panel title={`更衣室 · 全队默契 ${harmony >= 0 ? '+' : ''}${harmony.toFixed(0)}`} flush>
+        <p className="small muted" style={{ padding: '10px 14px 0', margin: 0 }}>
+          每两名选手之间有独立的关系值。<b>+10 是初始的中性值</b>——大家刚开始只是同事，
+          既不亲近也无矛盾，要靠一起比赛才会分化。<b>赢球让所有人更亲近</b>；输球时，
+          如果一个人打得明显好而另一个明显差，差的一方会被记账，而且<b>矛盾会滚雪球</b>。
+          <b>双排练</b>是最直接的修复手段。
         </p>
-        <div className="grid c2" style={{ gap: 8 }}>
-          {bonds.map(({ a, b, value }) => (
-            <div key={`${a.id}-${b.id}`} className="row" style={{ gap: 8, alignItems: 'center' }}>
-              <span className="small" style={{ flex: 1 }}>{a.ign} × {b.ign}</span>
-              <div className="bar" style={{ maxWidth: 90 }}>
-                <i style={{
-                  width: `${Math.abs(value) / 2}%`,
-                  marginLeft: value < 0 ? `${50 - Math.abs(value) / 2}%` : '50%',
-                  background: bondColor(value),
-                }} />
-              </div>
-              <span className="mono small" style={{ width: 34, textAlign: 'right', color: bondColor(value) }}>
-                {value >= 0 ? '+' : ''}{value.toFixed(0)}
-              </span>
-            </div>
-          ))}
+        <div className="table-wrap">
+          <table className="bond-grid">
+            <thead>
+              <tr>
+                <th />
+                {squad.map((p) => <th key={p.id} className="num">{p.ign}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {squad.map((row) => (
+                <tr key={row.id}>
+                  <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>{row.ign}</th>
+                  {squad.map((col) => {
+                    if (row.id === col.id) {
+                      return <td key={col.id} className="bond-self" title="同一名选手">—</td>
+                    }
+                    const v = bondBetween(game, row.id, col.id)
+                    return (
+                      <td
+                        key={col.id}
+                        className="num mono"
+                        title={`${row.ign} 与 ${col.ign}：${v.toFixed(0)}`}
+                        style={{ background: bondBg(v), color: bondFg(v), fontWeight: 600 }}
+                      >
+                        {v >= 0 ? '+' : ''}{v.toFixed(0)}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {bonds[0] && bonds[0].value <= -25 && (
-          <p className="small" style={{ color: 'var(--accent)', marginBottom: 0 }}>
-            ⚠ {bonds[0].a.ign} 和 {bonds[0].b.ign} 关系已经很僵，会拖累全队配合。
-          </p>
-        )}
+        <div className="row wrap tiny faint" style={{ gap: 12, padding: '10px 14px' }}>
+          <span>−100 结怨</span>
+          <span className="bond-key" style={{ background: bondBg(-60) }} />
+          <span className="bond-key" style={{ background: bondBg(-25) }} />
+          <span className="bond-key" style={{ background: bondBg(10) }} />
+          <span className="bond-key" style={{ background: bondBg(50) }} />
+          <span className="bond-key" style={{ background: bondBg(90) }} />
+          <span>+100 生死之交</span>
+          {worst && worst.value <= -25 && (
+            <span style={{ color: 'var(--accent)' }}>
+              ⚠ {worst.a.ign} 和 {worst.b.ign} 关系已经很僵，会拖累全队配合。
+            </span>
+          )}
+        </div>
       </Panel>
     </>
   )

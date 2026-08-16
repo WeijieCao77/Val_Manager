@@ -220,15 +220,46 @@ export interface Coach {
   salary?: number
 }
 
-/** A real assistant coach from the world data, available as a head coach. */
+export type StaffRole = 'head' | 'assistant' | 'analyst'
+
+/** A real coach from the world data, available to hire. */
 export interface StaffCandidate {
   name: string
-  /** the club he currently assists at */
+  /** the club they currently work at */
   from: string
   tactics: number
   development: number
   motivation: number
   salary: number
+}
+
+/** An approach made to a coach, waiting on their answer. */
+export interface StaffOffer {
+  id: string
+  name: string
+  from: string
+  role: StaffRole
+  salary: number
+  years: number
+  /** day the offer was made, and the day they will answer */
+  day: number
+  replyOn: number
+  tactics: number
+  development: number
+  motivation: number
+  answer?: 'accept' | 'reject'
+  reason?: string
+}
+
+/** Somebody on the coaching staff. */
+export interface StaffMember {
+  name: string
+  role: StaffRole
+  tactics: number
+  development: number
+  motivation: number
+  salary: number
+  years: number
 }
 
 export interface Tactics {
@@ -486,6 +517,14 @@ export interface GameState {
    */
   drillLock?: number
   /**
+   * Set when a committed week was torn up.
+   *
+   * Cancelling is allowed, but it costs the week: the squad has already been
+   * working to the old plan, so the new one does not start paying until the
+   * next cycle.
+   */
+  drillVoid?: boolean
+  /**
    * Pairwise relationships, keyed by the two player ids sorted and joined.
    *
    * Symmetric by construction — see engine/bonds.ts.
@@ -516,6 +555,10 @@ export interface GameState {
   onNotice?: boolean
   /** how many stage objectives we have missed in a row */
   missedStreak?: number
+  /** assistants and analysts, alongside team.coach (the head coach) */
+  staff?: StaffMember[]
+  /** approaches to coaches that have not been answered yet */
+  staffOffers?: StaffOffer[]
   /** clubs currently trying to hire us away */
   jobOffers?: JobOffer[]
   /** clubs we have managed, in order */
