@@ -358,8 +358,10 @@ export interface Gig {
   kind: GigKind
   label: string
   partner: string
-  /** the day it takes place */
+  /** the day it takes place — chosen by the manager within the window */
   day: number
+  /** the last day the partner can accommodate it */
+  windowEnd?: number
   /** last day it can still be accepted */
   expiresOn: number
   fee: number

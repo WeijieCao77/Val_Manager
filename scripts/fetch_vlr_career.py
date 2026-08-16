@@ -133,11 +133,20 @@ def player_ids(cache: dict) -> dict[str, str]:
             for r in lines:
                 out.setdefault(r["ign"], r["vlrId"])
 
+    # Only clubs the game actually models. The ranking pages list every team in
+    # the region — walking all of them was ~200 wasted page loads and most of a
+    # scrape budget spent on clubs that do not exist in this world.
+    world = json.loads((ROOT / "src" / "data" / "world.json").read_text("utf-8"))
+    wanted_slugs = {
+        re.sub(r"[^a-z0-9]+", "-", t["name"].lower()).strip("-")
+        for t in world["teams"]
+    }
     teams: dict[str, str] = {}
     for url in SOURCES:
         for m in re.finditer(r'href="/team/(\d+)/([^"?]+)"', _get(url)):
-            teams[m.group(1)] = m.group(2)
-    print(f"  {len(teams)} clubs across the four rankings", flush=True)
+            if m.group(2) in wanted_slugs:
+                teams[m.group(1)] = m.group(2)
+    print(f"  {len(teams)} of the game's clubs found on the rankings", flush=True)
 
     for i, (tid, slug) in enumerate(sorted(teams.items()), 1):
         if tid in known:
@@ -156,7 +165,10 @@ def player_ids(cache: dict) -> dict[str, str]:
                 roster[name] = pid.group(1)
         known[tid] = roster
         out.update(roster)
-        if i % 15 == 0:
+        # save as we go: a killed run used to throw away the whole walk
+        CACHE.parent.mkdir(parents=True, exist_ok=True)
+        CACHE.write_text(json.dumps(cache, ensure_ascii=False), "utf-8")
+        if i % 10 == 0:
             print(f"  [{i}/{len(teams)}] rosters read, {len(out)} players known", flush=True)
     return out
 

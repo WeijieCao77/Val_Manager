@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Condition, money, OvrBadge, Panel, Stat } from './common'
+import { Condition, fmtDay, money, OvrBadge, Panel, Stat } from './common'
 import {
-  bookGig, cancelGig, declineSponsor, endStream, openGigs, pitchSponsor, signSponsor,
-  signStream, startVenture, streamOffer, ventureInfo,
+  bookGig, cancelGig, declineSponsor, endStream, freeDays, openGigs, pitchSponsor,
+  signSponsor, signStream, startVenture, streamOffer, ventureInfo,
 } from '../engine/commercial'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
@@ -27,6 +27,7 @@ export default function Commercial() {
   const act = useAction()
   const [picking, setPicking] = useState<string | null>(null)
   const [chosen, setChosen] = useState<string[]>([])
+  const [gigDay, setGigDay] = useState<number | null>(null)
   const [venture, setVenture] = useState<VentureKind | null>(null)
   const [vChosen, setVChosen] = useState<string[]>([])
   const squad = squadOf(game, game.myTeam)
@@ -35,6 +36,7 @@ export default function Commercial() {
   const start = (g: Gig) => {
     setPicking(g.id)
     setChosen(g.attendees ?? [])
+    setGigDay(freeDays(game, g)[0] ?? null)
   }
 
   const toggle = (id: string, heads: number) => {
@@ -45,7 +47,7 @@ export default function Commercial() {
 
   const confirm = (g: Gig) => {
     if (!canAct(game)) { toast(NO_ACTIONS_LEFT); return }
-    const msg = bookGig(game, g.id, chosen)
+    const msg = bookGig(game, g.id, chosen, gigDay ?? undefined)
     if (g.accepted) spendAction(game, 'gig')
     if (!g.accepted) { toast(msg); return }
     logActivity(game, 'commercial', `${g.label}（${g.partner}）· ${chosen.length} 人出席`)
@@ -213,7 +215,11 @@ export default function Commercial() {
                 <p className="tiny faint" style={{ margin: '6px 0' }}>{g.blurb}</p>
 
                 <div className="row wrap tiny" style={{ gap: 6, marginBottom: 8 }}>
-                  <span className="tag">{days <= 0 ? '就在今天' : `${days} 天后`}</span>
+                  <span className="tag">
+                    {g.accepted
+                      ? (days <= 0 ? '就在今天' : `${days} 天后`)
+                      : `${days}~${(g.windowEnd ?? g.day) - game.day} 天内可安排`}
+                  </span>
                   <span className="tag">{g.heads} 人出席</span>
                   <span className="tag">体能 −{g.fatigue}</span>
                   <span className="tag">士气 {g.morale >= 0 ? '+' : ''}{g.morale}</span>
@@ -229,6 +235,21 @@ export default function Commercial() {
                   </div>
                 ) : isPicking ? (
                   <div>
+                    <div className="tiny muted" style={{ marginBottom: 5 }}>选日期：</div>
+                    <div className="row wrap" style={{ gap: 5, marginBottom: 8 }}>
+                      {freeDays(game, g).map((d) => (
+                        <button key={d} className={`sm${gigDay === d ? ' primary' : ''}`}
+                          onClick={() => setGigDay(d)}>
+                          {fmtDay(d)}
+                          <span className="tiny faint"> {d - game.day}天后</span>
+                        </button>
+                      ))}
+                      {freeDays(game, g).length === 0 && (
+                        <span className="tiny" style={{ color: 'var(--accent)' }}>
+                          这段时间每天都有比赛，接不了
+                        </span>
+                      )}
+                    </div>
                     <div className="tiny muted" style={{ marginBottom: 5 }}>
                       选 {g.heads} 人（已选 {chosen.length}）：
                     </div>
@@ -245,7 +266,8 @@ export default function Commercial() {
                       ))}
                     </div>
                     <div className="row" style={{ gap: 8 }}>
-                      <button className="primary sm" disabled={chosen.length !== g.heads}
+                      <button className="primary sm"
+                        disabled={chosen.length !== g.heads || gigDay === null}
                         onClick={() => confirm(g)}>
                         确认接下
                       </button>
@@ -293,8 +315,12 @@ export default function Commercial() {
                         <div className="row" style={{ gap: 6 }}>
                           <span className="tag">{p.stream.platform}</span>
                           <span className="tiny mono">
-                            {money(p.stream.fee)} / {p.stream.months} 个月 · 每周 {p.stream.nights} 晚
-                            <span className="faint"> · 还剩 {Math.max(0, p.stream.until - game.day)} 天</span>
+                            {money(p.stream.fee)}
+                            {p.stream.months ? ` / ${p.stream.months} 个月` : ' / 赛季'}
+                            {' · '}每周 {p.stream.nights} 晚
+                            {p.stream.until != null && (
+                              <span className="faint"> · 还剩 {Math.max(0, p.stream.until - game.day)} 天</span>
+                            )}
                           </span>
                           <button className="sm ghost" onClick={() => {
                             toast(endStream(game, p.id))

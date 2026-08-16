@@ -99,13 +99,17 @@ export function offerGigs(state: GameState, rng: Rng, notes: string[]): void {
 
   const t = rng.pick(TEMPLATES)
   const lead = rng.int(3, 10)
+  // a window rather than a single date: an offer that happened to land on a
+  // match day was simply dead, which is not how a partner would behave
+  const span = rng.int(4, 8)
   const gig: Gig = {
     id: `G${state.day}_${t.kind}_${rng.int(100, 999)}`,
     kind: t.kind,
     label: t.label,
     partner: rng.pick(PARTNERS[t.kind]),
     day: state.day + lead,
-    expiresOn: state.day + lead - 1,
+    windowEnd: state.day + lead + span,
+    expiresOn: state.day + lead + span - 1,
     fee: feeFor(state, t, rng),
     heads: Math.min(t.heads, squadOf(state, state.myTeam).length),
     fatigue: rng.int(t.fatigue[0], t.fatigue[1]),
@@ -118,20 +122,43 @@ export function offerGigs(state: GameState, rng: Rng, notes: string[]): void {
 }
 
 /** Accept an offer and name the players who will attend. */
-export function bookGig(state: GameState, gigId: string, playerIds: string[]): string {
+export function bookGig(
+  state: GameState, gigId: string, playerIds: string[], onDay?: number,
+): string {
   const gig = state.gigs?.find((g) => g.id === gigId)
   if (!gig) return '这个活动已经过期了。'
   if (gig.accepted) return '这个活动已经安排过了。'
   if (playerIds.length !== gig.heads) return `需要 ${gig.heads} 名选手出席。`
 
-  const clash = state.fixtures.find(
-    (f) => f.day === gig.day && !f.result && (f.teamA === state.myTeam || f.teamB === state.myTeam),
-  )
-  if (clash) return '这一天有比赛，不能安排商务活动。'
+  const day = onDay ?? firstFreeDay(state, gig)
+  if (day === null) return '这段时间里每天都有比赛，安排不下。'
+  if (day < gig.day || day > (gig.windowEnd ?? gig.day)) return '这个日期不在对方能配合的范围内。'
+  if (matchOn(state, day)) return '这一天有比赛，换个日期。'
 
+  gig.day = day
   gig.accepted = true
   gig.attendees = playerIds
-  return `已确认 ${gig.label}（${gig.partner}），${gig.day - state.day} 天后进行。`
+  return `已确认 ${gig.label}（${gig.partner}），${day - state.day} 天后进行。`
+}
+
+/** Is one of our fixtures on this day? */
+export function matchOn(state: GameState, day: number): boolean {
+  return state.fixtures.some(
+    (f) => f.day === day && !f.result && (f.teamA === state.myTeam || f.teamB === state.myTeam),
+  )
+}
+
+/** Every day in a gig's window that we could actually attend. */
+export function freeDays(state: GameState, gig: Gig): number[] {
+  const out: number[] = []
+  for (let d = Math.max(gig.day, state.day); d <= (gig.windowEnd ?? gig.day); d++) {
+    if (!matchOn(state, d)) out.push(d)
+  }
+  return out
+}
+
+function firstFreeDay(state: GameState, gig: Gig): number | null {
+  return freeDays(state, gig)[0] ?? null
 }
 
 /** Withdraw before the day arrives. */
@@ -460,12 +487,16 @@ export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
   for (const p of squadOf(state, state.myTeam)) {
     if (!p.stream) continue
     // a lapsed deal simply ends; renewing is a fresh decision
+    // a deal signed before terms existed has no end date; give it one
+    if (p.stream.until == null) {
+      p.stream = { ...p.stream, months: p.stream.months ?? 3, until: state.day + 84 }
+    }
     if (p.stream.until <= state.day) {
       notes.push(`📺 ${p.ign} 与 ${p.stream.platform} 的直播合同到期。`)
       p.stream = undefined
       continue
     }
-    const weekly = Math.round(p.stream.fee / (p.stream.months * 4))
+    const weekly = Math.round(p.stream.fee / Math.max(4, (p.stream.months ?? 12) * 4))
     state.finances.balance += weekly
     state.finances.log.push({ day: state.day, label: `直播分成 ${p.ign}`, amount: weekly })
     p.fatigue = clamp(p.fatigue + p.stream.nights * rng.range(1.6, 3.2), 0, 100)
