@@ -8,10 +8,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # read the secret once at job level so the deploy step can test for it;
-    # a secret cannot be referenced directly from an `if:` expression
+    # Read the secret once at job level so the deploy step can test for it — a
+    # secret cannot be referenced directly from an `if:` expression.
+    #
+    # Railway reads a *project* token from RAILWAY_TOKEN and an *account* token
+    # from RAILWAY_API_TOKEN, and rejects one supplied under the other's name.
+    # Passing the same secret as both means either kind of token works, and
+    # --project tells an account token which project to deploy to.
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT: ff7eb0ac-af07-4854-8d7f-420e20a48504
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +35,7 @@ jobs:
         if: env.RAILWAY_TOKEN != ''
         run: |
           npm i -g @railway/cli
-          railway up --service val-manager --detach
+          railway up --service val-manager --project "$RAILWAY_PROJECT" --detach
 
       # Without the secret this workflow used to fail on every single push and
       # mail a failure notice each time. The build above is worth running on its
