@@ -403,9 +403,10 @@ export default function Dashboard() {
             !drill || drill.kind === 'none' ? null
               : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
                 : drill.kind === 'review' ? '教练复盘'
-                  : drill.kind === 'duo'
-                    ? `双排练 · ${game.players[drill.a]?.ign} + ${game.players[drill.b]?.ign}`
-                    : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
+                  : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
+          const duoText = game.duo
+            ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
+            : null
           const focuses = me.starters
             .map((id) => game.players[id])
             .filter(Boolean)
@@ -419,7 +420,7 @@ export default function Dashboard() {
           )
           return (
             <>
-              {acts.length === 0 && !drillText && (
+              {acts.length === 0 && !drillText && !duoText && (
                 <div className="news-item"><span className="muted small">今天还没有任何操作。</span></div>
               )}
               {acts.map((a, i) => (
@@ -431,6 +432,7 @@ export default function Dashboard() {
                 <span className="d">训练</span>
                 <span className="small">
                   {drillText ? <b>{drillText}</b> : <span className="muted">未安排团队训练</span>}
+                  {duoText && <b> ＋ {duoText}</b>}
                   <span className="faint"> · 个人：{focuses.join('，')}</span>
                 </span>
               </div>

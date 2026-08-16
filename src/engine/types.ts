@@ -65,14 +65,19 @@ export interface Trait {
  * training screen a row of identical dropdowns. These are the sessions a real
  * team actually runs, and each touches several things at once.
  */
+/**
+ * The squad-wide session for the week.
+ *
+ * These three compete for the same practice time, so only one can run. Pair
+ * work is separate — two players staying behind to drill together does not
+ * stop the other three doing anything.
+ */
 export type TeamDrill =
   | { kind: 'none' }
   /** run the map until everyone knows it: map comfort plus cohesion */
   | { kind: 'map'; map: string }
   /** the coach takes them through the tape: reading the game, and calling it */
   | { kind: 'review' }
-  /** two players drilling together: trades, timings, and talking */
-  | { kind: 'duo'; a: string; b: string }
   /** learning an agent from a role they do not yet cover */
   | { kind: 'agent'; playerId: string; role: Role }
 
@@ -429,6 +434,15 @@ export interface GameState {
   training: Record<string, keyof Attrs | 'rest'>
   /** the squad-wide drill running alongside it */
   drill?: TeamDrill
+  /** pair work, which runs alongside whichever main drill is set */
+  duo?: { a: string; b: string }
+  /**
+   * Day the training plan can next be changed.
+   *
+   * A confirmed plan is committed until it has actually been run, so the week
+   * is a decision rather than something you can keep nudging.
+   */
+  drillLock?: number
   /** a log of what the manager did, so today can be recounted */
   activity?: Activity[]
   finances: {

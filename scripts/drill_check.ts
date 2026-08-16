@@ -34,10 +34,15 @@ run('跑图', (g) => { g.drill = { kind: 'map', map: activePool(g.seed + g.year)
 run('教练复盘', (g) => { g.drill = { kind: 'review' } })
 run('双排练', (g) => {
   const s = squadOf(g, g.myTeam)
-  g.drill = { kind: 'duo', a: s[0].id, b: s[1].id }
+  g.duo = { a: s[0].id, b: s[1].id }
+})
+run('跑图＋双排（并行）', (g) => {
+  g.drill = { kind: 'map', map: activePool(g.seed + g.year)[0] }
+  const s = squadOf(g, g.myTeam)
+  g.duo = { a: s[0].id, b: s[1].id }
 })
 run('练新英雄', (g) => {
   const p = squadOf(g, g.myTeam)[0]
   const missing = (['决斗者','先锋','控场','哨卫'] as const).find((r) => !(p.roles ?? [p.role]).includes(r))!
-  g.drill = { kind: 'agent', playerId: p.id, role: missing, progress: 0 }
+  g.drill = { kind: 'agent', playerId: p.id, role: missing }
 })

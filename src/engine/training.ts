@@ -62,16 +62,42 @@ function addXp(p: Player, k: keyof Attrs, amount: number): boolean {
 }
 
 /**
+ * Two players staying behind to drill together.
+ *
+ * Runs alongside the main session rather than instead of it: a pair working on
+ * trades does not stop the other three doing anything. It costs those two extra
+ * condition, which is the trade-off.
+ */
+function runDuo(state: GameState, team: Team, rng: Rng): void {
+  const duo = state.duo
+  if (!duo) return
+  const coachDev = (coachOr(team, 'development') - 55) / 100
+  const facility = (team.facilities - 55) / 130
+  const gain = (base: number) => base * (1 + coachDev + facility) * rng.range(0.8, 1.2)
+
+  for (const id of [duo.a, duo.b]) {
+    const p = state.players[id]
+    if (!p || p.teamId !== team.id || p.injuredUntil > state.day) continue
+    addXp(p, 'teamwork', gain(10))
+    addXp(p, 'communication', gain(8))
+    addXp(p, 'reaction', gain(5))
+    p.fatigue = clamp(p.fatigue + rng.range(5, 10), 0, 100)
+    p.morale = clamp(p.morale + rng.range(0, 2), 0, 100)
+  }
+}
+
+/**
  * The squad-wide drill for this week.
  *
  * Each of these moves several things at once, which is the point: a team does
  * not improve by everyone grinding one stat in isolation.
  */
 function runDrill(state: GameState, rng: Rng, notes: string[]): void {
-  const drill = state.drill
-  if (!drill || drill.kind === 'none') return
   const team = state.teams[state.myTeam]
   if (!team) return
+  runDuo(state, team, rng)
+  const drill = state.drill
+  if (!drill || drill.kind === 'none') return
   const squad = squadOf(state, state.myTeam).filter((p) => p.injuredUntil <= state.day)
   if (!squad.length) return
 
@@ -105,18 +131,6 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
         p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
       }
       notes.push(team.coach ? `🎬 ${team.coach.name} 带队复盘，全队意识提升。` : '🎬 全队复盘录像。')
-      break
-    }
-    case 'duo': {
-      const pair = [drill.a, drill.b].map((id) => state.players[id]).filter(Boolean) as Player[]
-      for (const p of pair) {
-        if (p.injuredUntil > state.day) continue
-        addXp(p, 'teamwork', gain(10))
-        addXp(p, 'communication', gain(8))
-        addXp(p, 'reaction', gain(5))
-        p.fatigue = clamp(p.fatigue + rng.range(5, 10), 0, 100)
-        p.morale = clamp(p.morale + rng.range(0, 2), 0, 100)
-      }
       break
     }
     case 'agent': {
@@ -158,6 +172,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
 export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   runDrill(state, rng, notes)
+  // the plan has now been run, so next week's is open to change again
+  state.drillLock = undefined
   for (const team of Object.values(state.teams)) {
     const isMine = team.id === state.myTeam
     for (const pid of team.roster) {

@@ -26,7 +26,7 @@ function suggest(p: Player): keyof Attrs {
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
   const [duoPick, setDuoPick] = useState<string[]>(
-    game.drill?.kind === 'duo' ? [game.drill.a, game.drill.b] : [],
+    game.duo ? [game.duo.a, game.duo.b] : [],
   )
   const squad = squadOf(game, game.myTeam)
   const me = game.teams[game.myTeam]
@@ -59,23 +59,57 @@ export default function Training() {
   }
 
   const drill = game.drill ?? { kind: 'none' as const }
-  const setDrill = (d: typeof drill, label: string) => {
+  // the plan is only committed on 确定, so picking is free until then
+  const locked = (game.drillLock ?? 0) > game.day
+
+  const setDrill = (d: typeof drill, _label: string) => {
+    if (locked) return
     game.drill = d
-    logActivity(game, 'training', `本周团队训练：${label}`)
     commit()
-    toast(`本周团队训练：${label}`)
+  }
+  const setDuo = (pair: string[]) => {
+    if (locked) return
+    setDuoPick(pair)
+    game.duo = pair.length === 2 ? { a: pair[0], b: pair[1] } : undefined
+    commit()
+  }
+  const untilRun = 7 - (game.day % 7)
+
+  const describe = () => {
+    const d = game.drill
+    const main = !d || d.kind === 'none' ? '不安排团队训练'
+      : d.kind === 'map' ? `跑图 ${d.map}`
+        : d.kind === 'review' ? '教练复盘'
+          : `${game.players[d.playerId]?.ign} 练${d.role}`
+    const duo = game.duo
+      ? ` ＋ 双排 ${game.players[game.duo.a]?.ign}/${game.players[game.duo.b]?.ign}`
+      : ''
+    return main + duo
+  }
+
+  const confirmPlan = () => {
+    game.drillLock = game.day + untilRun
+    logActivity(game, 'training', `确定本周训练：${describe()}`)
+    commit()
+    toast(`本周训练已确定：${describe()}`)
   }
   const pool = activePool(game.seed + game.year)
   const fit = squad.filter((p) => p.injuredUntil <= game.day)
 
   return (
     <>
-      <Panel title={`团队训练 · 每周结算一次（还有 ${7 - (game.day % 7)} 天）`}>
+      <Panel
+        title={`团队训练 · ${locked ? `本周已确定，${untilRun} 天后可重新安排` : `还有 ${untilRun} 天结算`}`}
+        className={locked ? '' : 'own'}
+      >
         <p className="small muted" style={{ marginTop: 0 }}>
-          团队训练与每位选手的个人专项<b>同时生效</b>，一次影响多个方面。训练按周结算：
-          你随时可以改安排，真正生效的是每周结算那一刻的设置，所以推进日期时不会重复计算。
+          下面三项<b>争抢同一段训练时间，只能选一项</b>；<b>双排练</b>是两个人留下来加练，
+          不占用其他人，可以和上面任意一项同时进行。团队训练与每位选手的个人专项也同时生效。
         </p>
-        <div className="grid c2" style={{ gap: 12 }}>
+
+        <div className={`drill-group${locked ? ' locked' : ''}`}>
+        <div className="tiny faint" style={{ marginBottom: 6 }}>主训练 · 三选一</div>
+        <div className="grid c3" style={{ gap: 12 }}>
           <div className="drill-card">
             <b>跑图</b>
             <p className="tiny muted">提升指定地图熟练度，同时练全队协同与意识。</p>
@@ -100,35 +134,6 @@ export default function Training() {
               onClick={() => setDrill({ kind: 'review' }, '教练复盘')}>
               安排复盘{me.coach ? `（${me.coach.name}）` : ''}
             </button>
-          </div>
-
-          <div className="drill-card">
-            <b>双排练</b>
-            <p className="tiny muted">两人配合训练：协同、沟通、反应，收益比单练高但更累。</p>
-            <div className="row wrap" style={{ gap: 5 }}>
-              {fit.map((p) => {
-                const on = duoPick.includes(p.id)
-                return (
-                  <button key={p.id} className={`sm${on ? ' primary' : ''}`}
-                    onClick={() => {
-                      // hold the half-made choice, so picking the first player sticks
-                      const next = on
-                        ? duoPick.filter((x) => x !== p.id)
-                        : [...duoPick, p.id].slice(-2)
-                      setDuoPick(next)
-                      if (next.length === 2) {
-                        setDrill({ kind: 'duo', a: next[0], b: next[1] },
-                          `双排练 ${game.players[next[0]]?.ign} + ${game.players[next[1]]?.ign}`)
-                      }
-                    }}>
-                    {p.ign}
-                  </button>
-                )
-              })}
-              <span className="tiny faint">
-                {duoPick.length === 0 ? '选两人' : duoPick.length === 1 ? '再选一人' : '已选定'}
-              </span>
-            </div>
           </div>
 
           <div className="drill-card">
@@ -169,13 +174,62 @@ export default function Training() {
             })()}
           </div>
         </div>
-        {drill.kind !== 'none' && (
-          <div className="row" style={{ gap: 10, marginTop: 12 }}>
-            <button className="sm ghost" onClick={() => setDrill({ kind: 'none' }, '取消团队训练')}>
-              取消团队训练
-            </button>
+
+        <div className="tiny faint" style={{ margin: '14px 0 6px' }}>加练 · 可与上面并行</div>
+        <div className="grid" style={{ gap: 12 }}>
+          <div className="drill-card">
+            <b>双排练</b>
+            <p className="tiny muted">两人配合训练：协同、沟通、反应，收益比单练高但更累。</p>
+            <div className="row wrap" style={{ gap: 5 }}>
+              {fit.map((p) => {
+                const on = duoPick.includes(p.id)
+                return (
+                  <button key={p.id} className={`sm${on ? ' primary' : ''}`}
+                    onClick={() => {
+                      // hold the half-made choice, so picking the first player sticks
+                      const next = on
+                        ? duoPick.filter((x) => x !== p.id)
+                        : [...duoPick, p.id].slice(-2)
+                      setDuo(next)
+                    }}>
+                    {p.ign}
+                  </button>
+                )
+              })}
+              <span className="tiny faint">
+                {duoPick.length === 0 ? '选两人' : duoPick.length === 1 ? '再选一人' : '已选定'}
+              </span>
+              {duoPick.length > 0 && (
+                <button className="sm ghost" onClick={() => setDuo([])}>清除</button>
+              )}
+            </div>
           </div>
-        )}
+
+        </div>
+        </div>
+
+        <div className="row wrap" style={{ gap: 10, marginTop: 14, alignItems: 'center' }}>
+          {locked ? (
+            <>
+              <span className="tag t1">本周已确定</span>
+              <span className="small">{describe()}</span>
+              <span className="tiny faint">· {untilRun} 天后结算，届时可重新安排</span>
+              <button className="sm ghost" onClick={() => { game.drillLock = undefined; commit() }}>
+                改主意（撤销确定）
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="primary" onClick={confirmPlan}>确定本周训练</button>
+              <span className="small muted">{describe()}</span>
+              {drill.kind !== 'none' && (
+                <button className="sm ghost" onClick={() => setDrill({ kind: 'none' }, '取消团队训练')}>
+                  清除主训练
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </Panel>
 
       <Panel

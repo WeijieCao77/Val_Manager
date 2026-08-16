@@ -481,3 +481,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   display: flex; flex-direction: column; gap: 7px;
 }
 .drill-card p { margin: 0; line-height: 1.6; }
+
+/* a confirmed training plan is committed: visibly and actually out of reach */
+.drill-group.locked { opacity: .5; pointer-events: none; }
