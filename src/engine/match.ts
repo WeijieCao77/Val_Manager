@@ -4,7 +4,7 @@ import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { skillMod } from './manager'
 import type {
-  GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
+  EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
 } from './types'
 
 /** How much each role tends to take kills / take deaths. */
@@ -26,6 +26,8 @@ export interface Lineup {
   chem: number
   /** mid-round adaptation, drives comeback / clutch behaviour */
   midRound: number
+  /** why this side is as strong as it is, kept for the post-match report */
+  edge: EdgeBreakdown
 }
 
 /** A player's effective rating right now (form / morale / fatigue applied). */
@@ -135,7 +137,13 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const midRound =
     (t.adaptability - 50) * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05
 
-  return { team, players, atk, def, chem, midRound }
+  const edge: EdgeBreakdown = {
+    base, igl: iglBonus, chem: chemBonus, coach: coachBonus, comp,
+    map: mapPref, utility: utilBonus,
+    tacticsAtk: paceAtk + aggroAtk, tacticsDef: paceDef + aggroDef,
+    atk, def,
+  }
+  return { team, players, atk, def, chem, midRound, edge }
 }
 
 // ---------------------------------------------------------------- map veto
@@ -585,6 +593,7 @@ export class MapSim {
     return {
       score: {
         map: this.map, scoreA: this.a, scoreB: this.b,
+        edge: { a: this.A.edge, b: this.B.edge },
         lines: this.ctx.lines, rounds: this.ctx.rounds,
       },
       highlights: this.ctx.highlights,

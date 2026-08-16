@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import WhyPanel from './WhyPanel'
 import { useGame } from './ctx'
 import { Modal, MultiRadar, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
@@ -73,6 +74,15 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
               {m.map}
             </button>
           ))}
+        </div>
+      )}
+
+      {involved && map && (
+        <div style={{ marginBottom: 16 }}>
+          <div className="nav-group" style={{ padding: '0 0 8px' }}>
+            为什么是这个结果 · {map.map}
+          </div>
+          <WhyPanel map={map} mineIsA={mineIsA} />
         </div>
       )}
 

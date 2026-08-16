@@ -427,10 +427,36 @@ export interface RoundLog {
   buyB: 'eco' | 'force' | 'full'
 }
 
+/**
+ * Why a map went the way it did.
+ *
+ * The match engine already works these out to decide the result; keeping them
+ * is what lets a manager see whether they lost on map comfort, on chemistry,
+ * or on the sliders they set before kickoff.
+ */
+export interface EdgeBreakdown {
+  /** weighted player ability */
+  base: number
+  igl: number
+  chem: number
+  coach: number
+  /** role composition — a missing sentinel costs here */
+  comp: number
+  map: number
+  utility: number
+  /** what the four tactical sliders were worth on each side */
+  tacticsAtk: number
+  tacticsDef: number
+  atk: number
+  def: number
+}
+
 export interface MapScore {
   map: string
   scoreA: number
   scoreB: number
+  /** per-side factor breakdown, for the post-match explanation */
+  edge?: { a: EdgeBreakdown; b: EdgeBreakdown }
   /** per-player line for this map, keyed by player id */
   lines: Record<string, MapLine>
   /** kept only for the managed club's matches, to bound save size */
