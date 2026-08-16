@@ -117,6 +117,19 @@ export function scoreOffer(
   if (releaseClause > 0) score += 7
   score += (p.grievance ?? 0) * 0.25   // unhappy players are easier to move
 
+  // Who is asking matters. A manager with a name behind them can sell a move
+  // the club alone could not — and this is the real reward for a career going
+  // well: not a menu unlocking, but better players taking your call.
+  if (toTeam.id === state.myTeam && state.manager) {
+    const pull = (state.manager.reputation - toTeam.reputation) * 0.55
+    parts.push({
+      key: 'manager',
+      v: clamp(pull, -8, 20),
+      why: '认为你的执教履历还不足以说服他',
+    })
+    score += clamp(pull, -8, 20)
+  }
+
   const worst = parts.filter((x) => x.v < -1).sort((a, b) => a.v - b.v)[0]
   return {
     score,
@@ -156,7 +169,9 @@ const moneyish = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 /** A club must always be able to field five; only the human may go thin. */
 export function canSell(state: GameState, p: Player): boolean {
   if (!p.teamId || p.teamId === state.myTeam) return true
-  return squadOf(state, p.teamId).length > 5
+  if (squadOf(state, p.teamId).length > 5) return true
+  // a five-man club can still sell, as long as someone real is left to sign
+  return Object.values(state.players).some((x) => !x.teamId)
 }
 
 export function doTransfer(
@@ -165,8 +180,8 @@ export function doTransfer(
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
   if (!to) return
-  // refuse a move that would leave the selling club unable to play
-  if (from && from.id !== state.myTeam && squadOf(state, from.id).length <= 5) return
+  // refuse a move that would leave the selling club unable to field a team
+  if (from && from.id !== state.myTeam && !canSell(state, p)) return
 
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
@@ -338,10 +353,12 @@ export function refreshListings(state: GameState, rng: Rng): void {
       if (unhappy) chance += 0.3
       if (expiring && benched) chance += 0.15
       if (aging) chance += 0.12
-      // a club will not sell someone it needs
-      if (!benched && squad.length <= 5) chance = 0
-
-      if (squad.length <= 5) chance = 0
+      // Real rosters are mostly exactly five, so a blanket "no thin squad sells"
+      // rule silenced most of the league. A five-man club still won't shop a
+      // player it is happy with — but it will let go of one who wants out.
+      if (squad.length <= 5) {
+        chance = unhappy ? 0.18 : expiring ? 0.08 : 0
+      }
       if (!p.listed && chance > 0 && rng.chance(chance)) {
         p.listed = true
       } else if (p.listed && !benched && !unhappy && rng.chance(0.25)) {

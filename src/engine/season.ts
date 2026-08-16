@@ -6,7 +6,7 @@ import {
   resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket,
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
-import { aiTransferTick, resolveDueOffers } from './transfer'
+import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
@@ -115,6 +115,7 @@ export function setupSeason(state: GameState): void {
       state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 200, 262, 3, rng, '常规赛'))
     }
   }
+  seedMarket(state)
 }
 
 const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
@@ -167,6 +168,11 @@ function settleCompetition(state: GameState, comp: Competition): void {
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })
     state.boardConfidence = clamp(state.boardConfidence + 14, 0, 100)
+    // winning is what actually makes your name
+    if (state.manager) {
+      const worth = comp.region ? 2.5 : 6   // an international title counts for more
+      state.manager.reputation = clamp(state.manager.reputation + damped(state.manager.reputation, worth), 5, 96)
+    }
   } else if (comp.teams.includes(state.myTeam)) {
     const place = comp.finished.indexOf(state.myTeam)
     if (place >= 0) {
@@ -288,6 +294,13 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
     : -Math.min(18, 5 + (place - obj.placeAtLeast) * 3)
   state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
   state.missedStreak = obj.met ? 0 : (state.missedStreak ?? 0) + 1
+  // beating the brief moves your standing; missing it costs you a little
+  if (state.manager) {
+    const growth = state.manager.growth
+    const raw = obj.met ? (1 + (obj.placeAtLeast - place) * 0.5) * growth : -1.5
+    const delta = raw > 0 ? damped(state.manager.reputation, raw) : raw
+    state.manager.reputation = clamp(state.manager.reputation + delta, 5, 96)
+  }
 
   const msg = obj.met
     ? `✅ 赛段目标达成：第 ${place} 名（要求前 ${obj.placeAtLeast}）。董事会满意。`
@@ -337,6 +350,94 @@ function judgeTenure(state: GameState, place: number, notes: string[]): void {
     notes.push(ok)
     state.news.push({ day: state.day, kind: 'club', text: ok })
   }
+}
+
+/**
+ * Reputation gets harder to earn the more of it you have.
+ *
+ * Without this a manager who wins one season is already the biggest name in the
+ * sport, and every remaining season has nothing left to climb toward.
+ */
+function damped(current: number, gain: number): number {
+  return gain * clamp((96 - current) / 42, 0.12, 1)
+}
+
+/**
+ * Clubs coming after the manager.
+ *
+ * This is the reward for a career going well, and the only route to the jobs
+ * that were locked at creation: reputation earned by winning opens doors that
+ * choosing never could.
+ */
+function offerJobs(state: GameState, notes: string[]): void {
+  const m = state.manager
+  if (!m || state.gameOver) return
+  state.jobOffers = (state.jobOffers ?? []).filter((o) => o.expiresOn > state.day)
+
+  // a club will not poach a manager their own board just warned
+  if (state.onNotice) return
+  const rng = new Rng(hashStr(`jobs:${state.seed}:${state.year}:${state.day}`))
+  const here = state.teams[state.myTeam]
+  if (!here) return
+
+  const candidates = Object.values(state.teams).sort((a, b) => b.reputation - a.reputation)
+  for (const t of candidates) {
+    if (state.jobOffers.length >= 3) break     // an inbox, not a spreadsheet
+    if (t.id === state.myTeam) continue
+    if (t.reputation <= here.reputation) continue          // no sideways moves
+    if (state.jobOffers.some((o) => o.teamId === t.id)) continue
+    // they want someone they can justify hiring
+    const reach = m.reputation - t.reputation
+    if (reach < -6) continue
+    const chance = clamp(0.04 + reach * 0.01 + state.honours.length * 0.015, 0, 0.3)
+    if (!rng.chance(chance)) continue
+
+    state.jobOffers.push({
+      id: `J${t.id}_${state.day}`,
+      teamId: t.id,
+      day: state.day,
+      expiresOn: state.day + 30,
+      pitch: t.tier === 1
+        ? `${t.name} 希望你接手一线队，预算 ${Math.round(t.budget / 10000) / 100} 千万级别。`
+        : `${t.name} 想请你来重建队伍。`,
+    })
+    notes.push(`📩 ${t.name} 向你发出了执教邀请。`)
+    state.news.push({
+      day: state.day, kind: 'club', important: true,
+      text: `📩 ${t.name} 向你发出执教邀请（声望 ${t.reputation}）。`,
+    })
+  }
+}
+
+/** Take a job elsewhere. The career continues; the club does not. */
+export function acceptJob(state: GameState, offerId: string): string {
+  const offer = state.jobOffers?.find((o) => o.id === offerId)
+  const to = offer ? state.teams[offer.teamId] : null
+  if (!offer || !to) return '这份邀请已经失效。'
+
+  const from = state.teams[state.myTeam]
+  state.tenures ??= []
+  const current = state.tenures.find((t) => t.teamId === state.myTeam && !t.toYear)
+  if (current) current.toYear = state.year
+  else state.tenures.push({ teamId: state.myTeam, fromYear: 2026, toYear: state.year })
+  state.tenures.push({ teamId: to.id, fromYear: state.year })
+
+  state.myTeam = to.id
+  state.jobOffers = []
+  state.boardConfidence = 62
+  state.onNotice = false
+  state.missedStreak = 0
+  state.objective = undefined
+  state.finances = { balance: to.budget, log: [] }
+  state.training = {}
+  state.drill = { kind: 'none' }
+  for (const pid of to.roster) state.training[pid] = 'rest'
+
+  state.news.push({
+    day: state.day, kind: 'club', important: true,
+    text: `你离开 ${from?.name} 出任 ${to.name} 的经理。`,
+  })
+  return `你已就任 ${to.name} 的经理。`
 }
 
 export interface DayReport {
@@ -434,6 +535,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     notes.push(`—— 进入 ${stageName(state.stage)} ——`)
     settleObjective(state, prevStage, notes)
     setObjective(state, notes)
+    offerJobs(state, notes)
   }
 
   // ---- play today's matches
@@ -576,6 +678,11 @@ function endSeason(state: GameState, rng: Rng): void {
  * the market is empty a club simply runs short and the shortage is reported,
  * rather than conjuring a fictional prospect to paper over it.
  */
+/** Give the market a starting state, so the first window is not empty. */
+export function seedMarket(state: GameState): void {
+  refreshListings(state, new Rng(hashStr(`market:${state.seed}:${state.year}`)))
+}
+
 export function ensureMinimumRosters(state: GameState, rng: Rng): void {
   const short: string[] = []
   for (const team of Object.values(state.teams)) {

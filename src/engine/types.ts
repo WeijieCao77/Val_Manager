@@ -74,7 +74,22 @@ export type TeamDrill =
   /** two players drilling together: trades, timings, and talking */
   | { kind: 'duo'; a: string; b: string }
   /** learning an agent from a role they do not yet cover */
-  | { kind: 'agent'; playerId: string; role: Role; progress: number }
+  | { kind: 'agent'; playerId: string; role: Role }
+
+/**
+ * A club approaching the manager.
+ *
+ * Success is not rewarded by unlocking a menu — it is rewarded by better clubs
+ * wanting you. The very top jobs only ever arrive this way.
+ */
+export interface JobOffer {
+  id: string
+  teamId: string
+  day: number
+  expiresOn: number
+  /** what they are offering you, in their words */
+  pitch: string
+}
 
 /** Something the manager did, so the day can be recounted. */
 export interface Activity {
@@ -147,6 +162,14 @@ export interface Player {
    * count all of these, not just `role`.
    */
   roles?: Role[]
+  /**
+   * How well the player knows each role, 0-100.
+   *
+   * Learning a position is not a switch that flips. Drilling a new role builds
+   * this up; only at 100 does he genuinely cover it, and the climb is slow
+   * enough that retraining a position is a season-long project, not a month.
+   */
+  rolePro?: Partial<Record<Role, number>>
   /** true when they cover a second role for their club */
   flex?: boolean
   /** derived from real statistics, not authored */
@@ -421,6 +444,10 @@ export interface GameState {
   onNotice?: boolean
   /** how many stage objectives we have missed in a row */
   missedStreak?: number
+  /** clubs currently trying to hire us away */
+  jobOffers?: JobOffer[]
+  /** clubs we have managed, in order */
+  tenures?: { teamId: string; fromYear: number; toYear?: number }[]
   /** set when the career is over; the text is why */
   gameOver?: string
 }

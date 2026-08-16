@@ -29,8 +29,8 @@ export default function Schedule() {
                 key={s.key}
                 className="tag"
                 style={{
-                  borderColor: active ? 'var(--red)' : undefined,
-                  color: active ? 'var(--red)' : done ? '#4a5c70' : undefined,
+                  borderColor: active ? 'var(--accent)' : undefined,
+                  color: active ? 'var(--accent)' : done ? '#4a5c70' : undefined,
                   fontWeight: active ? 700 : 400,
                 }}
                 title={`第 ${s.start}–${s.end} 天`}

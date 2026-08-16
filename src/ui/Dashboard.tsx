@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, makeScrim, scrimReply, nextFixtureFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextFixtureFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
 import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
@@ -86,8 +86,44 @@ export default function Dashboard() {
   const stageDef = STAGES.find((x) => x.key === game.stage)
   const daysLeft = stageDef ? stageDef.end - game.day : 0
 
+  const offers = (game.jobOffers ?? []).filter((o) => o.expiresOn > game.day)
+
+  const takeJob = (id: string, name: string) => {
+    if (!window.confirm(`确定离开 ${game.teams[game.myTeam]?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`)) return
+    toast(acceptJob(game, id))
+    commit()
+  }
+
   return (
     <>
+      {offers.length > 0 && (
+        <Panel title={`执教邀请 · ${offers.length}`} className="alert" flush>
+          <div className="agenda">
+            {offers.map((o) => {
+              const t = game.teams[o.teamId]
+              if (!t) return null
+              return (
+                <div key={o.id} className="agenda-item" style={{ cursor: 'default' }}>
+                  <span className="dot" />
+                  <span>
+                    <b>{t.name}</b>
+                    <span className="tag" style={{ marginLeft: 6 }}>声望 {t.reputation}</span>
+                    <span className="tag" style={{ marginLeft: 4 }}>{t.tier === 1 ? '一级联赛' : '次级联赛'}</span>
+                    <div className="tiny faint" style={{ marginTop: 3 }}>
+                      {o.pitch} · {o.expiresOn - game.day} 天内答复
+                    </div>
+                  </span>
+                  <button className="sm primary right" onClick={() => takeJob(o.id, t.name)}>接受</button>
+                </div>
+              )
+            })}
+          </div>
+          <p className="tiny faint" style={{ padding: '0 14px 12px', margin: 0 }}>
+            成绩越好、名气越大，来找你的俱乐部就越强。不接受的话邀请会自行过期。
+          </p>
+        </Panel>
+      )}
+
       <Panel
         title={`${stageName(game.stage)}${daysLeft > 0 ? ` · 还剩 ${daysLeft} 天` : ''}`}
         className={agenda.some((a) => a.tone === 'urgent') ? 'alert' : 'own'}
@@ -108,11 +144,22 @@ export default function Dashboard() {
         )}
       </Panel>
 
-      <div className="grid c4">
+      <div className="grid c4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         <Panel><Stat k="联赛排名" v={myRank >= 0 ? `${myRank + 1} / ${table.length}` : '—'} /></Panel>
         <Panel><Stat k="资金" v={money(game.finances.balance)} /></Panel>
         <Panel><Stat k="赛季薪资" v={money(bill)} /></Panel>
         <Panel><Stat k="董事会信任" v={`${Math.round(game.boardConfidence)}%`} /></Panel>
+        {game.manager && (
+          <Panel>
+            <Stat k="经理声望" v={`${Math.round(game.manager.reputation)}`} />
+            <div className="tiny faint" style={{ marginTop: 2 }}>
+              {game.manager.reputation >= 85 ? '顶级豪门也会考虑你'
+                : game.manager.reputation >= 72 ? '强队愿意听你开条件'
+                : game.manager.reputation >= 58 ? '在圈内有一定名气'
+                : '还需要成绩来证明自己'}
+            </div>
+          </Panel>
+        )}
       </div>
 
       <div className="grid c2">
@@ -358,7 +405,7 @@ export default function Dashboard() {
                 : drill.kind === 'review' ? '教练复盘'
                   : drill.kind === 'duo'
                     ? `双排练 · ${game.players[drill.a]?.ign} + ${game.players[drill.b]?.ign}`
-                    : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(drill.progress)}%）`
+                    : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
           const focuses = me.starters
             .map((id) => game.players[id])
             .filter(Boolean)

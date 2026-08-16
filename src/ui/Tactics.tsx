@@ -78,8 +78,11 @@ export default function Tactics() {
             <div>
               <div className="small muted">中局应变</div>
               <div className="row" style={{ gap: 8 }}>
-                <Bar value={preview.midRound + 50} max={100} />
-                <span className="mono small">{preview.midRound.toFixed(1)}</span>
+                {/* a swing modifier, not a 0-100 rating — show it as the ± it is */}
+                <Bar value={preview.midRound + 6} max={12} />
+                <span className="mono small">
+                  {preview.midRound >= 0 ? '+' : ''}{preview.midRound.toFixed(1)}
+                </span>
               </div>
             </div>
           </div>

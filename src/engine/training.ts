@@ -122,20 +122,29 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
     case 'agent': {
       const p = state.players[drill.playerId]
       if (!p) break
-      drill.progress += gain(14)
+      // Learning a position is a grind, not a switch. A quick learner still
+      // needs the better part of a season, which is what makes buying a real
+      // specialist worth the money.
+      const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
+      const before = p.rolePro?.[drill.role] ?? 0
+      const now = clamp(before + gain(2.6) * aptitude, 0, 100)
+      p.rolePro = { ...(p.rolePro ?? {}), [drill.role]: now }
       addXp(p, 'utility', gain(4))
       p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
-      if (drill.progress >= 100) {
+
+      // agents come in along the way, so progress is visible before it pays off
+      const earned = Math.floor(now / 34) - Math.floor(before / 34)
+      for (let i = 0; i < earned; i++) {
         const pool = AGENTS[drill.role].filter((a) => !p.agentPool.includes(a))
-        const learned = pool.length ? rng.pick(pool) : null
-        if (learned) p.agentPool = [...p.agentPool, learned]
-        // learning an agent from a new role means he now covers it
+        if (pool.length) p.agentPool = [...p.agentPool, rng.pick(pool)]
+      }
+      if (now >= 100 && before < 100) {
         const roles = p.roles?.length ? p.roles : [p.role]
         if (!roles.includes(drill.role)) {
           p.roles = [...roles, drill.role]
           p.flex = true
         }
-        notes.push(`🎓 ${p.ign} 练成了 ${learned ?? drill.role}，现在可以兼任${drill.role}。`)
+        notes.push(`🎓 ${p.ign} 练成了${drill.role}，现在可以兼任这个位置。`)
         state.drill = { kind: 'none' }
       }
       break

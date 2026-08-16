@@ -44,7 +44,7 @@ export function Roles({ p }: { p: Player }) {
 
 export function Bar({ value, max = 100, color }: { value: number; max?: number; color?: string }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
-  const c = color ?? (pct >= 75 ? 'var(--teal)' : pct >= 45 ? 'var(--gold)' : 'var(--red)')
+  const c = color ?? (pct >= 75 ? 'var(--win)' : pct >= 45 ? 'var(--warn)' : 'var(--loss)')
   return (
     <div className="bar">
       <i style={{ width: `${pct}%`, background: c }} />
@@ -232,10 +232,10 @@ export function Radar({ values, labels, size = 210 }: {
         const [x, y] = pt(i, 1)
         return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#2b3a49" strokeWidth={1} />
       })}
-      <polygon points={poly} fill="rgba(255,70,85,.28)" stroke="var(--red)" strokeWidth={2} />
+      <polygon points={poly} fill="rgba(255,70,85,.28)" stroke="var(--accent)" strokeWidth={2} />
       {values.map((v, i) => {
         const [x, y] = pt(i, Math.max(0.05, v / 100))
-        return <circle key={i} cx={x} cy={y} r={2.5} fill="var(--red)" />
+        return <circle key={i} cx={x} cy={y} r={2.5} fill="var(--accent)" />
       })}
       {labels.map((l, i) => {
         const [x, y] = pt(i, 1.2)

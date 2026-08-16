@@ -157,7 +157,7 @@ export default function Squad() {
                     )}
                     {view === 'attrs' && ATTR_KEYS.map((k) => (
                       <td key={k} className="num mono" style={{
-                        color: p.attrs[k] >= 85 ? 'var(--red)' : p.attrs[k] >= 72 ? 'var(--gold)' : undefined,
+                        color: p.attrs[k] >= 85 ? 'var(--accent)' : p.attrs[k] >= 72 ? 'var(--warn)' : undefined,
                       }}>
                         {p.attrs[k]}
                       </td>

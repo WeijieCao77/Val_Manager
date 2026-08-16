@@ -48,7 +48,7 @@ function Table({ comp }: { comp: Competition }) {
                   {comp.champion === id && ' 🏆'}
                   {!comp.champion && i + 1 === cut && ''}
                 </td>
-                <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--red)' : '2px solid transparent' }}>
+                <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--accent)' : '2px solid transparent' }}>
                   {game.teams[id]?.name}
                 </td>
                 <td className="num mono">{r.w}-{r.l}</td>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, OvrBadge, Panel, Roles } from './common'
 import { squadOf } from '../engine/world'
@@ -24,6 +25,9 @@ function suggest(p: Player): keyof Attrs {
 
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
+  const [duoPick, setDuoPick] = useState<string[]>(
+    game.drill?.kind === 'duo' ? [game.drill.a, game.drill.b] : [],
+  )
   const squad = squadOf(game, game.myTeam)
   const me = game.teams[game.myTeam]
 
@@ -66,9 +70,10 @@ export default function Training() {
 
   return (
     <>
-      <Panel title="团队训练 · 每周一项">
+      <Panel title={`团队训练 · 每周结算一次（还有 ${7 - (game.day % 7)} 天）`}>
         <p className="small muted" style={{ marginTop: 0 }}>
-          团队训练与每位选手的个人专项**同时生效**，而且一次影响多个方面。
+          团队训练与每位选手的个人专项<b>同时生效</b>，一次影响多个方面。训练按周结算：
+          你随时可以改安排，真正生效的是每周结算那一刻的设置，所以推进日期时不会重复计算。
         </p>
         <div className="grid c2" style={{ gap: 12 }}>
           <div className="drill-card">
@@ -102,13 +107,15 @@ export default function Training() {
             <p className="tiny muted">两人配合训练：协同、沟通、反应，收益比单练高但更累。</p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => {
-                const on = drill.kind === 'duo' && (drill.a === p.id || drill.b === p.id)
+                const on = duoPick.includes(p.id)
                 return (
                   <button key={p.id} className={`sm${on ? ' primary' : ''}`}
                     onClick={() => {
-                      const cur = drill.kind === 'duo' ? [drill.a, drill.b] : []
-                      const next = cur.includes(p.id)
-                        ? cur.filter((x) => x !== p.id) : [...cur, p.id].slice(-2)
+                      // hold the half-made choice, so picking the first player sticks
+                      const next = on
+                        ? duoPick.filter((x) => x !== p.id)
+                        : [...duoPick, p.id].slice(-2)
+                      setDuoPick(next)
                       if (next.length === 2) {
                         setDrill({ kind: 'duo', a: next[0], b: next[1] },
                           `双排练 ${game.players[next[0]]?.ign} + ${game.players[next[1]]?.ign}`)
@@ -118,7 +125,9 @@ export default function Training() {
                   </button>
                 )
               })}
-              <span className="tiny faint">选两人</span>
+              <span className="tiny faint">
+                {duoPick.length === 0 ? '选两人' : duoPick.length === 1 ? '再选一人' : '已选定'}
+              </span>
             </div>
           </div>
 
@@ -134,8 +143,7 @@ export default function Training() {
                   onChange={(e) => {
                     const role = e.target.value as Role
                     if (!role) return
-                    setDrill({ kind: 'agent', playerId: p.id, role, progress: 0 },
-                      `${p.ign} 学习${role}英雄`)
+                    setDrill({ kind: 'agent', playerId: p.id, role }, `${p.ign} 学习${role}英雄`)
                   }}>
                   <option value="">{p.ign}…</option>
                   {ROLES.filter((r) => r !== '自由人' && !(p.roles ?? [p.role]).includes(r))
@@ -143,15 +151,22 @@ export default function Training() {
                 </select>
               ))}
             </div>
-            {drill.kind === 'agent' && (
-              <div className="row" style={{ gap: 8, marginTop: 8 }}>
-                <span className="tiny muted">
-                  {game.players[drill.playerId]?.ign} 学习{drill.role}中
-                </span>
-                <Bar value={drill.progress} color="var(--violet)" />
-                <span className="tiny mono">{Math.round(drill.progress)}%</span>
-              </div>
-            )}
+            {drill.kind === 'agent' && (() => {
+              const learner = game.players[drill.playerId]
+              const pro = learner?.rolePro?.[drill.role] ?? 0
+              return (
+                <div style={{ marginTop: 8 }}>
+                  <div className="row" style={{ gap: 8 }}>
+                    <span className="tiny muted">{learner?.ign} 的{drill.role}熟练度</span>
+                    <Bar value={pro} color="var(--controller)" />
+                    <span className="tiny mono">{Math.round(pro)}%</span>
+                  </div>
+                  <div className="tiny faint" style={{ marginTop: 4 }}>
+                    满 100% 才算真正兼任，中途会陆续解锁该位置的英雄。改练别的位置不会清空已有进度。
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
         {drill.kind !== 'none' && (
@@ -196,7 +211,7 @@ export default function Training() {
                     <td className="num muted">{p.potential}</td>
                     <td>
                       <div className="row" style={{ gap: 7 }}>
-                        <Bar value={head} max={25} color={head > 8 ? 'var(--teal)' : head > 3 ? 'var(--gold)' : 'var(--muted)'} />
+                        <Bar value={head} max={25} color={head > 8 ? 'var(--win)' : head > 3 ? 'var(--warn)' : 'var(--muted)'} />
                         <span className="tiny mono muted">+{head}</span>
                       </div>
                     </td>

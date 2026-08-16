@@ -59,7 +59,7 @@ export default function Transfers() {
         <Panel>
           <div className="stat">
             <span className="k">转会窗口</span>
-            <span className="v sm" style={{ color: open ? 'var(--teal)' : 'var(--red)' }}>
+            <span className="v sm" style={{ color: open ? 'var(--win)' : 'var(--accent)' }}>
               {open ? '开启中' : '已关闭'}
             </span>
           </div>
@@ -198,7 +198,7 @@ export default function Transfers() {
                   <td className="clickable" onClick={() => openPlayer(p.id)}>
                     <b>{p.ign}</b>
                     {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
-                    {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--gold)', color: 'var(--gold)' }}>挂牌</span>}
+                    {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>

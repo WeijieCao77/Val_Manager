@@ -15,6 +15,7 @@ function run(label: string, setup: (g: ReturnType<typeof createNewGame>) => void
     aw: squad.reduce((s, p) => s + p.attrs.awareness, 0),
     map: g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50,
     roles: squad.reduce((s, p) => s + (p.roles?.length ?? 1), 0),
+    pro: squad.reduce((s, p) => s + Math.max(0, ...Object.values(p.rolePro ?? {})), 0),
   }
   for (let i = 0; i < 84; i++) advanceDay(g)
   const after = {
@@ -22,9 +23,10 @@ function run(label: string, setup: (g: ReturnType<typeof createNewGame>) => void
     aw: squad.reduce((s, p) => s + p.attrs.awareness, 0),
     map: g.teams[g.myTeam].mapPrefs[activePool(g.seed + g.year)[0]] ?? 50,
     roles: squad.reduce((s, p) => s + (p.roles?.length ?? 1), 0),
+    pro: squad.reduce((s, p) => s + Math.max(0, ...Object.values(p.rolePro ?? {})), 0),
   }
   console.log(`${label.padEnd(12)} 协同 +${after.tw - before.tw}  意识 +${after.aw - before.aw}  ` +
-    `图熟练 ${before.map}→${after.map}  覆盖位置 +${after.roles - before.roles}`)
+    `图熟练 ${before.map}→${after.map}  覆盖位置 +${after.roles - before.roles}  位置熟练 +${Math.round(after.pro - before.pro)}%`)
 }
 
 run('无团队训练', () => {})
