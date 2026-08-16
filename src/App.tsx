@@ -14,6 +14,7 @@ import Saves from './ui/Saves'
 import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
+import GameOver from './ui/GameOver'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextFixtureFor, stageName } from './engine/season'
 import { screenLocked } from './engine/agenda'
@@ -172,6 +173,9 @@ export default function App() {
               if (watched) setFixture(live)
             }}
           />
+        )}
+        {game.gameOver && (
+          <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>

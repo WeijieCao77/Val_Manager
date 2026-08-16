@@ -451,3 +451,26 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   background: var(--panel-2); border: 1px solid var(--line);
   border-left: 3px solid var(--loss); border-radius: var(--radius);
 }
+
+/* knockout bracket — rounds left to right, ties as stacked pairs */
+.bracket { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+.bracket-round { display: flex; flex-direction: column; gap: 8px; min-width: 178px; }
+.bracket-head {
+  font-size: var(--t-label); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint); font-weight: 700; padding-bottom: 2px;
+}
+.bracket-tie {
+  display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 0;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden; text-align: left;
+}
+.bracket-tie.own { border-color: var(--accent-line); }
+.bracket-tie.clickable:hover { border-color: #3c536b; }
+.bracket-side {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 9px; font-size: var(--t-small); color: var(--muted);
+  background: var(--panel);
+}
+.bracket-side.win { color: var(--text); font-weight: 650; box-shadow: inset 2px 0 0 var(--win); }
+.bracket-side .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bracket-side .sc { font-variant-numeric: tabular-nums; }

@@ -256,7 +256,10 @@ function setObjective(state: GameState, notes: string[]): void {
     return
   }
   const { place, size } = expectedPlace(state)
-  const target = clamp(Math.round(place - 1), 1, Math.max(1, size - 1))
+  // Ask for a real improvement rather than "one better than last". A bottom
+  // club told to finish above 11th of 12 has been asked for nothing, which is
+  // why the board could never justify acting.
+  const target = clamp(Math.round(place * 0.6), 1, Math.max(1, size - 2))
   const text =
     target === 1 ? '董事会要求：拿下本赛段冠军。'
       : target <= Math.ceil(size / 4) ? `董事会要求：本赛段进入前 ${target} 名。`
@@ -284,6 +287,7 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
     ? Math.min(16, 6 + (obj.placeAtLeast - place) * 3)
     : -Math.min(18, 5 + (place - obj.placeAtLeast) * 3)
   state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
+  state.missedStreak = obj.met ? 0 : (state.missedStreak ?? 0) + 1
 
   const msg = obj.met
     ? `✅ 赛段目标达成：第 ${place} 名（要求前 ${obj.placeAtLeast}）。董事会满意。`
@@ -291,10 +295,47 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
   notes.push(msg)
   state.news.push({ day: state.day, kind: 'club', important: true, text: msg })
 
-  if (state.boardConfidence <= 12) {
-    const warn = '⚠ 董事会已对你失去耐心，下个赛段再无起色就会换人。'
+  judgeTenure(state, place, notes)
+}
+
+/**
+ * Whether the board keeps us.
+ *
+ * A career needs a way to end badly or its successes mean nothing. The board
+ * warns first — it never fires without having said so — and only acts on a
+ * stage boundary, where a verdict belongs.
+ */
+function judgeTenure(state: GameState, place: number, notes: string[]): void {
+  const club = state.teams[state.myTeam]?.name ?? '俱乐部'
+
+  const doomed =
+    state.boardConfidence <= 6 ||
+    (state.onNotice && (state.missedStreak ?? 0) >= 2) ||
+    (state.onNotice && state.boardConfidence <= 18)
+
+  if (doomed && state.onNotice) {
+    state.gameOver =
+      `${club} 董事会决定解除你的职务。` +
+      `连续 ${state.missedStreak ?? 0} 个赛段没有达成目标，信任度已经跌到 ${Math.round(state.boardConfidence)}%。`
+    notes.push(`🚪 ${state.gameOver}`)
+    state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
+    return
+  }
+
+  if (!state.onNotice && (state.boardConfidence <= 20 || (state.missedStreak ?? 0) >= 2)) {
+    state.onNotice = true
+    const warn = `⚠ 董事会正式警告：再有一个赛段交不出成绩，就会换人。（当前信任度 ${Math.round(state.boardConfidence)}%）`
     notes.push(warn)
     state.news.push({ day: state.day, kind: 'club', important: true, text: warn })
+    return
+  }
+
+  // a good stage buys back some patience
+  if (state.onNotice && state.boardConfidence >= 45 && place <= 4) {
+    state.onNotice = false
+    const ok = '董事会撤回了此前的警告，你暂时坐稳了位置。'
+    notes.push(ok)
+    state.news.push({ day: state.day, kind: 'club', text: ok })
   }
 }
 

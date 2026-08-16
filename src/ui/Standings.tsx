@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { OvrBadge, Panel } from './common'
+import Bracket from './Bracket'
 import { sortStandings } from '../engine/league'
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
@@ -120,26 +121,38 @@ export default function Standings() {
               flush
             >
               <Table comp={c} />
+              {c.bracketStarted && (
+                <div style={{ padding: '12px 13px', borderTop: '1px solid var(--line)' }}>
+                  <div className="nav-group" style={{ padding: '0 0 8px' }}>季后赛对阵</div>
+                  <Bracket comp={c} />
+                </div>
+              )}
             </Panel>
           ))}
           {international.map((c) => (
-            <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`} flush>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr><th className="num">#</th><th>战队</th><th>赛区</th></tr>
-                  </thead>
-                  <tbody>
-                    {(c.finished.length ? c.finished : c.teams).map((id, i) => (
-                      <tr key={id} className={id === game.myTeam ? 'me' : ''}>
-                        <td className="num muted">{i + 1}{c.champion === id && ' 🏆'}</td>
-                        <td>{game.teams[id]?.name}</td>
-                        <td className="small muted">{REGION_CN[game.teams[id]?.region]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
+              <Bracket comp={c} />
+              {c.finished.length > 0 && (
+                <details style={{ marginTop: 12 }}>
+                  <summary className="small muted" style={{ cursor: 'pointer' }}>最终排名</summary>
+                  <div className="table-wrap" style={{ marginTop: 8 }}>
+                    <table>
+                      <thead>
+                        <tr><th className="num">#</th><th>战队</th><th>赛区</th></tr>
+                      </thead>
+                      <tbody>
+                        {c.finished.map((id, i) => (
+                          <tr key={id} className={id === game.myTeam ? 'me' : ''}>
+                            <td className="num muted">{i + 1}{c.champion === id && ' 🏆'}</td>
+                            <td>{game.teams[id]?.name}</td>
+                            <td className="small muted">{REGION_CN[game.teams[id]?.region]}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
             </Panel>
           ))}
         </>

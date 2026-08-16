@@ -388,5 +388,10 @@ export interface GameState {
   boardConfidence: number
   /** what the board asked for this stage, and how it was judged */
   objective?: StageObjective
+  /** the board has warned us; another failure ends the job */
+  onNotice?: boolean
+  /** how many stage objectives we have missed in a row */
+  missedStreak?: number
+  /** set when the career is over; the text is why */
   gameOver?: string
 }

@@ -53,6 +53,13 @@ export function agendaFor(state: GameState): AgendaItem[] {
     items.push({ key: 'objective', tone: 'info', go: 'standings', text: state.objective.text })
   }
 
+  if (state.onNotice) {
+    items.push({
+      key: 'notice', tone: 'urgent', go: 'standings',
+      text: '董事会已经警告过你——这个赛段交不出成绩就会被解约。',
+    })
+  }
+
   // ---- urgent: things that are actively costing you
   if (squad.length < 5) {
     items.push({
