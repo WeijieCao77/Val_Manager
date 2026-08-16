@@ -157,9 +157,12 @@ export default function MatchLive({
 
       {map && map.rounds.length > 0 && (
         <div style={{ marginBottom: 12 }}>
-          <RoundRibbon rounds={map.rounds} mineIsA={mineIsA} />
+          <RoundRibbon
+            rounds={map.rounds} mineIsA={mineIsA}
+            mineTag={(mineIsA ? a : b)?.tag} theirTag={(mineIsA ? b : a)?.tag}
+          />
           <div style={{ marginTop: 8 }}>
-            <RibbonLegend mine={mineIsA ? a!.name : b!.name} theirs={mineIsA ? b!.name : a!.name} />
+            <RibbonLegend />
           </div>
         </div>
       )}

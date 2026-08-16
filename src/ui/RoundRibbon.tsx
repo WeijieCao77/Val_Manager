@@ -9,19 +9,24 @@ import type { RoundLog } from '../engine/types'
  * that decided it — which a 13-7 scoreline alone never shows.
  */
 export default function RoundRibbon({
-  rounds, mineIsA, compact,
-}: { rounds: RoundLog[]; mineIsA: boolean; compact?: boolean }) {
+  rounds, mineIsA, compact, mineTag, theirTag,
+}: {
+  rounds: RoundLog[]; mineIsA: boolean; compact?: boolean
+  /** short club names, drawn against their own lane */
+  mineTag?: string; theirTag?: string
+}) {
   if (!rounds.length) return null
 
-  const w = compact ? 7 : 13
-  const gap = 1
+  const w = compact ? 8 : 20
+  const gap = compact ? 1 : 2
   // two lanes: mine on top, theirs below, so a run is visible as a solid block
   // on one side rather than as an alternation of two colours in one strip
-  const laneH = compact ? 9 : 16
-  const capH = compact ? 2 : 3
-  const mid = capH + 2
-  const width = rounds.length * (w + gap)
-  const height = mid + laneH * 2 + (compact ? 1 : 11)
+  const laneH = compact ? 10 : 24
+  const capH = compact ? 2 : 4
+  const mid = capH + 3
+  const labelW = compact || !mineTag ? 0 : 54
+  const width = rounds.length * (w + gap) + labelW
+  const height = mid + laneH * 2 + (compact ? 1 : 14)
 
   const MINE = 'var(--accent)'
   const IDLE = '#1b2836'
@@ -62,7 +67,7 @@ export default function RoundRibbon({
                 <EndMark
                   end={r.end}
                   x={x + w / 2}
-                  y={mid + (mineWon ? laneH / 2 : laneH + laneH / 2) + 3}
+                  y={mid + (mineWon ? laneH / 2 : laneH + laneH / 2) + 4}
                   light
                 />
               )}
@@ -71,6 +76,23 @@ export default function RoundRibbon({
         })}
 
         {/* half-time divider */}
+        {labelW > 0 && (
+          <g fontFamily="var(--mono)" fontSize={13} fontWeight={700}>
+            <text
+              x={rounds.length * (w + gap) + 7} y={mid + laneH / 2 + 5}
+              fill="var(--accent)"
+            >
+              {mineTag}
+            </text>
+            <text
+              x={rounds.length * (w + gap) + 7} y={mid + laneH + laneH / 2 + 5}
+              fill="var(--accent)"
+            >
+              {theirTag}
+            </text>
+          </g>
+        )}
+
         {halfAt > 0 && (
           <line
             x1={halfAt * (w + gap) - gap / 2} y1={0}
@@ -82,8 +104,8 @@ export default function RoundRibbon({
         {!compact && rounds.map((r, i) =>
           r.n % 4 === 0 ? (
             <text
-              key={`n${i}`} x={i * (w + gap) + w / 2} y={mid + laneH * 2 + 9}
-              fill="var(--faint)" fontSize={8} textAnchor="middle"
+              key={`n${i}`} x={i * (w + gap) + w / 2} y={mid + laneH * 2 + 12}
+              fill="var(--faint)" fontSize={10} textAnchor="middle"
               fontFamily="var(--mono)"
             >
               {r.n}
@@ -99,22 +121,22 @@ function EndMark({ end, x, y, light }: { end: RoundLog['end']; x: number; y: num
   const c = light ? 'rgba(255,255,255,.85)' : 'rgba(236,232,225,.5)'
   switch (end) {
     case 'spike': // detonation
-      return <polygon points={`${x},${y - 3} ${x + 2.6},${y + 1.5} ${x - 2.6},${y + 1.5}`} fill={c} />
+      return <polygon points={`${x},${y - 4.2} ${x + 3.6},${y + 2.1} ${x - 3.6},${y + 2.1}`} fill={c} />
     case 'defuse':
-      return <rect x={x - 2.2} y={y - 2.2} width={4.4} height={4.4} fill={c} rx={0.6} />
+      return <rect x={x - 3} y={y - 3} width={6} height={6} fill={c} rx={0.8} />
     case 'time':
-      return <rect x={x - 3} y={y - 0.7} width={6} height={1.4} fill={c} rx={0.7} />
+      return <rect x={x - 4.2} y={y - 1} width={8.4} height={2} fill={c} rx={1} />
     default: // elimination
-      return <circle cx={x} cy={y} r={2} fill={c} />
+      return <circle cx={x} cy={y} r={2.8} fill={c} />
   }
 }
 
-export function RibbonLegend({ mine, theirs }: { mine: string; theirs: string }) {
+export function RibbonLegend() {
   return (
     <div className="row wrap tiny" style={{ gap: 12, color: 'var(--faint)' }}>
       <span className="row" style={{ gap: 5 }}>
-        <i style={{ width: 9, height: 9, background: 'var(--accent)', borderRadius: 1, display: 'inline-block' }} />
-        上排 {mine} · 下排 {theirs}，<b>亮起来的一侧是拿下这回合的一方</b>
+        <i style={{ width: 10, height: 10, background: 'var(--accent)', borderRadius: 1, display: 'inline-block' }} />
+        <b>亮起来的一侧拿下该回合</b>
       </span>
       <span className="row" style={{ gap: 5 }}>
         <i style={{ width: 9, height: 3, background: 'var(--warn)', display: 'inline-block' }} />

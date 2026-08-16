@@ -89,9 +89,12 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       {map?.rounds && map.rounds.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div className="nav-group" style={{ padding: '0 0 8px' }}>回合走势 · {map.map}</div>
-          <RoundRibbon rounds={map.rounds} mineIsA={mineIsA} />
+          <RoundRibbon
+            rounds={map.rounds} mineIsA={mineIsA}
+            mineTag={(mineIsA ? a : b)?.tag} theirTag={(mineIsA ? b : a)?.tag}
+          />
           <div style={{ marginTop: 8 }}>
-            <RibbonLegend mine={mineIsA ? a.name : b.name} theirs={mineIsA ? b.name : a.name} />
+            <RibbonLegend />
           </div>
         </div>
       )}
