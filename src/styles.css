@@ -490,6 +490,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .bond-grid thead th { font-size: 11px; color: var(--muted); font-weight: 500; }
 .bond-grid tbody th { font-size: 12px; font-weight: 600; }
 .bond-grid .bond-self { background: #0d151e; color: #2c3b4c; }
+.bond-grid .bond-mirror { background: #0a1017; }
 .bond-key { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
 
 /* a clickable line per recent match, scrims included */

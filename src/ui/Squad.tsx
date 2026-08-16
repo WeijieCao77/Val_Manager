@@ -241,13 +241,16 @@ export default function Squad() {
               </tr>
             </thead>
             <tbody>
-              {squad.map((row) => (
+              {squad.map((row, ri) => (
                 <tr key={row.id}>
                   <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>{row.ign}</th>
-                  {squad.map((col) => {
+                  {squad.map((col, ci) => {
                     if (row.id === col.id) {
                       return <td key={col.id} className="bond-self" title="同一名选手">—</td>
                     }
+                    // the matrix is symmetric, so only the upper half carries
+                    // information; the mirror below it is noise
+                    if (ci < ri) return <td key={col.id} className="bond-mirror" />
                     const v = bondBetween(game, row.id, col.id)
                     return (
                       <td
