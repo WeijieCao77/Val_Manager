@@ -7,6 +7,7 @@ import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
+import { useAction } from './useAction'
 import { askingSalary, facilityCost, offerToStaff, releaseStaff, ROLE_CN, staffMarket, upgradeFacility } from '../engine/staff'
 import type { Attrs, Player, StaffRole } from '../engine/types'
 
@@ -26,6 +27,7 @@ function suggest(p: Player): keyof Attrs {
 
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
+  const act = useAction()
   const [hiring, setHiring] = useState(false)
   const [role, setRole] = useState<StaffRole>('head')
   const [bidOn, setBidOn] = useState<string | null>(null)
@@ -345,11 +347,10 @@ export default function Training() {
               <button
                 className="primary sm"
                 disabled={game.finances.balance < facilityCost(me.facilities)}
-                onClick={() => {
+                onClick={() => act('facility', () => {
                   toast(upgradeFacility(game))
                   logActivity(game, 'squad', `训练设施升级至 ${game.teams[game.myTeam].facilities}`)
-                  commit()
-                }}
+                })}
               >
                 升级到 {me.facilities + 1}
               </button>
@@ -466,11 +467,11 @@ export default function Training() {
                                   <option value={2}>2年</option>
                                   <option value={3}>3年</option>
                                 </select>
-                                <button className="sm primary" onClick={() => {
+                                <button className="sm primary" onClick={() => act('staff', () => {
                                   toast(offerToStaff(game, c.name, role, bidPay, bidYears))
                                   logActivity(game, 'squad', `向 ${c.name} 发出${ROLE_CN[role]}邀请`)
-                                  commit(); setBidOn(null)
-                                }}>发出</button>
+                                  setBidOn(null)
+                                })}>发出</button>
                               </div>
                             ) : (
                               <button className="sm" onClick={() => { setBidOn(c.name); setBidPay(ask) }}>

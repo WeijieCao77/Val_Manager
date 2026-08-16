@@ -31,6 +31,17 @@ export default function Saves() {
 
   return (
     <>
+      <Panel title="新手引导">
+        <p className="small muted" style={{ marginTop: 0 }}>
+          第一次进入游戏时会有一轮逐页介绍。想再看一遍可以从这里重新打开。
+        </p>
+        <button className="sm" onClick={() => {
+          try { localStorage.removeItem('valmgr.tour.done') } catch { /* ignore */ }
+          window.location.reload()
+        }}>重新播放引导</button>
+      </Panel>
+
+    <>
       <Panel title="保存进度">
         <div className="row wrap" style={{ gap: 10 }}>
           <input
@@ -99,6 +110,7 @@ export default function Saves() {
           {!game.honours.length && <div className="empty">还没有拿到冠军。</div>}
         </div>
       </Panel>
+    </>
     </>
   )
 }

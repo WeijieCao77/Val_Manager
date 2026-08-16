@@ -499,3 +499,28 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   color: var(--text); cursor: pointer; text-align: left;
 }
 .recent-row:hover { background: #101a25; }
+
+/* the day's budget: always on screen, and unmistakable when it runs out */
+.chip.actions { border-color: var(--accent-line); background: var(--accent-wash); }
+.chip.actions.spent { border-color: var(--line-soft); background: none; color: var(--faint); }
+
+/* first-run walkthrough: dim the app, spotlight one nav item at a time */
+.tour-bg {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(4, 9, 14, .72); backdrop-filter: blur(1.5px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.tour-card {
+  background: var(--panel); border: 1px solid var(--accent-line);
+  border-radius: var(--radius); padding: 20px 22px; max-width: 430px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+}
+.tour-card.anchored { margin-left: min(240px, 18vw); }
+.nav-item.tour-lit {
+  position: relative; z-index: 95;
+  background: var(--accent-wash) !important;
+  border-color: var(--accent) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 26px rgba(255, 70, 85, .45);
+}
+@media (max-width: 720px) { .tour-card.anchored { margin-left: 0; } }

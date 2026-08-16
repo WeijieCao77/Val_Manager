@@ -6,6 +6,8 @@ import {
   startVenture, streamOffer, ventureInfo,
 } from '../engine/commercial'
 import { logActivity } from '../engine/agenda'
+import { useAction } from './useAction'
+import { canAct, NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { squadOf } from '../engine/world'
 import type { Gig, VentureKind } from '../engine/types'
 
@@ -22,6 +24,7 @@ const ICON: Record<string, string> = {
  */
 export default function Commercial() {
   const { game, commit, toast } = useGame()
+  const act = useAction()
   const [picking, setPicking] = useState<string | null>(null)
   const [chosen, setChosen] = useState<string[]>([])
   const [venture, setVenture] = useState<VentureKind | null>(null)
@@ -41,7 +44,9 @@ export default function Commercial() {
   }
 
   const confirm = (g: Gig) => {
+    if (!canAct(game)) { toast(NO_ACTIONS_LEFT); return }
     const msg = bookGig(game, g.id, chosen)
+    if (g.accepted) spendAction(game, 'gig')
     if (!g.accepted) { toast(msg); return }
     logActivity(game, 'commercial', `${g.label}（${g.partner}）· ${chosen.length} 人出席`)
     commit()
@@ -78,7 +83,9 @@ export default function Commercial() {
           <button
             className="primary sm"
             disabled={(game.pitchCooldown ?? 0) > game.day}
-            onClick={() => { toast(pitchSponsor(game)); logActivity(game, 'commercial', '拜访潜在赞助商'); commit() }}
+            onClick={() => act('sponsor', () => {
+              toast(pitchSponsor(game)); logActivity(game, 'commercial', '拜访潜在赞助商')
+            })}
           >
             去谈一家赞助商
           </button>
@@ -125,11 +132,11 @@ export default function Commercial() {
                     </div>
                     <div className="row" style={{ gap: 8 }}>
                       <button className="primary sm" disabled={vChosen.length !== need}
-                        onClick={() => {
+                        onClick={() => act('venture', () => {
                           toast(startVenture(game, k, vChosen))
                           logActivity(game, 'commercial', `筹备${v.label}`)
-                          commit(); setVenture(null); setVChosen([])
-                        }}>确认举办</button>
+                          setVenture(null); setVChosen([])
+                        })}>确认举办</button>
                       <button className="sm ghost" onClick={() => { setVenture(null); setVChosen([]) }}>取消</button>
                     </div>
                   </div>
@@ -261,11 +268,10 @@ export default function Commercial() {
                         return (
                           <div className="row" style={{ gap: 6 }}>
                             <span className="tiny faint">{o.platform} 出价 {money(o.fee)}/年 · 每周 {o.nights} 晚</span>
-                            <button className="sm" onClick={() => {
+                            <button className="sm" onClick={() => act('stream', () => {
                               toast(signStream(game, p.id))
                               logActivity(game, 'commercial', `${p.ign} 签下直播合同`)
-                              commit()
-                            }}>签约</button>
+                            })}>签约</button>
                           </div>
                         )
                       })()}

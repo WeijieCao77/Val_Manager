@@ -7,6 +7,7 @@ import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
 import { agendaFor, activityOn, logActivity } from '../engine/agenda'
 import { SKILL_CN, SKILL_HINT } from '../engine/manager'
+import { useAction } from './useAction'
 import { squadOf, wageBill } from '../engine/world'
 import { ATTR_CN } from '../engine/types'
 
@@ -20,6 +21,7 @@ import type { DayReport } from '../engine/season'
 
 export default function Dashboard() {
   const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
+  const act = useAction()
   const [busy, setBusy] = useState(false)
   const [scrimOpp, setScrimOpp] = useState<string>('')
   const [scrimMap, setScrimMap] = useState<string>('')
@@ -433,12 +435,13 @@ export default function Dashboard() {
                   toast(reply.reason ?? '对方拒绝了。')
                   return
                 }
-                makeScrim(game, scrimOpp, game.day + 1, scrimMap, scrimFmt)
-                logActivity(game, 'scrim',
-                  `约战 ${game.teams[scrimOpp]?.name} @ ${scrimMap}（${scrimFmt === 'full24' ? '24 回合' : '先到 13'}）`)
-                commit()
-                toast(`已约战 ${game.teams[scrimOpp]?.name}，明天在 ${scrimMap} 进行。`)
-                setScrimOpp('')
+                act('scrim', () => {
+                  makeScrim(game, scrimOpp, game.day + 1, scrimMap, scrimFmt)
+                  logActivity(game, 'scrim',
+                    `约战 ${game.teams[scrimOpp]?.name} @ ${scrimMap}（${scrimFmt === 'full24' ? '24 回合' : '先到 13'}）`)
+                  toast(`已约战 ${game.teams[scrimOpp]?.name}，明天在 ${scrimMap} 进行。`)
+                  setScrimOpp('')
+                })
               }}
             >
               发起约战

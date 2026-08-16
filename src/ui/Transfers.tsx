@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
+import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import { answerIncoming, askingPrice, committedFunds, incomingOffers, makeOffer, windowOpen } from '../engine/transfer'
@@ -10,7 +11,8 @@ import { defaultContract, REGION_CN, ROLES } from '../engine/types'
 import type { Contract, Player, Role } from '../engine/types'
 
 export default function Transfers() {
-  const { game, commit, toast, openPlayer } = useGame()
+  const { game, toast, openPlayer } = useGame()
+  const act = useAction()
   const me = game.teams[game.myTeam]
   const [tab, setTab] = useState<'free' | 'listed' | 'all'>('free')
   const [role, setRole] = useState<Role | 'all'>('all')
@@ -101,14 +103,14 @@ export default function Transfers() {
                       <td className="num mono muted">{money(p.value)}</td>
                       <td>
                         <div className="row" style={{ gap: 6 }}>
-                          <button className="primary sm" onClick={() => {
+                          <button className="primary sm" onClick={() => act('reply', () => {
                             logActivity(game, 'transfer', `接受了 ${game.teams[o.toTeam]?.name} 对 ${p.ign} 的报价`)
-                            toast(answerIncoming(game, o.id, true)); commit()
-                          }}>接受</button>
-                          <button className="sm" onClick={() => {
+                            toast(answerIncoming(game, o.id, true))
+                          })}>接受</button>
+                          <button className="sm" onClick={() => act('reply', () => {
                             logActivity(game, 'transfer', `拒绝了 ${game.teams[o.toTeam]?.name} 对 ${p.ign} 的报价`)
-                            toast(answerIncoming(game, o.id, false)); commit()
-                          }}>拒绝</button>
+                            toast(answerIncoming(game, o.id, false))
+                          })}>拒绝</button>
                         </div>
                       </td>
                     </tr>
@@ -223,13 +225,12 @@ export default function Transfers() {
         <OfferModal
           player={target}
           onClose={() => setTarget(null)}
-          onSubmit={(fee, terms) => {
+          onSubmit={(fee, terms) => act('offer', () => {
             const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
-            commit()
             logActivity(game, 'transfer', `向 ${target.ign} 提交报价（转会费 ${money(fee)}，年薪 ${money(terms.salary)}）`)
             toast(`报价已提交给 ${target.ign}，${(offer.respondOn ?? game.day) - game.day} 天后给你答复。`)
             setTarget(null)
-          }}
+          })}
         />
       )}
     </>

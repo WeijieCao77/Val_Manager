@@ -568,6 +568,8 @@ export interface GameState {
    * Symmetric by construction — see engine/bonds.ts.
    */
   bonds?: Record<string, number>
+  /** the day's action budget — see engine/actions.ts */
+  actions?: { day: number; used: number }
   /** commercial offers on the table and already booked */
   gigs?: Gig[]
   /** club-run events currently being organised */

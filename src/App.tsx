@@ -18,6 +18,8 @@ import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
+import { ACTIONS_PER_DAY, actionsLeft } from './engine/actions'
+import Tour, { tourSeen } from './ui/Tour'
 import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
@@ -27,7 +29,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'squad', label: '阵容' },
   { key: 'tactics', label: '战术' },
   { key: 'training', label: '训练' },
-  { key: 'transfers', label: '转会' },
+  { key: 'transfers', label: '转会', group: '经营' },
   { key: 'commercial', label: '商务' },
   { key: 'finance', label: '财务' },
   { key: 'schedule', label: '赛程', group: '赛事' },
@@ -40,6 +42,7 @@ export default function App() {
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [tour, setTour] = useState(() => !tourSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
@@ -130,6 +133,13 @@ export default function App() {
           <div className="chip">{stageName(game.stage)}</div>
           <div className="spacer" />
           <div className="chip" title="可用资金">💰 <b>{money(game.finances.balance)}</b></div>
+          <div
+            className={`chip actions${actionsLeft(game) === 0 ? ' spent' : ''}`}
+            title={`每天 ${ACTIONS_PER_DAY} 点行动力。报价、商务、约战、教练组等对外事务各花 1 点；\n首发、战术、训练安排不花点数。`}
+          >
+            ⚡ 行动力
+            <b style={{ marginLeft: 4 }}>{actionsLeft(game)}/{ACTIONS_PER_DAY}</b>
+          </div>
           <div className="chip" title="董事会信任度">
             🏛 <b>{Math.round(game.boardConfidence)}%</b>
           </div>
@@ -154,7 +164,8 @@ export default function App() {
                 <div key={s.key}>
                   {s.group && <div className="nav-group">{s.group}</div>}
                   <button
-                    className={`${screen === s.key ? 'active' : ''}${lock ? ' locked' : ''}`}
+                    className={`nav-item ${screen === s.key ? 'active' : ''}${lock ? ' locked' : ''}`}
+                    data-key={s.key}
                     title={lock ?? ''}
                     onClick={() => setScreen(s.key)}
                   >
@@ -188,6 +199,7 @@ export default function App() {
         {game.gameOver && (
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
+        {tour && !game.gameOver && <Tour onDone={() => setTour(false)} />}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>
     </GameCtx.Provider>
