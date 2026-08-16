@@ -48,7 +48,7 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
   const motivated = 0.75 + p.morale / 200
 
   const mine = team.id === state.myTeam
-  // 训练 lifts everything; 青训 only pays on players young enough to grow
+  // 训练 lifts everything; 带新人 only pays on players young enough to grow
   const talent = mine
     ? skillMod(state.manager, 'training') *
       (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1)

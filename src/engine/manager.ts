@@ -8,24 +8,32 @@ import { Rng, clamp, hashStr } from './rng'
  * so nothing is strictly better. The one real trade-off is age — starting older
  * buys reputation (a better first job) at the cost of how fast you improve.
  */
+/**
+ * The eight talents.
+ *
+ * Named for what they do rather than for a department: there is no scouting
+ * network and no academy in this game, so 球探 and 青训 promised systems that
+ * do not exist. 眼光 is how precisely you can read a player's ceiling, and
+ * 带新人 is how fast the young ones improve under you.
+ */
 export type ManagerSkill =
   | 'training' | 'negotiation' | 'tactics' | 'scouting'
   | 'medical' | 'business' | 'locker' | 'youth'
 
 export const SKILL_CN: Record<ManagerSkill, string> = {
-  training: '训练', negotiation: '谈判', tactics: '战术', scouting: '球探',
-  medical: '体能', business: '商务', locker: '更衣室', youth: '青训',
+  training: '训练', negotiation: '谈判', tactics: '战术', scouting: '眼光',
+  medical: '体能', business: '商务', locker: '更衣室', youth: '带新人',
 }
 
 export const SKILL_HINT: Record<ManagerSkill, string> = {
   training: '训练收益更高',
   negotiation: '转会与续约更容易谈成',
   tactics: '比赛中的战术加成更大',
-  scouting: '潜力看得更准',
-  medical: '伤病更少，体能恢复更快',
+  scouting: '看得准潜力：低时选手潜力只显示为区间，高时显示确切数字',
+  medical: '伤病更少，休息恢复更多体能',
   business: '赞助收入更高',
   locker: '士气更稳，不满消退更快',
-  youth: '年轻选手成长更快',
+  youth: '23 岁以下选手的训练收益更高',
 }
 
 export interface ManagerOrigin {

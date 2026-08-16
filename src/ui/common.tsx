@@ -59,7 +59,7 @@ export function Potential({ p, game }: { p: Player; game: GameState }) {
   return (
     <span
       className={s.exact ? 'mono' : 'mono faint'}
-      title={s.exact ? '球探能力足够，潜力值可以看准' : `球探能力有限，只能判断在 ${s.text} 之间`}
+      title={s.exact ? '你的「眼光」足够，潜力值可以看准' : `你的「眼光」有限，只能判断在 ${s.text} 之间`}
     >
       {s.text}
     </span>
