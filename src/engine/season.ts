@@ -318,7 +318,7 @@ export interface AdvanceOpts {
 export const fixtureRng = (state: GameState, f: Fixture) =>
   new Rng(hashStr(`match:${state.seed}:${state.year}:${f.id}`))
 
-export const isScrim = (f: Fixture) => f.comp === 'friendly'
+export const isScrim = (f: Fixture) => f.comp === 'scrim'
 
 /** Apply a result the UI produced, then move the competition forward. */
 export function commitFixture(state: GameState, f: Fixture, result: MatchResult): void {
@@ -411,7 +411,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       pendingMine = f
       continue
     }
-    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f))
+    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f), f.scrim)
     commitFixture(state, f, result)
     if (isMine) playedMine.push(f)
   }
@@ -591,8 +591,43 @@ export function advanceToNextMatch(
   return reports
 }
 
-export function makeFriendly(state: GameState, oppId: string, day: number): Fixture {
-  const f = makeFixture(day, state.stage, 'friendly', state.myTeam, oppId, 1, '训练赛')
+/** A scrim is arranged, not drawn: you name the opponent, the map and the format. */
+export type ScrimFormat = 'first13' | 'full24'
+
+/**
+ * Would this club take the practice?
+ *
+ * Clubs about to face us competitively will not show their hand, and a side far
+ * above us has nothing to gain from the session.
+ */
+export function scrimReply(
+  state: GameState, oppId: string,
+): { ok: boolean; reason?: string } {
+  const opp = state.teams[oppId]
+  const me = state.teams[state.myTeam]
+  if (!opp || !me) return { ok: false, reason: '对手不存在。' }
+
+  const soon = state.fixtures.some(
+    (f) => !f.played && f.comp !== 'scrim' && f.day - state.day <= 10 &&
+      ((f.teamA === state.myTeam && f.teamB === oppId) ||
+       (f.teamB === state.myTeam && f.teamA === oppId)),
+  )
+  if (soon) return { ok: false, reason: `${opp.name} 很快要和我们打正赛，不想提前暴露战术。` }
+
+  const gap = opp.rating - me.rating
+  const rng = new Rng(hashStr(`scrim:${state.seed}:${state.day}:${oppId}`))
+  if (gap >= 10 && rng.chance(0.55 + (gap - 10) * 0.03)) {
+    return { ok: false, reason: `${opp.name} 认为和我们打收益不大，婉拒了。` }
+  }
+  if (rng.chance(0.12)) return { ok: false, reason: `${opp.name} 这几天的训练安排已经排满了。` }
+  return { ok: true }
+}
+
+export function makeScrim(
+  state: GameState, oppId: string, day: number, map: string, format: ScrimFormat,
+): Fixture {
+  const f = makeFixture(day, state.stage, 'scrim', state.myTeam, oppId, 1, '训练赛')
+  f.scrim = { map, format }
   state.fixtures.push(f)
   return f
 }

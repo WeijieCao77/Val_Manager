@@ -1,6 +1,7 @@
 /** Verify scrims fill gaps without polluting standings or season stats. */
 import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
-import { advanceDay, setupSeason, makeFriendly, commitFixture, fixtureRng, nextFixtureFor } from '../src/engine/season'
+import { advanceDay, setupSeason, makeScrim, scrimReply, commitFixture, fixtureRng, nextFixtureFor } from '../src/engine/season'
+import { activePool } from '../src/engine/match'
 import { simulateMatch } from '../src/engine/match'
 import { sortStandings } from '../src/engine/league'
 
@@ -25,8 +26,11 @@ const before = {
   fatigue: Math.round(g.teams[g.myTeam].starters.reduce((s, id) => s + g.players[id].fatigue, 0) / 5),
 }
 
-const f = makeFriendly(g, opp.id, g.day + 1)
-const res = simulateMatch(g, f.teamA, f.teamB, f.bo, fixtureRng(g, f))
+const reply = scrimReply(g, opp.id)
+console.log('约战答复:', reply.ok ? '接受' : '拒绝 — ' + reply.reason)
+const map = activePool(g.seed + g.year)[0]
+const f = makeScrim(g, opp.id, g.day + 1, map, 'full24')
+const res = simulateMatch(g, f.teamA, f.teamB, f.bo, fixtureRng(g, f), f.scrim)
 commitFixture(g, f, res)
 
 const after = {
@@ -38,7 +42,8 @@ const after = {
 const comp = Object.values(g.comps).find(c => c.teams.includes(g.myTeam) && c.stage.startsWith('stage'))
 const row = comp?.standings[g.myTeam]
 
-console.log(`scrim vs ${opp.name}: ${res.mapsWonA}-${res.mapsWonB}`)
+const m0 = res.maps[0]
+console.log(`训练赛 vs ${opp.name} @ ${m0.map}: ${m0.scoreA}-${m0.scoreB}  共 ${m0.scoreA + m0.scoreB} 回合  BP记录 ${res.vetoLog.length} 条`)
 console.log(`  season maps   ${before.maps} -> ${after.maps}  ${before.maps === after.maps ? '✅ not counted' : '❌ leaked into stats'}`)
 console.log(`  avg form      ${before.form} -> ${after.form}   ${after.form !== before.form ? '✅ moved' : '⚠ unchanged'}`)
 console.log(`  avg fatigue   ${before.fatigue} -> ${after.fatigue}  ${after.fatigue > before.fatigue ? '✅ cost paid' : '⚠ unchanged'}`)

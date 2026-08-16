@@ -279,6 +279,8 @@ export interface Fixture {
   result?: MatchResult
   /** filled in for bracket games once seeding is known */
   pending?: boolean
+  /** scrims skip the veto: the map and format are agreed in advance */
+  scrim?: { map: string; format: 'first13' | 'full24' }
 }
 
 export interface StandingRow {

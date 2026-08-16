@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, makeFriendly, nextFixtureFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, makeScrim, scrimReply, nextFixtureFor, stageName, STAGES } from '../engine/season'
+import type { ScrimFormat } from '../engine/season'
+import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
 import { agendaFor } from '../engine/agenda'
 import { squadOf, wageBill } from '../engine/world'
@@ -12,6 +14,9 @@ import type { DayReport } from '../engine/season'
 export default function Dashboard() {
   const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
   const [busy, setBusy] = useState(false)
+  const [scrimOpp, setScrimOpp] = useState<string>('')
+  const [scrimMap, setScrimMap] = useState<string>('')
+  const [scrimFmt, setScrimFmt] = useState<ScrimFormat>('full24')
   const me = game.teams[game.myTeam]
   const squad = squadOf(game, game.myTeam)
   const next = nextFixtureFor(game, game.myTeam)
@@ -51,7 +56,8 @@ export default function Dashboard() {
   const scrimOpponents = Object.values(game.teams)
     .filter((t) => t.id !== game.myTeam && t.region === me.region)
     .sort((a, b) => Math.abs(a.rating - me.rating) - Math.abs(b.rating - me.rating))
-    .slice(0, 4)
+    .slice(0, 8)
+  const pool = activePool(game.seed + game.year)
 
   // whatever we are actually playing right now, preferring the current phase
   const myComps = Object.values(game.comps).filter(
@@ -267,24 +273,71 @@ export default function Dashboard() {
       {gapDays >= 4 && (
         <Panel title={`空档期 · 距下一场还有 ${gapDays} 天`}>
           <p className="small muted" style={{ marginTop: 0 }}>
-            安排一场训练赛：赢球涨状态，输了也比闲着强，但会消耗体能。不计入积分榜与个人数据。
+            约一场训练赛：不计积分与个人数据，但会影响状态与体能。训练赛没有 BP，
+            双方提前商定地图。
           </p>
-          <div className="row wrap" style={{ gap: 8 }}>
-            {scrimOpponents.map((t) => (
-              <button
-                key={t.id}
-                className="sm"
-                onClick={() => {
-                  const f = makeFriendly(game, t.id, game.day + 1)
-                  commit()
-                  toast(`已约战 ${t.name}，明天进行。`)
-                  void f
-                }}
-              >
-                {t.name} <span className="tiny faint">实力 {t.rating}</span>
-              </button>
-            ))}
+          <div className="grid c3" style={{ gap: 12 }}>
+            <div>
+              <label className="small muted">对手</label>
+              <select value={scrimOpp} onChange={(e) => setScrimOpp(e.target.value)}>
+                <option value="">选择对手…</option>
+                {scrimOpponents.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}（实力 {t.rating}）
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="small muted">地图</label>
+              <select value={scrimMap} onChange={(e) => setScrimMap(e.target.value)}>
+                <option value="">选择地图…</option>
+                {pool.map((m) => (
+                  <option key={m} value={m}>
+                    {m}（熟练度 {me.mapPrefs[m] ?? 50}）
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="small muted">赛制</label>
+              <div className="seg" style={{ marginTop: 6 }}>
+                <button className={scrimFmt === 'full24' ? 'on' : ''} onClick={() => setScrimFmt('full24')}>
+                  打满 24 回合
+                </button>
+                <button className={scrimFmt === 'first13' ? 'on' : ''} onClick={() => setScrimFmt('first13')}>
+                  先到 13 分
+                </button>
+              </div>
+            </div>
           </div>
+          <div className="row" style={{ gap: 10, marginTop: 14 }}>
+            <button
+              className="primary"
+              disabled={!scrimOpp || !scrimMap}
+              onClick={() => {
+                const reply = scrimReply(game, scrimOpp)
+                if (!reply.ok) {
+                  toast(reply.reason ?? '对方拒绝了。')
+                  return
+                }
+                makeScrim(game, scrimOpp, game.day + 1, scrimMap, scrimFmt)
+                commit()
+                toast(`已约战 ${game.teams[scrimOpp]?.name}，明天在 ${scrimMap} 进行。`)
+                setScrimOpp('')
+              }}
+            >
+              发起约战
+            </button>
+            <span className="tiny faint">
+              {scrimFmt === 'full24'
+                ? '双方攻防各打 12 回合，常规训练赛做法，练完整两个半场。'
+                : '先到 13 分结束，更接近正赛节奏。'}
+            </span>
+          </div>
+          <p className="tiny faint" style={{ marginTop: 10, marginBottom: 0 }}>
+            对方可能拒绝：即将与我们打正赛的球队不愿暴露战术，实力远高于我们的球队也未必愿意。
+          </p>
         </Panel>
       )}
 

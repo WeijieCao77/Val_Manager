@@ -29,12 +29,18 @@ export const SPONSOR_NAMES = [
 
 /** Flavour lines used by the round narrator. */
 export const HIGHLIGHT_TEMPLATES = {
-  ace: (p: string, m: string) => `${p} 在 ${m} 打出 1v5 ACE，全场沸腾！`,
-  clutch: (p: string, n: number) => `${p} 完成 1v${n} 残局处理，硬生生把这回合抢了回来。`,
-  firstBlood: (p: string) => `${p} 开局直接拿下先手击杀，节奏起飞。`,
-  eco: (t: string) => `${t} 用一把手枪局打崩了对面的经济，读秒阶段直接连下两分。`,
+  ace: (p: string, m: string) => `${p} 在 ${m} 单人五杀，全场沸腾！`,
+  quad: (p: string) => `${p} 一回合带走四个，对面直接崩了。`,
+  clutch: (p: string, n: number) =>
+    n >= 3 ? `${p} 上演 1v${n} 残局，硬生生把这回合抢了回来。`
+      : `${p} 最后一人守住 1v${n}，稳稳收下这回合。`,
+  firstBlood: (p: string, n: number) => `${p} 连续 ${n} 个回合拿下首杀，突破端完全被他打开。`,
+  eco: (t: string) => `${t} 手枪局打崩对面经济，读秒阶段连下两分。`,
+  antiEco: (t: string, o: string) => `${t} 一把强起打穿了 ${o} 的满配，经济瞬间反转。`,
+  flawless: (t: string) => `${t} 零封拿下这回合，五人零阵亡。`,
+  streak: (t: string, n: number) => `${t} 连下 ${n} 回合，把比分彻底拉开。`,
   comeback: (t: string, from: number) => `${t} 从 ${from} 分的坑里爬了出来，追分成功。`,
-  thrifty: (t: string) => `${t} 残局翻盘，省下一整轮买枪钱。`,
+  mapPoint: (t: string) => `${t} 在赛点上被救了回来，比赛还没结束。`,
   overtime: () => `常规回合战平，比赛进入加时。`,
 }
 

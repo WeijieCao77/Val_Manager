@@ -260,6 +260,7 @@ function allocateRound(
   /** when the round is being played around one player, they see more of it */
   focusId?: string,
 ): void {
+  const roundKills: Record<string, number> = {}
   const kill = (killers: Player[], victims: Player[], count: number, firstOf: boolean) => {
     // a club fielding fewer than five still has to play; never divide by nobody
     if (!killers.length) return
@@ -281,6 +282,7 @@ function allocateRound(
       const kl = ctx.lines[killer.id]
       const vl = ctx.lines[victim.id]
       kl.kills++
+      roundKills[killer.id] = (roundKills[killer.id] ?? 0) + 1
       // a kill is often the finish on someone a teammate already damaged
       kl.damage += 120 + rng.range(0, 55)
       vl.deaths++
@@ -313,22 +315,28 @@ function allocateRound(
     ctx.lines[p.id].rounds++
   }
 
-  // a 1vX hold when the winning side was down to its last player — the survivor
-  // is whoever was most likely to still be standing
+  const room = () => ctx.highlights.length < 9
+
+  // a big individual round stands on its own, whether or not it was a clutch
+  for (const p of winners) {
+    const k = roundKills[p.id] ?? 0
+    if (k >= 5 && room()) ctx.highlights.push(HL.ace(p.ign, mapName))
+    else if (k === 4 && room() && rng.chance(0.5)) ctx.highlights.push(HL.quad(p.ign))
+  }
+
+  // a 1vX hold when the winning side was down to its last player. The survivor
+  // is whoever was most likely to still be standing, and the X is how many they
+  // actually took down — not the whole enemy side, which was the old bug.
   if (winnersLost === 4) {
     const hero = rng.weighted(
       winners,
       winners.map((p) => p.attrs.clutch * 0.6 + p.attrs.awareness * 0.4),
     )
     ctx.lines[hero.id].clutches++
-    if (losersLost === 5 && ctx.highlights.length < 8) {
-      if (ctx.lines[hero.id].kills >= 4 && rng.chance(0.25)) {
-        ctx.highlights.push(HL.ace(hero.ign, mapName))
-      } else {
-        ctx.highlights.push(HL.clutch(hero.ign, losersLost))
-      }
-    }
+    const took = Math.max(1, Math.min(roundKills[hero.id] ?? 1, losersLost))
+    if (room() && (took >= 3 || rng.chance(0.4))) ctx.highlights.push(HL.clutch(hero.ign, took))
   }
+
 }
 
 /** A tactical instruction called during a timeout; decays over a few rounds. */
@@ -366,8 +374,15 @@ export class MapSim {
   private halfA = 0
   private halfB = 0
   private otAnnounced = false
+  private streak = 0
+  private streakSide: 'A' | 'B' | null = null
+  private mapPointSaid = false
 
-  constructor(map: string, A: Lineup, B: Lineup, rng: Rng) {
+  /** 'first13' is a real map; 'full24' plays both halves out, as scrims do */
+  readonly format: 'first13' | 'full24'
+
+  constructor(map: string, A: Lineup, B: Lineup, rng: Rng, format: 'first13' | 'full24' = 'first13') {
+    this.format = format
     this.map = map
     this.A = A
     this.B = B
@@ -386,6 +401,9 @@ export class MapSim {
   }
 
   get over(): boolean {
+    // a scrim plays all 24 rounds so both sides get a full half on each side,
+    // which is the point of the session
+    if (this.format === 'full24') return this.round >= 24
     return (this.a >= 13 || this.b >= 13) && Math.abs(this.a - this.b) >= 2
   }
 
@@ -432,7 +450,7 @@ export class MapSim {
       this.halfA = this.a
       this.halfB = this.b
     }
-    if (this.round === 25 && !this.otAnnounced) {
+    if (this.round === 25 && this.format !== 'full24' && !this.otAnnounced) {
       this.otAnnounced = true
       this.ctx.highlights.push(HL.overtime())
       // each side gets one extra timeout for overtime, as in the real rules
@@ -507,8 +525,35 @@ export class MapSim {
       buyA: buyA as 'eco' | 'force' | 'full', buyB: buyB as 'eco' | 'force' | 'full',
     })
 
-    if (pistol && this.ctx.highlights.length < 8 && rng.chance(0.3)) {
-      this.ctx.highlights.push(HL.eco(aWins ? this.A.team.name : this.B.team.name))
+    const winnerName = aWins ? this.A.team.name : this.B.team.name
+    const loserName = aWins ? this.B.team.name : this.A.team.name
+    const room = () => this.ctx.highlights.length < 9
+
+    if (pistol && room() && rng.chance(0.3)) {
+      this.ctx.highlights.push(HL.eco(winnerName))
+    }
+    // a short buy beating a full one is the swing that decides halves
+    const winnerBuy = aWins ? buyA : buyB
+    const loserBuy = aWins ? buyB : buyA
+    if (!pistol && winnerBuy === 'eco' && loserBuy === 'full' && room() && rng.chance(0.14)) {
+      this.ctx.highlights.push(HL.antiEco(winnerName, loserName))
+    }
+    if (winnersLost === 0 && losersLost === 5 && room() && rng.chance(0.22)) {
+      this.ctx.highlights.push(HL.flawless(winnerName))
+    }
+    // a run of rounds is worth a line once it is genuinely a run
+    this.streak = this.streakSide === (aWins ? 'A' : 'B') ? this.streak + 1 : 1
+    this.streakSide = aWins ? 'A' : 'B'
+    if (this.streak === 5 && room()) this.ctx.highlights.push(HL.streak(winnerName, this.streak))
+    // saved on the brink — worth saying once, not every round spent there
+    if (!this.mapPointSaid) {
+      if (!aWins && this.a === 12 && this.b < 12) {
+        this.mapPointSaid = true
+        if (room()) this.ctx.highlights.push(HL.mapPoint(this.B.team.name))
+      } else if (aWins && this.b === 12 && this.a < 12) {
+        this.mapPointSaid = true
+        if (room()) this.ctx.highlights.push(HL.mapPoint(this.A.team.name))
+      }
     }
 
     for (const side of ['a', 'b'] as Side[]) {
@@ -570,16 +615,28 @@ export class MatchSim {
   private seenA = new Set<string>()
   private seenB = new Set<string>()
 
-  constructor(state: GameState, aId: string, bId: string, bo: 1 | 3 | 5, rng: Rng) {
+  readonly format: 'first13' | 'full24'
+
+  constructor(
+    state: GameState, aId: string, bId: string, bo: 1 | 3 | 5, rng: Rng,
+    agreed?: { map: string; format: 'first13' | 'full24' },
+  ) {
     this.state = state
     this.aId = aId
     this.bId = bId
     this.rng = rng
     this.need = Math.ceil(bo / 2)
-    const pool = activePool(state.seed + state.year)
-    const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
-    this.maps = maps
-    this.vetoLog = log
+    this.format = agreed?.format ?? 'first13'
+    if (agreed) {
+      // a scrim has no veto — both sides agreed the map when booking it
+      this.maps = [agreed.map]
+      this.vetoLog = []
+    } else {
+      const pool = activePool(state.seed + state.year)
+      const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
+      this.maps = maps
+      this.vetoLog = log
+    }
   }
 
   get decided(): boolean {
@@ -600,7 +657,7 @@ export class MatchSim {
     const B = buildLineup(this.state, this.bId, m)
     for (const p of A.players) this.seenA.add(p.id)
     for (const p of B.players) this.seenB.add(p.id)
-    this.current = new MapSim(m, A, B, this.rng)
+    this.current = new MapSim(m, A, B, this.rng, this.format)
     return true
   }
 
@@ -669,8 +726,9 @@ export function simulateMatch(
   bId: string,
   bo: 1 | 3 | 5,
   rng: Rng,
+  agreed?: { map: string; format: 'first13' | 'full24' },
 ): MatchResult {
-  return new MatchSim(state, aId, bId, bo, rng).runOut()
+  return new MatchSim(state, aId, bId, bo, rng, agreed).runOut()
 }
 
 /** Roll the match's per-map lines into a player's season + career totals. */
