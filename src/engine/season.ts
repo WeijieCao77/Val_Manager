@@ -11,6 +11,7 @@ import { offerGigs, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveStaffOffers } from './staff'
+import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
@@ -86,6 +87,7 @@ const tier2Of = (state: GameState, region: Region) =>
 
 /** Build every fixture that can be known before a ball is thrown. */
 export function setupSeason(state: GameState): void {
+  state.managerContract ??= defaultContract(state)
   resetFixtureSeq(0)
   state.fixtures = []
   state.comps = {}
@@ -418,6 +420,13 @@ export function acceptJob(state: GameState, offerId: string): string {
   const offer = state.jobOffers?.find((o) => o.id === offerId)
   const to = offer ? state.teams[offer.teamId] : null
   if (!offer || !to) return '这份邀请已经失效。'
+  return moveToClub(state, to.id)
+}
+
+/** Take over at another club, however the job came about. */
+export function moveToClub(state: GameState, teamId: string): string {
+  const to = state.teams[teamId]
+  if (!to) return '找不到这支球队。'
 
   const from = state.teams[state.myTeam]
   state.tenures ??= []
@@ -428,6 +437,8 @@ export function acceptJob(state: GameState, offerId: string): string {
 
   state.myTeam = to.id
   state.jobOffers = []
+  state.jobApplications = []
+  state.managerContract = undefined
   state.boardConfidence = 62
   state.onNotice = false
   state.missedStreak = 0
@@ -437,6 +448,7 @@ export function acceptJob(state: GameState, offerId: string): string {
   state.drill = { kind: 'none' }
   for (const pid of to.roster) state.training[pid] = 'rest'
 
+  state.managerContract = defaultContract(state)
   state.news.push({
     day: state.day, kind: 'club', important: true,
     text: `你离开 ${from?.name} 出任 ${to.name} 的经理。`,
@@ -580,8 +592,9 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   runGigsToday(state, notes)
   offerGigs(state, rng, notes)
 
-  // ---- coaches answering today
+  // ---- coaches and clubs answering today
   notes.push(...resolveStaffOffers(state, rng))
+  notes.push(...resolveApplications(state, rng))
 
   // ---- offers whose waiting period is up
   notes.push(...resolveDueOffers(state, rng))

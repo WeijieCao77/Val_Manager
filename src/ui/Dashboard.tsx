@@ -121,6 +121,7 @@ export default function Dashboard() {
           </div>
           <p className="tiny faint" style={{ padding: '0 14px 12px', margin: 0 }}>
             成绩越好、名气越大，来找你的俱乐部就越强。不接受的话邀请会自行过期。
+            也可以去<b>经理</b>页面主动向别的球队投申请。
           </p>
         </Panel>
       )}

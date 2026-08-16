@@ -249,6 +249,27 @@ export interface StaffCandidate {
   salary: number
 }
 
+/** The manager's own deal with their club. */
+export interface ManagerContract {
+  salary: number
+  years: number
+  /** season it was signed */
+  since: number
+}
+
+/** A job the manager has applied for, waiting on the club's answer. */
+export interface JobApplication {
+  id: string
+  teamId: string
+  day: number
+  replyOn: number
+  /** what the manager asked for */
+  salary: number
+  years: number
+  answer?: 'accept' | 'reject'
+  reason?: string
+}
+
 /** An approach made to a coach, waiting on their answer. */
 export interface StaffOffer {
   id: string
@@ -605,6 +626,10 @@ export interface GameState {
   staffOffers?: StaffOffer[]
   /** clubs currently trying to hire us away */
   jobOffers?: JobOffer[]
+  /** jobs we have applied for ourselves */
+  jobApplications?: JobApplication[]
+  /** our own contract with the current club */
+  managerContract?: ManagerContract
   /** clubs we have managed, in order */
   tenures?: { teamId: string; fromYear: number; toYear?: number }[]
   /** set when the career is over; the text is why */
