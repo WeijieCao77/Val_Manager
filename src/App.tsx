@@ -192,10 +192,11 @@ export default function App() {
           <MatchLive
             key={live.id}
             fixture={live}
-            onDone={(watched) => {
+            onDone={() => {
               setLive(null)
-              // watching already showed the match; skipping just leaves a banner
-              if (watched) setFixture(live)
+              // always show the result — skipping is precisely when you have
+              // seen nothing, and the banner this used to rely on is long gone
+              setFixture(live)
             }}
           />
         )}
