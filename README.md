@@ -57,7 +57,8 @@ VCT 年龄分布推算，选手详情页会显示"（推算）"。缺失的主�
 ## 玩法
 
 - **四大赛区一级联赛**：VCT Americas / EMEA / Pacific / China，各 12 支合作战队
-- **次级联赛**：Challengers 赛段，冠军可通过 Ascension 升入 VCT（同时有降级）
+- **次级联赛**：Challengers，四大区共 28 支真实战队（美洲 8 / EMEA 9 / 太平洋 7 / 中国 4），
+  冠军可通过 Ascension 升入 VCT（同时有降级）
 - **完整赛季日历**：季前 → Kickoff → Masters I → Stage 1 → Masters II → Stage 2 →
   Champions → 休赛期，共 336 天
 - **阵容管理**：首发五人、位置搭配（缺控场/哨卫会有实打实的惩罚）、体能与伤病
@@ -169,6 +170,12 @@ npx tsx scripts/smoke.ts 3
 
 请不要调低 `MIN_INTERVAL`。违规会导致 IP 临时封禁，反复触发会变成永久封禁
 （本项目开发时就踩过一次，是用 `action=parse` 每 2.2 秒请求造成的）。
+
+Challengers 数据由 `scripts/fetch_vlr_challengers.py` 抓取：先读各国 Challengers 赛事页拿到
+参赛队与名单，再读**赛事统计页**一次性拿到该赛事所有选手的真实数据——一个联赛一个请求，
+而不是一名选手一个请求（省下约 250 次请求）。只有统计页为空的联赛（如中国大陆的
+China National Tournament）才回落到逐个选手页。次级选手的能力值与一级选手在**同一个
+百分位池**里换算，所以他们较弱是被量出来的，不是被手动扣分扣出来的。
 
 **关于 vlr.gg**：`robots.txt` 只禁止 `/search/auto` 与 `/rr/`，其余允许抓取，
 但**没有公布任何速率上限**——开发中触发过一次 IP 限流，是短时间内约 1000 次请求造成的。

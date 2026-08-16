@@ -18,7 +18,7 @@ rate — so in-game ratings track how these players really perform.
 
 Output  src/data/world.json
 """
-import json, math, os, sys
+import json, math, os, re, sys
 from collections import defaultdict
 from datetime import date
 
@@ -118,12 +118,14 @@ TIER1 = {
     ],
 }
 
-# Challengers sides that appear in the scrape with a full real roster.
+# Challengers sides, scraped from the 2026 national Challengers leagues on
+# vlr.gg (see scripts/fetch_vlr_challengers.py). Every one is a real club with
+# a real roster; regions with fewer clubs simply have a smaller league.
 TIER2 = {
-    "Americas": [],
-    "EMEA": [("EP", "Eastern Pandas"), ("SGE", "Sangal Esports"), ("JL", "Joblife")],
-    "Pacific": [],
-    "China": [("KBG", "KeepBest Gaming"), ("AT", "A Team")],
+    'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
+    'EMEA': [('EF', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
+    'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
+    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQG', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming')],
 }
 
 ROLE_CN = {"d": "决斗者", "i": "先锋", "c": "控场", "s": "哨卫", "": "自由人"}
@@ -204,6 +206,90 @@ def parse_rows():
     return list(best.values())
 
 
+CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
+
+
+def vcl_tag(name):
+    """A short, stable tag for a Challengers club, derived from its real name."""
+    cleaned = re.sub(r"[^A-Za-z0-9 ]", "", name).split()
+    if not cleaned:
+        return name[:4].upper()
+    if len(cleaned) == 1:
+        return cleaned[0][:4].upper()
+    return "".join(w[0] for w in cleaned)[:4].upper()
+
+
+def parse_challengers_rows():
+    """Challengers players, in the same shape parse_rows() produces.
+
+    They are appended to the tier-1 pool *before* percentiles are computed, on
+    purpose: ability is then ranked across the whole scraped population, so a
+    Challengers player lands in the lower percentiles by measurement rather than
+    by a hand-applied penalty. Nothing here is invented — every line is a real
+    vlr.gg event stat line.
+    """
+    cache = load_json(CHALLENGERS_CACHE)
+    if not cache:
+        return [], {}
+
+    # club abbreviation as it appears in the stats table -> our team tag
+    roster_of = {}
+    for t in cache.get("teams", {}).values():
+        roster_of[t["name"]] = {p["ign"].lower() for p in t["roster"] if p["role"] == "player"}
+
+    def num(x):
+        try:
+            return float(str(x).replace("%", ""))
+        except (TypeError, ValueError):
+            return None
+
+    rows, agents = [], {}
+    for lines in cache.get("stats", {}).values():
+        for r in lines:
+            club = r.get("club") or ""
+            # the stats table abbreviates; match it back to a scraped club
+            tag = next(
+                (name for name in roster_of
+                 if name == club or r["ign"].lower() in roster_of[name]),
+                None,
+            )
+            if not tag:
+                continue
+            kast = num(r.get("kast"))
+            rows.append({
+                "ign": r["ign"], "tag": vcl_tag(tag), "nat": "", 
+                "role": (roles_from_agents(r.get("agents")) or ["自由人"])[0],
+                "rnd": num(r.get("maps")) or 0, "R": num(r.get("rating2")),
+                "acs": num(r.get("acs")), "kd": num(r.get("kd")),
+                "kast": kast / 100 if kast and kast > 1 else kast,
+                "adr": num(r.get("adr")), "kpr": num(r.get("kpr")), "apr": num(r.get("apr")),
+                "fkpr": num(r.get("fkpr")), "fdpr": num(r.get("fdpr")),
+                "hs": num(r.get("hs")),
+            })
+            agents[r["ign"]] = r.get("agents") or []
+
+    # leagues with no stats tab were filled in from each player's own page
+    for r in cache.get("players", {}).values():
+        club = r.get("club")
+        if not club or club not in roster_of:
+            continue
+        rows.append({
+            "ign": r["ign"], "tag": vcl_tag(club), "nat": "",
+            "role": (roles_from_agents(r.get("agents")) or ["自由人"])[0],
+            "rnd": r.get("rnd") or 0, "R": r.get("R"), "acs": r.get("acs"),
+            "kd": r.get("kd"), "kast": r.get("kast"), "adr": r.get("adr"),
+            "kpr": r.get("kpr"), "apr": r.get("apr"),
+            "fkpr": r.get("fkpr"), "fdpr": r.get("fdpr"), "hs": None,
+        })
+        agents[r["ign"]] = r.get("agents") or []
+
+    best = {}
+    for r in rows:
+        if r["ign"] not in best or (r["rnd"] or 0) > (best[r["ign"]]["rnd"] or 0):
+            best[r["ign"]] = r
+    return list(best.values()), agents
+
+
 def pctiles(rows, key, invert=False):
     vals = sorted(r[key] for r in rows if r.get(key) is not None)
     out = {}
@@ -263,6 +349,12 @@ def value_for(ovr, age, pot):
 
 def main():
     rows = parse_rows()
+    known = {r["ign"] for r in rows}
+    vcl_rows, vcl_agents = parse_challengers_rows()
+    # a Challengers player who has since moved up is already in the tier-1 pull
+    vcl_rows = [r for r in vcl_rows if r["ign"] not in known]
+    rows += vcl_rows
+    print(f"challengers: +{len(vcl_rows)} real players from vlr.gg event stats")
     births = load_json(BIRTHS)
     coaches = load_json(COACHES)
     # the community VLR API fills clubs whose Liquipedia infobox omits a coach
