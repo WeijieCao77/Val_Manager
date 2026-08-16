@@ -62,16 +62,19 @@ export function cyclesFor(teamCount: number, targetGames = 10): number {
 /** Spread round-robin rounds across the days available in a stage window. */
 export function scheduleRegularSeason(
   comp: Competition, stage: StageKey, startDay: number, endDay: number,
-  bo: 1 | 3 | 5, rng: Rng, labelPrefix = '常规赛',
+  bo: 1 | 3 | 5, rng: Rng, labelPrefix = '常规赛', targetGames = 10,
 ): Fixture[] {
-  const cycles = cyclesFor(comp.teams.length)
-  const rounds: [string, string][][] = []
+  const cycles = cyclesFor(comp.teams.length, targetGames)
+  let rounds: [string, string][][] = []
   for (let c = 0; c < cycles; c++) {
     // reversing every other pass keeps home/away alternating across cycles
     for (const pairs of roundRobin(comp.teams, rng)) {
       rounds.push(c % 2 === 0 ? pairs : pairs.map(([a, b]) => [b, a] as [string, string]))
     }
   }
+  // a short group phase plays only part of the way round, so a Kickoff is not
+  // as long as a full stage
+  if (rounds.length > targetGames) rounds = rounds.slice(0, targetGames)
   if (!rounds.length) return []
   const span = Math.max(1, endDay - startDay)
   const step = Math.max(2, Math.floor(span / rounds.length))

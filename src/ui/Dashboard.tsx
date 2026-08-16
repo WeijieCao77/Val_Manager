@@ -53,10 +53,12 @@ export default function Dashboard() {
     .sort((a, b) => Math.abs(a.rating - me.rating) - Math.abs(b.rating - me.rating))
     .slice(0, 4)
 
-  const myComp = Object.values(game.comps).find(
+  // whatever we are actually playing right now, preferring the current phase
+  const myComps = Object.values(game.comps).filter(
     (c) => c.teams.includes(game.myTeam) && !c.champion &&
-      (c.stage === 'stage1' || c.stage === 'stage2' || c.stage === 'challengers1' || c.stage === 'challengers2'),
+      game.fixtures.some((f) => f.comp === c.key && !f.played),
   )
+  const myComp = myComps.find((c) => c.stage === game.stage) ?? myComps[0]
   const table = myComp ? sortStandings(myComp) : []
   const myRank = table.indexOf(game.myTeam)
 

@@ -91,9 +91,12 @@ export function setupSeason(state: GameState): void {
     const t1 = tier1Of(state, region)
     const t2 = tier2Of(state, region)
 
-    // ---- Kickoff: straight knockout, top seeds get a bye
+    // ---- Kickoff: a short group phase, then a top-four knockout.
+    // A bare bracket meant the very first fixture of a career was a
+    // quarter-final against a club you had never played, and the standings
+    // stayed empty all the way through because knockouts do not build a table.
     const kc = makeComp(state, 'kickoff', `${region} Kickoff`, t1, region, 1)
-    state.fixtures.push(...startBracket(kc, t1, 'kickoff', 24, 3))
+    state.fixtures.push(...scheduleRegularSeason(kc, 'kickoff', 24, 52, 3, rng, '小组赛', 5))
 
     // ---- Stage 1 & Stage 2: full round robin, playoffs seeded from the table
     const s1 = makeComp(state, 'stage1', `VCT ${region} · Stage 1`, t1, region, 1)
@@ -115,7 +118,7 @@ export function setupSeason(state: GameState): void {
 }
 
 const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
-  stage1: 8, stage2: 8, challengers1: 4, challengers2: 4,
+  kickoff: 4, stage1: 8, stage2: 8, challengers1: 4, challengers2: 4,
 }
 
 /** Create an international event once its qualifiers are known. */
