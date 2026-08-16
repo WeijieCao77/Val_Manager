@@ -6,6 +6,7 @@ import Dashboard from './ui/Dashboard'
 import Squad from './ui/Squad'
 import TacticsScreen from './ui/Tactics'
 import TrainingScreen from './ui/Training'
+import Commercial from './ui/Commercial'
 import Schedule from './ui/Schedule'
 import Standings from './ui/Standings'
 import Transfers from './ui/Transfers'
@@ -27,6 +28,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'tactics', label: '战术' },
   { key: 'training', label: '训练' },
   { key: 'transfers', label: '转会' },
+  { key: 'commercial', label: '商务' },
   { key: 'finance', label: '财务' },
   { key: 'schedule', label: '赛程', group: '赛事' },
   { key: 'standings', label: '积分榜' },
@@ -106,6 +108,7 @@ export default function App() {
     schedule: Schedule,
     standings: Standings,
     transfers: Transfers,
+    commercial: Commercial,
     finance: Finances,
     saves: Saves,
   } as Record<string, ComponentType>)[screen] ?? Dashboard

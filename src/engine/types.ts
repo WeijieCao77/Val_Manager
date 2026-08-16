@@ -99,7 +99,7 @@ export interface JobOffer {
 /** Something the manager did, so the day can be recounted. */
 export interface Activity {
   day: number
-  kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics'
+  kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics' | 'commercial'
   text: string
 }
 
@@ -232,6 +232,35 @@ export interface Tactics {
 export const defaultTactics = (): Tactics => ({
   pace: 50, utility: 55, aggression: 50, adaptability: 50,
 })
+
+export type GigKind = 'fanmeet' | 'brand' | 'campus' | 'shoot' | 'stream'
+
+/**
+ * A commercial booking: an appearance, a shoot, a stream.
+ *
+ * Money the club does not have to win. The cost is the squad's time — every
+ * attendee loses a share of that week's training.
+ */
+export interface Gig {
+  id: string
+  kind: GigKind
+  label: string
+  partner: string
+  /** the day it takes place */
+  day: number
+  /** last day it can still be accepted */
+  expiresOn: number
+  fee: number
+  /** how many players must attend */
+  heads: number
+  fatigue: number
+  morale: number
+  fans: number
+  blurb: string
+  accepted?: boolean
+  attendees?: string[]
+  done?: boolean
+}
 
 export interface Sponsor {
   name: string
@@ -443,6 +472,14 @@ export interface GameState {
    * is a decision rather than something you can keep nudging.
    */
   drillLock?: number
+  /** commercial offers on the table and already booked */
+  gigs?: Gig[]
+  /**
+   * Days each player spent on commercial work this week.
+   *
+   * Read at the weekly settlement: a day being famous is a day not practising.
+   */
+  commercialDays?: Record<string, number>
   /** a log of what the manager did, so today can be recounted */
   activity?: Activity[]
   finances: {

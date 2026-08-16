@@ -11,6 +11,7 @@ import { ATTR_CN } from '../engine/types'
 
 const ACT_CN: Record<string, string> = {
   training: '训练', scrim: '训练赛', transfer: '转会', squad: '阵容', tactics: '战术',
+  commercial: '商务',
 }
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'

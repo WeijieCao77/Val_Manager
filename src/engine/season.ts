@@ -7,6 +7,7 @@ import {
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
+import { offerGigs, runGigsToday } from './commercial'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
@@ -560,6 +561,10 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
 
   if (!pendingMine) progressCompetitions(state)
+
+  // ---- commercial work booked for today, then any new approach
+  runGigsToday(state, notes)
+  offerGigs(state, rng, notes)
 
   // ---- offers whose waiting period is up
   notes.push(...resolveDueOffers(state, rng))

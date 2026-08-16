@@ -161,5 +161,22 @@ export function agendaFor(state: GameState): AgendaItem[] {
     })
   }
 
+  // commercial work has to be booked before the day arrives, so surface it
+  const gigs = (state.gigs ?? []).filter((g) => !g.done && g.day >= state.day)
+  const unbooked = gigs.filter((g) => !g.accepted)
+  if (unbooked.length) {
+    const soon = unbooked.reduce((a, b) => (a.day < b.day ? a : b))
+    items.push({
+      key: 'gig',
+      text: `有 ${unbooked.length} 个商务邀约待处理，最近的是${soon.label}（${soon.day - state.day} 天后）`,
+      tone: soon.day - state.day <= 2 ? 'urgent' : 'todo',
+      go: 'commercial',
+    })
+  }
+  const today = gigs.find((g) => g.accepted && g.day === state.day)
+  if (today) {
+    items.push({ key: 'gig-today', text: `今天有${today.label}（${today.partner}）`, tone: 'info', go: 'commercial' })
+  }
+
   return items.slice(0, 5)
 }

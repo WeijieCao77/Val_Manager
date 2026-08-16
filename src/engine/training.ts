@@ -19,6 +19,13 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
 
   const attr = focus as keyof Attrs
   const headroom = p.potential - p.overall
+  // days spent on commercial work are days not spent practising
+  const booked = state.commercialDays?.[p.id] ?? 0
+  const available = clamp(1 - booked * 0.25, 0, 1)
+  if (available <= 0) {
+    p.form = clamp(p.form - rng.range(0, 2), 30, 99)
+    return null
+  }
   if (headroom <= 0) {
     // at the ceiling: practice only holds form together
     p.fatigue = clamp(p.fatigue + rng.range(4, 9), 0, 100)
@@ -34,7 +41,7 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
 
   const gain =
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
-    clamp(headroom / 12, 0.25, 1.6)
+    clamp(headroom / 12, 0.25, 1.6) * available
 
   p.xp[attr] = (p.xp[attr] ?? 0) + gain
   p.fatigue = clamp(p.fatigue + rng.range(5, 11), 0, 100)
@@ -98,7 +105,9 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   runDuo(state, team, rng)
   const drill = state.drill
   if (!drill || drill.kind === 'none') return
-  const squad = squadOf(state, state.myTeam).filter((p) => p.injuredUntil <= state.day)
+  const squad = squadOf(state, state.myTeam).filter(
+    (p) => p.injuredUntil <= state.day && (state.commercialDays?.[p.id] ?? 0) < 4,
+  )
   if (!squad.length) return
 
   const coachDev = (coachOr(team, 'development') - 55) / 100
@@ -172,6 +181,13 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
 export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   runDrill(state, rng, notes)
+  const missed = Object.entries(state.commercialDays ?? {})
+    .filter(([, d]) => d >= 2)
+    .map(([id]) => state.players[id]?.ign)
+    .filter(Boolean)
+  if (missed.length) {
+    notes.push(`📉 本周 ${missed.join('、')} 商务占用较多，训练收益明显下降。`)
+  }
   // the plan has now been run, so next week's is open to change again
   state.drillLock = undefined
   for (const team of Object.values(state.teams)) {
@@ -235,6 +251,8 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       }
     }
   }
+  // the week has been settled, so commercial time starts over
+  state.commercialDays = {}
   return notes
 }
 
