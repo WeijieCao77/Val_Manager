@@ -2,6 +2,7 @@ import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
 import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
+import { skillMod } from './manager'
 import type {
   GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
 } from './types'
@@ -113,7 +114,9 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const rapport = squadHarmony(state, team.id)
   const chem = clamp((avg('teamwork') + avg('communication')) / 2 + (rapport - NEUTRAL) * 0.18, 20, 99)
   const chemBonus = (chem - 65) * 0.07
-  const coachBonus = (coachOr(team, 'tactics') - 60) * 0.05
+  // 战术: the manager's own read of the game, on top of the coach's
+  const coachBonus = (coachOr(team, 'tactics') - 60) * 0.05 +
+    (team.id === state.myTeam ? (skillMod(state.manager, 'tactics', 0.06) - 1) : 0)
   const comp = compositionScore(players)
   const mapPref = ((team.mapPrefs[map] ?? 50) - 50) * 0.07
 

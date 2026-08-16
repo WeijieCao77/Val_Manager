@@ -4,12 +4,13 @@ import { setupSeason } from '../engine/season'
 import { importSave } from '../engine/save'
 import { hashStr } from '../engine/rng'
 import {
-  AGE_MAX, AGE_MIN, SKILL_CN, SKILL_HINT, ageBand, canManage, createManager, dealOrigins,
+  AGE_MAX, AGE_MIN, POINT_STEP, SKILL_CN, SKILL_HINT, SKILL_MAX, TALENT_POINTS,
+  ageBand, canManage, createManager, dealOrigins, spendPoint,
 } from '../engine/manager'
 import type { ManagerOrigin } from '../engine/manager'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { GameState, Region } from '../engine/types'
-import { money, OvrBadge } from './common'
+import { money, OvrBadge, Bar } from './common'
 
 export default function NewGame({
   onStart, canContinue, onContinue,
@@ -25,10 +26,19 @@ export default function NewGame({
   const [dealSeed] = useState(() => (hashStr(String(Date.now())) >>> 0))
   const offered = useMemo(() => dealOrigins(dealSeed, 3), [dealSeed])
   const origin = offered.find((o) => o.key === originKey) ?? null
+  const [spent, setSpent] = useState<Record<string, number>>({})
 
   const manager = useMemo(
-    () => (origin ? createManager(name, age, origin.key) : null),
-    [name, age, origin],
+    () => {
+      if (!origin) return null
+      const m = createManager(name, age, origin.key)
+      // replay the allocation on top of a fresh manager, so it survives the memo
+      for (const [k, n] of Object.entries(spent)) {
+        for (let i = 0; i < n; i++) spendPoint(m, k as never, 1)
+      }
+      return m
+    },
+    [name, age, origin, spent],
   )
   const band = ageBand(age)
 
@@ -230,6 +240,46 @@ export default function NewGame({
               <span className="tag">{REGION_CN[selected.region as Region]}</span>
               <span className="tag">阵容强度 {squadStrength[selected.id]}</span>
               <span className="tag">{manager.age} 岁 · {origin?.label}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manager && (
+        <div className="panel">
+          <div className="panel-head">
+            <h2>天赋点 · 剩余 {manager.points ?? 0} / {TALENT_POINTS}</h2>
+            {Object.keys(spent).length > 0 && (
+              <button className="sm ghost" onClick={() => setSpent({})}>重置</button>
+            )}
+          </div>
+          <div className="panel-body">
+            <p className="small muted" style={{ marginTop: 0 }}>
+              每点 +{POINT_STEP}，上限 {SKILL_MAX}。<b>8 点不够样样精通</b>——
+              可以把两项拉满，也可以摊平但都不突出。出身决定你从哪开始，天赋决定你走向哪。
+            </p>
+            <div className="grid c2" style={{ gap: 10 }}>
+              {(Object.keys(SKILL_CN) as (keyof typeof SKILL_CN)[]).map((k) => {
+                const v = manager.skills[k]
+                const base = manager.baseSkills?.[k] ?? v
+                const added = spent[k] ?? 0
+                return (
+                  <div key={k} className="row" style={{ gap: 8, alignItems: 'center' }}>
+                    <span className="small" style={{ width: 52 }}>
+                      {SKILL_CN[k]}
+                      {base > 50 && <span className="tiny" style={{ color: 'var(--win)' }}> ▲</span>}
+                      {base < 50 && <span className="tiny" style={{ color: 'var(--accent)' }}> ▼</span>}
+                    </span>
+                    <button className="sm ghost" disabled={added <= 0}
+                      onClick={() => setSpent((x) => ({ ...x, [k]: (x[k] ?? 0) - 1 }))}>−</button>
+                    <Bar value={v} />
+                    <span className="mono small" style={{ width: 24 }}>{v}</span>
+                    <button className="sm" disabled={(manager.points ?? 0) <= 0 || v >= SKILL_MAX}
+                      onClick={() => setSpent((x) => ({ ...x, [k]: (x[k] ?? 0) + 1 }))}>+</button>
+                    <span className="tiny faint" style={{ flex: 1 }}>{SKILL_HINT[k]}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

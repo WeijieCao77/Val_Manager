@@ -2,6 +2,7 @@ import { Rng, clamp, hashStr } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, squadOf, wageBill } from './world'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
+import { skillMod } from './manager'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 
 export const TRANSFER_WINDOWS: [number, number][] = [
@@ -121,6 +122,8 @@ export function scoreOffer(
   // the club alone could not — and this is the real reward for a career going
   // well: not a menu unlocking, but better players taking your call.
   if (toTeam.id === state.myTeam && state.manager) {
+    // 谈判 is worth a few points of persuasion on top of your name
+    score += (skillMod(state.manager, 'negotiation', 0.5) - 1) * 30
     const pull = (state.manager.reputation - toTeam.reputation) * 0.55
     parts.push({
       key: 'manager',

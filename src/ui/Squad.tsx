@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
-import { Condition, money, OvrBadge, Panel, Roles, Traits } from './common'
+import { Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
@@ -154,7 +154,7 @@ export default function Squad() {
                     </td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
-                    <td className="num muted">{p.potential}</td>
+                    <td className="num"><Potential p={p} game={game} /></td>
                     <td className="num">{p.age}</td>
 
                     {view === 'summary' && (

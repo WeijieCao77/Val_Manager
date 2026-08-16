@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull } from './common'
+import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
 import { playerAcceptsTerms } from '../engine/transfer'
@@ -86,7 +86,7 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
             <span className="tag" title={p.birth ? `生日 ${p.birth}` : '未收录生日，年龄为推算值'}>
               {p.age} 岁{p.ageEstimated ? '（推算）' : ''}
             </span>
-            <span className="tag">潜力 {p.potential}</span>
+            <span className="tag">潜力 <Potential p={p} game={game} /></span>
             {p.injuredUntil > game.day && (
               <span className="tag warn">⚕ {p.injuryNote}（{p.injuredUntil - game.day} 天）</span>
             )}

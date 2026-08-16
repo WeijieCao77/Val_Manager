@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Modal, OvrBadge, Panel, Roles, money, moneyFull } from './common'
+import { Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import { answerIncoming, askingPrice, committedFunds, incomingOffers, makeOffer, windowOpen } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { squadOf, wageBill } from '../engine/world'
@@ -202,7 +202,7 @@ export default function Transfers() {
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>
-                  <td className="num muted">{p.potential}</td>
+                  <td className="num"><Potential p={p} game={game} /></td>
                   <td className="num">{p.age}</td>
                   <td className="small muted">{REGION_CN[p.region]}</td>
                   <td className="small muted">{p.teamId ? game.teams[p.teamId]?.name : '自由人'}</td>
@@ -259,7 +259,7 @@ function OfferModal({
       <div className="row wrap" style={{ gap: 10, marginBottom: 14 }}>
         <Roles p={player} />
         <OvrBadge value={player.overall} />
-        <span className="tag">潜力 {player.potential}</span>
+        <span className="tag">潜力 <Potential p={player} game={game} /></span>
         <span className="tag">{player.age} 岁</span>
         <span className="tag">{REGION_CN[player.region]}</span>
         <span className="tag">{player.teamId ? game.teams[player.teamId]?.name : '自由人'}</span>

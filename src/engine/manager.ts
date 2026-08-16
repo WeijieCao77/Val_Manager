@@ -1,4 +1,4 @@
-import { Rng, clamp } from './rng'
+import { Rng, clamp, hashStr } from './rng'
 
 /**
  * The manager themselves.
@@ -97,6 +97,10 @@ export interface Manager {
   originKey: string
   /** gates which clubs will hire you */
   reputation: number
+  /** talent points not yet spent */
+  points?: number
+  /** where each skill started, so refunds cannot dip below the origin */
+  baseSkills?: Record<ManagerSkill, number>
   /** how fast your skills improve; the price of starting with reputation */
   growth: number
   skills: Record<ManagerSkill, number>
@@ -153,12 +157,50 @@ export function createManager(name: string, age: number, originKey: string): Man
     reputation: Math.round(clamp(ageReputation(age) + origin.repMod, 25, 84)),
     growth: ageGrowth(age),
     skills,
+    baseSkills: { ...skills },
+    points: TALENT_POINTS,
   }
 }
 
 /** A skill as a small multiplier around 1, for use at call sites. */
+/**
+ * Talent points handed out at the start of a career.
+ *
+ * Eight is deliberately not enough to be good at everything: two skills taken
+ * to the ceiling, or a broad but unremarkable spread. Origin already decides
+ * where you begin, so these decide what you become.
+ */
+export const TALENT_POINTS = 8
+export const SKILL_MIN = 20
+export const SKILL_MAX = 90
+/** each point buys this much of a skill */
+export const POINT_STEP = 5
+
+/**
+ * A skill's effect, as a multiplier around 1.
+ *
+ * Everything reads through here so the numbers stay comparable: at the default
+ * strength a maxed skill is worth about +16%, a neglected one about -12%.
+ */
 export const skillMod = (m: Manager | undefined, k: ManagerSkill, strength = 0.004): number =>
   1 + ((m?.skills[k] ?? 50) - 50) * strength
+
+/** Spend or refund a point. Returns null when the move is not allowed. */
+export function spendPoint(m: Manager, k: ManagerSkill, delta: 1 | -1): string | null {
+  const now = m.skills[k] ?? 50
+  if (delta > 0) {
+    if ((m.points ?? 0) <= 0) return '没有可用的天赋点了。'
+    if (now >= SKILL_MAX) return `${SKILL_CN[k]}已经到上限了。`
+    m.skills[k] = now + POINT_STEP
+    m.points = (m.points ?? 0) - 1
+    return null
+  }
+  // only points you added can be taken back, never the origin's own baseline
+  if (now - POINT_STEP < (m.baseSkills?.[k] ?? SKILL_MIN)) return '这一项不能再降了。'
+  m.skills[k] = now - POINT_STEP
+  m.points = (m.points ?? 0) + 1
+  return null
+}
 
 /**
  * Can this manager be hired here?
@@ -175,4 +217,29 @@ export function canManage(
   if (isTopOfLeague) return false
   if (teamReputation <= OPEN_TO_ALL) return true
   return teamReputation <= managerRep + 12
+}
+
+/**
+ * Potential as the manager's scouting can actually see it.
+ *
+ * A number nobody could really know was being displayed to four significant
+ * figures. Scouting does not change what a player will become — it changes how
+ * precisely you can read it, so a poor scout sees a wide band and a great one
+ * sees the number. The band is deterministic per player, so it does not shimmer
+ * between renders, and it always contains the truth.
+ */
+export function scoutedPotential(
+  m: Manager | undefined, playerId: string, potential: number,
+): { text: string; exact: boolean; low: number; high: number } {
+  const skill = m?.skills.scouting ?? 50
+  // 90 -> ±0, 50 -> ±5, 20 -> ±9
+  const band = Math.max(0, Math.round((88 - skill) / 7.5))
+  if (band <= 0) return { text: String(potential), exact: true, low: potential, high: potential }
+
+  // offset the window by a stable per-player hash so the true value is not
+  // always dead centre — otherwise a wide band still gives the answer away
+  const drift = (hashStr(`scout:${playerId}`) % (band + 1)) - Math.floor(band / 2)
+  const low = Math.max(30, Math.min(potential, potential - band + drift))
+  const high = Math.min(99, Math.max(potential, potential + band + drift))
+  return { text: `${low}~${high}`, exact: false, low, high }
 }

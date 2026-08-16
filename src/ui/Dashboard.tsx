@@ -6,6 +6,7 @@ import type { ScrimFormat } from '../engine/season'
 import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
 import { agendaFor, activityOn, logActivity } from '../engine/agenda'
+import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { squadOf, wageBill } from '../engine/world'
 import { ATTR_CN } from '../engine/types'
 
@@ -153,6 +154,15 @@ export default function Dashboard() {
         {game.manager && (
           <Panel>
             <Stat k="经理声望" v={`${Math.round(game.manager.reputation)}`} />
+            <div className="row wrap tiny" style={{ gap: 5, marginTop: 6 }}>
+              {(Object.keys(SKILL_CN) as (keyof typeof SKILL_CN)[])
+                .filter((k) => (game.manager!.skills[k] ?? 50) >= 65)
+                .map((k) => (
+                  <span key={k} className="tag" title={SKILL_HINT[k]}>
+                    {SKILL_CN[k]} {game.manager!.skills[k]}
+                  </span>
+                ))}
+            </div>
             <div className="tiny faint" style={{ marginTop: 2 }}>
               {game.manager.reputation >= 85 ? '顶级豪门也会考虑你'
                 : game.manager.reputation >= 72 ? '强队愿意听你开条件'

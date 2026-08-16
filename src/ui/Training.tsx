@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Bar, Condition, money, OvrBadge, Panel, Roles } from './common'
+import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { squadOf } from '../engine/world'
 import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
@@ -289,7 +289,7 @@ export default function Training() {
                     <td className="clickable" onClick={() => openPlayer(p.id)}><b>{p.ign}</b></td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
-                    <td className="num muted">{p.potential}</td>
+                    <td className="num"><Potential p={p} game={game} /></td>
                     <td>
                       <div className="row" style={{ gap: 7 }}>
                         <Bar value={head} max={25} color={head > 8 ? 'var(--win)' : head > 3 ? 'var(--warn)' : 'var(--muted)'} />

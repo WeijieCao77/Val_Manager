@@ -4,6 +4,7 @@ import { recomputeOverall, refreshValue, ageDrift } from './player'
 import { coachOr, squadOf } from './world'
 import { duoBonded, weeklyBonds } from './bonds'
 import { staffBonus } from './staff'
+import { skillMod } from './manager'
 import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
@@ -13,7 +14,9 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
   const focus = state.training[p.id] ?? 'rest'
 
   if (focus === 'rest') {
-    p.fatigue = clamp(p.fatigue - rng.range(18, 30), 0, 100)
+    // 体能: rest gives back more
+    const heal = team.id === state.myTeam ? skillMod(state.manager, 'medical', 0.008) : 1
+    p.fatigue = clamp(p.fatigue - rng.range(18, 30) * heal, 0, 100)
     p.morale = clamp(p.morale + rng.range(0.5, 2.5), 0, 100)
     p.form = clamp(p.form + rng.range(-1, 2), 30, 99)
     return null
@@ -43,9 +46,15 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
   const tired = p.fatigue > 70 ? 0.5 : p.fatigue > 45 ? 0.8 : 1
   const motivated = 0.75 + p.morale / 200
 
+  const mine = team.id === state.myTeam
+  // 训练 lifts everything; 青训 only pays on players young enough to grow
+  const talent = mine
+    ? skillMod(state.manager, 'training') *
+      (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1)
+    : 1
   const gain =
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
-    clamp(headroom / 12, 0.25, 1.6) * available
+    clamp(headroom / 12, 0.25, 1.6) * available * talent
 
   p.xp[attr] = (p.xp[attr] ?? 0) + gain
   p.fatigue = clamp(p.fatigue + rng.range(5, 11), 0, 100)
@@ -237,7 +246,9 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         const starting = team.starters.includes(p.id)
         const expects = promised === 'star' || promised === 'starter'
         if (expects && !starting) {
-          p.grievance = clamp((p.grievance ?? 0) + (promised === 'star' ? 7 : 4.5), 0, 100)
+          // 更衣室: grievance builds slower when the manager handles people well
+          const soothe = isMine ? 2 - skillMod(state.manager, 'locker', 0.006) : 1
+          p.grievance = clamp((p.grievance ?? 0) + (promised === 'star' ? 7 : 4.5) * soothe, 0, 100)
           p.morale = clamp(p.morale - (promised === 'star' ? 3 : 2), 10, 100)
           if (isMine && (p.grievance ?? 0) > 55 && rng.chance(0.25) && !p.listed) {
             notes.push(`😠 ${p.ign} 对出场时间不满，已经在考虑离队（承诺是${promised === 'star' ? '核心' : '首发'}）。`)
@@ -253,7 +264,9 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       p.morale = clamp(p.morale + rng.range(-2, 2), 10, 100)
 
       // fatigue and heavy schedules cause injuries
-      const risk = 0.004 + Math.max(0, p.fatigue - 55) * 0.0009 + Math.max(0, p.age - 27) * 0.002
+      // 体能: fewer injuries under a manager who manages load
+      const risk = (0.004 + Math.max(0, p.fatigue - 55) * 0.0009 + Math.max(0, p.age - 27) * 0.002) *
+        (isMine ? 2 - skillMod(state.manager, 'medical', 0.008) : 1)
       if (rng.chance(risk)) {
         const inj = rng.pick(INJURIES)
         const days = rng.int(inj.days[0], inj.days[1])

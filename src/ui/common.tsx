@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
-import type { Player, Role, Trait } from '../engine/types'
+import { scoutedPotential } from '../engine/manager'
+import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
   const abs = Math.abs(n)
@@ -49,6 +50,19 @@ export function Bar({ value, max = 100, color }: { value: number; max?: number; 
     <div className="bar">
       <i style={{ width: `${pct}%`, background: c }} />
     </div>
+  )
+}
+
+/** Potential, blurred to whatever the manager's scouting can actually read. */
+export function Potential({ p, game }: { p: Player; game: GameState }) {
+  const s = scoutedPotential(game.manager, p.id, p.potential)
+  return (
+    <span
+      className={s.exact ? 'mono' : 'mono faint'}
+      title={s.exact ? '球探能力足够，潜力值可以看准' : `球探能力有限，只能判断在 ${s.text} 之间`}
+    >
+      {s.text}
+    </span>
   )
 }
 

@@ -1,4 +1,5 @@
 import { squadOf, wageBill } from './world'
+import { skillMod } from './manager'
 import type { GameState, StageKey } from './types'
 
 /** Prize money by competition and placement (USD). */
@@ -45,7 +46,9 @@ export function awardPrize(state: GameState, stage: StageKey, order: string[]): 
 export function weeklyFinance(state: GameState): void {
   for (const team of Object.values(state.teams)) {
     const wages = Math.round(wageBill(state, team.id) / 48)
-    const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / 48)
+    // 商务: sponsors pay a club whose manager works the relationship
+    const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / 48 *
+      (team.id === state.myTeam ? skillMod(state.manager, 'business', 0.005) : 1))
     const upkeep = Math.round((team.facilities * 900 + squadOf(state, team.id).length * 1400) / 4)
     const net = sponsor - wages - upkeep
     team.budget += net

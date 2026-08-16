@@ -1,5 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
+import { skillMod } from './manager'
 import type { GameState, Gig, GigKind, Player } from './types'
 
 /**
@@ -67,7 +68,9 @@ function feeFor(state: GameState, t: GigTemplate, rng: Rng): number {
   const weekly = (team?.sponsors.reduce((s, x) => s + x.perSeason, 0) ?? 0) / 48
   // a bigger name commands more for the same afternoon
   const pull = 0.6 + (team?.reputation ?? 50) / 100
-  return Math.round(weekly * rng.range(t.pay[0], t.pay[1]) * pull)
+  // 商务: a manager who can sell gets more for the same afternoon
+  return Math.round(weekly * rng.range(t.pay[0], t.pay[1]) * pull *
+    skillMod(state.manager, 'business', 0.008))
 }
 
 /**
@@ -89,7 +92,8 @@ export function offerGigs(state: GameState, rng: Rng, notes: string[]): void {
   // a well-known club gets approached more often
   // roughly one approach a week for a mid-table club, more if you are a name.
   // Offers have to stay scarce or the commercial screen out-earns the sport.
-  const chance = clamp(0.07 + (team.reputation - 50) * 0.004, 0.04, 0.2)
+  const chance = clamp(0.07 + (team.reputation - 50) * 0.004, 0.04, 0.2) *
+    skillMod(state.manager, 'business', 0.006)
   if (!rng.chance(chance)) return
 
   const t = rng.pick(TEMPLATES)
