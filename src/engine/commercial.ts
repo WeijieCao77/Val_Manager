@@ -417,11 +417,17 @@ export function streamOffer(state: GameState, playerId: string): StreamDeal | nu
   // platforms pay for an audience: ability, and the club's profile behind him
   const draw = p.overall - 55 + (team ? (team.reputation - 55) * 0.5 : 0)
   if (draw <= 0) return null
+  // platforms sign short and renegotiate — a season-long deal took the decision
+  // away for a whole year, and the player's draw changes faster than that
+  const months = rng.int(2, 3)
+  const annual = (18_000 + draw * draw * 55) * rng.range(0.85, 1.2)
   return {
     platform: rng.pick(PLATFORMS),
-    fee: Math.round((18_000 + draw * draw * 55) * rng.range(0.85, 1.2)),
+    fee: Math.round(annual * months / 12),
+    months,
     nights: rng.int(2, 4),
     since: state.day,
+    until: state.day + months * 28,
   }
 }
 
@@ -431,7 +437,8 @@ export function signStream(state: GameState, playerId: string): string {
   if (!p || !offer) return '这名选手目前没有直播合同可签。'
   p.stream = offer
   p.morale = clamp(p.morale + 4, 0, 100)   // the money is welcome
-  return `${p.ign} 与 ${offer.platform} 签下直播合同，年额 ${Math.round(offer.fee / 1000)}K，每周 ${offer.nights} 晚。`
+  return `${p.ign} 与 ${offer.platform} 签下 ${offer.months} 个月直播合同，` +
+    `合计 ${Math.round(offer.fee / 1000)}K，每周 ${offer.nights} 晚。`
 }
 
 export function endStream(state: GameState, playerId: string): string {
@@ -452,7 +459,13 @@ export function endStream(state: GameState, playerId: string): string {
 export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
   for (const p of squadOf(state, state.myTeam)) {
     if (!p.stream) continue
-    const weekly = Math.round(p.stream.fee / 48)
+    // a lapsed deal simply ends; renewing is a fresh decision
+    if (p.stream.until <= state.day) {
+      notes.push(`📺 ${p.ign} 与 ${p.stream.platform} 的直播合同到期。`)
+      p.stream = undefined
+      continue
+    }
+    const weekly = Math.round(p.stream.fee / (p.stream.months * 4))
     state.finances.balance += weekly
     state.finances.log.push({ day: state.day, label: `直播分成 ${p.ign}`, amount: weekly })
     p.fatigue = clamp(p.fatigue + p.stream.nights * rng.range(1.6, 3.2), 0, 100)

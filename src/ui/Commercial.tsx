@@ -190,8 +190,9 @@ export default function Commercial() {
 
       <Panel title="商务邀约">
         <p className="small muted" style={{ marginTop: 0 }}>
-          <b>直播合同</b>是稳定的被动收入，但每周的直播夜会持续消耗体能；每周 3 晚以上还会
-          占掉一天训练。签不签由你决定。<br />
+          <b>直播合同</b>按 <b>2~3 个月</b>一签，到期自动结束、可以重新谈——平台不会跟一名选手
+          锁一整年。签约期间是稳定的被动收入，但每周的直播夜会持续消耗体能；每周 3 晚以上
+          还会占掉一天训练。<br />
           活动是不用靠成绩就能拿到的钱，代价是选手的时间：<b>出席一天，这一周的训练收益就少四分之一</b>，
           还会掉体能。有比赛的日子不能安排。邀约会过期，不接就没了。
         </p>
@@ -291,7 +292,10 @@ export default function Commercial() {
                       {p.stream ? (
                         <div className="row" style={{ gap: 6 }}>
                           <span className="tag">{p.stream.platform}</span>
-                          <span className="tiny mono">{money(p.stream.fee)}/年 · 每周 {p.stream.nights} 晚</span>
+                          <span className="tiny mono">
+                            {money(p.stream.fee)} / {p.stream.months} 个月 · 每周 {p.stream.nights} 晚
+                            <span className="faint"> · 还剩 {Math.max(0, p.stream.until - game.day)} 天</span>
+                          </span>
                           <button className="sm ghost" onClick={() => {
                             toast(endStream(game, p.id))
                             logActivity(game, 'commercial', `终止 ${p.ign} 的直播合同`)
@@ -303,7 +307,9 @@ export default function Commercial() {
                         if (!o) return <span className="tiny faint">暂无平台接洽</span>
                         return (
                           <div className="row" style={{ gap: 6 }}>
-                            <span className="tiny faint">{o.platform} 出价 {money(o.fee)}/年 · 每周 {o.nights} 晚</span>
+                            <span className="tiny faint">
+                              {o.platform} 出价 {money(o.fee)} / {o.months} 个月 · 每周 {o.nights} 晚
+                            </span>
                             <button className="sm" onClick={() => act('stream', () => {
                               toast(signStream(game, p.id))
                               logActivity(game, 'commercial', `${p.ign} 签下直播合同`)

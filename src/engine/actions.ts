@@ -23,7 +23,7 @@ import type { GameState } from './types'
  * three. The budget now follows how much there actually is to do.
  */
 export const ACTIONS_IN_SEASON = 2
-export const ACTIONS_PER_WEEK = 6
+export const ACTIONS_PER_WEEK = 4
 
 export function actionsForTurn(state: GameState): number {
   return cycleDays(state) > 1 ? ACTIONS_PER_WEEK : ACTIONS_IN_SEASON

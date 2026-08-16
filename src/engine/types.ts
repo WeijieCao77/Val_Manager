@@ -389,11 +389,15 @@ export interface Venture {
 /** A player's streaming deal: steady money, at a cost to their week. */
 export interface StreamDeal {
   platform: string
-  /** paid per season */
+  /** total paid over the term, not a season */
   fee: number
+  /** term length; platforms sign short and renegotiate */
+  months: number
   /** hours a week, which is what makes it a trade-off */
   nights: number
   since: number
+  /** day the deal lapses */
+  until: number
 }
 
 /**
