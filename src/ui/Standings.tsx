@@ -49,7 +49,7 @@ function Table({ comp }: { comp: Competition }) {
                   {!comp.champion && i + 1 === cut && ''}
                 </td>
                 <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--accent)' : '2px solid transparent' }}>
-                  {game.teams[id]?.name}
+                  <span title={game.teams[id]?.name}>{game.teams[id]?.tag}</span>
                 </td>
                 <td className="num mono">{r.w}-{r.l}</td>
                 <td className="num muted">{r.mapW}-{r.mapL}</td>
@@ -144,7 +144,7 @@ export default function Standings() {
                         {c.finished.map((id, i) => (
                           <tr key={id} className={id === game.myTeam ? 'me' : ''}>
                             <td className="num muted">{i + 1}{c.champion === id && ' 🏆'}</td>
-                            <td>{game.teams[id]?.name}</td>
+                            <td><span title={game.teams[id]?.name}>{game.teams[id]?.tag}</span></td>
                             <td className="small muted">{REGION_CN[game.teams[id]?.region]}</td>
                           </tr>
                         ))}

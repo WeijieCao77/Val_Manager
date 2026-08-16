@@ -85,11 +85,11 @@ export default function Schedule() {
                         <td className="num muted mono">{fmtDay(f.day)}</td>
                         <td className="small">{game.comps[f.comp]?.name ?? f.comp}</td>
                         <td className="small muted">{f.label.replace(/^KO:\d+:/, '')}</td>
-                        <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''}>{a?.name}</td>
+                        <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>{a?.tag}</td>
                         <td className="center mono">
                           {r ? <b>{r.mapsWonA} : {r.mapsWonB}</b> : <span className="muted">BO{f.bo}</span>}
                         </td>
-                        <td className={r && !aWon ? 'pos' : ''}>{b?.name}</td>
+                        <td className={r && !aWon ? 'pos' : ''} title={b?.name}>{b?.tag}</td>
                         <td className="tiny muted">{f.played ? '查看 ›' : ''}</td>
                       </tr>
                     )

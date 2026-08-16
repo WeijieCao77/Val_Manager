@@ -66,6 +66,29 @@ export function Potential({ p, game }: { p: Player; game: GameState }) {
   )
 }
 
+/**
+ * A club, written the way you would actually write it.
+ *
+ * Everything showed the legal name — "EDward Gaming", "KeepBest Gaming" — which
+ * is how nobody refers to them and which wrecks dense tables. Lists use the tag
+ * with the full name on hover; `full` is for the places that warrant it: match
+ * headers, news, contract screens.
+ */
+export function Club({
+  id, game, full = false,
+}: { id: string | null | undefined; game: GameState; full?: boolean }) {
+  const t = id ? game.teams[id] : null
+  if (!t) return <span className="muted">自由人</span>
+  return <span title={full ? t.tag : t.name}>{full ? t.name : t.tag}</span>
+}
+
+/** Does this query match the club by tag or by full name? */
+export function clubMatches(t: { name: string; tag: string } | undefined, q: string): boolean {
+  if (!t) return false
+  const s = q.toLowerCase()
+  return t.tag.toLowerCase().includes(s) || t.name.toLowerCase().includes(s)
+}
+
 export function Panel({
   title, children, actions, flush, className,
 }: {

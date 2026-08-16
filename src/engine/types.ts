@@ -418,6 +418,8 @@ export interface Sponsor {
 export interface Team {
   id: string
   name: string
+  /** short form — EDG, XLG, KBG — used everywhere space is tight */
+  tag: string
   region: Region
   tier: Tier
   league: string

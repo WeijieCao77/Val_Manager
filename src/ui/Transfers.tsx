@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
+import { Club, clubMatches, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
   INTEREST_CN, makeOffer, windowOpen,
@@ -39,8 +39,10 @@ export default function Transfers() {
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(
+        // searching "EDG" must find EDward Gaming's players, and so must the
+        // full name — people type whichever comes to mind
         (p) => p.ign.toLowerCase().includes(q) ||
-          (game.teams[p.teamId ?? '']?.name ?? '').toLowerCase().includes(q),
+          clubMatches(game.teams[p.teamId ?? ''], q),
       )
     }
     return list.sort((a, b) => b.overall - a.overall).slice(0, 120)
@@ -151,7 +153,7 @@ export default function Transfers() {
                     <tr key={o.id}>
                       <td><b>{p?.ign ?? '—'}</b></td>
                       <td className="small muted">
-                        {o.fromTeam ? game.teams[o.fromTeam]?.name : '自由人'}
+                        <Club id={o.fromTeam} game={game} />
                       </td>
                       <td className="num mono">{money(o.fee)}</td>
                       <td className="num mono">{money(o.salary)}</td>
@@ -193,9 +195,9 @@ export default function Transfers() {
               .filter((t) => t.id !== game.myTeam && (askRegion === 'all' || t.region === askRegion))
               .sort((a, b) => b.reputation - a.reputation)
               .map((t) => (
-                <button key={t.id} className="sm" onClick={() => setAskClub(t.id)}>
-                  {t.name}
-                  <span className="tiny faint"> · {t.tier === 1 ? '一级' : '次级'}</span>
+                <button key={t.id} className="sm" onClick={() => setAskClub(t.id)} title={t.name}>
+                  <b>{t.tag}</b>
+                  <span className="tiny faint"> {t.name}</span>
                 </button>
               ))}
           </div>
@@ -315,7 +317,7 @@ export default function Transfers() {
                   <td className="num"><Potential p={p} game={game} /></td>
                   <td className="num">{p.age}</td>
                   <td className="small muted">{REGION_CN[p.region]}</td>
-                  <td className="small muted">{p.teamId ? game.teams[p.teamId]?.name : '自由人'}</td>
+                  <td className="small muted"><Club id={p.teamId} game={game} /></td>
                   <td className="num mono">
                     {(() => {
                       const e = enq.get(p.id)

@@ -153,7 +153,7 @@ export default function App() {
           )}
           {next && (
             <div className="chip small muted" title="下一场正式比赛">
-              下一场：{game.teams[next.teamA === game.myTeam ? next.teamB : next.teamA]?.name}
+              下一场：{game.teams[next.teamA === game.myTeam ? next.teamB : next.teamA]?.tag}
               <span className="faint"> · {next.day - game.day <= 0 ? '今天' : `${next.day - game.day}天后`}</span>
             </div>
           )}

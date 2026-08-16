@@ -249,14 +249,14 @@ export default function Dashboard() {
                   const r = f.result!
                   const mine = f.teamA === game.myTeam
                   const won = (r.mapsWonA > r.mapsWonB) === mine
-                  const foe = game.teams[mine ? f.teamB : f.teamA]?.name
+                  const foe = game.teams[mine ? f.teamB : f.teamA]?.tag
                   return (
                     <button key={f.id} className="recent-row" onClick={() => openMatch(f)}>
                       <span className={won ? 'pos' : 'neg'} style={{ width: 14 }}>{won ? '胜' : '负'}</span>
                       <span className="mono" style={{ width: 34 }}>
                         {mine ? r.mapsWonA : r.mapsWonB}–{mine ? r.mapsWonB : r.mapsWonA}
                       </span>
-                      <span className="small" style={{ flex: 1, textAlign: 'left' }}>{foe}</span>
+                      <span className="small" style={{ flex: 1, textAlign: 'left' }} title={game.teams[mine ? f.teamB : f.teamA]?.name}>{foe}</span>
                       <span className="tag">{f.comp === 'scrim' ? '训练赛' : game.comps[f.comp]?.name ?? f.comp}</span>
                       <span className="tiny faint">{fmtDay(f.day)}</span>
                     </button>
@@ -389,7 +389,7 @@ export default function Dashboard() {
                     return (
                       <tr key={id} className={id === game.myTeam ? 'me' : ''}>
                         <td className="num muted">{i + 1}</td>
-                        <td>{game.teams[id]?.name}</td>
+                        <td title={game.teams[id]?.name}>{game.teams[id]?.tag}</td>
                         <td className="num">{r.w}</td>
                         <td className="num">{r.l}</td>
                         <td className="num muted">{r.mapW - r.mapL > 0 ? '+' : ''}{r.mapW - r.mapL}</td>

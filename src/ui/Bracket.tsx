@@ -43,7 +43,7 @@ export default function Bracket({ comp }: { comp: Competition }) {
                   { id: f.teamB, score: r?.mapsWonB, won: r ? !aWon : null },
                 ].map((side) => (
                   <div key={side.id} className={`bracket-side${side.won ? ' win' : ''}`}>
-                    <span className="nm">{game.teams[side.id]?.name ?? '—'}</span>
+                    <span className="nm" title={game.teams[side.id]?.name}>{game.teams[side.id]?.tag ?? '—'}</span>
                     <span className="sc mono">{side.score ?? '–'}</span>
                   </div>
                 ))}
@@ -57,7 +57,7 @@ export default function Bracket({ comp }: { comp: Competition }) {
           <div className="bracket-head">轮空</div>
           {comp.byes.map((id) => (
             <div key={id} className="bracket-tie">
-              <div className="bracket-side"><span className="nm">{game.teams[id]?.name}</span></div>
+              <div className="bracket-side"><span className="nm" title={game.teams[id]?.name}>{game.teams[id]?.tag}</span></div>
             </div>
           ))}
         </div>
