@@ -9,7 +9,7 @@ import type { Manager } from './manager'
 interface RawTeam {
   id: string; name: string; tag: string; region: string; tier: number; league: string
   rating: number; budget: number; reputation: number; roster: string[]
-  coach: { name: string; tactics: number; development: number; motivation: number } | null
+  coach: { name: string; tactics: number; development: number; motivation: number; assistants?: string[] } | null
   facilities: number
 }
 interface RawPlayer {
@@ -170,4 +170,6 @@ export const freeAgents = (state: GameState): Player[] =>
 
 /** Wage bill per season for a club. */
 export const wageBill = (state: GameState, teamId: string): number =>
-  squadOf(state, teamId).reduce((s, p) => s + p.salary, 0)
+  squadOf(state, teamId).reduce((s, p) => s + p.salary, 0) +
+  // a coach the manager hired is paid like everyone else
+  (state.teams[teamId]?.coach?.salary ?? 0)

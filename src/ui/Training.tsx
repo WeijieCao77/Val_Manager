@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Bar, Condition, OvrBadge, Panel, Roles } from './common'
+import { Bar, Condition, money, OvrBadge, Panel, Roles } from './common'
 import { squadOf } from '../engine/world'
 import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
+import { facilityCost, hireCoach, staffMarket, upgradeFacility } from '../engine/staff'
 import type { Attrs, Player } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
@@ -25,6 +26,7 @@ function suggest(p: Player): keyof Attrs {
 
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
+  const [hiring, setHiring] = useState(false)
   const [duoPick, setDuoPick] = useState<string[]>(
     game.duo ? [game.duo.a, game.duo.b] : [],
   )
@@ -32,9 +34,8 @@ export default function Training() {
   const me = game.teams[game.myTeam]
 
   const setFocus = (id: string, v: keyof Attrs | 'rest') => {
+    if (locked) return
     game.training[id] = v
-    logActivity(game, 'training',
-      `${game.players[id]?.ign} 的训练重点设为${v === 'rest' ? '休息' : ATTR_CN[v]}`)
     commit()
   }
 
@@ -89,7 +90,13 @@ export default function Training() {
 
   const confirmPlan = () => {
     game.drillLock = game.day + untilRun
-    logActivity(game, 'training', `确定本周训练：${describe()}`)
+    const focus = squad
+      .map((p) => {
+        const f = game.training[p.id] ?? 'rest'
+        return `${p.ign}:${f === 'rest' ? '休息' : ATTR_CN[f as keyof typeof ATTR_CN]}`
+      })
+      .join('，')
+    logActivity(game, 'training', `确定本周训练：${describe()}｜个人：${focus}`)
     commit()
     toast(`本周训练已确定：${describe()}`)
   }
@@ -112,7 +119,9 @@ export default function Training() {
         <div className="grid c3" style={{ gap: 12 }}>
           <div className="drill-card">
             <b>跑图</b>
-            <p className="tiny muted">提升指定地图熟练度，同时练全队协同与意识。</p>
+            <p className="tiny muted">
+              指定地图熟练度 <b>+2/周</b>（上限 95），全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
+            </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => (
                 <button key={m}
@@ -127,7 +136,8 @@ export default function Training() {
           <div className="drill-card">
             <b>教练复盘</b>
             <p className="tiny muted">
-              全队意识与指挥提升，效果取决于教练战术水平；还能恢复少量体能。
+              全队意识 <b>+6</b>、沟通 <b>+3</b> 经验，IGL 指挥 <b>+7</b>；
+              数值再乘教练战术加成。<b>不掉体能，反而恢复 1~4</b>。
             </p>
             <button
               className={drill.kind === 'review' ? 'primary' : ''}
@@ -139,7 +149,8 @@ export default function Training() {
           <div className="drill-card">
             <b>练新英雄</b>
             <p className="tiny muted">
-              让一名选手学习别的位置的英雄。练成后他就能<b>兼任该位置</b>，阵容更灵活。
+              位置熟练度约 <b>+3/周</b>（看意识与道具，满 100 约需半个赛季）。
+              满了就能<b>兼任该位置</b>，中途每 34% 解锁一个该位置英雄。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => (
@@ -179,7 +190,10 @@ export default function Training() {
         <div className="grid" style={{ gap: 12 }}>
           <div className="drill-card">
             <b>双排练</b>
-            <p className="tiny muted">两人配合训练：协同、沟通、反应，收益比单练高但更累。</p>
+            <p className="tiny muted">
+              两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> 经验，
+              并让这两人的<b>关系 +3~6</b>——修复队内矛盾的主要手段。体能 −5~10。
+            </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => {
                 const on = duoPick.includes(p.id)
@@ -308,9 +322,30 @@ export default function Training() {
             <Bar value={me.facilities} />
             <span className="mono">{me.facilities}</span>
           </div>
-          <p className="small muted" style={{ marginBottom: 0 }}>
-            设施等级直接影响训练收益。教练组的“培养”属性同样重要。
+          <p className="small muted">
+            设施等级直接影响训练收益：每一级大约让训练收益 +0.8%。
           </p>
+          {me.facilities >= 95 ? (
+            <p className="small" style={{ color: 'var(--win)', margin: 0 }}>已是顶级设施。</p>
+          ) : (
+            <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+              <button
+                className="primary sm"
+                disabled={game.finances.balance < facilityCost(me.facilities)}
+                onClick={() => {
+                  toast(upgradeFacility(game))
+                  logActivity(game, 'squad', `训练设施升级至 ${game.teams[game.myTeam].facilities}`)
+                  commit()
+                }}
+              >
+                升级到 {me.facilities + 1}
+              </button>
+              <span className="small mono">{money(facilityCost(me.facilities))}</span>
+              {game.finances.balance < facilityCost(me.facilities) && (
+                <span className="tiny" style={{ color: 'var(--accent)' }}>资金不足</span>
+              )}
+            </div>
+          )}
         </Panel>
         <Panel title="教练组">
           {me.coach ? (
@@ -328,10 +363,52 @@ export default function Training() {
               ))}
             </>
           ) : (
-            <p className="small muted" style={{ margin: 0 }}>
+            <p className="small muted">
               暂无主教练记录。本作只收录真实人物，缺失的教练不会用虚构人名补齐；
               没有教练时按队伍整体水平计算训练与战术加成。
             </p>
+          )}
+          <div style={{ marginTop: 10 }}>
+            <button className="sm" onClick={() => setHiring((x) => !x)}>
+              {hiring ? '收起' : '聘请教练'}
+            </button>
+          </div>
+          {hiring && (
+            <div style={{ marginTop: 10 }}>
+              <p className="tiny faint" style={{ marginTop: 0 }}>
+                以下都是各队真实的助理教练，可以挖来当主教练。签约费为年薪的一半，
+                之后年薪计入薪资总额。
+              </p>
+              <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>教练</th><th className="num">战术</th><th className="num">培养</th>
+                      <th className="num">激励</th><th className="num">年薪</th><th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffMarket(game).slice(0, 20).map((c) => (
+                      <tr key={c.name}>
+                        <td><b>{c.name}</b><div className="tiny faint">原 {c.from} 助教</div></td>
+                        <td className="num mono">{c.tactics}</td>
+                        <td className="num mono">{c.development}</td>
+                        <td className="num mono">{c.motivation}</td>
+                        <td className="num mono">{money(c.salary)}</td>
+                        <td>
+                          <button className="sm" onClick={() => {
+                            toast(hireCoach(game, c.name))
+                            logActivity(game, 'squad', `聘请教练 ${c.name}`)
+                            commit()
+                            setHiring(false)
+                          }}>聘请</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </Panel>
       </div>

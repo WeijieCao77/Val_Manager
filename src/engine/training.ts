@@ -2,6 +2,7 @@ import { Rng, clamp } from './rng'
 import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift } from './player'
 import { coachOr, squadOf } from './world'
+import { duoBonded, weeklyBonds } from './bonds'
 import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
@@ -91,6 +92,8 @@ function runDuo(state: GameState, team: Team, rng: Rng): void {
     p.fatigue = clamp(p.fatigue + rng.range(5, 10), 0, 100)
     p.morale = clamp(p.morale + rng.range(0, 2), 0, 100)
   }
+  // the direct lever on a feud: make the two of them work together
+  duoBonded(state, duo.a, duo.b, rng.range(3, 6))
 }
 
 /**
@@ -181,6 +184,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
 export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   runDrill(state, rng, notes)
+  weeklyBonds(state, rng, notes)
   const missed = Object.entries(state.commercialDays ?? {})
     .filter(([, d]) => d >= 2)
     .map(([id]) => state.players[id]?.ign)

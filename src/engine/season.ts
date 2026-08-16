@@ -8,6 +8,7 @@ import {
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
 import { offerGigs, runGigsToday } from './commercial'
+import { applyMatchBonds } from './bonds'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
@@ -470,6 +471,14 @@ export function commitFixture(state: GameState, f: Fixture, result: MatchResult)
   f.result = result
   f.played = true
   const rng = fixtureRng(state, f)
+  // how the dressing room took it, for our club only
+  if (isMine) {
+    const notes: string[] = []
+    applyMatchBonds(state, result, state.myTeam, f.teamA === state.myTeam, rng, notes)
+    for (const t of notes) {
+      state.news.push({ day: state.day, kind: 'club', important: true, text: t })
+    }
+  }
   // scrims build form and cost condition but never enter the record books
   if (isScrim(f)) {
     applyMatchFatigue(state, f.teamA, result.maps.length, rng)

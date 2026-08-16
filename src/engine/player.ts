@@ -72,3 +72,12 @@ export const roleColor = (role: string): string =>
   ({
     决斗者: '#ff4655', 先锋: '#f6c445', 控场: '#7b6cff', 哨卫: '#3ad6a0', 自由人: '#8ea2b8',
   })[role] ?? '#8ea2b8'
+
+/** VLR-style composite rating, calibrated so an average starter sits at ~1.00. */
+export const ratingOf = (s: { kills: number; deaths: number; assists: number; rounds: number }) => {
+  if (!s.rounds) return 0
+  const kpr = s.kills / s.rounds
+  const dpr = s.deaths / s.rounds
+  const apr = s.assists / s.rounds
+  return clamp(0.52 + kpr * 1.15 + apr * 0.28 - dpr * 0.55, 0, 3)
+}

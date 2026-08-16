@@ -1,6 +1,7 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
 import { coachOr } from './world'
+import { NEUTRAL, squadHarmony } from './bonds'
 import type {
   GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
 } from './types'
@@ -108,7 +109,9 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
 
   const igl = players.find((p) => p.isIgl)
   const iglBonus = igl ? (igl.attrs.igl - 60) * 0.09 : -4
-  const chem = (avg('teamwork') + avg('communication')) / 2
+  // attributes say how well they can play together; bonds say whether they are
+  const rapport = squadHarmony(state, team.id)
+  const chem = clamp((avg('teamwork') + avg('communication')) / 2 + (rapport - NEUTRAL) * 0.18, 20, 99)
   const chemBonus = (chem - 65) * 0.07
   const coachBonus = (coachOr(team, 'tactics') - 60) * 0.05
   const comp = compositionScore(players)
@@ -759,11 +762,4 @@ export function applyMatchStats(state: GameState, result: MatchResult): void {
   }
 }
 
-/** VLR-style composite rating, calibrated so an average starter sits at ~1.00. */
-export const ratingOf = (s: { kills: number; deaths: number; assists: number; rounds: number }) => {
-  if (!s.rounds) return 0
-  const kpr = s.kills / s.rounds
-  const dpr = s.deaths / s.rounds
-  const apr = s.assists / s.rounds
-  return clamp(0.52 + kpr * 1.15 + apr * 0.28 - dpr * 0.55, 0, 3)
-}
+export { ratingOf } from './player'

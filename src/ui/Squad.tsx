@@ -6,6 +6,7 @@ import { squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
 import { releasePlayer } from '../engine/transfer'
+import { notableBonds, squadHarmony } from '../engine/bonds'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Player } from '../engine/types'
 
@@ -57,6 +58,11 @@ export default function Squad() {
     for (const r of p.roles?.length ? p.roles : [p.role]) acc[r] = (acc[r] ?? 0) + 1
     return acc
   }, {})
+
+  const harmony = squadHarmony(game, game.myTeam)
+  const bonds = notableBonds(game, game.myTeam)
+  const bondColor = (v: number) =>
+    v <= -25 ? 'var(--accent)' : v < 0 ? 'var(--warn)' : v >= 35 ? 'var(--win)' : 'var(--muted)'
 
   return (
     <>
@@ -184,6 +190,36 @@ export default function Squad() {
             </tbody>
           </table>
         </div>
+      </Panel>
+
+      <Panel title={`更衣室 · 全队默契 ${harmony >= 0 ? '+' : ''}${harmony.toFixed(0)}`}>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          每两名选手之间都有独立的关系值（−100 ~ +100）。<b>赢球会让所有人更亲近</b>；
+          输球时，如果一个人打得明显好而另一个明显差，差的那一方会被记账——
+          矛盾还会滚雪球，越积越难解。用<b>双排练</b>把两个人放在一起是最直接的修复手段。
+        </p>
+        <div className="grid c2" style={{ gap: 8 }}>
+          {bonds.map(({ a, b, value }) => (
+            <div key={`${a.id}-${b.id}`} className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <span className="small" style={{ flex: 1 }}>{a.ign} × {b.ign}</span>
+              <div className="bar" style={{ maxWidth: 90 }}>
+                <i style={{
+                  width: `${Math.abs(value) / 2}%`,
+                  marginLeft: value < 0 ? `${50 - Math.abs(value) / 2}%` : '50%',
+                  background: bondColor(value),
+                }} />
+              </div>
+              <span className="mono small" style={{ width: 34, textAlign: 'right', color: bondColor(value) }}>
+                {value >= 0 ? '+' : ''}{value.toFixed(0)}
+              </span>
+            </div>
+          ))}
+        </div>
+        {bonds[0] && bonds[0].value <= -25 && (
+          <p className="small" style={{ color: 'var(--accent)', marginBottom: 0 }}>
+            ⚠ {bonds[0].a.ign} 和 {bonds[0].b.ign} 关系已经很僵，会拖累全队配合。
+          </p>
+        )}
       </Panel>
     </>
   )

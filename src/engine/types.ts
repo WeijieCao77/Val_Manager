@@ -216,6 +216,19 @@ export interface Coach {
   tactics: number
   development: number
   motivation: number
+  /** paid weekly alongside the players; absent for the coach a club started with */
+  salary?: number
+}
+
+/** A real assistant coach from the world data, available as a head coach. */
+export interface StaffCandidate {
+  name: string
+  /** the club he currently assists at */
+  from: string
+  tactics: number
+  development: number
+  motivation: number
+  salary: number
 }
 
 export interface Tactics {
@@ -472,6 +485,12 @@ export interface GameState {
    * is a decision rather than something you can keep nudging.
    */
   drillLock?: number
+  /**
+   * Pairwise relationships, keyed by the two player ids sorted and joined.
+   *
+   * Symmetric by construction — see engine/bonds.ts.
+   */
+  bonds?: Record<string, number>
   /** commercial offers on the table and already booked */
   gigs?: Gig[]
   /**
