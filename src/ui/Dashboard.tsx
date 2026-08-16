@@ -9,6 +9,7 @@ import { agendaFor, activityOn, logActivity } from '../engine/agenda'
 import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { useAction } from './useAction'
 import { cycleDays } from '../engine/actions'
+import Digest from './Digest'
 import { squadOf, wageBill } from '../engine/world'
 import { ATTR_CN } from '../engine/types'
 
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
   const act = useAction()
   const [busy, setBusy] = useState(false)
+  const [digest, setDigest] = useState<{ reports: DayReport[]; fromDay: number } | null>(null)
   const [scrimOpp, setScrimOpp] = useState<string>('')
   const [scrimMap, setScrimMap] = useState<string>('')
   const [scrimFmt, setScrimFmt] = useState<ScrimFormat>('full24')
@@ -31,13 +33,14 @@ export default function Dashboard() {
   const squad = squadOf(game, game.myTeam)
   const next = nextRealFixtureFor(game, game.myTeam)
 
-  const handleReports = (reports: DayReport[]) => {
-    const notes = reports.flatMap((r) => r.notes)
+  const handleReports = (reports: DayReport[], fromDay: number) => {
     const pending = reports.map((r) => r.pendingMine).filter(Boolean)[0]
     commit()
-    // your own match is handed to the live view, which offers watch or skip
+    // your own match is handed to the live view, which offers watch or skip;
+    // otherwise the turn reports what it did rather than dropping every note
+    // but the last one into a toast
     if (pending) playLive(pending)
-    else if (notes.length) toast(notes[notes.length - 1])
+    else setDigest({ reports, fromDay })
   }
 
   const step = (fast: boolean) => {
@@ -49,6 +52,7 @@ export default function Dashboard() {
         // one turn is a day in-season and a week in a long gap, so the plain
         // advance follows the same cadence the action budget is granted on
         const span = cycleDays(game)
+        const from = game.day
         const reports: DayReport[] = []
         if (fast) {
           reports.push(...advanceToNextMatch(game, 40, { deferMine: true }))
@@ -61,7 +65,7 @@ export default function Dashboard() {
             if (last.pendingMine || last.seasonEnded) break
           }
         }
-        handleReports(reports)
+        handleReports(reports, from)
       } finally {
         setBusy(false)
       }
@@ -109,6 +113,12 @@ export default function Dashboard() {
 
   return (
     <>
+      {digest && (
+        <Digest
+          reports={digest.reports} fromDay={digest.fromDay}
+          onClose={() => setDigest(null)}
+        />
+      )}
       {offers.length > 0 && (
         <Panel title={`执教邀请 · ${offers.length}`} className="alert" flush>
           <div className="agenda">
