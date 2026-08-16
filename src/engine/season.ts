@@ -569,6 +569,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     notes.push(...weeklyTick(state, rng))
     weeklyFinance(state)
     aiTransferTick(state, rng)
+    refreshListings(state, rng)   // runs all year so stale listings expire
     ensureMinimumRosters(state, rng)
   }
 

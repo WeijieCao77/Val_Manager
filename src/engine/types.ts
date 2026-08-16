@@ -202,6 +202,8 @@ export interface Player {
   xp: Partial<Record<keyof Attrs, number>>
   /** set when the player has been transfer-listed by their club */
   listed?: boolean
+  /** the day they went on the list, so a stale listing can be withdrawn */
+  listedOn?: number
 }
 
 export interface Coach {

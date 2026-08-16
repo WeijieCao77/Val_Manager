@@ -207,6 +207,7 @@ export function doTransfer(
   p.contractYears = terms.years
   p.grievance = 0
   p.listed = false
+  p.listedOn = undefined
   // the signing fee is paid on the day, by the buying club
   if (terms.signingBonus > 0) {
     to.budget -= terms.signingBonus
@@ -246,6 +247,7 @@ export function releasePlayer(state: GameState, p: Player): void {
   p.teamId = null
   p.contractYears = 0
   p.listed = false
+  p.listedOn = undefined
   p.morale = clamp(p.morale - 6, 0, 100)
   state.news.push({
     day: state.day, kind: 'transfer',
@@ -325,7 +327,6 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
     }
   }
 
-  refreshListings(state, rng)
   bidForOurPlayers(state, rng)
 }
 
@@ -338,6 +339,10 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
  * back off it.
  */
 export function refreshListings(state: GameState, rng: Rng): void {
+  // New listings only happen while clubs can actually trade, but withdrawals
+  // run all year: when a window shuts on an unsold player, the club stops
+  // shopping him and puts him back in the squad rather than leaving him hanging.
+  const canList = windowOpen(state.day)
   for (const team of Object.values(state.teams)) {
     if (team.id === state.myTeam) continue
     const squad = squadOf(state, team.id).sort((a, b) => b.overall - a.overall)
@@ -359,10 +364,36 @@ export function refreshListings(state: GameState, rng: Rng): void {
       if (squad.length <= 5) {
         chance = unhappy ? 0.18 : expiring ? 0.08 : 0
       }
-      if (!p.listed && chance > 0 && rng.chance(chance)) {
+      if (!p.listed && canList && chance > 0 && rng.chance(chance)) {
         p.listed = true
-      } else if (p.listed && !benched && !unhappy && rng.chance(0.25)) {
-        p.listed = false // back in the plans
+        p.listedOn = state.day
+        continue
+      }
+      if (!p.listed) continue
+
+      // A listing that nobody bids on does not sit there forever. After a
+      // couple of weeks the club gives up on selling and folds the player back
+      // into the squad — which is also what stops the market growing without
+      // bound, since previously only an unbenched, happy player could come off.
+      // the day counter restarts each season, so a negative age means the
+      // listing was carried over from last year — stale by definition
+      const age = state.day - (p.listedOn ?? state.day)
+      // a shut window ends the sale attempt outright
+      const stale = age >= 14 || age < 0 || !canList
+      const wanted = !benched && !unhappy
+      if (wanted && rng.chance(0.25)) {
+        p.listed = false
+  p.listedOn = undefined
+        p.listedOn = undefined
+      } else if (stale && rng.chance(0.45)) {
+        p.listed = false
+  p.listedOn = undefined
+        p.listedOn = undefined
+        // taken off the market and given a role again, so the grievance eases
+        p.grievance = clamp((p.grievance ?? 0) - 12, 0, 100)
+        if (squad.length <= 5 && !team.starters.includes(p.id) && team.starters.length < 5) {
+          team.starters = [...team.starters, p.id]
+        }
       }
     }
   }
