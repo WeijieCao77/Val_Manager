@@ -237,9 +237,10 @@ export function canManage(
  * between renders, and it always contains the truth.
  */
 export function scoutedPotential(
-  m: Manager | undefined, playerId: string, potential: number,
+  m: Manager | undefined, playerId: string, potential: number, analyst = 0,
 ): { text: string; exact: boolean; low: number; high: number } {
-  const skill = m?.skills.scouting ?? 50
+  // 数据建模: an analyst reading the numbers is worth real scouting skill
+  const skill = (m?.skills.scouting ?? 50) + analyst * 22
   // 90 -> ±0, 50 -> ±5, 20 -> ±9
   const band = Math.max(0, Math.round((88 - skill) / 7.5))
   if (band <= 0) return { text: String(potential), exact: true, low: potential, high: potential }

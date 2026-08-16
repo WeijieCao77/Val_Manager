@@ -428,7 +428,7 @@ export default function Dashboard() {
                 <option value="">选择地图…</option>
                 {pool.map((m) => (
                   <option key={m} value={m}>
-                    {m}（熟练度 {me.mapPrefs[m] ?? 50}）
+                    {m}（熟练度 {Math.round(me.mapPrefs[m] ?? 50)}）
                   </option>
                 ))}
               </select>

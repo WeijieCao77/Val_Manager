@@ -2,6 +2,7 @@ import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
 import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
+import { analystEdge } from './staff'
 import { skillMod } from './manager'
 import type {
   EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
@@ -117,8 +118,11 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const chem = clamp((avg('teamwork') + avg('communication')) / 2 + (rapport - NEUTRAL) * 0.18, 20, 99)
   const chemBonus = (chem - 65) * 0.07
   // 战术: the manager's own read of the game, on top of the coach's
+  const mine = team.id === state.myTeam
   const coachBonus = (coachOr(team, 'tactics') - 60) * 0.05 +
-    (team.id === state.myTeam ? (skillMod(state.manager, 'tactics', 0.06) - 1) : 0)
+    (mine ? (skillMod(state.manager, 'tactics', 0.06) - 1) : 0) +
+    // 对手研究: knowing what they run is worth about half a head coach
+    (mine ? analystEdge(state, 'opponent') * 2.4 : 0)
   const comp = compositionScore(players)
   const mapPref = ((team.mapPrefs[map] ?? 50) - 50) * 0.07
 
@@ -126,7 +130,9 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   // pace helps attack, hurts defence discipline; utility discipline helps both sides
   const paceAtk = (t.pace - 50) * 0.035
   const paceDef = -(t.pace - 50) * 0.022
-  const utilBonus = (t.utility - 50) * 0.02 + (avg('utility') - 65) * 0.05
+  // 经济分析: better buys and better utility timing, all game
+  const utilBonus = (t.utility - 50) * 0.02 + (avg('utility') - 65) * 0.05 +
+    (mine ? analystEdge(state, 'economy') * 1.8 : 0)
   const aggroAtk = (t.aggression - 50) * 0.028
   const aggroDef = -(t.aggression - 50) * 0.015
 

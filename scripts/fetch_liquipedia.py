@@ -278,12 +278,16 @@ def main():
             continue
         staff = infobox_names(w, "coaches") or infobox_names(w, "coach")
         igls = infobox_names(w, "igl")
-        if not staff and not igls:
+        if not staff and not igls and not infobox_names(w, "analyst"):
             continue
+        # analysts are a separate infobox field and a separate job — they were
+        # being ignored entirely, so the game had no real analysts to hire
+        analysts = infobox_names(w, "analyst") or infobox_names(w, "analysts")
         coaches[tag] = {
             "team": title,
             "name": staff[0] if staff else None,          # head coach
             "assistants": staff[1:],
+            "analysts": analysts,
             "igl": igls[0] if igls else None,
         }
     json.dump(coaches, open(OUT_C, "w", encoding="utf-8"), ensure_ascii=False)

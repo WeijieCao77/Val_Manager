@@ -9,8 +9,8 @@ import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import {
-  approachForCoach, askingSalary, clearedCoaches, employedCoaches, facilityCost,
-  offerToStaff, releaseStaff, ROLE_CN, staffMarket, upgradeFacility,
+  analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
+  facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, staffMarket, upgradeFacility,
 } from '../engine/staff'
 import type { Attrs, Player, StaffRole } from '../engine/types'
 
@@ -137,7 +137,7 @@ export default function Training() {
                 <button key={m}
                   className={`sm${drill.kind === 'map' && drill.map === m ? ' primary' : ''}`}
                   onClick={() => setDrill({ kind: 'map', map: m }, `跑图 ${m}`)}>
-                  {m} <span className="tiny faint">{me.mapPrefs[m] ?? 50}</span>
+                  {m} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
                 </button>
               ))}
             </div>
@@ -394,6 +394,12 @@ export default function Training() {
                 <div key={m.name} className="row" style={{ gap: 8, marginBottom: 5 }}>
                   <span className="small" style={{ flex: 1 }}>
                     <b>{m.name}</b> <span className="tag">{ROLE_CN[m.role]}</span>
+                    {m.spec && (
+                      <span className="tag" style={{ marginLeft: 4, borderColor: 'var(--controller)', color: 'var(--controller)' }}
+                        title={SPEC_CN[m.spec].blurb}>
+                        {SPEC_CN[m.spec].label}
+                      </span>
+                    )}
                   </span>
                   <span className="tiny faint">战 {m.tactics} / 培 {m.development} / 激 {m.motivation}</span>
                   <span className="tiny mono">{money(m.salary)}</span>
@@ -442,10 +448,21 @@ export default function Training() {
                 )}
               </div>
               <p className="tiny faint" style={{ marginTop: 0 }}>
-                都是各队真实的助理教练。发出邀请后对方会在 <b>1~7 天内答复</b>，可能拒绝——
-                薪资、俱乐部声望和你的执教履历都会影响他的决定。
-                聘请新主教练时，<b>原主教练会转为助理教练</b>而不是凭空消失。
-                助教加成「培养」，分析师加成「战术」。
+                {role === 'analyst' ? (
+                  <>
+                    <b>分析师和教练是两批人</b>，不共用人才池。全世界只有
+                    <b> {analystMarket(game).length} 名</b>在册分析师——vlr 不标注这个职位，
+                    Liquipedia 上有记录的就这几个，本作不编造真人。
+                    正因为少，<b>每个人各管一件事</b>：签谁取决于你缺什么，而不是谁数值高。
+                  </>
+                ) : (
+                  <>
+                    都是各队真实的助理教练；助教和主教练是同一批人（助教可以升任主教练）。
+                    发出邀请后对方会在 <b>1~7 天内答复</b>，可能拒绝——薪资、俱乐部声望和你的
+                    执教履历都会影响他的决定。聘请新主教练时，<b>原主教练会转为助理教练</b>
+                    而不是凭空消失。助教加成「培养」。
+                  </>
+                )}
               </p>
               {poach ? (
                 <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
@@ -509,12 +526,25 @@ export default function Training() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...clearedCoaches(game), ...staffMarket(game)].slice(0, 20).map((c) => {
+                    {(role === 'analyst'
+                      ? analystMarket(game)
+                      : [...clearedCoaches(game), ...staffMarket(game)]
+                    ).slice(0, 20).map((c) => {
                       const ask = askingSalary(c, role)
                       const bidding = bidOn === c.name
                       return (
                         <tr key={c.name}>
-                          <td><b>{c.name}</b><div className="tiny faint">原 {c.from} 助教</div></td>
+                          <td>
+                            <b>{c.name}</b>
+                            <div className="tiny faint">
+                              原 {c.from} {role === 'analyst' ? '分析师' : '助教'}
+                            </div>
+                            {c.spec && (
+                              <div className="tiny" style={{ color: 'var(--controller)' }}>
+                                {SPEC_CN[c.spec].label} · {SPEC_CN[c.spec].blurb}
+                              </div>
+                            )}
+                          </td>
                           <td className="num mono">{c.tactics}</td>
                           <td className="num mono">{c.development}</td>
                           <td className="num mono">{c.motivation}</td>

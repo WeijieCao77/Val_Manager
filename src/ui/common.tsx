@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
+import { analystEdge } from '../engine/staff'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
@@ -55,7 +56,7 @@ export function Bar({ value, max = 100, color }: { value: number; max?: number; 
 
 /** Potential, blurred to whatever the manager's scouting can actually read. */
 export function Potential({ p, game }: { p: Player; game: GameState }) {
-  const s = scoutedPotential(game.manager, p.id, p.potential)
+  const s = scoutedPotential(game.manager, p.id, p.potential, analystEdge(game, 'potential'))
   return (
     <span
       className={s.exact ? 'mono' : 'mono faint'}

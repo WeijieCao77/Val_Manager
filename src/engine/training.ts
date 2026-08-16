@@ -3,7 +3,7 @@ import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift } from './player'
 import { coachOr, squadOf } from './world'
 import { duoBonded, weeklyBonds } from './bonds'
-import { staffBonus } from './staff'
+import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
 import { skillMod } from './manager'
 import { AGENTS } from './content'
@@ -142,22 +142,28 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       // running one map raises comfort on it and pulls the side together
       const before = team.mapPrefs[drill.map] ?? 50
       // comfort climbs, but not to mastery in a single split
-      team.mapPrefs[drill.map] = Math.round(clamp(before + gain(1.8), 0, 95))
+      // 图池分析: a map specialist makes running the map worth far more
+      const mapEdge = 1 + analystEdge(state, 'maps') * 0.6
+      // kept as a float: rounding every week swallowed the whole bonus, since
+      // +2.0 and +2.4 both land on +2 and the remainder never carried forward
+      team.mapPrefs[drill.map] = clamp(before + gain(1.8) * mapEdge, 0, 95)
       for (const p of squad) {
         addXp(p, 'teamwork', gain(9))
         addXp(p, 'awareness', gain(5))
         p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
       }
-      if (team.mapPrefs[drill.map] > before) {
-        notes.push(`🗺 ${drill.map} 熟练度提升到 ${team.mapPrefs[drill.map]}。`)
+      if (Math.round(team.mapPrefs[drill.map]) > Math.round(before)) {
+        notes.push(`🗺 ${drill.map} 熟练度提升到 ${Math.round(team.mapPrefs[drill.map])}。`)
       }
       break
     }
     case 'review': {
       // tape work is worth what the coach is worth
       for (const p of squad) {
-        addXp(p, 'awareness', gain(6) * (1 + coachTac))
-        if (p.isIgl) addXp(p, 'igl', gain(7) * (1 + coachTac))
+        // 复盘专家: tape work is what an analyst is for
+        const rev = 1 + analystEdge(state, 'review')
+        addXp(p, 'awareness', gain(6) * (1 + coachTac) * rev)
+        if (p.isIgl) addXp(p, 'igl', gain(7) * (1 + coachTac) * rev)
         addXp(p, 'communication', gain(3))
         p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
       }

@@ -238,9 +238,19 @@ export interface Coach {
 
 export type StaffRole = 'head' | 'assistant' | 'analyst'
 
+/**
+ * What an analyst is actually good at.
+ *
+ * Only a handful exist in the real data, so they are differentiated by job
+ * rather than by a couple of rating points — you hire the one whose speciality
+ * fixes your problem.
+ */
+export type AnalystSpec = 'maps' | 'opponent' | 'potential' | 'economy' | 'review'
+
 /** A real coach from the world data, available to hire. */
 export interface StaffCandidate {
   name: string
+  spec?: AnalystSpec
   /** the club they currently work at */
   from: string
   tactics: number
@@ -311,6 +321,8 @@ export interface StaffOffer {
 export interface StaffMember {
   name: string
   role: StaffRole
+  /** set for analysts */
+  spec?: AnalystSpec
   tactics: number
   development: number
   motivation: number

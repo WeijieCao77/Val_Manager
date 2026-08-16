@@ -650,10 +650,33 @@ def main():
             out_players[-1]["contractYears"] = 0
             fa += 1
 
+    # analysts are a separate, genuinely scarce profession: Liquipedia records
+    # only a handful league-wide, and we do not invent the rest
+    # There are only a handful in the whole world, so rather than five rows that
+    # differ by a couple of points, each gets a distinct specialty and is worth
+    # hiring for a different reason.
+    SPECS = ["maps", "opponent", "potential", "economy", "review"]
+    analysts = []
+    for tag, rec in coaches.items():
+        for name in rec.get("analysts") or []:
+            rng = Rng(seed_of("an:" + name))
+            analysts.append({
+                "name": name,
+                "from": rec.get("team") or tag,
+                "tactics": int(clamp(round(rng.norm(72, 7)), 45, 90)),
+                "development": int(clamp(round(rng.norm(58, 8)), 35, 82)),
+                "motivation": int(clamp(round(rng.norm(56, 8)), 35, 80)),
+            })
+    # deterministic, and distinct: no two share a specialty while any are left
+    analysts.sort(key=lambda a: a["name"])
+    for i, a in enumerate(analysts):
+        a["spec"] = SPECS[i % len(SPECS)]
+
     coached = sum(1 for t in out_teams if t["coach"])
     world = {
         "meta": {
             "season": SEASON_YEAR,
+            "analysts": analysts,
             "sources": {
                 "vlr.gg": "teams, rosters, nationalities, roles and all performance stats",
                 "liquipedia": "birthdates, real names, head coaches",

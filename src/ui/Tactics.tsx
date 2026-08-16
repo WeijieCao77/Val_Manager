@@ -99,7 +99,7 @@ export default function Tactics() {
             </thead>
             <tbody>
               {MAPS.map((m) => {
-                const v = me.mapPrefs[m] ?? 50
+                const v = Math.round(me.mapPrefs[m] ?? 50)
                 const inPool = pool.includes(m)
                 return (
                   <tr key={m} style={inPool ? undefined : { opacity: 0.42 }}>

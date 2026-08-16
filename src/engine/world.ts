@@ -25,7 +25,20 @@ interface RawPlayer {
   contractYears: number; loyalty: number; ambition: number
 }
 
-const RAW = raw as unknown as { teams: RawTeam[]; players: RawPlayer[] }
+const RAW = raw as unknown as {
+  teams: RawTeam[]
+  players: RawPlayer[]
+  meta?: { analysts?: { name: string; from: string; spec: string; tactics: number; development: number; motivation: number }[] }
+}
+
+/**
+ * Every real analyst in the world, and there are very few.
+ *
+ * Liquipedia records an analyst for only a handful of clubs, and this project
+ * does not invent people — so an analyst is a genuinely scarce hire rather than
+ * another row in the same list as the assistant coaches.
+ */
+export const WORLD_ANALYSTS = RAW.meta?.analysts ?? []
 
 export const WORLD_TEAMS = RAW.teams
 export const WORLD_PLAYERS = RAW.players

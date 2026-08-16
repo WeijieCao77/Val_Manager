@@ -1,7 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
-import type { Coach, GameState, StaffCandidate, StaffRole, Team } from './types'
+import type { AnalystSpec, Coach, GameState, StaffCandidate, StaffRole, Team } from './types'
 import { wageBill } from './world'
-import { WORLD_TEAMS } from './world'
+import { WORLD_ANALYSTS, WORLD_TEAMS } from './world'
 
 /**
  * Building the club rather than only the roster.
@@ -37,6 +37,30 @@ export function upgradeFacility(state: GameState): string {
  * every club's listed assistants. Hiring one does not strip another club of the
  * coach it actually depends on, which poaching head coaches would.
  */
+/**
+ * The analyst pool, kept separate from the coaching one.
+ *
+ * A head coach and an assistant are the same profession at different levels, so
+ * they share a market. An analyst is not — different job, different people, and
+ * far fewer of them.
+ */
+export function analystMarket(state: GameState): StaffCandidate[] {
+  const taken = new Set([
+    ...(state.staff ?? []).map((m) => m.name),
+    ...Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
+  ])
+  return WORLD_ANALYSTS
+    .filter((a) => !taken.has(a.name))
+    .map((a) => ({
+      ...a,
+      spec: a.spec as AnalystSpec,
+      salary: Math.round(
+        40_000 + Math.pow(Math.max(0, (a.tactics + a.development + a.motivation) / 3 - 40), 2) * 120 * 0.45,
+      ),
+    }))
+    .sort((x, y) => y.tactics - x.tactics)
+}
+
 export function staffMarket(state: GameState): StaffCandidate[] {
   const taken = new Set(
     Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
@@ -67,6 +91,14 @@ export function staffMarket(state: GameState): StaffCandidate[] {
     c.salary = Math.round(40_000 + Math.pow(Math.max(0, grade - 40), 2) * 120)
   }
   return out.sort((a, b) => (b.tactics + b.development + b.motivation) - (a.tactics + a.development + a.motivation))
+}
+
+export const SPEC_CN: Record<AnalystSpec, { label: string; blurb: string }> = {
+  maps: { label: '图池分析', blurb: '「跑图」训练的地图熟练度收益 +60%' },
+  opponent: { label: '对手研究', blurb: '比赛中的战术加成提升，相当于多半个主教练' },
+  potential: { label: '数据建模', blurb: '潜力看得更准，等同于额外的「眼光」天赋' },
+  economy: { label: '经济分析', blurb: '道具与经济运用更高效，全场小幅加成' },
+  review: { label: '复盘专家', blurb: '「教练复盘」训练的意识与指挥收益翻倍' },
 }
 
 export const ROLE_CN: Record<StaffRole, string> = {
@@ -178,9 +210,11 @@ export function clearedCoaches(state: GameState): StaffCandidate[] {
 export function offerToStaff(
   state: GameState, name: string, role: StaffRole, salary: number, years: number,
 ): string {
-  const pick = staffMarket(state).find((c) => c.name === name)
-    ?? clearedCoaches(state).find((c) => c.name === name)
-  if (!pick) return '这位教练已经不在市场上了。'
+  const pick = role === 'analyst'
+    ? analystMarket(state).find((c) => c.name === name)
+    : (staffMarket(state).find((c) => c.name === name)
+      ?? clearedCoaches(state).find((c) => c.name === name))
+  if (!pick) return '这位人选已经不在市场上了。'
   if (state.staffOffers?.some((o) => o.name === name && !o.answer)) {
     return `已经在等 ${name} 的答复了。`
   }
@@ -273,6 +307,7 @@ export function resolveStaffOffers(state: GameState, rng: Rng): string[] {
     } else {
       state.staff = [...(state.staff ?? []), {
         name: o.name, role: o.role,
+        spec: WORLD_ANALYSTS.find((a) => a.name === o.name)?.spec as AnalystSpec | undefined,
         tactics: o.tactics, development: o.development, motivation: o.motivation,
         salary: o.salary, years: o.years,
       }]
@@ -311,4 +346,11 @@ export function staffBonus(state: GameState, k: 'tactics' | 'development' | 'mot
     best += Math.max(0, m[k] - 55) * weight
   }
   return Math.min(14, best)
+}
+
+
+/** Is an analyst with this speciality on staff, and how good are they? */
+export function analystEdge(state: GameState, spec: AnalystSpec): number {
+  const m = (state.staff ?? []).find((x) => x.role === 'analyst' && x.spec === spec)
+  return m ? Math.max(0, m.tactics - 45) / 45 : 0
 }
