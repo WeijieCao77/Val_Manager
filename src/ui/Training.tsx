@@ -8,7 +8,10 @@ import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
-import { askingSalary, facilityCost, offerToStaff, releaseStaff, ROLE_CN, staffMarket, upgradeFacility } from '../engine/staff'
+import {
+  approachForCoach, askingSalary, clearedCoaches, employedCoaches, facilityCost,
+  offerToStaff, releaseStaff, ROLE_CN, staffMarket, upgradeFacility,
+} from '../engine/staff'
 import type { Attrs, Player, StaffRole } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
@@ -30,6 +33,8 @@ export default function Training() {
   const act = useAction()
   const [hiring, setHiring] = useState(false)
   const [role, setRole] = useState<StaffRole>('head')
+  const [poach, setPoach] = useState(false)
+  const [poachFee, setPoachFee] = useState<Record<string, number>>({})
   const [bidOn, setBidOn] = useState<string | null>(null)
   const [bidPay, setBidPay] = useState(0)
   const [bidYears, setBidYears] = useState(2)
@@ -421,12 +426,20 @@ export default function Training() {
 
           {hiring && (
             <div style={{ marginTop: 10 }}>
-              <div className="seg" style={{ marginBottom: 8 }}>
-                {(['head', 'assistant', 'analyst'] as StaffRole[]).map((r) => (
-                  <button key={r} className={role === r ? 'on' : ''} onClick={() => setRole(r)}>
-                    {ROLE_CN[r]}
-                  </button>
-                ))}
+              <div className="row wrap" style={{ gap: 8, marginBottom: 8 }}>
+                <div className="seg">
+                  <button className={!poach ? 'on' : ''} onClick={() => setPoach(false)}>自由教练</button>
+                  <button className={poach ? 'on' : ''} onClick={() => setPoach(true)}>挖别队主教练</button>
+                </div>
+                {!poach && (
+                  <div className="seg">
+                    {(['head', 'assistant', 'analyst'] as StaffRole[]).map((r) => (
+                      <button key={r} className={role === r ? 'on' : ''} onClick={() => setRole(r)}>
+                        {ROLE_CN[r]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <p className="tiny faint" style={{ marginTop: 0 }}>
                 都是各队真实的助理教练。发出邀请后对方会在 <b>1~7 天内答复</b>，可能拒绝——
@@ -434,6 +447,59 @@ export default function Training() {
                 聘请新主教练时，<b>原主教练会转为助理教练</b>而不是凭空消失。
                 助教加成「培养」，分析师加成「战术」。
               </p>
+              {poach ? (
+                <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>主教练</th><th>现俱乐部</th><th className="num">战术</th>
+                        <th className="num">培养</th><th className="num">激励</th>
+                        <th className="num">参考补偿</th><th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employedCoaches(game).slice(0, 20).map(({ team, coach, ask }) => {
+                        const pending = (game.staffApproaches ?? [])
+                          .find((a) => a.teamId === team.id && !a.answer)
+                        const granted = (game.staffApproaches ?? [])
+                          .find((a) => a.teamId === team.id && a.answer === 'granted')
+                        const refused = (game.staffApproaches ?? [])
+                          .find((a) => a.teamId === team.id && a.answer === 'refused')
+                        const fee = poachFee[team.id] ?? ask
+                        return (
+                          <tr key={coach.name}>
+                            <td><b>{coach.name}</b></td>
+                            <td className="small muted">{team.name}</td>
+                            <td className="num mono">{coach.tactics}</td>
+                            <td className="num mono">{coach.development}</td>
+                            <td className="num mono">{coach.motivation}</td>
+                            <td className="num mono">{money(ask)}</td>
+                            <td>
+                              {granted ? (
+                                <span className="tag t1">已获准，去下面谈合同</span>
+                              ) : pending ? (
+                                <span className="tiny faint">等待答复（{Math.max(0, pending.replyOn - game.day)} 天）</span>
+                              ) : refused ? (
+                                <span className="tiny faint">已拒绝：{refused.reason}</span>
+                              ) : (
+                                <div className="row" style={{ gap: 5 }}>
+                                  <input type="number" className="sm" style={{ width: 96 }} step={10000}
+                                    value={fee}
+                                    onChange={(e) => setPoachFee((x) => ({ ...x, [team.id]: Number(e.target.value) }))} />
+                                  <button className="sm" onClick={() => act('staff', () => {
+                                    toast(approachForCoach(game, team.id, fee))
+                                    logActivity(game, 'squad', `就 ${coach.name} 联系 ${team.name}`)
+                                  })}>接触</button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
               <div className="table-wrap" style={{ maxHeight: 250, overflowY: 'auto' }}>
                 <table>
                   <thead>
@@ -443,7 +509,7 @@ export default function Training() {
                     </tr>
                   </thead>
                   <tbody>
-                    {staffMarket(game).slice(0, 20).map((c) => {
+                    {[...clearedCoaches(game), ...staffMarket(game)].slice(0, 20).map((c) => {
                       const ask = askingSalary(c, role)
                       const bidding = bidOn === c.name
                       return (
@@ -485,6 +551,16 @@ export default function Training() {
                   </tbody>
                 </table>
               </div>
+              )}
+              {poach && (
+                <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  两步走：先给对方俱乐部一笔补偿金请求接触，获准后这名教练会出现在
+                  「自由教练」列表里，再和<b>本人</b>谈薪资——他也可能不想来。<br />
+                  「参考补偿」只是这名教练的身价，<b>不是付了就一定放人</b>：你的声望越低、
+                  对方俱乐部越大牌，就越要溢价。实测新人经理付足额基本不成，
+                  <b>1.6 倍约五成、2.2 倍九成</b>；等你有名气了才谈得下来平价。
+                </p>
+              )}
             </div>
           )}
         </Panel>

@@ -1,5 +1,5 @@
 import { Rng, clamp, hashStr } from './rng'
-import type { Coach, GameState, StaffCandidate, StaffRole } from './types'
+import type { Coach, GameState, StaffCandidate, StaffRole, Team } from './types'
 import { wageBill } from './world'
 import { WORLD_TEAMS } from './world'
 
@@ -83,10 +83,103 @@ const ROLE_PAY: Record<StaffRole, number> = { head: 1, assistant: 0.55, analyst:
  * screen a shop. Now it is an offer with terms, answered somewhere in the next
  * week — and it can come back no.
  */
+/**
+ * Head coaches currently employed elsewhere.
+ *
+ * These are the names worth having, and none of them are available: their club
+ * has to agree to let you talk first. Compensation is what buys that agreement.
+ */
+export function employedCoaches(state: GameState): { team: Team; coach: Coach; ask: number }[] {
+  return Object.values(state.teams)
+    .filter((t) => t.id !== state.myTeam && t.coach)
+    .map((t) => {
+      const c = t.coach!
+      const grade = (c.tactics + c.development + c.motivation) / 3
+      // a good coach at a big club costs a lot to prise away
+      const ask = Math.round(
+        (30_000 + Math.pow(Math.max(0, grade - 45), 2) * 220) * (0.6 + t.reputation / 110),
+      )
+      return { team: t, coach: c, ask }
+    })
+    .sort((a, b) =>
+      (b.coach.tactics + b.coach.development + b.coach.motivation) -
+      (a.coach.tactics + a.coach.development + a.coach.motivation))
+}
+
+/** Ask a club for permission to speak to their coach. */
+export function approachForCoach(state: GameState, teamId: string, fee: number): string {
+  const team = state.teams[teamId]
+  if (!team?.coach) return '这支球队没有主教练。'
+  if (state.staffApproaches?.some((a) => a.teamId === teamId && !a.answer)) {
+    return `已经在等 ${team.name} 的答复了。`
+  }
+  if (state.finances.balance < fee) return '资金不足，无法支付这笔补偿。'
+
+  const rng = new Rng(hashStr(`approach:${state.seed}:${state.day}:${teamId}`))
+  state.staffApproaches = [...(state.staffApproaches ?? []), {
+    id: `AP${state.day}_${teamId}`,
+    teamId, name: team.coach.name, fee,
+    day: state.day,
+    replyOn: state.day + rng.int(2, 6),
+  }]
+  return `已向 ${team.name} 提出接触 ${team.coach.name} 的请求，等待答复。`
+}
+
+/** Clubs answering our approaches today. */
+export function resolveApproaches(state: GameState, rng: Rng): string[] {
+  const notes: string[] = []
+  for (const a of state.staffApproaches ?? []) {
+    if (a.answer || a.replyOn > state.day) continue
+    const team = state.teams[a.teamId]
+    if (!team?.coach || team.coach.name !== a.name) {
+      a.answer = 'refused'
+      a.reason = '这名教练已经不在那支球队了'
+      continue
+    }
+    const asked = employedCoaches(state).find((x) => x.team.id === a.teamId)?.ask ?? a.fee
+    const ratio = a.fee / Math.max(1, asked)
+    // a club protects a coach it depends on, and a struggling one lets go easier
+    let odds = 0.12 + (ratio - 1) * 0.7 + ((state.manager?.reputation ?? 50) - team.reputation) * 0.006
+    if (state.boardConfidence > 70) odds += 0.05
+    odds = clamp(odds, 0.02, 0.9)
+
+    if (rng.chance(odds)) {
+      a.answer = 'granted'
+      notes.push(`✅ ${team.name} 同意你与 ${a.name} 接触，接下来要和本人谈合同。`)
+    } else {
+      a.answer = 'refused'
+      a.reason = ratio < 0.85 ? '补偿金太低' : '不愿意放走现任主教练'
+      notes.push(`❌ ${team.name} 拒绝了接触 ${a.name} 的请求：${a.reason}`)
+    }
+  }
+  state.staffApproaches = (state.staffApproaches ?? [])
+    .filter((a) => !a.answer || a.replyOn > state.day - 30)
+  return notes
+}
+
+/** Coaches we have been cleared to negotiate with. */
+export function clearedCoaches(state: GameState): StaffCandidate[] {
+  const out: StaffCandidate[] = []
+  for (const a of state.staffApproaches ?? []) {
+    if (a.answer !== 'granted') continue
+    const team = state.teams[a.teamId]
+    const c = team?.coach
+    if (!c || c.name !== a.name) continue
+    const grade = (c.tactics + c.development + c.motivation) / 3
+    out.push({
+      name: c.name, from: team.name,
+      tactics: c.tactics, development: c.development, motivation: c.motivation,
+      salary: Math.round(40_000 + Math.pow(Math.max(0, grade - 40), 2) * 150),
+    })
+  }
+  return out
+}
+
 export function offerToStaff(
   state: GameState, name: string, role: StaffRole, salary: number, years: number,
 ): string {
   const pick = staffMarket(state).find((c) => c.name === name)
+    ?? clearedCoaches(state).find((c) => c.name === name)
   if (!pick) return '这位教练已经不在市场上了。'
   if (state.staffOffers?.some((o) => o.name === name && !o.answer)) {
     return `已经在等 ${name} 的答复了。`
@@ -147,6 +240,18 @@ export function resolveStaffOffers(state: GameState, rng: Rng): string[] {
     const signOn = Math.round(o.salary * 0.5)
     state.finances.balance -= signOn
     state.finances.log.push({ day: state.day, label: `签约 ${o.name}`, amount: -signOn })
+
+    // if they were employed elsewhere, that club loses them and is paid
+    const poachedFrom = Object.values(state.teams)
+      .find((t) => t.id !== state.myTeam && t.coach?.name === o.name)
+    if (poachedFrom) {
+      const ap = state.staffApproaches?.find((x) => x.teamId === poachedFrom.id && x.answer === 'granted')
+      const fee = ap?.fee ?? 0
+      state.finances.balance -= fee
+      state.finances.log.push({ day: state.day, label: `补偿 ${poachedFrom.name}`, amount: -fee })
+      poachedFrom.coach = null
+      notes.push(`💼 ${o.name} 离开 ${poachedFrom.name} 加盟，补偿金 ${Math.round(fee / 1000)}K。`)
+    }
 
     if (o.role === 'head') {
       const old = team.coach

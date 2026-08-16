@@ -270,6 +270,25 @@ export interface JobApplication {
   reason?: string
 }
 
+/**
+ * An approach to another club about a coach they employ.
+ *
+ * You cannot simply offer a job to someone who already has one — the club has
+ * to release them to talk to you first, and can say no.
+ */
+export interface StaffApproach {
+  id: string
+  /** the club that employs them */
+  teamId: string
+  name: string
+  /** compensation offered to the club */
+  fee: number
+  day: number
+  replyOn: number
+  answer?: 'granted' | 'refused'
+  reason?: string
+}
+
 /** An approach made to a coach, waiting on their answer. */
 export interface StaffOffer {
   id: string
@@ -624,6 +643,8 @@ export interface GameState {
   staff?: StaffMember[]
   /** approaches to coaches that have not been answered yet */
   staffOffers?: StaffOffer[]
+  /** clubs we have asked about their coach */
+  staffApproaches?: StaffApproach[]
   /** clubs currently trying to hire us away */
   jobOffers?: JobOffer[]
   /** jobs we have applied for ourselves */

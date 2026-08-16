@@ -10,7 +10,7 @@ import { aiTransferTick, refreshListings, resolveDueOffers } from './transfer'
 import { offerGigs, runGigsToday, streamWeek } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
-import { resolveStaffOffers } from './staff'
+import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { autoStarters } from './world'
@@ -593,6 +593,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   offerGigs(state, rng, notes)
 
   // ---- coaches and clubs answering today
+  notes.push(...resolveApproaches(state, rng))
   notes.push(...resolveStaffOffers(state, rng))
   notes.push(...resolveApplications(state, rng))
 
