@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextFixtureFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, recentResultsFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
 import { activePool } from '../engine/match'
 import { sortStandings } from '../engine/league'
@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [scrimFmt, setScrimFmt] = useState<ScrimFormat>('full24')
   const me = game.teams[game.myTeam]
   const squad = squadOf(game, game.myTeam)
-  const next = nextFixtureFor(game, game.myTeam)
+  const next = nextRealFixtureFor(game, game.myTeam)
 
   const handleReports = (reports: DayReport[]) => {
     const notes = reports.flatMap((r) => r.notes)
@@ -54,10 +54,6 @@ export default function Dashboard() {
     }, 10)
   }
 
-  // the most recent result, shown compactly rather than forced open
-  const lastId = game.lastResults[game.lastResults.length - 1]
-  const lastFixture = lastId ? game.fixtures.find((f) => f.id === lastId) : undefined
-
   // long gaps between fixtures are where scrims belong
   const gapDays = next ? next.day - game.day : 0
   const scrimOpponents = Object.values(game.teams)
@@ -84,6 +80,7 @@ export default function Dashboard() {
     .sort((a, b) => ratingOf(b.season) - ratingOf(a.season))
     .slice(0, 5)
 
+  const starters = me.starters.map((id) => game.players[id]).filter(Boolean)
   const agenda = agendaFor(game)
   const stageDef = STAGES.find((x) => x.key === game.stage)
   const daysLeft = stageDef ? stageDef.end - game.day : 0
@@ -150,7 +147,18 @@ export default function Dashboard() {
         <Panel><Stat k="联赛排名" v={myRank >= 0 ? `${myRank + 1} / ${table.length}` : '—'} /></Panel>
         <Panel><Stat k="资金" v={money(game.finances.balance)} /></Panel>
         <Panel><Stat k="赛季薪资" v={money(bill)} /></Panel>
-        <Panel><Stat k="董事会信任" v={`${Math.round(game.boardConfidence)}%`} /></Panel>
+        <Panel>
+          <Stat k="董事会信任" v={`${Math.round(game.boardConfidence)}%`} />
+          <div className="tiny" style={{ marginTop: 2 }}>
+            {game.objective ? (
+              <span className={myRank >= 0 && myRank + 1 <= game.objective.placeAtLeast
+                ? 'pos' : 'neg'}>
+                目标：{game.objective.text}
+              </span>
+            ) : <span className="faint">本赛段暂无目标</span>}
+            {game.onNotice && <span className="neg"> · ⚠ 已被警告</span>}
+          </div>
+        </Panel>
         {game.manager && (
           <Panel>
             <Stat k="经理声望" v={`${Math.round(game.manager.reputation)}`} />
@@ -206,26 +214,32 @@ export default function Dashboard() {
                 : ''}
             </div>
           )}
-          {lastFixture?.result && (
-            <button
-              className="last-result"
-              onClick={() => openMatch(lastFixture)}
-              title="点击查看完整数据与回合走势"
-            >
-              <span className="tiny faint">上一场</span>
-              <b>{game.teams[lastFixture.teamA]?.name}</b>
-              <span className="mono">
-                {lastFixture.result.mapsWonA} : {lastFixture.result.mapsWonB}
-              </span>
-              <b>{game.teams[lastFixture.teamB]?.name}</b>
-              {lastFixture.result.mvp && (
-                <span className="tiny muted">
-                  MVP {game.players[lastFixture.result.mvp]?.ign}
-                </span>
-              )}
-              <span className="tiny faint right">查看详情 ›</span>
-            </button>
-          )}
+          {(() => {
+            const recent = recentResultsFor(game, game.myTeam, 5)
+            if (!recent.length) return null
+            return (
+              <div style={{ marginTop: 12 }}>
+                <div className="tiny faint" style={{ marginBottom: 5 }}>最近比赛 · 点击查看数据</div>
+                {recent.map((f) => {
+                  const r = f.result!
+                  const mine = f.teamA === game.myTeam
+                  const won = (r.mapsWonA > r.mapsWonB) === mine
+                  const foe = game.teams[mine ? f.teamB : f.teamA]?.name
+                  return (
+                    <button key={f.id} className="recent-row" onClick={() => openMatch(f)}>
+                      <span className={won ? 'pos' : 'neg'} style={{ width: 14 }}>{won ? '胜' : '负'}</span>
+                      <span className="mono" style={{ width: 34 }}>
+                        {mine ? r.mapsWonA : r.mapsWonB}–{mine ? r.mapsWonB : r.mapsWonA}
+                      </span>
+                      <span className="small" style={{ flex: 1, textAlign: 'left' }}>{foe}</span>
+                      <span className="tag">{f.comp === 'scrim' ? '训练赛' : game.comps[f.comp]?.name ?? f.comp}</span>
+                      <span className="tiny faint">{fmtDay(f.day)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
           {injured.length > 0 && (
             <p className="small neg" style={{ marginBottom: 0 }}>
               ⚕ 伤停：{injured.map((p) => p.ign).join('、')}
@@ -240,6 +254,100 @@ export default function Dashboard() {
           )}
         </Panel>
 
+        <Panel title="今日操作" flush>
+        {(() => {
+          const acts = activityOn(game, game.day)
+          const drill = game.drill
+          const drillText =
+            !drill || drill.kind === 'none' ? null
+              : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
+                : drill.kind === 'review' ? '教练复盘'
+                  : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
+          const duoText = game.duo
+            ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
+            : null
+          const focuses = me.starters
+            .map((id) => game.players[id])
+            .filter(Boolean)
+            .map((p) => {
+              const f = game.training[p!.id] ?? 'rest'
+              return `${p!.ign}：${f === 'rest' ? '休息' : ATTR_CN[f as keyof typeof ATTR_CN]}`
+            })
+          const scrimToday = game.fixtures.filter(
+            (f) => f.comp === 'scrim' && f.day >= game.day &&
+              (f.teamA === game.myTeam || f.teamB === game.myTeam) && !f.played,
+          )
+          return (
+            <>
+              {acts.length === 0 && !drillText && !duoText && (
+                <div className="news-item"><span className="muted small">今天还没有任何操作。</span></div>
+              )}
+              {acts.map((a, i) => (
+                <div key={i} className="news-item">
+                  <span className="d">{ACT_CN[a.kind]}</span><span>{a.text}</span>
+                </div>
+              ))}
+              <div className="news-item">
+                <span className="d">训练</span>
+                <span className="small">
+                  {drillText ? <b>{drillText}</b> : <span className="muted">未安排团队训练</span>}
+                  {duoText && <b> ＋ {duoText}</b>}
+                  <span className="faint"> · 个人：{focuses.join('，')}</span>
+                </span>
+              </div>
+              {scrimToday.map((f) => (
+                <div key={f.id} className="news-item">
+                  <span className="d">训练赛</span>
+                  <span className="small">
+                    已约 {game.teams[f.teamA === game.myTeam ? f.teamB : f.teamA]?.name}
+                    {f.scrim ? ` @ ${f.scrim.map}` : ''}，{f.day - game.day <= 0 ? '今天' : `${f.day - game.day} 天后`}进行
+                  </span>
+                </div>
+              ))}
+            </>
+          )
+        })()}
+      </Panel>
+      </div>
+
+      <Panel title="选手情况" flush>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>首发五人</th><th>位置</th><th className="num">能力</th>
+                <th>体能</th><th className="num">士气</th><th>需要注意</th>
+              </tr>
+            </thead>
+            <tbody>
+              {starters.map((p) => {
+                const notes: string[] = []
+                if (p.injuredUntil > game.day) notes.push(`伤停 ${p.injuredUntil - game.day} 天`)
+                if (p.fatigue >= 70) notes.push('体能偏低，考虑休息')
+                if (p.morale <= 45) notes.push('士气低落')
+                if ((p.grievance ?? 0) > 45) notes.push('对出场时间不满')
+                if ((game.commercialDays?.[p.id] ?? 0) >= 2) notes.push('本周商务占用多')
+                return (
+                  <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
+                    <td><b>{p.ign}</b>{p.isIgl && <span className="tag" style={{ marginLeft: 5 }}>IGL</span>}</td>
+                    <td><Roles p={p} /></td>
+                    <td className="num"><OvrBadge value={p.overall} /></td>
+                    <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>
+                    <td className="num mono">{Math.round(p.morale)}</td>
+                    <td className="small">
+                      {notes.length
+                        ? <span style={{ color: 'var(--warn)' }}>{notes.join('，')}</span>
+                        : <span className="faint">状态正常</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <div className="grid c2">
         <Panel title={myComp ? myComp.name : '积分榜'} flush>
           {myComp ? (
             <div className="table-wrap">
@@ -270,67 +378,8 @@ export default function Dashboard() {
             <div className="empty">{stageName(game.stage)} 期间没有进行中的联赛。</div>
           )}
         </Panel>
-      </div>
 
-      <div className="grid c2">
-        <Panel title="首发阵容" flush>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>选手</th><th>位置</th><th className="num">能力</th>
-                  <th className="num">状态</th><th>体能</th>
-                </tr>
-              </thead>
-              <tbody>
-                {me.starters.map((id) => {
-                  const p = game.players[id]
-                  if (!p) return null
-                  return (
-                    <tr key={id} className="clickable" onClick={() => openPlayer(id)}>
-                      <td><b>{p.ign}</b>{p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}</td>
-                      <td><Roles p={p} /></td>
-                      <td className="num"><OvrBadge value={p.overall} /></td>
-                      <td className="num mono">{Math.round(p.form)}</td>
-                      <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
-
-        <Panel title="赛季数据领跑" flush>
-          {topPerformers.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>选手</th><th className="num">评分</th><th className="num">ACS</th>
-                    <th className="num">K/D</th><th className="num">场次</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPerformers.map((p) => {
-                    const s = statLine(p.season)
-                    return (
-                      <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
-                        <td>{p.ign}</td>
-                        <td className="num"><b>{ratingOf(p.season).toFixed(2)}</b></td>
-                        <td className="num">{s.acs.toFixed(0)}</td>
-                        <td className="num">{s.kd.toFixed(2)}</td>
-                        <td className="num muted">{p.season.maps}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty">本赛季还没有比赛数据。</div>
-          )}
-        </Panel>
+        
       </div>
 
       {gapDays >= 4 && (
@@ -406,62 +455,40 @@ export default function Dashboard() {
         </Panel>
       )}
 
-      <Panel title="今日操作" flush>
-        {(() => {
-          const acts = activityOn(game, game.day)
-          const drill = game.drill
-          const drillText =
-            !drill || drill.kind === 'none' ? null
-              : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
-                : drill.kind === 'review' ? '教练复盘'
-                  : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
-          const duoText = game.duo
-            ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
-            : null
-          const focuses = me.starters
-            .map((id) => game.players[id])
-            .filter(Boolean)
-            .map((p) => {
-              const f = game.training[p!.id] ?? 'rest'
-              return `${p!.ign}：${f === 'rest' ? '休息' : ATTR_CN[f as keyof typeof ATTR_CN]}`
-            })
-          const scrimToday = game.fixtures.filter(
-            (f) => f.comp === 'scrim' && f.day >= game.day &&
-              (f.teamA === game.myTeam || f.teamB === game.myTeam) && !f.played,
-          )
-          return (
-            <>
-              {acts.length === 0 && !drillText && !duoText && (
-                <div className="news-item"><span className="muted small">今天还没有任何操作。</span></div>
-              )}
-              {acts.map((a, i) => (
-                <div key={i} className="news-item">
-                  <span className="d">{ACT_CN[a.kind]}</span><span>{a.text}</span>
-                </div>
-              ))}
-              <div className="news-item">
-                <span className="d">训练</span>
-                <span className="small">
-                  {drillText ? <b>{drillText}</b> : <span className="muted">未安排团队训练</span>}
-                  {duoText && <b> ＋ {duoText}</b>}
-                  <span className="faint"> · 个人：{focuses.join('，')}</span>
-                </span>
-              </div>
-              {scrimToday.map((f) => (
-                <div key={f.id} className="news-item">
-                  <span className="d">训练赛</span>
-                  <span className="small">
-                    已约 {game.teams[f.teamA === game.myTeam ? f.teamB : f.teamA]?.name}
-                    {f.scrim ? ` @ ${f.scrim.map}` : ''}，{f.day - game.day <= 0 ? '今天' : `${f.day - game.day} 天后`}进行
-                  </span>
-                </div>
-              ))}
-            </>
-          )
-        })()}
-      </Panel>
+      
 
-      <Panel title="新闻" flush>
+      <Panel title="赛季数据领跑" flush>
+          {topPerformers.length ? (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>选手</th><th className="num">评分</th><th className="num">ACS</th>
+                    <th className="num">K/D</th><th className="num">场次</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPerformers.map((p) => {
+                    const s = statLine(p.season)
+                    return (
+                      <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
+                        <td>{p.ign}</td>
+                        <td className="num"><b>{ratingOf(p.season).toFixed(2)}</b></td>
+                        <td className="num">{s.acs.toFixed(0)}</td>
+                        <td className="num">{s.kd.toFixed(2)}</td>
+                        <td className="num muted">{p.season.maps}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty">本赛季还没有比赛数据。</div>
+          )}
+        </Panel>
+
+        <Panel title="新闻" flush>
         {recentNews.length ? (
           recentNews.map((n, i) => (
             <div key={i} className={`news-item${n.important ? ' important' : ''}`}>

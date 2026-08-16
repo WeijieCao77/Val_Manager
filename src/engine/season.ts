@@ -739,6 +739,30 @@ export const nextFixtureFor = (state: GameState, teamId: string): Fixture | unde
     .filter((f) => !f.played && (f.teamA === teamId || f.teamB === teamId))
     .sort((a, b) => a.day - b.day)[0]
 
+/**
+ * The next match that counts.
+ *
+ * A booked scrim used to replace the league fixture everywhere it was shown,
+ * so the one thing a manager always wants in view — when do we next play for
+ * real — kept disappearing behind a friendly.
+ */
+export const nextRealFixtureFor = (state: GameState, teamId: string): Fixture | undefined =>
+  state.fixtures
+    .filter((f) => !f.played && !isScrim(f) && (f.teamA === teamId || f.teamB === teamId))
+    .sort((a, b) => a.day - b.day)[0]
+
+export const nextScrimFor = (state: GameState, teamId: string): Fixture | undefined =>
+  state.fixtures
+    .filter((f) => !f.played && isScrim(f) && (f.teamA === teamId || f.teamB === teamId))
+    .sort((a, b) => a.day - b.day)[0]
+
+/** Matches we have played, most recent first — scrims included. */
+export const recentResultsFor = (state: GameState, teamId: string, n = 6): Fixture[] =>
+  state.fixtures
+    .filter((f) => f.result && (f.teamA === teamId || f.teamB === teamId))
+    .sort((a, b) => b.day - a.day)
+    .slice(0, n)
+
 export const fixturesFor = (state: GameState, teamId: string): Fixture[] =>
   state.fixtures
     .filter((f) => f.teamA === teamId || f.teamB === teamId)

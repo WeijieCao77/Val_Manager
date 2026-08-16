@@ -491,3 +491,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .bond-grid tbody th { font-size: 12px; font-weight: 600; }
 .bond-grid .bond-self { background: #0d151e; color: #2c3b4c; }
 .bond-key { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
+
+/* a clickable line per recent match, scrims included */
+.recent-row {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 5px 8px; background: none; border: 0; border-radius: var(--radius);
+  color: var(--text); cursor: pointer; text-align: left;
+}
+.recent-row:hover { background: #101a25; }

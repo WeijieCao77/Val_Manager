@@ -17,7 +17,7 @@ import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
-import { dateLabel, nextFixtureFor, stageName } from './engine/season'
+import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
@@ -98,7 +98,9 @@ export default function App() {
   }
 
   const myTeam = game.teams[game.myTeam]
-  const next = nextFixtureFor(game, game.myTeam)
+  // the top bar tracks the next competitive match; a scrim gets its own chip
+  const next = nextRealFixtureFor(game, game.myTeam)
+  const scrim = nextScrimFor(game, game.myTeam)
 
   const Screen = ({
     dashboard: Dashboard,
@@ -131,9 +133,15 @@ export default function App() {
           <div className="chip" title="董事会信任度">
             🏛 <b>{Math.round(game.boardConfidence)}%</b>
           </div>
+          {scrim && (
+            <div className="chip small muted" title="已约训练赛">
+              🎯 {scrim.day - game.day <= 0 ? '今天' : `${scrim.day - game.day}天后`}训练赛
+            </div>
+          )}
           {next && (
-            <div className="chip small muted">
+            <div className="chip small muted" title="下一场正式比赛">
               下一场：{game.teams[next.teamA === game.myTeam ? next.teamB : next.teamA]?.name}
+              <span className="faint"> · {next.day - game.day <= 0 ? '今天' : `${next.day - game.day}天后`}</span>
             </div>
           )}
         </header>
