@@ -61,7 +61,14 @@ export function initialBond(state: GameState, aId: string, bId: string): number 
   const b = state.players[bId]
   if (!a || !b) return NEUTRAL
 
-  let v = 2
+  // They are team-mates before they are anything else: five professionals who
+  // practise together every day. Starting from ~2 and letting modifiers do all
+  // the work put pairs with no shared history at zero or below — a feud before
+  // a ball was kicked, which is not what a roster looks like and reads badly to
+  // anyone who follows these players. The base is high and the modifiers are
+  // narrow: history and rapport still separate pairs, by a dozen points rather
+  // than by forty.
+  let v = 44
 
   // Years side by side. This is the strongest signal there is: a core that has
   // been together for three seasons is not in the same room as the man who
@@ -71,29 +78,31 @@ export function initialBond(state: GameState, aId: string, bId: string): number 
   // real spread — a median player joined about a year ago, and only ~12% have
   // been at their club since 2023 or earlier, so a long core should stand out.
   const months = sharedMonths(a.joined, b.joined, state)
-  if (months > 0) v += Math.min(34, Math.sqrt(months) * 4.2)
+  if (months > 0) v += Math.min(10, Math.sqrt(months) * 1.35)
 
   // sharing a first language is the single biggest divider in a real roster
-  if (a.nat && b.nat && a.nat === b.nat) v += 13
-  else if (a.nat && b.nat) v -= 3
+  if (a.nat && b.nat && a.nat === b.nat) v += 4
+  else if (a.nat && b.nat) v -= 2
 
   const ageGap = Math.abs(a.age - b.age)
-  if (ageGap <= 2) v += 6
-  else if (ageGap >= 7) v -= 5
+  if (ageGap <= 2) v += 3
+  else if (ageGap >= 7) v -= 2
 
   // the two who have to talk every round get closer faster
   const ra = a.role
   const rb = b.role
-  if (PAIRED[ra] === rb) v += 7
-  if (ra === rb) v += 3          // same role, same problems
+  if (PAIRED[ra] === rb) v += 3
+  if (ra === rb) v += 1          // same role, same problems
 
   // some people are simply easier to play with
-  v += (a.attrs.teamwork + b.attrs.teamwork - 140) * 0.12
-  v += (a.attrs.communication + b.attrs.communication - 140) * 0.08
+  v += (a.attrs.teamwork + b.attrs.teamwork - 140) * 0.05
+  v += (a.attrs.communication + b.attrs.communication - 140) * 0.035
 
   // a little grit so two similar pairs are not identical
-  const jitter = (hashStr(`bond:${key(aId, bId)}`) % 9) - 4
-  return clamp(Math.round(v + jitter), -25, 60)
+  const jitter = (hashStr(`bond:${key(aId, bId)}`) % 7) - 3
+  // the floor is a starting point, not a ceiling on ill feeling: a bad run can
+  // still drive a pair well below it, it just cannot begin there
+  return clamp(Math.round(v + jitter), 30, 74)
 }
 
 export function bondBetween(state: GameState, a: string, b: string): number {
