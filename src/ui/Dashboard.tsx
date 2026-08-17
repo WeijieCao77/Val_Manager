@@ -10,7 +10,6 @@ import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { useAction } from './useAction'
 import { cycleDays } from '../engine/actions'
 import Digest from './Digest'
-import FirstTurn, { firstTurnDone } from './FirstTurn'
 import { squadOf, wageBill } from '../engine/world'
 import { ATTR_CN } from '../engine/types'
 
@@ -27,7 +26,6 @@ export default function Dashboard() {
   const act = useAction()
   const [busy, setBusy] = useState(false)
   const [digest, setDigest] = useState<{ reports: DayReport[]; fromDay: number } | null>(null)
-  const [coaching, setCoaching] = useState(() => !firstTurnDone())
   const [scrimOpp, setScrimOpp] = useState<string>('')
   const [scrimMap, setScrimMap] = useState<string>('')
   const [scrimFmt, setScrimFmt] = useState<ScrimFormat>('full24')
@@ -121,7 +119,6 @@ export default function Dashboard() {
           onClose={() => setDigest(null)}
         />
       )}
-      {coaching && <FirstTurn onDone={() => setCoaching(false)} />}
       {offers.length > 0 && (
         <Panel title={`执教邀请 · ${offers.length}`} className="alert" flush>
           <div className="agenda">

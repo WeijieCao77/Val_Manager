@@ -33,13 +33,12 @@ export default function Saves() {
     <>
       <Panel title="新手引导">
         <p className="small muted" style={{ marginTop: 0 }}>
-          第一次进入游戏时会有一轮逐页介绍，之后总览上会有一张「新手任务」清单，
-          带你把第一个回合完整走完。想再看一遍可以从这里重新打开。
+          第一次进入游戏时会有一段引导：先讲清楚基本机制，然后用一个<b>模拟的一天</b>
+          带你把训练、问价、推进真的走一遍——期间做的任何事结束后都会撤销，不影响存档。
         </p>
         <button className="sm" onClick={() => {
           try {
-            localStorage.removeItem('valmgr.tour.done')
-            localStorage.removeItem('valmgr.firstturn')
+            localStorage.removeItem('valmgr.tutorial')
           } catch { /* ignore */ }
           window.location.reload()
         }}>重新播放引导</button>

@@ -555,3 +555,27 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   color: var(--faint); margin-top: -2px;
 }
 @media (max-width: 720px) { .brand .by { display: none; } }
+
+/* guided trial day: dim the app, keep exactly one control live */
+.tut-bg {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(4, 9, 14, .78);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.tut-bg.gated { pointer-events: none; background: rgba(4, 9, 14, .62); }
+.tut-bg.gated .tut-card { pointer-events: auto; }
+.tut-card {
+  background: var(--panel); border: 1px solid var(--accent-line);
+  border-radius: var(--radius); padding: 20px 22px; max-width: 440px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+}
+/* anchored to a corner so the highlighted control stays visible */
+.tut-card.side { position: fixed; right: 24px; bottom: 24px; margin: 0; }
+.tut-lit {
+  position: relative; z-index: 95; pointer-events: auto !important;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(255, 70, 85, .4);
+  border-radius: var(--radius);
+}
+@media (max-width: 720px) {
+  .tut-card.side { right: 10px; left: 10px; bottom: 10px; max-width: none; }
+}

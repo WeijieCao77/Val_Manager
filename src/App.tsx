@@ -20,7 +20,7 @@ import GameOver from './ui/GameOver'
 import { autosave, hasAutosave, loadAutosave } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
-import Tour, { tourSeen } from './ui/Tour'
+import Tutorial, { tutorialSeen } from './ui/Tutorial'
 import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
@@ -44,7 +44,7 @@ export default function App() {
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
   const [toastMsg, setToastMsg] = useState<string | null>(null)
-  const [tour, setTour] = useState(() => !tourSeen())
+  const [tour, setTour] = useState(() => !tutorialSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
@@ -206,7 +206,9 @@ export default function App() {
         {game.gameOver && (
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
-        {tour && !game.gameOver && <Tour screen={screen} onDone={() => setTour(false)} />}
+        {tour && !game.gameOver && (
+          <Tutorial screen={screen} go={setScreen} onDone={() => setTour(false)} />
+        )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>
     </GameCtx.Provider>
