@@ -75,7 +75,14 @@ export const TOUR: TourStep[] = [
   {
     target: null,
     title: '最后一件事：行动力',
-    body: '右上角的 ⚡ 是本回合的行动力。赛季中一天一回合、2 点；空档期一周一回合、4 点——转会窗开着的时候正是要做事的时候。报价、问价、商务、约战、聘教练、挂牌解约这些对外事务各花 1 点；调首发、改战术、安排训练不花点数。用完了就按总览上那个红色的「推进」按钮进入下一回合。',
+    body: '右上角的 ⚡ 是本回合的行动力。赛季中一天一回合、2 点；空档期一周一回合、4 点——转会窗开着的时候正是要做事的时候。报价、问价、商务、约战、聘教练、挂牌解约这些对外事务各花 1 点；调首发、改战术、安排训练不花点数。',
+  },
+  {
+    target: 'dashboard',
+    title: '现在真的走一遍',
+    body: '光看是学不会的。回到总览，那里有一张「新手任务」清单，带你把第一个回合完整走完——'
+      + '排首发、安排训练、花掉行动力、推进。每一条都会说明为什么要做，做完自动打勾。'
+      + '不想要的话点「我自己摸索」就收起来了。',
   },
 ]
 
@@ -147,7 +154,7 @@ export default function Tour({
           ) : i < TOUR.length - 1 ? (
             <button className="primary sm" onClick={() => setI(i + 1)}>下一步</button>
           ) : (
-            <button className="primary sm" onClick={finish}>开始吧</button>
+            <button className="primary sm" onClick={finish}>开始第一回合</button>
           )}
           <span style={{ flex: 1 }} />
           <button className="sm ghost" onClick={finish}>跳过</button>
