@@ -13,7 +13,10 @@ export const TRANSFER_WINDOWS: [number, number][] = [
 ]
 
 export const windowOpen = (day: number): boolean =>
-  TRANSFER_WINDOWS.some(([a, b]) => day >= a && day <= b)
+  // the guided trial day sits before the calendar starts; it is a sandbox that
+  // gets rolled back, so the window is open there rather than locking the page
+  // the tutorial is about to teach
+  day < 0 || TRANSFER_WINDOWS.some(([a, b]) => day >= a && day <= b)
 
 /** What the selling club wants for a player under contract. */
 export function askingPrice(p: Player): number {
