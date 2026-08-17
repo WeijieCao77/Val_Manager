@@ -115,8 +115,9 @@ const STEPS: Step[] = [
   {
     screen: 'dashboard', spot: '.advance-bar',
     title: '最后：推进，结束这一天',
-    body: '按下红色的推进按钮。推进完会弹出这段时间发生了什么。',
-    done: (g) => g.day > 0,
+    body: '按下红色的「推进 一天」。推进完会弹出这一天发生了什么——'
+      + '正式开局后，这就是你每个回合的收尾动作。',
+    done: (g) => g.day >= 0,
     hint: '按下推进即可完成',
   },
 ]
@@ -128,6 +129,14 @@ export default function Tutorial({
   const [i, setI] = useState(0)
   // the sandbox: everything done during the trial day is rolled back
   const [snapshot] = useState(() => JSON.stringify(game))
+  // Rewind to 31 December for real. Labelling 1 January as the trial day while
+  // the clock and the advance button both said otherwise was simply untrue.
+  useEffect(() => {
+    game.tutorialDay = true
+    game.day = -1
+    commit()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const step = STEPS[i]
 
   // Steps that teach navigation wait for the manager to click the tab
@@ -171,6 +180,7 @@ export default function Tutorial({
   const finish = () => {
     // restore the save exactly as it was before the trial day
     const before = JSON.parse(snapshot) as GameState
+    delete (before as { tutorialDay?: boolean }).tutorialDay
     const live = game as unknown as Record<string, unknown>
     for (const k of Object.keys(live)) delete live[k]
     Object.assign(game, before)

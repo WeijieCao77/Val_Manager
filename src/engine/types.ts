@@ -695,6 +695,14 @@ export interface GameState {
    * Symmetric by construction — see engine/bonds.ts.
    */
   bonds?: Record<string, number>
+  /**
+   * Set while the guided trial day is running.
+   *
+   * The tutorial genuinely rewinds the clock to 31 December rather than
+   * labelling 1 January as if it were — so the turn it teaches is one day long
+   * and ends by arriving at the real first day.
+   */
+  tutorialDay?: boolean
   /** the day's action budget — see engine/actions.ts */
   actions?: { day: number; used: number }
   /** commercial offers on the table and already booked */

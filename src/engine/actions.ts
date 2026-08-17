@@ -49,6 +49,8 @@ export const ACTION_CN: Record<ActionKind, string> = {
  * and the same three actions cover it.
  */
 export function cycleDays(state: GameState): number {
+  // the trial day is a day, whatever the calendar would otherwise say
+  if (state.tutorialDay) return 1
   const next = state.fixtures
     .filter((f) => !f.played && f.comp !== 'scrim' &&
       (f.teamA === state.myTeam || f.teamB === state.myTeam))
