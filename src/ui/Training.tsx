@@ -75,7 +75,9 @@ export default function Training() {
   // the plan is committed for one turn, not a fixed week: downtime advances a
   // week at a time anyway, and in-season you should be able to react each day
   const turn = cycleDays(game)
-  const locked = (game.drillLock ?? 0) > game.day
+  // an unset lock must not read as "locked until day 0": the tutorial runs at
+  // day -1, where `?? 0` made every untouched panel inert
+  const locked = game.drillLock != null && game.drillLock > game.day
 
   const setDrill = (d: typeof drill, _label: string) => {
     if (locked) return

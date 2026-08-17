@@ -331,7 +331,7 @@ function runVentures(state: GameState, rng: Rng, notes: string[]): void {
  * has heard of does not land deals by asking harder.
  */
 export function pitchSponsor(state: GameState): string {
-  if ((state.pitchCooldown ?? 0) > state.day) {
+  if (state.pitchCooldown != null && state.pitchCooldown > state.day) {
     return `刚谈过一轮，${(state.pitchCooldown ?? 0) - state.day} 天后可以再找。`
   }
   const team = state.teams[state.myTeam]

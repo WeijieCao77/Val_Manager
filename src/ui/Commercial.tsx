@@ -84,7 +84,7 @@ export default function Commercial() {
         <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginBottom: 14 }}>
           <button
             className="primary sm"
-            disabled={(game.pitchCooldown ?? 0) > game.day}
+            disabled={game.pitchCooldown != null && game.pitchCooldown > game.day}
             onClick={() => act('sponsor', () => {
               toast(pitchSponsor(game)); logActivity(game, 'commercial', '拜访潜在赞助商')
             })}
@@ -92,7 +92,7 @@ export default function Commercial() {
             去谈一家赞助商
           </button>
           <span className="tiny faint">
-            {(game.pitchCooldown ?? 0) > game.day
+            {game.pitchCooldown != null && game.pitchCooldown > game.day
               ? `${(game.pitchCooldown ?? 0) - game.day} 天后可以再谈`
               : '免费，每 14 天一轮。3 天后对方给出具体条件，你再决定签不签'}
           </span>
