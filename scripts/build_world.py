@@ -123,7 +123,7 @@ TIER1 = {
 # a real roster; regions with fewer clubs simply have a smaller league.
 TIER2 = {
     'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
-    'EMEA': [('EF', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
+    'EMEA': [('EIN', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
     'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
     'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQG', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming')],
 }
@@ -234,14 +234,29 @@ NAT_REGION = {
 }
 
 
+# tags already spoken for by a VCT club; a Challengers side must not collide
+# with one — "Eintracht Frankfurt" and "Eternal Fire" both reduce to EF, which
+# put one club's roster on the other and left the second with nobody.
+TIER1_TAGS = {t for lst in TIER1.values() for t, _ in lst}
+
+
 def vcl_tag(name):
     """A short, stable tag for a Challengers club, derived from its real name."""
     cleaned = re.sub(r"[^A-Za-z0-9 ]", "", name).split()
     if not cleaned:
-        return name[:4].upper()
-    if len(cleaned) == 1:
-        return cleaned[0][:4].upper()
-    return "".join(w[0] for w in cleaned)[:4].upper()
+        base = name[:4].upper()
+    elif len(cleaned) == 1:
+        base = cleaned[0][:4].upper()
+    else:
+        base = "".join(w[0] for w in cleaned)[:4].upper()
+    if base not in TIER1_TAGS:
+        return base
+    # lengthen until it is its own tag
+    letters = re.sub(r"[^A-Za-z0-9]", "", name).upper()
+    for n in range(len(base) + 1, len(letters) + 1):
+        if letters[:n] not in TIER1_TAGS:
+            return letters[:n]
+    return base + "2"
 
 
 def parse_challengers_rows():
@@ -523,6 +538,9 @@ def main():
         by_tag[r["tag"]].append(built[ign])
 
     out_players, out_teams = [], []
+    # every alias already given a club, lowercased: the same person must not
+    # appear twice because two sources spelled them Juicy and juicy
+    placed = set()
     pid = tid = 0
     used_tags = set()
 
@@ -549,12 +567,24 @@ def main():
 
     def add_team(tag, display, region, tier):
         nonlocal tid
-        squad_src = sorted(by_tag.get(tag, []), key=lambda x: -(x["vlr"]["rating"] or 0))
+        # A tag is not unique across tiers — Eternal Fire and Eintracht Frankfurt
+        # are both "EF" — so indexing squads by tag alone put one roster on two
+        # clubs. Anyone already placed is skipped.
+        squad_src, seen_here = [], set()
+        for p in by_tag.get(tag, []):
+            low = p["ign"].lower()
+            if low in placed or low in seen_here:
+                continue
+            seen_here.add(low)
+            squad_src.append(p)
+        squad_src.sort(key=lambda x: -(x["vlr"]["rating"] or 0))
         if len(squad_src) < 5:
             return False
         team_id = f"T{tid}"
         tid += 1
         used_tags.add(tag)
+        for p in squad_src[:7]:
+            placed.add(p["ign"].lower())
         rng = Rng(seed_of("t:" + display))
         squad = [emit(p, team_id, tier, region) for p in squad_src[:7]]
 
@@ -676,6 +706,9 @@ def main():
         if tag in used_tags:
             continue
         for p in group:
+            if p["ign"].lower() in placed:
+                continue
+            placed.add(p["ign"].lower())
             # a free agent belongs to the region their club or passport says,
             # not to whichever region happens to be first in the table
             region = (
