@@ -293,7 +293,7 @@ export default function NewGame({
       </div>
 
       <p className="tiny faint" style={{ marginTop: 20, marginBottom: 0 }}>
-        大小猪之家 制作
+        猪之家 制作
       </p>
       <p className="tiny muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
         游戏内所有战队与选手均为真实人物。阵容、国籍、位置与全部比赛数据取自 <b>vlr.gg</b> 的

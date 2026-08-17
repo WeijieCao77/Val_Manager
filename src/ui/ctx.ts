@@ -11,6 +11,8 @@ export interface GameCtxValue {
   /** hand a fixture to the live match view (watch or skip) */
   playLive: (f: Fixture) => void
   go: (screen: string) => void
+  /** replay the guided trial day without reloading the page */
+  startTutorial: () => void
 }
 
 export const GameCtx = createContext<GameCtxValue | null>(null)

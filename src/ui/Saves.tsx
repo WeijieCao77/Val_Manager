@@ -4,7 +4,7 @@ import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
 
 export default function Saves() {
-  const { game, toast } = useGame()
+  const { game, toast, startTutorial } = useGame()
   const [slot, setSlot] = useState('')
   const [, setTick] = useState(0)
   const refresh = () => setTick((x) => x + 1)
@@ -37,10 +37,10 @@ export default function Saves() {
           带你把训练、问价、推进真的走一遍——期间做的任何事结束后都会撤销，不影响存档。
         </p>
         <button className="sm" onClick={() => {
-          try {
-            localStorage.removeItem('valmgr.tutorial')
-          } catch { /* ignore */ }
-          window.location.reload()
+          // reloading dropped the in-memory save and dumped you on the new-career
+          // screen; the tutorial reopens in place instead
+          try { localStorage.removeItem('valmgr.tutorial') } catch { /* ignore */ }
+          startTutorial()
         }}>重新播放引导</button>
       </Panel>
 
@@ -115,7 +115,7 @@ export default function Saves() {
       </Panel>
     </>
       <p className="tiny faint" style={{ textAlign: 'center', marginTop: 20 }}>
-        VAL MANAGER · 大小猪之家 制作<br />
+        VAL MANAGER · 猪之家 制作<br />
         战队与选手数据取自 vlr.gg 与 Liquipedia，均为真实人物。
       </p>
     </>

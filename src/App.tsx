@@ -85,6 +85,7 @@ export default function App() {
       openMatch: setFixture,
       playLive: setLive,
       go: setScreen,
+      startTutorial: () => setTour(true),
     }),
     // gameRef is stable; bump() drives re-renders, so recompute on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,9 +126,9 @@ export default function App() {
     <GameCtx.Provider value={ctxValue}>
       <div className="app">
         <header className="topbar">
-          <div className="brand" title="大小猪之家制作">
+          <div className="brand" title="猪之家制作">
             VAL<span>MANAGER</span>
-            <em className="by">大小猪之家</em>
+            <em className="by">猪之家</em>
           </div>
           <div className="chip" title="所属俱乐部">
             <b>{myTeam?.name}</b>
