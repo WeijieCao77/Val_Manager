@@ -37,7 +37,11 @@ export default function MatchLive({
 
   const finishUp = useCallback((watched: boolean) => {
     const result = sim.finish()
-    commitFixture(game, fixture, result)
+    // finishing a match can conclude the whole competition; those lines belong
+    // to the manager, not to the floor
+    const notes: string[] = []
+    commitFixture(game, fixture, result, notes)
+    for (const n of notes) toast(n)
     commit()
     setPhase('done')
     onDone(watched)

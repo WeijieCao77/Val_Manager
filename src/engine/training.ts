@@ -302,6 +302,7 @@ export function applyMatchFatigue(state: GameState, teamId: string, mapsPlayed: 
 /** End-of-season ageing: growth for prospects, decline for veterans. */
 export function seasonRollover(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
+  const small: string[] = []
   for (const p of Object.values(state.players)) {
     p.age += 1
     const drift = ageDrift(p)
@@ -337,8 +338,13 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
 
     if (p.teamId === state.myTeam) {
       if (p.overall - before >= 3) notes.push(`📈 ${p.ign} 赛季间进步明显：${before} → ${p.overall}`)
-      if (before - p.overall >= 3) notes.push(`📉 ${p.ign} 状态下滑：${before} → ${p.overall}`)
+      else if (before - p.overall >= 3) notes.push(`📉 ${p.ign} 状态下滑：${before} → ${p.overall}`)
+      else if (p.overall !== before) small.push(`${p.ign} ${before}→${p.overall}`)
     }
   }
+  // A one-point move is not worth a line of its own, but a winter in which
+  // seven players quietly shifted is worth knowing about — it was invisible
+  // before, and the squad screen shows no history to compare against.
+  if (small.length) notes.push(`📊 其余小幅变化：${small.join('、')}`)
   return notes
 }

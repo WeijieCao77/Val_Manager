@@ -93,7 +93,29 @@ export function autoStarters(state: GameState, teamId: string): string[] {
     if (chosen.length >= 5) break
     if (!chosen.includes(p)) chosen.push(p)
   }
-  return chosen.slice(0, 5).map((p) => p.id)
+  const five = chosen.slice(0, 5)
+
+  // The caller goes out with the team. Picking purely on rating left FNATIC,
+  // Gen.G and three others starting without one, because an IGL is often the
+  // worst fragger on the roster — Boaster rates 61 in a squad of high 80s. The
+  // sim already prices that at -4 to both sides and -3 mid-round, which is more
+  // than any single role gap costs, so a lineup that drops him is simply a
+  // worse lineup. He replaces the lowest-rated starter whose roles someone
+  // else still covers.
+  const igl = squad.find((p) => p.isIgl)
+  if (igl && !five.includes(igl)) {
+    const covered = (without: Player) => {
+      const rest = five.filter((x) => x !== without).concat(igl)
+      const have = new Set(rest.flatMap((p) => p.roles ?? [p.role]))
+      return ROLES.filter((r) => r !== '自由人').every((r) => have.has(r))
+    }
+    const drop = five
+      .slice()
+      .sort((a, b) => confidentRating(a) - confidentRating(b))
+      .find(covered)
+    if (drop) five[five.indexOf(drop)] = igl
+  }
+  return five.map((p) => p.id)
 }
 
 /** Extra cash some backgrounds bring with them. */

@@ -86,7 +86,7 @@ const tier2Of = (state: GameState, region: Region) =>
     .map((t) => t.id)
 
 /** Build every fixture that can be known before a ball is thrown. */
-export function setupSeason(state: GameState): void {
+export function setupSeason(state: GameState, notes?: string[]): void {
   state.managerContract ??= defaultContract(state)
   resetFixtureSeq(0)
   state.fixtures = []
@@ -121,7 +121,7 @@ export function setupSeason(state: GameState): void {
       state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 200, 262, 3, rng, '常规赛'))
     }
   }
-  seedMarket(state)
+  seedMarket(state, notes)
 }
 
 const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
@@ -150,8 +150,15 @@ function qualifiersFrom(state: GameState, stage: StageKey, perRegion: number): s
   return out
 }
 
-/** Prize money, championship points, honours and headlines for a finished event. */
-function settleCompetition(state: GameState, comp: Competition): void {
+/**
+ * Hand out the prizes when a competition ends.
+ *
+ * The board reacts to how we finished — a bottom-third finish at Masters costs
+ * 7 confidence — and that reaction used to happen off-screen: the only line
+ * written was who won the thing. Our own finish and what it cost now go into
+ * the turn's digest.
+ */
+function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
   if (comp.awarded || !comp.champion) return
   comp.awarded = true
 
@@ -179,20 +186,28 @@ function settleCompetition(state: GameState, comp: Competition): void {
       const worth = comp.region ? 2.5 : 6   // an international title counts for more
       state.manager.reputation = clamp(state.manager.reputation + damped(state.manager.reputation, worth), 5, 96)
     }
+    notes.push(`🏆 我们夺得 ${comp.name} 冠军！`)
   } else if (comp.teams.includes(state.myTeam)) {
     const place = comp.finished.indexOf(state.myTeam)
     if (place >= 0) {
       const share = place / Math.max(1, comp.finished.length - 1)
-      state.boardConfidence = clamp(state.boardConfidence + (share < 0.34 ? 5 : share > 0.7 ? -7 : 0), 0, 100)
+      const swing = share < 0.34 ? 5 : share > 0.7 ? -7 : 0
+      state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
+      const rank = `${comp.name} 第 ${place + 1} 名（共 ${comp.finished.length} 队）`
+      notes.push(
+        swing > 0 ? `🏅 ${rank}，董事会满意（信任 +${swing}）。`
+          : swing < 0 ? `📉 ${rank}，董事会不满（信任 ${swing}）。`
+            : `🏁 ${rank}。`,
+      )
     }
   }
 }
 
 /** Move every running competition forward: RR → playoffs → next bracket round. */
-function progressCompetitions(state: GameState): void {
+function progressCompetitions(state: GameState, notes: string[] = []): void {
   for (const comp of Object.values(state.comps)) {
     if (comp.champion) {
-      settleCompetition(state, comp)
+      settleCompetition(state, comp, notes)
       continue
     }
     const own = state.fixtures.filter((f) => f.comp === comp.key)
@@ -219,7 +234,7 @@ function progressCompetitions(state: GameState): void {
     if (ko.length && ko.every((f) => f.played)) {
       const next = advanceBracket(state, comp, state.day + 3, 3)
       state.fixtures.push(...next)
-      if (comp.champion) settleCompetition(state, comp)
+      if (comp.champion) settleCompetition(state, comp, notes)
     }
   }
 
@@ -488,7 +503,17 @@ export const fixtureRng = (state: GameState, f: Fixture) =>
 export const isScrim = (f: Fixture) => f.comp === 'scrim'
 
 /** Apply a result the UI produced, then move the competition forward. */
-export function commitFixture(state: GameState, f: Fixture, result: MatchResult): void {
+/**
+ * Record a played fixture.
+ *
+ * `notes` is the turn's digest when time is being advanced. Playing a match
+ * live goes through here too, and finishing one can conclude a competition —
+ * prize money, championship points and the board's reaction — so the caller is
+ * handed those lines rather than having them vanish.
+ */
+export function commitFixture(
+  state: GameState, f: Fixture, result: MatchResult, notes: string[] = [],
+): void {
   const isMine = f.teamA === state.myTeam || f.teamB === state.myTeam
   if (!isMine) stripRoundLogs(result)
   f.result = result
@@ -553,7 +578,7 @@ export function commitFixture(state: GameState, f: Fixture, result: MatchResult)
     text: `${comp?.name ?? f.comp}｜${state.teams[f.teamA]?.name} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.name}`,
     important: isMine,
   })
-  progressCompetitions(state)
+  progressCompetitions(state, notes)
 }
 
 export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport {
@@ -564,6 +589,17 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const notes: string[] = []
   const playedMine: Fixture[] = []
   state.lastResults = []
+
+  // Going down was announced; coming back never was. A player simply became
+  // selectable again at some point and you found out by opening the squad
+  // screen — which is precisely the day you would want to change your five.
+  for (const pid of state.teams[state.myTeam]?.roster ?? []) {
+    const p = state.players[pid]
+    if (p && p.injuredUntil === state.day) {
+      notes.push(`⚕️ ${p.ign} 已康复，可以重新出场。`)
+      p.injuryNote = undefined
+    }
+  }
 
   state.stage = stageAt(state.day)
   const stageChanged = state.stage !== prevStage
@@ -591,11 +627,11 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       continue
     }
     const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f), f.scrim)
-    commitFixture(state, f, result)
+    commitFixture(state, f, result, notes)
     if (isMine) playedMine.push(f)
   }
 
-  if (!pendingMine) progressCompetitions(state)
+  if (!pendingMine) progressCompetitions(state, notes)
 
   // ---- commercial work booked for today, then any new approach
   runGigsToday(state, notes)
@@ -617,7 +653,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     notes.push(...weeklyTick(state, rng))
     weeklyFinance(state)
     aiTransferTick(state, rng)
-    refreshListings(state, rng)   // runs all year so stale listings expire
+    refreshListings(state, rng, notes)   // runs all year so stale listings expire
     ensureMinimumRosters(state, rng)
   }
 
@@ -625,16 +661,25 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
 
   let seasonEnded = false
   if (state.day >= SEASON_DAYS) {
-    endSeason(state, rng)
     notes.push(`—— ${state.year} 赛季结束 ——`)
+    endSeason(state, rng, notes)
     seasonEnded = true
   }
 
   return { day: state.day, stage: state.stage, stageChanged, playedMine, notes, seasonEnded, pendingMine }
 }
 
-/** Promotion, contracts, ageing, then a fresh calendar. */
-function endSeason(state: GameState, rng: Rng): void {
+/**
+ * Promotion, contracts, ageing, then a fresh calendar.
+ *
+ * `notes` is the turn's digest. The off-season is the single biggest thing
+ * that happens to a squad without the manager doing anything — players age,
+ * develop, decline, run down their deals and retire — and all of it used to
+ * happen in silence: seasonRollover built its 📈/📉 lines and the return value
+ * was dropped on the floor. Everything here that lands on the managed club
+ * goes into the digest, so the season turns over in front of you.
+ */
+function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // ---- Ascension: each region's Challengers champion swaps with the weakest tier-1 side
   for (const region of REGIONS) {
     const chal = state.comps[compKey('challengers2', region)]
@@ -654,12 +699,19 @@ function endSeason(state: GameState, rng: Rng): void {
       text: `🎫 ${promoted.name} 通过 Ascension 升入 VCT ${region}，${relegated.name} 降入次级联赛。`,
     })
     if (promoted.id === state.myTeam) state.honours.push({ year: state.year, title: `晋级 VCT ${region}` })
+    if (promoted.id === state.myTeam) notes.push(`🎫 我们通过 Ascension 升入 VCT ${region}。`)
+    if (relegated.id === state.myTeam) notes.push(`🎫 我们降入 Challengers ${region}。`)
   }
 
   // ---- contracts tick down; expiring players leave
+  const finalYear: string[] = []
   for (const p of Object.values(state.players)) {
     if (!p.teamId) continue
+    const mine = p.teamId === state.myTeam
     p.contractYears -= 1
+    // a deal running down is the thing a manager most needs warning about, and
+    // it happened silently: one year quietly became zero over the winter
+    if (mine && p.contractYears === 1) finalYear.push(p.ign)
     if (p.contractYears <= 0) {
       const team = state.teams[p.teamId]
       // clubs usually renew players they still rate
@@ -671,6 +723,7 @@ function endSeason(state: GameState, rng: Rng): void {
           day: state.day, kind: 'club', important: true,
           text: `⏳ ${p.ign} 的合同已到期，需要在休赛期内续约或放走。`,
         })
+        notes.push(`⏳ ${p.ign} 的合同已到期，休赛期内要续约或放走。`)
         p.contractYears = 0
       } else if (team) {
         team.roster = team.roster.filter((id) => id !== p.id)
@@ -680,7 +733,12 @@ function endSeason(state: GameState, rng: Rng): void {
     }
   }
 
-  seasonRollover(state, rng)
+  if (finalYear.length) {
+    notes.push(`📋 合同进入最后一年：${finalYear.slice(0, 6).join('、')}`
+      + (finalYear.length > 6 ? ` 等 ${finalYear.length} 人` : ''))
+  }
+
+  notes.push(...seasonRollover(state, rng))
 
   // ---- retirements. With no invented prospects backfilling the pool these are
   // kept conservative, so a career stays playable for many seasons.
@@ -695,6 +753,7 @@ function endSeason(state: GameState, rng: Rng): void {
         }
         if (p.teamId === state.myTeam) {
           state.news.push({ day: state.day, kind: 'player', important: true, text: `👋 ${p.ign} 宣布退役。` })
+          notes.push(`👋 ${p.ign} 宣布退役，${p.age} 岁。`)
         }
       }
       delete state.players[p.id]
@@ -717,7 +776,7 @@ function endSeason(state: GameState, rng: Rng): void {
   state.year += 1
   state.day = 0
   state.stage = 'preseason'
-  setupSeason(state)
+  setupSeason(state, notes)
 }
 
 /**
@@ -728,8 +787,8 @@ function endSeason(state: GameState, rng: Rng): void {
  * rather than conjuring a fictional prospect to paper over it.
  */
 /** Give the market a starting state, so the first window is not empty. */
-export function seedMarket(state: GameState): void {
-  refreshListings(state, new Rng(hashStr(`market:${state.seed}:${state.year}`)))
+export function seedMarket(state: GameState, notes?: string[]): void {
+  refreshListings(state, new Rng(hashStr(`market:${state.seed}:${state.year}`)), notes)
 }
 
 export function ensureMinimumRosters(state: GameState, rng: Rng): void {

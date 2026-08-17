@@ -725,13 +725,22 @@ def main():
         ovr = int(round(clamp(ovr, 30, 97)))
 
         lp = births.get(ign) or {}
-        age = age_from(lp.get("birth"))
+        raw_birth = lp.get("birth")
+        age = age_from(raw_birth)
         estimated = age is None
         if estimated:
-            age = int(clamp(round(rng.norm(23.2, 2.7)), 17, 33))
+            # Some infoboxes give a year and nothing else ("1999-??-??"). That
+            # is real knowledge and beats a draw from the age distribution — but
+            # it is not a date, so it must not be published as one.
+            m = re.match(r"^(\d{4})", str(raw_birth or ""))
+            age = (SEASON_YEAR - int(m.group(1)) if m
+                   else int(clamp(round(rng.norm(23.2, 2.7)), 17, 33)))
         else:
             ages_known += 1
         age = int(clamp(age, 15, 40))
+        # only a full date is a birthdate; a partial one is dropped rather than
+        # shown to the player as "1999-??-??"
+        birth = raw_birth if not estimated else None
 
         head = (rng.range(7, 16) if age <= 20 else rng.range(3, 10) if age <= 23
                 else rng.range(1, 5) if age <= 26 else rng.range(0, 2))
@@ -746,7 +755,12 @@ def main():
             "ign": ign, "tag": r["tag"], "nat": r["nat"], "role": r["role"],
             "joined": joined,
             "traits": traits,
-            "realName": (lp.get("real") or None), "birth": lp.get("birth"),
+            # Liquipedia sometimes fills the name field with the handle when no
+            # real name is public (Neon). Repeating it back reads as "Neon
+            # (Neon)"; not knowing is the honest answer.
+            "realName": (lp.get("real") or None)
+            if str(lp.get("real") or "").lower() != ign.lower() else None,
+            "birth": birth,
             "age": age, "ageEstimated": estimated,
             "attrs": a, "overall": ovr,
             "potential": int(clamp(round(ovr + head), ovr, 99)),
@@ -886,6 +900,13 @@ def main():
         igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
         igl["overall"] = int(round(clamp(
             sum(igl["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
+
+        # Potential was fixed before these bumps, so covering a second role or
+        # taking the armband could push a player above his own ceiling — four
+        # ended up there, which reads as "cannot improve" and draws a backwards
+        # bar. A ceiling is a floor of at least where you already are.
+        for p in squad:
+            p["potential"] = int(clamp(max(p["potential"], p["overall"]), 30, 99))
 
         top5 = sorted(squad, key=lambda p: -p["overall"])[:5]
         rating = int(round(sum(p["overall"] for p in top5) / len(top5)))

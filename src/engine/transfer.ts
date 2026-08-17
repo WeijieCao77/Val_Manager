@@ -370,7 +370,16 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
  * the starting five all push a player onto the list; being needed pulls them
  * back off it.
  */
-export function refreshListings(state: GameState, rng: Rng): void {
+export function refreshListings(state: GameState, rng: Rng, notes?: string[]): void {
+  // Clubs put players up for sale every week and the manager was never told —
+  // the market simply looked different next time you opened the screen. Only
+  // listings worth our attention are reported: someone at our level or above,
+  // which is what would actually make you go and look.
+  // the bar is our own rating: "someone at least as good as what we already
+  // have came onto the market" is a clear rule and keeps the line to a few
+  // names a week rather than half the league
+  const bar = state.teams[state.myTeam]?.rating ?? 60
+  const fresh: string[] = []
   // New listings only happen while clubs can actually trade, but withdrawals
   // run all year: when a window shuts on an unsold player, the club stops
   // shopping him and puts him back in the squad rather than leaving him hanging.
@@ -399,6 +408,7 @@ export function refreshListings(state: GameState, rng: Rng): void {
       if (!p.listed && canList && chance > 0 && rng.chance(chance)) {
         p.listed = true
         p.listedOn = state.day
+        if (p.overall >= bar) fresh.push(`${p.ign}（${team.tag} · ${p.overall}）`)
         continue
       }
       if (!p.listed) continue
@@ -415,11 +425,9 @@ export function refreshListings(state: GameState, rng: Rng): void {
       const wanted = !benched && !unhappy
       if (wanted && rng.chance(0.25)) {
         p.listed = false
-  p.listedOn = undefined
         p.listedOn = undefined
       } else if (stale && rng.chance(0.45)) {
         p.listed = false
-  p.listedOn = undefined
         p.listedOn = undefined
         // taken off the market and given a role again, so the grievance eases
         p.grievance = clamp((p.grievance ?? 0) - 12, 0, 100)
@@ -428,6 +436,10 @@ export function refreshListings(state: GameState, rng: Rng): void {
         }
       }
     }
+  }
+  if (notes && fresh.length) {
+    notes.push(`📋 转会市场新挂牌：${fresh.slice(0, 4).join('、')}`
+      + (fresh.length > 4 ? ` 等 ${fresh.length} 人` : ''))
   }
 }
 

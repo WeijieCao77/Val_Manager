@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "extract": "python3 scripts/extract.py",
+    "audit": "python3 scripts/audit_data.py && npx tsx scripts/audit_feedback.ts 3 && npx tsx scripts/smoke.ts",
     "start": "node server.js"
   },
   "dependencies": {

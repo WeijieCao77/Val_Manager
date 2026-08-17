@@ -68,6 +68,14 @@ export default function Squad() {
     return acc
   }, {})
 
+  // Going out without a caller costs more than any single role gap (-4 to both
+  // sides, -3 mid-round) and was the one composition problem the screen never
+  // mentioned — several clubs start the game that way, because the five picks
+  // itself on rating and the IGL is often the worst fragger on the roster.
+  const noIgl = me.starters.length >= 5
+    && !me.starters.some((id) => game.players[id]?.isIgl)
+  const benchedIgl = squad.find((p) => p.isIgl && !me.starters.includes(p.id))
+
   const harmony = squadHarmony(game, game.myTeam)
   const bonds = notableBonds(game, game.myTeam)
   const worst = bonds[0]
@@ -109,7 +117,18 @@ export default function Squad() {
           {['决斗者', '先锋', '控场', '哨卫'].filter((r) => !roleCount[r]).map((r) => (
             <span key={r} className="tag warn">缺少 {r}</span>
           ))}
+          {noIgl && (
+            <span className="tag warn">
+              首发无指挥{benchedIgl ? ` · ${benchedIgl.ign} 在替补席` : ''}
+            </span>
+          )}
         </div>
+        {noIgl && (
+          <div className="tiny" style={{ padding: '0 14px 10px', color: 'var(--warn)' }}>
+            没有指挥的五人组在攻防两端各扣 4 分、中局决策再扣 3 分——比缺任何一个位置都贵。
+            {benchedIgl && `把 ${benchedIgl.ign} 放进首发，或让别人接过指挥。`}
+          </div>
+        )}
 
         <div className="table-wrap">
           <table>
