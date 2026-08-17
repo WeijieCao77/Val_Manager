@@ -133,6 +133,26 @@ ATTRS = ["aim", "reaction", "awareness", "utility", "clutch", "teamwork", "commu
 ATTR_WEIGHT = {"aim": 0.20, "reaction": 0.15, "awareness": 0.17, "utility": 0.14,
                "clutch": 0.12, "teamwork": 0.10, "communication": 0.08, "igl": 0.04}
 
+# What each role is actually judged on.
+#
+# One weighting for everyone marked a duelist down for the things duelists do
+# not do: 41% of it sat on awareness, utility and teamwork, which are derived
+# from KAST and assists. ZmjjKK enters sites for a living — 85 aim, 91 reaction,
+# 247 ACS across three years — and was rated below players he outguns, because
+# he does not hand out assists. Entry is not a support role and should not be
+# scored like one.
+ROLE_WEIGHT = {
+    "决斗者": {"aim": 0.28, "reaction": 0.22, "clutch": 0.16, "awareness": 0.12,
+             "utility": 0.08, "teamwork": 0.07, "communication": 0.05, "igl": 0.02},
+    "先锋":  {"aim": 0.17, "reaction": 0.15, "awareness": 0.20, "utility": 0.20,
+             "clutch": 0.09, "teamwork": 0.10, "communication": 0.07, "igl": 0.02},
+    "控场":  {"aim": 0.15, "reaction": 0.11, "awareness": 0.20, "utility": 0.22,
+             "clutch": 0.09, "teamwork": 0.13, "communication": 0.08, "igl": 0.02},
+    "哨卫":  {"aim": 0.19, "reaction": 0.12, "awareness": 0.22, "utility": 0.15,
+             "clutch": 0.15, "teamwork": 0.10, "communication": 0.05, "igl": 0.02},
+    "自由人": dict(ATTR_WEIGHT),
+}
+
 
 def seed_of(s):
     h = 2166136261
@@ -209,6 +229,13 @@ def parse_rows():
 CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
 TENURE_CACHE = os.path.join(ROOT, "scripts", "cache", "liquipedia_tenure.json")
 CAREER_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_career.json")
+SEASONS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_seasons.json")
+
+# Recent form says more about a player than three-year-old form, but not so much
+# more that one split erases a career. 2026 counts three times what 2024 does.
+YEAR_WEIGHT = {2026: 3.0, 2025: 2.0, 2024: 1.0}
+# What a player does when the stage is biggest, relative to their own baseline.
+TIER_WEIGHT = {"champions": 1.0, "masters": 0.75, "league": 0.0, "kickoff": 0.0}
 
 # Columns that describe how a player performs, as opposed to who they are.
 STAT_KEYS = ("R", "acs", "kd", "kast", "adr", "kpr", "apr", "fkpr", "fdpr")
@@ -257,6 +284,76 @@ def vcl_tag(name):
         if letters[:n] not in TIER1_TAGS:
             return letters[:n]
     return base + "2"
+
+
+def season_profiles():
+    """Recency-weighted stat lines, plus how each player does on the big stage.
+
+    A flat career average cannot tell three steady years from a decline. ZmjjKK
+    has held 238+ ACS every year and peaks at Champions; Lysoar has climbed from
+    0.82 to 0.99 and is not the player his average says he is. Weighting recent
+    seasons higher separates them.
+    """
+    cache = load_json(SEASONS_CACHE)
+    events, stats = cache.get("events") or {}, cache.get("stats") or {}
+    if not stats:
+        return {}, {}
+
+    COLS = {"rating2": "R", "acs": "acs", "kd": "kd", "kast": "kast",
+            "adr": "adr", "kpr": "kpr", "apr": "apr", "fkpr": "fkpr",
+            "fdpr": "fdpr", "hs": "hs"}
+    weighted, big, base = {}, {}, {}
+    for eid, rows in stats.items():
+        ev = events.get(eid)
+        if not ev:
+            continue
+        yw = YEAR_WEIGHT.get(ev.get("year"), 0.5)
+        tw = TIER_WEIGHT.get(ev.get("tier"), 0.0)
+        for r in rows:
+            rnd = r.get("rnd") or 0
+            if not rnd:
+                continue
+            ign = r["ign"]
+            acc = weighted.setdefault(ign, {"w": 0.0})
+            acc["w"] += rnd * yw
+            for src, dst in COLS.items():
+                v = r.get(src)
+                if v is None:
+                    continue
+                if dst == "kast" and v > 1:
+                    v /= 100
+                acc[dst] = acc.get(dst, 0.0) + v * rnd * yw
+                acc[f"{dst}_w"] = acc.get(f"{dst}_w", 0.0) + rnd * yw
+            # a separate tally for the international stage, and for everything,
+            # so the two can be compared on the same footing
+            rating = r.get("rating2")
+            if rating is not None:
+                base[ign] = base.get(ign, [0.0, 0.0])
+                base[ign][0] += rating * rnd
+                base[ign][1] += rnd
+                if tw > 0:
+                    big[ign] = big.get(ign, [0.0, 0.0])
+                    big[ign][0] += rating * rnd * tw
+                    big[ign][1] += rnd * tw
+
+    out = {}
+    for ign, acc in weighted.items():
+        if acc["w"] <= 0:
+            continue
+        line = {"rnd": round(acc["w"])}
+        for dst in COLS.values():
+            w = acc.get(f"{dst}_w") or 0
+            if w > 0:
+                line[dst] = acc[dst] / w
+        out[ign] = line
+
+    # how much better (or worse) they are when it matters, as a ratio
+    stage = {}
+    for ign, (bs, bw) in big.items():
+        tot, tw = base.get(ign, [0, 0])
+        if bw > 0 and tw > 0 and tot > 0:
+            stage[ign] = (bs / bw) / (tot / tw)
+    return out, stage
 
 
 def parse_challengers_rows():
@@ -427,6 +524,13 @@ def main():
     # someone who simply got worse.
     career = {k: v for k, v in load_json(CAREER_CACHE).items()
               if not k.startswith("_") and not v.get("miss")}
+    # three seasons broken out by year and stage beats one flattened average
+    profiles, stage = season_profiles()
+    if profiles:
+        print(f"seasons: recency-weighted profiles for {len(profiles)} players, "
+              f"{len(stage)} with an international record")
+    for ign, line in profiles.items():
+        career[ign] = {**career.get(ign, {}), **line}
     season = {r["ign"]: dict(r) for r in rows}
 
     # Small samples must not rank like large ones. Sharks played 119 rounds as a
@@ -474,6 +578,18 @@ def main():
     stat_by_ign = {r["ign"]: r for r in stat_rows}
     P = {k: pctiles(stat_rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
     P["fdpr"] = pctiles(stat_rows, "fdpr", invert=True)
+
+    # Rating is scored within role, not against the whole league. It carries
+    # 0.42 of every attribute, and the roles do not rate alike — duelists sit at
+    # 0.975 and sentinels at 1.017, because dying is part of entering. Judged
+    # league-wide, a duelist putting up 247 ACS reads as ordinary.
+    P["R"] = {}
+    for role in set(r["role"] for r in stat_rows):
+        peers = [r for r in stat_rows if r["role"] == role]
+        if len(peers) >= 12:
+            P["R"].update(pctiles(peers, "R"))
+        else:
+            P["R"].update(pctiles(stat_rows, "R"))
 
     def form_for(ign, rng):
         """This season against the player's own career, as 30-99 form."""
@@ -530,7 +646,14 @@ def main():
             "igl": scale(axis(0.4 * g("apr") + 0.3 * g("kast") + 0.3 * ROLE_COMM[r["role"]], q),
                          35, 84),
         }
-        ovr = int(round(clamp(sum(a[k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
+        w = ROLE_WEIGHT.get(r["role"], ATTR_WEIGHT)
+        ovr = sum(a[k] * w.get(k, ATTR_WEIGHT[k]) for k in ATTRS)
+        # Turning up at Champions is the hardest thing to fake, and a career
+        # average buries it: ZmjjKK's best ACS comes at the biggest events.
+        lift = stage.get(ign)
+        if lift is not None:
+            ovr += clamp((lift - 1) * 26, -4, 5)
+        ovr = int(round(clamp(ovr, 30, 97)))
 
         lp = births.get(ign) or {}
         age = age_from(lp.get("birth"))
