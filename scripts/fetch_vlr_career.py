@@ -116,7 +116,10 @@ def career_line(html: str) -> dict | None:
         return None
     # divide by the rounds that actually carried that column, not every round
     out = {k: round(v / seen[k], 3) for k, v in wsum.items() if seen.get(k)}
-    out["kast"] = round(out["kast"] / 100, 3) if out["kast"] > 1 else out["kast"]
+    # a player whose every split predates the KAST column simply has no KAST;
+    # reading it unconditionally crashed the run 190 players in
+    if out.get("kast") and out["kast"] > 1:
+        out["kast"] = round(out["kast"] / 100, 3)
     out["fkpr"] = round(tot["fk"] / tot["rnd"], 3)
     out["fdpr"] = round(tot["fd"] / tot["rnd"], 3)
     out["rnd"] = int(tot["rnd"])

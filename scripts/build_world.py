@@ -208,6 +208,10 @@ def parse_rows():
 
 CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json")
 TENURE_CACHE = os.path.join(ROOT, "scripts", "cache", "liquipedia_tenure.json")
+CAREER_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_career.json")
+
+# Columns that describe how a player performs, as opposed to who they are.
+STAT_KEYS = ("R", "acs", "kd", "kast", "adr", "kpr", "apr", "fkpr", "fdpr")
 
 
 # Where a player belongs when their club is not one of the modelled leagues.
@@ -398,8 +402,42 @@ def main():
     ov_igl = ov.get("igl", {})
     ov_roles = ov.get("roles", {})
 
-    P = {k: pctiles(rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
-    P["fdpr"] = pctiles(rows, "fdpr", invert=True)
+    # ---- ability from a career, form from this season ------------------
+    #
+    # Deriving attributes from one season modelled a player having a bad year
+    # as a worse player: ZmjjKK won in 2024 and has been good throughout, but
+    # 2026 alone put his ceiling below his level. Ability now ranks on career
+    # numbers; the current season becomes his starting form instead, so a
+    # veteran in a slump reads as high ability and low form rather than as
+    # someone who simply got worse.
+    career = {k: v for k, v in load_json(CAREER_CACHE).items()
+              if not k.startswith("_") and not v.get("miss")}
+    season = {r["ign"]: dict(r) for r in rows}
+
+    stat_rows = []
+    for r in rows:
+        c = career.get(r["ign"])
+        merged = dict(r)
+        if c:
+            for k in STAT_KEYS:
+                if c.get(k) is not None:
+                    merged[k] = c[k]
+            merged["rnd"] = c.get("rnd", r.get("rnd"))
+        stat_rows.append(merged)
+    have = sum(1 for r in rows if r["ign"] in career)
+    print(f"career: ability derived from career stats for {have}/{len(rows)} players")
+
+    P = {k: pctiles(stat_rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
+    P["fdpr"] = pctiles(stat_rows, "fdpr", invert=True)
+
+    def form_for(ign, rng):
+        """This season against the player's own career, as 30-99 form."""
+        c, sea = career.get(ign), season.get(ign)
+        if not c or not sea or not c.get("R") or not sea.get("R"):
+            return int(clamp(round(rng.norm(70, 8)), 45, 95))
+        # a season 15% above a career average is a genuine purple patch
+        ratio = sea["R"] / c["R"]
+        return int(clamp(round(70 + (ratio - 1) * 130 + rng.range(-4, 4)), 30, 99))
 
     # clutch rate only exists in the parse.bot snapshot, so rank within it
     cl_rows = []
@@ -475,7 +513,7 @@ def main():
             "age": age, "ageEstimated": estimated,
             "attrs": a, "overall": ovr,
             "potential": int(clamp(round(ovr + head), ovr, 99)),
-            "form": int(clamp(round(rng.norm(70, 8)), 45, 95)),
+            "form": form_for(ign, rng),
             "morale": int(clamp(round(rng.norm(75, 8)), 45, 98)),
             "fatigue": int(clamp(round(rng.range(0, 20)), 0, 100)),
             "loyalty": int(clamp(round(rng.norm(60, 16)), 15, 95)),
