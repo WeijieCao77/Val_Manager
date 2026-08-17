@@ -206,6 +206,14 @@ export interface Player {
   /** per-attribute training progress 0-100, rolls over into a +1 */
   xp: Partial<Record<keyof Attrs, number>>
   /**
+   * Career rounds behind this player's numbers.
+   *
+   * A hundred rounds as a stand-in is not a career. Attributes are already
+   * shrunk toward the league mean when this is small, and selection uses it so
+   * an unknown quantity does not displace a proven starter.
+   */
+  rounds?: number
+  /**
    * Month the player joined their club, as YYYY-MM, from vlr.gg.
    *
    * Used to work out how long two team-mates have actually played together —

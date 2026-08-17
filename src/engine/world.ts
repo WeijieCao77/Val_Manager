@@ -19,6 +19,7 @@ interface RawPlayer {
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
   /** YYYY-MM they joined their club, where vlr.gg records it */
   joined?: string | null
+  rounds?: number
   vlr?: { rating: number | null; acs: number | null; rounds: number }
   age: number; isIgl: boolean; attrs: Attrs; overall: number; potential: number
   form: number; morale: number; fatigue: number; salary: number; value: number
@@ -66,15 +67,25 @@ function pickAgents(role: Role, rng: Rng): string[] {
 }
 
 /** Choose a sensible starting five: one per role where possible, then best available. */
+/** Ability, discounted while the sample behind it is thin. */
+export const confidentRating = (p: Player): number =>
+  p.overall - Math.round(14 * (1 - (p.rounds ?? 0) / ((p.rounds ?? 0) + 900)))
+
 export function autoStarters(state: GameState, teamId: string): string[] {
   const team = state.teams[teamId]
   const squad = team.roster
     .map((id) => state.players[id])
     .filter((p): p is Player => !!p)
-    .sort((a, b) => b.overall - a.overall)
+    // An unproven player rates at the league average because we have not seen
+    // him, not because he is average. Sharks came out ahead of Lysoar on 119
+    // rounds against 8031, and was picked to start over him. Thin samples are
+    // discounted for selection.
+    .sort((a, b) => confidentRating(b) - confidentRating(a))
 
   const chosen: Player[] = []
-  for (const role of ROLES) {
+  // 自由人 is "covers anything", not a slot to fill — treating it as one forced
+  // the squad's only flex player into the five ahead of better options
+  for (const role of ROLES.filter((r) => r !== '自由人')) {
     const p = squad.find((x) => x.role === role && !chosen.includes(x))
     if (p) chosen.push(p)
   }

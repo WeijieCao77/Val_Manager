@@ -429,19 +429,44 @@ def main():
               if not k.startswith("_") and not v.get("miss")}
     season = {r["ign"]: dict(r) for r in rows}
 
+    # Small samples must not rank like large ones. Sharks played 119 rounds as a
+    # stand-in and came out above a team-mate with 8031, purely because one good
+    # night is easy and a career is not. Every stat is pulled toward the league
+    # mean by how little we have seen: at 400 rounds it counts half, at 4000 it
+    # counts ninety percent. This is why he was starting ahead of Lysoar.
+    SHRINK_ROUNDS = 400
+
+    pool = {}
+    for k in STAT_KEYS:
+        vals = [c[k] for c in career.values() if c.get(k) is not None]
+        pool[k] = sum(vals) / len(vals) if vals else None
+
     stat_rows = []
     for r in rows:
         c = career.get(r["ign"])
         merged = dict(r)
+        # prefer the career line where we have it, but shrink whatever we end up
+        # with — a player without career figures is usually one who has barely
+        # played, which is exactly the case the season row overstates
         if c:
             for k in STAT_KEYS:
                 if c.get(k) is not None:
                     merged[k] = c[k]
-            merged["rnd"] = c.get("rnd", r.get("rnd"))
+        rnd = max(c.get("rnd") or 0 if c else 0, r.get("rnd") or 0)
+        merged["rnd"] = rnd
+        trust = rnd / (rnd + SHRINK_ROUNDS)
+        for k in STAT_KEYS:
+            mean = pool.get(k)
+            if merged.get(k) is None or mean is None:
+                continue
+            merged[k] = merged[k] * trust + mean * (1 - trust)
         stat_rows.append(merged)
+    thin = sum(1 for c in career.values() if (c.get("rnd") or 0) < SHRINK_ROUNDS)
+    print(f"shrinkage: {thin} players have under {SHRINK_ROUNDS} rounds and are pulled to the mean")
     have = sum(1 for r in rows if r["ign"] in career)
     print(f"career: ability derived from career stats for {have}/{len(rows)} players")
 
+    stat_by_ign = {r["ign"]: r for r in stat_rows}
     P = {k: pctiles(stat_rows, k) for k in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
     P["fdpr"] = pctiles(stat_rows, "fdpr", invert=True)
 
@@ -533,6 +558,7 @@ def main():
             "fatigue": int(clamp(round(rng.range(0, 20)), 0, 100)),
             "loyalty": int(clamp(round(rng.norm(60, 16)), 15, 95)),
             "ambition": int(clamp(round(rng.norm(62, 15)), 15, 98)),
+            "rounds": int(stat_by_ign.get(ign, {}).get("rnd") or 0),
             "vlr": {"rating": r["R"], "acs": r["acs"], "rounds": r["rnd"]},
         }
         by_tag[r["tag"]].append(built[ign])
@@ -550,6 +576,7 @@ def main():
             "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
             "joined": p.get("joined"),
+            "rounds": p.get("rounds") or 0,
             "role": p["role"], "roles": [p["role"]], "flex": False,
             "traits": p.get("traits") or [],
             "agentPool": [], "roleSource": "vlr-primary",
