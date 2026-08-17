@@ -436,10 +436,15 @@ def main():
     # counts ninety percent. This is why he was starting ahead of Lysoar.
     SHRINK_ROUNDS = 400
 
+    # Shrink toward a below-average anchor, not the mean. A player we have
+    # barely seen is not an average professional — he is unproven, and the
+    # league mean is drawn from people who have held a starting place. Sharks
+    # played 119 rounds as a stand-in and landed at the median, which read as
+    # "solid" and kept him in the five.
     pool = {}
     for k in STAT_KEYS:
-        vals = [c[k] for c in career.values() if c.get(k) is not None]
-        pool[k] = sum(vals) / len(vals) if vals else None
+        vals = sorted(c[k] for c in career.values() if c.get(k) is not None)
+        pool[k] = vals[int(len(vals) * 0.3)] if vals else None
 
     stat_rows = []
     for r in rows:
@@ -462,7 +467,7 @@ def main():
             merged[k] = merged[k] * trust + mean * (1 - trust)
         stat_rows.append(merged)
     thin = sum(1 for c in career.values() if (c.get("rnd") or 0) < SHRINK_ROUNDS)
-    print(f"shrinkage: {thin} players have under {SHRINK_ROUNDS} rounds and are pulled to the mean")
+    print(f"shrinkage: {thin} players have under {SHRINK_ROUNDS} rounds and are pulled toward the 30th percentile")
     have = sum(1 for r in rows if r["ign"] in career)
     print(f"career: ability derived from career stats for {have}/{len(rows)} players")
 
