@@ -171,7 +171,7 @@ export default function Transfers() {
       )}
 
 
-      <Panel title="问价 · 找不在市场上的人">
+      <Panel tut="enquire" title="问价 · 找不在市场上的人">
         <p className="small muted" style={{ marginTop: 0 }}>
           真正想要的人多半既没挂牌也不是自由人。<b>先选一支俱乐部，再挑他们的选手问价</b>——
           花 1 点行动力、不花钱，2~5 天后同时得到<b>对方的真实要价</b>和<b>本人的意向</b>。

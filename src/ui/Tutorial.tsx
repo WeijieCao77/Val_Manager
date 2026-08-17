@@ -78,7 +78,7 @@ const STEPS: Step[] = [
     hint: '选好了会自动继续',
   },
   {
-    screen: 'training', spot: '.drill-group',
+    screen: 'training', spot: '[data-tut="focus"]',
     title: '再给一名选手定个训练重点',
     body: '下面的「训练计划」表里，任意一名选手的「训练重点」下拉框选一个能力项。'
       + '不设就是休息，只恢复体能。',
@@ -94,7 +94,7 @@ const STEPS: Step[] = [
       + '真正想要的人要用下面的「问价」按俱乐部去打听。',
   },
   {
-    screen: 'transfers', spot: '.panel:nth-of-type(2)',
+    screen: 'transfers', spot: '[data-tut="enquire"]',
     title: '试着问一个人的价',
     body: '在「问价」面板里选一支俱乐部，再对他们的某名选手点「问价」。'
       + '花 1 点行动力、不花钱，几天后告诉你对方的真实要价和本人意愿。',
@@ -152,6 +152,9 @@ export default function Tutorial({
         el.classList.add('tut-lit')
         lit.push(el)
       }
+      // the target is often below the fold — bring it into view, or the
+      // manager is told to click something they cannot see
+      lit[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
     return () => { for (const el of lit) el.classList.remove('tut-lit') }
   }, [i, step.spot, screen])

@@ -91,13 +91,15 @@ export function clubMatches(t: { name: string; tag: string } | undefined, q: str
 }
 
 export function Panel({
-  title, children, actions, flush, className,
+  title, children, actions, flush, className, tut,
 }: {
   title?: string; children: ReactNode; actions?: ReactNode
   flush?: boolean; className?: string
+  /** stable hook for the tutorial to spotlight this panel */
+  tut?: string
 }) {
   return (
-    <div className={`panel${className ? ` ${className}` : ''}`}>
+    <div className={`panel${className ? ` ${className}` : ''}`} data-tut={tut}>
       {(title || actions) && (
         <div className="panel-head">
           {title && <h2>{title}</h2>}

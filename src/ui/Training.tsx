@@ -275,6 +275,7 @@ export default function Training() {
       </Panel>
 
       <Panel
+        tut="focus"
         title={`训练计划 · ${stageName(game.stage)}`}
         actions={
           <div className="row" style={{ gap: 8 }}>
