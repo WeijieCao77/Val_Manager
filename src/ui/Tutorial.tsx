@@ -134,6 +134,15 @@ export default function Tutorial({
   useEffect(() => {
     game.tutorialDay = true
     game.day = -1
+    // Rewinding the clock made everyone look injured: injuredUntil defaults to
+    // 0, and 0 > -1 reads as "out until day 0". That emptied the healthy-player
+    // lists, so the pair-drill and agent-learning controls disappeared.
+    for (const p of Object.values(game.players)) {
+      if (p.injuredUntil > game.day) p.injuredUntil = game.day
+    }
+    // and a plan confirmed in an earlier session left the panel greyed out
+    game.drillLock = undefined
+    game.drillVoid = false
     commit()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -202,7 +211,9 @@ export default function Tutorial({
         </div>
         <h3 style={{ margin: '8px 0 10px' }}>{step.title}</h3>
         <p className="small" style={{ lineHeight: 1.85, margin: '0 0 14px', whiteSpace: 'pre-line' }}>
-          {step.body}
+          {/* the copy uses **bold**; render it rather than printing the stars */}
+          {step.body.split(/\*\*(.+?)\*\*/g).map((part, k) =>
+            k % 2 ? <b key={k}>{part}</b> : part)}
         </p>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           {step.navigate && !arrived ? (
