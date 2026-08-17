@@ -185,13 +185,17 @@ def fetch_player_stats(vlr_id: str, slug: str) -> dict | None:
     rows = re.findall(r'<td class="mod-agent">(.*?)</tr>', html, re.S)
     tot = {k: 0.0 for k in ("rnd", "k", "d", "a", "fk", "fd")}
     wsum = {k: 0.0 for k in ("R", "acs", "kd", "kast", "adr", "kpr", "apr")}
+    seen: dict[str, float] = {}          # rounds actually backing each column
     agents = []
     for blob in rows:
         am = re.search(r"/img/vlr/game/agents/([a-z0-9_-]+)\.png", blob)
-        cells = [_text(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", blob, re.S)]
-        # columns after the agent + usage cells: Rnd R ACS K:D KAST ADR KPR APR FK:FD K D A FK FD
-        vals = cells[1:]
-        if len(vals) < 14:
+        # The capture starts inside the agent cell, so findall already skips it:
+        # vals[0] is Use, vals[1] is Rnd. Dropping one more shifted every column
+        # by one — ACS was stored as the rating, K:D as ACS — which is what put
+        # rating "195" on a Challengers player and sorted him top of his squad.
+        #   Use  Rnd  R  ACS  K:D  KAST  ADR  KPR  APR  FK:FD  K  D  A  FK  FD
+        vals = [_text(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", blob, re.S)]
+        if len(vals) < 15:
             continue
 
         def f(x):
@@ -209,14 +213,18 @@ def fetch_player_stats(vlr_id: str, slug: str) -> dict | None:
         for i, k in ((10, "k"), (11, "d"), (12, "a"), (13, "fk"), (14, "fd")):
             if i < len(vals) and f(vals[i]) is not None:
                 tot[k] += f(vals[i])
+        # R and KAST are blank on splits that predate those columns; weight each
+        # column by the rounds that actually carried it, not by every round
         for i, k in ((2, "R"), (3, "acs"), (4, "kd"), (5, "kast"), (6, "adr"), (7, "kpr"), (8, "apr")):
             v = f(vals[i]) if i < len(vals) else None
             if v is not None:
                 wsum[k] += v * rnd
+                seen[k] = seen.get(k, 0) + rnd
     if not tot["rnd"]:
         return None
-    out = {k: round(v / tot["rnd"], 3) for k, v in wsum.items()}
-    out["kast"] = round(out["kast"] / 100, 3) if out["kast"] > 1 else out["kast"]
+    out = {k: round(v / seen[k], 3) for k, v in wsum.items() if seen.get(k)}
+    if out.get("kast") and out["kast"] > 1:
+        out["kast"] = round(out["kast"] / 100, 3)
     out["fkpr"] = round(tot["fk"] / tot["rnd"], 3)
     out["fdpr"] = round(tot["fd"] / tot["rnd"], 3)
     out["rnd"] = int(tot["rnd"])

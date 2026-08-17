@@ -240,6 +240,33 @@ TIER_WEIGHT = {"champions": 1.0, "masters": 0.75, "league": 0.0, "kickoff": 0.0}
 # Columns that describe how a player performs, as opposed to who they are.
 STAT_KEYS = ("R", "acs", "kd", "kast", "adr", "kpr", "apr", "fkpr", "fdpr")
 
+# What a career line earned outside VCT is worth in VCT.
+#
+# Ranking everyone in one pool assumed 250 ACS is 250 ACS wherever it was
+# earned, and it is not — a Challengers roster earns its numbers against
+# Challengers opposition. Unchecked, that put NRG Academy at 90, above every
+# club in VCT Americas.
+#
+# These are not chosen numbers. scripts/calibrate_tier.py measures them twice
+# over, each time comparing players to themselves: 72 players appear in both
+# the VCT and the Challengers event tables (Challengers -> VCT), and 336 who
+# have never played VCT have both a Challengers-only line and a whole-career
+# line (career -> Challengers, because a career also holds open qualifiers and
+# tier-3 brackets). The product is below. Re-run it and paste the block if
+# either scrape grows.
+#
+# They err low: the players who get called up are the ones who translate best,
+# so the gap for an average Challengers player is wider than this.
+SUBTIER_TO_VCT = {
+    "R": 0.831, "acs": 0.850, "kd": 0.773, "kast": 0.938,
+    "adr": 0.867, "kpr": 0.844, "apr": 0.981, "fdpr": 1.119,
+}
+# Rounds of tier-1 play after which a player is being measured against tier-1
+# opposition and the correction no longer applies. One VCT split plus playoffs
+# is around 600; the median tier-1 starter has 1991 and the median Challengers
+# player has none, so almost everyone sits at one end or the other.
+TIER1_SAMPLE = 600.0
+
 
 # Where a player belongs when their club is not one of the modelled leagues.
 # Free agents were all being stamped "Americas" because the region lookup only
@@ -297,12 +324,15 @@ def season_profiles():
     cache = load_json(SEASONS_CACHE)
     events, stats = cache.get("events") or {}, cache.get("stats") or {}
     if not stats:
-        return {}, {}
+        return {}, {}, {}
 
     COLS = {"rating2": "R", "acs": "acs", "kd": "kd", "kast": "kast",
             "adr": "adr", "kpr": "kpr", "apr": "apr", "fkpr": "fkpr",
             "fdpr": "fdpr", "hs": "hs"}
     weighted, big, base = {}, {}, {}
+    # rounds actually played at tier 1, unweighted — how much VCT evidence there
+    # is, which is a different question from how recent it is
+    t1_rounds: dict[str, float] = {}
     for eid, rows in stats.items():
         ev = events.get(eid)
         if not ev:
@@ -314,6 +344,7 @@ def season_profiles():
             if not rnd:
                 continue
             ign = r["ign"]
+            t1_rounds[ign] = t1_rounds.get(ign, 0.0) + rnd
             acc = weighted.setdefault(ign, {"w": 0.0})
             acc["w"] += rnd * yw
             for src, dst in COLS.items():
@@ -353,7 +384,7 @@ def season_profiles():
         tot, tw = base.get(ign, [0, 0])
         if bw > 0 and tw > 0 and tot > 0:
             stage[ign] = (bs / bw) / (tot / tw)
-    return out, stage
+    return out, stage, t1_rounds
 
 
 def parse_challengers_rows():
@@ -525,12 +556,15 @@ def main():
     career = {k: v for k, v in load_json(CAREER_CACHE).items()
               if not k.startswith("_") and not v.get("miss")}
     # three seasons broken out by year and stage beats one flattened average
-    profiles, stage = season_profiles()
+    profiles, stage, t1_rounds = season_profiles()
     if profiles:
         print(f"seasons: recency-weighted profiles for {len(profiles)} players, "
               f"{len(stage)} with an international record")
-    for ign, line in profiles.items():
-        career[ign] = {**career.get(ign, {}), **line}
+    # what a player's own numbers look like across everything we have, which is
+    # what this season's numbers get compared against to produce form
+    baseline = {ign: {**career.get(ign, {}), **line} for ign, line in profiles.items()}
+    for ign, c in career.items():
+        baseline.setdefault(ign, c)
     season = {r["ign"]: dict(r) for r in rows}
 
     # Small samples must not rank like large ones. Sharks played 119 rounds as a
@@ -540,6 +574,48 @@ def main():
     # counts ninety percent. This is why he was starting ahead of Lysoar.
     SHRINK_ROUNDS = 400
 
+    def vct_weight(ign):
+        """How far to trust the VCT-only line over the whole career, 0 to 1.
+
+        Two things are known about most players: a recency-weighted line from
+        VCT events, measured against tier-1 opposition, and a career line that
+        is everything vlr has ever recorded — Challengers, open qualifiers, the
+        lot. Letting the VCT line simply win produced hezacoil: 190 VCT rounds
+        treated as settled fact and trusted like the 2754 behind him. Letting
+        the career line win loses the trend the profile exists to show. So they
+        are blended by how much VCT there is to go on.
+        """
+        return clamp(t1_rounds.get(ign, 0.0) / TIER1_SAMPLE, 0.0, 1.0)
+
+    # First translate, then rank. Doing it the other way round would leave the
+    # 30th-percentile anchor below drawn from a pool that is itself inflated.
+    lines = {}
+    for r in rows:
+        c, prof = career.get(r["ign"]), profiles.get(r["ign"])
+        kp = vct_weight(r["ign"])
+        merged = dict(r)
+        for k in STAT_KEYS:
+            # the career half is what needs translating; the VCT half was
+            # already measured against the opposition it is being ranked with
+            sub = c.get(k) if c else None
+            if sub is not None:
+                f = SUBTIER_TO_VCT.get(k)
+                if f is not None:
+                    sub *= f
+            top = prof.get(k) if prof else None
+            if top is not None and sub is not None:
+                merged[k] = top * kp + sub * (1 - kp)
+            elif top is not None:
+                merged[k] = top
+            elif sub is not None:
+                merged[k] = sub
+        merged["rnd"] = max(c.get("rnd") or 0 if c else 0, r.get("rnd") or 0)
+        lines[r["ign"]] = merged
+    adj = sum(1 for r in rows if vct_weight(r["ign"]) < 0.5)
+    print(f"tier: {adj} players are measured mostly below VCT; the sub-tier half "
+          f"of every line is translated (R x{SUBTIER_TO_VCT['R']}, "
+          f"ACS x{SUBTIER_TO_VCT['acs']}, K/D x{SUBTIER_TO_VCT['kd']})")
+
     # Shrink toward a below-average anchor, not the mean. A player we have
     # barely seen is not an average professional — he is unproven, and the
     # league mean is drawn from people who have held a starting place. Sharks
@@ -547,22 +623,15 @@ def main():
     # "solid" and kept him in the five.
     pool = {}
     for k in STAT_KEYS:
-        vals = sorted(c[k] for c in career.values() if c.get(k) is not None)
+        vals = sorted(c[k] for c in lines.values() if c.get(k) is not None)
         pool[k] = vals[int(len(vals) * 0.3)] if vals else None
 
     stat_rows = []
     for r in rows:
-        c = career.get(r["ign"])
-        merged = dict(r)
-        # prefer the career line where we have it, but shrink whatever we end up
-        # with — a player without career figures is usually one who has barely
-        # played, which is exactly the case the season row overstates
-        if c:
-            for k in STAT_KEYS:
-                if c.get(k) is not None:
-                    merged[k] = c[k]
-        rnd = max(c.get("rnd") or 0 if c else 0, r.get("rnd") or 0)
-        merged["rnd"] = rnd
+        # a copy per row: two sources can spell the same player twice, and
+        # shrinking one shared dict twice would halve him
+        merged = dict(lines[r["ign"]])
+        rnd = merged["rnd"]
         trust = rnd / (rnd + SHRINK_ROUNDS)
         for k in STAT_KEYS:
             mean = pool.get(k)
@@ -570,9 +639,9 @@ def main():
                 continue
             merged[k] = merged[k] * trust + mean * (1 - trust)
         stat_rows.append(merged)
-    thin = sum(1 for c in career.values() if (c.get("rnd") or 0) < SHRINK_ROUNDS)
+    thin = sum(1 for r in stat_rows if (r.get("rnd") or 0) < SHRINK_ROUNDS)
     print(f"shrinkage: {thin} players have under {SHRINK_ROUNDS} rounds and are pulled toward the 30th percentile")
-    have = sum(1 for r in rows if r["ign"] in career)
+    have = sum(1 for r in rows if r["ign"] in career or r["ign"] in profiles)
     print(f"career: ability derived from career stats for {have}/{len(rows)} players")
 
     stat_by_ign = {r["ign"]: r for r in stat_rows}
@@ -593,7 +662,7 @@ def main():
 
     def form_for(ign, rng):
         """This season against the player's own career, as 30-99 form."""
-        c, sea = career.get(ign), season.get(ign)
+        c, sea = baseline.get(ign), season.get(ign)
         if not c or not sea or not c.get("R") or not sea.get("R"):
             return int(clamp(round(rng.norm(70, 8)), 45, 95))
         # a season 15% above a career average is a genuine purple patch
