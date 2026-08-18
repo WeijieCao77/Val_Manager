@@ -13,6 +13,7 @@ import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
+import { dailyLife, weeklyLife } from './life'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
 import { REGIONS } from './types'
@@ -283,10 +284,19 @@ function setObjective(state: GameState, notes: string[]): void {
     return
   }
   const { place, size } = expectedPlace(state)
-  // Ask for a real improvement rather than "one better than last". A bottom
-  // club told to finish above 11th of 12 has been asked for nothing, which is
-  // why the board could never justify acting.
-  const target = clamp(Math.round(place * 0.6), 1, Math.max(1, size - 2))
+  // What the board asks for has to be reachable with the squad it gave you.
+  //
+  // It used to demand a 40% improvement on your expected finish every single
+  // stage — which for a club expected second meant "win it", forever. Measured
+  // over ten careers that got the manager sacked six times in three seasons
+  // while averaging third of twelve, which is not a failure by any reading.
+  //
+  // A favourite is asked to stay a favourite; everyone else is asked for a
+  // real but survivable step up. Beating the brief is still what moves your
+  // reputation, so there is no less to play for.
+  const target = place <= 2
+    ? clamp(place, 1, 2)
+    : clamp(Math.ceil(place * 0.75), 2, Math.max(1, size - 2))
   const text =
     target === 1 ? '董事会要求：拿下本赛段冠军。'
       : target <= Math.ceil(size / 4) ? `董事会要求：本赛段进入前 ${target} 名。`
@@ -539,7 +549,8 @@ export function commitFixture(
       for (const pid of state.teams[teamId]?.starters ?? []) {
         const p = state.players[pid]
         if (!p) continue
-        p.form = clamp(p.form + (won ? rng.range(0.5, 2.5) : rng.range(-0.5, 1.2)), 30, 99)
+        // losing used to average +0.35 form, so a defeat made a player sharper
+        p.form = clamp(p.form + (won ? rng.range(0.4, 2.2) : -rng.range(0.4, 2.2)), 30, 99)
         p.morale = clamp(p.morale + (won ? rng.range(0, 2) : -rng.range(0, 1.5)), 10, 100)
       }
     }
@@ -551,8 +562,8 @@ export function commitFixture(
     return
   }
   applyMatchStats(state, result)
-  applyMatchFatigue(state, f.teamA, result.maps.length, rng)
-  applyMatchFatigue(state, f.teamB, result.maps.length, rng)
+  applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes)
+  applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes)
 
   const comp = state.comps[f.comp]
   if (comp && !f.label.startsWith('KO:')) applyResultToStandings(comp, f)
@@ -600,6 +611,8 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       p.injuryNote = undefined
     }
   }
+
+  dailyLife(state, notes)
 
   state.stage = stageAt(state.day)
   const stageChanged = state.stage !== prevStage
@@ -651,6 +664,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   if (state.day % 7 === 0) {
     streamWeek(state, rng, notes)
     notes.push(...weeklyTick(state, rng))
+    weeklyLife(state, rng, notes)
     weeklyFinance(state)
     aiTransferTick(state, rng)
     refreshListings(state, rng, notes)   // runs all year so stale listings expire

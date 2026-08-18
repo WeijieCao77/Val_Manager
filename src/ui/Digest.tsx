@@ -16,9 +16,9 @@ import type { Fixture } from '../engine/types'
 function bucketOf(note: string): string {
   // the season's own markers are not events — they head the list
   if (/^——/.test(note)) return '赛季进程'
-  if (/^💼|^📋|^💰|^⏳|签下|报价|挂牌|转会|加盟|要价|合同/.test(note)) return '转会与商务'
-  if (/^⚕️|^📉|^📈|^📊|^🎓|^🗺|^🤝|训练|熟练度|能力值|康复/.test(note)) return '训练与状态'
-  if (/^💢|^🚨|^💔|^👋|士气|信任|关系|不满|退役/.test(note)) return '更衣室'
+  if (/^💼|^📋|^💰|^⏳|^📰|签下|报价|挂牌|转会|加盟|要价|合同/.test(note)) return '转会与商务'
+  if (/^⚕️|^📉|^📈|^📊|^🔥|^🥶|^🎓|^🗺|^🤝|训练|熟练度|能力值|康复|状态/.test(note)) return '训练与状态'
+  if (/^💢|^🚨|^💔|^👋|^🎂|^🎖|士气|信任|关系|不满|退役|生日|生涯/.test(note)) return '更衣室'
   if (/^🏆|^🏅|^🏁|^🎫|^📩|^🚪|^⚠|董事会|目标|排名|冠军|赛段/.test(note)) return '俱乐部'
   return '其他'
 }

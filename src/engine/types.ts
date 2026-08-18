@@ -233,6 +233,14 @@ export interface Player {
   listed?: boolean
   /** the day they went on the list, so a stale listing can be withdrawn */
   listedOn?: number
+  /** career marks already announced, so a milestone is reported once */
+  marks?: { maps?: number }
+  /** day he last asked for a better contract — see engine/life.ts */
+  payAskedOn?: number
+  /** day a rival was last reported to be watching him */
+  rumourOn?: number
+  /** whether his form was last reported as hot or cold, so it is said once */
+  formFlag?: 'hot' | 'cold'
 }
 
 export interface Coach {

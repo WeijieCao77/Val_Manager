@@ -199,9 +199,14 @@ function snap(g: GameState): Snap {
     confidence: Math.round(g.boardConfidence),
     injured: mine.filter((p) => p.injuredUntil > g.day).map((p) => p.id).sort(),
     contractYears: mine.map((p) => `${p.id}:${p.contractYears}`).sort().join(','),
-    // only new listings are worth telling anyone about; a rival quietly taking
-    // a player back off the market is not news
-    listings: Object.values(g.players).filter((p) => p.listed).map((p) => p.id).sort(),
+    // The rule the game promises is "someone at least as good as what we
+    // already have came onto the market" — reporting every squad-filler a
+    // rival lists would bury the digest. So that is what is checked: a
+    // notable listing must be reported, a minor one need not be. A rival
+    // quietly taking a player back off the market is not news either.
+    listings: Object.values(g.players)
+      .filter((p) => p.listed && p.overall >= (g.teams[g.myTeam]?.rating ?? 60))
+      .map((p) => p.id).sort(),
     overall: Object.fromEntries(mine.map((p) => [p.id, p.overall])),
     managerJob: g.myTeam,
   }
@@ -288,9 +293,15 @@ const EXPLAINS: Record<keyof Snap, RegExp> = {
   console.log(`  played ${days} days across ${seasons} season(s)\n`)
   for (const key of Object.keys(EXPLAINS) as (keyof Snap)[]) {
     const n = silent[key] ?? 0
-    const budget = key === 'money' ? Math.ceil(days * 0.02) : 0
-    ok(`${key} never changes unexplained`, n <= budget,
-      n ? `${n} silent day(s); first ${examples[key]}` : '')
+    // Every one of these must be zero. `money` is the only one that ever earned
+    // an allowance, and it no longer needs it now that the finance log is
+    // checked by its last entry's day rather than by its length — the log is
+    // capped at 200 rows, so length stops growing and the old test passed
+    // vacuously for 55 days a career.
+    const label = key === 'listings'
+      ? 'listings at or above our level are never silent'
+      : `${key} never changes unexplained`
+    ok(label, n === 0, n ? `${n} silent day(s); first ${examples[key]}` : '')
   }
 }
 

@@ -10,6 +10,16 @@ import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
 
+/**
+ * The neutral point of the form scale.
+ *
+ * match.ts has always read form as a swing around 70 — `(p.form - 70) * 0.0028`
+ * — and build_world derives a new save's starting form the same way, from this
+ * season against the player's own career. Everything that moves form reverts
+ * to this.
+ */
+export const FORM_BASE = 70
+
 /** One week of practice for a single player. */
 function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string | null {
   const focus = state.training[p.id] ?? 'rest'
@@ -266,14 +276,25 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         }
       }
 
-      // form drifts back toward the player's true level
-      const pull = (p.overall - p.form) * 0.06
+      // Form reverts to neutral, not to ability.
+      //
+      // It used to be pulled toward `overall`, which quietly turned it into a
+      // second copy of ability: an 86-rated player settled at form 86 and drew
+      // a permanent +4.5% from effectiveRating, a 60-rated one settled at 60
+      // and carried -2.8% forever. Ability was being counted twice and form
+      // stopped meaning "how he is playing lately". effectiveRating has always
+      // measured it against 70; so does this.
+      const pull = (FORM_BASE - p.form) * 0.06
       p.form = clamp(p.form + pull + rng.range(-3.5, 3.5), 30, 99)
       p.morale = clamp(p.morale + rng.range(-2, 2), 10, 100)
 
       // fatigue and heavy schedules cause injuries
       // 体能: fewer injuries under a manager who manages load
-      const risk = (0.004 + Math.max(0, p.fatigue - 55) * 0.0009 + Math.max(0, p.age - 27) * 0.002) *
+      // The load term used to start at 55, which fatigue almost never reached,
+      // so in practice only the flat 0.004 ever fired — 0.9 injuries a season
+      // across a whole squad. It now starts inside the band a working squad
+      // actually occupies (settled p50 34, p90 48).
+      const risk = (0.005 + Math.max(0, p.fatigue - 40) * 0.0012 + Math.max(0, p.age - 27) * 0.002) *
         (isMine ? 2 - skillMod(state.manager, 'medical', 0.008) : 1)
       if (rng.chance(risk)) {
         const inj = rng.pick(INJURIES)
@@ -283,6 +304,17 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         p.morale = clamp(p.morale - 10, 0, 100)
         if (isMine) notes.push(`⚕️ ${p.ign} ${inj.note}，预计缺阵 ${days} 天。`)
       }
+
+      // Everyone recovers every week, not only the ones told to rest.
+      //
+      // Without this there was no equilibrium and no dial: a squad set to
+      // train every week sat pinned at 100 fatigue (-16% on every player) and
+      // one left resting sat at 10. Recovery scales with how tired they are, so
+      // a normal plan settles in the fifties — where the injury curve and the
+      // condition penalty both start to bite, and resting a man is a decision
+      // rather than the only survivable setting.
+      const care = isMine ? skillMod(state.manager, 'medical', 0.008) : 1
+      p.fatigue = clamp(p.fatigue - (p.fatigue * 0.30 + 5) * care, 0, 100)
     }
   }
   // the week has been settled, so commercial time starts over
@@ -291,11 +323,30 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
 }
 
 /** Post-match wear on the players who actually played. */
-export function applyMatchFatigue(state: GameState, teamId: string, mapsPlayed: number, rng: Rng) {
+export function applyMatchFatigue(
+  state: GameState, teamId: string, mapsPlayed: number, rng: Rng, notes?: string[],
+) {
+  const isMine = teamId === state.myTeam
   for (const pid of state.teams[teamId]?.starters ?? []) {
     const p = state.players[pid]
     if (!p) continue
     p.fatigue = clamp(p.fatigue + mapsPlayed * rng.range(3.5, 6.5), 0, 100)
+
+    // A squad used to see 0.9 injuries a season, because the only roll was the
+    // weekly one and it did not care whether anyone had played. Playing a bo5
+    // at 90 fatigue should be the risk it looks like — so the match itself now
+    // rolls, and it is the tired who get hurt rather than everyone equally.
+    if (p.injuredUntil > state.day) continue
+    const load = Math.max(0, p.fatigue - 40) / 60           // 0 at 40, 1 at 100
+    const risk = (0.003 + load * 0.03) * (mapsPlayed / 3) *
+      (isMine ? 2 - skillMod(state.manager, 'medical', 0.008) : 1)
+    if (!rng.chance(risk)) continue
+    const inj = rng.pick(INJURIES)
+    const days = rng.int(inj.days[0], inj.days[1])
+    p.injuredUntil = state.day + days
+    p.injuryNote = inj.note
+    p.morale = clamp(p.morale - 10, 0, 100)
+    if (isMine) notes?.push(`⚕️ ${p.ign} 赛后${inj.note}，预计缺阵 ${days} 天。`)
   }
 }
 
