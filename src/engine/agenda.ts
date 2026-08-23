@@ -1,5 +1,5 @@
 import { squadOf, wageBill } from './world'
-import { windowOpen } from './transfer'
+import { windowOpen, TRANSFER_WINDOWS } from './transfer'
 import { nextFixtureFor, stageName } from './season'
 import type { Activity, GameState, StageKey } from './types'
 
@@ -43,6 +43,18 @@ export const SCREEN_PHASES: Record<string, { always?: boolean; stages?: StageKey
   saves: { always: true },
   // the market is the one screen that genuinely closes
   transfers: { stages: ['preseason', 'masters2', 'offseason'] },
+}
+
+/**
+ * Days left in the window that is currently open, or null when it is shut.
+ *
+ * Worth saying out loud because a turn is not a day: preseason moves a week at
+ * a time and the window is 21 days, so three clicks of 推进 spend the whole of
+ * it. "转会窗口开放中" one turn and gone the next is not a warning.
+ */
+export function windowDaysLeft(state: GameState): number | null {
+  const w = TRANSFER_WINDOWS.find(([a, b]) => state.day >= a && state.day <= b)
+  return w ? w[1] - state.day + 1 : null
 }
 
 export function screenLocked(screen: string, state: GameState): string | null {
@@ -112,7 +124,11 @@ export function agendaFor(state: GameState): AgendaItem[] {
   switch (state.stage) {
     case 'preseason':
       if (open) {
-        items.push({ key: 'market', tone: 'todo', go: 'transfers', text: '转会窗口开放中，这是补强阵容的主要机会。' })
+        const left = windowDaysLeft(state)
+        items.push({
+          key: 'market', tone: 'todo', go: 'transfers',
+          text: `转会窗口开放中（还剩 ${left} 天，一回合走 7 天），这是补强阵容的主要机会。`,
+        })
       }
       items.push({ key: 'plan', tone: 'todo', go: 'training', text: '为本赛季设定训练重点，赛段中途改动收益有限。' })
       items.push({ key: 'tac', tone: 'todo', go: 'tactics', text: '确认战术风格与首发五人。' })
@@ -127,11 +143,19 @@ export function agendaFor(state: GameState): AgendaItem[] {
     case 'masters2':
     case 'champions':
       items.push({ key: 'intl', tone: 'info', go: 'standings', text: `${stageName(state.stage)} 期间，没有你的比赛时可以安排训练赛。` })
-      if (open) items.push({ key: 'window', tone: 'todo', go: 'transfers', text: '短期转会窗口开放中。' })
+      if (open) {
+        items.push({
+          key: 'window', tone: 'todo', go: 'transfers',
+          text: `短期转会窗口开放中，还剩 ${windowDaysLeft(state)} 天。`,
+        })
+      }
       break
     case 'offseason':
       items.push({ key: 'renew', tone: 'todo', go: 'squad', text: '休赛期：处理续约、清理阵容。' })
-      items.push({ key: 'market2', tone: 'todo', go: 'transfers', text: '转会窗口开放，为下赛季重建阵容。' })
+      items.push({
+        key: 'market2', tone: 'todo', go: 'transfers',
+        text: `转会窗口开放，为下赛季重建阵容（还剩 ${windowDaysLeft(state)} 天）。`,
+      })
       break
     default:
       break

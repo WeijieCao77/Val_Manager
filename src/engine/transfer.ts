@@ -154,8 +154,18 @@ export function scoreOffer(
       })
       score += (trustOf(p) - TRUST_START) * 0.55
     }
-    // 谈判 is worth a few points of persuasion on top of your name
-    score += (skillMod(state.manager, 'negotiation', 0.5) - 1) * 30
+    // 谈判 is worth a few points of persuasion on top of your name.
+    //
+    // The per-point strength here was 0.5, where every other call site in the
+    // game uses 0.004-0.06. At 谈判 35 — the weak skill of the 前教练 origin —
+    // that made this term -225 on a scale where the whole salary range is 60,
+    // so a manager with weak negotiation could not sign a free agent at two and
+    // a half times his asking wage. And because it was added straight to the
+    // score rather than through `parts`, it could never be named as the
+    // obstacle: the readout blamed the manager's reputation instead.
+    const talk = (skillMod(state.manager, 'negotiation', 0.008) - 1) * 30
+    parts.push({ key: 'talk', v: talk, why: '你的谈判能力不足以说服他' })
+    score += talk
     const pull = (state.manager.reputation - toTeam.reputation) * 0.55
     parts.push({
       key: 'manager',
