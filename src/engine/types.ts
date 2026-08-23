@@ -183,6 +183,13 @@ export interface Player {
   isIgl: boolean
   attrs: Attrs
   overall: number
+  /**
+   * How much better this player is at the biggest events than his own
+   * baseline, in rating points. Not any single attribute, so it is carried
+   * separately and re-added on every recompute — folded into `overall` it was
+   * lost the first time he trained.
+   */
+  stageBonus?: number
   potential: number
   /** 0-100, short-term performance swing */
   form: number

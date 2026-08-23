@@ -6,6 +6,7 @@ import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
+import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import { cycleDays } from '../engine/actions'
@@ -21,12 +22,27 @@ const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
 ]
 
 /** Suggest what this player would gain most from working on. */
+/**
+ * What this player should actually practise.
+ *
+ * It used to name his lowest attribute, which ignores what his position is
+ * judged on: a duelist was told to work on 沟通 (weight 0.05) instead of 枪法
+ * (0.28), so following the game's own advice moved his rating about a fifth as
+ * fast as the obvious alternative. Overall is a role-weighted sum, so the
+ * value of a point is exactly that weight — pick the heaviest attribute that
+ * still has somewhere to go, and among equals the one he is worse at.
+ */
 function suggest(p: Player): keyof Attrs {
   const head = p.potential - p.overall
   if (head <= 0) return 'teamwork'
+  const w = weightsFor(p)
   return ATTR_KEYS
-    .filter((k) => k !== 'igl' || p.isIgl)
-    .reduce((a, b) => (p.attrs[a] < p.attrs[b] ? a : b))
+    .filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
+    .reduce((a, b) => {
+      const d = w[b] - w[a]
+      if (Math.abs(d) > 0.001) return d > 0 ? b : a
+      return p.attrs[b] < p.attrs[a] ? b : a
+    })
 }
 
 export default function Training() {

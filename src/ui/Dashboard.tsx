@@ -232,9 +232,9 @@ export default function Dashboard() {
           {next ? (
             <>
               <div className="score-line" style={{ padding: '6px 0 14px' }}>
-                <div className="t a">{game.teams[next.teamA]?.name}</div>
+                <div className="t a" title={game.teams[next.teamA]?.name}>{game.teams[next.teamA]?.tag}</div>
                 <div className="s muted" style={{ fontSize: 20 }}>BO{next.bo}</div>
-                <div className="t">{game.teams[next.teamB]?.name}</div>
+                <div className="t" title={game.teams[next.teamB]?.name}>{game.teams[next.teamB]?.tag}</div>
               </div>
               <div className="row small muted wrap" style={{ gap: 10, justifyContent: 'center' }}>
                 <span className="tag">{game.comps[next.comp]?.name ?? next.comp}</span>

@@ -32,13 +32,13 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       onClose={onClose}
     >
       <div className="score-line">
-        <div className={`t a ${aWon ? 'win' : ''}`}>{a.name}</div>
+        <div className={`t a ${aWon ? 'win' : ''}`} title={a.name}>{a.tag}</div>
         <div className="s">
           <span className={aWon ? 'win' : 'muted'}>{r.mapsWonA}</span>
           <span className="muted"> : </span>
           <span className={!aWon ? 'win' : 'muted'}>{r.mapsWonB}</span>
         </div>
-        <div className={`t ${!aWon ? 'win' : ''}`}>{b.name}</div>
+        <div className={`t ${!aWon ? 'win' : ''}`} title={b.name}>{b.tag}</div>
       </div>
 
       {involved && (
@@ -187,8 +187,8 @@ function Performance({
   const PALETTE = ['var(--accent)', '#5fa8d3']
   const series = mode === 'team'
     ? [
-        { label: game.teams[teamA]?.name ?? 'A', color: PALETTE[0], values: avgPerf(aIds.map((id) => map.lines[id])) },
-        { label: game.teams[teamB]?.name ?? 'B', color: PALETTE[1], values: avgPerf(bIds.map((id) => map.lines[id])) },
+        { label: game.teams[teamA]?.tag ?? 'A', color: PALETTE[0], values: avgPerf(aIds.map((id) => map.lines[id])) },
+        { label: game.teams[teamB]?.tag ?? 'B', color: PALETTE[1], values: avgPerf(bIds.map((id) => map.lines[id])) },
       ]
     : picked.map((pid, i) => ({
         label: game.players[pid]?.ign ?? pid,
@@ -305,7 +305,7 @@ function Scoreboard({
     return (
       <div className="panel" style={{ marginBottom: 10 }}>
         <div className="panel-head">
-          <h2>{game.teams[teamId]?.name}</h2>
+          <h2 title={game.teams[teamId]?.name}>{game.teams[teamId]?.tag}</h2>
         </div>
         <div className="table-wrap">
           <table>

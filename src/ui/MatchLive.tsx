@@ -104,9 +104,9 @@ export default function MatchLive({
     return (
       <Modal title={`${game.comps[fixture.comp]?.name ?? fixture.comp} · BO${fixture.bo}`} onClose={skip}>
         <div className="score-line">
-          <div className="t a">{a?.name}</div>
+          <div className="t a" title={a?.name}>{a?.tag}</div>
           <div className="s muted" style={{ fontSize: 22 }}>VS</div>
-          <div className="t">{b?.name}</div>
+          <div className="t" title={b?.name}>{b?.tag}</div>
         </div>
         <p className="center small muted" style={{ marginTop: -6 }}>
           {fixture.label.replace(/^KO:\d+:/, '')}
@@ -158,9 +158,9 @@ export default function MatchLive({
       </div>
 
       <div className="score-line" style={{ padding: '10px 0' }}>
-        <div className={`t a ${scoreA > scoreB ? 'win' : ''}`}>{a?.name}</div>
+        <div className={`t a ${scoreA > scoreB ? 'win' : ''}`} title={a?.name}>{a?.tag}</div>
         <div className="s">{scoreA} : {scoreB}</div>
-        <div className={`t ${scoreB > scoreA ? 'win' : ''}`}>{b?.name}</div>
+        <div className={`t ${scoreB > scoreA ? 'win' : ''}`} title={b?.name}>{b?.tag}</div>
       </div>
 
       {map && map.rounds.length > 0 && (

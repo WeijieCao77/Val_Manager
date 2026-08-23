@@ -31,6 +31,7 @@ import {
 } from '../src/engine/staff'
 import { applyForJob, renegotiate } from '../src/engine/career'
 import { actionsLeft } from '../src/engine/actions'
+import { recomputeOverall } from '../src/engine/player'
 import type { GameState, Player } from '../src/engine/types'
 
 const seasons = Number(process.argv[2] ?? 1)
@@ -161,6 +162,25 @@ console.log('\nactions — every button answers, including when it refuses\n')
       if (hasIgl && !t.starters.some((id) => g2.players[id]?.isIgl)) bad.push(t.tag)
     }
     ok('every club starts its IGL', bad.length === 0, bad.join(' '))
+  }
+
+  // `overall` must be a pure function of the player, or it changes the first
+  // time anything recomputes him. It was not: build_world weighted by role and
+  // the engine re-derived on a flat table, so 94 of 515 players moved 3+ points
+  // on their first training week and duelists lost up to 6.
+  {
+    const g3 = fresh()
+    let worst = 0, off = 0, n = 0
+    for (const p of Object.values(g3.players)) {
+      const before = p.overall
+      recomputeOverall(p)
+      const d = Math.abs(p.overall - before)
+      n++
+      if (d >= 2) off++
+      worst = Math.max(worst, d)
+    }
+    ok('overall survives a recompute (role weights match build_world)',
+      off <= n * 0.02, `${off}/${n} players move 2+ points, worst ${worst}`)
   }
 
   // the action budget must refuse out loud, not by doing nothing

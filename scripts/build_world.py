@@ -125,7 +125,7 @@ TIER2 = {
     'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
     'EMEA': [('EIN', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
     'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
-    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQG', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming')],
+    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming')],
 }
 
 ROLE_CN = {"d": "决斗者", "i": "先锋", "c": "控场", "s": "哨卫", "": "自由人"}
@@ -294,8 +294,21 @@ NAT_REGION = {
 TIER1_TAGS = {t for lst in TIER1.values() for t, _ in lst}
 
 
+# Clubs whose real abbreviation is not their initials. Derived tags are a
+# fallback, not a naming authority: "Any Questions Gaming" initialises to AQG,
+# but everyone including the org calls it AQ. The TIER2 table and the roster
+# join both go through here, so the two cannot drift apart — changing the tag
+# in one place alone silently drops the club for want of a matching roster.
+VCL_TAG_FIX = {
+    "any questions gaming": "AQ",
+}
+
+
 def vcl_tag(name):
     """A short, stable tag for a Challengers club, derived from its real name."""
+    fixed = VCL_TAG_FIX.get(name.strip().lower())
+    if fixed:
+        return fixed
     cleaned = re.sub(r"[^A-Za-z0-9 ]", "", name).split()
     if not cleaned:
         base = name[:4].upper()
@@ -741,10 +754,13 @@ def main():
         ovr = sum(a[k] * w.get(k, ATTR_WEIGHT[k]) for k in ATTRS)
         # Turning up at Champions is the hardest thing to fake, and a career
         # average buries it: ZmjjKK's best ACS comes at the biggest events.
+        # Turning up at Champions is real but it is not any single attribute,
+        # so it is carried as its own term rather than folded into `overall` —
+        # otherwise the first recompute in-game (training, ageing, covering a
+        # second role) silently threw it away.
         lift = stage.get(ign)
-        if lift is not None:
-            ovr += clamp((lift - 1) * 26, -4, 5)
-        ovr = int(round(clamp(ovr, 30, 97)))
+        stage_bonus = round(clamp((lift - 1) * 26, -4, 5), 2) if lift is not None else 0.0
+        ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
         raw_birth = lp.get("birth")
@@ -784,7 +800,7 @@ def main():
             if str(lp.get("real") or "").lower() != ign.lower() else None,
             "birth": birth,
             "age": age, "ageEstimated": estimated,
-            "attrs": a, "overall": ovr,
+            "attrs": a, "overall": ovr, "stageBonus": stage_bonus,
             "potential": int(clamp(round(ovr + head), ovr, 99)),
             "form": form_for(ign, rng),
             "morale": int(clamp(round(rng.norm(75, 8)), 45, 98)),
@@ -815,6 +831,7 @@ def main():
             "agentPool": [], "roleSource": "vlr-primary",
             "age": p["age"], "ageEstimated": p["ageEstimated"],
             "isIgl": False, "attrs": dict(p["attrs"]), "overall": p["overall"],
+            "stageBonus": p.get("stageBonus", 0.0),
             "potential": p["potential"], "form": p["form"], "morale": p["morale"],
             "fatigue": p["fatigue"], "salary": salary_for(p["overall"], tier),
             "value": value_for(p["overall"], p["age"], p["potential"]),
@@ -904,7 +921,8 @@ def main():
             if gap == "哨卫":
                 p["attrs"]["awareness"] = int(clamp(p["attrs"]["awareness"] + 2, 20, 99))
             p["overall"] = int(round(clamp(
-                sum(p["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
+                sum(p["attrs"][k] * ROLE_WEIGHT.get(p["role"], ATTR_WEIGHT)[k] for k in ATTRS)
+            + p.get("stageBonus", 0.0), 30, 97)))
 
         # Who calls, in order of trust: a hand-verified override, then the
         # `igl=` field on the club's Liquipedia infobox, then — only if neither
@@ -921,7 +939,8 @@ def main():
         igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
         igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
         igl["overall"] = int(round(clamp(
-            sum(igl["attrs"][k] * ATTR_WEIGHT[k] for k in ATTRS), 30, 97)))
+            sum(igl["attrs"][k] * ROLE_WEIGHT.get(igl["role"], ATTR_WEIGHT)[k] for k in ATTRS)
+            + igl.get("stageBonus", 0.0), 30, 97)))
 
         # Potential was fixed before these bumps, so covering a second role or
         # taking the armband could push a player above his own ceiling — four

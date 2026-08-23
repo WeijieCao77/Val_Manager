@@ -1,6 +1,6 @@
 import { clamp } from './rng'
 import { ATTR_KEYS } from './types'
-import type { Attrs, Player, Stats } from './types'
+import type { Attrs, Player, Role, Stats } from './types'
 
 /** Must stay in sync with scripts/extract.py so imported and in-game players agree. */
 export const ATTR_WEIGHT: Record<keyof Attrs, number> = {
@@ -8,9 +8,37 @@ export const ATTR_WEIGHT: Record<keyof Attrs, number> = {
   clutch: 0.12, teamwork: 0.10, communication: 0.08, igl: 0.04,
 }
 
+/**
+ * What each role is actually judged on. Mirrors ROLE_WEIGHT in
+ * scripts/build_world.py, which is where every player's opening rating comes
+ * from — the two must be identical.
+ *
+ * They were not. build_world weighted a duelist on aim and reaction; this file
+ * re-derived him on the flat table the moment anything recomputed him, which
+ * training, ageing and covering a second role all do. 94 of 515 players moved
+ * three or more points on that first recompute and duelists lost 1.7 on
+ * average, up to 6 — quietly undoing the role weighting itself.
+ */
+export const ROLE_WEIGHT: Record<Role, Record<keyof Attrs, number>> = {
+  决斗者: { aim: 0.28, reaction: 0.22, clutch: 0.16, awareness: 0.12,
+    utility: 0.08, teamwork: 0.07, communication: 0.05, igl: 0.02 },
+  先锋: { aim: 0.17, reaction: 0.15, awareness: 0.20, utility: 0.20,
+    clutch: 0.09, teamwork: 0.10, communication: 0.07, igl: 0.02 },
+  控场: { aim: 0.15, reaction: 0.11, awareness: 0.20, utility: 0.22,
+    clutch: 0.09, teamwork: 0.13, communication: 0.08, igl: 0.02 },
+  哨卫: { aim: 0.19, reaction: 0.12, awareness: 0.22, utility: 0.15,
+    clutch: 0.15, teamwork: 0.10, communication: 0.05, igl: 0.02 },
+  自由人: { ...ATTR_WEIGHT },
+}
+
+/** The weights this player is judged on. */
+export const weightsFor = (p: Pick<Player, 'role'>): Record<keyof Attrs, number> =>
+  ROLE_WEIGHT[p.role] ?? ATTR_WEIGHT
+
 export function recomputeOverall(p: Player): number {
-  let v = 0
-  for (const k of ATTR_KEYS) v += p.attrs[k] * ATTR_WEIGHT[k]
+  const w = weightsFor(p)
+  let v = p.stageBonus ?? 0
+  for (const k of ATTR_KEYS) v += p.attrs[k] * w[k]
   p.overall = Math.round(clamp(v, 30, 99))
   return p.overall
 }

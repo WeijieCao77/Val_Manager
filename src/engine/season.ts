@@ -572,7 +572,7 @@ export function commitFixture(
     if (isMine) state.lastResults.push(f.id)
     state.news.push({
       day: state.day, kind: 'club',
-      text: `训练赛｜${state.teams[f.teamA]?.name} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.name}`,
+      text: `训练赛｜${state.teams[f.teamA]?.tag} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.tag}`,
     })
     return
   }
@@ -601,7 +601,9 @@ export function commitFixture(
   state.news.push({
     day: state.day,
     kind: 'match',
-    text: `${comp?.name ?? f.comp}｜${state.teams[f.teamA]?.name} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.name}`,
+    // a scoreline is the densest thing in the feed; the tags are what people
+    // read anyway, and the competition name already says where it happened
+    text: `${comp?.name ?? f.comp}｜${state.teams[f.teamA]?.tag} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.tag}`,
     important: isMine,
   })
   progressCompetitions(state, notes)
