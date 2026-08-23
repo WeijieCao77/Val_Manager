@@ -95,6 +95,11 @@ export function scoreOffer(
 
   const from = p.teamId ? state.teams[p.teamId] : null
   const fit = roleFit(state, p, toTeam, promisedRole)
+  // Re-signing where he already is, rather than being prised away from it.
+  // Three of the terms below were written for the second case and were being
+  // applied unchanged to the first — most visibly loyalty, which turned "he
+  // loves this club" into a reason to refuse the club's own renewal.
+  const renewal = !!from && from.id === toTeam.id
 
   // every term's contribution is kept so the refusal can name the real blocker
   // rather than blaming whatever happens to be checked first
@@ -112,12 +117,25 @@ export function scoreOffer(
     },
     { key: 'rep', v: (toTeam.reputation - (from?.reputation ?? 30)) * 0.9, why: '认为这支球队不如他现在的平台' },
     { key: 'tier', v: from ? (toTeam.tier < from.tier ? 18 : toTeam.tier > from.tier ? -22 : 0) : 0, why: '不愿意降级去次级联赛' },
-    { key: 'loyal', v: from ? -(p.loyalty - 50) * 0.35 : 0, why: '对现在的俱乐部感情很深' },
+    {
+      key: 'loyal',
+      // attachment keeps him here; it is only an obstacle to leaving
+      v: from ? (p.loyalty - 50) * 0.35 * (renewal ? 1 : -1) : 0,
+      // and the sentence has to follow the direction: the same number is
+      // "he loves it here" to a rival and "he never settled here" to us
+      why: renewal ? '对这支球队没有太深的归属感' : '对现在的俱乐部感情很深',
+    },
     { key: 'lock', v: noPoach ? -13 : 0, why: '不愿接受转会限制条款' },
   ]
   let score = parts.reduce((s, x) => s + x.v, 0)
-  score += (p.ambition - 55) * 0.25 * (toTeam.reputation > (from?.reputation ?? 0) ? 1 : -1)
-  if (from && !from.starters.includes(p.id)) score += 14
+  // Ambition reads a move as a step up or a step down. Staying put is neither,
+  // so a renewal was being scored as though it were a demotion.
+  if (!renewal) {
+    score += (p.ambition - 55) * 0.25 * (toTeam.reputation > (from?.reputation ?? 0) ? 1 : -1)
+  }
+  // Not being in the five makes a player easier to sign away — and harder to
+  // keep, which is the same fact pointing the other way.
+  if (from && !from.starters.includes(p.id)) score += renewal ? -10 : 14
   if (years >= 3) score += p.age >= 27 ? 8 : 3
   if (releaseClause > 0) score += 7
   score += (p.grievance ?? 0) * 0.25   // unhappy players are easier to move
