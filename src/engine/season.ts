@@ -320,9 +320,16 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
 
   obj.settled = true
   obj.met = place <= obj.placeAtLeast
+  // Symmetric around the brief. It used to pay +6 for meeting the target and
+  // charge -8 for missing it by a single place, so a club landing on its brief
+  // about half the time drifted downward: 0.5*6 + 0.5*-8 = -1 a stage, on top
+  // of the -0.1 a .500 record already bleeds match by match. Doing exactly what
+  // was asked should not be a slow route to the sack, and it was — a squad
+  // trained from 75 to 80 got fired for finishing 8th while a squad left alone
+  // sat comfortably at 75% confidence.
   const swing = obj.met
     ? Math.min(16, 6 + (obj.placeAtLeast - place) * 3)
-    : -Math.min(18, 5 + (place - obj.placeAtLeast) * 3)
+    : -Math.min(18, 2 + (place - obj.placeAtLeast) * 3)
   state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
   state.missedStreak = obj.met ? 0 : (state.missedStreak ?? 0) + 1
   // beating the brief moves your standing; missing it costs you a little
@@ -358,9 +365,16 @@ function judgeTenure(state: GameState, place: number, notes: string[]): void {
     (state.onNotice && state.boardConfidence <= 18)
 
   if (doomed && state.onNotice) {
-    state.gameOver =
-      `${club} 董事会决定解除你的职务。` +
-      `连续 ${state.missedStreak ?? 0} 个赛段没有达成目标，信任度已经跌到 ${Math.round(state.boardConfidence)}%。`
+    // Say what actually ended it. There are three routes here and the message
+    // only ever described one of them, so a manager fired on a confidence
+    // floor was told "连续 1 个赛段没有达成目标" — a sentence that reads as a
+    // mistake because a streak of one is not a streak.
+    const streak = state.missedStreak ?? 0
+    const conf = Math.round(state.boardConfidence)
+    const why = streak >= 2
+      ? `连续 ${streak} 个赛段没有达成目标，信任度已经跌到 ${conf}%。`
+      : `被警告之后又交了一个不合格的赛段（本赛段第 ${place} 名），信任度只剩 ${conf}%。`
+    state.gameOver = `${club} 董事会决定解除你的职务。${why}`
     notes.push(`🚪 ${state.gameOver}`)
     state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
     return

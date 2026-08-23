@@ -32,6 +32,20 @@ const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
  * value of a point is exactly that weight — pick the heaviest attribute that
  * still has somewhere to go, and among equals the one he is worse at.
  */
+/**
+ * Rest anyone at or above this.
+ *
+ * Measured, not guessed: eight saves over five seasons, one club, varying only
+ * this number. Resting everyone is safe and stagnant (+3.8 ability in five
+ * years); holding out to 62 is the worst of both worlds — 3.2 injuries a
+ * season, a *worse* league position than not training at all, and half the
+ * saves sacked. Resting at 40 gave the best placing and the most growth. The
+ * button used to hold out to 70, which is deeper into the bad zone than the
+ * 62 that was measured as worst, so the game's own convenience button put you
+ * on close to the worst available policy.
+ */
+const REST_AT = 45
+
 function suggest(p: Player): keyof Attrs {
   const head = p.potential - p.overall
   if (head <= 0) return 'teamwork'
@@ -69,7 +83,7 @@ export default function Training() {
   const restTired = () => {
     let n = 0
     for (const p of squad) {
-      if (p.fatigue >= 55) {
+      if (p.fatigue >= REST_AT) {
         game.training[p.id] = 'rest'
         n++
       }
@@ -79,11 +93,16 @@ export default function Training() {
   }
 
   const autoFocus = () => {
+    let rested = 0
     for (const p of squad) {
-      game.training[p.id] = p.fatigue >= 70 ? 'rest' : suggest(p)
+      const tired = p.fatigue >= REST_AT
+      if (tired) rested++
+      game.training[p.id] = tired ? 'rest' : suggest(p)
     }
     commit()
-    toast('已按短板自动分配训练重点。')
+    toast(rested
+      ? `已按位置重点分配，其中 ${rested} 人体能偏低改为休息。`
+      : '已按位置重点分配训练。')
   }
 
   const drill = game.drill ?? { kind: 'none' as const }
