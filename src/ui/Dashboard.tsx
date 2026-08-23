@@ -39,8 +39,20 @@ export default function Dashboard() {
     // your own match is handed to the live view, which offers watch or skip;
     // otherwise the turn reports what it did rather than dropping every note
     // but the last one into a toast
-    if (pending) playLive(pending)
-    else setDigest({ reports, fromDay })
+    if (pending) { playLive(pending); return }
+
+    // A turn that did nothing should not stop you to say so. In-season a turn
+    // is one day, and 54% of a season's 203 turns produced a digest whose only
+    // content was "这一天平静地过去了" — a modal to dismiss, once a day, saying
+    // nothing. The date in the header is the feedback; a toast confirms the
+    // click landed without blocking the next one.
+    const quiet = !reports.some((r) => r.notes.length || r.playedMine.length || r.stageChanged)
+    if (quiet) {
+      const span = game.day - fromDay
+      toast(span > 1 ? `${fmtDay(game.day)} · 平静的 ${span} 天` : `${fmtDay(game.day)} · 平静的一天`)
+      return
+    }
+    setDigest({ reports, fromDay })
   }
 
   const step = (fast: boolean) => {
