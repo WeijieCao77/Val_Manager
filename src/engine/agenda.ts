@@ -161,6 +161,21 @@ export function agendaFor(state: GameState): AgendaItem[] {
     })
   }
 
+  // Bids for our own players are a decision with a deadline: unanswered, they
+  // expire after seven days and the digest reports a withdrawal for an offer
+  // the manager was never shown. They stay on the list until answered.
+  const incoming = state.offers.filter(
+    (o) => o.status === 'pending' && o.fromTeam === state.myTeam && o.toTeam !== state.myTeam,
+  )
+  if (incoming.length) {
+    const soonest = Math.min(...incoming.map((o) => o.day + 7 - state.day))
+    items.push({
+      key: 'incoming', tone: 'todo', go: 'transfers',
+      text: `收到 ${incoming.length} 份对我方选手的报价，`
+        + `${soonest <= 0 ? '今天就要答复' : `最快 ${soonest} 天后失效`}——不答复视为拒绝。`,
+    })
+  }
+
   // commercial work has to be booked before the day arrives, so surface it
   const gigs = (state.gigs ?? []).filter((g) => !g.done && g.day >= state.day)
   const unbooked = gigs.filter((g) => !g.accepted)

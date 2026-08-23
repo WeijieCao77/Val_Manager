@@ -10,16 +10,29 @@ import type { EdgeBreakdown, MapScore } from '../engine/types'
  * with the ones you can actually act on named.
  */
 
+/**
+ * `fix` may depend on our own value, because the same row can mean two very
+ * different things. The IGL row read "首发里没有 IGL 罚分很重" whether or not
+ * you had one — telling a manager whose caller was on the field to go and find
+ * a caller. The engine writes exactly -4 there when the five contains nobody
+ * with the armband, so the two cases are distinguishable.
+ */
 const FACTORS: {
   key: keyof EdgeBreakdown
   label: string
-  fix: string
+  fix: string | ((mine: number) => string)
 }[] = [
   { key: 'base', label: '选手个人能力', fix: '这是阵容硬实力，只能靠转会和训练慢慢补' },
   { key: 'map', label: '地图熟练度', fix: '在训练里安排「跑图」练这张图，或在 BP 时避开它' },
   { key: 'chem', label: '团队默契', fix: '更衣室关系与协同/沟通属性，双排练和集训能改善' },
   { key: 'comp', label: '阵容位置搭配', fix: '缺位置会一直扣分，看阵容页的位置统计' },
-  { key: 'igl', label: '指挥（IGL）', fix: '首发里没有 IGL 罚分很重，或者练指挥属性' },
+  {
+    key: 'igl',
+    label: '指挥（IGL）',
+    fix: (v) => (v <= -3.9
+      ? '首发里没有指挥，攻防两端各扣 4 分——把队里的 IGL 放进首发'
+      : '让指挥属性更高的人来指挥，或用「教练复盘」练 IGL 的指挥'),
+  },
   { key: 'coach', label: '教练与战术素养', fix: '换个战术更好的主教练，或点满「战术」天赋' },
   { key: 'utility', label: '道具运用', fix: '战术里的「道具」滑杆，以及选手的道具属性' },
   { key: 'tacticsAtk', label: '战术设置（进攻端）', fix: '赛前的节奏与侵略性滑杆' },
@@ -36,7 +49,11 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const foe = mineIsA ? map.edge.b : map.edge.a
 
   const rows = FACTORS
-    .map((f) => ({ ...f, diff: (mine[f.key] as number) - (foe[f.key] as number) }))
+    .map((f) => ({
+      ...f,
+      diff: (mine[f.key] as number) - (foe[f.key] as number),
+      fix: typeof f.fix === 'function' ? f.fix(mine[f.key] as number) : f.fix,
+    }))
     .filter((r) => Math.abs(r.diff) >= 0.15)
     .sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff))
 

@@ -17,7 +17,7 @@ import { dailyLife, weeklyLife } from './life'
 import { autoStarters } from './world'
 import { expectedSalary } from './player'
 import { REGIONS } from './types'
-import type { Competition, Fixture, GameState, Region, StageKey, Tier } from './types'
+import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
 
 export const SEASON_DAYS = 336
 
@@ -531,19 +531,34 @@ export function commitFixture(
   const rng = fixtureRng(state, f)
   // how the dressing room took it, for our club only
   if (isMine) {
-    const notes: string[] = []
+    // This block used to declare its own `notes`, shadowing the digest passed
+    // in — so every dressing-room consequence of a defeat went to state.news
+    // and nowhere else. Measured from the digest, the game looked as though it
+    // had no dressing-room incidents at all; it had them, and never said so.
+    const room: string[] = []
     const isA = f.teamA === state.myTeam
     const won = (result.mapsWonA > result.mapsWonB) === isA
     trustAfterMatch(state, won, (isA ? result.lineups?.a : result.lineups?.b) ?? [])
-    applyMatchBonds(state, result, state.myTeam, isA, rng, notes)
-    for (const t of notes) {
+    applyMatchBonds(state, result, state.myTeam, isA, rng, room)
+    for (const t of room) {
       state.news.push({ day: state.day, kind: 'club', important: true, text: t })
+      notes.push(t)
+    }
+
+    // A club too short to field five sends out someone who is not fit. The
+    // engine has always done this rather than play 4v5; it never mentioned it.
+    const played = (isA ? result.lineups?.a : result.lineups?.b) ?? []
+    const hurt = played
+      .map((id) => state.players[id])
+      .filter((p) => p && p.injuredUntil > state.day)
+    for (const p of hurt) {
+      notes.push(`⚕️ 人手不够，带伤的 ${p.ign} 还是上了场（${p.injuryNote ?? '伤病'}）。`)
     }
   }
   // scrims build form and cost condition but never enter the record books
   if (isScrim(f)) {
-    applyMatchFatigue(state, f.teamA, result.maps.length, rng)
-    applyMatchFatigue(state, f.teamB, result.maps.length, rng)
+    applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes)
+    applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes)
     const aWon = result.mapsWonA > result.mapsWonB
     for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
       for (const pid of state.teams[teamId]?.starters ?? []) {
@@ -593,6 +608,17 @@ export function commitFixture(
 }
 
 export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport {
+  // A career that has ended does not keep going. The sack screen has no close
+  // button so a person cannot click past it, but nothing in the engine said so:
+  // driven any other way the clock ran on for another season and a half,
+  // collecting honours and a promotion for a manager who had been dismissed —
+  // and autosaving that state over the record of the career.
+  if (state.gameOver) {
+    return {
+      day: state.day, stage: state.stage, stageChanged: false,
+      playedMine: [], notes: [], seasonEnded: false,
+    }
+  }
   const rng = new Rng(hashStr(`day:${state.seed}:${state.year}:${state.day}`))
   const prevStage = state.stage
   state.day++
@@ -666,7 +692,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     notes.push(...weeklyTick(state, rng))
     weeklyLife(state, rng, notes)
     weeklyFinance(state)
-    aiTransferTick(state, rng)
+    aiTransferTick(state, rng, notes)
     refreshListings(state, rng, notes)   // runs all year so stale listings expire
     ensureMinimumRosters(state, rng)
   }
@@ -708,6 +734,26 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     promoted.league = `VCT ${region}`
     relegated.tier = 2
     relegated.league = `Challengers ${region}`
+
+    // Sponsorship follows the league you play in. Without this a promoted club
+    // kept its Challengers deals and picked up VCT running costs the same
+    // week — M80 went up and was insolvent two seasons later no matter what
+    // the manager did. Going up is a windfall and coming down is a cliff, and
+    // both are things a manager should be told rather than discover.
+    const reprice = (t: Team, factor: number) => {
+      for (const sp of t.sponsors) {
+        sp.perSeason = Math.round(sp.perSeason * factor)
+        sp.bonus = Math.round(sp.bonus * factor)
+      }
+    }
+    reprice(promoted, 4.2)
+    reprice(relegated, 1 / 4.2)
+    if (promoted.id === state.myTeam) {
+      notes.push('💰 升入一级联赛后，赞助合同全部重新议价，收入大幅提高。')
+    }
+    if (relegated.id === state.myTeam) {
+      notes.push('📉 降级后赞助合同被重新议价，赛季收入大幅缩水——先把薪资压下来。')
+    }
     state.news.push({
       day: state.day, kind: 'league', important: true,
       text: `🎫 ${promoted.name} 通过 Ascension 升入 VCT ${region}，${relegated.name} 降入次级联赛。`,

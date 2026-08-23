@@ -305,7 +305,7 @@ function weakestRole(state: GameState, team: Team): { role: Player['role']; stre
  * AI clubs work the market: fill holes from free agency, occasionally bid for
  * a player who is unhappy or transfer-listed.
  */
-export function aiTransferTick(state: GameState, rng: Rng): void {
+export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): void {
   if (!windowOpen(state.day)) return
 
   const teams = Object.values(state.teams).filter((t) => t.id !== state.myTeam)
@@ -359,7 +359,7 @@ export function aiTransferTick(state: GameState, rng: Rng): void {
     }
   }
 
-  bidForOurPlayers(state, rng)
+  bidForOurPlayers(state, rng, notes)
 }
 
 /**
@@ -450,7 +450,16 @@ export function refreshListings(state: GameState, rng: Rng, notes?: string[]): v
  * bid that meets a release clause goes through whether we like it or not,
  * everything else lands as an offer we answer.
  */
-export function bidForOurPlayers(state: GameState, rng: Rng): void {
+/**
+ * `notes` is the turn's digest.
+ *
+ * A bid for one of our players is a decision the manager has to take — accept
+ * or refuse, inside seven days — and it only ever reached state.news. So the
+ * digest reported the withdrawal a week later without ever having reported the
+ * bid: "TYLOO 撤回了对 zhe 的报价" for an offer nobody was told about, and a
+ * decision that expired on its own.
+ */
+export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): void {
   // Bids arrive whatever the squad size — receiving one costs nothing, since
   // the manager decides. Only accepting can leave us short, and the agenda
   // already flags a squad under five.
@@ -506,11 +515,19 @@ export function bidForOurPlayers(state: GameState, rng: Rng): void {
         day: state.day, kind: 'transfer', important: true,
         text: `${team.name} 支付了 ${target.ign} 合同中的解约金 $${fee.toLocaleString()}，我们无权拒绝。`,
       })
+      notes?.push(
+        `🚨 ${team.name} 触发了 ${target.ign} 的解约金 $${fee.toLocaleString()}，`
+        + '我们无权拒绝，他已经离队。',
+      )
     } else {
       state.news.push({
         day: state.day, kind: 'transfer', important: true,
         text: `${team.name} 报价 $${fee.toLocaleString()} 求购 ${target.ign}，等待我们答复。`,
       })
+      notes?.push(
+        `💼 ${team.name} 报价 $${fee.toLocaleString()} 求购 ${target.ign}，`
+        + '7 天内要给答复，逾期视为拒绝。',
+      )
     }
   }
 }

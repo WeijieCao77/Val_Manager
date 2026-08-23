@@ -49,7 +49,20 @@ export function weeklyFinance(state: GameState): void {
     // 商务: sponsors pay a club whose manager works the relationship
     const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / 48 *
       (team.id === state.myTeam ? skillMod(state.manager, 'business', 0.005) : 1))
-    const upkeep = Math.round((team.facilities * 900 + squadOf(state, team.id).length * 1400) / 4)
+    // Operating costs scale with the tier the club actually competes in.
+    //
+    // The formula was tier-blind, so a Challengers side paid VCT-scale running
+    // costs on a tenth of the income: measured across the world, 28 of 29
+    // tier-2 clubs lost money every season and a typical one went from $0.69M
+    // to -$0.21M inside three seasons. Since a manager with ordinary starting
+    // reputation can *only* be hired in Challengers, that was the default new
+    // career — insolvent by construction, with no decision able to prevent it.
+    // A Challengers org does not fly to Masters, does not carry a VCT support
+    // staff, and does not run a VCT facility.
+    const scale = team.tier === 1 ? 1 : 0.35
+    const upkeep = Math.round(
+      (team.facilities * 900 + squadOf(state, team.id).length * 1400) / 4 * scale,
+    )
     const net = sponsor - wages - upkeep
     team.budget += net
 

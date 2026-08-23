@@ -142,8 +142,12 @@ export default function MatchLive({
   const scoreA = map ? map.a : sim.wonA
   const scoreB = map ? map.b : sim.wonB
 
+  // `round` counts rounds completed, so it reads 0 in the moment before the
+  // first one is played — and "第 0 回合" is not a thing that exists
+  const roundNo = Math.max(1, map?.round ?? 1)
+
   return (
-    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${map?.round ?? 0} 回合`} onClose={skip}>
+    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${roundNo} 回合`} onClose={skip}>
       <div className="row" style={{ gap: 8, justifyContent: 'center', marginBottom: 6 }}>
         {sim.played.map((m, i) => (
           <span key={i} className="tag">

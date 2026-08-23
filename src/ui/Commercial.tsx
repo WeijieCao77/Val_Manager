@@ -70,7 +70,9 @@ export default function Commercial() {
       <div className="grid c4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         <Panel><Stat k="可用资金" v={money(game.finances.balance)} /></Panel>
         <Panel><Stat k="待办活动" v={`${gigs.filter((g) => g.accepted).length}`} /></Panel>
-        <Panel><Stat k="已签约收入" v={money(bookedFee)} /></Panel>
+        {/* gig fees only — "已签约收入" read as though it covered sponsorship,
+            which is on the finance page and is an order of magnitude larger */}
+        <Panel><Stat k="已接活动收入" v={money(bookedFee)} /></Panel>
         <Panel><Stat k="俱乐部声望" v={`${Math.round(game.teams[game.myTeam]?.reputation ?? 0)}`} /></Panel>
       </div>
 

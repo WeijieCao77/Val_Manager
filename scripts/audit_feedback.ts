@@ -183,6 +183,7 @@ interface Snap {
   injured: string[]
   contractYears: string
   listings: string[]
+  incomingBids: string[]
   overall: Record<string, number>
   managerJob: string
 }
@@ -209,6 +210,13 @@ function snap(g: GameState): Snap {
       .map((p) => p.id).sort(),
     overall: Object.fromEntries(mine.map((p) => [p.id, p.overall])),
     managerJob: g.myTeam,
+    // A rival bidding for one of our players is a decision with a deadline.
+    // This was missing, and that is exactly how the bug got in: the bid only
+    // reached state.news, so the digest announced the withdrawal a week later
+    // for an offer nobody had been shown.
+    incomingBids: g.offers
+      .filter((o) => o.status === 'pending' && o.fromTeam === g.myTeam && o.toTeam !== g.myTeam)
+      .map((o) => o.id).sort(),
   }
 }
 
@@ -228,6 +236,7 @@ const EXPLAINS: Record<keyof Snap, RegExp> = {
   listings: /挂牌|转会|市场|自由身|报价|撤下/,
   overall: /📈|📉|📊|能力|成长|进步|退步|训练|突破/,
   managerJob: /上任|经理|下课|离任|执教|邀请/,
+  incomingBids: /求购|报价|解约金|挖角|收购|撤回/,
 }
 
 {
