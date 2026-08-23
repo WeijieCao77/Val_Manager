@@ -27,9 +27,20 @@ export function marketValue(p: Player): number {
   return Math.round(v / 1000) * 1000
 }
 
+/**
+ * What this player expects to be paid, per year.
+ *
+ * These two constants must stay identical to SALARY_BASE / TIER2_WAGE in
+ * scripts/build_world.py — that is where a new world's wage bill comes from,
+ * and this is what re-signing the same squad costs. See the note there for why
+ * the base is 33000 rather than 15000.
+ */
+export const SALARY_BASE = 33000
+export const TIER2_WAGE = 0.14
+
 export function expectedSalary(p: Player, tier: 1 | 2): number {
-  let base = 15000 * Math.exp((p.overall - 55) / 12)
-  if (tier === 2) base *= 0.3
+  let base = SALARY_BASE * Math.exp((p.overall - 55) / 12)
+  if (tier === 2) base *= TIER2_WAGE
   base *= 1 + (p.ambition - 60) / 320
   return Math.round(base / 1000) * 1000
 }

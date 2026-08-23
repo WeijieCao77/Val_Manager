@@ -496,10 +496,32 @@ def age_from(birth):
     return ref.year - y - ((ref.month, ref.day) < (m, d))
 
 
+# What a player of this ability costs per year.
+#
+# Kept identical to expectedSalary() in src/engine/player.ts, which is the
+# player's own asking price at every negotiation — if the two drift apart, a
+# squad's wage bill stops matching what re-signing it would cost.
+#
+# The base used to be 15000, which put wages at 22% of a tier-1 club's sponsor
+# income. Nothing was ever unaffordable: the average VCT club netted +$1.71M a
+# season, only 3 of 48 could lose money at all, and one year's surplus bought
+# four marquee players. At 33000 wages are ~49% of income — the largest single
+# line, as they are for a real org — a quarter of the league runs close to the
+# red, and a season's surplus buys about one signing.
+#
+# The tier-2 factor drops from 0.30 to 0.14 in the same move, which holds
+# Challengers wages where they already were. Without that the Challengers
+# insolvency this was meant to fix comes straight back (20 of 29 clubs under
+# water), and it is the more truthful number anyway: a Challengers salary is a
+# fraction of a VCT one, not a third of it.
+SALARY_BASE = 33000
+TIER2_WAGE = 0.14
+
+
 def salary_for(ovr, tier):
-    base = 15000 * math.exp((ovr - 55) / 12.0)
+    base = SALARY_BASE * math.exp((ovr - 55) / 12.0)
     if tier == 2:
-        base *= 0.30
+        base *= TIER2_WAGE
     return int(round(base / 1000.0) * 1000)
 
 
