@@ -262,6 +262,27 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 /** Stages the board actually judges you on. */
 const JUDGED: StageKey[] = ['kickoff', 'stage1', 'stage2']
 
+/**
+ * The competition the managed club is actually in during a judged stage.
+ *
+ * A Challengers side does not play `stage1:China` — it plays two splits of its
+ * own that straddle the tier-1 calendar. The board was setting it a target on
+ * the VCT stage anyway and settleObjective then looked up a competition the
+ * club is not in, found no placing, and returned. So a tier-2 objective was
+ * text that could never be met: confidence could only fall, match by match,
+ * with no route back up. Any Questions Gaming improved from rating 62 to 69
+ * across three seasons and sat at 5% board confidence the whole way.
+ */
+function judgedCompKey(state: GameState, stage: StageKey): string | null {
+  const me = state.teams[state.myTeam]
+  if (!me) return null
+  if (me.tier === 1) return `${stage}:${me.region}`
+  // the two Challengers splits conclude around Stage 1 and Stage 2
+  if (stage === 'stage1') return `challengers1:${me.region}`
+  if (stage === 'stage2') return `challengers2:${me.region}`
+  return null   // Kickoff has no Challengers equivalent
+}
+
 /** Where in its own league does the club sit by strength? */
 function expectedPlace(state: GameState): { place: number; size: number } {
   const me = state.teams[state.myTeam]
@@ -279,7 +300,7 @@ function expectedPlace(state: GameState): { place: number; size: number } {
  * anywhere and the goal never reads as arbitrary.
  */
 function setObjective(state: GameState, notes: string[]): void {
-  if (!JUDGED.includes(state.stage)) {
+  if (!JUDGED.includes(state.stage) || !judgedCompKey(state, state.stage)) {
     state.objective = undefined
     return
   }
@@ -311,7 +332,8 @@ function setObjective(state: GameState, notes: string[]): void {
 function settleObjective(state: GameState, endedStage: StageKey, notes: string[]): void {
   const obj = state.objective
   if (!obj || obj.settled || obj.stage !== endedStage) return
-  const comp = state.comps[`${endedStage}:${state.teams[state.myTeam]?.region}`]
+  const key = judgedCompKey(state, endedStage)
+  const comp = key ? state.comps[key] : undefined
   if (!comp) return
 
   const order = comp.finished.length ? comp.finished : sortStandings(comp)

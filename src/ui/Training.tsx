@@ -50,13 +50,15 @@ function suggest(p: Player): keyof Attrs {
   const head = p.potential - p.overall
   if (head <= 0) return 'teamwork'
   const w = weightsFor(p)
-  return ATTR_KEYS
-    .filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
-    .reduce((a, b) => {
-      const d = w[b] - w[a]
-      if (Math.abs(d) > 0.001) return d > 0 ? b : a
-      return p.attrs[b] < p.attrs[a] ? b : a
-    })
+  // a maxed-out player leaves nothing to filter, and reduce with no initial
+  // value throws on an empty array — which would take the whole page down
+  const room = ATTR_KEYS.filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
+  if (!room.length) return 'teamwork'
+  return room.reduce((a, b) => {
+    const d = w[b] - w[a]
+    if (Math.abs(d) > 0.001) return d > 0 ? b : a
+    return p.attrs[b] < p.attrs[a] ? b : a
+  })
 }
 
 export default function Training() {
