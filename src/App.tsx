@@ -46,6 +46,7 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [tour, setTour] = useState(() => !tutorialSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
+  const [playerRenew, setPlayerRenew] = useState(false)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
   const [booted, setBooted] = useState(false)
@@ -81,7 +82,7 @@ export default function App() {
       game: gameRef.current!,
       commit,
       toast,
-      openPlayer: setPlayerId,
+      openPlayer: (id: string, renew = false) => { setPlayerRenew(renew); setPlayerId(id) },
       openMatch: setFixture,
       playLive: setLive,
       go: setScreen,
@@ -189,7 +190,11 @@ export default function App() {
         </div>
 
         {playerId && (
-          <PlayerModal playerId={playerId} onClose={() => setPlayerId(null)} />
+          <PlayerModal
+            playerId={playerId}
+            startRenewing={playerRenew}
+            onClose={() => { setPlayerId(null); setPlayerRenew(false) }}
+          />
         )}
         {fixture && <MatchModal fixture={fixture} onClose={() => setFixture(null)} />}
         {live && (

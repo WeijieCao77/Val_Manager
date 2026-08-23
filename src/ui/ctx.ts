@@ -6,7 +6,13 @@ export interface GameCtxValue {
   /** re-render after the engine mutated state in place, and autosave */
   commit: () => void
   toast: (msg: string) => void
-  openPlayer: (id: string) => void
+  /**
+   * Open a player's card. `renew` opens it straight onto the renewal panel,
+   * for the squad row's 续约 button — the contract column showed 到期 with only
+   * a 解约 next to it, so the one destructive action was in reach and the
+   * constructive one was behind an unlabelled click on the player's name.
+   */
+  openPlayer: (id: string, renew?: boolean) => void
   openMatch: (f: Fixture) => void
   /** hand a fixture to the live match view (watch or skip) */
   playLive: (f: Fixture) => void

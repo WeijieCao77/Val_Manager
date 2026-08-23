@@ -14,7 +14,10 @@ import { askingPrice } from '../engine/transfer'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../engine/types'
 import type { Stats } from '../engine/types'
 
-export default function PlayerModal({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+export default function PlayerModal(
+  { playerId, onClose, startRenewing = false }:
+  { playerId: string; onClose: () => void; startRenewing?: boolean },
+) {
   const { game, commit, toast } = useGame()
   const p = game.players[playerId]
   if (!p) return null
@@ -23,7 +26,7 @@ export default function PlayerModal({ playerId, onClose }: { playerId: string; o
   const me = game.teams[game.myTeam]
 
   const want = expectedSalary(p, me.tier)
-  const [renewing, setRenewing] = useState(false)
+  const [renewing, setRenewing] = useState(startRenewing)
   const [terms, setTerms] = useState<Contract>(() => ({
     ...(p.contract ?? defaultContract(p.salary || want, 2)),
     salary: Math.round((p.salary || want) * 1.08),

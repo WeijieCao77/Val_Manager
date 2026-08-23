@@ -207,9 +207,23 @@ export default function Squad() {
                           })()}
                         </td>
                         <td className="num mono">{money(p.salary)}</td>
-                        <td className="num muted">{p.contractYears > 0 ? `${p.contractYears}年` : '到期'}</td>
+                        <td className={p.contractYears > 0 ? 'num muted' : 'num'}
+                          style={p.contractYears > 0 ? undefined : { color: 'var(--warn)' }}>
+                          {p.contractYears > 0 ? `${p.contractYears}年` : '到期'}
+                        </td>
                         <td>
-                          <button className="sm ghost" onClick={() => release(p)}>解约</button>
+                          {/* An expiring deal needs the renewal in reach. This
+                              column used to offer only 解约, so the visible
+                              answer to "他合同到期了" was to let him go. */}
+                          <div className="row" style={{ gap: 6 }}>
+                            <button
+                              className={p.contractYears <= 1 ? 'primary sm' : 'sm'}
+                              onClick={() => openPlayer(p.id, true)}
+                            >
+                              续约
+                            </button>
+                            <button className="sm ghost" onClick={() => release(p)}>解约</button>
+                          </div>
                         </td>
                       </>
                     )}
