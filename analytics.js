@@ -92,7 +92,10 @@ export function sanitize(body) {
     if (!name || !EVENTS.has(name)) continue
     // Trust the server's clock for ordering, but keep the client's offset so a
     // batch that sat in a queue on a train still lands in the right order.
-    const t = Number.isFinite(e.t) ? e.t : null
+    // finite is not the same as storable: 1e30 passes Number.isFinite and then
+    // overflows the bigint column, failing the insert for every event batched
+    // alongside it
+    const t = Number.isFinite(e.t) && Math.abs(e.t) < 9e15 ? Math.trunc(e.t) : null
     // sendBeacon has no acknowledgement, so a phone on a bad connection will
     // re-deliver a batch it already sent. Without a per-session sequence there
     // is nothing to recognise the repeat by, and every count inflates quietly

@@ -77,6 +77,12 @@ const $ = (s) => document.querySelector(s)
 const token = new URLSearchParams(location.search).get('token') || ''
 const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
 const pct = (a, b) => (b ? Math.round(100 * a / b) : 0)
+// A cohort from yesterday has not had a seventh day yet. Printing 0% there
+// reads as "nobody came back" when the honest answer is "not knowable yet".
+const age = (cohort, needDays, value) => {
+  const days = (Date.now() - new Date(cohort).getTime()) / 86400000
+  return days < needDays ? '<span class="muted">—</span>' : value + '%'
+}
 
 function panel(title, inner, why) {
   return '<div class="panel"><h2>' + title + '</h2>' + inner +
@@ -108,7 +114,8 @@ function render(d) {
 
   const ret = (d.retention || []).slice(-10).map((r) =>
     '<tr><td>' + String(r.cohort).slice(5, 10) + '</td><td class="n">' + r.size + '</td>' +
-    '<td class="n">' + pct(r.d1, r.size) + '%</td><td class="n">' + pct(r.d7, r.size) + '%</td></tr>')
+    '<td class="n">' + age(r.cohort, 1, pct(r.d1, r.size)) + '</td>' +
+    '<td class="n">' + age(r.cohort, 7, pct(r.d7, r.size)) + '</td></tr>')
 
   const simple = (rows, k, v) => rows.map((r) =>
     '<tr><td>' + esc(r[k]) + '</td><td class="n">' + r[v] + '</td></tr>')
