@@ -210,6 +210,47 @@ export function createNewGame(
 export const teamsOf = (state: GameState, pred: (t: Team) => boolean) =>
   Object.values(state.teams).filter(pred)
 
+/**
+ * Hand the in-game calling to another of our players.
+ *
+ * The squad screen has warned "让别人接过指挥" since the day it learned to
+ * notice a missing caller — and offered no way to do it. The flag could only
+ * move by selling the incumbent. Now it is a decision like naming starters:
+ * free of action points, because it is an internal arrangement, not business.
+ *
+ * The new caller keeps his own igl attribute — a 55-rated stand-in calls like
+ * a 55-rated stand-in (about −0.5 to the sim) — but that is far cheaper than
+ * calling with nobody, which costs −4 to both halves and −3 mid-round. Taking
+ * the armband off a healthy incumbent stings him a little; an injured or
+ * benched one is relieved someone is doing the job.
+ */
+export function appointIgl(state: GameState, playerId: string): string {
+  const p = state.players[playerId]
+  if (!p) return '找不到这名选手。'
+  if (p.teamId !== state.myTeam) return '只能任命自己队里的选手。'
+  if (p.isIgl) return `${p.ign} 已经是指挥了。`
+  const prev = squadOf(state, state.myTeam).find((x) => x.isIgl)
+  if (prev) {
+    prev.isIgl = false
+    const healthy = prev.injuredUntil <= state.day
+    const starting = state.teams[state.myTeam].starters.includes(prev.id)
+    if (healthy && starting) {
+      // a healthy starter stripped of the calling takes it personally
+      prev.morale = Math.max(0, prev.morale - 5)
+      prev.grievance = Math.min(100, (prev.grievance ?? 0) + 6)
+    }
+  }
+  p.isIgl = true
+  state.news.push({
+    day: state.day, kind: 'club', important: true,
+    text: `${p.ign} 接过队内指挥${prev ? `（此前是 ${prev.ign}）` : ''}。`,
+  })
+  return prev
+    ? `${p.ign} 接过指挥。${prev.ign} 交出了这个角色${
+      prev.injuredUntil > state.day ? '——他还在养伤，这是明智的安排' : '，心里未必舒服'}。`
+    : `${p.ign} 出任队内指挥。`
+}
+
 export const squadOf = (state: GameState, teamId: string): Player[] =>
   (state.teams[teamId]?.roster ?? [])
     .map((id) => state.players[id])

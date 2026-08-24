@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
-import { squadOf, autoStarters } from '../engine/world'
+import { appointIgl, squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
 import { releasePlayer } from '../engine/transfer'
@@ -72,9 +72,17 @@ export default function Squad() {
   // sides, -3 mid-round) and was the one composition problem the screen never
   // mentioned — several clubs start the game that way, because the five picks
   // itself on rating and the IGL is often the worst fragger on the roster.
+  // "no caller" means nobody who will actually walk out and call: an IGL who
+  // is named in the five but injured is filtered out on match day, and the
+  // game was played without one while this screen showed no warning at all
   const noIgl = me.starters.length >= 5
-    && !me.starters.some((id) => game.players[id]?.isIgl)
+    && !me.starters.some((id) => {
+      const x = game.players[id]
+      return x?.isIgl && x.injuredUntil <= game.day
+    })
   const benchedIgl = squad.find((p) => p.isIgl && !me.starters.includes(p.id))
+  const hurtIgl = squad.find((p) => p.isIgl
+    && me.starters.includes(p.id) && p.injuredUntil > game.day)
 
   const harmony = squadHarmony(game, game.myTeam)
   const bonds = notableBonds(game, game.myTeam)
@@ -119,14 +127,35 @@ export default function Squad() {
           ))}
           {noIgl && (
             <span className="tag warn">
-              首发无指挥{benchedIgl ? ` · ${benchedIgl.ign} 在替补席` : ''}
+              首发无指挥{benchedIgl ? ` · ${benchedIgl.ign} 在替补席`
+                : hurtIgl ? ` · 指挥 ${hurtIgl.ign} 伤停中（还需 ${hurtIgl.injuredUntil - game.day} 天）` : ''}
             </span>
           )}
         </div>
         {noIgl && (
           <div className="tiny" style={{ padding: '0 14px 10px', color: 'var(--warn)' }}>
-            没有指挥的五人组在攻防两端各扣 4 分、中局决策再扣 3 分——比缺任何一个位置都贵。
-            {benchedIgl && `把 ${benchedIgl.ign} 放进首发，或让别人接过指挥。`}
+            <div style={{ marginBottom: 6 }}>
+              没有指挥的五人组在攻防两端各扣 4 分、中局决策再扣 3 分——比缺任何一个位置都贵。
+              {benchedIgl && `把 ${benchedIgl.ign} 放进首发，或让首发里的人接过指挥：`}
+              {hurtIgl && `${hurtIgl.ign} 伤停期间上不了场，先让别人接过指挥（伤愈后可以再任命回来）：`}
+            </div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {me.starters
+                .map((id) => game.players[id])
+                .filter((x): x is Player => !!x && !x.isIgl)
+                .sort((a, b) => b.attrs.igl - a.attrs.igl)
+                .slice(0, 3)
+                .map((x) => (
+                  <button key={x.id} className="sm" onClick={() => {
+                    const msg = appointIgl(game, x.id)
+                    commit()
+                    logActivity(game, 'squad', `任命 ${x.ign} 为队内指挥`)
+                    toast(msg)
+                  }}>
+                    让 {x.ign} 指挥（指挥 {x.attrs.igl}）
+                  </button>
+                ))}
+            </div>
           </div>
         )}
 

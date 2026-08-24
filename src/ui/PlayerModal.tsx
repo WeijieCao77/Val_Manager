@@ -8,6 +8,7 @@ import type { Contract } from '../engine/types'
 import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
+import { appointIgl } from '../engine/world'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
 import { askingPrice } from '../engine/transfer'
@@ -201,6 +202,16 @@ export default function PlayerModal(
               <button className="sm" onClick={toggleList}>
                 {p.listed ? '取消挂牌' : '挂牌出售'}
               </button>
+              {!p.isIgl && (
+                <button className="sm" title={`他的指挥属性 ${p.attrs.igl}`} onClick={() => {
+                  const msg = appointIgl(game, p.id)
+                  commit()
+                  logActivity(game, 'squad', `任命 ${p.ign} 为队内指挥`)
+                  toast(msg)
+                }}>
+                  任命为指挥
+                </button>
+              )}
             </div>
           )}
         </div>
