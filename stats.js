@@ -153,7 +153,11 @@ export async function overview(sql, days = 30) {
           -- numeric handles the fraction, the range handles the rest, and both
           -- are needed. This also heals rows already written, which a fix at
           -- ingest cannot do.
-          and (props->>'day')::numeric between 0 and 100000
+          -- A season is 336 days and a long career a few thousand. Anything
+          -- past that is not a deep save, it is someone testing the endpoint —
+          -- clamping it to the ceiling would put that ceiling on the dashboard
+          -- as "deepest run", so it is excluded rather than squashed.
+          and (props->>'day')::numeric between 0 and 20000
           and ts > now() - ${since}::interval
         group by visitor_id
       ) t(visitor_id, day, turns)`,

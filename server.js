@@ -232,6 +232,22 @@ createServer((req, res) => {
     return
   }
   if (path === '/api/stats') { void stats(req, res, url); return }
+  if (path === '/api/forget') {
+    // Remove one visitor's rows. Needed because the ingest endpoint is public:
+    // probes, tests and anyone poking at it land in the same table as real
+    // players, and waiting 180 days for the pruner is not a remedy. Behind the
+    // same token as the dashboard.
+    if (req.method !== 'POST' || !tokenOk(url.searchParams.get('token'), TOKEN)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+      return
+    }
+    const vid = url.searchParams.get('vid')
+    if (!sql || !vid) { json(res, 400, { ok: false }); return }
+    sql`delete from events where visitor_id = ${vid}`
+      .then((r) => json(res, 200, { ok: true, deleted: r.count ?? 0 }))
+      .catch((e) => json(res, 500, { ok: false, why: e.message }))
+    return
+  }
   if (path === '/admin') {
     // 404 rather than 401: an endpoint that admits it exists is an endpoint
     // someone comes back to

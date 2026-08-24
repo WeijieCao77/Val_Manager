@@ -57,7 +57,7 @@ export const EVENTS = new Set([
 const NUMERIC_MAX = {
   active_s: 86_400,   // a day; nobody plays longer in one sitting
   sim_ms: 600_000,
-  day: 100_000,       // a season is 336
+  day: 20_000,        // a season is 336; a very long career, a few thousand
   year: 4_000,
   seasons: 500,
   turns: 100_000,
