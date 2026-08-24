@@ -71,6 +71,12 @@ export const dashboardHtml = () => `<!doctype html>
   <span id="status" class="muted" style="font-size:12px;margin-left:auto"></span>
 </div>
 <div id="app"></div>
+<footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
+               color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
+  作者：<b style="color:var(--muted)">猪之家</b>出品 ·
+  小红书<b style="color:var(--muted)">@点点点点点点点点</b> ·
+  抖音<b style="color:var(--muted)">@点点点点点点点点</b>
+</footer>
 
 <script>
 const $ = (s) => document.querySelector(s)

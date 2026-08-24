@@ -25,6 +25,7 @@ import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
+import Credit from './ui/Credit'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -149,9 +150,9 @@ export default function App() {
     <GameCtx.Provider value={ctxValue}>
       <div className="app">
         <header className="topbar">
-          <div className="brand" title="猪之家制作">
+          <div className="brand" title="猪之家出品 · 小红书/抖音 @点点点点点点点点">
             VAL<span>MANAGER</span>
-            <em className="by">猪之家</em>
+            <em className="by">猪之家出品</em>
           </div>
           <div className="chip" title="所属俱乐部">
             <b>{myTeam?.name}</b>
@@ -208,6 +209,7 @@ export default function App() {
 
           <main className="main">
             <Screen />
+            <Credit />
           </main>
         </div>
 

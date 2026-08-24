@@ -12,6 +12,7 @@ import type { ManagerOrigin } from '../engine/manager'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { GameState, Region } from '../engine/types'
 import { money, OvrBadge, Bar } from './common'
+import Credit from './Credit'
 
 export default function NewGame({
   onStart, canContinue, onContinue,
@@ -300,9 +301,7 @@ export default function NewGame({
         </button>
       </div>
 
-      <p className="tiny faint" style={{ marginTop: 20, marginBottom: 0 }}>
-        猪之家 制作
-      </p>
+      <div style={{ marginTop: 20 }}><Credit /></div>
       <p className="tiny muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
         游戏内所有战队与选手均为真实人物。阵容、国籍、位置与全部比赛数据取自 <b>vlr.gg</b> 的
         VCT 2026 赛季统计；真名、生日、教练与指挥取自 <b>Liquipedia</b>；英雄池取自真实出场记录。

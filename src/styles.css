@@ -695,3 +695,22 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   .agenda-item { align-items: flex-start; }
   .agenda-item .dot { margin-top: 6px; }
 }
+
+/* ---------------------------------------------------------------- credit */
+/* Rendered once inside <main>, so every screen carries it. Quiet by design:
+   it belongs under the game, not in front of it. */
+.credit {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 4px 8px;
+  margin: 18px 0 4px; padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--faint); font-size: var(--t-tiny); line-height: 1.7;
+}
+.credit b { color: var(--muted); font-weight: 650; }
+.credit .sep { color: var(--line); }
+@media (max-width: 720px) {
+  /* the advance bar is fixed to the bottom on phones — leave it room */
+  .credit { margin-bottom: 8px; }
+  .credit .sep { display: none; }
+  .credit span { width: 100%; text-align: center; }
+}
