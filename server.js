@@ -123,9 +123,40 @@ function bucketOf(req) {
 
 // ---------------------------------------------------------------- routes
 
+/**
+ * How big the table is allowed to get.
+ *
+ * The rate limit budgets requests, not rows: 120 requests a minute carrying 50
+ * events each is millions of rows a day, and the dedupe index is partial — it
+ * only covers rows that carry a sequence number, so omitting one walks past
+ * it. Long before the disk fills, three of the dashboard's queries scan the
+ * whole table and it simply stops answering.
+ *
+ * Three orders of magnitude above anything this game will organically produce,
+ * so it is a backstop and not a policy.
+ */
+const MAX_TABLE_BYTES = 1_500_000_000
+let sizeChecked = 0
+let sizeBytes = 0
+
+async function overBudget() {
+  const now = Date.now()
+  if (now - sizeChecked < 5 * 60_000) return sizeBytes > MAX_TABLE_BYTES
+  sizeChecked = now
+  try {
+    const r = await sql`select pg_total_relation_size('events') as b`
+    sizeBytes = Number(r[0]?.b ?? 0)
+    if (sizeBytes > MAX_TABLE_BYTES) {
+      console.warn(`analytics: events table at ${Math.round(sizeBytes / 1e6)}MB — refusing writes`)
+    }
+  } catch { /* if we cannot measure it, do not block on it */ }
+  return sizeBytes > MAX_TABLE_BYTES
+}
+
 async function ingest(req, res) {
   if (!sql) { json(res, 204, {}); return }
-  if (rateLimited(bucketOf(req))) { json(res, 429, { ok: false }); return }
+  if (rateLimited(bucketOf(req), 1200)) { json(res, 429, { ok: false }); return }
+  if (await overBudget()) { json(res, 204, {}); return }
 
   let payload
   try {
@@ -135,6 +166,14 @@ async function ingest(req, res) {
     return
   }
   if (!payload) { json(res, 400, { ok: false }); return }
+
+  // A second limit, keyed on the visitor rather than the address. The address
+  // limit has to stay — it is the only thing a forged payload cannot dodge —
+  // but on its own it punishes exactly this audience: Chinese carriers put a
+  // whole neighbourhood behind one egress address, and a live tab flushes
+  // roughly twelve requests a minute, so a shared address runs out while every
+  // one of those people is playing normally.
+  if (rateLimited(`v:${payload.vid}`)) { json(res, 429, { ok: false }); return }
 
   const rows = payload.events.map((e) => ({
     n: e.n,

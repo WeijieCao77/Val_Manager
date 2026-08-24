@@ -41,11 +41,36 @@ export const EVENTS = new Set([
   'error',
 ])
 
-/** Props the dashboard reads as numbers. Anything else under these keys is dropped. */
-const NUMERIC_PROPS = new Set([
-  'active_s', 'day', 'year', 'seasons', 'turns', 'sim_ms', 'conf',
-  'confidence', 'honours', 'place', 'age', 'w', 'h', 'left',
-])
+/**
+ * Props the dashboard reads as numbers, with the largest value each can mean.
+ *
+ * A type check was not enough. `{"day": 1.5}` is a number, passes
+ * jsonb_typeof, and then `'1.5'::bigint` throws — one anonymous request and
+ * every dashboard query fails for the next 180 days. `{"active_s": 1e308}`
+ * type-checks too and renders a 308-digit number in the session panel.
+ *
+ * So each key carries its own ceiling and everything is coerced to a
+ * non-negative integer inside it. A bound per key rather than one global clamp:
+ * 1e9 seconds is thirty-one years, which is not a session length, and a number
+ * you would not believe is a number you should not store.
+ */
+const NUMERIC_MAX = {
+  active_s: 86_400,   // a day; nobody plays longer in one sitting
+  sim_ms: 600_000,
+  day: 100_000,       // a season is 336
+  year: 4_000,
+  seasons: 500,
+  turns: 100_000,
+  conf: 100,
+  confidence: 100,
+  honours: 1_000,
+  place: 100,
+  age: 120,
+  w: 20_000,
+  h: 20_000,
+  left: 100_000,
+}
+const NUMERIC_PROPS = new Set(Object.keys(NUMERIC_MAX))
 
 const MAX_BODY = 32 * 1024
 const MAX_EVENTS = 50
@@ -56,19 +81,27 @@ const RATE_MAX = 120
 
 const hits = new Map()
 
-/** Bounded, self-pruning, and keyed on something we never keep. */
-export function rateLimited(key) {
+/**
+ * Bounded, self-pruning, and keyed on something we never keep.
+ *
+ * Called twice per request with two different keys and two different budgets:
+ * a generous one for the network address, which a whole neighbourhood may
+ * share behind carrier NAT, and a tight one for the anonymous visitor id,
+ * which is what a single flooding client cannot vary without also giving up
+ * being counted.
+ */
+export function rateLimited(key, max = RATE_MAX) {
   const t = Date.now()
   const rec = hits.get(key)
   if (!rec || t - rec.start > RATE_WINDOW_MS) {
     hits.set(key, { start: t, n: 1 })
-    if (hits.size > 5000) {
+    if (hits.size > 20000) {
       for (const [k, v] of hits) if (t - v.start > RATE_WINDOW_MS) hits.delete(k)
     }
     return false
   }
   rec.n += 1
-  return rec.n > RATE_MAX
+  return rec.n > max
 }
 
 const str = (v, max = MAX_STR) =>
@@ -110,9 +143,11 @@ export function sanitize(body) {
         const key = str(k, 32)
         if (!key) continue
         if (NUMERIC_PROPS.has(key)) {
-          // the dashboard casts these to numeric in SQL; a string here would
-          // make that query fail permanently for everyone
-          if (typeof v === 'number' && Number.isFinite(v)) props[key] = v
+          // the dashboard casts these in SQL, so they arrive as whole numbers
+          // inside a range that query can survive, or they do not arrive
+          if (typeof v === 'number' && Number.isFinite(v)) {
+            props[key] = Math.max(0, Math.min(NUMERIC_MAX[key], Math.trunc(v)))
+          }
           n += 1
           continue
         }

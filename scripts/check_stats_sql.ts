@@ -10,7 +10,7 @@
  * database to provision.
  */
 import { PGlite } from '@electric-sql/pglite'
-import { SCHEMA } from '../analytics.js'
+import { EVENTS, SCHEMA } from '../analytics.js'
 import { overview, prune } from '../stats.js'
 
 const db = new PGlite()
@@ -43,14 +43,21 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v1', 's1', 5, 'session_end', '-2 days', { active_s: 640, reason: 'pagehide' }],
   ['v1', 's2', 1, 'session_start', '-1 days', { new_id: false, had_save: true }],
   ['v1', 's2', 2, 'turn', '-1 days', { day: 34 }],
-  ['v1', 's2', 3, 'match_watched', '-1 days', {}],
+  ['v1', 's2', 3, 'match_watched', '-1 days', { day: 34, bo: 3, won: true }],
   ['v1', 's2', 4, 'stage_done', '-1 days', { place: 3 }],
   ['v1', 's2', 5, 'session_ping', '-1 days', { active_s: 900 }],
   ['v2', 's3', 1, 'session_start', '-1 days', { new_id: true, had_save: false }],
   ['v2', 's3', 2, 'session_end', '-1 days', { active_s: 12, reason: 'hidden' }],
-  ['v3', 's4', 1, 'session_ping', '0 days', { active_s: 'nope' }],   // the poison row
+  // Every shape an anonymous POST can take that used to kill the dashboard.
+  // A type check alone did not stop the last two: 1.5 is a number and
+  // '1.5'::bigint throws; 1e20 is a number and overflows bigint.
+  ['v3', 's4', 1, 'session_ping', '0 days', { active_s: 'nope' }],
   ['v3', 's4', 2, 'turn', '0 days', { day: 'nope' }],
-  ['v3', 's4', 3, 'error', '0 days', { msg: 'autosave: QuotaExceededError' }],
+  ['v3', 's4', 3, 'turn', '0 days', { day: 1.5 }],
+  ['v3', 's4', 4, 'turn', '0 days', { day: 1e20 }],
+  ['v3', 's4', 5, 'session_ping', '0 days', { active_s: 1e308 }],
+  ['v3', 's4', 6, 'session_ping', '0 days', { active_s: -900 }],
+  ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError' }],
 ]
 for (const [vid, sid, n, name, ago, props] of rows) {
   await db.query(
@@ -58,6 +65,28 @@ for (const [vid, sid, n, name, ago, props] of rows) {
      values (now() + $1::interval, $2, $3, $4, 1, 'phone', $5, $6)`,
     [ago, n, vid, sid, name, JSON.stringify(props)],
   )
+}
+
+// A fixture may only contain events the app can actually produce. The
+// 看过比赛 funnel step passed review for weeks on the strength of a
+// match_watched row that no call site emitted — the test was the only thing
+// keeping the column alive.
+{
+  const emitted = new Set(rows.map((r) => r[3]))
+  // Scan the source for every whitelisted name that appears in quotes. A regex
+  // over `track('x')` misses the ternary in MatchLive — track(watched ?
+  // 'match_watched' : 'match_skipped') — which is exactly the shape that hid
+  // the missing instrumentation in the first place.
+  const { execSync } = await import('node:child_process')
+  const cwd = new URL('..', import.meta.url).pathname
+  const source = execSync("find src -name '*.ts' -o -name '*.tsx' | xargs cat",
+    { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
+  const known = new Set(
+    [...EVENTS].filter((e) => source.includes(`'${e}'`)),
+  )
+  const invented = [...emitted].filter((e) => !known.has(e as string))
+  check('the fixture only contains events the game actually emits',
+    invented.length === 0, invented.join(' '))
 }
 
 let out: Awaited<ReturnType<typeof overview>> | null = null

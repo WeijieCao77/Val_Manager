@@ -7,6 +7,7 @@ import { MatchSim } from '../engine/match'
 import type { Side } from '../engine/match'
 import { commitFixture, fixtureRng } from '../engine/season'
 import type { Fixture } from '../engine/types'
+import { track } from '../engine/telemetry'
 
 type Phase = 'choose' | 'watching' | 'timeout' | 'done'
 
@@ -37,6 +38,16 @@ export default function MatchLive({
 
   const finishUp = useCallback((watched: boolean) => {
     const result = sim.finish()
+    // Watching is the showpiece — the round ribbon, live timeouts, hundreds of
+    // lines of it. Whether anyone actually uses it, or skips to the score every
+    // time, decides whether that investment is worth continuing.
+    track(watched ? 'match_watched' : 'match_skipped', {
+      day: game.day, stage: game.stage, bo: fixture.bo,
+      won: fixture.teamA === game.myTeam
+        ? result.mapsWonA > result.mapsWonB
+        : result.mapsWonB > result.mapsWonA,
+      scrim: fixture.comp === 'scrim',
+    })
     // finishing a match can conclude the whole competition; those lines belong
     // to the manager, not to the floor
     const notes: string[] = []

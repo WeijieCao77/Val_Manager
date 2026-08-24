@@ -85,8 +85,10 @@ export async function overview(sql, days = 30) {
         where name in ('session_end', 'session_ping')
           and ts > now() - ${since}::interval
           -- one anonymous POST with active_s:"x" would otherwise make this
-          -- query — and so the whole dashboard — fail forever
+          -- query — and so the whole dashboard — fail forever, and a plausible
+          -- 1e308 would render a 308-digit "median session"
           and jsonb_typeof(props->'active_s') = 'number'
+          and (props->>'active_s')::numeric between 0 and 86400
         group by session_id
       )
       select
@@ -142,10 +144,16 @@ export async function overview(sql, days = 30) {
         coalesce(round(avg(turns), 1), 0)      as avg_turns
       from (
         select visitor_id,
-               max((props->>'day')::bigint) as day,
-               count(*)                  as turns
+               max((props->>'day')::numeric)::bigint as day,
+               count(*)                             as turns
         from events
         where name = 'turn' and jsonb_typeof(props->'day') = 'number'
+          -- The type check is not enough on its own: 1.5 is a number and
+          -- '1.5'::bigint throws, 1e20 is a number and overflows. Going via
+          -- numeric handles the fraction, the range handles the rest, and both
+          -- are needed. This also heals rows already written, which a fix at
+          -- ingest cannot do.
+          and (props->>'day')::numeric between 0 and 100000
           and ts > now() - ${since}::interval
         group by visitor_id
       ) t(visitor_id, day, turns)`,
@@ -196,7 +204,13 @@ export async function overview(sql, days = 30) {
  * this year" is not a retention policy. Raw events older than half a year go;
  * nothing on the dashboard looks further back than that.
  */
-export async function prune(sql, days = 180) {
-  const r = await sql`delete from events where ts < now() - ${`${days} days`}::interval`
-  return r.count ?? 0
+export async function prune(sql, days = 180, maxRows = 3_000_000) {
+  const byAge = await sql`delete from events where ts < now() - ${`${days} days`}::interval`
+  // Age alone cannot recover from a flood: a million rows written this morning
+  // are all in date. Oldest-first by id gives the table a hard ceiling that a
+  // restart can climb back under.
+  const byCount = await sql`
+    delete from events
+    where id <= (select max(id) - ${maxRows} from events)`
+  return (byAge.count ?? 0) + (byCount.count ?? 0)
 }
