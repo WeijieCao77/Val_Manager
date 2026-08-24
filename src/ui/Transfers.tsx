@@ -112,8 +112,9 @@ export default function Transfers() {
             <table>
               <thead>
                 <tr>
-                  <th>我方选手</th><th>求购方</th><th className="num">转会费</th>
-                  <th className="num">对方开价</th><th className="num">身价</th><th />
+                  <th>我方选手</th><th className="hide-m">求购方</th><th className="num">转会费</th>
+                  <th className="num hide-m">对方开价</th><th className="num hide-m">身价</th>
+                  <th className="sticky-act" />
                 </tr>
               </thead>
               <tbody>
@@ -129,11 +130,11 @@ export default function Transfers() {
                           <span className="tag warn" style={{ marginLeft: 6 }}>想走</span>
                         )}
                       </td>
-                      <td className="small muted">{game.teams[o.toTeam]?.name}</td>
+                      <td className="small muted hide-m">{game.teams[o.toTeam]?.name}</td>
                       <td className="num mono pos">{money(o.fee)}</td>
-                      <td className="num mono muted">{money(o.salary)}/年</td>
-                      <td className="num mono muted">{money(p.value)}</td>
-                      <td>
+                      <td className="num mono muted hide-m">{money(o.salary)}/年</td>
+                      <td className="num mono muted hide-m">{money(p.value)}</td>
+                      <td className="sticky-act">
                         <div className="row" style={{ gap: 6 }}>
                           <button className="primary sm" onClick={() => act('reply', () => {
                             logActivity(game, 'transfer', `接受了 ${game.teams[o.toTeam]?.name} 对 ${p.ign} 的报价`)
@@ -227,7 +228,7 @@ export default function Transfers() {
               <option key={r} value={r}>{REGION_CN[r as Region]}</option>
             ))}
           </select>
-          <select className="sm" style={{ width: 360, flex: '0 1 auto' }} value={askClub ?? ''}
+          <select className="sm" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 420 }} value={askClub ?? ''}
             onChange={(e) => setAskClub(e.target.value || null)}>
             <option value="">选择俱乐部…</option>
             {askClubs.map((t) => (
@@ -258,8 +259,8 @@ export default function Transfers() {
                   <thead>
                     <tr>
                       <th>选手</th><th>位置</th><th className="num">能力</th>
-                      <th className="num">潜力</th><th className="num">年龄</th>
-                      <th className="num">估值</th><th>问价结果</th><th />
+                      <th className="num hide-m">潜力</th><th className="num hide-m">年龄</th>
+                      <th className="num hide-m">估值</th><th>问价结果</th><th className="sticky-act" />
                     </tr>
                   </thead>
                   <tbody>
@@ -275,9 +276,9 @@ export default function Transfers() {
                           </td>
                           <td><Roles p={p} /></td>
                           <td className="num"><OvrBadge value={p.overall} /></td>
-                          <td className="num"><Potential p={p} game={game} /></td>
-                          <td className="num">{p.age}</td>
-                          <td className="num mono faint">{money(askingPrice(p))}</td>
+                          <td className="num hide-m"><Potential p={p} game={game} /></td>
+                          <td className="num hide-m">{p.age}</td>
+                          <td className="num mono faint hide-m">{money(askingPrice(p))}</td>
                           <td className="small">
                             {e?.askingFee ? (
                               <span>
@@ -294,7 +295,7 @@ export default function Transfers() {
                               <span className="tiny faint">选手本人拒绝：{e.reason ?? '不想转会'}</span>
                             ) : <span className="tiny faint">未问价</span>}
                           </td>
-                          <td>
+                          <td className="sticky-act">
                             {e?.answer === 'open' || p.listed ? (
                               <button className="sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
                             ) : e ? null : (
@@ -344,9 +345,9 @@ export default function Transfers() {
           <table>
             <thead>
               <tr>
-                <th>选手</th><th>位置</th><th className="num">能力</th><th className="num">潜力</th>
-                <th className="num">年龄</th><th>赛区</th><th>现俱乐部</th>
-                <th className="num">身价</th><th className="num">期望年薪</th><th />
+                <th>选手</th><th>位置</th><th className="num">能力</th><th className="num hide-m">潜力</th>
+                <th className="num hide-m">年龄</th><th className="hide-m">赛区</th><th className="hide-m">现俱乐部</th>
+                <th className="num hide-m">身价</th><th className="num">期望年薪</th><th className="sticky-act" />
               </tr>
             </thead>
             <tbody>
@@ -359,11 +360,11 @@ export default function Transfers() {
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>
-                  <td className="num"><Potential p={p} game={game} /></td>
-                  <td className="num">{p.age}</td>
-                  <td className="small muted">{REGION_CN[p.region]}</td>
-                  <td className="small muted"><Club id={p.teamId} game={game} /></td>
-                  <td className="num mono">
+                  <td className="num hide-m"><Potential p={p} game={game} /></td>
+                  <td className="num hide-m">{p.age}</td>
+                  <td className="small muted hide-m">{REGION_CN[p.region]}</td>
+                  <td className="small muted hide-m"><Club id={p.teamId} game={game} /></td>
+                  <td className="num mono hide-m">
                     {(() => {
                       const e = enq.get(p.id)
                       if (!p.teamId) return '免签'
@@ -379,7 +380,7 @@ export default function Transfers() {
                     })()}
                   </td>
                   <td className="num mono">{money(expectedSalary(p, me.tier))}</td>
-                  <td>
+                  <td className="sticky-act">
                     {(() => {
                       const e = enq.get(p.id)
                       // free agents and listed players are already on the market

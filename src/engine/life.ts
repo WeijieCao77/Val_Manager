@@ -81,12 +81,20 @@ function mapsOf(p: Player): number {
 function milestones(state: GameState, notes: string[]): void {
   for (const p of squadOf(state, state.myTeam)) {
     const now = mapsOf(p)
-    const seen = p.marks?.maps ?? 0
+    // First sight of a player: record where his career already stands, and
+    // say nothing. Without this, week one "congratulated" four veterans on
+    // their hundredth map in a week nobody played — the mark was undefined,
+    // so a total they brought with them read as something that just happened.
+    if (p.marks?.maps === undefined) {
+      p.marks = { ...(p.marks ?? {}), maps: MAP_MARKS.filter((m) => m <= now).pop() ?? 0 }
+      continue
+    }
+    const seen = p.marks.maps
     const hit = MAP_MARKS.filter((m) => m > seen && m <= now).pop()
     if (!hit) continue
     p.marks = { ...(p.marks ?? {}), maps: hit }
     p.morale = clamp(p.morale + 2, 0, 100)
-    notes.push(`🎖 ${p.ign} 达成生涯 ${hit} 张地图。`)
+    notes.push(`🎖 ${p.ign} 生涯地图数来到 ${hit} 张（含加入前的职业记录）。`)
   }
 }
 

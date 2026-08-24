@@ -103,7 +103,8 @@ export function agendaFor(state: GameState): AgendaItem[] {
   if (unhappy.length) {
     items.push({
       key: 'unhappy', tone: 'urgent', go: 'squad',
-      text: `${unhappy.map((p) => p.ign).join('、')} 对出场时间不满，兑现承诺或考虑出售。`,
+      text: `${unhappy.map((p) => p.ign).join('、')} 心生不满（出场承诺、薪资、被拒的转会都会积累）——`
+        + `再无视下去他会想离队，别队报价他也更容易点头。`,
     })
   }
   if (state.finances.balance < 0) {

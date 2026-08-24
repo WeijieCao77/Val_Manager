@@ -173,7 +173,9 @@ export default function Dashboard() {
                 onClick={() => a.go && go(a.go)}>
                 <span className="dot" />
                 <span>{a.text}</span>
-                {a.go && a.go !== 'dashboard' && <span className="tiny faint right">前往 ›</span>}
+                {a.go && a.go !== 'dashboard' && (
+                  <span className="tiny faint right" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>前往 ›</span>
+                )}
               </button>
             ))}
           </div>
@@ -568,6 +570,7 @@ export default function Dashboard() {
           </div>
         </Panel>
       )}
+      <div className="advance-spacer" />
     </>
   )
 }

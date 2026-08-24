@@ -211,12 +211,57 @@ a { color: var(--accent); }
 .grid.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .grid.c3, .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Buttons never break mid-word: a narrow column turns 发起约战 into a
+   two-line mystery and 前往 into a vertical one. Wrapping happens between
+   controls, not inside them. */
+button, .seg button, .chip, .tag { white-space: nowrap; }
+/* prose-length buttons are the exception: an agenda line must wrap, not clip */
+.agenda-item { white-space: normal; }
+
 @media (max-width: 720px) {
   .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: 1fr; }
   .nav { width: 54px; }
-  .nav button { padding: 9px 4px; text-align: center; font-size: var(--t-tiny); }
+  .nav button { padding: 11px 4px; text-align: center; font-size: var(--t-tiny); }
   .nav .nav-group { display: none; }
-  .topbar { gap: 8px; overflow-x: auto; }
+
+  /* The HUD does not fit one row on a phone, and hiding money and action
+     points behind a sideways scroll hides the two numbers every decision
+     needs. Two rows: identity, then the numbers. */
+  .topbar { flex-wrap: wrap; height: auto; padding: 6px 10px; gap: 6px; row-gap: 4px; }
+  .topbar .spacer { display: none; }
+  .brand { font-size: 12px; }
+  .chip { padding: 3px 8px; font-size: var(--t-tiny); }
+
+  /* a thumb needs more to land on than a mouse does */
+  button.sm, .seg button { padding: 8px 10px; min-height: 34px; }
+  input[type=checkbox] { width: 18px; height: 18px; }
+  .panel-head { flex-wrap: wrap; row-gap: 6px; }
+  .main { padding: 10px; }
+
+}
+
+/* A wide table on a narrow screen scrolls sideways, but nothing says so —
+   and the columns that vanish first are the buttons. Two answers: a fade at
+   the clipped edge admits there is more, and the action column pins to the
+   right so 接受/拒绝/续约 never leave the screen. */
+.table-wrap { position: relative; }
+@media (max-width: 720px) {
+  .table-wrap::after {
+    content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 26px;
+    background: linear-gradient(to left, rgba(4, 9, 14, .5), transparent);
+    pointer-events: none;
+  }
+  th.sticky-act, td.sticky-act {
+    position: sticky; right: 0; z-index: 2;
+    background: var(--panel);
+    box-shadow: -6px 0 8px rgba(0, 0, 0, .35);
+    padding-left: 6px; padding-right: 6px;
+  }
+  /* a pinned pair of buttons stacks, so the column costs one button's width
+     and the numbers to its left stay readable */
+  td.sticky-act .row { flex-direction: column; gap: 4px; align-items: stretch; }
+  td.sticky-act button { width: 100%; }
+  .hide-m { display: none; }
 }
 
 /* ---------------------------------------------------------------- tables */
@@ -587,4 +632,29 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 @media (max-width: 720px) {
   .tut-card.side { right: 10px; left: 10px; bottom: 10px; max-width: none; }
+}
+
+/* Advancing time is the one always-needed control; on a phone it rides the
+   bottom of the screen instead of living somewhere up the page. (Kept after
+   the base .advance-bar rules — same specificity, so order decides.) */
+@media (max-width: 720px) {
+  .advance-bar {
+    position: fixed; left: 54px; right: 0; bottom: 0; z-index: 20;
+    background: var(--bg-rail);
+    border: none; border-top: 1px solid var(--line);
+    border-radius: 0;
+    padding: 8px 10px; margin: 0;
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, .45);
+    flex-wrap: nowrap; gap: 8px;
+  }
+  .advance-main { flex: 1; padding: 12px 10px; font-size: 15px; }
+  .advance-alt { padding: 12px 10px; font-size: var(--t-small); }
+  /* the pinned bar is a bar, not a billboard: the explainer stays in the page */
+  .advance-bar .advance-note { display: none; }
+  /* the fixed bar covers the page's tail unless the page ends with this */
+  .advance-spacer { height: 64px; }
+
+  /* agenda lines wrap instead of running off the edge */
+  .agenda-item { align-items: flex-start; }
+  .agenda-item .dot { margin-top: 6px; }
 }

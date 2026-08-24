@@ -167,17 +167,17 @@ export default function Squad() {
                 <th className="clickable" onClick={() => setSort('overall')}>选手</th>
                 <th className="clickable" onClick={() => setSort('role')}>位置</th>
                 <th className="num clickable" onClick={() => setSort('overall')}>能力</th>
-                <th className="num">潜力</th>
-                <th className="num clickable" onClick={() => setSort('age')}>年龄</th>
+                <th className="num hide-m">潜力</th>
+                <th className="num clickable hide-m" onClick={() => setSort('age')}>年龄</th>
                 {view === 'summary' && (
                   <>
-                    <th className="num clickable" onClick={() => setSort('form')}>状态</th>
-                    <th>体能</th>
-                    <th className="num">士气</th>
-                    <th>信任</th>
-                    <th className="num clickable" onClick={() => setSort('salary')}>年薪</th>
+                    <th className="num clickable hide-m" onClick={() => setSort('form')}>状态</th>
+                    <th className="hide-m">体能</th>
+                    <th className="num hide-m">士气</th>
+                    <th className="hide-m">信任</th>
+                    <th className="num clickable hide-m" onClick={() => setSort('salary')}>年薪</th>
                     <th className="num">合同</th>
-                    <th />
+                    <th className="sticky-act" />
                   </>
                 )}
                 {view === 'attrs' && ATTR_KEYS.map((k) => <th key={k} className="num">{ATTR_CN[k]}</th>)}
@@ -206,21 +206,27 @@ export default function Squad() {
                       <b>{p.ign}</b>
                       {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
                       {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
+                      {(p.grievance ?? 0) > 45 && !p.listed && (
+                        <span className="tag warn" style={{ marginLeft: 6 }}
+                          title={`不满 ${Math.round(p.grievance ?? 0)}/100——出场承诺、薪资、被拒的转会都会积累。高不满的选手更容易接受别队报价。`}>
+                          想走
+                        </span>
+                      )}
                       {p.traits?.length ? (
                         <div style={{ marginTop: 3 }}><Traits traits={p.traits} max={3} /></div>
                       ) : null}
                     </td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
-                    <td className="num"><Potential p={p} game={game} /></td>
-                    <td className="num">{p.age}</td>
+                    <td className="num hide-m"><Potential p={p} game={game} /></td>
+                    <td className="num hide-m">{p.age}</td>
 
                     {view === 'summary' && (
                       <>
-                        <td className="num mono">{Math.round(p.form)}</td>
-                        <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>
-                        <td className="num mono">{Math.round(p.morale)}</td>
-                        <td>
+                        <td className="num mono hide-m">{Math.round(p.form)}</td>
+                        <td className="hide-m" style={{ width: 110 }}><Condition p={p} day={game.day} /></td>
+                        <td className="num mono hide-m">{Math.round(p.morale)}</td>
+                        <td className="hide-m">
                           {(() => {
                             const t = trustOf(p)
                             const c = t >= 66 ? 'var(--win)' : t >= 48 ? 'var(--muted)'
@@ -235,12 +241,12 @@ export default function Squad() {
                             )
                           })()}
                         </td>
-                        <td className="num mono">{money(p.salary)}</td>
+                        <td className="num mono hide-m">{money(p.salary)}</td>
                         <td className={p.contractYears > 0 ? 'num muted' : 'num'}
                           style={p.contractYears > 0 ? undefined : { color: 'var(--warn)' }}>
                           {p.contractYears > 0 ? `${p.contractYears}年` : '到期'}
                         </td>
-                        <td>
+                        <td className="sticky-act">
                           {/* An expiring deal needs the renewal in reach. This
                               column used to offer only 解约, so the visible
                               answer to "他合同到期了" was to let him go. */}
