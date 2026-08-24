@@ -121,11 +121,17 @@ TIER1 = {
 # Challengers sides, scraped from the 2026 national Challengers leagues on
 # vlr.gg (see scripts/fetch_vlr_challengers.py). Every one is a real club with
 # a real roster; regions with fewer clubs simply have a smaller league.
+#
+# One placement is ours rather than the calendar's: Weibo Gaming spent 2026 on
+# the Chinese domestic circuit (China National Tournament, China Evolution
+# Series) and played neither VCT China nor Challengers China. The club and its
+# roster are real and taken from vlr.gg like everyone else; which league it
+# sits in here is a decision, not a fact, and is written down in the README.
 TIER2 = {
     'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
     'EMEA': [('EIN', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
     'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
-    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming')],
+    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming'), ('WBG', 'Weibo Gaming')],
 }
 
 ROLE_CN = {"d": "决斗者", "i": "先锋", "c": "控场", "s": "哨卫", "": "自由人"}
@@ -188,6 +194,36 @@ class Rng:
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+
+class CiDict(dict):
+    """An ign-keyed map that can be looked up regardless of case.
+
+    vlr writes a player's handle two ways: the display alias on a team page
+    ("Krst1Ng") and the lowercased URL slug in the same page's href
+    ("krst1ng"). A cache filled under one spelling and read under the other
+    silently loses that player's entire history — no career line, no birthday,
+    no club tenure — and the build reports nothing, because a missing key is
+    indistinguishable from a player we simply know nothing about. Matching
+    case-insensitively removes the whole failure mode.
+    """
+
+    def __init__(self, d=None):
+        super().__init__(d or {})
+        self._ci = {str(k).lower(): k for k in self}
+
+    def get(self, k, default=None):
+        if dict.__contains__(self, k):
+            return self[k]
+        real = self._ci.get(str(k).lower())
+        return self[real] if real is not None else default
+
+    def __contains__(self, k):
+        return dict.__contains__(self, k) or str(k).lower() in self._ci
+
+
+def ci_alias(d):
+    return CiDict(d)
 
 
 def load_json(path):
@@ -301,6 +337,7 @@ TIER1_TAGS = {t for lst in TIER1.values() for t, _ in lst}
 # in one place alone silently drops the club for want of a matching roster.
 VCL_TAG_FIX = {
     "any questions gaming": "AQ",
+    "weibo gaming": "WBG",
 }
 
 
@@ -398,6 +435,30 @@ def season_profiles():
         if bw > 0 and tw > 0 and tot > 0:
             stage[ign] = (bs / bw) / (tot / tw)
     return out, stage, t1_rounds
+
+
+def challengers_real_names():
+    """Real names off the vlr team pages, for players Liquipedia has no page for.
+
+    vlr writes them as "Cha Il-hwan (차일환)". The rest of the world file gives a
+    CJK/Hangul name in its own script and everyone else in Latin, so follow that:
+    take the parenthesised native spelling when there is one, the Latin name
+    when there is not. Nothing is transliterated or guessed.
+    """
+    out = {}
+    for t in (load_json(CHALLENGERS_CACHE).get("teams") or {}).values():
+        for p in t.get("roster", []):
+            name = (p.get("name") or "").strip()
+            if not name or p.get("role") != "player":
+                continue
+            m = re.search(r"\(([^)]+)\)", name)
+            if m and re.search(r"[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]", m.group(1)):
+                name = m.group(1).strip()
+            else:
+                name = re.sub(r"\s*\([^)]*\)", "", name).strip()
+            if name and name.lower() != p["ign"].lower():
+                out[p["ign"]] = name
+    return CiDict(out)
 
 
 def parse_challengers_rows():
@@ -555,7 +616,7 @@ def value_for(ovr, age, pot):
 
 def main():
     rows = parse_rows()
-    tenure = load_json(TENURE_CACHE)
+    tenure = ci_alias(load_json(TENURE_CACHE))
     if tenure:
         dated = sum(1 for v in tenure.values() if any(not x.get("to") for x in v))
         print(f"tenure: club histories for {len(tenure)} players, {dated} currently signed")
@@ -565,7 +626,8 @@ def main():
     vcl_rows = [r for r in vcl_rows if r["ign"] not in known]
     rows += vcl_rows
     print(f"challengers: +{len(vcl_rows)} real players from vlr.gg event stats")
-    births = load_json(BIRTHS)
+    births = ci_alias(load_json(BIRTHS))
+    vlr_names = challengers_real_names()
     coaches = load_json(COACHES)
     # the community VLR API fills clubs whose Liquipedia infobox omits a coach
     for tag, rec in load_json(VLRAPI).items():
@@ -588,10 +650,11 @@ def main():
     # numbers; the current season becomes his starting form instead, so a
     # veteran in a slump reads as high ability and low form rather than as
     # someone who simply got worse.
-    career = {k: v for k, v in load_json(CAREER_CACHE).items()
-              if not k.startswith("_") and not v.get("miss")}
+    career = CiDict({k: v for k, v in load_json(CAREER_CACHE).items()
+                     if not k.startswith("_") and not v.get("miss")})
     # three seasons broken out by year and stage beats one flattened average
     profiles, stage, t1_rounds = season_profiles()
+    profiles, stage, t1_rounds = CiDict(profiles), CiDict(stage), CiDict(t1_rounds)
     if profiles:
         print(f"seasons: recency-weighted profiles for {len(profiles)} players, "
               f"{len(stage)} with an international record")
@@ -796,7 +859,7 @@ def main():
             # Liquipedia sometimes fills the name field with the handle when no
             # real name is public (Neon). Repeating it back reads as "Neon
             # (Neon)"; not knowing is the honest answer.
-            "realName": (lp.get("real") or None)
+            "realName": (lp.get("real") or vlr_names.get(ign) or None)
             if str(lp.get("real") or "").lower() != ign.lower() else None,
             "birth": birth,
             "age": age, "ageEstimated": estimated,

@@ -9,3 +9,7 @@ dist-ssr
 # never commit API keys
 .env
 .env.local
+
+# python bytecode
+__pycache__/
+*.pyc

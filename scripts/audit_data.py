@@ -201,7 +201,12 @@ def main() -> int:
               if not k.startswith("_")}
     seasons = load(CACHE / "vlr_seasons.json")
     chal = load(CACHE / "vlr_challengers.json")
+    # vlr spells a handle two ways — the team page's alias ("Krst1Ng") and the
+    # lowercased slug in its own href — so the build matches Liquipedia
+    # case-insensitively and this check has to as well, or it reports a real
+    # birthdate as a fabricated one.
     births = load(RAW / "liquipedia_players.json")
+    births_ci = {str(k).lower(): v for k, v in births.items()}
     tenure = load(CACHE / "vlr_tenure.json")
 
     # every name must appear in a scrape; an invented person would not
@@ -245,7 +250,7 @@ def main() -> int:
     # birthdates: real ones must match Liquipedia exactly, estimated ones flagged
     wrong_birth, unflagged = [], []
     for p in players:
-        lp = births.get(p["ign"]) or {}
+        lp = births.get(p["ign"]) or births_ci.get(p["ign"].lower()) or {}
         if p.get("birth"):
             if lp.get("birth") != p["birth"]:
                 wrong_birth.append((p["ign"], p["birth"], lp.get("birth")))

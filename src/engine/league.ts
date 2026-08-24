@@ -64,7 +64,15 @@ export function scheduleRegularSeason(
   comp: Competition, stage: StageKey, startDay: number, endDay: number,
   bo: 1 | 3 | 5, rng: Rng, labelPrefix = '常规赛', targetGames = 10,
 ): Fixture[] {
-  const cycles = cyclesFor(comp.teams.length, targetGames)
+  // An odd league gives one club a bye every round, so a schedule cut off
+  // part-way through a cycle leaves whoever has not had their bye yet a game
+  // ahead of the field — Challengers Pacific and China both play seven. Only a
+  // whole cycle is fair, so an odd league rounds to the nearest one instead.
+  const odd = comp.teams.length % 2 === 1
+  const perCycle = Math.max(1, comp.teams.length - 1)
+  const cycles = odd
+    ? Math.max(1, Math.round(targetGames / perCycle))
+    : cyclesFor(comp.teams.length, targetGames)
   let rounds: [string, string][][] = []
   for (let c = 0; c < cycles; c++) {
     // reversing every other pass keeps home/away alternating across cycles
@@ -74,7 +82,7 @@ export function scheduleRegularSeason(
   }
   // a short group phase plays only part of the way round, so a Kickoff is not
   // as long as a full stage
-  if (rounds.length > targetGames) rounds = rounds.slice(0, targetGames)
+  if (!odd && rounds.length > targetGames) rounds = rounds.slice(0, targetGames)
   if (!rounds.length) return []
   const span = Math.max(1, endDay - startDay)
   const step = Math.max(2, Math.floor(span / rounds.length))

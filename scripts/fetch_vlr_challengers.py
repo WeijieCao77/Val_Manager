@@ -90,6 +90,18 @@ LEAGUES = [
 ]
 
 
+# Clubs that played a listed league but do not appear in its participant block.
+#
+# An event page lists the teams still in the bracket, so a side knocked out in
+# the qualifying rounds is absent from it — Weibo Gaming played the 2026 China
+# National Tournament pro qualifier and finished 10th-11th, and the page shows
+# only the eight that went through. Discovery by event alone therefore drops
+# them. Named here by vlr team id so they are fetched directly.
+EXTRA_TEAMS = [
+    ("China", "1224", "Weibo Gaming", "https://www.vlr.gg/team/1224/weibo-gaming"),
+]
+
+
 def find_teams(region: str, event_url: str) -> list[dict]:
     """Pull the participating clubs off an event page."""
     html = _get(event_url.rstrip("/") + "/")
@@ -117,10 +129,20 @@ def fetch_roster(team: dict) -> dict:
         html, re.S,
     ):
         pid, slug, blob = m.group(1), m.group(2), m.group(3)
-        alias = _text(re.search(r'class="text-of"[^>]*>(.*?)<', blob, re.S).group(1)) \
-            if re.search(r'class="text-of"', blob) else slug
+        # a team page and an event page mark the same two fields up differently;
+        # the slug is a last resort because it is lowercased ("acme", not "AcMe")
+        alias = ""
+        for pat in (r'class="team-roster-item-name-alias"[^>]*>(.*?)</div>',
+                    r'class="text-of"[^>]*>(.*?)<'):
+            am = re.search(pat, blob, re.S)
+            if am and _text(re.sub(r"<[^>]+>", " ", am.group(1))):
+                alias = _text(re.sub(r"<[^>]+>", " ", am.group(1)))
+                break
+        if not alias:
+            alias = slug
         real = ""
-        rm = re.search(r'class="ge-text-light"[^>]*>(.*?)<', blob, re.S)
+        rm = re.search(r'class="team-roster-item-name-real"[^>]*>(.*?)</div>', blob, re.S) \
+            or re.search(r'class="ge-text-light"[^>]*>(.*?)<', blob, re.S)
         if rm:
             real = _text(rm.group(1))
         role = "staff" if re.search(r"(coach|manager|analyst)", blob, re.I) else "player"
@@ -259,6 +281,11 @@ def main() -> int:
             found = find_teams(region, url)
             print(f"  {region}: {len(found)} clubs on the event page")
             wanted.extend(found)
+
+        for region, tid, name, url in EXTRA_TEAMS:
+            if not any(t["vlrId"] == tid for t in wanted):
+                wanted.append({"vlrId": tid, "name": name, "url": url, "region": region})
+                print(f"  {region}: + {name} (fetched by id; absent from the event's team list)")
 
         todo = [t for t in wanted if t["vlrId"] not in done]
         if args.limit:
