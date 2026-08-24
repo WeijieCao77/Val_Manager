@@ -74,20 +74,46 @@ export function selectLineup(state: GameState, teamId: string): Player[] {
   return chosen
 }
 
+const CORE_ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫']
+const GAP_COST: Record<string, number> = { 控场: 7, 哨卫: 5, 先锋: 4, 决斗者: 4 }
+
+/**
+ * How well a five covers the map between them.
+ *
+ * The requirement is four roles — duelist, initiator, controller, sentinel —
+ * and nothing else. 自由人 is not a fifth one: in the data it means vlr never
+ * recorded a role for the player, and for the single hand-verified genuine
+ * floater it sits alongside the real roles he plays. Counting it as covered
+ * ground made a lineup score 1.2 better for carrying a floater than for any
+ * other fifth man, so the game quietly asked for one that it never required.
+ *
+ * The old redundancy term charged a player for every role he could play, so a
+ * duelist who also initiates scored worse than a second plain duelist —
+ * versatility priced as a liability. With five players and four roles one
+ * doubling is unavoidable anyway, so there is nothing there to charge for.
+ */
 function compositionScore(players: Player[]): number {
-  // a player covers every role they actually play, not just their primary
-  const have = new Set(players.flatMap((p) => p.roles ?? [p.role]))
-  const flex = players.filter((p) => p.flex || p.role === '自由人').length
+  const coreOf = (p: Player) => (p.roles ?? [p.role]).filter((r) => CORE_ROLES.includes(r))
+  const have = new Set(players.flatMap(coreOf))
+  const floaters = players.filter((p) => coreOf(p).length === 0).length
+
   let score = 0
-  // a functioning comp wants smokes and a lockdown presence above all
-  if (!have.has('控场')) score -= 7
-  if (!have.has('哨卫')) score -= 5
-  if (!have.has('先锋')) score -= 4
-  if (!have.has('决斗者')) score -= 4
-  // doubling up is workable but costs a little cohesion
-  const covered = players.reduce((n, p) => n + (p.roles?.length ?? 1), 0)
-  score -= Math.max(0, covered - have.size) * 1.2
-  if (flex > 2) score -= (flex - 2) * 1.5
+  // a player with no fixed role plugs a hole: worse than a specialist there,
+  // far better than leaving it open
+  let spare = floaters
+  for (const r of CORE_ROLES) {
+    if (have.has(r)) continue
+    if (spare > 0) {
+      spare -= 1
+      score -= GAP_COST[r] * 0.5
+    } else {
+      score -= GAP_COST[r]
+    }
+  }
+  // covering a second role is option value across a veto, not a cost
+  score += Math.min(players.filter((p) => coreOf(p).length > 1).length, 3) * 0.6
+  // but a five where nobody has a defined job is a coordination problem
+  if (floaters > 2) score -= (floaters - 2) * 1.5
   return score
 }
 

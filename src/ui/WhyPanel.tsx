@@ -25,7 +25,16 @@ const FACTORS: {
   { key: 'base', label: '选手个人能力', fix: '这是阵容硬实力，只能靠转会和训练慢慢补' },
   { key: 'map', label: '地图熟练度', fix: '在训练里安排「跑图」练这张图，或在 BP 时避开它' },
   { key: 'chem', label: '团队默契', fix: '更衣室关系与协同/沟通属性，双排练和集训能改善' },
-  { key: 'comp', label: '阵容位置搭配', fix: '缺位置会一直扣分，看阵容页的位置统计' },
+  {
+    key: 'comp',
+    label: '阵容位置搭配',
+    // "look for the missing role" was the wrong advice whenever nothing was
+    // missing: a squad of versatile players used to be charged for it, so the
+    // panel pointed at a role list that showed no gap at all
+    fix: (v) => (v < 0
+      ? '首发没覆盖齐决斗者/先锋/控场/哨卫，缺哪个看阵容页的位置统计'
+      : '四个位置已覆盖齐；第五人是谁都不扣分，能兼位还会小幅加分'),
+  },
   {
     key: 'igl',
     label: '指挥（IGL）',

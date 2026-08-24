@@ -85,8 +85,19 @@ export function autoStarters(state: GameState, teamId: string): string[] {
   const chosen: Player[] = []
   // 自由人 is "covers anything", not a slot to fill — treating it as one forced
   // the squad's only flex player into the five ahead of better options
-  for (const role of ROLES.filter((r) => r !== '自由人')) {
+  const core = ROLES.filter((r) => r !== '自由人')
+  for (const role of core) {
     const p = squad.find((x) => x.role === role && !chosen.includes(x))
+    if (p) chosen.push(p)
+  }
+  // Then close any gap with someone who covers it as a second role. Filling
+  // slots by main role alone left Fire Flux fielding no sentinel while the one
+  // player who can hold a site sat on the bench, because sentinel is his
+  // second job — a -5 the squad never had to take.
+  for (const role of core) {
+    if (chosen.length >= 5) break
+    if (chosen.some((x) => (x.roles ?? [x.role]).includes(role))) continue
+    const p = squad.find((x) => !chosen.includes(x) && (x.roles ?? [x.role]).includes(role))
     if (p) chosen.push(p)
   }
   for (const p of squad) {

@@ -62,8 +62,11 @@ export default function Squad() {
     toast(`${p.ign} 已离队。`)
   }
 
-  // count every role a player covers, so a flexed second role closes the gap
-  const roleCount = squad.reduce<Record<string, number>>((acc, p) => {
+  // What plays is what is scored: the five, not the roster. Counting the whole
+  // squad meant a bench sentinel closed a gap the starting five actually had.
+  // A flexed second role does close it — covering two is an option, not a cost.
+  const fielded = me.starters.length ? me.starters.map((id) => game.players[id]).filter(Boolean) : squad
+  const roleCount = fielded.reduce<Record<string, number>>((acc, p) => {
     for (const r of p.roles?.length ? p.roles : [p.role]) acc[r] = (acc[r] ?? 0) + 1
     return acc
   }, {})
