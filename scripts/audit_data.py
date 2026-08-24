@@ -164,6 +164,28 @@ def main() -> int:
     # all. audit_feedback.ts checks that he makes the five.
     igl_counts = [(t["tag"], sum(1 for r in t["roster"] if P[r].get("isIgl")))
                   for t in teams]
+    # A named IGL who is not on the roster is two scraped facts disagreeing,
+    # and the build resolves it by guessing — silently, until a player notices
+    # the wrong name wearing the armband. Surfaced so it gets fixed in
+    # overrides.json rather than discovered in the group chat.
+    ov_igl = load(RAW / "overrides.json").get("igl", {})
+    lp_infobox = load(RAW / "liquipedia_coaches.json")
+    stale_igl = []
+    for t in teams:
+        if t["tag"] in ov_igl:
+            continue
+        lp_team = lp_infobox.get(t["tag"]) or lp_infobox.get(t["name"]) or {}
+        named = lp_team.get("igl")
+        if not named:
+            continue
+        if named.lower() not in {P[r]["ign"].lower() for r in t["roster"] if r in P}:
+            stale_igl.append((t["tag"], named))
+    if stale_igl:
+        warn("a named IGL is on the roster he is named for",
+             f"{len(stale_igl)} clubs name someone they do not field: {stale_igl[:5]}")
+    else:
+        check("a named IGL is on the roster he is named for", True)
+
     check("exactly one IGL named per club",
           all(n == 1 for _, n in igl_counts),
           str([x for x in igl_counts if x[1] != 1][:5]))

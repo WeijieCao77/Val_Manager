@@ -12,6 +12,11 @@ const seasons = Number(process.argv[2] ?? 1)
 const me = WORLD_TEAMS.find((t) => t.tag === 'EDG')!
 const state: GameState = createNewGame(me.id, '测试经理', 12345)
 setupSeason(state)
+// Which league a stat line was earned in is the tier the club held when the
+// season began, not the one it holds after Ascension. REJECT farmed a second
+// division all year and then won promotion; reading their tier at the end
+// filed those totals under VCT and blamed VCT's calibration for them.
+const startTier = new Map(Object.values(state.teams).map((t) => [t.id, t.tier]))
 
 console.log(`managing ${state.teams[state.myTeam].name} (${state.teams[state.myTeam].league})`)
 console.log(`fixtures generated: ${state.fixtures.length}`)
@@ -106,11 +111,27 @@ console.log(
 // real VCT reference: ACS ~200 avg / ~270 elite, K/D 1.00 avg / ~1.35 elite, ADR ~135, KPR ~0.72
 if (avg(acsAll) < 175 || avg(acsAll) > 235) problems.push(`ACS average ${avg(acsAll).toFixed(0)} outside 175-235`)
 if (avg(kdAll) < 0.9 || avg(kdAll) > 1.12) problems.push(`K/D average ${avg(kdAll).toFixed(2)} outside 0.90-1.12`)
-// only judge players with a real sample, the way a stats leaderboard qualifies them
-const qualified = played.filter((p) => p.career.maps >= 55).map((p) => statLine(p.career).kd)
-const topKd = Math.max(...qualified)
-if (topKd > 1.75) problems.push(`top qualified K/D ${topKd.toFixed(2)} too dominant (real max ~1.5)`)
-console.log(`qualified (55+ maps): ${qualified.length} players, top K/D ${topKd.toFixed(2)}`)
+// Only judge players with a real sample, the way a stats leaderboard
+// qualifies them — and judge the two tiers against their own yardsticks. The
+// reference numbers above are VCT numbers, so holding a Challengers season to
+// them compares against the wrong league: a VCT-calibre player stuck in a
+// second division genuinely farms, which is the same gap the data build
+// corrects for with SUBTIER_TO_VCT. Judging them together meant the league
+// leader was whichever tier-2 star had the softest schedule, and the check
+// passed or failed on him rather than on VCT being calibrated.
+const qualifiedOf = (tier: 1 | 2) => played
+  .filter((p) => p.career.maps >= 55 && (startTier.get(p.teamId ?? '') ?? 1) === tier)
+  .map((p) => statLine(p.career).kd)
+const t1Kd = qualifiedOf(1)
+const t2Kd = qualifiedOf(2)
+const topT1 = t1Kd.length ? Math.max(...t1Kd) : 0
+const topT2 = t2Kd.length ? Math.max(...t2Kd) : 0
+if (topT1 > 1.55) problems.push(`top VCT K/D ${topT1.toFixed(2)} too dominant (real max ~1.5)`)
+if (topT2 > 1.95) problems.push(`top Challengers K/D ${topT2.toFixed(2)} beyond even a farmed second division`)
+console.log(
+  `qualified (55+ maps): VCT ${t1Kd.length} 人 top K/D ${topT1.toFixed(2)}, ` +
+  `次级 ${t2Kd.length} 人 top K/D ${topT2.toFixed(2)}`,
+)
 if (avg(lines.map((l) => l.kpr)) < 0.6 || avg(lines.map((l) => l.kpr)) > 0.85) {
   problems.push(`KPR average ${avg(lines.map((l) => l.kpr)).toFixed(2)} outside 0.60-0.85`)
 }

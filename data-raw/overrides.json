@@ -1,41 +1,47 @@
 {
-  "_README": [
-    "Hand-verified corrections that override what is inferred from vlr.gg.",
-    "",
-    "vlr's role filter reports a player's MOST-PLAYED agent role. That is a poor",
-    "signal for two things the game cares about:",
-    "  1. who calls (IGL) — vlr does not publish this at all, so the builder",
-    "     otherwise guesses 'highest igl attribute among support roles'",
-    "  2. who is genuinely flex — the builder otherwise picks whichever duplicate",
-    "     is lower rated, which is arbitrary and demonstrably wrong",
-    "",
-    "Anything listed here is real information entered by hand and wins over the",
-    "inference. Anything NOT listed keeps the inferred value. Nothing in this file",
-    "is invented — leave a team out rather than guess at it.",
-    "",
-    "The systematic fix is to scrape each player's per-role round distribution",
-    "from vlr (role=duelist|initiator|controller|sentinel) and take flex from",
-    "actual agent-pool breadth. Until that is available, correct teams here."
-  ],
-
-  "_igl_note": [
-    "IGLs now come from Liquipedia's team infobox `igl=` field (47/53 teams),",
-    "which is a real source — so nothing is pinned here. Only add an entry if a",
-    "club's infobox is wrong or missing AND you can verify the caller."
-  ],
-  "igl": {
-    "TYL": "SiuFatBB",
-    "WOL": "aluba"
-  },
-
-  "_roles_note": [
-    "Role breadth is the one thing neither source gives directly: vlr's filter",
-    "reports only a player's most-played role, and Liquipedia's infobox has no",
-    "per-player role field. Entries below are hand-verified stand-ins until the",
-    "per-role round distribution can be scraped from vlr",
-    "(role=duelist|initiator|controller|sentinel), which is the real fix."
-  ],
-  "roles": {
-    "f0rsakeN": ["自由人", "控场", "哨卫", "决斗者", "先锋"]
-  }
+ "_README": [
+  "Hand-verified corrections that override what is inferred from vlr.gg.",
+  "",
+  "vlr's role filter reports a player's MOST-PLAYED agent role. That is a poor",
+  "signal for two things the game cares about:",
+  "  1. who calls (IGL) — vlr does not publish this at all, so the builder",
+  "     otherwise guesses 'highest igl attribute among support roles'",
+  "  2. who is genuinely flex — the builder otherwise picks whichever duplicate",
+  "     is lower rated, which is arbitrary and demonstrably wrong",
+  "",
+  "Anything listed here is real information entered by hand and wins over the",
+  "inference. Anything NOT listed keeps the inferred value. Nothing in this file",
+  "is invented — leave a team out rather than guess at it.",
+  "",
+  "The systematic fix is to scrape each player's per-role round distribution",
+  "from vlr (role=duelist|initiator|controller|sentinel) and take flex from",
+  "actual agent-pool breadth. Until that is available, correct teams here."
+ ],
+ "_igl_note": [
+  "IGLs now come from Liquipedia's team infobox `igl=` field (47/53 teams),",
+  "which is a real source — so nothing is pinned here. Only add an entry if a",
+  "club's infobox is wrong or missing AND you can verify the caller.",
+  "JDG: the infobox named coconut, who plays for another club — a stale roster entry, so the build fell back to guessing and picked jkuro. BerLIN is the caller; recorded here rather than relying on a wiki edit, which is cached anyway and can be reverted."
+ ],
+ "igl": {
+  "TYL": "SiuFatBB",
+  "WOL": "aluba",
+  "JDG": "BerLIN"
+ },
+ "_roles_note": [
+  "Role breadth is the one thing neither source gives directly: vlr's filter",
+  "reports only a player's most-played role, and Liquipedia's infobox has no",
+  "per-player role field. Entries below are hand-verified stand-ins until the",
+  "per-role round distribution can be scraped from vlr",
+  "(role=duelist|initiator|controller|sentinel), which is the real fix."
+ ],
+ "roles": {
+  "f0rsakeN": [
+   "自由人",
+   "控场",
+   "哨卫",
+   "决斗者",
+   "先锋"
+  ]
+ }
 }

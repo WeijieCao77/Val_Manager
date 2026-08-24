@@ -911,6 +911,7 @@ def main():
         by_tag[r["tag"]].append(built[ign])
 
     out_players, out_teams = [], []
+    stale_igl, guessed_igl = [], []
     # every alias already given a club, lowercased: the same person must not
     # appear twice because two sources spelled them Juicy and juicy
     placed = set()
@@ -1031,9 +1032,17 @@ def main():
         igl = None
         if named:
             igl = next((p for p in squad if p["ign"].lower() == str(named).lower()), None)
+            if igl is None:
+                # The infobox named someone this club does not field. That is a
+                # conflict between two scraped facts, not an absence, and the
+                # build used to resolve it by quietly guessing — which is how
+                # JDG ended up calling through jkuro when Liquipedia said
+                # coconut (who plays elsewhere) and BerLIN actually calls.
+                stale_igl.append((tag, str(named)))
         if igl is None:
             igl = max(squad, key=lambda p: p["attrs"]["igl"] +
                       (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
+            guessed_igl.append(tag)
         igl["isIgl"] = True
         igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
         igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
@@ -1153,6 +1162,12 @@ def main():
     print(f"teams {len(out_teams)} (T1 {len(t1)}, T2 {len(out_teams) - len(t1)})")
     print(f"players {len(out_players)} — all real, {fa} free agents")
     print(f"real birthdates {ages_known}/{len(rows)}   real coaches {coached}/{len(out_teams)}")
+    if stale_igl:
+        print(f"igl CONFLICT: {len(stale_igl)} clubs name an IGL who is not on "
+              f"their roster — guessed instead: "
+              + ", ".join(f"{t}({n})" for t, n in stale_igl))
+    print(f"igl: {len(out_teams) - len(guessed_igl)}/{len(out_teams)} named by a "
+          f"source, {len(guessed_igl)} inferred from the roster")
     ov = sorted(p["overall"] for p in out_players)
     print(f"overall min/med/max {ov[0]}/{ov[len(ov)//2]}/{ov[-1]}")
     for region in TIER1:
