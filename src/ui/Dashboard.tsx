@@ -113,7 +113,9 @@ export default function Dashboard() {
   const starters = me.starters.map((id) => game.players[id]).filter(Boolean)
   const agenda = agendaFor(game)
   const stageDef = STAGES.find((x) => x.key === game.stage)
-  const daysLeft = stageDef ? stageDef.end - game.day : 0
+  // counted the same way the transfer window counts, today included: two
+  // panels giving 20 and 21 for the same span reads like a lost turn
+  const daysLeft = stageDef ? stageDef.end - game.day + 1 : 0
 
   const offers = (game.jobOffers ?? []).filter((o) => o.expiresOn > game.day)
 
@@ -433,8 +435,8 @@ export default function Dashboard() {
             约一场训练赛：不计积分与个人数据，但会影响状态与体能。训练赛没有 BP，
             双方提前商定地图。
           </p>
-          <div className="grid c3" style={{ gap: 12 }}>
-            <div>
+          <div className="grid c3" style={{ gap: 12, alignItems: 'end' }}>
+            <div className="field">
               <label className="small muted">对手</label>
               <select value={scrimOpp} onChange={(e) => setScrimOpp(e.target.value)}>
                 <option value="">选择对手…</option>
@@ -445,7 +447,7 @@ export default function Dashboard() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="field">
               <label className="small muted">地图</label>
               <select value={scrimMap} onChange={(e) => setScrimMap(e.target.value)}>
                 <option value="">选择地图…</option>
@@ -456,14 +458,16 @@ export default function Dashboard() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="field">
               <label className="small muted">赛制</label>
-              <div className="seg" style={{ marginTop: 6 }}>
+              <div className="seg">
+                {/* the short forms the activity log already uses; the line under
+                    the button spells out what each one means */}
                 <button className={scrimFmt === 'full24' ? 'on' : ''} onClick={() => setScrimFmt('full24')}>
-                  打满 24 回合
+                  24 回合
                 </button>
                 <button className={scrimFmt === 'first13' ? 'on' : ''} onClick={() => setScrimFmt('first13')}>
-                  先到 13 分
+                  先到 13
                 </button>
               </div>
             </div>

@@ -380,6 +380,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .seg button:hover { background: var(--panel-2); }
 .seg button.on { background: var(--accent); color: #fff; font-weight: 650; }
 
+/* A labelled control in a row of them. A <select> and a .seg are built
+   differently — one border and inner padding versus a border around buttons —
+   so left to themselves they sit at different heights and the row looks
+   crooked. Stacking them the same way and matching the padding lines the row
+   up whatever each field turns out to be. */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > .seg { width: 100%; }
+.field > .seg button { flex: 1; padding: 7px 8px; white-space: nowrap; }
+
 /* ---------------------------------------------------------------- match */
 .score-line {
   display: flex; align-items: center; justify-content: center; gap: 18px; padding: 16px 0;

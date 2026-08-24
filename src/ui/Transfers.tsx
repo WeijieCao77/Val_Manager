@@ -30,6 +30,15 @@ export default function Transfers() {
 
   const open = windowOpen(game.day)
 
+  // 78 clubs as buttons filled the page before the enquiry itself; a region
+  // picker plus a club picker is two clicks and no scrolling
+  const askClubs = useMemo(
+    () => Object.values(game.teams)
+      .filter((t) => t.id !== game.myTeam && (askRegion === 'all' || t.region === askRegion))
+      .sort((a, b) => b.reputation - a.reputation),
+    [game.teams, game.myTeam, askRegion],
+  )
+
   const pool = useMemo(() => {
     let list = Object.values(game.players).filter((p) => p.teamId !== game.myTeam)
     if (tab === 'free') list = list.filter((p) => p.teamId === null)
@@ -157,7 +166,12 @@ export default function Transfers() {
                       </td>
                       <td className="num mono">{money(o.fee)}</td>
                       <td className="num mono">{money(o.salary)}</td>
-                      <td className="num mono">{left > 0 ? `${left} 天` : '今日答复'}</td>
+                      <td className="num mono">
+                        {left > 0 ? `${left} 天` : '今日答复'}
+                        {left > 0 && !windowOpen(o.respondOn ?? game.day) && (
+                          <span className="tiny faint"> · 窗口已关</span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -178,36 +192,36 @@ export default function Transfers() {
           核心球员的要价可能是估值的一倍以上。
         </p>
 
-        <div className="row wrap" style={{ gap: 6, marginBottom: 10 }}>
-          <div className="seg">
-            {['all', ...REGIONS].map((r) => (
-              <button key={r} className={askRegion === r ? 'on' : ''}
-                onClick={() => { setAskRegion(r); setAskClub(null) }}>
-                {r === 'all' ? '全部赛区' : REGION_CN[r as Region]}
-              </button>
+        <div className="row wrap" style={{ gap: 8, marginBottom: 10, alignItems: 'center' }}>
+          <select className="sm" style={{ width: 130, flex: '0 0 auto' }} value={askRegion}
+            onChange={(e) => { setAskRegion(e.target.value); setAskClub(null) }}>
+            <option value="all">全部赛区</option>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>{REGION_CN[r as Region]}</option>
             ))}
-          </div>
+          </select>
+          <select className="sm" style={{ width: 360, flex: '0 1 auto' }} value={askClub ?? ''}
+            onChange={(e) => setAskClub(e.target.value || null)}>
+            <option value="">选择俱乐部…</option>
+            {askClubs.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.tag} · {t.name} — {t.tier === 2 ? '次级' : 'VCT'} · 声望 {t.reputation}
+              </option>
+            ))}
+          </select>
+          <span className="tiny faint">{askClubs.length} 支俱乐部</span>
         </div>
 
         {!askClub ? (
-          <div className="row wrap" style={{ gap: 6 }}>
-            {Object.values(game.teams)
-              .filter((t) => t.id !== game.myTeam && (askRegion === 'all' || t.region === askRegion))
-              .sort((a, b) => b.reputation - a.reputation)
-              .map((t) => (
-                <button key={t.id} className="sm" onClick={() => setAskClub(t.id)} title={t.name}>
-                  <b>{t.tag}</b>
-                  <span className="tiny faint"> {t.name}</span>
-                </button>
-              ))}
-          </div>
+          <p className="tiny faint" style={{ margin: 0 }}>
+            选一支俱乐部，下面会列出他们的全部选手。
+          </p>
         ) : (() => {
           const club = game.teams[askClub]
           const roster = squadOf(game, askClub)
           return (
             <div>
               <div className="row wrap" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <button className="sm ghost" onClick={() => setAskClub(null)}>← 换一支俱乐部</button>
                 <b>{club?.name}</b>
                 <span className="tag">声望 {club?.reputation}</span>
                 <span className="tag">{roster.length} 人</span>
@@ -376,7 +390,14 @@ export default function Transfers() {
           onSubmit={(fee, terms) => act('offer', () => {
             const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
             logActivity(game, 'transfer', `向 ${target.ign} 提交报价（转会费 ${money(fee)}，年薪 ${money(terms.salary)}）`)
-            toast(`报价已提交给 ${target.ign}，${(offer.respondOn ?? game.day) - game.day} 天后给你答复。`)
+            const wait = (offer.respondOn ?? game.day) - game.day
+            // a club takes 7-10 days to answer, so a bid made on the last turn
+            // of a window is answered after it has shut: the deal still goes
+            // through, but there is no second bid if they say no
+            toast(windowOpen(offer.respondOn ?? game.day)
+              ? `报价已提交给 ${target.ign}，${wait} 天后给你答复。`
+              : `报价已提交给 ${target.ign}，${wait} 天后答复——那时窗口已关，成了照样成，` +
+                `但被拒就没机会补价了。`)
             setTarget(null)
           })}
         />
