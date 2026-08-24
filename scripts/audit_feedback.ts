@@ -20,7 +20,10 @@
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
-import { enquireAbout, makeOffer, releasePlayer, answerIncoming } from '../src/engine/transfer'
+import {
+  enquireAbout, makeOffer, releasePlayer, answerIncoming, incomingOffers, windowOpen,
+  windowBlock,
+} from '../src/engine/transfer'
 import {
   bookGig, cancelGig, openGigs, pitchSponsor, signSponsor, declineSponsor,
   signStream, endStream, startVenture, streamOffer,
@@ -83,8 +86,31 @@ console.log('\nactions — every button answers, including when it refuses\n')
   ok('makeOffer — says when the answer comes',
     !!offer && offer.respondOn > g.day, `respondOn day ${offer?.respondOn} vs today ${g.day}`)
   ok('makeOffer — the commitment is on the books',
-    g.offers.some((o) => o.id === offer.id && o.status === 'pending'))
+    g.offers.some((o) => o.id === offer?.id && o.status === 'pending'))
   speaks('answerIncoming — an offer that does not exist', answerIncoming(g, 'nope', true))
+
+  // A shut window stops you starting something, not finishing it. Both halves
+  // have to hold: refusing a new bid is useless if it also freezes the answer
+  // to one already on the table, and vice versa.
+  {
+    const shut = fresh(808)
+    while (windowOpen(shut.day)) advanceDay(shut, new Rng(5))
+    const other = Object.values(shut.players).find((p) => p.teamId && p.teamId !== shut.myTeam)!
+    ok('window shut — no new bid',
+      makeOffer(shut, other.id, shut.myTeam, 50_000, terms) === null)
+    const said = enquireAbout(shut, other.id)
+    ok('window shut — no new enquiry either', said === windowBlock(shut), `"${said}"`)
+    const ours = Object.values(shut.players).find((p) => p.teamId === shut.myTeam)!
+    shut.offers.push({
+      id: 'IN_audit', playerId: ours.id, fromTeam: shut.myTeam,
+      toTeam: Object.values(shut.teams).find((t) => t.id !== shut.myTeam)!.id,
+      fee: 500_000, salary: ours.salary, years: 2, day: shut.day,
+      respondOn: shut.day, status: 'pending',
+    } as never)
+    const pend = incomingOffers(shut)
+    ok('window shut — a bid for our player still needs answering', pend.length === 1)
+    speaks('window shut — and can be answered', answerIncoming(shut, pend[0].id, false))
+  }
 
   // commercial
   const gigs = openGigs(g)

@@ -18,6 +18,21 @@ export const windowOpen = (day: number): boolean =>
   // the tutorial is about to teach
   day < 0 || TRANSFER_WINDOWS.some(([a, b]) => day >= a && day <= b)
 
+/**
+ * Why a new approach cannot be made right now, or null when it can.
+ *
+ * A shut window stops you *starting* something: no enquiry, no bid. It does
+ * not freeze what is already in motion — a club still comes back with its
+ * answer, a bid already on the table still completes, and a rival's bid for
+ * one of our players still needs answering. The buttons render this, but the
+ * rule belongs in the engine: a disabled button is a drawing of a rule, not
+ * the rule itself.
+ */
+export const windowBlock = (state: GameState): string | null =>
+  windowOpen(state.day)
+    ? null
+    : '转会窗口已关闭，现在不能提出新的报价或问价——只能答复已经在谈的事。'
+
 /** What the selling club wants for a player under contract. */
 export function askingPrice(p: Player): number {
   const base = marketValue(p)
@@ -604,6 +619,8 @@ export const INTEREST_CN = {
 } as const
 
 export function enquireAbout(state: GameState, playerId: string): string {
+  const shut = windowBlock(state)
+  if (shut) return shut
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
   if (!p.teamId) return '他是自由人，直接报价即可。'
@@ -663,9 +680,18 @@ export function resolveEnquiries(state: GameState, rng: Rng): string[] {
   return notes
 }
 
+/**
+ * Put a bid on the table. Null when the window is shut — see windowBlock.
+ *
+ * A bid already made is not withdrawn when the window closes: the selling club
+ * takes 7-10 days to answer, so a bid placed on the last turn of the preseason
+ * window is always answered after it. That deal still completes. What you
+ * cannot do once it has shut is open a new one.
+ */
 export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
-): TransferOffer {
+): TransferOffer | null {
+  if (windowBlock(state)) return null
   // nobody signs on the spot: the other side takes a week or so to come back,
   // and a rival can get there first in the meantime
   const rng = new Rng(hashStr(`offer:${state.seed}:${playerId}:${state.day}`))
