@@ -112,7 +112,7 @@ export default function Transfers() {
             <table>
               <thead>
                 <tr>
-                  <th>我方选手</th><th className="hide-m">求购方</th><th className="num">转会费</th>
+                  <th className="sticky-name at-left">我方选手</th><th className="hide-m">求购方</th><th className="num">转会费</th>
                   <th className="num hide-m">对方开价</th><th className="num hide-m">身价</th>
                   <th className="sticky-act" />
                 </tr>
@@ -123,7 +123,7 @@ export default function Transfers() {
                   if (!p) return null
                   return (
                     <tr key={o.id}>
-                      <td className="clickable" onClick={() => openPlayer(p.id)}>
+                      <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                         <b>{p.ign}</b>
                         {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
                         {!!p.grievance && p.grievance > 30 && (
@@ -164,7 +164,7 @@ export default function Transfers() {
             <table>
               <thead>
                 <tr>
-                  <th>选手</th><th>现俱乐部</th><th className="num">转会费</th>
+                  <th className="sticky-name at-left">选手</th><th>现俱乐部</th><th className="num">转会费</th>
                   <th className="num">年薪</th><th className="num">还需等待</th>
                 </tr>
               </thead>
@@ -174,7 +174,7 @@ export default function Transfers() {
                   const left = (o.respondOn ?? game.day) - game.day
                   return (
                     <tr key={o.id}>
-                      <td><b>{p?.ign ?? '—'}</b></td>
+                      <td className="sticky-name at-left"><b>{p?.ign ?? '—'}</b></td>
                       <td className="small muted">
                         <Club id={o.fromTeam} game={game} />
                       </td>
@@ -258,7 +258,8 @@ export default function Transfers() {
                 <table>
                   <thead>
                     <tr>
-                      <th>选手</th><th>位置</th><th className="num">能力</th>
+                      <th className="sticky-name at-left">选手</th>
+                      <th>位置</th><th className="num">能力</th>
                       <th className="num hide-m">潜力</th><th className="num hide-m">年龄</th>
                       <th className="num hide-m">估值</th><th>问价结果</th><th className="sticky-act" />
                     </tr>
@@ -269,7 +270,7 @@ export default function Transfers() {
                       const starter = club?.starters.includes(p.id)
                       return (
                         <tr key={p.id}>
-                          <td className="clickable" onClick={() => openPlayer(p.id)}>
+                          <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                             <b>{p.ign}</b>
                             {starter && <span className="tag" style={{ marginLeft: 5 }}>首发</span>}
                             {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
@@ -345,7 +346,8 @@ export default function Transfers() {
           <table>
             <thead>
               <tr>
-                <th>选手</th><th>位置</th><th className="num">能力</th><th className="num hide-m">潜力</th>
+                <th className="sticky-name at-left">选手</th>
+                <th>位置</th><th className="num">能力</th><th className="num hide-m">潜力</th>
                 <th className="num hide-m">年龄</th><th className="hide-m">赛区</th><th className="hide-m">现俱乐部</th>
                 <th className="num hide-m">身价</th><th className="num">期望年薪</th><th className="sticky-act" />
               </tr>
@@ -353,7 +355,7 @@ export default function Transfers() {
             <tbody>
               {pool.map((p) => (
                 <tr key={p.id}>
-                  <td className="clickable" onClick={() => openPlayer(p.id)}>
+                  <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                     <b>{p.ign}</b>
                     {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
                     {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}

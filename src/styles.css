@@ -27,6 +27,11 @@
   --accent:      #ff4655;
   --accent-hot:  #ff6371;
   --accent-wash: rgba(255, 70, 85, .10);
+  /* --panel under --accent-wash, flattened: a sticky cell has to be opaque or
+     the rows scrolling beneath it show through the tint */
+  --panel-me: #2d2430;
+  /* width of the pinned checkbox column on phones */
+  --pick-w: 36px;
   --accent-line: rgba(255, 70, 85, .34);
 
   /* semantics — deliberately not the accent */
@@ -211,12 +216,13 @@ a { color: var(--accent); }
 .grid.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .grid.c3, .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-/* Buttons never break mid-word: a narrow column turns 发起约战 into a
-   two-line mystery and 前往 into a vertical one. Wrapping happens between
-   controls, not inside them. */
-button, .seg button, .chip, .tag { white-space: nowrap; }
-/* prose-length buttons are the exception: an agenda line must wrap, not clip */
-.agenda-item { white-space: normal; }
+/* A short label must not break mid-word: a narrow column turned 发起约战 into a
+   two-line mystery and 前往 into a vertical one. Scoped to controls that carry
+   a label, not to every button — a card that happens to be a button carries
+   prose, and blanket nowrap sent the origin cards' text clean off the side of
+   the phone, taking the 声望 figure with it. */
+.chip, .tag, .seg button, button.sm, button.primary,
+.advance-main, .advance-alt { white-space: nowrap; }
 
 @media (max-width: 720px) {
   .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: 1fr; }
@@ -234,6 +240,12 @@ button, .seg button, .chip, .tag { white-space: nowrap; }
 
   /* a thumb needs more to land on than a mouse does */
   button.sm, .seg button { padding: 8px 10px; min-height: 34px; }
+  /* Rows were a screen and a half tall once the action column stacked two
+     buttons into them, so a seven-man squad took three scrolls to read. The
+     buttons stay thumb-sized; the padding around them does not. */
+  td, th { padding: 6px 7px; }
+  td.sticky-act button { min-height: 30px; padding: 5px 8px; }
+  td.sticky-act .row { gap: 3px; }
   input[type=checkbox] { width: 18px; height: 18px; }
   .panel-head { flex-wrap: wrap; row-gap: 6px; }
   .main { padding: 10px; }
@@ -251,6 +263,30 @@ button, .seg button, .chip, .tag { white-space: nowrap; }
     background: linear-gradient(to left, rgba(4, 9, 14, .5), transparent);
     pointer-events: none;
   }
+  /* Who the row is about must survive a sideways scroll. Scrolled right to
+     reach the buttons, the squad table showed "zy" and "ohh" where the names
+     had been — a table of anonymous numbers. The checkbox goes with it,
+     because setting the five is the reason you are on this screen. */
+  /* one number for both, or the two pinned columns drift apart and the rows
+     scrolling underneath show through the seam between them */
+  th.sticky-pick, td.sticky-pick {
+    position: sticky; left: 0; z-index: 3;
+    box-sizing: border-box; width: var(--pick-w); min-width: var(--pick-w);
+    background: var(--panel); padding-left: 8px; padding-right: 4px;
+  }
+  /* left defaults to the pinned checkbox column's width; tables without one
+     override it to 0 inline */
+  th.sticky-name, td.sticky-name {
+    position: sticky; left: var(--pick-w); z-index: 3;
+    background: var(--panel);
+    box-shadow: 6px 0 8px rgba(0, 0, 0, .35);
+  }
+  /* tables with no pinned checkbox column start their name column at the edge */
+  th.sticky-name.at-left, td.sticky-name.at-left { left: 0; }
+  /* the starting five are tinted, and a sticky cell must carry that tint too
+     or the pinned columns read as a different table */
+  tr.me td.sticky-pick, tr.me td.sticky-name { background: var(--panel-me); }
+
   th.sticky-act, td.sticky-act {
     position: sticky; right: 0; z-index: 2;
     background: var(--panel);

@@ -170,8 +170,8 @@ export default function Squad() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 44 }}>首发</th>
-                <th className="clickable" onClick={() => setSort('overall')}>选手</th>
+                <th className="sticky-pick">首发</th>
+                <th className="clickable sticky-name" onClick={() => setSort('overall')}>选手</th>
                 <th className="clickable" onClick={() => setSort('role')}>位置</th>
                 <th className="num clickable" onClick={() => setSort('overall')}>能力</th>
                 <th className="num hide-m">潜力</th>
@@ -203,13 +203,13 @@ export default function Squad() {
                 const s = statLine(p.season)
                 return (
                   <tr key={p.id} className={starter ? 'me' : ''}>
-                    <td>
+                    <td className="sticky-pick">
                       <input
                         type="checkbox" checked={starter} style={{ width: 15, cursor: 'pointer' }}
                         onChange={() => toggleStarter(p)}
                       />
                     </td>
-                    <td className="clickable" onClick={() => openPlayer(p.id)}>
+                    <td className="clickable sticky-name" onClick={() => openPlayer(p.id)}>
                       <b>{p.ign}</b>
                       {p.isIgl && (
                         <span className="tag" style={{ marginLeft: 6, opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
@@ -229,7 +229,9 @@ export default function Squad() {
                         </span>
                       )}
                       {p.traits?.length ? (
-                        <div style={{ marginTop: 3 }}><Traits traits={p.traits} max={3} /></div>
+                        <div className="hide-m" style={{ marginTop: 3 }}>
+                          <Traits traits={p.traits} max={3} />
+                        </div>
                       ) : null}
                     </td>
                     <td><Roles p={p} /></td>
