@@ -289,13 +289,20 @@ export function doTransfer(
 
   if (to.starters.length < 5) to.starters = autoStarters(state, to.id)
 
+  // a move that took a player we were actively in talks over is not ordinary
+  // market noise — it is the answer to a question we asked
+  const watched = to.id !== state.myTeam &&
+    ((state.enquiries ?? []).some((e) => e.playerId === p.id && !e.answer) ||
+      state.offers.some((o) => o.playerId === p.id && o.status === 'pending' &&
+        o.toTeam === state.myTeam))
   state.news.push({
     day: state.day,
     kind: 'transfer',
-    text: fee > 0
-      ? `${to.name} 以 $${fee.toLocaleString()} 的转会费从 ${from?.name ?? '自由市场'} 签下 ${p.ign}。`
-      : `${to.name} 免费签下自由人 ${p.ign}。`,
-    important: to.id === state.myTeam || from?.id === state.myTeam,
+    text: (fee > 0
+      ? `${to.name} 以 $${fee.toLocaleString()} 的转会费从 ${from?.name ?? '自由市场'} 签下 ${p.ign}（${p.overall}）。`
+      : `${to.name} 免费签下自由人 ${p.ign}（${p.overall}）。`)
+      + (watched ? ' 你此前正在接触这名选手。' : ''),
+    important: to.id === state.myTeam || from?.id === state.myTeam || watched,
   })
 }
 

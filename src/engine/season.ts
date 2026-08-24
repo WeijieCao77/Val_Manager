@@ -803,6 +803,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
 
   // ---- contracts tick down; expiring players leave
   const finalYear: string[] = []
+  const released: string[] = []
   for (const p of Object.values(state.players)) {
     if (!p.teamId) continue
     const mine = p.teamId === state.myTeam
@@ -827,8 +828,18 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         team.roster = team.roster.filter((id) => id !== p.id)
         team.starters = team.starters.filter((id) => id !== p.id)
         p.teamId = null
+        // one batched line, not one per man: a winter shakes dozens loose
+        released.push(`${p.ign}（${team.tag}）`)
       }
     }
+  }
+
+  if (released.length) {
+    state.news.push({
+      day: state.day, kind: 'transfer',
+      text: `合同到期成为自由人：${released.slice(0, 8).join('、')}`
+        + (released.length > 8 ? ` 等 ${released.length} 人` : '') + '。',
+    })
   }
 
   if (finalYear.length) {
@@ -907,6 +918,11 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
       target.contractYears = contractLength(target, rng, team.roster.map((id) => state.players[id]))
       target.salary = expectedSalary(target, team.tier)
       team.roster.push(target.id)
+      // offseason emergency signings go on the record like any other move
+      state.news.push({
+        day: state.day, kind: 'transfer',
+        text: `${team.name} 免费签下自由人 ${target.ign}（${target.overall}）。`,
+      })
     }
     if (team.roster.length < 5) short.push(team.name)
     if (team.starters.length < 5) team.starters = autoStarters(state, team.id)

@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Club, clubMatches, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
+import { Club, clubMatches, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
   INTEREST_CN, makeOffer, windowBlock, windowOpen,
@@ -29,6 +29,17 @@ export default function Transfers() {
   const [target, setTarget] = useState<Player | null>(null)
 
   const open = windowOpen(game.day)
+
+  // What the rest of the market did lately, shown where the shopping happens:
+  // a target who moved elsewhere should be old news by the time you look for
+  // him. Our own business is excluded — incoming bids have their own panel
+  // right above, and our signings were announced when we made them.
+  const myName = me?.name ?? ''
+  const marketNews = game.news
+    .filter((n) => n.kind === 'transfer' &&
+      !n.text.includes('我们') && (!myName || !n.text.includes(myName)))
+    .slice(-8)
+    .reverse()
 
   // 78 clubs as buttons filled the page before the enquiry itself; a region
   // picker plus a club picker is two clicks and no scrolling
@@ -186,6 +197,20 @@ export default function Transfers() {
         </Panel>
       )}
 
+
+      {marketNews.length > 0 && (
+        <Panel title="市场动态 · 其他俱乐部的转会" flush>
+          {marketNews.map((n, i) => (
+            <div key={i} className={`news-item${n.important ? ' important' : ''}`}>
+              <span className="d">{fmtDay(n.day)}</span>
+              <span>{n.text}</span>
+            </div>
+          ))}
+          <p className="tiny faint" style={{ padding: '8px 13px', margin: 0 }}>
+            别的俱乐部也在市场上买人签人——盯上了谁就别等太久。
+          </p>
+        </Panel>
+      )}
 
       <Panel tut="enquire" title="问价 · 找不在市场上的人">
         <p className="small muted" style={{ marginTop: 0 }}>

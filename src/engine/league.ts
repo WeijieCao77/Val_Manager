@@ -197,8 +197,11 @@ export function advanceBracket(
 
   const pairs = pairSeeds(advancing)
   const label = ROUND_LABEL(advancing.length)
+  // the final is a BO5 whatever the bracket default — a title decided in a
+  // BO3 is over in forty minutes, and no real circuit plays it that way
+  const roundBo = advancing.length === 2 ? 5 : bo
   return pairs.map(([a, b]) =>
-    makeFixture(day, comp.stage, comp.key, a, b, bo, `KO:${lastRound + 1}:${label}`),
+    makeFixture(day, comp.stage, comp.key, a, b, roundBo, `KO:${lastRound + 1}:${label}`),
   )
 }
 
@@ -223,8 +226,10 @@ export function startBracket(
   comp.byes = byes.length ? byes : undefined
 
   const label = ROUND_LABEL(playing.length)
+  // a two-team field opens straight onto the final, so it opens as a BO5
+  const roundBo = playing.length === 2 ? 5 : bo
   return pairSeeds(playing).map(([a, b]) =>
-    makeFixture(day, stage, comp.key, a, b, bo, `KO:1:${label}`),
+    makeFixture(day, stage, comp.key, a, b, roundBo, `KO:1:${label}`),
   )
 }
 
