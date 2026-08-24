@@ -252,17 +252,18 @@ a { color: var(--accent); }
 
 }
 
-/* A wide table on a narrow screen scrolls sideways, but nothing says so —
-   and the columns that vanish first are the buttons. Two answers: a fade at
-   the clipped edge admits there is more, and the action column pins to the
-   right so 接受/拒绝/续约 never leave the screen. */
+/* A wide table on a narrow screen scrolls sideways, and the columns that
+   vanish first are the buttons. The action column pins to the right so
+   接受/拒绝/续约 never leave the screen, and the name pins to the left so the
+   row keeps its identity.
+
+   There was a fade at the clipped edge here to hint at the scroll. It was
+   positioned against the scroller's content box rather than its viewport, so
+   the moment anyone scrolled it slid inward and drew a dark band down the
+   middle of the table. A hint that becomes a defect is worse than no hint —
+   the pinned columns already say there is more. */
 .table-wrap { position: relative; }
 @media (max-width: 720px) {
-  .table-wrap::after {
-    content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 26px;
-    background: linear-gradient(to left, rgba(4, 9, 14, .5), transparent);
-    pointer-events: none;
-  }
   /* Who the row is about must survive a sideways scroll. Scrolled right to
      reach the buttons, the squad table showed "zy" and "ohh" where the names
      had been — a table of anonymous numbers. The checkbox goes with it,

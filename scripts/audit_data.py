@@ -295,6 +295,37 @@ def main() -> int:
         elif not p.get("ageEstimated"):
             unflagged.append(p["ign"])
     check("real birthdates match Liquipedia", not wrong_birth, str(wrong_birth[:4]))
+
+    # Handles collide. The Liquipedia page called "Neon" is a Filipino player;
+    # the Neon in VCT Americas is Bruno Rodríguez, Argentine, born 2008. We
+    # published the wrong man's empty birthdate and the game aged an
+    # 18-year-old to a guessed 27. vlr and Liquipedia both record a nationality,
+    # which makes the mismatch detectable without fetching anything.
+    C2N = {
+        "ar": "argentina", "br": "brazil", "us": "united states", "ca": "canada",
+        "cl": "chile", "mx": "mexico", "co": "colombia", "kr": "south korea",
+        "jp": "japan", "cn": "china", "tw": "taiwan", "hk": "hong kong",
+        "sg": "singapore", "ph": "philippines", "id": "indonesia", "th": "thailand",
+        "my": "malaysia", "vn": "vietnam", "in": "india", "tr": "turkey",
+        "ru": "russia", "ua": "ukraine", "pl": "poland", "de": "germany",
+        "fr": "france", "es": "spain", "pt": "portugal", "it": "italy",
+        "gb": "united kingdom", "se": "sweden", "fi": "finland", "no": "norway",
+        "dk": "denmark", "nl": "netherlands", "be": "belgium", "au": "australia",
+        "nz": "new zealand", "il": "israel", "lv": "latvia", "at": "austria",
+        "ch": "switzerland", "rs": "serbia", "ro": "romania", "gr": "greece",
+        "cz": "czech republic", "hu": "hungary", "sk": "slovakia", "ie": "ireland",
+    }
+    borrowed = []
+    for p_ in players:
+        e = births.get(p_["ign"]) or births_ci.get(p_["ign"].lower()) or {}
+        if not e or e.get("miss") or not p_.get("birth"):
+            continue
+        lc = str(e.get("country") or "").strip().lower()
+        want = C2N.get(str(p_.get("nat") or "").strip().lower())
+        if lc and want and lc != want:
+            borrowed.append((p_["ign"], p_.get("nat"), e.get("country")))
+    check("no player wears another player's identity", not borrowed,
+          f"{len(borrowed)}: {borrowed[:5]}")
     check("age is flagged estimated exactly when the birthdate is missing",
           not unflagged, str(unflagged[:4]))
 

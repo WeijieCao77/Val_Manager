@@ -78,6 +78,44 @@ def traits_for(get_pct):
     return out
 
 
+# Liquipedia is keyed by handle, and handles collide. Fetching the page called
+# "Neon" returns a Filipino player; the Neon in VCT Americas is Bruno Rodríguez,
+# Argentine, born 2008. We took the wrong man's page and published his empty
+# birthdate, so the game aged an 18-year-old to a guessed 27 — and did the same
+# for 19 others. vlr records a nationality for every player and so does
+# Liquipedia, which makes the mismatch detectable without fetching anything new:
+# when the two disagree, it is not the same person and the page is discarded.
+COUNTRY_OF = {
+    "ar": "argentina", "br": "brazil", "us": "united states", "ca": "canada",
+    "cl": "chile", "mx": "mexico", "co": "colombia", "pe": "peru", "uy": "uruguay",
+    "kr": "south korea", "jp": "japan", "cn": "china", "tw": "taiwan",
+    "hk": "hong kong", "sg": "singapore", "ph": "philippines", "id": "indonesia",
+    "th": "thailand", "my": "malaysia", "vn": "vietnam", "in": "india",
+    "tr": "turkey", "ru": "russia", "ua": "ukraine", "pl": "poland",
+    "de": "germany", "fr": "france", "es": "spain", "pt": "portugal",
+    "it": "italy", "gb": "united kingdom", "uk": "united kingdom",
+    "se": "sweden", "fi": "finland", "no": "norway", "dk": "denmark",
+    "nl": "netherlands", "be": "belgium", "cz": "czech republic",
+    "au": "australia", "nz": "new zealand", "il": "israel", "sa": "saudi arabia",
+    "ma": "morocco", "lv": "latvia", "ee": "estonia", "lt": "lithuania",
+    "at": "austria", "ch": "switzerland", "rs": "serbia", "ro": "romania",
+    "bg": "bulgaria", "gr": "greece", "hu": "hungary", "sk": "slovakia",
+    "si": "slovenia", "hr": "croatia", "ie": "ireland", "is": "iceland",
+}
+
+
+def same_person(lp_entry, nat):
+    """Does this Liquipedia page describe the player vlr says it does?"""
+    if not lp_entry:
+        return False
+    lc = str(lp_entry.get("country") or "").strip().lower()
+    want = COUNTRY_OF.get(str(nat or "").strip().lower())
+    # unknown on either side is not evidence of a mismatch, only of ignorance
+    if not lc or not want:
+        return True
+    return lc == want
+
+
 def deal_contract_years(squad):
     """Hand a club's contracts out 1-4 years, staggered across the squad.
 
@@ -662,6 +700,7 @@ def main():
     rows += vcl_rows
     print(f"challengers: +{len(vcl_rows)} real players from vlr.gg event stats")
     births = ci_alias(load_json(BIRTHS))
+    wrong_person = []
     vlr_names = challengers_real_names()
     coaches = load_json(COACHES)
     # the community VLR API fills clubs whose Liquipedia infobox omits a coach
@@ -861,6 +900,10 @@ def main():
         ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
+        if lp and not same_person(lp, r["nat"]):
+            # a real page about a different real person is worse than no page
+            wrong_person.append((ign, r["nat"], lp.get("country")))
+            lp = {}
         raw_birth = lp.get("birth")
         age = age_from(raw_birth)
         estimated = age is None
@@ -1162,6 +1205,10 @@ def main():
     print(f"teams {len(out_teams)} (T1 {len(t1)}, T2 {len(out_teams) - len(t1)})")
     print(f"players {len(out_players)} — all real, {fa} free agents")
     print(f"real birthdates {ages_known}/{len(rows)}   real coaches {coached}/{len(out_teams)}")
+    if wrong_person:
+        print(f"identity: dropped {len(wrong_person)} Liquipedia pages whose "
+              f"nationality contradicts vlr — same handle, different person: "
+              + ", ".join(f"{n}({v}!={c})" for n, v, c in wrong_person[:8]))
     if stale_igl:
         print(f"igl CONFLICT: {len(stale_igl)} clubs name an IGL who is not on "
               f"their roster — guessed instead: "
