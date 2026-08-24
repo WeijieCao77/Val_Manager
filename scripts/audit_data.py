@@ -194,6 +194,20 @@ def main() -> int:
     check("contracted players have years left", not signed_no_deal,
           str(signed_no_deal[:4]))
 
+    # Contracts are dealt across a squad, not rolled per player: rolling them
+    # left a third of the league expiring at once and FURIA with five of six
+    # deals ending in the same window, which no amount of managing can unwind.
+    stacked = []
+    for t in teams:
+        years = [P[r]["contractYears"] for r in t["roster"] if r in P]
+        most = max(Counter(years).values()) if years else 0
+        if most > 2:
+            stacked.append((t["tag"], most, sorted(years, reverse=True)))
+    check("no club has more than two deals ending together", not stacked,
+          str(stacked[:3]))
+    spread = sorted({p["contractYears"] for p in players if p["teamId"]})
+    check("opening deals run 1-4 years", spread == [1, 2, 3, 4], str(spread))
+
     # ---------------------------------------------------------------- accuracy
     print("\naccuracy — against the sources it was built from")
 

@@ -15,7 +15,7 @@ import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters } from './world'
-import { expectedSalary } from './player'
+import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
 import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
 
@@ -815,7 +815,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       // clubs usually renew players they still rate
       const keep = p.overall >= (team?.rating ?? 60) - 6 && rng.chance(0.72)
       if (keep && team && team.id !== state.myTeam) {
-        p.contractYears = rng.int(1, 3)
+        p.contractYears = contractLength(p, rng, team.roster.map((id) => state.players[id]))
       } else if (team && team.id === state.myTeam) {
         state.news.push({
           day: state.day, kind: 'club', important: true,
@@ -904,7 +904,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
         )[0]
       if (!target) break
       target.teamId = team.id
-      target.contractYears = rng.int(1, 3)
+      target.contractYears = contractLength(target, rng, team.roster.map((id) => state.players[id]))
       target.salary = expectedSalary(target, team.tier)
       team.roster.push(target.id)
     }

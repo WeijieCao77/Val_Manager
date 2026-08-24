@@ -1,4 +1,5 @@
 import { clamp } from './rng'
+import type { Rng } from './rng'
 import { ATTR_KEYS } from './types'
 import type { Attrs, Player, Role, Stats } from './types'
 
@@ -119,4 +120,42 @@ export const ratingOf = (s: { kills: number; deaths: number; assists: number; ro
   const dpr = s.deaths / s.rounds
   const apr = s.assists / s.rounds
   return clamp(0.52 + kpr * 1.15 + apr * 0.28 - dpr * 0.55, 0, 3)
+}
+
+/**
+ * How long a club ties a player down for, 1-4 years.
+ *
+ * The world file deals these out across a whole squad so a club's deals never
+ * all run out together — see `deal_contract_years` in scripts/build_world.py.
+ * Re-signings have to preserve that, and judgement alone does not: a club
+ * would like to give its young talent four years and its veterans one, but
+ * that preference drifts as a squad matures — everyone's ceiling closes in,
+ * everyone starts looking like a one-year renewal, and four seasons later
+ * forty clubs are back to a cliff (measured in scripts/check_contracts.ts).
+ *
+ * So the crowded years are avoided first and the preference only breaks ties.
+ * A club that already has two deals ending in two years signs the next man for
+ * three, which is what a real front office does and what keeps the stagger
+ * alive however the squad ages.
+ */
+export function contractLength(p: Player, rng: Rng, squad: Player[] = []): number {
+  // age leads, ceiling only nudges: a squad's remaining ceiling closes as it
+  // matures, so a preference weighted on that alone slides towards one-year
+  // deals for everybody. The league's age spread does not move — clubs keep
+  // signing teenagers — so an age-led score keeps its shape season after season.
+  const tie = Math.max(0, 27 - p.age) + (p.potential - p.overall) * 0.8
+  const want = tie >= 14.2 ? 4 : tie >= 10 ? 3 : tie >= 6 ? 2 : 1
+  let best = want
+  let bestCost = Infinity
+  for (const y of [1, 2, 3, 4]) {
+    const crowd = squad.filter((q) => q.id !== p.id && q.contractYears === y).length
+    // crowding outweighs preference by more than the widest preference gap,
+    // so a club never stacks a third deal onto a year that already has two
+    const cost = crowd * 4 + Math.abs(y - want) + rng.range(0, 0.6)
+    if (cost < bestCost) {
+      bestCost = cost
+      best = y
+    }
+  }
+  return best
 }

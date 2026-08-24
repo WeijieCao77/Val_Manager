@@ -78,6 +78,41 @@ def traits_for(get_pct):
     return out
 
 
+def deal_contract_years(squad):
+    """Hand a club's contracts out 1-4 years, staggered across the squad.
+
+    Rolling each deal independently put a third of the league out of contract
+    in the same window and left FURIA with five of six expiring at once — a
+    cliff no real club would walk into, and one the manager cannot do anything
+    about because every renewal costs an action point.
+
+    So the lengths are dealt across the club instead of rolled per player: the
+    four lengths in rotation, handed out in the order a club would actually
+    want to tie someone down — young with a ceiling first, veterans last. A
+    seven-man squad therefore never has more than two deals ending together,
+    and the longest one belongs to someone worth keeping.
+    """
+    # its own rng, not the club's: contract lengths are the last thing decided
+    # and must not shift the draws that pick roles and the IGL
+    jitter = Rng(seed_of("y:" + squad[0]["ign"]))
+
+    def tie_down(p):
+        # a 19-year-old with room to grow is who you sign for four years; a
+        # 28-year-old at his peak is who you re-sign one year at a time
+        return max(0, 27 - p["age"]) + (p["potential"] - p["overall"]) * 0.8 \
+            + p["overall"] * 0.1 + jitter.range(-2, 2)
+
+    # The four lengths in rotation spread a squad evenly whichever length the
+    # rotation starts on, so each club starts somewhere different and squads do
+    # not all end up the same shape. Sorting the pool back into descending
+    # order stops the wrap-around handing the longest deal to the player the
+    # club least wants to keep.
+    start = jitter.int(0, 3)
+    pool = sorted(([4, 3, 2, 1] * 3)[start:start + len(squad)], reverse=True)
+    for p, years in zip(sorted(squad, key=tie_down, reverse=True), pool):
+        p["contractYears"] = years
+
+
 def roles_from_agents(agents):
     """Ordered role set implied by the agents a player actually used."""
     out = []
@@ -898,7 +933,7 @@ def main():
             "potential": p["potential"], "form": p["form"], "morale": p["morale"],
             "fatigue": p["fatigue"], "salary": salary_for(p["overall"], tier),
             "value": value_for(p["overall"], p["age"], p["potential"]),
-            "contractYears": Rng(seed_of("c:" + p["ign"])).int(1, 3),
+            "contractYears": 0,   # dealt across the squad in deal_contract_years
             "loyalty": p["loyalty"], "ambition": p["ambition"], "vlr": p["vlr"],
         }
         pid += 1
@@ -927,6 +962,7 @@ def main():
             placed.add(p["ign"].lower())
         rng = Rng(seed_of("t:" + display))
         squad = [emit(p, team_id, tier, region) for p in squad_src[:7]]
+        deal_contract_years(squad)
 
         # vlr reports a player's most-played agent role, so a real squad can come
         # back with two controllers and no sentinel — which is not a data error,
