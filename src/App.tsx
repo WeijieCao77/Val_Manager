@@ -24,6 +24,7 @@ import Tutorial, { tutorialSeen } from './ui/Tutorial'
 import { screenLocked } from './engine/agenda'
 import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
+import { track } from './engine/telemetry'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -43,6 +44,11 @@ export default function App() {
   const gameRef = useRef<GameState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
+  // which screens people open, and which one they were on when they left
+  const goScreen = (k: string) => {
+    track('screen', { to: k })
+    setScreen(k)
+  }
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [tour, setTour] = useState(() => !tutorialSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
@@ -60,8 +66,14 @@ export default function App() {
     if (gameRef.current) {
       try {
         autosave(gameRef.current)
-      } catch {
-        /* storage full or unavailable — the game keeps running in memory */
+      } catch (err) {
+        // The game keeps running in memory, but the player's progress is no
+        // longer being written and nothing told them. At minimum we should
+        // know it is happening.
+        track('error', {
+          msg: `autosave: ${err instanceof Error ? err.name : 'unknown'}`,
+          day: gameRef.current.day,
+        })
       }
     }
   }, [])
@@ -85,7 +97,7 @@ export default function App() {
       openPlayer: (id: string, renew = false) => { setPlayerRenew(renew); setPlayerId(id) },
       openMatch: setFixture,
       playLive: setLive,
-      go: setScreen,
+      go: goScreen,
       startTutorial: () => setTour(true),
     }),
     // gameRef is stable; bump() drives re-renders, so recompute on every render
@@ -99,8 +111,18 @@ export default function App() {
   if (!game) {
     return <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
       const g = loadAutosave()
-      if (g) start(g)
-      else toast('没有找到自动存档。')
+      if (g) {
+        // A return only means something if it is a career being picked up.
+        // Reopening a tab and loading a save on day 143 with the board at 22%
+        // are not the same event, and only one of them is stickiness.
+        track('career_resume', {
+          day: g.day, year: g.year, stage: g.stage,
+          seasons: g.year - 2026,
+          conf: Math.round(g.boardConfidence),
+          over: !!g.gameOver,
+        })
+        start(g)
+      } else toast('没有找到自动存档。')
     }} />
   }
 
@@ -175,7 +197,7 @@ export default function App() {
                     className={`nav-item ${screen === s.key ? 'active' : ''}${lock ? ' locked' : ''}`}
                     data-key={s.key}
                     title={lock ?? ''}
-                    onClick={() => setScreen(s.key)}
+                    onClick={() => goScreen(s.key)}
                   >
                     {s.label}{lock ? ' 🔒' : ''}
                   </button>
@@ -213,7 +235,7 @@ export default function App() {
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
         {tour && !game.gameOver && (
-          <Tutorial screen={screen} go={setScreen} onDone={() => setTour(false)} />
+          <Tutorial screen={screen} go={goScreen} onDone={() => setTour(false)} />
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>

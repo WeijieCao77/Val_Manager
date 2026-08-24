@@ -10,14 +10,16 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "extract": "python3 scripts/extract.py",
-    "audit": "python3 scripts/audit_data.py && npx tsx scripts/audit_feedback.ts 3 && npx tsx scripts/smoke.ts",
+    "audit": "python3 scripts/audit_data.py && npx tsx scripts/audit_feedback.ts 3 && npx tsx scripts/smoke.ts && npx tsx scripts/check_stats_sql.ts",
     "start": "node server.js"
   },
   "dependencies": {
+    "postgres": "^3.4.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.7",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.0",

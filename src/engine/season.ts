@@ -18,6 +18,7 @@ import { autoStarters, ensureCaller } from './world'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
 import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
+import { track } from './telemetry'
 
 export const SEASON_DAYS = 336
 
@@ -235,7 +236,16 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
     if (ko.length && ko.every((f) => f.played)) {
       const next = advanceBracket(state, comp, state.day + 3, 3)
       state.fixtures.push(...next)
-      if (comp.champion) settleCompetition(state, comp, notes)
+      if (comp.champion) {
+        if (comp.teams.includes(state.myTeam)) {
+          track('stage_done', {
+            stage: comp.stage, day: state.day,
+            won: comp.champion === state.myTeam,
+            place: comp.finished.indexOf(state.myTeam) + 1,
+          })
+        }
+        settleCompetition(state, comp, notes)
+      }
     }
   }
 
@@ -397,6 +407,12 @@ function judgeTenure(state: GameState, place: number, notes: string[]): void {
       ? `连续 ${streak} 个赛段没有达成目标，信任度已经跌到 ${conf}%。`
       : `被警告之后又交了一个不合格的赛段（本赛段第 ${place} 名），信任度只剩 ${conf}%。`
     state.gameOver = `${club} 董事会决定解除你的职务。${why}`
+    track('sacked', {
+      day: state.day, year: state.year, stage: state.stage,
+      seasons: state.year - 2026,
+      confidence: Math.round(state.boardConfidence),
+      honours: state.honours.length,
+    })
     notes.push(`🚪 ${state.gameOver}`)
     state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
     return
@@ -593,8 +609,8 @@ export function commitFixture(
   }
   // scrims build form and cost condition but never enter the record books
   if (isScrim(f)) {
-    applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes)
-    applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes)
+    applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes, result.lineups?.a)
+    applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes, result.lineups?.b)
     const aWon = result.mapsWonA > result.mapsWonB
     for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
       for (const pid of state.teams[teamId]?.starters ?? []) {
@@ -613,8 +629,8 @@ export function commitFixture(
     return
   }
   applyMatchStats(state, result)
-  applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes)
-  applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes)
+  applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes, result.lineups?.a)
+  applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes, result.lineups?.b)
 
   const comp = state.comps[f.comp]
   if (comp && !f.label.startsWith('KO:')) applyResultToStandings(comp, f)
@@ -847,6 +863,11 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       + (finalYear.length > 6 ? ` 等 ${finalYear.length} 人` : ''))
   }
 
+  track('season_done', {
+    year: state.year, seasons: state.year - 2026 + 1,
+    honours: state.honours.length,
+    confidence: Math.round(state.boardConfidence),
+  })
   notes.push(...seasonRollover(state, rng))
 
   // ---- retirements. With no invented prospects backfilling the pool these are

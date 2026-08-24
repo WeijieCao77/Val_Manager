@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { createNewGame, WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
 import { setupSeason } from '../engine/season'
 import { importSave } from '../engine/save'
+import { track } from '../engine/telemetry'
 import { hashStr } from '../engine/rng'
 import {
   AGE_MAX, AGE_MIN, POINT_STEP, SKILL_CN, SKILL_HINT, SKILL_MAX, TALENT_POINTS,
@@ -82,6 +83,13 @@ export default function NewGame({
     if (!teamId) return setErr('请先选择一支战队。')
     const g = createNewGame(teamId, manager.name, undefined, manager)
     setupSeason(g)
+    track('career_start', {
+      club: selected?.tag ?? null,
+      tier: selected?.tier === 1 ? 'VCT' : 'CHAL',
+      region: selected?.region ?? null,
+      origin: originKey,
+      age,
+    })
     onStart(g)
   }
 

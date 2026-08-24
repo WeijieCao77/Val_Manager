@@ -553,16 +553,30 @@ export class MapSim {
 
     const winners = aWins ? this.A.players : this.B.players
     const losers = aWins ? this.B.players : this.A.players
-    // These counts were absolute — "five fell" on a side that only had two.
-    // The surplus was dropped when the deaths were handed out, so a short side
-    // took fewer deaths per round than a full one and its survivors' K/D came
-    // out looking better for being a man down. Nobody can fall who is not there.
-    const losersLost = Math.min(losers.length, elim ? 5 : rng.int(2, 4))
-    const winnersLost = Math.min(winners.length, rng.weighted([0, 1, 2, 3, 4], [
-      (1.2 - closeness) * (steady ? 1.6 : 1),
-      2.6, 3.4, 2.8,
-      (1.6 + closeness * 1.5) * (rushing ? 1.4 : steady ? 0.7 : 1),
-    ]))
+    // Casualties are bounded at both ends, and both bounds are needed.
+    //
+    // Capping by the victim's headcount alone — nobody can fall who is not
+    // there — left the other half untouched: a two-man side still dealt out a
+    // full five-victim quota, split between two players. It won 3.9% of its
+    // rounds and posted a 1.22 K/D on 324 ACS against a 200 baseline, taking
+    // MVP of a 0-13 loss. That is the two-row scoreboard a player sent in.
+    //
+    // So what a side can inflict scales with how many of them are alive to
+    // shoot. At five the scale is exactly 1, which leaves ordinary matches
+    // bit-for-bit unchanged.
+    const power = (side: Player[]) => Math.min(1, side.length / 5)
+    const losersLost = Math.min(
+      losers.length,
+      Math.round((elim ? 5 : rng.int(2, 4)) * power(winners)),
+    )
+    const winnersLost = Math.min(
+      winners.length,
+      Math.round(rng.weighted([0, 1, 2, 3, 4], [
+        (1.2 - closeness) * (steady ? 1.6 : 1),
+        2.6, 3.4, 2.8,
+        (1.6 + closeness * 1.5) * (rushing ? 1.4 : steady ? 0.7 : 1),
+      ]) * power(losers)),
+    )
     const focus = (aWins ? this.calls.a : this.calls.b)
     allocateRound(
       winners, losers, winnersLost, losersLost, this.ctx, rng, this.map,

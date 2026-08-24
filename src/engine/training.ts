@@ -323,11 +323,24 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
 }
 
 /** Post-match wear on the players who actually played. */
+/**
+ * The cost of having played, charged to the people who played.
+ *
+ * It used to walk `starters` — the names on the teamsheet — but selectLineup
+ * drops anyone injured and brings a substitute in, and nothing writes that
+ * back. So a player sat out hurt was charged the fatigue of a bo5 he never
+ * appeared in, while the man who actually played it was charged nothing and
+ * was exempt from the injury roll besides. Being hurt made you more tired than
+ * playing, and rotation was free. Measured over one season: 79 injured players
+ * charged for matches they missed, 845 substitutes charged for matches they
+ * played.
+ */
 export function applyMatchFatigue(
-  state: GameState, teamId: string, mapsPlayed: number, rng: Rng, notes?: string[],
+  state: GameState, teamId: string, mapsPlayed: number, rng: Rng,
+  notes?: string[], played?: string[],
 ) {
   const isMine = teamId === state.myTeam
-  for (const pid of state.teams[teamId]?.starters ?? []) {
+  for (const pid of played?.length ? played : state.teams[teamId]?.starters ?? []) {
     const p = state.players[pid]
     if (!p) continue
     p.fatigue = clamp(p.fatigue + mapsPlayed * rng.range(3.5, 6.5), 0, 100)

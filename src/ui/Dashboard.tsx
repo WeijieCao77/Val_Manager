@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useGame } from './ctx'
+import { track } from '../engine/telemetry'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, recentResultsFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
@@ -25,6 +26,8 @@ export default function Dashboard() {
   const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
   const act = useAction()
   const [busy, setBusy] = useState(false)
+  // set when a turn starts, read when its reports come back
+  const simStartRef = useRef(0)
   const [digest, setDigest] = useState<{ reports: DayReport[]; fromDay: number } | null>(null)
   const [scrimOpp, setScrimOpp] = useState<string>('')
   const [scrimMap, setScrimMap] = useState<string>('')
@@ -47,6 +50,10 @@ export default function Dashboard() {
     // nothing. The date in the header is the feedback; a toast confirms the
     // click landed without blocking the next one.
     const quiet = !reports.some((r) => r.notes.length || r.playedMine.length || r.stageChanged)
+    // The league simulates synchronously on the main thread. A turn that takes
+    // three seconds is a frozen phone, and the code already knows whether the
+    // turn produced anything at all — both are free to report.
+    track('turn_done', { quiet, sim_ms: Math.round(performance.now() - simStartRef.current), day: game.day })
     if (quiet) {
       const span = game.day - fromDay
       toast(span > 1 ? `${fmtDay(game.day)} · 平静的 ${span} 天` : `${fmtDay(game.day)} · 平静的一天`)
@@ -57,6 +64,9 @@ export default function Dashboard() {
 
   const step = (fast: boolean) => {
     if (busy) return
+    // the spine of the funnel: someone who never advances a turn never played
+    simStartRef.current = performance.now()
+    track('turn', { day: game.day, year: game.year, stage: game.stage, fast })
     setBusy(true)
     // let the button paint its disabled state before the sim blocks the thread
     window.setTimeout(() => {

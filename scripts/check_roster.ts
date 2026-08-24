@@ -10,7 +10,7 @@
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { advanceDay, setupSeason } from '../src/engine/season'
-import { buildLineup, selectLineup } from '../src/engine/match'
+import { buildLineup, selectLineup, simulateMatch } from '../src/engine/match'
 import { releasePlayer, resolveMyOffer, canSell, doTransfer } from '../src/engine/transfer'
 import { Rng } from '../src/engine/rng'
 import type { GameState } from '../src/engine/types'
@@ -125,4 +125,66 @@ const mk = (tag: string, seed = 20260824): GameState => {
   check('no club ends the season below five',
     below.length === 0, below.map((t) => `${t.tag}(${squadOf(g, t.id).length})`).join(' '))
 }
+// ---- short-handed must look short-handed in the box score too
+{
+  const g = mk('TYL', 42)
+  const foe = Object.values(g.teams).find(t => t.id !== g.myTeam && squadOf(g, t.id).length >= 5)!
+  const mine = g.teams[g.myTeam]
+  const full = [...mine.roster]
+  const line = (keep: number) => {
+    const squad = full.map(id => g.players[id]).sort((a, b) => b.overall - a.overall).slice(0, keep)
+    mine.roster = squad.map(p => p.id); mine.starters = mine.roster
+    for (const p of Object.values(g.players)) p.injuredUntil = 0
+    let k = 0, d = 0, acs = 0, n = 0
+    for (let i = 0; i < 40; i++) {
+      for (const m of simulateMatch(g, g.myTeam, foe.id, 1, new Rng(1000 + i)).maps) {
+        for (const [pid, l] of Object.entries(m.lines)) {
+          if (!mine.roster.includes(pid)) continue
+          k += l.kills; d += l.deaths; acs += l.acs; n++
+        }
+      }
+    }
+    return { kd: k / d, acs: acs / n }
+  }
+  const five = line(5)
+  const two = line(2)
+  mine.roster = full
+  check('a two-man side does not out-frag a full one',
+    two.kd < five.kd && two.acs < five.acs * 1.1,
+    `5人 K/D ${five.kd.toFixed(2)} ACS ${five.acs.toFixed(0)} vs 2人 K/D ${two.kd.toFixed(2)} ACS ${two.acs.toFixed(0)}`)
+}
+
+// ---- fatigue is charged to whoever actually walked out
+{
+  const g = mk('TE', 20260824)
+  const rng2 = new Rng(11)
+  let ghosts = 0, subs = 0
+  const before = new Map<string, number>()
+  let guard = 0
+  const seen2 = new Set<string>()
+  while (!g.gameOver && guard++ < 200 && g.year === 2026) {
+    for (const p of Object.values(g.players)) before.set(p.id, p.fatigue)
+    advanceDay(g, rng2)
+    for (const f of g.fixtures) {
+      if (!f.played || seen2.has(f.id) || f.comp === 'scrim') continue
+      seen2.add(f.id)
+      const L = (f.result as never as { lineups?: { a: string[]; b: string[] } })?.lineups
+      for (const [side, tid] of [[L?.a, f.teamA], [L?.b, f.teamB]] as const) {
+        if (!side) continue
+        const sheet = g.teams[tid as string].starters
+        for (const pid of sheet) {
+          if (side.includes(pid)) continue
+          if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) ghosts++
+        }
+        for (const pid of side) {
+          if (sheet.includes(pid)) continue
+          if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) subs++
+        }
+      }
+    }
+  }
+  check('nobody is tired by a match they did not play', ghosts === 0, `${ghosts} 人次`)
+  check('and the substitute who did play is', subs > 0, `${subs} 人次`)
+}
+
 process.exit(bad ? 1 : 0)
