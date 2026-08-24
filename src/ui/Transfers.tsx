@@ -190,7 +190,7 @@ export default function Transfers() {
       <Panel tut="enquire" title="问价 · 找不在市场上的人">
         <p className="small muted" style={{ marginTop: 0 }}>
           真正想要的人多半既没挂牌也不是自由人。<b>先选一支俱乐部，再挑他们的选手问价</b>——
-          花 1 点行动力、不花钱，2~5 天后同时得到<b>对方的真实要价</b>和<b>本人的意向</b>。
+          花 1 点行动力、不花钱，2~5 天后同时得到<b>对方俱乐部的真实要价</b>和<b>选手本人的意向</b>。
           核心球员的要价可能是估值的一倍以上。
         </p>
 
@@ -256,13 +256,17 @@ export default function Transfers() {
                           <td className="small">
                             {e?.askingFee ? (
                               <span>
-                                <span style={{ color: 'var(--warn)' }}>要价 {money(e.askingFee)}</span>
-                                {e.interest && <span className="tag" style={{ marginLeft: 6 }}>{INTEREST_CN[e.interest]}</span>}
+                                <span style={{ color: 'var(--warn)' }}>俱乐部要价 {money(e.askingFee)}</span>
+                                {e.interest && (
+                                  <span className="tag" style={{ marginLeft: 6 }}>
+                                    选手本人{INTEREST_CN[e.interest]}
+                                  </span>
+                                )}
                               </span>
                             ) : e && !e.answer ? (
                               <span className="tiny faint">等待答复（{Math.max(0, e.replyOn - game.day)} 天）</span>
                             ) : e?.answer === 'closed' ? (
-                              <span className="tiny faint">{e.reason ?? '对方无意出售'}</span>
+                              <span className="tiny faint">选手本人拒绝：{e.reason ?? '不想转会'}</span>
                             ) : <span className="tiny faint">未问价</span>}
                           </td>
                           <td>
@@ -360,7 +364,7 @@ export default function Transfers() {
                           <div className="row" style={{ gap: 5 }}>
                             {e?.interest && (
                               <span className="tag" title={e.reason ?? ''}>
-                                {INTEREST_CN[e.interest]}
+                                选手本人{INTEREST_CN[e.interest]}
                               </span>
                             )}
                             <button className="sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
@@ -371,7 +375,7 @@ export default function Transfers() {
                         return <span className="tiny faint">问价中（{Math.max(0, e.replyOn - game.day)} 天）</span>
                       }
                       if (e?.answer === 'closed') {
-                        return <span className="tiny faint">{e.reason ?? '对方无意出售'}</span>
+                        return <span className="tiny faint">选手本人拒绝：{e.reason ?? '不想转会'}</span>
                       }
                       // enquiries are made club-first in the panel above
                       return <span className="tiny faint">去上面「问价」按俱乐部找</span>

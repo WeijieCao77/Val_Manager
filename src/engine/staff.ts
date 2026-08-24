@@ -177,7 +177,7 @@ export function resolveApproaches(state: GameState, rng: Rng): string[] {
 
     if (rng.chance(odds)) {
       a.answer = 'granted'
-      notes.push(`✅ ${team.name} 同意你与 ${a.name} 接触，接下来要和本人谈合同。`)
+      notes.push(`✅ ${team.name} 同意你与 ${a.name} 接触，接下来要和他本人谈合同。`)
     } else {
       a.answer = 'refused'
       a.reason = ratio < 0.85 ? '补偿金太低' : '不愿意放走现任主教练'

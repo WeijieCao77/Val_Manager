@@ -112,6 +112,26 @@ console.log('\nactions — every button answers, including when it refuses\n')
     speaks('window shut — and can be answered', answerIncoming(shut, pend[0].id, false))
   }
 
+  // An enquiry comes back with two answers from two different parties — the
+  // club's price and the player's own willingness — and a reader asked which
+  // of them had refused, because the note said only "本人". Both halves have
+  // to name who is speaking.
+  {
+    const asked = fresh(909)
+    const marks = Object.values(asked.players)
+      .filter((p) => p.teamId && p.teamId !== asked.myTeam)
+      .sort((a, b) => b.overall - a.overall).slice(0, 30)
+    for (const m of marks) enquireAbout(asked, m.id)
+    const replies: string[] = []
+    for (let d = 0; d < 8; d++) {
+      replies.push(...(advanceDay(asked, new Rng(70 + d))?.notes ?? []).filter((n) => n.startsWith('📋 就')))
+    }
+    const named = replies.filter((n) => n.includes('选手本人'))
+    ok('an enquiry reply says which side said what',
+      replies.length > 0 && named.length === replies.length,
+      replies[0] ?? 'no reply came back')
+  }
+
   // commercial
   const gigs = openGigs(g)
   if (gigs.length) {

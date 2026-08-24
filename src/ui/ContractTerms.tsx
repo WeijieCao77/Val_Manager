@@ -137,7 +137,7 @@ export default function ContractTerms({
           onChange={(e) => set('noPoach', e.target.checked)}
         />
         <span className="small">转会限制条款 <span className="tiny faint">
-          未经本人同意不得出售。球队更安全，但选手要价更高。
+          未经选手本人同意不得出售。球队更安全，但选手要价更高。
         </span></span>
       </label>
     </>

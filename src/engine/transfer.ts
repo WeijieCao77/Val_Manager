@@ -671,9 +671,14 @@ export function resolveEnquiries(state: GameState, rng: Rng): string[] {
       e.reason = better < 0 ? '不愿意去平台更差的球队' : '现在不想离开'
     }
 
+    // An enquiry answers twice over — the club names a price, the player says
+    // whether he wants to come — so both halves have to name who is speaking.
+    // "本人" alone reads as "I, myself" in Chinese, which had readers asking
+    // which side had refused.
     const label = INTEREST_CN[e.interest as keyof typeof INTEREST_CN]
     notes.push(
-      `📋 ${holder.name} 对 ${p.ign} 的要价约 ${Math.round((e.askingFee ?? 0) / 1000)}K，本人${label}。`,
+      `📋 就 ${p.ign} 问价：${holder.name} 开价约 ${Math.round((e.askingFee ?? 0) / 1000)}K，` +
+      `选手本人${label}。`,
     )
   }
   state.enquiries = (state.enquiries ?? []).filter((e) => !e.answer || e.replyOn > state.day - 30)
