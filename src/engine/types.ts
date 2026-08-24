@@ -526,6 +526,8 @@ export interface EdgeBreakdown {
   coach: number
   /** role composition — a missing sentinel costs here */
   comp: number
+  /** fielding fewer than five; absent on matches played before it was priced */
+  shortHanded?: number
   map: number
   utility: number
   /** what the four tactical sliders were worth on each side */

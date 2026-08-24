@@ -185,18 +185,39 @@ console.log('\nactions — every button answers, including when it refuses\n')
   speaks('renegotiate', renegotiate(g, 600_000, 3))
   speaks('renegotiate — an absurd demand', renegotiate(g, 99_000_000, 3))
 
-  // releasing is the one action that returns nothing, so it must be paid for
-  // out of the money the manager can see move
+  // Releasing must be paid for out of money the manager can see move — and a
+  // club already down to five cannot release at all, so top up first.
+  while (squadOf(g, g.myTeam).length <= 5) {
+    const spare = Object.values(g.players).find((p) => !p.teamId)
+    if (!spare) break
+    spare.teamId = g.myTeam
+    g.teams[g.myTeam].roster.push(spare.id)
+  }
   const before = g.finances.balance
   const logLen = g.finances.log.length
   const victim = squadOf(g, g.myTeam).slice(-1)[0]
-  releasePlayer(g, victim)
+  speaks('releasePlayer', releasePlayer(g, victim))
   ok('releasePlayer — the pay-off appears in the finance log',
     g.finances.log.length > logLen || g.finances.balance !== before,
     `balance ${Math.round(before)} → ${Math.round(g.finances.balance)}, `
     + `log +${g.finances.log.length - logLen}`)
   ok('releasePlayer — he actually leaves',
     !g.teams[g.myTeam].roster.includes(victim.id))
+
+  // The floor. A manager stripped his own squad to two and the game let him,
+  // then played every remaining fixture two against five.
+  {
+    const thin = fresh(4321)
+    while (squadOf(thin, thin.myTeam).length > 5) {
+      releasePlayer(thin, squadOf(thin, thin.myTeam).slice(-1)[0])
+    }
+    const last = squadOf(thin, thin.myTeam).slice(-1)[0]
+    const refusal = releasePlayer(thin, last)
+    ok('a five-man squad cannot release its fifth man',
+      squadOf(thin, thin.myTeam).length === 5, refusal)
+    ok('and it says why rather than failing quietly',
+      refusal.includes('五人'), `"${refusal}"`)
+  }
 
   // the lineup the engine picks must contain the caller — going without one
   // costs more than any role gap, and the five picks itself on rating

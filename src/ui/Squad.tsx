@@ -6,7 +6,7 @@ import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from
 import { appointIgl, squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
 import { ratingOf } from '../engine/match'
-import { releasePlayer } from '../engine/transfer'
+import { releasePlayer, squadFloorBlock } from '../engine/transfer'
 import { bondBetween, notableBonds, squadHarmony } from '../engine/bonds'
 import { departureImpact, trustLabel, trustOf, trustOnBench } from '../engine/trust'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
@@ -49,6 +49,10 @@ export default function Squad() {
   }
 
   const release = (p: Player) => {
+    // say no before charging an action point for it, and before asking a
+    // question whose answer cannot be honoured
+    const blocked = squadFloorBlock(game, game.myTeam)
+    if (blocked) { toast(blocked); return }
     const payoff = Math.round(p.salary * Math.max(0, p.contractYears) * 0.4)
     const hurt = departureImpact(game, p)
     const warn = hurt.length
@@ -56,10 +60,9 @@ export default function Squad() {
       : ''
     if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。${warn}`)) return
     if (!spendAction(game, 'release')) { toast(NO_ACTIONS_LEFT); return }
-    releasePlayer(game, p)
+    toast(releasePlayer(game, p))
     commit()
     logActivity(game, 'squad', `与 ${p.ign} 解约`)
-    toast(`${p.ign} 已离队。`)
   }
 
   // What plays is what is scored: the five, not the roster. Counting the whole

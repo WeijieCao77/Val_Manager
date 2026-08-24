@@ -166,7 +166,19 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const aggroAtk = (t.aggression - 50) * 0.028
   const aggroDef = -(t.aggression - 50) * 0.015
 
-  const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus
+  // Playing short-handed had no cost at all. Strength is a weighted mean of who
+  // is on the server, so losing your weakest man RAISED it: a two-man side
+  // rated 92.56 against its own full five's 93.74, and three rated above four.
+  // A club that had been stripped to four kept winning, which is what a player
+  // meant by "四个人也能打，而且还打赢了对面".
+  //
+  // Round odds run through 1/(1+e^(-diff/17)), so ~18 a head puts a four-man
+  // side near 26% a round and a two-man side near 4% — losing 13-1, which is
+  // what being two men down actually looks like.
+  const missing = Math.max(0, 5 - players.length)
+  const shortHanded = -missing * 18
+
+  const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus + shortHanded
   const atk = common + paceAtk + aggroAtk + (avg('aim') - 65) * 0.05
   const def = common + paceDef + aggroDef + (avg('awareness') - 65) * 0.05 + 1.6
 
@@ -174,7 +186,7 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
     (t.adaptability - 50) * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05
 
   const edge: EdgeBreakdown = {
-    base, igl: iglBonus, chem: chemBonus, coach: coachBonus, comp,
+    base, igl: iglBonus, chem: chemBonus, coach: coachBonus, comp, shortHanded,
     map: mapPref, utility: utilBonus,
     tacticsAtk: paceAtk + aggroAtk, tacticsDef: paceDef + aggroDef,
     atk, def,
@@ -537,16 +549,20 @@ export class MapSim {
     const rushing = (aWins ? this.calls.a : this.calls.b)?.kind === 'rush'
     const steady = (aWins ? this.calls.a : this.calls.b)?.kind === 'steady'
     const elim = rng.chance(rushing ? 0.82 : 0.75)
-    const losersLost = elim ? 5 : rng.int(2, 4)
     const closeness = Math.abs(p - 0.5)
-    const winnersLost = rng.weighted([0, 1, 2, 3, 4], [
-      (1.2 - closeness) * (steady ? 1.6 : 1),
-      2.6, 3.4, 2.8,
-      (1.6 + closeness * 1.5) * (rushing ? 1.4 : steady ? 0.7 : 1),
-    ])
 
     const winners = aWins ? this.A.players : this.B.players
     const losers = aWins ? this.B.players : this.A.players
+    // These counts were absolute — "five fell" on a side that only had two.
+    // The surplus was dropped when the deaths were handed out, so a short side
+    // took fewer deaths per round than a full one and its survivors' K/D came
+    // out looking better for being a man down. Nobody can fall who is not there.
+    const losersLost = Math.min(losers.length, elim ? 5 : rng.int(2, 4))
+    const winnersLost = Math.min(winners.length, rng.weighted([0, 1, 2, 3, 4], [
+      (1.2 - closeness) * (steady ? 1.6 : 1),
+      2.6, 3.4, 2.8,
+      (1.6 + closeness * 1.5) * (rushing ? 1.4 : steady ? 0.7 : 1),
+    ]))
     const focus = (aWins ? this.calls.a : this.calls.b)
     allocateRound(
       winners, losers, winnersLost, losersLost, this.ctx, rng, this.map,

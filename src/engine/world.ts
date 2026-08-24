@@ -174,6 +174,12 @@ export function createNewGame(
     }
     teams[rt.id] = {
       ...rt,
+      // A spread is shallow, so every game shared one roster array with the
+      // imported world file. Signing someone in one career pushed him into the
+      // next one — where his teamId was still null, leaving a name on a roster
+      // that belonged to nobody. Anything that walks the roster counted him;
+      // anything that went via teamId did not.
+      roster: [...rt.roster],
       region: rt.region as Team['region'],
       tier: rt.tier as Team['tier'],
       starters: [],

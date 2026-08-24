@@ -228,18 +228,41 @@ const moneyish = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
 /** A club must always be able to field five; only the human may go thin. */
 export function canSell(state: GameState, p: Player): boolean {
-  if (!p.teamId || p.teamId === state.myTeam) return true
+  if (!p.teamId) return true
   if (squadOf(state, p.teamId).length > 5) return true
+  // Our club gets a hard floor, an AI club does not. An AI club replaces what
+  // it sells inside a week — across two simulated seasons not one of them ever
+  // dropped below five — so "a free agent exists" is enough for them. Nobody
+  // signs for us but us, and a manager who lets his fifth man go plays the rest
+  // of the season two against five.
+  if (p.teamId === state.myTeam) return false
   // a five-man club can still sell, as long as someone real is left to sign
   return Object.values(state.players).some((x) => !x.teamId)
 }
 
+/** Why this club cannot let anyone else go, or null when it can. */
+export function squadFloorBlock(state: GameState, teamId: string): string | null {
+  if (squadOf(state, teamId).length > 5) return null
+  return teamId === state.myTeam
+    ? '阵容只剩五人了——再放走一个就凑不出首发，比赛只能少人上场。先补人再说。'
+    : '对方只剩五名球员，放人就凑不齐首发了。'
+}
+
+/**
+ * Move a player, or report that you could not.
+ *
+ * This used to return void and bail out silently, and every caller took that
+ * silence for success. A bid for a player at a five-man club came back
+ * "签约完成：X 加盟 Y", the offer was marked accepted, and X never moved — the
+ * "显示加入但是没这个人" a player reported after rebuilding a squad through
+ * bids that all reported success and none of which landed.
+ */
 export function doTransfer(
   state: GameState, p: Player, toTeamId: string, fee: number, terms: Contract,
-): void {
+): boolean {
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
-  if (!to) return
+  if (!to) return false
   // the dressing room notices who you sold
   if (from?.id === state.myTeam) {
     const notes: string[] = []
@@ -248,12 +271,32 @@ export function doTransfer(
       state.news.push({ day: state.day, kind: 'club', important: true, text: t })
     }
   }
-  // refuse a move that would leave the selling club unable to field a team
-  if (from && from.id !== state.myTeam && !canSell(state, p)) return
+  // refuse a move that would leave a club unable to field a team — including
+  // ours: a manager who sells down to two plays the rest of the season two
+  // against five, which is not a decision, it is a broken save
+  if (from && !canSell(state, p)) return false
 
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
     from.starters = from.starters.filter((id) => id !== p.id)
+    // canSell let this go on the promise that a replacement was available.
+    // Keep the promise here rather than at the next weekly tick — an AI club
+    // that sold on a Monday played the week's fixture with four.
+    if (from.id !== state.myTeam && from.roster.length < 5) {
+      const cover = Object.values(state.players)
+        .filter((x) => !x.teamId && x.id !== p.id)
+        .sort((a, b) => b.overall - a.overall)[0]
+      if (cover) {
+        cover.teamId = from.id
+        cover.contractYears = 2
+        cover.salary = expectedSalary(cover, from.tier)
+        from.roster.push(cover.id)
+        state.news.push({
+          day: state.day, kind: 'transfer',
+          text: `${from.name} 紧急签下自由人 ${cover.ign}（${cover.overall}）填补空缺。`,
+        })
+      }
+    }
     from.budget += fee
     if (from.id === state.myTeam) {
       state.finances.balance += fee
@@ -306,10 +349,18 @@ export function doTransfer(
       + (watched ? ' 你此前正在接触这名选手。' : ''),
     important: to.id === state.myTeam || from?.id === state.myTeam || watched,
   })
+  return true
 }
 
-export function releasePlayer(state: GameState, p: Player): void {
+export function releasePlayer(state: GameState, p: Player): string {
   const from = p.teamId ? state.teams[p.teamId] : null
+  // A manager could strip his own squad to two and the game let him, then
+  // played every remaining fixture two against five. Releasing is the one door
+  // out of a five-man squad that nothing was watching.
+  if (from) {
+    const blocked = squadFloorBlock(state, from.id)
+    if (blocked) return blocked
+  }
   if (from?.id === state.myTeam) {
     const notes: string[] = []
     trustOnDeparture(state, p, notes)
@@ -338,6 +389,7 @@ export function releasePlayer(state: GameState, p: Player): void {
     text: `${from?.name ?? '某队'} 与 ${p.ign} 解除合同，该选手成为自由人。`,
     important: from?.id === state.myTeam,
   })
+  return `${p.ign} 已离队，成为自由人。`
 }
 
 /** Rough squad need: which role is the club thinnest at? */
@@ -381,8 +433,9 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
         const yrs = rng.int(1, 3)
         const terms = defaultContract(salary, yrs)
         if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
-          doTransfer(state, target, team.id, 0, terms)
-          agents.splice(agents.indexOf(target), 1)
+          if (doTransfer(state, target, team.id, 0, terms)) {
+            agents.splice(agents.indexOf(target), 1)
+          }
         }
       }
       continue
@@ -600,6 +653,13 @@ export function answerIncoming(state: GameState, offerId: string, accept: boolea
     o.status = 'expired'
     return '这份报价已经失效。'
   }
+  // A bid can outlive the thing it was for. Accepting one for a player who has
+  // already gone would have moved him out of whichever club he joined, and
+  // reported a sale whose money never reached us.
+  if (p.teamId !== state.myTeam) {
+    o.status = 'expired'
+    return `${p.ign} 已经不在队里了，这份报价失效。`
+  }
   if (!accept) {
     o.status = 'rejected'
     // turning down a move a player wanted does not go unnoticed
@@ -610,7 +670,11 @@ export function answerIncoming(state: GameState, offerId: string, accept: boolea
     }
     return `已拒绝 ${to.name} 对 ${p.ign} 的报价。`
   }
-  doTransfer(state, p, to.id, o.fee, o.terms ?? defaultContract(o.salary, o.years))
+  if (!doTransfer(state, p, to.id, o.fee, o.terms ?? defaultContract(o.salary, o.years))) {
+    o.status = 'rejected'
+    return squadFloorBlock(state, state.myTeam)
+      ?? `这笔转会没能完成，${p.ign} 留下了。`
+  }
   o.status = 'accepted'
   return `${p.ign} 以 $${o.fee.toLocaleString()} 转会至 ${to.name}。`
 }
@@ -807,7 +871,13 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     offer.status = 'rejected'
     return verdict.reason ?? '选手拒绝了这份合同。'
   }
-  doTransfer(state, p, to.id, offer.fee, terms)
+  if (!doTransfer(state, p, to.id, offer.fee, terms)) {
+    offer.status = 'rejected'
+    // name the real reason: the selling club would be left unable to field five
+    return p.teamId
+      ? `${state.teams[p.teamId]?.name ?? '对方'} 最终没有放人——${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
+      : `这笔签约没能完成，${p.ign} 仍是自由人。`
+  }
   offer.status = 'accepted'
   return `签约完成：${p.ign} 加盟 ${to.name}。`
 }
