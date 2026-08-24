@@ -14,7 +14,7 @@ import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
-import { autoStarters } from './world'
+import { autoStarters, ensureCaller } from './world'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
 import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
@@ -925,6 +925,8 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
       })
     }
     if (team.roster.length < 5) short.push(team.name)
+    // expiries and retirements can walk a club's caller out the door too
+    ensureCaller(state, team.id)
     if (team.starters.length < 5) team.starters = autoStarters(state, team.id)
   }
   if (short.length) {

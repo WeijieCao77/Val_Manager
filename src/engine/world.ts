@@ -102,7 +102,7 @@ export function autoStarters(state: GameState, teamId: string): string[] {
   // than any single role gap costs, so a lineup that drops him is simply a
   // worse lineup. He replaces the lowest-rated starter whose roles someone
   // else still covers.
-  const igl = squad.find((p) => p.isIgl)
+  const igl = squad.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   if (igl && !five.includes(igl)) {
     const covered = (without: Player) => {
       const rest = five.filter((x) => x !== without).concat(igl)
@@ -229,15 +229,20 @@ export function appointIgl(state: GameState, playerId: string): string {
   if (!p) return '找不到这名选手。'
   if (p.teamId !== state.myTeam) return '只能任命自己队里的选手。'
   if (p.isIgl) return `${p.ign} 已经是指挥了。`
-  const prev = squadOf(state, state.myTeam).find((x) => x.isIgl)
-  if (prev) {
-    prev.isIgl = false
-    const healthy = prev.injuredUntil <= state.day
-    const starting = state.teams[state.myTeam].starters.includes(prev.id)
+  // Every other flag comes off, not just one. A squad can hold several IGLs
+  // by trade (a bought caller keeps his flag), and the loudest of them calls
+  // by default — so an appointment that left a louder voice flagged would be
+  // silently overruled by the very rule it exists to override.
+  const prevs = squadOf(state, state.myTeam).filter((x) => x.isIgl)
+  const prev = prevs.sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  for (const x of prevs) {
+    x.isIgl = false
+    const healthy = x.injuredUntil <= state.day
+    const starting = state.teams[state.myTeam].starters.includes(x.id)
     if (healthy && starting) {
       // a healthy starter stripped of the calling takes it personally
-      prev.morale = Math.max(0, prev.morale - 5)
-      prev.grievance = Math.min(100, (prev.grievance ?? 0) + 6)
+      x.morale = Math.max(0, x.morale - 5)
+      x.grievance = Math.min(100, (x.grievance ?? 0) + 6)
     }
   }
   p.isIgl = true
@@ -249,6 +254,23 @@ export function appointIgl(state: GameState, playerId: string): string {
     ? `${p.ign} 接过指挥。${prev.ign} 交出了这个角色${
       prev.injuredUntil > state.day ? '——他还在养伤，这是明智的安排' : '，心里未必舒服'}。`
     : `${p.ign} 出任队内指挥。`
+}
+
+/**
+ * Make sure an AI club has somebody calling.
+ *
+ * Selling your IGL is a decision; for an AI club it was a life sentence — no
+ * code path ever appointed a successor, so the club played the rest of its
+ * days at the full no-caller penalty. A real club promotes someone within the
+ * week. Our own club is exempt: the squad screen warns and offers the
+ * appointment, and that decision belongs to the player.
+ */
+export function ensureCaller(state: GameState, teamId: string): void {
+  if (teamId === state.myTeam) return
+  const squad = squadOf(state, teamId)
+  if (!squad.length || squad.some((p) => p.isIgl)) return
+  const next = squad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  next.isIgl = true
 }
 
 export const squadOf = (state: GameState, teamId: string): Player[] =>

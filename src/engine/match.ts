@@ -111,7 +111,11 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const avg = (k: keyof Player['attrs']) =>
     players.length ? players.reduce((s, p) => s + p.attrs[k], 0) / players.length : 55
 
-  const igl = players.find((p) => p.isIgl)
+  // A squad can carry several players who are IGLs by trade — buy another
+  // club's caller and his flag comes with him. One voice calls the game: the
+  // best of them, deterministically, not whoever sits first in the roster
+  // array. The others neither stack nor clash; an ex-caller is support.
+  const igl = players.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   const iglBonus = igl ? (igl.attrs.igl - 60) * 0.09 : -4
   // attributes say how well they can play together; bonds say whether they are
   const rapport = squadHarmony(state, team.id)

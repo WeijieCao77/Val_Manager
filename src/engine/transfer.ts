@@ -1,6 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
-import { autoStarters, squadOf, wageBill } from './world'
+import { autoStarters, ensureCaller, squadOf, wageBill } from './world'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
 import { skillMod } from './manager'
 import { trustOf, trustOnDeparture, TRUST_START } from './trust'
@@ -288,6 +288,8 @@ export function doTransfer(
   refreshValue(p)
 
   if (to.starters.length < 5) to.starters = autoStarters(state, to.id)
+  // the club that just lost its caller promotes one within the week
+  if (from) ensureCaller(state, from.id)
 
   // a move that took a player we were actively in talks over is not ordinary
   // market noise — it is the answer to a question we asked

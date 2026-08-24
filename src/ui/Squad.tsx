@@ -81,6 +81,10 @@ export default function Squad() {
       return x?.isIgl && x.injuredUntil <= game.day
     })
   const benchedIgl = squad.find((p) => p.isIgl && !me.starters.includes(p.id))
+  // several IGLs by trade can share a squad (buy another club's caller and
+  // his flag comes with him); the best of them is the one actually calling
+  const iglsInSquad = squad.filter((p) => p.isIgl)
+  const caller = iglsInSquad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   const hurtIgl = squad.find((p) => p.isIgl
     && me.starters.includes(p.id) && p.injuredUntil > game.day)
 
@@ -204,7 +208,16 @@ export default function Squad() {
                     </td>
                     <td className="clickable" onClick={() => openPlayer(p.id)}>
                       <b>{p.ign}</b>
-                      {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
+                      {p.isIgl && (
+                        <span className="tag" style={{ marginLeft: 6, opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
+                          title={iglsInSquad.length > 1
+                            ? (p.id === caller?.id
+                              ? `队里有 ${iglsInSquad.length} 名指挥出身的选手，由指挥属性最高的他实际喊话（${p.attrs.igl}）`
+                              : `指挥出身，但队里由指挥属性更高的 ${caller?.ign} 实际喊话——多名指挥不冲突也不叠加`)
+                            : '队内指挥'}>
+                          IGL
+                        </span>
+                      )}
                       {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
                       {(p.grievance ?? 0) > 45 && !p.listed && (
                         <span className="tag warn" style={{ marginLeft: 6 }}
