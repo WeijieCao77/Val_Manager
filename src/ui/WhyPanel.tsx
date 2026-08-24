@@ -80,6 +80,25 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const total = (mine.atk + mine.def) / 2 - (foe.atk + foe.def) / 2
   const worst = rows.filter((r) => r.diff < 0).slice(0, 2)
 
+  // The summary line assumed a defeat — it read "输了说明临场没打出来" over a
+  // map we had just won 13-11. Paper strength and the actual result are two
+  // different facts, and the interesting cases are the ones where they
+  // disagree, so say which happened before explaining it.
+  const myScore = mineIsA ? map.scoreA : map.scoreB
+  const foeScore = mineIsA ? map.scoreB : map.scoreA
+  const won = myScore > foeScore
+  const verdict = Math.abs(total) < 1.5
+    ? (won
+      ? '两队几乎势均力敌，这张图能拿下靠的是临场发挥'
+      : '两队几乎势均力敌，这张图的胜负主要靠临场发挥和运气')
+    : total >= 0
+      ? (won
+        ? '账面上我们更强，这张图也照着实力拿下了'
+        : '账面上我们更强——这张图却输了，说明临场没打出来')
+      : (won
+        ? '账面上处于下风，这张图是硬啃下来的'
+        : '账面上确实处于下风')
+
   return (
     <div>
       <div className="row wrap" style={{ gap: 10, alignItems: 'baseline', marginBottom: 10 }}>
@@ -90,10 +109,7 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
         }}>
           {total >= 0 ? '+' : ''}{total.toFixed(1)}
         </span>
-        <span className="small muted">
-          {Math.abs(total) < 1.5 ? '两队几乎势均力敌，这张图的胜负主要靠临场发挥和运气'
-            : total >= 0 ? '账面上我们更强——输了说明临场没打出来' : '账面上确实处于下风'}
-        </span>
+        <span className="small muted">{verdict}</span>
       </div>
 
       {worst.length > 0 && (
