@@ -1,4 +1,5 @@
-import type { EdgeBreakdown, MapScore } from '../engine/types'
+import type { EdgeBreakdown, MapScore, Role } from '../engine/types'
+import { useGame } from './ctx'
 
 /**
  * Why the map went the way it did.
@@ -25,16 +26,10 @@ const FACTORS: {
   { key: 'base', label: '选手个人能力', fix: '这是阵容硬实力，只能靠转会和训练慢慢补' },
   { key: 'map', label: '地图熟练度', fix: '在训练里安排「跑图」练这张图，或在 BP 时避开它' },
   { key: 'chem', label: '团队默契', fix: '更衣室关系与协同/沟通属性，双排练和集训能改善' },
-  {
-    key: 'comp',
-    label: '阵容位置搭配',
-    // "look for the missing role" was the wrong advice whenever nothing was
-    // missing: a squad of versatile players used to be charged for it, so the
-    // panel pointed at a role list that showed no gap at all
-    fix: (v) => (v < 0
-      ? '首发没覆盖齐决斗者/先锋/控场/哨卫，缺哪个看阵容页的位置统计'
-      : '四个位置已覆盖齐；第五人是谁都不扣分，能兼位还会小幅加分'),
-  },
+  // comp's advice is filled in from the lineup that actually played — see
+  // compFix below. Reading it off the number was how the panel came to tell
+  // XLG to find a missing role when all four were covered.
+  { key: 'comp', label: '阵容位置搭配', fix: '' },
   {
     key: 'igl',
     label: '指挥（IGL）',
@@ -48,7 +43,10 @@ const FACTORS: {
   { key: 'tacticsDef', label: '战术设置（防守端）', fix: '节奏与侵略性调高会削弱防守' },
 ]
 
+const CORE_ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫']
+
 export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boolean }) {
+  const { game } = useGame()
   if (!map.edge) {
     return (
       <div className="empty">这场比赛是在此功能上线前打的，没有记录当时的强弱分解。</div>
@@ -57,11 +55,24 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const mine = mineIsA ? map.edge.a : map.edge.b
   const foe = mineIsA ? map.edge.b : map.edge.a
 
+  // Which roles the five that played actually covered, rather than guessing
+  // from the score: matches played before the composition rule was fixed still
+  // carry a negative number that no missing role explains.
+  const played = Object.keys(map.lines ?? {})
+    .map((id) => game.players[id])
+    .filter((p) => p && p.teamId === game.myTeam)
+  const covered = new Set(played.flatMap((p) => p.roles ?? [p.role]))
+  const gaps = played.length ? CORE_ROLES.filter((r) => !covered.has(r)) : []
+  const compFix = gaps.length
+    ? `首发缺 ${gaps.join('、')}——把能打这些位置的人放进首发`
+    : '四个位置已覆盖齐，这一项没有可补的；第五人是谁都不扣分，能兼位还会小幅加分'
+
   const rows = FACTORS
     .map((f) => ({
       ...f,
       diff: (mine[f.key] as number) - (foe[f.key] as number),
-      fix: typeof f.fix === 'function' ? f.fix(mine[f.key] as number) : f.fix,
+      fix: f.key === 'comp' ? compFix
+        : typeof f.fix === 'function' ? f.fix(mine[f.key] as number) : f.fix,
     }))
     .filter((r) => Math.abs(r.diff) >= 0.15)
     .sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff))
