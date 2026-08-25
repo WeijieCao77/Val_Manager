@@ -95,7 +95,10 @@ export default function Dashboard() {
   }
 
   // long gaps between fixtures are where scrims belong
-  const gapDays = next ? next.day - game.day : 0
+  // A scrim is played tomorrow, so it fits whenever tomorrow is not the match
+  // day — a two-day gap, not the four the panel used to demand. No upcoming
+  // fixture at all (deep offseason) is the widest gap there is.
+  const gapDays = next ? next.day - game.day : 99
   const scrimOpponents = Object.values(game.teams)
     .filter((t) => t.id !== game.myTeam && t.region === me.region)
     .sort((a, b) => Math.abs(a.rating - me.rating) - Math.abs(b.rating - me.rating))
@@ -441,8 +444,15 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {gapDays >= 4 && (
-        <Panel title={`空档期 · 距下一场还有 ${gapDays} 天`}>
+        {gapDays < 2 && (
+          <Panel title="训练赛">
+            <p className="small muted" style={{ margin: 0 }}>
+              {gapDays <= 0 ? '今天有正式比赛' : '明天就是正式比赛'}，训练赛安排不下——训练赛都约在第二天打，赛后就能再约。
+            </p>
+          </Panel>
+        )}
+        {gapDays >= 2 && (
+        <Panel title={next ? `空档期 · 距下一场还有 ${gapDays} 天` : '空档期 · 本赛段没有比赛'}>
           <p className="small muted" style={{ marginTop: 0 }}>
             约一场训练赛：不计积分与个人数据，但会影响状态与体能。训练赛没有 BP，
             双方提前商定地图。
