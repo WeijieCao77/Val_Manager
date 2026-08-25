@@ -903,10 +903,67 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     if (t.starters.length < 5) t.starters = autoStarters(state, t.id)
   }
 
+  rebaseSeasonClock(state, state.day)
+
   state.year += 1
   state.day = 0
   state.stage = 'preseason'
   setupSeason(state, notes)
+}
+
+/**
+ * Shift every forward-looking timer back with the calendar.
+ *
+ * The rollover sets `day = 0`, but everything scheduled against the old
+ * calendar used to keep its absolute number — so a sponsor-pitch cooldown of
+ * "day + 14" written on day 310 became "324 days from now", a pending transfer
+ * bid was answered eleven months late, and an injury due to heal on day 340
+ * kept a player out for a second full season. A fourteen-day wait that spans
+ * New Year is still a fourteen-day wait.
+ *
+ * Deadlines are shifted, not clamped: a reply due on day 340 is due on day 4
+ * of the new season, and a record made on day 300 lands at -36, which keeps
+ * every "days since" comparison honest about how long ago it really was.
+ * History — news, activity, the finance log — is left alone: those entries
+ * describe last season and should not be re-dated into this one.
+ */
+function rebaseSeasonClock(state: GameState, shift: number): void {
+  if (shift <= 0) return
+  const move = (v: number | undefined): number | undefined =>
+    v == null ? v : v - shift
+
+  if (state.pitchCooldown != null) state.pitchCooldown = Math.max(0, state.pitchCooldown - shift)
+  if (state.drillLock != null) state.drillLock = Math.max(0, state.drillLock - shift)
+  // the turn budget re-mints itself whenever its day is in the future or past
+  state.actions = undefined
+
+  for (const p of Object.values(state.players)) {
+    if (p.injuredUntil > 0) p.injuredUntil = Math.max(0, p.injuredUntil - shift)
+    if (p.listedOn != null) p.listedOn = move(p.listedOn)
+    if (p.payAskedOn != null) p.payAskedOn = move(p.payAskedOn)
+    if (p.rumourOn != null) p.rumourOn = move(p.rumourOn)
+    if (p.stream) {
+      p.stream.since -= shift
+      p.stream.until -= shift
+    }
+  }
+
+  for (const o of state.offers) {
+    o.day -= shift
+    if (o.respondOn != null) o.respondOn -= shift
+  }
+  for (const e of state.enquiries ?? []) { e.day -= shift; e.replyOn -= shift }
+  for (const j of state.jobOffers ?? []) { j.day -= shift; j.expiresOn -= shift }
+  for (const a of state.jobApplications ?? []) { a.day -= shift; a.replyOn -= shift }
+  for (const o of state.staffOffers ?? []) { o.day -= shift; o.replyOn -= shift }
+  for (const a of state.staffApproaches ?? []) { a.day -= shift; a.replyOn -= shift }
+  for (const t of state.sponsorTalks ?? []) { t.day -= shift; t.replyOn -= shift }
+  for (const g of state.gigs ?? []) {
+    g.day -= shift
+    g.expiresOn -= shift
+    if (g.windowEnd != null) g.windowEnd -= shift
+  }
+  for (const v of state.ventures ?? []) v.day -= shift
 }
 
 /**
