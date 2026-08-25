@@ -9,6 +9,7 @@ import {
   INTEREST_CN, makeOffer, windowBlock, windowOpen,
 } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
+import { IMPORT_MAX, importCount, isImport } from '../engine/imports'
 import { squadOf, wageBill } from '../engine/world'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
 import { REGIONS } from '../engine/types'
@@ -87,6 +88,12 @@ export default function Transfers() {
           )}
         </Panel>
         <Panel><div className="stat"><span className="k">阵容人数</span><span className="v">{squad.length}</span></div></Panel>
+        {game.importLimit && (
+          <Panel><div className="stat"><span className="k">外援名额</span>
+            <span className="v" style={importCount(game, game.myTeam) >= IMPORT_MAX ? { color: 'var(--warn)' } : undefined}>
+              {importCount(game, game.myTeam)}/{IMPORT_MAX}
+            </span></div></Panel>
+        )}
         <Panel><div className="stat"><span className="k">赛季薪资</span><span className="v">{money(bill)}</span></div></Panel>
         <Panel>
           <div className="stat">
@@ -358,6 +365,9 @@ export default function Transfers() {
                   <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                     <b>{p.ign}</b>
                     {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
+                    {game.importLimit && isImport(p, me) && (
+                      <span className="tag warn" style={{ marginLeft: 6 }} title="来自其他赛区，占用外援名额">外援</span>
+                    )}
                     {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
                   </td>
                   <td><Roles p={p} /></td>

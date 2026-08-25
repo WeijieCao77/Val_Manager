@@ -4,7 +4,7 @@ import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
 
 export default function Saves() {
-  const { game, toast, startTutorial, loadSlot } = useGame()
+  const { game, toast, startTutorial, loadSlot, commit } = useGame()
   const [slot, setSlot] = useState('')
   const [, setTick] = useState(0)
   const refresh = () => setTick((x) => x + 1)
@@ -114,6 +114,23 @@ export default function Saves() {
         <p className="tiny muted" style={{ padding: '10px 13px', margin: 0 }}>
           点「读取」直接切换到该存档；开始界面也能读取手动存档。
         </p>
+      </Panel>
+
+      <Panel title="规则">
+        <label className="row small" style={{ gap: 8, cursor: 'pointer', alignItems: 'flex-start' }}>
+          <input type="checkbox" checked={!!game.importLimit} style={{ width: 16, marginTop: 2 }}
+            onChange={(e) => {
+              game.importLimit = e.target.checked
+              commit()
+              toast(e.target.checked
+                ? '已开启外援限制：每队最多两名外区选手（按国籍，含替补），AI 同样受限。已有阵容不拆散，只限新引进。'
+                : '已关闭外援限制。')
+            }} />
+          <span>
+            <b>限制外援</b>
+            <span className="muted"> — 每支俱乐部最多两名来自其他赛区的选手。中途开关都安全：已有阵容不动，只影响之后的签人。</span>
+          </span>
+        </label>
       </Panel>
 
       <Panel title="荣誉室" flush>

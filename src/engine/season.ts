@@ -15,6 +15,7 @@ import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
+import { importBlock } from './imports'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
 import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
@@ -985,8 +986,11 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
     if (team.id === state.myTeam) continue
     let guard = 0
     while (team.roster.length < 5 && guard++ < 10) {
-      const target = Object.values(state.players)
-        .filter((p) => p.teamId === null)
+      const free = Object.values(state.players).filter((p) => p.teamId === null)
+      // under the import rule a club refills from its own region first;
+      // fielding five still outranks the rule when the pool runs dry
+      const legal = free.filter((p) => !importBlock(state, team.id, p))
+      const target = (legal.length ? legal : free)
         .sort(
           (a, b) =>
             b.overall + (b.region === team.region ? 6 : 0) -

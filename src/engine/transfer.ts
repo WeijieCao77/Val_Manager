@@ -2,6 +2,7 @@ import { Rng, clamp, hashStr } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, ensureCaller, squadOf, wageBill } from './world'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
+import { importBlock } from './imports'
 import { skillMod } from './manager'
 import { trustOf, trustOnDeparture, TRUST_START } from './trust'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
@@ -275,6 +276,8 @@ export function doTransfer(
   // ours: a manager who sells down to two plays the rest of the season two
   // against five, which is not a decision, it is a broken save
   if (from && !canSell(state, p)) return false
+  // and one that would put the buyer over the import limit, when the rule is on
+  if (importBlock(state, toTeamId, p)) return false
 
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
@@ -283,8 +286,10 @@ export function doTransfer(
     // Keep the promise here rather than at the next weekly tick — an AI club
     // that sold on a Monday played the week's fixture with four.
     if (from.id !== state.myTeam && from.roster.length < 5) {
-      const cover = Object.values(state.players)
-        .filter((x) => !x.teamId && x.id !== p.id)
+      const pool = Object.values(state.players).filter((x) => !x.teamId && x.id !== p.id)
+      // fielding five outranks the import rule, so an illegal cover is the
+      // last resort rather than a forbidden one
+      const cover = (pool.filter((x) => !importBlock(state, from.id, x)).length ? pool.filter((x) => !importBlock(state, from.id, x)) : pool)
         .sort((a, b) => b.overall - a.overall)[0]
       if (cover) {
         cover.teamId = from.id
@@ -427,6 +432,7 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       const target = agents
         .filter((p) => !need || p.role === need.role || rng.chance(0.3))
         .filter((p) => expectedSalary(p, team.tier) < Math.max(40000, room * 0.25))
+        .filter((p) => !importBlock(state, team.id, p))
         .sort((a, b) => b.overall - a.overall)[0]
       if (target) {
         const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.15))
@@ -449,6 +455,7 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
         (p) =>
           p.teamId && p.teamId !== team.id && p.role === need.role &&
           p.overall > need.strength + 3 &&
+          !importBlock(state, team.id, p) &&
           (p.listed || p.morale < 45 || rng.chance(0.05)),
       )
       const target = candidates.sort((a, b) => b.overall - a.overall)[0]
@@ -857,6 +864,13 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
   if (cost > state.finances.balance) {
     offer.status = 'rejected'
     return '资金不足，无法支付这笔转会费。'
+  }
+  {
+    const blocked = importBlock(state, offer.toTeam, p)
+    if (blocked) {
+      offer.status = 'rejected'
+      return blocked
+    }
   }
   if (p.teamId) {
     if (!clubAcceptsFee(p, offer.fee, rng)) {

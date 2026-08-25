@@ -737,6 +737,8 @@ export interface GameState {
   ventures?: Venture[]
   /** day a sponsor pitch can next be made, so it is not spammable */
   pitchCooldown?: number
+  /** optional rule: each club may hold at most two players from other regions */
+  importLimit?: boolean
   /** sponsorship offers on the table, awaiting our answer or theirs */
   sponsorTalks?: SponsorTalk[]
   /**

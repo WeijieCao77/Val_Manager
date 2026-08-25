@@ -23,6 +23,7 @@ export default function NewGame({
   const [region, setRegion] = useState<Region>('China')
   const [teamId, setTeamId] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [importLimit, setImportLimit] = useState(false)
 
   // the three on offer are dealt from the eight, and stay fixed for this run
   const [dealSeed] = useState(() => (hashStr(String(Date.now())) >>> 0))
@@ -83,6 +84,7 @@ export default function NewGame({
     if (!manager) return setErr('请先选择一个出身。')
     if (!teamId) return setErr('请先选择一支战队。')
     const g = createNewGame(teamId, manager.name, undefined, manager)
+    g.importLimit = importLimit
     setupSeason(g)
     track('career_start', {
       club: selected?.tag ?? null,
@@ -325,6 +327,18 @@ export default function NewGame({
           </div>
         </div>
       )}
+
+      <label className="row small" style={{ gap: 8, marginTop: 16, cursor: 'pointer', alignItems: 'flex-start' }}>
+        <input type="checkbox" checked={importLimit} style={{ width: 16, marginTop: 2 }}
+          onChange={(e) => setImportLimit(e.target.checked)} />
+        <span>
+          <b>限制外援</b>
+          <span className="muted">
+            {' '}— 每支俱乐部最多两名来自其他赛区的选手（按国籍判定，含替补）。
+            开启后 AI 俱乐部同样受限。已在阵容里的不受影响，只限新引进。
+          </span>
+        </span>
+      </label>
 
       {err && <p className="neg small">{err}</p>}
       <div style={{ marginTop: 14 }}>
