@@ -122,10 +122,10 @@ export function Stat({ k, v, small }: { k: string; v: ReactNode; small?: boolean
 }
 
 export function Modal({
-  title, onClose, children, wide,
-}: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  title, onClose, onBgClose, children, wide,
+}: { title: ReactNode; onClose: () => void; onBgClose?: () => void; children: ReactNode; wide?: boolean }) {
   return (
-    <div className="modal-bg" onClick={onClose}>
+    <div className="modal-bg" onClick={onBgClose ?? onClose}>
       <div
         className="modal"
         style={wide ? { maxWidth: 1020 } : undefined}

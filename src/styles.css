@@ -225,7 +225,15 @@ a { color: var(--accent); }
 .advance-main, .advance-alt { white-space: nowrap; }
 
 @media (max-width: 720px) {
-  .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: 1fr; }
+  .grid.c2, .grid.c3 { grid-template-columns: 1fr; }
+  /* c4 is the stat-card row; four full-width cards of one number each cost
+     two screens of scrolling before a phone reaches the actual page */
+  .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* iOS Safari force-zooms the whole page when a focused text control's font
+     is under 16px — and never zooms back out after the keyboard closes. Only
+     text-entry controls trigger it, so sliders and checkboxes keep their size. */
+  input:not([type=range]):not([type=checkbox]), select, textarea { font-size: 16px; }
   .nav { width: 54px; }
   .nav button { padding: 11px 4px; text-align: center; font-size: var(--t-tiny); }
   .nav .nav-group { display: none; }
@@ -294,6 +302,9 @@ a { color: var(--accent); }
     box-shadow: -6px 0 8px rgba(0, 0, 0, .35);
     padding-left: 6px; padding-right: 6px;
   }
+  /* the starting five's tint has to reach the pinned button column too, or a
+     starter's row changes colour where the buttons begin */
+  tr.me td.sticky-act { background: var(--panel-me); }
   /* a pinned pair of buttons stacks, so the column costs one button's width
      and the numbers to its left stay readable */
   td.sticky-act .row { flex-direction: column; gap: 4px; align-items: stretch; }
@@ -316,6 +327,8 @@ td {
 }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--panel-2); }
+.team-card .tiny { white-space: nowrap; }
+
 tr.me { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
 tr.me:hover { background: rgba(255, 70, 85, .16); }
 tr.clickable { cursor: pointer; }

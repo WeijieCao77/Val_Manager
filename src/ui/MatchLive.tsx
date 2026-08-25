@@ -58,7 +58,12 @@ export default function MatchLive({
     onDone(watched)
   }, [sim, game, fixture, commit, onDone])
 
+  // 观战 and 跳过剩余 render at the same spot on a phone, so a double-tap on
+  // 观战 would start the watch and instantly skip it. A skip in the first
+  // moments of watching cannot be a considered choice; swallow it.
+  const watchedAt = useRef(0)
   const skip = useCallback(() => {
+    if (watchedAt.current && Date.now() - watchedAt.current < 1200) return
     // finish whatever is in flight, then run the rest out
     if (sim.current) {
       sim.current.runOut()
@@ -113,7 +118,7 @@ export default function MatchLive({
   // ---------------------------------------------------------------- choose
   if (phase === 'choose') {
     return (
-      <Modal title={`${game.comps[fixture.comp]?.name ?? fixture.comp} · BO${fixture.bo}`} onClose={skip}>
+      <Modal title={`${game.comps[fixture.comp]?.name ?? fixture.comp} · BO${fixture.bo}`} onClose={skip} onBgClose={() => {}}>
         <div className="score-line">
           <div className="t a" title={a?.name}>{a?.tag}</div>
           <div className="s muted" style={{ fontSize: 22 }}>VS</div>
@@ -133,7 +138,7 @@ export default function MatchLive({
         </div>
 
         <div className="row" style={{ gap: 10, justifyContent: 'center', marginTop: 18 }}>
-          <button className="primary" onClick={() => setPhase('watching')}>
+          <button className="primary" onClick={() => { watchedAt.current = Date.now(); setPhase('watching') }}>
             观战（可用 2 次暂停）
           </button>
           <button onClick={skip}>快进到结果</button>
@@ -158,7 +163,7 @@ export default function MatchLive({
   const roundNo = Math.max(1, map?.round ?? 1)
 
   return (
-    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${roundNo} 回合`} onClose={skip}>
+    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${roundNo} 回合`} onClose={skip} onBgClose={() => {}}>
       <div className="row" style={{ gap: 8, justifyContent: 'center', marginBottom: 6 }}>
         {sim.played.map((m, i) => (
           <span key={i} className="tag">

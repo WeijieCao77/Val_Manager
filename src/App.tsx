@@ -46,10 +46,15 @@ export default function App() {
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
   // which screens people open, and which one they were on when they left
+  const mainRef = useRef<HTMLElement>(null)
   const goScreen = (k: string) => {
     track('screen', { to: k })
     setScreen(k)
   }
+  // a new screen starts at its top — the scroller is <main>, not the window,
+  // so carrying scroll over lands phones in the middle of a page they just
+  // opened
+  useEffect(() => { mainRef.current?.scrollTo(0, 0) }, [screen])
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [tour, setTour] = useState(() => !tutorialSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
@@ -219,7 +224,7 @@ export default function App() {
             })}
           </nav>
 
-          <main className="main">
+          <main className="main" ref={mainRef}>
             <Screen />
             <Credit />
           </main>

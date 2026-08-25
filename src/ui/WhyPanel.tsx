@@ -128,7 +128,7 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
         <table>
           <thead>
             <tr>
-              <th>因素</th>
+              <th className="sticky-name at-left">因素</th>
               <th className="num">我方</th>
               <th className="num">对手</th>
               <th className="num">差值</th>
@@ -138,7 +138,7 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
           <tbody>
             {rows.map((r) => (
               <tr key={r.key}>
-                <td><b>{r.label}</b></td>
+                <td className="sticky-name at-left"><b>{r.label}</b></td>
                 <td className="num mono">{(mine[r.key] as number).toFixed(1)}</td>
                 <td className="num mono muted">{(foe[r.key] as number).toFixed(1)}</td>
                 <td className="num mono" style={{

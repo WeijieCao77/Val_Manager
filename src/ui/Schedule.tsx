@@ -63,7 +63,7 @@ export default function Schedule() {
               <table>
                 <thead>
                   <tr>
-                    <th className="num">日期</th><th>赛事</th><th>轮次</th>
+                    <th className="num sticky-name at-left">日期</th><th className="hide-m">赛事</th><th>轮次</th>
                     <th style={{ textAlign: 'right' }}>主队</th>
                     <th className="center">比分</th>
                     <th>客队</th><th />
@@ -82,8 +82,8 @@ export default function Schedule() {
                         className={`${mine ? 'me' : ''} ${f.played ? 'clickable' : ''}`}
                         onClick={() => f.played && openMatch(f)}
                       >
-                        <td className="num muted mono">{fmtDay(f.day)}</td>
-                        <td className="small">{game.comps[f.comp]?.name ?? f.comp}</td>
+                        <td className="num muted mono sticky-name at-left">{fmtDay(f.day)}</td>
+                        <td className="small hide-m">{game.comps[f.comp]?.name ?? f.comp}</td>
                         <td className="small muted">{f.label.replace(/^KO:\d+:/, '')}</td>
                         <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>{a?.tag}</td>
                         <td className="center mono">

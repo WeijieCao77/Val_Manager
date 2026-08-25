@@ -53,6 +53,11 @@ export const SCREEN_PHASES: Record<string, { always?: boolean; stages?: StageKey
  * it. "转会窗口开放中" one turn and gone the next is not a warning.
  */
 export function windowDaysLeft(state: GameState): number | null {
+  // The pre-calendar prep days run straight into the preseason window, so from
+  // there the clock counts down to that window's close — windowOpen() says the
+  // market is open on those days, and "还剩 null 天" is what saying nothing
+  // here actually printed.
+  if (state.day < 0) return TRANSFER_WINDOWS[0][1] - state.day + 1
   const w = TRANSFER_WINDOWS.find(([a, b]) => state.day >= a && state.day <= b)
   return w ? w[1] - state.day + 1 : null
 }
