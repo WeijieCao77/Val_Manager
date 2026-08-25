@@ -10,7 +10,7 @@
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { doTransfer, resolveMyOffer } from '../src/engine/transfer'
-import { IMPORT_MAX, importBlock, importCount, isImport, originOf } from '../src/engine/imports'
+import { IMPORT_MAX, importBlock, importCount, isImport } from '../src/engine/imports'
 import { Rng } from '../src/engine/rng'
 import type { GameState, Player } from '../src/engine/types'
 
@@ -74,9 +74,16 @@ const bid = (g: GameState, p: Player) => {
     p.teamId && p.teamId !== g.myTeam && !isImport(p, me) && squadOf(g, p.teamId!).length > 5)!
   check('a native signs straight past the quota', importBlock(g, g.myTeam, native) === null)
 
-  const unknown = Object.values(g.players).find((p) => !p.nat)!
-  check('a player with no recorded nationality counts as native',
-    originOf(unknown) === null && importBlock(g, g.myTeam, unknown) === null)
+  // jakee's case: no nationality on record, but his card says 美洲 — the rule
+  // must agree with the screen, so his region stands in for his origin
+  const jakeeLike = Object.values(g.players)
+    .find((p) => !p.nat && !p.teamId && p.region !== me.region)
+  check('no nationality but a foreign region card counts as an import',
+    !!jakeeLike && isImport(jakeeLike!, me), jakeeLike ? `${jakeeLike.ign}（${jakeeLike.region}）` : '样本缺失')
+  const homegrown = Object.values(g.players)
+    .find((p) => !p.nat && p.region === me.region)
+  check('no nationality and a home region card counts as native',
+    !!homegrown && !isImport(homegrown!, me))
 }
 
 // ---- grandfathering: turning the rule on never breaks an existing squad
@@ -93,20 +100,20 @@ const bid = (g: GameState, p: Player) => {
   check('but a fourth cannot join', importBlock(g, g.myTeam, another) !== null)
 }
 
-// ---- the AI plays a season inside the rule
-{
-  const g = mk('TYL', true, 7)
+// ---- the AI plays TWO seasons inside the rule, across three worlds
+for (const seed of [7, 71, 717]) {
+  const g = mk('TYL', true, seed)
   const before = new Map(Object.values(g.teams).map((t) => [t.id, importCount(g, t.id)]))
-  const rng = new Rng(8)
+  const rng = new Rng(seed + 1)
   let guard = 0
-  while (!g.gameOver && guard++ < 400 && g.year === 2026) advanceDay(g, rng)
+  while (!g.gameOver && guard++ < 800 && g.year <= 2027) advanceDay(g, rng)
   const over = Object.values(g.teams)
     .filter((t) => importCount(g, t.id) > Math.max(IMPORT_MAX, before.get(t.id) ?? 0))
-    .map((t) => `${t.tag}:${importCount(g, t.id)}`)
-  check('after a season no AI club has bought its way over the line',
+    .map((t) => `${t.tag}:${importCount(g, t.id)}(初始${before.get(t.id)})`)
+  check(`seed ${seed}: two seasons, no AI club buys over the line`,
     over.length === 0, over.slice(0, 5).join(' '))
   const short = Object.values(g.teams).filter((t) => squadOf(g, t.id).length < 5)
-  check('and nobody went short of five to obey it', short.length === 0,
+  check(`seed ${seed}: and nobody is short of five`, short.length === 0,
     short.map((t) => t.tag).join(' '))
 }
 

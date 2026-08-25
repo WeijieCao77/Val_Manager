@@ -35,15 +35,25 @@ const NAT_REGION: Record<string, Region> = {
   kg: 'EMEA', kz: 'EMEA', az: 'EMEA', ma: 'EMEA', sa: 'EMEA',
 }
 
-/** The region a player is from, by nationality; null when unknown. */
-export const originOf = (p: Player): Region | null =>
-  NAT_REGION[(p.nat ?? '').toLowerCase()] ?? null
+/**
+ * The region a player is from.
+ *
+ * Nationality decides when it is on record. When it is not, the player's own
+ * `region` field stands in — it is set once when the world is built (from
+ * nationality where known, else from the club that employed him) and no
+ * transfer ever rewrites it, so it is where he entered the world. This keeps
+ * the rule consistent with the screen: jakee carries no nationality but his
+ * card says 美洲, and a rule that quietly called him native while the UI
+ * called him American was answering a different question than it displayed.
+ * A world-built squad member has region equal to his club's, so grandfathering
+ * is untouched.
+ */
+export const originOf = (p: Player): Region =>
+  NAT_REGION[(p.nat ?? '').toLowerCase()] ?? p.region
 
-/** Is this player an import for this club? Unknown origin counts as native. */
-export const isImport = (p: Player, team: Team): boolean => {
-  const origin = originOf(p)
-  return origin != null && origin !== team.region
-}
+/** Is this player an import for this club? */
+export const isImport = (p: Player, team: Team): boolean =>
+  originOf(p) !== team.region
 
 /** How many imports a club currently holds, bench included. */
 export const importCount = (state: GameState, teamId: string): number => {
@@ -67,7 +77,7 @@ export function importBlock(state: GameState, teamId: string, p: Player): string
   if (!team || !isImport(p, team)) return null
   if (importCount(state, teamId) < IMPORT_MAX) return null
   return teamId === state.myTeam
-    ? `外援名额已满（${IMPORT_MAX}/${IMPORT_MAX}）——${p.ign} 来自${regionCn(originOf(p)!)}赛区，签他要先放走一名外援。`
+    ? `外援名额已满（${IMPORT_MAX}/${IMPORT_MAX}）——${p.ign} 来自${regionCn(originOf(p))}赛区，签他要先放走一名外援。`
     : `${team.name} 的外援名额已满。`
 }
 
