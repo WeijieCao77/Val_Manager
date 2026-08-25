@@ -174,7 +174,7 @@ export default function Training() {
           <div className="drill-card">
             <b>跑图</b>
             <p className="tiny muted">
-              指定地图熟练度 <b>+2/周</b>（上限 95），全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
+              指定地图熟练度约 <b>+2/周</b>（教练与设施好会更快，上限 95），全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => (

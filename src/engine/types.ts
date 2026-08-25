@@ -714,7 +714,6 @@ export interface GameState {
    * working to the old plan, so the new one does not start paying until the
    * next cycle.
    */
-  drillVoid?: boolean
   /**
    * Pairwise relationships, keyed by the two player ids sorted and joined.
    *

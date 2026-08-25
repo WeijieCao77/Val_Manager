@@ -7,6 +7,17 @@
  * the boundary counted. A player laid the whole sequence out in screenshots.
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { saveGame, loadGame } from '../src/engine/save'
+
+// save.ts talks to localStorage; give node one
+const mem: Record<string, string> = {}
+;(globalThis as never as { localStorage: unknown }).localStorage = {
+  getItem: (k: string) => mem[k] ?? null,
+  setItem: (k: string, v: string) => { mem[k] = v },
+  removeItem: (k: string) => { delete mem[k] },
+  key: (i: number) => Object.keys(mem)[i] ?? null,
+  get length() { return Object.keys(mem).length },
+}
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 import type { GameState } from '../src/engine/types'
@@ -79,4 +90,58 @@ const teamworkSum = (g: GameState) =>
   check('the restarted clock settles on ITS seventh day, not the calendar\'s',
     g.drillLock == null && teamworkSum(g) >= tw0)
 }
+
+// ---- an old save's serialized drillVoid must not swallow a settlement
+// (nothing sets the flag any more, but saves written before the seven-day
+// lock still carry drillVoid: true — the group's "跑图7天没涨熟练度")
+{
+  const g = mk()
+  const rng = new Rng(11)
+  ;(g as unknown as { drillVoid?: boolean }).drillVoid = true
+  saveGame('audit_void', g)
+  const loaded = loadGame('audit_void')!
+  check('the ghost flag is stripped on load',
+    (loaded as unknown as { drillVoid?: boolean }).drillVoid === undefined)
+  loaded.drill = { kind: 'map', map: 'Sunset' }
+  loaded.drillLock = loaded.day + 7
+  const before = loaded.teams[loaded.myTeam].mapPrefs['Sunset']
+  for (let i = 0; i < 8; i++) advanceDay(loaded, rng)
+  check('and the drill pays out even if it somehow survived',
+    loaded.teams[loaded.myTeam].mapPrefs['Sunset'] > before,
+    `${before} → ${loaded.teams[loaded.myTeam].mapPrefs['Sunset']}`)
+}
+
+// ---- the +2/周 promise holds even for a bad coach and bad facilities
+{
+  let total = 0
+  const runs = 24
+  for (let seed = 0; seed < runs; seed++) {
+    const g = mk()
+    g.teams[g.myTeam].coach = null
+    g.teams[g.myTeam].facilities = 40
+    g.drill = { kind: 'map', map: 'Sunset' }
+    g.drillLock = g.day + 7
+    const before = g.teams[g.myTeam].mapPrefs['Sunset']
+    const rng = new Rng(700 + seed)
+    for (let i = 0; i < 8; i++) advanceDay(g, rng)
+    total += g.teams[g.myTeam].mapPrefs['Sunset'] - before
+  }
+  const avg = total / runs
+  check('the weakest setup still averages about +2 a week', avg >= 1.7,
+    `均值 +${avg.toFixed(2)}/周`)
+}
+
+// ---- the 95 cap says so instead of going quiet
+{
+  const g = mk()
+  const rng = new Rng(12)
+  g.teams[g.myTeam].mapPrefs['Sunset'] = 94.9
+  g.drill = { kind: 'map', map: 'Sunset' }
+  g.drillLock = g.day + 7
+  const notes: string[] = []
+  for (let i = 0; i < 8; i++) notes.push(...(advanceDay(g, rng)?.notes ?? []))
+  check('at the cap, the drill explains itself',
+    notes.some((n) => n.includes('已到上限 95')), notes.filter((n) => n.includes('Sunset')).join(' | '))
+}
+
 process.exit(bad ? 1 : 0)

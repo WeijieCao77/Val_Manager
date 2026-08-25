@@ -142,7 +142,6 @@ export default function Tutorial({
     }
     // and a plan confirmed in an earlier session left the panel greyed out
     game.drillLock = undefined
-    game.drillVoid = false
     commit()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

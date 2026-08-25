@@ -147,12 +147,6 @@ export function drillTick(state: GameState, rng: Rng, notes: string[]): void {
 function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   const team = state.teams[state.myTeam]
   if (!team) return
-  // a week that was torn up mid-cycle produces nothing
-  if (state.drillVoid) {
-    state.drillVoid = false
-    notes.push('⚠️ 本周训练计划中途作废，团队训练没有产生效果。')
-    return
-  }
   runDuo(state, team, rng)
   const drill = state.drill
   if (!drill || drill.kind === 'none') return
@@ -175,7 +169,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       const mapEdge = 1 + analystEdge(state, 'maps') * 0.6
       // kept as a float: rounding every week swallowed the whole bonus, since
       // +2.0 and +2.4 both land on +2 and the remainder never carried forward
-      team.mapPrefs[drill.map] = clamp(before + gain(1.8) * mapEdge, 0, 95)
+      team.mapPrefs[drill.map] = clamp(before + gain(2.35) * mapEdge, 0, 95)
       for (const p of squad) {
         addXp(p, 'teamwork', gain(9))
         addXp(p, 'awareness', gain(5))
@@ -183,6 +177,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       }
       if (Math.round(team.mapPrefs[drill.map]) > Math.round(before)) {
         notes.push(`🗺 ${drill.map} 熟练度提升到 ${Math.round(team.mapPrefs[drill.map])}。`)
+      } else if (before >= 94.5) {
+        notes.push(`🗺 ${drill.map} 熟练度已到上限 95，继续跑图只能保持手感——换张图练吧。`)
       }
       break
     }

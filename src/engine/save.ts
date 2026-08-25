@@ -124,6 +124,11 @@ function migrate(state: GameState): GameState {
     p.injuredUntil ??= 0
   }
   repairClocks(state)
+  // Old saves serialized drillVoid: true from a mechanic that no longer sets
+  // it — left in place it swallowed the first seven-day drill's entire payout
+  // ("跑图7天但是没有涨地图熟练度"). Nothing reads it any more; clear it so
+  // an export/reimport cannot resurrect it either.
+  delete (state as { drillVoid?: boolean }).drillVoid
   pruneMatchDetail(state)
   return state
 }
