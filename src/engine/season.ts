@@ -813,8 +813,11 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         sp.bonus = Math.round(sp.bonus * factor)
       }
     }
-    reprice(promoted, 4.2)
-    reprice(relegated, 1 / 4.2)
+    // 2.5x, down from 4.2: with pitching capped at five deals and priced off
+    // standing, promotion should be a raise, not a lottery win. (The insolvency
+    // the 4.2 was fighting is gone — tier-2 upkeep is scaled separately now.)
+    reprice(promoted, 2.5)
+    reprice(relegated, 1 / 2.5)
     if (promoted.id === state.myTeam) {
       notes.push('💰 升入一级联赛后，赞助合同全部重新议价，收入大幅提高。')
     }

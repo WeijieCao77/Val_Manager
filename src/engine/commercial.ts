@@ -2,7 +2,7 @@ import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
 import { skillMod } from './manager'
 import { duoBonded } from './bonds'
-import type { GameState, Gig, GigKind, Player, SponsorTalk, StreamDeal, VentureKind } from './types'
+import type { GameState, Gig, GigKind, Player, SponsorTalk, StreamDeal, Team, VentureKind } from './types'
 
 /**
  * The commercial side of running a club.
@@ -330,18 +330,41 @@ function runVentures(state: GameState, rng: Rng, notes: string[]): void {
  * Costs nothing but the cooldown, and can simply come back no — a club nobody
  * has heard of does not land deals by asking harder.
  */
+/**
+ * How many sponsor deals a club can hold at once.
+ *
+ * Without a ceiling the pitch button compounded: every deal raised the asking
+ * price of the next, and a manager who pitched every fortnight held forty
+ * deals and twenty million a season by year two, while one who never found
+ * the button starved on his two starting contracts. Five is a real shirt's
+ * worth of logos.
+ */
+export const SPONSOR_MAX = 5
+
+/** What a sponsorship in this club's league is actually worth per season. */
+export function sponsorWorth(team: Team): number {
+  const tierBase = team.tier === 1 ? 320000 : 72000
+  return tierBase * (1 + team.reputation / 160)
+}
+
 export function pitchSponsor(state: GameState): string {
   if (state.pitchCooldown != null && state.pitchCooldown > state.day) {
     return `刚谈过一轮，${(state.pitchCooldown ?? 0) - state.day} 天后可以再找。`
   }
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
-  // 14 days, per the shorter cycle: a fortnight between approaches
-  state.pitchCooldown = state.day + 14
+  if (team.sponsors.length >= SPONSOR_MAX) {
+    return `赞助栏位已满（${SPONSOR_MAX} 家）——先解约一家才能再谈新的。`
+  }
+  // ten days between approaches: pitching is meant to be a habit, not a find
+  state.pitchCooldown = state.day + 10
 
   const rng = gigRng(state)
   const partner = rng.pick(PITCH_PARTNERS)
-  const base = team.sponsors.reduce((s, x) => s + x.perSeason, 0) / Math.max(1, team.sponsors.length)
+  // Priced off the club's standing, not off the deals it already holds — the
+  // old anchor was the average of existing contracts, which snowballed for
+  // the stacked and stayed pitiful for the empty-handed.
+  const base = sponsorWorth(team)
   const pull = skillMod(state.manager, 'business', 0.006)
 
   // what they want in return, which is what makes one deal different from
@@ -359,8 +382,8 @@ export function pitchSponsor(state: GameState): string {
     id: `SP${state.day}`,
     name: partner.name,
     industry: partner.industry,
-    base: Math.round(base * rng.range(0.3, 0.8) * pull * generous),
-    bonus: Math.round(base * rng.range(0.15, 0.45) * pull),
+    base: Math.round(base * rng.range(0.55, 1.0) * pull * generous),
+    bonus: Math.round(base * rng.range(0.2, 0.5) * pull),
     bonusPlacement: rng.int(2, 6),
     demands,
     day: state.day,
@@ -375,6 +398,34 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   const team = state.teams[state.myTeam]
   if (!team) return notes
+
+  // Sponsors also knock on their own. A club light on deals gets found —
+  // more readily when it has been winning — so a manager who never learns
+  // the pitch button still runs a solvent shop, just not a maximised one.
+  if (team.sponsors.length < 3 && (state.sponsorTalks ?? []).length < 3) {
+    const recentWins = state.fixtures.filter((f) =>
+      f.played && f.day >= state.day - 14 && f.comp !== 'scrim' &&
+      ((f.teamA === state.myTeam && (f.result?.mapsWonA ?? 0) > (f.result?.mapsWonB ?? 0)) ||
+       (f.teamB === state.myTeam && (f.result?.mapsWonB ?? 0) > (f.result?.mapsWonA ?? 0)))).length
+    if (rng.chance(0.012 + recentWins * 0.01)) {
+      const partner = rng.pick(PITCH_PARTNERS)
+      const base = sponsorWorth(team)
+      const talk: SponsorTalk = {
+        id: `SPIN${state.day}`,
+        name: partner.name,
+        industry: partner.industry,
+        base: Math.round(base * rng.range(0.45, 0.8)),
+        bonus: Math.round(base * rng.range(0.15, 0.4)),
+        bonusPlacement: rng.int(2, 6),
+        demands: [],
+        day: state.day,
+        replyOn: state.day,
+        answer: 'offer',
+      }
+      state.sponsorTalks = [...(state.sponsorTalks ?? []), talk]
+      notes.push(`🤝 ${talk.name} 主动找上门谈赞助${recentWins ? '——最近的战绩他们看见了' : ''}，条件已开出，等你答复。`)
+    }
+  }
   for (const t of state.sponsorTalks ?? []) {
     if (t.answer || t.replyOn > state.day) continue
     const odds = clamp(
@@ -405,6 +456,7 @@ export function signSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
   const team = state.teams[state.myTeam]
   if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
+  if (team.sponsors.length >= SPONSOR_MAX) return `赞助栏位已满（${SPONSOR_MAX} 家），先解约一家。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
     name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,
@@ -414,6 +466,20 @@ export function signSponsor(state: GameState, id: string): string {
     text: `🤝 ${team.name} 与 ${t.name} 达成赞助协议，保底 ${Math.round(t.base / 1000)}K/赛季。`,
   })
   return `已签下 ${t.name}，保底 ${Math.round(t.base / 1000)}K/赛季。`
+}
+
+/** Walk away from a signed sponsorship to free the slot. */
+export function dropSponsor(state: GameState, name: string): string {
+  const team = state.teams[state.myTeam]
+  if (!team) return '找不到俱乐部。'
+  const sp = team.sponsors.find((x) => x.name === name)
+  if (!sp) return '没有这份合同。'
+  team.sponsors = team.sponsors.filter((x) => x !== sp)
+  state.news.push({
+    day: state.day, kind: 'club',
+    text: `🤝 ${team.name} 与 ${sp.name} 的赞助合作提前结束。`,
+  })
+  return `已与 ${sp.name} 解约，本赛季剩余保底不再支付。`
 }
 
 export function declineSponsor(state: GameState, id: string): string {
@@ -502,9 +568,21 @@ export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
       p.stream = undefined
       continue
     }
-    const weekly = Math.round(p.stream.fee / Math.max(4, (p.stream.months ?? 12) * 4))
-    state.finances.balance += weekly
+    // a stream is an audience, not a salary: some weeks carry, some don't,
+    // and nothing fills a gift feed like winning on the weekend
+    const wins = state.fixtures.filter((f) =>
+      f.played && f.day >= state.day - 7 && f.comp !== 'scrim' &&
+      ((f.teamA === state.myTeam && (f.result?.mapsWonA ?? 0) > (f.result?.mapsWonB ?? 0)) ||
+       (f.teamB === state.myTeam && (f.result?.mapsWonB ?? 0) > (f.result?.mapsWonA ?? 0)))).length
+    const steady = p.stream.fee / Math.max(4, (p.stream.months ?? 12) * 4)
+    const weekly = Math.round(steady * rng.range(0.7, 1.35))
+    const gifts = wins ? Math.round(steady * 0.3 * wins * rng.range(0.8, 1.2)) : 0
+    state.finances.balance += weekly + gifts
     state.finances.log.push({ day: state.day, label: `直播分成 ${p.ign}`, amount: weekly })
+    if (gifts) {
+      state.finances.log.push({ day: state.day, label: `直播礼物 ${p.ign} · 赢下比赛人气上涨`, amount: gifts })
+      notes.push(`📺 ${p.ign} 直播间人气因胜利上涨，礼物收入 +$${(gifts / 1000).toFixed(1)}K。`)
+    }
     p.fatigue = clamp(p.fatigue + p.stream.nights * rng.range(1.6, 3.2), 0, 100)
     // a night streaming is a night not practising, though milder than a shoot
     if (p.stream.nights >= 3) {

@@ -3,15 +3,18 @@ import { skillMod } from './manager'
 import type { GameState, StageKey } from './types'
 
 /** Prize money by competition and placement (USD). */
+// Raised across the board after the group's "赚不到钱" week: a Challengers
+// title paid $40k against a season's wage bill, and winning the biggest event
+// in the game paid one million — trophies should move a balance sheet.
 export const PRIZE: Record<string, number[]> = {
-  kickoff: [200000, 120000, 70000, 45000, 25000, 25000, 12000, 12000],
-  stage1: [300000, 180000, 110000, 70000, 45000, 30000, 20000, 20000],
-  stage2: [300000, 180000, 110000, 70000, 45000, 30000, 20000, 20000],
-  masters1: [350000, 200000, 130000, 90000, 55000, 55000, 35000, 35000],
-  masters2: [350000, 200000, 130000, 90000, 55000, 55000, 35000, 35000],
-  champions: [1000000, 500000, 300000, 200000, 120000, 120000, 80000, 80000],
-  challengers1: [40000, 24000, 15000, 10000, 6000, 6000, 3000, 3000],
-  challengers2: [60000, 36000, 22000, 15000, 9000, 9000, 5000, 5000],
+  kickoff: [260000, 150000, 90000, 55000, 30000, 30000, 15000, 15000],
+  stage1: [380000, 220000, 135000, 85000, 55000, 38000, 25000, 25000],
+  stage2: [380000, 220000, 135000, 85000, 55000, 38000, 25000, 25000],
+  masters1: [500000, 280000, 180000, 120000, 70000, 70000, 45000, 45000],
+  masters2: [500000, 280000, 180000, 120000, 70000, 70000, 45000, 45000],
+  champions: [1500000, 750000, 420000, 280000, 160000, 160000, 100000, 100000],
+  challengers1: [90000, 52000, 32000, 20000, 12000, 12000, 6000, 6000],
+  challengers2: [130000, 75000, 45000, 30000, 18000, 18000, 10000, 10000],
 }
 
 export function awardPrize(state: GameState, stage: StageKey, order: string[]): void {

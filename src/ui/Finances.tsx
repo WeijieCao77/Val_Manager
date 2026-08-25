@@ -1,10 +1,11 @@
 import { useGame } from './ctx'
 import { Bar, Panel, money, moneyFull } from './common'
 import { sponsorIncome } from '../engine/finance'
+import { dropSponsor, SPONSOR_MAX } from '../engine/commercial'
 import { squadOf, wageBill } from '../engine/world'
 
 export default function Finances() {
-  const { game, openPlayer } = useGame()
+  const { game, commit, toast, openPlayer } = useGame()
   const me = game.teams[game.myTeam]
   const wages = wageBill(game, game.myTeam)
   const sponsors = sponsorIncome(game, game.myTeam)
@@ -47,11 +48,11 @@ export default function Finances() {
           </p>
         </Panel>
 
-        <Panel title="赞助合约" flush>
+        <Panel title={`赞助合约 · ${me.sponsors.length}/${SPONSOR_MAX} 栏位`} flush>
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>赞助商</th><th className="num">赛季收入</th><th className="num">达标名次</th><th className="num">奖金</th></tr>
+                <tr><th>赞助商</th><th className="num">赛季收入</th><th className="num">达标名次</th><th className="num">奖金</th><th className="sticky-act" /></tr>
               </thead>
               <tbody>
                 {me.sponsors.map((s) => (
@@ -60,6 +61,13 @@ export default function Finances() {
                     <td className="num mono">{money(s.perSeason)}</td>
                     <td className="num muted">前 {s.bonusPlacement}</td>
                     <td className="num mono pos">{money(s.bonus)}</td>
+                    <td className="sticky-act">
+                      <button className="sm ghost" onClick={() => {
+                        if (!window.confirm(`与 ${s.name} 解约？本赛季剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位立即空出。`)) return
+                        toast(dropSponsor(game, s.name))
+                        commit()
+                      }}>解约</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
