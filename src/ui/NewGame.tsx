@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createNewGame, WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
 import { setupSeason } from '../engine/season'
-import { importSave } from '../engine/save'
+import { importSave, listSaves, loadGame, protectAutosaveFrom } from '../engine/save'
 import { track } from '../engine/telemetry'
 import { hashStr } from '../engine/rng'
 import {
@@ -98,13 +98,24 @@ export default function NewGame({
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        onStart(importSave(String(reader.result)))
+        const g = importSave(String(reader.result))
+        // the first commit will write this over the autosave — if the autosave
+        // holds a newer career, tuck it into a rescue slot first
+        const rescued = protectAutosaveFrom(g)
+        onStart(g)
+        if (rescued) setErr(`原自动存档比导入的文件更新，已备份到「${rescued}」，可在下方读取。`)
       } catch (e) {
         setErr(e instanceof Error ? e.message : '存档读取失败。')
       }
     }
     reader.readAsText(file)
   }
+
+  // Manual slots used to be write-only: the 存档 screen offered 保存 and 删除,
+  // and its footnote pointed here — where nothing listed them. A player whose
+  // autosave went stale could see their newer save in the list and had no
+  // button anywhere that would open it.
+  const slots = listSaves().filter((m) => m.slot !== 'autosave')
 
   return (
     <div className="newgame">
@@ -123,6 +134,27 @@ export default function NewGame({
       </div>
 
       {/* ---------------------------------------------------------- 1 你是谁 */}
+      {slots.length > 0 && (
+        <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel-head"><h2>手动存档</h2></div>
+          <div className="panel-body" style={{ paddingTop: 8 }}>
+            {slots.slice(0, 6).map((m) => (
+              <div key={m.slot} className="row wrap" style={{ gap: 8, padding: '5px 0', alignItems: 'center' }}>
+                <b>{m.slot}</b>
+                <span className="small muted">{m.team} · {m.year} 年 D{m.day}</span>
+                <button className="sm right" onClick={() => {
+                  const g = loadGame(m.slot)
+                  if (g) onStart(g)
+                  else setErr(`存档「${m.slot}」已损坏，读不出来。`)
+                }}>
+                  读取
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="panel">
         <div className="panel-head"><h2>1 · 你是谁</h2></div>
         <div className="panel-body">

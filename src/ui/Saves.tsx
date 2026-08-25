@@ -4,7 +4,7 @@ import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
 
 export default function Saves() {
-  const { game, toast, startTutorial } = useGame()
+  const { game, toast, startTutorial, loadSlot } = useGame()
   const [slot, setSlot] = useState('')
   const [, setTick] = useState(0)
   const refresh = () => setTick((x) => x + 1)
@@ -12,10 +12,15 @@ export default function Saves() {
 
   const doSave = () => {
     const name = slot.trim() || `${game.teams[game.myTeam]?.name}-${game.year}`
-    saveGame(name, game)
-    setSlot('')
-    refresh()
-    toast(`已保存到「${name}」。`)
+    try {
+      saveGame(name, game)
+      setSlot('')
+      refresh()
+      toast(`已保存到「${name}」。`)
+    } catch {
+      // a thrown write used to look identical to success minus the toast
+      toast('⚠ 保存失败——浏览器存储写不进去。先「导出为文件」保住进度。')
+    }
   }
 
   const doExport = () => {
@@ -75,19 +80,30 @@ export default function Saves() {
                   <td className="num">{s.year}</td>
                   <td className="num mono">{s.day}</td>
                   <td className="small muted">{new Date(s.savedAt).toLocaleString('zh-CN')}</td>
-                  <td>
-                    <button
-                      className="sm ghost"
-                      onClick={() => {
-                        if (window.confirm(`删除存档「${s.slot}」？`)) {
-                          deleteSave(s.slot)
-                          refresh()
-                          toast('存档已删除。')
+                  <td className="sticky-act">
+                    <div className="row" style={{ gap: 6 }}>
+                      {/* the one verb this screen was missing: a slot could be
+                          written and deleted but never opened */}
+                      <button className="sm" onClick={() => {
+                        if (window.confirm(`读取「${s.slot === 'autosave' ? '自动存档' : s.slot}」？当前未保存的进度会被它替换。`)) {
+                          loadSlot(s.slot)
                         }
-                      }}
-                    >
-                      删除
-                    </button>
+                      }}>
+                        读取
+                      </button>
+                      <button
+                        className="sm ghost"
+                        onClick={() => {
+                          if (window.confirm(`删除存档「${s.slot}」？`)) {
+                            deleteSave(s.slot)
+                            refresh()
+                            toast('存档已删除。')
+                          }
+                        }}
+                      >
+                        删除
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -96,7 +112,7 @@ export default function Saves() {
           {!saves.length && <div className="empty">还没有存档。</div>}
         </div>
         <p className="tiny muted" style={{ padding: '10px 13px', margin: 0 }}>
-          读取存档请刷新页面后在开始界面选择。
+          点「读取」直接切换到该存档；开始界面也能读取手动存档。
         </p>
       </Panel>
 

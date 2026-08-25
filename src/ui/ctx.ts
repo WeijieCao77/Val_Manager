@@ -13,6 +13,8 @@ export interface GameCtxValue {
    * constructive one was behind an unlabelled click on the player's name.
    */
   openPlayer: (id: string, renew?: boolean) => void
+  /** replace the running game with a loaded save */
+  loadSlot: (slot: string) => void
   openMatch: (f: Fixture) => void
   /** hand a fixture to the live match view (watch or skip) */
   playLive: (f: Fixture) => void

@@ -17,7 +17,7 @@ import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
-import { autosave, hasAutosave, loadAutosave } from './engine/save'
+import { autosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
@@ -57,6 +57,7 @@ export default function App() {
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
   const [booted, setBooted] = useState(false)
+  const warnedSaveRef = useRef(false)
 
   useEffect(() => {
     setBooted(true)
@@ -69,12 +70,16 @@ export default function App() {
         autosave(gameRef.current)
       } catch (err) {
         // The game keeps running in memory, but the player's progress is no
-        // longer being written and nothing told them. At minimum we should
-        // know it is happening.
+        // longer being written. Say so once — a player who closes the tab
+        // without knowing loses everything since the failure began.
         track('error', {
           msg: `autosave: ${err instanceof Error ? err.name : 'unknown'}`,
           day: gameRef.current.day,
         })
+        if (!warnedSaveRef.current) {
+          warnedSaveRef.current = true
+          toast('⚠ 自动存档写入失败——进度只存在当前页面里。请到「存档」页导出为文件。')
+        }
       }
     }
   }, [])
@@ -96,6 +101,11 @@ export default function App() {
       commit,
       toast,
       openPlayer: (id: string, renew = false) => { setPlayerRenew(renew); setPlayerId(id) },
+      loadSlot: (slot: string) => {
+        const g = loadGame(slot)
+        if (g) { start(g); toast(`已读取「${slot === 'autosave' ? '自动存档' : slot}」。`) }
+        else toast(`存档「${slot}」读不出来。`)
+      },
       openMatch: setFixture,
       playLive: setLive,
       go: goScreen,
