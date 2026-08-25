@@ -9,7 +9,6 @@ import { activePool } from '../engine/match'
 import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
-import { cycleDays } from '../engine/actions'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
   facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, staffMarket, upgradeFacility,
@@ -109,9 +108,6 @@ export default function Training() {
 
   const drill = game.drill ?? { kind: 'none' as const }
   // the plan is only committed on 确定, so picking is free until then
-  // the plan is committed for one turn, not a fixed week: downtime advances a
-  // week at a time anyway, and in-season you should be able to react each day
-  const turn = cycleDays(game)
   // an unset lock must not read as "locked until day 0": the tutorial runs at
   // day -1, where `?? 0` made every untouched panel inert
   const locked = game.drillLock != null && game.drillLock > game.day
@@ -127,7 +123,8 @@ export default function Training() {
     game.duo = pair.length === 2 ? { a: pair[0], b: pair[1] } : undefined
     commit()
   }
-  const untilRun = 7 - (game.day % 7)
+  // days into the committed seven, for the progress bar
+  const drillDone = locked ? 7 - ((game.drillLock ?? game.day) - game.day) : 0
 
   const describe = () => {
     const d = game.drill
@@ -142,7 +139,8 @@ export default function Training() {
   }
 
   const confirmPlan = () => {
-    game.drillLock = game.day + turn
+    // seven days from confirmation — the lock is the settlement date
+    game.drillLock = game.day + 7
     const focus = squad
       .map((p) => {
         const f = game.training[p.id] ?? 'rest'
@@ -160,8 +158,8 @@ export default function Training() {
     <>
       <Panel
         title={`团队训练 · ${locked
-          ? `本回合已确定，推进后可重新安排`
-          : `${untilRun} 天后结算训练效果`}`}
+          ? `进行中 ${drillDone}/7 天`
+          : '确定后连续训练 7 天，期满结算'}`}
         className={locked ? '' : 'own'}
       >
         <p className="small muted" style={{ marginTop: 0 }}>
@@ -280,23 +278,25 @@ export default function Training() {
         <div className="row wrap" style={{ gap: 10, marginTop: 14, alignItems: 'center' }}>
           {locked ? (
             <>
-              <span className="tag t1">本回合已确定</span>
+              <span className="tag t1">训练中</span>
               <span className="small">{describe()}</span>
-              <span className="tiny faint">
-                · {untilRun} 天后结算训练效果，推进到下个回合就能改
+              <span className="row" style={{ gap: 8, alignItems: 'center' }}>
+                <span className="bar-track" style={{ width: 120, height: 6, background: 'var(--panel-2)', borderRadius: 3, overflow: 'hidden', display: 'inline-block' }}>
+                  <span style={{ display: 'block', height: '100%', width: `${Math.round(100 * drillDone / 7)}%`, background: 'var(--win)' }} />
+                </span>
+                <span className="tiny faint">{drillDone}/7 天 · 第 7 天结算效果</span>
               </span>
               <button className="sm ghost" onClick={() => {
                 if (!window.confirm(
-                  '撤销后，本周期的团队训练直接作废，不会产生任何效果。\n' +
-                  '新计划要等下一次结算才开始生效。确定吗？',
+                  `重选将荒废现有进度（已训练 ${drillDone}/7 天，不会产生任何效果），\n` +
+                  '新计划确定后重新从第 1 天数起。确定吗？',
                 )) return
                 game.drillLock = undefined
-                game.drillVoid = true
-                logActivity(game, 'training', '撤销本周训练计划（本周作废）')
+                logActivity(game, 'training', `撤销团队训练计划（荒废 ${drillDone}/7 天进度）`)
                 commit()
-                toast('本周团队训练已作废，新计划从下个周期开始生效。')
+                toast('已放弃当前训练进度。重新选好后点「确定」，从第 1 天重新数起。')
               }}>
-                改主意（本周作废）
+                重选（荒废进度）
               </button>
             </>
           ) : (

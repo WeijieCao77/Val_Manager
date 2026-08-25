@@ -125,6 +125,22 @@ function runDuo(state: GameState, team: Team, rng: Rng): void {
  * Each of these moves several things at once, which is the point: a team does
  * not improve by everyone grinding one stat in isolation.
  */
+/**
+ * Run the confirmed plan once its seven days are up.
+ *
+ * The drill used to settle on the calendar week (day % 7) while the lock
+ * lasted one turn — a single day in season. So the panel reopened every
+ * morning, six days of picks were placebo, and only whatever was confirmed
+ * last before the boundary counted. Now confirming starts a seven-day clock:
+ * the lock IS the settlement date, the panel stays locked until it runs, and
+ * tearing the plan up forfeits the progress and starts the count over.
+ */
+export function drillTick(state: GameState, rng: Rng, notes: string[]): void {
+  if (state.drillLock == null || state.day < state.drillLock) return
+  runDrill(state, rng, notes)
+  state.drillLock = undefined
+}
+
 function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   const team = state.teams[state.myTeam]
   if (!team) return
@@ -218,7 +234,6 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
 /** Weekly tick: training, condition, morale drift, injury rolls. */
 export function weeklyTick(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
-  runDrill(state, rng, notes)
   weeklyBonds(state, rng, notes)
   weeklyTrust(state, rng, notes)
   const missed = Object.entries(state.commercialDays ?? {})
@@ -228,8 +243,6 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
   if (missed.length) {
     notes.push(`📉 本周 ${missed.join('、')} 商务占用较多，训练收益明显下降。`)
   }
-  // the plan has now been run, so next week's is open to change again
-  state.drillLock = undefined
   for (const team of Object.values(state.teams)) {
     const isMine = team.id === state.myTeam
     for (const pid of team.roster) {

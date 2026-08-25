@@ -12,7 +12,7 @@ import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
-import { applyMatchFatigue, seasonRollover, weeklyTick } from './training'
+import { applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
 import { importBlock } from './imports'
@@ -731,6 +731,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   runGigsToday(state, notes)
   offerGigs(state, rng, notes)
   notes.push(...resolveSponsorTalks(state, rng))
+  drillTick(state, rng, notes)
   pruneMatchDetail(state)
 
   // ---- coaches and clubs answering today
