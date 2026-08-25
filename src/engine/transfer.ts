@@ -447,8 +447,10 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       continue
     }
 
-    // shopping for an upgrade
-    if (rng.chance(0.35) && room > 500000) {
+    // shopping for an upgrade — hungrier and less patient once the player's
+    // club has a world title to answer for
+    const rivalry = Math.min(state.rivalry ?? 0, 2)
+    if (rng.chance(0.35 + 0.1 * rivalry) && room > 500000 - 120000 * rivalry) {
       const need = weakestRole(state, team)
       if (!need) continue
       const candidates = Object.values(state.players).filter(
@@ -458,7 +460,11 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
           !importBlock(state, team.id, p) &&
           (p.listed || p.morale < 45 || rng.chance(0.05)),
       )
-      const target = candidates.sort((a, b) => b.overall - a.overall)[0]
+      // half credit for room to grow: a 84-rated 19-year-old with 92 potential
+      // outranks an 86-rated 28-year-old, which is how real rosters get rebuilt
+      const value = (p: { overall: number; potential: number }) =>
+        p.overall + Math.max(0, p.potential - p.overall) * 0.5
+      const target = candidates.sort((a, b) => value(b) - value(a))[0]
       if (!target) continue
       const fee = Math.round(askingPrice(target) * rng.range(0.9, 1.25))
       if (fee > room) continue
@@ -578,9 +584,13 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
   const mine = squadOf(state, state.myTeam)
   if (!mine.length) return
 
+  // A world champion's starters are everyone's shopping list. Rivalry makes
+  // the calls come more often and the money real — keeping a title-winning
+  // five together is supposed to cost something.
+  const rivalry = Math.min(state.rivalry ?? 0, 2)
   for (const team of Object.values(state.teams)) {
     if (team.id === state.myTeam) continue
-    if (!rng.chance(0.12)) continue
+    if (!rng.chance(0.12 + 0.05 * rivalry)) continue
 
     const need = weakestRole(state, team)
     const targets = mine.filter(
@@ -598,7 +608,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     // a club will pay the clause exactly when it can afford it
     const fee = clause > 0 && clause <= room
       ? clause
-      : Math.round(ask * rng.range(0.8, 1.2))
+      : Math.round(ask * rng.range(0.8, 1.2) * (1 + 0.15 * rivalry))
     if (fee > room) continue
 
     const terms: Contract = {

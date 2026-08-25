@@ -63,9 +63,12 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
     ? skillMod(state.manager, 'training') *
       (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1)
     : 1
+  // once the player's club has taken a world title, everyone else trains like
+  // they mean it — the gap the trophy proved is the gap they are closing
+  const chasing = mine ? 1 : 1 + 0.22 * Math.min(state.rivalry ?? 0, 2)
   const gain =
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
-    clamp(headroom / 12, 0.25, 1.6) * available * talent
+    clamp(headroom / 12, 0.25, 1.6) * available * talent * chasing
 
   p.xp[attr] = (p.xp[attr] ?? 0) + gain
   p.fatigue = clamp(p.fatigue + rng.range(5, 11), 0, 100)
@@ -382,6 +385,17 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
   const small: string[] = []
   for (const p of Object.values(state.players)) {
     p.age += 1
+    // Scouts re-rate the young every winter. A prospect who has nearly caught
+    // his projection sometimes turns out to have been under-rated — that is
+    // where next season's headroom comes from, for the AI's academy kids and
+    // the player's alike. Rivalry makes the rest of the world's kids likelier
+    // to be pushed: clubs chasing a champion coach their youth harder.
+    if (p.age <= 23 && p.potential - p.overall < 4 && p.potential < 97) {
+      const pushed = p.teamId !== state.myTeam && (state.rivalry ?? 0) > 0
+      if (rng.chance(pushed ? 0.45 : 0.28)) {
+        p.potential = clamp(p.potential + rng.int(1, 3), p.potential, 99)
+      }
+    }
     const drift = ageDrift(p)
     const headroom = p.potential - p.overall
 

@@ -147,6 +147,13 @@ export function createNewGame(
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
     players[rp.id] = {
       ...rp,
+      // The spread is shallow. Nested objects that the game MUTATES must be
+      // copied, or every career in one page session shares them with the
+      // imported world file — the roster array taught this lesson below, and
+      // attrs re-taught it when a test that rolled many worlds watched its
+      // "fresh" players arrive pre-trained by the previous world's seasons.
+      attrs: { ...rp.attrs },
+      traits: rp.traits ? [...rp.traits] : rp.traits,
       // the scrape leaves this null when vlr does not record a join date
       joined: rp.joined ?? undefined,
       region: rp.region as Player['region'],
@@ -155,7 +162,7 @@ export function createNewGame(
       // the agents this player really used, where we have them; otherwise a
       // plausible pool for the roles they cover
       agentPool: rp.agentPool?.length
-        ? rp.agentPool
+        ? [...rp.agentPool]
         : ((rp.roles as Role[] | undefined) ?? [rp.role as Role])
             .flatMap((r) => pickAgents(r, prng)),
       season: emptyStats(),
@@ -180,6 +187,7 @@ export function createNewGame(
       // that belonged to nobody. Anything that walks the roster counted him;
       // anything that went via teamId did not.
       roster: [...rt.roster],
+      coach: rt.coach ? { ...rt.coach } : rt.coach,
       region: rt.region as Team['region'],
       tier: rt.tier as Team['tier'],
       starters: [],

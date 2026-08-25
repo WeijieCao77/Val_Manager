@@ -161,7 +161,7 @@ function qualifiersFrom(state: GameState, stage: StageKey, perRegion: number): s
  * written was who won the thing. Our own finish and what it cost now go into
  * the turn's digest.
  */
-function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
+export function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
   if (comp.awarded || !comp.champion) return
   comp.awarded = true
 
@@ -184,6 +184,16 @@ function settleCompetition(state: GameState, comp: Competition, notes: string[] 
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })
     state.boardConfidence = clamp(state.boardConfidence + 14, 0, 100)
+    // A world title paints a target on the club. The league answers: harder
+    // training and hungrier recruitment everywhere else, so the second trophy
+    // has to be earned against a better world than the first.
+    if (!comp.region) {
+      state.rivalry = (state.rivalry ?? 0) + 1
+      state.news.push({
+        day: state.day, kind: 'league', important: true,
+        text: `🔥 ${champ?.name} 的 ${comp.name} 冠军震动了各赛区——多家俱乐部宣布加练备战，休赛期引援预计更加激进。`,
+      })
+    }
     // winning is what actually makes your name
     if (state.manager) {
       const worth = comp.region ? 2.5 : 6   // an international title counts for more

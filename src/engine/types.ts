@@ -755,6 +755,13 @@ export interface GameState {
   }
   /** career-long honours for the managed club */
   honours: { year: number; title: string }[]
+  /**
+   * How many international titles the player's club has taken, and so how hard
+   * the rest of the world is chasing. Every Masters or Champions trophy raises
+   * it: AI clubs train harder and recruit for potential, not just today's
+   * rating. Undefined on old saves means nobody has been provoked yet.
+   */
+  rivalry?: number
   /** last processed match ids so the UI can surface results */
   lastResults: string[]
   boardConfidence: number
