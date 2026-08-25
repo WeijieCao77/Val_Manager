@@ -1088,6 +1088,17 @@ def main():
             guessed_igl.append(tag)
         igl["isIgl"] = True
         igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
+        # A club's trusted caller calls at the club's level. The attribute is
+        # derived from APR/KAST, and a real IGL's value is precisely what those
+        # numbers cannot see — Boaster's whole style is sacrificing his own
+        # line to run the team, which priced the FNATIC and EDG title-winning
+        # callers (Boaster 71, nobody 77) below mid-table fraggers. So the
+        # designated caller's igl is floored at his squad's strength: strong
+        # sides keep strong callers, weak sides keep modest ones, and nobody
+        # is lowered — a caller already rated above his club stays there.
+        top5 = sorted((q["overall"] for q in squad), reverse=True)[:5]
+        squad_level = sum(top5) / max(1, len(top5))
+        igl["attrs"]["igl"] = int(clamp(max(igl["attrs"]["igl"], round(squad_level)), 40, 96))
         igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
         igl["overall"] = int(round(clamp(
             sum(igl["attrs"][k] * ROLE_WEIGHT.get(igl["role"], ATTR_WEIGHT)[k] for k in ATTRS)

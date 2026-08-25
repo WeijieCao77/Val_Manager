@@ -186,6 +186,17 @@ def main() -> int:
     else:
         check("a named IGL is on the roster he is named for", True)
 
+    # The caller's rating is floored at his squad's level: the attribute is
+    # derived from APR/KAST, which is blind to exactly what a real IGL gives up
+    # to call — Boaster priced at 71 on an 87-rated FNATIC until this rule.
+    weak_callers = []
+    for t in teams:
+        caller = next((P[r] for r in t["roster"] if r in P and P[r].get("isIgl")), None)
+        if caller and caller["attrs"]["igl"] < min(t["rating"], 96) - 2:
+            weak_callers.append((t["tag"], t["rating"], caller["ign"], caller["attrs"]["igl"]))
+    check("a designated caller calls at his club's level", not weak_callers,
+          str(weak_callers[:4]))
+
     check("exactly one IGL named per club",
           all(n == 1 for _, n in igl_counts),
           str([x for x in igl_counts if x[1] != 1][:5]))
