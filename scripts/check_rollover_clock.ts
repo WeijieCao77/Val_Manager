@@ -37,6 +37,16 @@ const cdBefore = (g.pitchCooldown ?? 0) - g.day
 check('a pitch cooldown is a fortnight when set', cdBefore <= 14, `${cdBefore} 天`)
 
 // 2) a transfer bid whose answer lands past the rollover
+// (the roster cap now refuses an eighth man, so make room first)
+{
+  const me = g.teams[g.myTeam]
+  while (me.roster.length >= 7) {
+    const cutId = me.roster[me.roster.length - 1]
+    me.roster = me.roster.filter((id) => id !== cutId)
+    me.starters = me.starters.filter((id) => id !== cutId)
+    g.players[cutId].teamId = null
+  }
+}
 g.finances.balance = 50_000_000
 const mark = Object.values(g.players)
   .filter((p) => p.teamId && p.teamId !== g.myTeam)

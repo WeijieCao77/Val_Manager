@@ -8,6 +8,7 @@ import type { Role } from '../engine/types'
 import { activePool } from '../engine/match'
 import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
+import { doPhysio, physioBlock, PHYSIO_COST } from '../engine/training'
 import { useAction } from './useAction'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
@@ -381,6 +382,38 @@ export default function Training() {
               })}
             </tbody>
           </table>
+        </div>
+      </Panel>
+
+      <Panel title={`理疗室 · 每次 ${money(PHYSIO_COST)}`}>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          花钱不花行动力：一次理疗<b>大幅恢复体能</b>；如果人正在伤停，还会<b>缩短复出时间</b>。
+          每名选手每 7 天最多一次。体能是伤病的根源——50 以下几乎不会受伤。
+        </p>
+        <div className="row wrap" style={{ gap: 8 }}>
+          {squad.map((p) => {
+            const why = physioBlock(game, p.id)
+            const hurt = p.injuredUntil > game.day
+            return (
+              <button
+                key={p.id}
+                className="sm"
+                disabled={!!why}
+                title={why ?? (hurt ? '恢复体能并缩短伤停' : '恢复体能')}
+                onClick={() => {
+                  const note = doPhysio(game, p.id)
+                  if (note) {
+                    logActivity(game, 'training', note)
+                    toast(note)
+                    commit()
+                  }
+                }}
+              >
+                💆 {p.ign}
+                <span className="tiny faint"> 体能 {Math.round(100 - p.fatigue)}{hurt ? ` · 伤停 ${p.injuredUntil - game.day} 天` : ''}</span>
+              </button>
+            )
+          })}
         </div>
       </Panel>
 

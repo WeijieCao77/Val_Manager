@@ -762,6 +762,8 @@ export interface GameState {
    * rating. Undefined on old saves means nobody has been provoked yet.
    */
   rivalry?: number
+  /** day each player last had physio, so a session is once a week per player */
+  physioOn?: Record<string, number>
   /** last processed match ids so the UI can surface results */
   lastResults: string[]
   boardConfidence: number

@@ -7,6 +7,23 @@ import { skillMod } from './manager'
 import { trustOf, trustOnDeparture, TRUST_START } from './trust'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 
+/**
+ * The active-roster ceiling, matching how real circuits register players.
+ *
+ * Without it the meta was to hoard: buy eight, nine, ten players and farm 商务
+ * with a bench that never scrims. Acquisitions stop at seven; a squad already
+ * over keeps its players — the rule gates signings, it does not force sales.
+ */
+export const ROSTER_MAX = 7
+
+export function rosterBlock(state: GameState, teamId: string): string | null {
+  const team = state.teams[teamId]
+  if (!team || team.roster.length < ROSTER_MAX) return null
+  return teamId === state.myTeam
+    ? `正式名单已满（${ROSTER_MAX}/${ROSTER_MAX}）——现实的参赛名单也有人数上限，先放走一人再签。`
+    : `${team.name} 的名单已满。`
+}
+
 export const TRANSFER_WINDOWS: [number, number][] = [
   [0, 20],    // 季前
   [169, 194], // Masters II 期间的短窗口
@@ -278,6 +295,8 @@ export function doTransfer(
   if (from && !canSell(state, p)) return false
   // and one that would put the buyer over the import limit, when the rule is on
   if (importBlock(state, toTeamId, p)) return false
+  // and one that would take any club past the seven-man roster ceiling
+  if (rosterBlock(state, toTeamId)) return false
 
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
@@ -711,6 +730,8 @@ export const INTEREST_CN = {
 export function enquireAbout(state: GameState, playerId: string): string {
   const shut = windowBlock(state)
   if (shut) return shut
+  const full = rosterBlock(state, state.myTeam)
+  if (full) return full
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
   if (!p.teamId) return '他是自由人，直接报价即可。'
@@ -787,6 +808,7 @@ export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer | null {
   if (windowBlock(state)) return null
+  if (rosterBlock(state, toTeam)) return null
   // nobody signs on the spot: the other side takes a week or so to come back,
   // and a rival can get there first in the meantime
   const rng = new Rng(hashStr(`offer:${state.seed}:${playerId}:${state.day}`))
@@ -876,7 +898,7 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     return '资金不足，无法支付这笔转会费。'
   }
   {
-    const blocked = importBlock(state, offer.toTeam, p)
+    const blocked = importBlock(state, offer.toTeam, p) ?? rosterBlock(state, offer.toTeam)
     if (blocked) {
       offer.status = 'rejected'
       return blocked

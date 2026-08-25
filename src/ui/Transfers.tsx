@@ -6,7 +6,7 @@ import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Club, clubMatches, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
-  INTEREST_CN, makeOffer, windowBlock, windowOpen,
+  INTEREST_CN, makeOffer, rosterBlock, windowBlock, windowOpen,
 } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { IMPORT_MAX, importCount, isImport } from '../engine/imports'
@@ -434,7 +434,7 @@ export default function Transfers() {
           onSubmit={(fee, terms) => act('offer', () => {
             const offer = makeOffer(game, target.id, game.myTeam, fee, terms)
             if (!offer) {
-              toast(windowBlock(game) ?? '现在不能报价。')
+              toast(windowBlock(game) ?? rosterBlock(game, game.myTeam) ?? '现在不能报价。')
               setTarget(null)
               return
             }

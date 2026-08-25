@@ -45,10 +45,10 @@ export const HIGHLIGHT_TEMPLATES = {
 }
 
 export const INJURIES = [
-  { note: '手腕劳损', days: [7, 21] },
-  { note: '腱鞘炎复发', days: [10, 28] },
-  { note: '颈椎不适', days: [5, 14] },
-  { note: '重感冒', days: [3, 8] },
-  { note: '心理疲劳 / 需要休息', days: [7, 18] },
-  { note: '肩部拉伤', days: [9, 24] },
+  { note: '手腕劳损', days: [5, 14] },
+  { note: '腱鞘炎复发', days: [7, 18] },
+  { note: '颈椎不适', days: [4, 10] },
+  { note: '重感冒', days: [2, 6] },
+  { note: '心理疲劳 / 需要休息', days: [5, 12] },
+  { note: '肩部拉伤', days: [6, 16] },
 ]

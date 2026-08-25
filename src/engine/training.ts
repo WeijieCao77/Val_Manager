@@ -253,7 +253,10 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       if (!p) continue
 
       if (p.injuredUntil > state.day) {
-        p.fatigue = clamp(p.fatigue - 8, 0, 100)
+        // an injured player is resting properly — send him back recovered, or
+        // he returns at the same fatigue that got him hurt and goes straight
+        // back on the table
+        p.fatigue = clamp(p.fatigue - 15, 0, 100)
         p.morale = clamp(p.morale - 1.5, 0, 100)
         continue
       }
@@ -310,7 +313,14 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       // so in practice only the flat 0.004 ever fired — 0.9 injuries a season
       // across a whole squad. It now starts inside the band a working squad
       // actually occupies (settled p50 34, p90 48).
-      const risk = (0.005 + Math.max(0, p.fatigue - 40) * 0.0012 + Math.max(0, p.age - 27) * 0.002) *
+      // Condition is the gate: under 45 fatigue a player is essentially safe,
+      // and age only taxes the already-tired. Whoever just came off the
+      // physio table is being watched — a quarter of the normal risk for two
+      // weeks — because "he pulled the same wrist twice in a month" was the
+      // single most reported way this system felt unfair.
+      const load = Math.max(0, p.fatigue - 45) / 55
+      const grace = p.injuredUntil > 0 && state.day - p.injuredUntil < 14 ? 0.25 : 1
+      const risk = (0.001 + load * (0.018 + Math.max(0, p.age - 27) * 0.002)) * grace *
         (isMine ? 2 - skillMod(state.manager, 'medical', 0.008) : 1)
       if (rng.chance(risk)) {
         const inj = rng.pick(INJURIES)
@@ -367,7 +377,8 @@ export function applyMatchFatigue(
     // rolls, and it is the tired who get hurt rather than everyone equally.
     if (p.injuredUntil > state.day) continue
     const load = Math.max(0, p.fatigue - 40) / 60           // 0 at 40, 1 at 100
-    const risk = (0.003 + load * 0.03) * (mapsPlayed / 3) *
+    const grace = p.injuredUntil > 0 && state.day - p.injuredUntil < 14 ? 0.25 : 1
+    const risk = (0.002 + load * 0.026) * (mapsPlayed / 3) * grace *
       (isMine ? 2 - skillMod(state.manager, 'medical', 0.008) : 1)
     if (!rng.chance(risk)) continue
     const inj = rng.pick(INJURIES)
@@ -438,4 +449,42 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
   // before, and the squad screen shows no history to compare against.
   if (small.length) notes.push(`📊 其余小幅变化：${small.join('、')}`)
   return notes
+}
+
+/** What one physio session costs. Money, not action points — it is upkeep. */
+export const PHYSIO_COST = 8000
+
+/**
+ * A paid physio session for one player.
+ *
+ * Fatigue is the whole injury model's gate, so this is the lever the players
+ * asked for by name: pay a little, get condition back. It also shaves an
+ * active injury — treatment shortens recovery, it does not skip it. Once a
+ * week per player, because a credit card is not a medical staff.
+ */
+export function physioBlock(state: GameState, pid: string): string | null {
+  const p = state.players[pid]
+  if (!p || p.teamId !== state.myTeam) return '他不是我们的人。'
+  const last = state.physioOn?.[pid]
+  if (last !== undefined && state.day - last < 7) {
+    return `本周已做过理疗（${7 - (state.day - last)} 天后可再约）。`
+  }
+  if (state.finances.balance < PHYSIO_COST) return '资金不足。'
+  return null
+}
+
+export function doPhysio(state: GameState, pid: string): string | null {
+  if (physioBlock(state, pid)) return null
+  const p = state.players[pid]
+  state.finances.balance -= PHYSIO_COST
+  state.finances.log.push({ day: state.day, label: `理疗 · ${p.ign}`, amount: -PHYSIO_COST })
+  state.physioOn = { ...(state.physioOn ?? {}), [pid]: state.day }
+  p.fatigue = clamp(p.fatigue - 35, 0, 100)
+  if (p.injuredUntil > state.day) {
+    const left = p.injuredUntil - state.day
+    const cut = Math.max(2, Math.round(left * 0.3))
+    p.injuredUntil = Math.max(state.day + 1, p.injuredUntil - cut)
+    return `${p.ign} 完成理疗：体能恢复，伤情好转，预计提前 ${cut} 天复出。`
+  }
+  return `${p.ign} 完成理疗：体能大幅恢复。`
 }
