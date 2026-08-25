@@ -799,6 +799,33 @@ export function stripRoundLogs(result: MatchResult): void {
   for (const m of result.maps) delete m.rounds
 }
 
+/**
+ * Old matches keep their score and lose their paperwork.
+ *
+ * Every played match in the league kept its per-player lines, veto log and
+ * highlights for the whole season — a thousand matches deep, the save grew to
+ * 5.7MB of JSON (11MB as UTF-16 in storage) and localStorage refused every
+ * autosave from about day 200 onward. Sixty thousand QuotaExceededErrors on
+ * the dashboard were this. Our own matches keep full detail all season; other
+ * clubs' matches older than a fortnight keep the result and the MVP, which is
+ * all any screen shows for them by then.
+ */
+export function pruneMatchDetail(state: GameState): void {
+  const cutoff = state.day - 14
+  for (const f of state.fixtures) {
+    if (!f.played || !f.result || f.day >= cutoff) continue
+    if (f.teamA === state.myTeam || f.teamB === state.myTeam) continue
+    if (f.result.vetoLog.length === 0 && f.result.highlights.length === 0) continue
+    f.result.vetoLog = []
+    f.result.highlights = []
+    for (const m of f.result.maps) {
+      m.lines = {}
+      delete m.edge
+      delete m.rounds
+    }
+  }
+}
+
 // ---------------------------------------------------------------- match
 
 export function simulateMatch(

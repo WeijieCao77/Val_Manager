@@ -89,4 +89,34 @@ while (guard++ < 15 && off.status === 'pending') advanceDay(g, rng)
 check('the bid actually gets its answer in the new season',
   off.status !== 'pending', `status=${off.status}`)
 
+// ---- a sponsor's terms survive the seven-day stride
+// The success branch never recorded an answer, so the same talk re-entered the
+// resolver every day and re-rolled the odds — seven re-rolls per offseason
+// turn, so it nearly always hit the rejection branch before the player saw it.
+{
+  const g2 = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260825)
+  setupSeason(g2)
+  const { pitchSponsor: pitch, signSponsor } = await import('../src/engine/commercial')
+  const rng2 = new Rng(21)
+  let offered = 0, signed = 0, tries = 0
+  while (tries < 30) {
+    g2.pitchCooldown = 0
+    pitch(g2)
+    tries++
+    for (let i = 0; i < 21; i++) advanceDay(g2, rng2)   // three strides past the reply
+    const t = (g2.sponsorTalks ?? []).find((x) => x.answer === 'offer')
+    if (t) {
+      offered++
+      const before = g2.teams[g2.myTeam].sponsors.length
+      signSponsor(g2, t.id)
+      if (g2.teams[g2.myTeam].sponsors.length === before + 1) signed++
+      break
+    }
+  }
+  check('an offer survives weeks untouched and still signs',
+    offered > 0 && signed > 0, `${tries} 次尝试后拿到并签下`)
+  const reRolled = (g2.sponsorTalks ?? []).some((t) => !t.answer && t.replyOn <= g2.day)
+  check('no talk keeps re-rolling after its reply day', !reRolled)
+}
+
 process.exit(bad ? 1 : 0)

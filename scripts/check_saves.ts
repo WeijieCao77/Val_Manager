@@ -137,4 +137,42 @@ const mk = (seed: number) => {
   check('and leaves no half-written autosave', loadAutosave() === null)
 }
 
+// ---- the save must fit in localStorage at its season-peak, not just on day 1
+{
+  const g = mk(11)
+  const rng = new Rng(12)
+  let guard = 0
+  while (!g.gameOver && guard++ < 260 && g.day < 250) advanceDay(g, rng)
+  const kb = Math.round(JSON.stringify(g).length / 1024)
+  check('a late-season save stays under quota', kb < 2600,
+    `${kb}KB @ D${g.day}（此前同点 ~5000KB，浏览器约 2.5MB 字符额度）`)
+  const mineKept = g.fixtures.filter((f) => f.played && f.day < g.day - 14 &&
+    (f.teamA === g.myTeam || f.teamB === g.myTeam) &&
+    f.result!.maps.some((m) => Object.keys(m.lines).length > 0)).length
+  const foreignStripped = g.fixtures.filter((f) => f.played && f.day < g.day - 14 &&
+    f.teamA !== g.myTeam && f.teamB !== g.myTeam).filter((f) =>
+    f.result!.maps.every((m) => Object.keys(m.lines).length === 0)).length
+  const foreignOld = g.fixtures.filter((f) => f.played && f.day < g.day - 14 &&
+    f.teamA !== g.myTeam && f.teamB !== g.myTeam).length
+  check('our own matches keep their stat lines all season', mineKept > 10, `${mineKept} 场`)
+  check('old foreign matches are stripped to the score',
+    foreignOld > 0 && foreignStripped === foreignOld, `${foreignStripped}/${foreignOld}`)
+}
+
+// ---- a save corrupted by a pre-fix rollover heals on load
+{
+  const g = mk(13)
+  g.offers.push({
+    id: 'stale', playerId: Object.keys(g.players)[0], fromTeam: null, toTeam: g.myTeam,
+    fee: 1, salary: 1, years: 1, day: g.day, respondOn: g.day + 320, status: 'pending',
+  } as never)
+  g.pitchCooldown = g.day + 300
+  const healed = importSave(exportSave(g))
+  const off2 = healed.offers.find((o) => o.id === 'stale')!
+  check('a 320-day pending bid is pulled back within reach',
+    (off2.respondOn ?? 0) - healed.day <= 15, `还需 ${(off2.respondOn ?? 0) - healed.day} 天`)
+  check('a season-long pitch cooldown is cleared',
+    (healed.pitchCooldown ?? 0) - healed.day <= 14)
+}
+
 process.exit(bad ? 1 : 0)

@@ -100,7 +100,7 @@ export default function Commercial() {
           </span>
         </div>
 
-        {(game.sponsorTalks ?? []).filter((t) => !t.answer && t.replyOn <= game.day).map((t) => (
+        {(game.sponsorTalks ?? []).filter((t) => t.answer === 'offer').map((t) => (
           <div key={t.id} className="drill-card own" style={{ marginBottom: 12 }}>
             <div className="row wrap" style={{ gap: 8, alignItems: 'baseline' }}>
               <b style={{ fontSize: 15 }}>{t.name}</b>

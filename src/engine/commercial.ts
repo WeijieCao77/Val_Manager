@@ -381,7 +381,13 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
       0.32 + (team.reputation - 55) * 0.012 + state.honours.length * 0.03, 0.1, 0.85,
     ) * skillMod(state.manager, 'business', 0.008)
     if (rng.chance(odds)) {
-      // terms are on the table; the manager decides
+      // Terms are on the table; the manager decides. This MUST be recorded:
+      // without an answer the same talk re-entered this loop every day and
+      // re-rolled the odds — an offseason turn strides seven days, so one turn
+      // re-rolled it up to seven times and it almost always landed on the
+      // rejection branch before the player ever saw the offer. "商务一般三天
+      // 给回复，休赛期一跳七天，没给回复对面就直接拒绝了" — exactly that.
+      t.answer = 'offer'
       notes.push(`🤝 ${t.name} 提出了赞助方案，等待你答复。`)
     } else {
       t.answer = 'reject'
@@ -390,7 +396,7 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
     }
   }
   state.sponsorTalks = (state.sponsorTalks ?? [])
-    .filter((t) => t.answer !== 'reject' || t.replyOn > state.day - 14)
+    .filter((t) => (t.answer !== 'reject' && t.answer !== 'accept') || t.replyOn > state.day - 14)
   return notes
 }
 
@@ -398,7 +404,7 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
 export function signSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
   const team = state.teams[state.myTeam]
-  if (!t || !team || t.answer) return '这份方案已经失效。'
+  if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
     name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,
@@ -412,7 +418,7 @@ export function signSponsor(state: GameState, id: string): string {
 
 export function declineSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
-  if (!t) return '这份方案已经失效。'
+  if (!t || t.answer !== 'offer') return '这份方案已经失效。'
   t.answer = 'reject'
   t.reason = '你拒绝了这份条件'
   return `已拒绝 ${t.name} 的方案。`

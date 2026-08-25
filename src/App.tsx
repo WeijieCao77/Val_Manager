@@ -75,6 +75,8 @@ export default function App() {
         track('error', {
           msg: `autosave: ${err instanceof Error ? err.name : 'unknown'}`,
           day: gameRef.current.day,
+          kb: warnedSaveRef.current ? undefined
+            : Math.round(JSON.stringify(gameRef.current).length / 1024),
         })
         if (!warnedSaveRef.current) {
           warnedSaveRef.current = true

@@ -1,5 +1,5 @@
 import { Rng, clamp, hashStr } from './rng'
-import { applyMatchStats, simulateMatch, stripRoundLogs } from './match'
+import { applyMatchStats, pruneMatchDetail, simulateMatch, stripRoundLogs } from './match'
 import type { MatchResult } from './types'
 import {
   CHAMP_POINTS, advanceBracket, applyResultToStandings, makeFixture, newStandings,
@@ -730,6 +730,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   runGigsToday(state, notes)
   offerGigs(state, rng, notes)
   notes.push(...resolveSponsorTalks(state, rng))
+  pruneMatchDetail(state)
 
   // ---- coaches and clubs answering today
   notes.push(...resolveApproaches(state, rng))

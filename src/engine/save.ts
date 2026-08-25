@@ -1,3 +1,4 @@
+import { pruneMatchDetail } from './match'
 import type { GameState } from './types'
 
 const PREFIX = 'valmanager:save:'
@@ -122,7 +123,47 @@ function migrate(state: GameState): GameState {
     p.agentPool ??= []
     p.injuredUntil ??= 0
   }
+  repairClocks(state)
+  pruneMatchDetail(state)
   return state
+}
+
+/**
+ * Straighten timers that a pre-fix rollover left a season in the future.
+ *
+ * The rollover used to zero the calendar without moving anything scheduled on
+ * it, so saves that crossed a season boundary before the rebase shipped carry
+ * bids answered in "304 天", sponsors replying next year, and injuries a
+ * season long. The rebase only runs at the moment of rollover, which such a
+ * save has already passed — so the repair happens here, on load, by clamping
+ * anything beyond its horizon down to a few days out. The normal pipeline
+ * then resolves it with its normal words.
+ */
+function repairClocks(state: GameState): void {
+  const d = state.day
+  const clamp = (v: number | undefined, horizon: number, to: number): number | undefined =>
+    v != null && v > d + horizon ? d + to : v
+  for (const o of state.offers) {
+    if (o.status === 'pending') o.respondOn = clamp(o.respondOn, 15, 2)
+  }
+  for (const e of state.enquiries ?? []) if (!e.answer) e.replyOn = clamp(e.replyOn, 8, 2)!
+  for (const t of state.sponsorTalks ?? []) if (!t.answer) t.replyOn = clamp(t.replyOn, 6, 1)!
+  for (const o of state.staffOffers ?? []) if (!o.answer) o.replyOn = clamp(o.replyOn, 12, 2)!
+  for (const a of state.staffApproaches ?? []) if (!a.answer) a.replyOn = clamp(a.replyOn, 12, 2)!
+  for (const j of state.jobApplications ?? []) j.replyOn = clamp(j.replyOn, 15, 2)!
+  for (const j of state.jobOffers ?? []) j.expiresOn = clamp(j.expiresOn, 20, 5)!
+  for (const g of state.gigs ?? []) {
+    g.expiresOn = clamp(g.expiresOn, 30, 5)!
+    if (g.day > d + 40) g.day = d + 7
+    if (g.windowEnd != null) g.windowEnd = clamp(g.windowEnd, 40, 10)
+  }
+  for (const v of state.ventures ?? []) if (v.day > d + 40) v.day = d + 7
+  if (state.pitchCooldown != null && state.pitchCooldown > d + 14) state.pitchCooldown = d
+  if (state.drillLock != null && state.drillLock > d + 7) state.drillLock = undefined
+  for (const p of Object.values(state.players)) {
+    if (p.injuredUntil > d + 45) p.injuredUntil = d + 10
+    if (p.stream && p.stream.until > d + 200) p.stream.until = d + 84
+  }
 }
 
 export function exportSave(state: GameState): string {

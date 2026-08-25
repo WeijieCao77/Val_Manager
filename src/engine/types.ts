@@ -462,7 +462,8 @@ export interface SponsorTalk {
   demands: { key: 'gigs' | 'placing' | 'stream' | 'exclusive'; text: string }[]
   day: number
   replyOn: number
-  answer?: 'accept' | 'reject'
+  /** 'offer' = terms are on the table, waiting for the manager */
+  answer?: 'offer' | 'accept' | 'reject'
   reason?: string
 }
 

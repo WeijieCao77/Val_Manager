@@ -66,6 +66,7 @@ const NUMERIC_MAX = {
   honours: 1_000,
   place: 100,
   age: 120,
+  kb: 100_000,
   w: 20_000,
   h: 20_000,
   left: 100_000,
