@@ -45,6 +45,27 @@ export function awardPrize(state: GameState, stage: StageKey, order: string[]): 
   })
 }
 
+/**
+ * What a week of keeping the lights on costs.
+ *
+ * Exported because the finance screen used to carry its own copy of this sum
+ * and had never learned about the tier scale — it showed a profitable
+ * Challengers club a red annual loss, sign and all. One formula, two readers.
+ */
+export function weeklyUpkeep(state: GameState, teamId: string): number {
+  const team = state.teams[teamId]
+  if (!team) return 0
+  // Operating costs scale with the tier the club actually competes in: a
+  // Challengers org does not fly to Masters, does not carry a VCT support
+  // staff, and does not run a VCT facility.
+  const scale = team.tier === 1 ? 1 : 0.35
+  return Math.round((team.facilities * 900 + squadOf(state, teamId).length * 1400) / 4 * scale)
+}
+
+/** A season of the same, as the finance screen projects it. */
+export const seasonUpkeep = (state: GameState, teamId: string): number =>
+  weeklyUpkeep(state, teamId) * 48
+
 /** Weekly payroll and sponsorship, charged to every club. */
 export function weeklyFinance(state: GameState): void {
   for (const team of Object.values(state.teams)) {
@@ -62,10 +83,7 @@ export function weeklyFinance(state: GameState): void {
     // career — insolvent by construction, with no decision able to prevent it.
     // A Challengers org does not fly to Masters, does not carry a VCT support
     // staff, and does not run a VCT facility.
-    const scale = team.tier === 1 ? 1 : 0.35
-    const upkeep = Math.round(
-      (team.facilities * 900 + squadOf(state, team.id).length * 1400) / 4 * scale,
-    )
+    const upkeep = weeklyUpkeep(state, team.id)
     const net = sponsor - wages - upkeep
     team.budget += net
 

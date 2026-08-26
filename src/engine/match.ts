@@ -31,12 +31,23 @@ export interface Lineup {
   edge: EdgeBreakdown
 }
 
-/** A player's effective rating right now (form / morale / fatigue applied). */
-export function effectiveRating(p: Player): number {
+/**
+ * A player's effective rating right now (form / morale / fatigue applied).
+ *
+ * `day` is optional so callers that only rank fit players can omit it. Pass it
+ * and a man playing through an injury is priced accordingly: selectLineup will
+ * field an injured player when a club has nobody else, and 52 of the world's
+ * 78 clubs carry exactly five, so without this an injury cost two thirds of
+ * the league absolutely nothing. At -0.22 a club with no bench loses more to
+ * an injury (-3.45 rating) than a club that can bring a substitute on
+ * (-2.98) — which is the whole point of carrying one.
+ */
+export function effectiveRating(p: Player, day?: number): number {
   const form = (p.form - 70) * 0.0028
   const morale = (p.morale - 70) * 0.0016
   const fatigue = -p.fatigue * 0.0016
-  return p.overall * (1 + form + morale + fatigue)
+  const hurt = day != null && p.injuredUntil > day ? -0.22 : 0
+  return p.overall * (1 + form + morale + fatigue + hurt)
 }
 
 /** Pick the 5 who actually play: honour the chosen starters, fill gaps with the best fit. */
@@ -120,7 +131,7 @@ function compositionScore(players: Player[]): number {
 export function buildLineup(state: GameState, teamId: string, map: string): Lineup {
   const team = state.teams[teamId]
   const players = selectLineup(state, teamId)
-  const effs = players.map(effectiveRating)
+  const effs = players.map((x) => effectiveRating(x, state.day))
 
   // the top performers carry slightly more than a flat mean
   const sorted = effs.slice().sort((a, b) => b - a)

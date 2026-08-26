@@ -473,6 +473,8 @@ export interface Sponsor {
   /** bonus paid if the team finishes at/above this league placement */
   bonusPlacement: number
   bonus: number
+  /** the year this contract last paid out, so one season pays once */
+  bonusPaidYear?: number
 }
 
 export interface Team {

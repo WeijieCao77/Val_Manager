@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
 import type { GameState } from '../engine/types'
+import { TUTORIAL_SNAPSHOT } from '../engine/save'
 
 /**
  * A guided trial day, played in a sandbox.
@@ -132,6 +133,12 @@ export default function Tutorial({
   // Rewind to 31 December for real. Labelling 1 January as the trial day while
   // the clock and the advance button both said otherwise was simply untrue.
   useEffect(() => {
+    // The rollback used to live only in this component's memory, while the
+    // sandbox itself was committed to the autosave immediately. Close the tab
+    // mid-tutorial — a phone reclaiming the page is enough — and the save was
+    // stranded at day -1 for good. Park the pre-tutorial state on disk first;
+    // loadGame puts it back if we never reach finish().
+    try { localStorage.setItem(TUTORIAL_SNAPSHOT, snapshot) } catch { /* best effort */ }
     game.tutorialDay = true
     game.day = -1
     // Rewinding the clock made everyone look injured: injuredUntil defaults to
@@ -192,6 +199,7 @@ export default function Tutorial({
     const live = game as unknown as Record<string, unknown>
     for (const k of Object.keys(live)) delete live[k]
     Object.assign(game, before)
+    try { localStorage.removeItem(TUTORIAL_SNAPSHOT) } catch { /* best effort */ }
     markSeen()
     commit()
     go('dashboard')

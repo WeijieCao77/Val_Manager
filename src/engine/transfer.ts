@@ -282,14 +282,11 @@ export function doTransfer(
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
   if (!to) return false
-  // the dressing room notices who you sold
-  if (from?.id === state.myTeam) {
-    const notes: string[] = []
-    trustOnDeparture(state, p, notes)
-    for (const t of notes) {
-      state.news.push({ day: state.day, kind: 'club', important: true, text: t })
-    }
-  }
+  // Every refusal comes first. The dressing-room reaction used to run above
+  // these guards, so a sale that was then refused — the buyer's roster full,
+  // our own squad down to five — still cost the squad its trust and morale
+  // and still printed "他离队了" in the news for a player who never left.
+  //
   // refuse a move that would leave a club unable to field a team — including
   // ours: a manager who sells down to two plays the rest of the season two
   // against five, which is not a decision, it is a broken save
@@ -299,9 +296,23 @@ export function doTransfer(
   // and one that would take any club past the seven-man roster ceiling
   if (rosterBlock(state, toTeamId)) return false
 
+  // the dressing room notices who you sold — now that he is actually sold
+  if (from?.id === state.myTeam) {
+    const notes: string[] = []
+    trustOnDeparture(state, p, notes)
+    for (const t of notes) {
+      state.news.push({ day: state.day, kind: 'club', important: true, text: t })
+    }
+  }
+
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
     from.starters = from.starters.filter((id) => id !== p.id)
+    // Selling a starter left the five at four and nothing ever refilled it.
+    // The match still fields five — selectLineup tops it up — but everything
+    // that asks "is he a starter?" (promised-role grievance, weekly trust,
+    // the squad screen) said no about a man who plays every map.
+    if (from.starters.length < 5) from.starters = autoStarters(state, from.id)
     // canSell let this go on the promise that a replacement was available.
     // Keep the promise here rather than at the next weekly tick — an AI club
     // that sold on a Monday played the week's fixture with four.
@@ -396,6 +407,7 @@ export function releasePlayer(state: GameState, p: Player): string {
   if (from) {
     from.roster = from.roster.filter((id) => id !== p.id)
     from.starters = from.starters.filter((id) => id !== p.id)
+    if (from.starters.length < 5) from.starters = autoStarters(state, from.id)
     // paying up the remaining contract
     const payoff = Math.round(p.salary * Math.max(0, p.contractYears) * 0.4)
     from.budget -= payoff
@@ -475,7 +487,12 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       if (!need) continue
       const candidates = Object.values(state.players).filter(
         (p) =>
-          p.teamId && p.teamId !== team.id && p.role === need.role &&
+          // never our players: an AI club that wants one of ours has to bid
+          // for him through bidForOurPlayers and wait for an answer. Without
+          // this line doTransfer ran straight through — a listed or unhappy
+          // star simply vanished on the weekly tick, 5 careers in 20.
+          p.teamId && p.teamId !== team.id && p.teamId !== state.myTeam &&
+          p.role === need.role &&
           p.overall > need.strength + 3 &&
           !importBlock(state, team.id, p) &&
           (p.listed || p.morale < 45 || rng.chance(0.05)),
@@ -651,8 +668,19 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     })
 
     if (forced) {
-      doTransfer(state, target, team.id, fee, terms)
-      state.offers[state.offers.length - 1].status = 'accepted'
+      // A clause is not a magic wand: doTransfer can still refuse (our squad
+      // is down to five, the buyer's roster is full, the import rule bites).
+      // Announcing the departure regardless printed "他已经离队" for a player
+      // still sitting in the squad list.
+      const left = doTransfer(state, target, team.id, fee, terms)
+      state.offers[state.offers.length - 1].status = left ? 'accepted' : 'rejected'
+      if (!left) {
+        notes?.push(
+          `🛡 ${team.name} 想触发 ${target.ign} 的解约金，但这笔交易无法完成`
+          + '（我方阵容会不足五人，或对方名单已满），他留下了。',
+        )
+        continue
+      }
       state.news.push({
         day: state.day, kind: 'transfer', important: true,
         text: `${team.name} 支付了 ${target.ign} 合同中的解约金 $${fee.toLocaleString()}，我们无权拒绝。`,

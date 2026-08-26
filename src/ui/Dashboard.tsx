@@ -322,13 +322,18 @@ export default function Dashboard() {
         <Panel title="今日操作" flush>
         {(() => {
           const acts = activityOn(game, game.day)
-          const drill = game.drill
+          // A drill only counts while its seven days are still running. The
+          // plan is left in state after it settles so the panel can show what
+          // was last chosen — printing it here made a finished, idle drill
+          // look like it was still training the squad, week after week.
+          const drillRunning = game.drillLock != null && game.drillLock > game.day
+          const drill = drillRunning ? game.drill : undefined
           const drillText =
             !drill || drill.kind === 'none' ? null
               : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
                 : drill.kind === 'review' ? '教练复盘'
                   : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
-          const duoText = game.duo
+          const duoText = drillRunning && game.duo
             ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
             : null
           const focuses = me.starters

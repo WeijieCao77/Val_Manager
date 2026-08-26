@@ -103,9 +103,20 @@ export default function NewGame({
         const g = importSave(String(reader.result))
         // the first commit will write this over the autosave — if the autosave
         // holds a newer career, tuck it into a rescue slot first
-        const rescued = protectAutosaveFrom(g)
+        const rescue = protectAutosaveFrom(g)
+        if (rescue?.failed) {
+          // Storage is full and the newer career cannot be backed up. Going
+          // ahead would destroy it silently, which is the one outcome nobody
+          // would choose if asked.
+          const ok = window.confirm(
+            `当前自动存档（${rescue.year} 年第 ${rescue.day} 天）比这份文件更新，`
+            + '但存储空间不足，无法先给它做备份。\n\n'
+            + '继续导入会永久覆盖它。建议先到「存档」页删掉一些旧存档再导入。\n\n仍要继续吗？',
+          )
+          if (!ok) return
+        }
         onStart(g)
-        if (rescued) setErr(`原自动存档比导入的文件更新，已备份到「${rescued}」，可在下方读取。`)
+        if (rescue?.slot) setErr(`原自动存档比导入的文件更新，已备份到「${rescue.slot}」，可在下方读取。`)
       } catch (e) {
         setErr(e instanceof Error ? e.message : '存档读取失败。')
       }

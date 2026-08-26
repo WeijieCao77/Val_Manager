@@ -88,12 +88,47 @@ function healIndex(): SaveMeta[] {
   return idx
 }
 
+/** Where the tutorial parks the real save while its sandbox runs. */
+export const TUTORIAL_SNAPSHOT = 'valmgr.tutorial.snapshot'
+
+/**
+ * Undo an abandoned tutorial.
+ *
+ * The trial day rewinds the clock to -1 and commits that to the autosave, then
+ * rolls it back when the manager finishes or skips. A page that disappears in
+ * between (a phone reclaiming the tab) used to leave the save stranded there
+ * forever — every fixture in the past, every countdown nonsense. The tutorial
+ * now parks the pre-trial state on disk, so a save still flagged tutorialDay
+ * can simply be swapped back for it.
+ */
+function unwindTutorial(state: GameState): GameState {
+  if (!state.tutorialDay) return state
+  let parked: GameState | null = null
+  try {
+    const raw = localStorage.getItem(TUTORIAL_SNAPSHOT)
+    if (raw) parked = JSON.parse(raw) as GameState
+  } catch { /* fall through to the clamp below */ }
+  try { localStorage.removeItem(TUTORIAL_SNAPSHOT) } catch { /* ignore */ }
+  if (parked && parked.players && parked.teams) {
+    delete (parked as { tutorialDay?: boolean }).tutorialDay
+    return parked
+  }
+  // No parked copy (a save from before this fix, or a write that failed):
+  // at least bring the clock back into the calendar so the season can run.
+  delete (state as { tutorialDay?: boolean }).tutorialDay
+  if (state.day < 0) state.day = 0
+  for (const p of Object.values(state.players)) {
+    if (p.injuredUntil < 0) p.injuredUntil = 0
+  }
+  return state
+}
+
 export function loadGame(slot: string): GameState | null {
   const raw = localStorage.getItem(PREFIX + slot)
   if (!raw) return null
   try {
     const state = JSON.parse(raw) as GameState
-    return migrate(state)
+    return migrate(unwindTutorial(state))
   } catch {
     return null
   }
@@ -164,7 +199,10 @@ function repairClocks(state: GameState): void {
   for (const o of state.staffOffers ?? []) if (!o.answer) o.replyOn = clamp(o.replyOn, 12, 2)!
   for (const a of state.staffApproaches ?? []) if (!a.answer) a.replyOn = clamp(a.replyOn, 12, 2)!
   for (const j of state.jobApplications ?? []) j.replyOn = clamp(j.replyOn, 15, 2)!
-  for (const j of state.jobOffers ?? []) j.expiresOn = clamp(j.expiresOn, 20, 5)!
+  // A job offer is written with a 30-day deadline, so a horizon of 20 called
+  // every healthy offer corrupt and cut it to five days — one save-and-load
+  // and a manager lost 25 of the 30 days he was given to answer.
+  for (const j of state.jobOffers ?? []) j.expiresOn = clamp(j.expiresOn, 45, 30)!
   for (const g of state.gigs ?? []) {
     g.expiresOn = clamp(g.expiresOn, 30, 5)!
     if (g.day > d + 40) g.day = d + 7
@@ -209,17 +247,32 @@ export const hasAutosave = () => localStorage.getItem(PREFIX + AUTOSAVE) !== nul
  * before they touched anything. If the autosave on disk is further along than
  * what is being imported, it is copied to a rescue slot first.
  */
-export function protectAutosaveFrom(imported: GameState): string | null {
+/**
+ * The three things that can happen when an import is about to overwrite a
+ * newer career.
+ *
+ * `null` — nothing to rescue. `{slot}` — the newer career is safely parked.
+ * `{failed}` — there IS a newer career and we could NOT park it, almost
+ * always because localStorage is full. That case used to be indistinguishable
+ * from "nothing to rescue", so the import went ahead and the newer career was
+ * gone with no warning at all. The caller must ask before overwriting.
+ */
+export function protectAutosaveFrom(
+  imported: GameState,
+): { slot: string; failed?: false } | { slot?: undefined; failed: true; year: number; day: number } | null {
+  let current: GameState | null = null
   try {
-    const current = loadAutosave()
-    if (!current) return null
-    const newer = current.year > imported.year ||
-      (current.year === imported.year && current.day > imported.day)
-    if (!newer) return null
-    const slot = `导入前备份 ${current.year}年D${current.day}`
+    current = loadAutosave()
+  } catch { return null }
+  if (!current) return null
+  const newer = current.year > imported.year ||
+    (current.year === imported.year && current.day > imported.day)
+  if (!newer) return null
+  const slot = `导入前备份 ${current.year}年D${current.day}`
+  try {
     saveGame(slot, current)
-    return slot
+    return { slot }
   } catch {
-    return null
+    return { failed: true, year: current.year, day: current.day }
   }
 }

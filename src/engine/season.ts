@@ -200,7 +200,27 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
       state.manager.reputation = clamp(state.manager.reputation + damped(state.manager.reputation, worth), 5, 96)
     }
     notes.push(`🏆 我们夺得 ${comp.name} 冠军！`)
-  } else if (comp.teams.includes(state.myTeam)) {
+  }
+  // Sponsorship performance bonuses. Both screens have always printed
+  // "前 N 名另奖 $X" on every contract and the engine never read the field —
+  // the money simply did not exist. It does now: a regional stage we finish
+  // at or above the threshold pays that contract, once per season, so a good
+  // split is worth money and a sponsor is worth choosing for its terms.
+  // Regional only, or an international run would pay every contract twice.
+  if (comp.region && comp.finished.includes(state.myTeam)) {
+    const me = state.teams[state.myTeam]
+    const place = comp.finished.indexOf(state.myTeam) + 1
+    for (const sp of me?.sponsors ?? []) {
+      if (sp.bonusPaidYear === state.year || place > sp.bonusPlacement || !sp.bonus) continue
+      sp.bonusPaidYear = state.year
+      state.finances.balance += sp.bonus
+      state.finances.log.push({
+        day: state.day, label: `赞助达标奖 · ${sp.name}（${comp.name} 第 ${place} 名）`, amount: sp.bonus,
+      })
+      notes.push(`💰 ${sp.name} 的达标奖金 $${sp.bonus.toLocaleString()} 到账——${comp.name} 第 ${place} 名，合同要求前 ${sp.bonusPlacement}。`)
+    }
+  }
+  if (comp.champion !== state.myTeam && comp.teams.includes(state.myTeam)) {
     const place = comp.finished.indexOf(state.myTeam)
     if (place >= 0) {
       const share = place / Math.max(1, comp.finished.length - 1)
@@ -716,7 +736,15 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
 
   // ---- play today's matches
   let pendingMine: Fixture | undefined
-  const today = state.fixtures.filter((f) => f.day === state.day && !f.played)
+  // Anything still unplayed from an earlier day is played now, oldest first.
+  // The filter used to be an exact `=== state.day`: a match handed to the
+  // manager to watch was written to the autosave as unplayed, and if the page
+  // vanished before the modal resolved (a phone reclaiming the tab), the day
+  // moved on and that fixture was never eligible again — the whole
+  // competition sat waiting for a result that could not arrive.
+  const today = state.fixtures
+    .filter((f) => f.day <= state.day && !f.played)
+    .sort((a, b) => a.day - b.day)
   for (const f of today) {
     const a = state.teams[f.teamA]
     const b = state.teams[f.teamB]
@@ -916,6 +944,8 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     }
     t.champPoints = 0
     t.seasonPrize = 0
+    // a new season, a new chance to hit the placement each contract asks for
+    for (const sp of t.sponsors) delete sp.bonusPaidYear
     if (t.starters.length < 5) t.starters = autoStarters(state, t.id)
   }
 

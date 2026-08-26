@@ -1,6 +1,6 @@
 import { useGame } from './ctx'
 import { Bar, Panel, money, moneyFull } from './common'
-import { sponsorIncome } from '../engine/finance'
+import { seasonUpkeep, sponsorIncome } from '../engine/finance'
 import { dropSponsor, sponsorSlots } from '../engine/commercial'
 import { squadOf, wageBill } from '../engine/world'
 
@@ -10,7 +10,7 @@ export default function Finances() {
   const wages = wageBill(game, game.myTeam)
   const sponsors = sponsorIncome(game, game.myTeam)
   const squad = squadOf(game, game.myTeam).sort((a, b) => b.salary - a.salary)
-  const upkeep = Math.round((me.facilities * 900 + squad.length * 1400) * 12)
+  const upkeep = seasonUpkeep(game, game.myTeam)
   const net = sponsors + me.seasonPrize - wages - upkeep
 
   const log = game.finances.log.slice(-60).reverse()
@@ -55,8 +55,8 @@ export default function Finances() {
                 <tr><th>赞助商</th><th className="num">赛季收入</th><th className="num">达标名次</th><th className="num">奖金</th><th className="sticky-act" /></tr>
               </thead>
               <tbody>
-                {me.sponsors.map((s) => (
-                  <tr key={s.name}>
+                {me.sponsors.map((s, i) => (
+                  <tr key={`${s.name}#${i}`}>
                     <td>{s.name}</td>
                     <td className="num mono">{money(s.perSeason)}</td>
                     <td className="num muted">前 {s.bonusPlacement}</td>
@@ -64,7 +64,7 @@ export default function Finances() {
                     <td className="sticky-act">
                       <button className="sm ghost" onClick={() => {
                         if (!window.confirm(`与 ${s.name} 解约？本赛季剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位立即空出。`)) return
-                        toast(dropSponsor(game, s.name))
+                        toast(dropSponsor(game, i))
                         commit()
                       }}>解约</button>
                     </td>

@@ -120,9 +120,19 @@ const mk = (seed: number) => {
   const oldFile = mk(7)               // day 0 — an old backup of the same career
   const rescued = protectAutosaveFrom(oldFile)
   check('importing an old file rescues the newer autosave first',
-    rescued != null && loadGame(rescued!)?.day === newer.day, `→「${rescued}」`)
+    !!rescued?.slot && loadGame(rescued.slot)?.day === newer.day, `→「${rescued?.slot}」`)
   const same = protectAutosaveFrom(newer)
   check('importing something no older rescues nothing', same === null)
+
+  // A rescue that cannot be written must say so. It used to return the same
+  // null as "nothing to rescue", and the import then overwrote a newer career
+  // without a word — the one outcome nobody would pick if asked.
+  ;(globalThis as never as { __quota: boolean }).__quota = true
+  const doomed = protectAutosaveFrom(oldFile)
+  ;(globalThis as never as { __quota: boolean }).__quota = false
+  check('a rescue that cannot be written reports the failure',
+    doomed?.failed === true && doomed.day === newer.day,
+    JSON.stringify(doomed))
 }
 
 // ---- a full write failure has to say so, not half-succeed

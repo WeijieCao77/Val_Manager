@@ -35,7 +35,10 @@ const mk = (): GameState => {
     me.sponsors.push({ name: `T${me.sponsors.length}`, perSeason: 100000, bonusPlacement: 4, bonus: 20000 })
   }
   check('a full book refuses a sixth pitch', pitchSponsor(g).includes('栏位已满'))
-  check('walking away frees the slot', dropSponsor(g, 'T4').includes('解约') && me.sponsors.length === SPONSOR_MAX - 1)
+  // addressed by row index, not by name: two contracts with the same partner
+  // used to make "end this one" ambiguous and it always ended the first
+  check('walking away frees the slot',
+    dropSponsor(g, me.sponsors.length - 1).includes('解约') && me.sponsors.length === SPONSOR_MAX - 1)
   check('and the pitch resumes', !pitchSponsor(g).includes('栏位已满'))
 }
 

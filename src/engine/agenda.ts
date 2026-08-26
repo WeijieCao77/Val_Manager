@@ -104,6 +104,14 @@ export function agendaFor(state: GameState): AgendaItem[] {
       text: `${expiring.map((p) => p.ign).join('、')} 合同已到期，再不续约就会走人。`,
     })
   }
+  // A finished drill leaves nothing running. Without a nudge the squad simply
+  // stops doing team work and the only sign is a panel that has gone quiet.
+  if (state.drillLock == null || state.drillLock <= state.day) {
+    items.push({
+      key: 'drill', tone: 'todo', go: 'training',
+      text: '目前没有在跑的团队训练——上一轮已经结算，去训练页排下一轮（一轮七天）。',
+    })
+  }
   const unhappy = squad.filter((p) => (p.grievance ?? 0) > 45)
   if (unhappy.length) {
     items.push({

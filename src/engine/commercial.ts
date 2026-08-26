@@ -370,7 +370,12 @@ export function pitchSponsor(state: GameState): string {
   state.pitchCooldown = state.day + 10
 
   const rng = gigRng(state)
-  const partner = rng.pick(PITCH_PARTNERS)
+  // do not re-approach a partner already on the shirt: holding the same brand
+  // twice was never intended, and it is what made dropping one ambiguous
+  const held = new Set(team.sponsors.map((x) => x.name))
+  const open = PITCH_PARTNERS.filter((x) => !held.has(x.name))
+  if (!open.length) return '能谈的品牌都已经在合作了。'
+  const partner = rng.pick(open)
   // Priced off the club's standing, not off the deals it already holds — the
   // old anchor was the average of existing contracts, which snowballed for
   // the stacked and stayed pitiful for the empty-handed.
@@ -412,13 +417,20 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
   // Sponsors also knock on their own. A club light on deals gets found —
   // more readily when it has been winning — so a manager who never learns
   // the pitch button still runs a solvent shop, just not a maximised one.
-  if (team.sponsors.length < 3 && (state.sponsorTalks ?? []).length < 3) {
+  // Count only talks still awaiting the sponsor's answer. Counting the ones
+  // already on the table meant three unanswered offers — a manager holding
+  // out for a better slot — shut the door on inbound sponsors for good.
+  const inFlight = (state.sponsorTalks ?? []).filter((t) => !t.answer).length
+  if (team.sponsors.length < 3 && inFlight < 3) {
     const recentWins = state.fixtures.filter((f) =>
       f.played && f.day >= state.day - 14 && f.comp !== 'scrim' &&
       ((f.teamA === state.myTeam && (f.result?.mapsWonA ?? 0) > (f.result?.mapsWonB ?? 0)) ||
        (f.teamB === state.myTeam && (f.result?.mapsWonB ?? 0) > (f.result?.mapsWonA ?? 0)))).length
     if (rng.chance(0.012 + recentWins * 0.01)) {
-      const partner = rng.pick(PITCH_PARTNERS)
+      const held = new Set(team.sponsors.map((x) => x.name))
+      const open = PITCH_PARTNERS.filter((x) => !held.has(x.name))
+      if (!open.length) return notes
+      const partner = rng.pick(open)
       const base = sponsorWorth(team)
       const talk: SponsorTalk = {
         id: `SPIN${state.day}`,
@@ -456,6 +468,15 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
       notes.push(`❌ ${t.name} 婉拒了合作：${t.reason}`)
     }
   }
+  // An offer left unanswered lapses like any real one. Before this they piled
+  // up on the commercial screen across seasons, never expiring.
+  for (const t of state.sponsorTalks ?? []) {
+    if (t.answer === 'offer' && t.replyOn <= state.day - 21) {
+      t.answer = 'reject'
+      t.reason = '等太久了，对方把预算给了别人'
+      notes.push(`⌛ ${t.name} 的赞助方案过期作废——条件摆了三周没有答复。`)
+    }
+  }
   state.sponsorTalks = (state.sponsorTalks ?? [])
     .filter((t) => (t.answer !== 'reject' && t.answer !== 'accept') || t.replyOn > state.day - 14)
   return notes
@@ -467,6 +488,7 @@ export function signSponsor(state: GameState, id: string): string {
   const team = state.teams[state.myTeam]
   if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
   if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家。`
+  if (team.sponsors.some((x) => x.name === t.name)) return `已经和 ${t.name} 有合作了。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
     name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,
@@ -478,13 +500,21 @@ export function signSponsor(state: GameState, id: string): string {
   return `已签下 ${t.name}，保底 ${Math.round(t.base / 1000)}K/赛季。`
 }
 
-/** Walk away from a signed sponsorship to free the slot. */
-export function dropSponsor(state: GameState, name: string): string {
+/**
+ * Walk away from a signed sponsorship to free the slot.
+ *
+ * Addressed by INDEX, not by name. Two contracts with the same partner are
+ * easy to end up holding — there are ten possible partners and neither the
+ * pitch nor the signing used to check — and finding by name always found the
+ * first one. Ending the cheap deal deleted the expensive one, and the money
+ * was gone for good.
+ */
+export function dropSponsor(state: GameState, index: number): string {
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
-  const sp = team.sponsors.find((x) => x.name === name)
+  const sp = team.sponsors[index]
   if (!sp) return '没有这份合同。'
-  team.sponsors = team.sponsors.filter((x) => x !== sp)
+  team.sponsors = team.sponsors.filter((_, i) => i !== index)
   state.news.push({
     day: state.day, kind: 'club',
     text: `🤝 ${team.name} 与 ${sp.name} 的赞助合作提前结束。`,
