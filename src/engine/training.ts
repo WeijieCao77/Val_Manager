@@ -462,7 +462,9 @@ export function physioBlock(state: GameState, pid: string): string | null {
   const p = state.players[pid]
   if (!p || p.teamId !== state.myTeam) return '他不是我们的人。'
   const last = state.physioOn?.[pid]
-  if (last !== undefined && state.day - last < 7) {
+  // a booking recorded after today is a leftover from before the calendar
+  // reset — stale, not binding
+  if (last !== undefined && last <= state.day && state.day - last < 7) {
     return `本周已做过理疗（${7 - (state.day - last)} 天后可再约）。`
   }
   if (state.finances.balance < PHYSIO_COST) return '资金不足。'

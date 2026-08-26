@@ -1,7 +1,7 @@
 import { useGame } from './ctx'
 import { Bar, Panel, money, moneyFull } from './common'
 import { sponsorIncome } from '../engine/finance'
-import { dropSponsor, SPONSOR_MAX } from '../engine/commercial'
+import { dropSponsor, sponsorSlots } from '../engine/commercial'
 import { squadOf, wageBill } from '../engine/world'
 
 export default function Finances() {
@@ -48,7 +48,7 @@ export default function Finances() {
           </p>
         </Panel>
 
-        <Panel title={`赞助合约 · ${me.sponsors.length}/${SPONSOR_MAX} 栏位`} flush>
+        <Panel title={`赞助合约 · ${me.sponsors.length}/${sponsorSlots(me)} 栏位`} flush>
           <div className="table-wrap">
             <table>
               <thead>

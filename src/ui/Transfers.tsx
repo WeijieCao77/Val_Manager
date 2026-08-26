@@ -443,10 +443,12 @@ export default function Transfers() {
             // a club takes 7-10 days to answer, so a bid made on the last turn
             // of a window is answered after it has shut: the deal still goes
             // through, but there is no second bid if they say no
-            toast(windowOpen(offer.respondOn ?? game.day)
+            const full = rosterBlock(game, game.myTeam)
+            toast((windowOpen(offer.respondOn ?? game.day)
               ? `报价已提交给 ${target.ign}，${wait} 天后给你答复。`
               : `报价已提交给 ${target.ign}，${wait} 天后答复——那时窗口已关，成了照样成，` +
                 `但被拒就没机会补价了。`)
+              + (full ? ` 注意：名单已满（7/7），答复前先放走一人，否则交易会被取消。` : ''))
             setTarget(null)
           })}
         />

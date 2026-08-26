@@ -341,6 +341,14 @@ function runVentures(state: GameState, rng: Rng, notes: string[]): void {
  */
 export const SPONSOR_MAX = 5
 
+/**
+ * A bigger name carries more logos: five slots to start, six once the club's
+ * reputation clears 65, seven past 80. Growth the player can feel without
+ * reopening the door to the forty-deal hoard.
+ */
+export const sponsorSlots = (team: Team): number =>
+  SPONSOR_MAX + (team.reputation >= 65 ? 1 : 0) + (team.reputation >= 80 ? 1 : 0)
+
 /** What a sponsorship in this club's league is actually worth per season. */
 export function sponsorWorth(team: Team): number {
   const tierBase = team.tier === 1 ? 320000 : 72000
@@ -353,8 +361,8 @@ export function pitchSponsor(state: GameState): string {
   }
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
-  if (team.sponsors.length >= SPONSOR_MAX) {
-    return `赞助栏位已满（${SPONSOR_MAX} 家）——先解约一家才能再谈新的。`
+  if (team.sponsors.length >= sponsorSlots(team)) {
+    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的，声望到 65 和 80 会各多一个栏位。`
   }
   // ten days between approaches: pitching is meant to be a habit, not a find
   state.pitchCooldown = state.day + 10
@@ -456,7 +464,7 @@ export function signSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
   const team = state.teams[state.myTeam]
   if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
-  if (team.sponsors.length >= SPONSOR_MAX) return `赞助栏位已满（${SPONSOR_MAX} 家），先解约一家。`
+  if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
     name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,

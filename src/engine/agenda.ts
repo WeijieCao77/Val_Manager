@@ -42,7 +42,7 @@ export const SCREEN_PHASES: Record<string, { always?: boolean; stages?: StageKey
   finance: { always: true },
   saves: { always: true },
   // the market is the one screen that genuinely closes
-  transfers: { stages: ['preseason', 'masters2', 'offseason'] },
+  transfers: { stages: ['preseason', 'masters1', 'masters2', 'offseason'] },
 }
 
 /**
@@ -65,7 +65,7 @@ export function windowDaysLeft(state: GameState): number | null {
 export function screenLocked(screen: string, state: GameState): string | null {
   if (screen !== 'transfers') return null
   if (windowOpen(state.day)) return null
-  const next = [0, 169, 311].find((d) => d > state.day)
+  const next = [0, 63, 169, 311].find((d) => d > state.day)
   return next
     ? `转会窗口关闭中，${next - state.day} 天后开启`
     : '转会窗口本赛季已关闭'

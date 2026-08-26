@@ -26,6 +26,7 @@ export function rosterBlock(state: GameState, teamId: string): string | null {
 
 export const TRANSFER_WINDOWS: [number, number][] = [
   [0, 20],    // 季前
+  [63, 88],   // Masters I 期间的短窗口 — the group asked for a mid-spring market
   [169, 194], // Masters II 期间的短窗口
   [311, 335], // 休赛期
 ]
@@ -730,8 +731,6 @@ export const INTEREST_CN = {
 export function enquireAbout(state: GameState, playerId: string): string {
   const shut = windowBlock(state)
   if (shut) return shut
-  const full = rosterBlock(state, state.myTeam)
-  if (full) return full
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
   if (!p.teamId) return '他是自由人，直接报价即可。'
@@ -746,7 +745,8 @@ export function enquireAbout(state: GameState, playerId: string): string {
     day: state.day,
     replyOn: state.day + rng.int(2, 5),
   }]
-  return `已就 ${p.ign} 向 ${state.teams[p.teamId]?.name} 问价，等待答复。`
+  const full = rosterBlock(state, state.myTeam)
+  return `已就 ${p.ign} 向 ${state.teams[p.teamId]?.name} 问价，等待答复。${full ? '注意：名单已满（7/7），正式买入前要先放走一人。' : ''}`
 }
 
 /** Enquiries answered today. */
@@ -808,7 +808,6 @@ export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer | null {
   if (windowBlock(state)) return null
-  if (rosterBlock(state, toTeam)) return null
   // nobody signs on the spot: the other side takes a week or so to come back,
   // and a rival can get there first in the meantime
   const rng = new Rng(hashStr(`offer:${state.seed}:${playerId}:${state.day}`))

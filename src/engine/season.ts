@@ -950,6 +950,12 @@ function rebaseSeasonClock(state: GameState, shift: number): void {
 
   if (state.pitchCooldown != null) state.pitchCooldown = Math.max(0, state.pitchCooldown - shift)
   if (state.drillLock != null) state.drillLock = Math.max(0, state.drillLock - shift)
+  // physio bookings live in the past; left unshifted, "day - last" went
+  // negative after the new year and locked the whole squad out of the physio
+  // room for a season ("理疗室不能点了")
+  if (state.physioOn) {
+    for (const k of Object.keys(state.physioOn)) state.physioOn[k] -= shift
+  }
   // the turn budget re-mints itself whenever its day is in the future or past
   state.actions = undefined
 

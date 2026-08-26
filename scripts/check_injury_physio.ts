@@ -12,7 +12,9 @@
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { setupSeason } from '../src/engine/season'
 import { weeklyTick, doPhysio, physioBlock, PHYSIO_COST } from '../src/engine/training'
-import { doTransfer, rosterBlock, ROSTER_MAX, enquireAbout } from '../src/engine/transfer'
+import { doTransfer, makeOffer, rosterBlock, ROSTER_MAX, enquireAbout, windowOpen } from '../src/engine/transfer'
+import { sponsorSlots } from '../src/engine/commercial'
+import { screenLocked } from '../src/engine/agenda'
 import { INJURIES } from '../src/engine/content'
 import { defaultContract } from '../src/engine/types'
 import { Rng } from '../src/engine/rng'
@@ -102,9 +104,37 @@ check('the longest injury on the books is 18 days',
   const target = free.pop()!
   check('the eighth signing is refused', !doTransfer(g, target, g.myTeam, 0, defaultContract(50000, 2)),
     rosterBlock(g, g.myTeam) ?? '')
-  check('and the enquiry says why up front', enquireAbout(g, Object.values(g.players).find((p) => p.teamId && p.teamId !== g.myTeam)!.id).includes('名单已满'))
+  const enq = enquireAbout(g, Object.values(g.players).find((p) => p.teamId && p.teamId !== g.myTeam)!.id)
+  check('a full book may still ask prices', enq.includes('问价') && enq.includes('等待答复'), enq)
+  check('with the ceiling named in the reply', enq.includes('名单已满'))
+  check('and may even bid — only completion is blocked',
+    makeOffer(g, target.id, g.myTeam, 0, defaultContract(50000, 2)) !== null)
   me.roster.pop()
   check('at six, business resumes', rosterBlock(g, g.myTeam) === null)
+}
+
+// ---- physio bookings survive the calendar, not the other way round
+{
+  const g = mk()
+  const p = squadOf(g, g.myTeam)[0]
+  g.day = 5
+  g.physioOn = { [p.id]: 300 }   // a booking from last season, unshifted
+  check('a stale booking from last year does not lock the room',
+    physioBlock(g, p.id) === null, physioBlock(g, p.id) ?? '')
+  g.physioOn = { [p.id]: 4 }
+  check('while a real booking yesterday still holds', physioBlock(g, p.id) !== null)
+}
+
+// ---- sponsor slots and the spring window
+{
+  const g = mk()
+  const me2 = g.teams[g.myTeam]
+  me2.reputation = 82
+  check('a big name carries seven logos', sponsorSlots(me2) === 7)
+  me2.reputation = 50
+  check('a small one carries five', sponsorSlots(me2) === 5)
+  check('the market opens during Masters I', windowOpen(70))
+  check('and the locked screen counts down to day 63', (screenLocked('transfers', { ...g, day: 30 } as never) ?? '').includes('33 天'))
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

@@ -129,6 +129,14 @@ function migrate(state: GameState): GameState {
   // ("跑图7天但是没有涨地图熟练度"). Nothing reads it any more; clear it so
   // an export/reimport cannot resurrect it either.
   delete (state as { drillVoid?: boolean }).drillVoid
+  // saves written while physio bookings were not rebased across the new year
+  // carry last-visit days from the previous season; a booking in the future
+  // is impossible, so clear it
+  if (state.physioOn) {
+    for (const k of Object.keys(state.physioOn)) {
+      if (state.physioOn[k] > state.day) delete state.physioOn[k]
+    }
+  }
   pruneMatchDetail(state)
   return state
 }
