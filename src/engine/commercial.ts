@@ -342,12 +342,14 @@ function runVentures(state: GameState, rng: Rng, notes: string[]): void {
 export const SPONSOR_MAX = 5
 
 /**
- * A bigger name carries more logos: five slots to start, six once the club's
- * reputation clears 65, seven past 80. Growth the player can feel without
- * reopening the door to the forty-deal hoard.
+ * A bigger name carries more logos: five slots to start, then one more at
+ * reputation 65, 70 and 80 — eight for a club at the top of the sport. Growth
+ * the player can feel without reopening the door to the forty-deal hoard.
  */
+export const SPONSOR_SLOT_TIERS = [65, 70, 80]
+
 export const sponsorSlots = (team: Team): number =>
-  SPONSOR_MAX + (team.reputation >= 65 ? 1 : 0) + (team.reputation >= 80 ? 1 : 0)
+  SPONSOR_MAX + SPONSOR_SLOT_TIERS.filter((r) => team.reputation >= r).length
 
 /** What a sponsorship in this club's league is actually worth per season. */
 export function sponsorWorth(team: Team): number {
@@ -362,7 +364,7 @@ export function pitchSponsor(state: GameState): string {
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
   if (team.sponsors.length >= sponsorSlots(team)) {
-    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的，声望到 65 和 80 会各多一个栏位。`
+    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的，声望到 65、70、80 会各多一个栏位。`
   }
   // ten days between approaches: pitching is meant to be a habit, not a find
   state.pitchCooldown = state.day + 10

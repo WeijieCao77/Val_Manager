@@ -130,9 +130,13 @@ check('the longest injury on the books is 18 days',
   const g = mk()
   const me2 = g.teams[g.myTeam]
   me2.reputation = 82
-  check('a big name carries seven logos', sponsorSlots(me2) === 7)
-  me2.reputation = 50
-  check('a small one carries five', sponsorSlots(me2) === 5)
+  check('a club at the top of the sport carries eight logos', sponsorSlots(me2) === 8)
+  me2.reputation = 72
+  check('seven at reputation 70', sponsorSlots(me2) === 7)
+  me2.reputation = 66
+  check('six at reputation 65', sponsorSlots(me2) === 6)
+  me2.reputation = 64
+  check('and five just below the first tier', sponsorSlots(me2) === 5)
   check('the market opens during Masters I', windowOpen(70))
   check('and the locked screen counts down to day 63', (screenLocked('transfers', { ...g, day: 30 } as never) ?? '').includes('33 天'))
 }
