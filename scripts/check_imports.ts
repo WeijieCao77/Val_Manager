@@ -75,15 +75,21 @@ const bid = (g: GameState, p: Player) => {
   check('a native signs straight past the quota', importBlock(g, g.myTeam, native) === null)
 
   // jakee's case: no nationality on record, but his card says 美洲 — the rule
-  // must agree with the screen, so his region stands in for his origin
-  const jakeeLike = Object.values(g.players)
-    .find((p) => !p.nat && !p.teamId && p.region !== me.region)
+  // must agree with the screen, so his region stands in for his origin.
+  //
+  // Built by hand rather than found in the world. It used to search for a real
+  // player with `nat` missing, and the dossier scrape filled in all 518
+  // nationalities — so the sample vanished and the fallback it guards went
+  // untested. The fallback still has to work: an imported save, or a future
+  // player the scrape misses, can still arrive without one.
+  const anyForeign = Object.values(g.players).find((p) => p.region !== me.region)!
+  const jakeeLike = { ...anyForeign, nat: undefined }
   check('no nationality but a foreign region card counts as an import',
-    !!jakeeLike && isImport(jakeeLike!, me), jakeeLike ? `${jakeeLike.ign}（${jakeeLike.region}）` : '样本缺失')
-  const homegrown = Object.values(g.players)
-    .find((p) => !p.nat && p.region === me.region)
+    isImport(jakeeLike, me), `${jakeeLike.ign}（${jakeeLike.region}，国籍留空）`)
+  const anyHome = Object.values(g.players).find((p) => p.region === me.region)!
+  const homegrown = { ...anyHome, nat: undefined }
   check('no nationality and a home region card counts as native',
-    !!homegrown && !isImport(homegrown!, me))
+    !isImport(homegrown, me), `${homegrown.ign}（${homegrown.region}，国籍留空）`)
 }
 
 // ---- grandfathering: turning the rule on never breaks an existing squad
