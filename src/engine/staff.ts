@@ -341,15 +341,34 @@ export function releaseStaff(state: GameState, name: string): string {
  * Assistants back up development, analysts back up tactics — so hiring depth is
  * a real alternative to chasing one expensive head coach.
  */
+/**
+ * The most a whole coaching staff can add to any one attribute.
+ *
+ * Contributions stack, so two good assistants reach it and a third adds
+ * nothing but a salary. That is a real decision, but only if the screen says
+ * so — see STAFF_WEIGHTS and the panel that reads it.
+ */
+export const STAFF_CAP = 14
+
+/** What a member of each role is worth toward each attribute. */
+export const STAFF_WEIGHTS = {
+  analyst: { tactics: 0.5, development: 0.15, motivation: 0.15 },
+  other: { tactics: 0.2, development: 0.45, motivation: 0.2 },
+} as const
+
+/** One member's raw contribution, before the staff-wide cap. */
+export const staffShare = (
+  m: { role: StaffRole; tactics: number; development: number; motivation: number },
+  k: 'tactics' | 'development' | 'motivation',
+): number =>
+  Math.max(0, m[k] - 55) * (m.role === 'analyst' ? STAFF_WEIGHTS.analyst[k] : STAFF_WEIGHTS.other[k])
+
+/** What the staff as a whole adds, uncapped — for showing how much is wasted. */
+export const staffRaw = (state: GameState, k: 'tactics' | 'development' | 'motivation'): number =>
+  (state.staff ?? []).reduce((s, m) => s + staffShare(m, k), 0)
+
 export function staffBonus(state: GameState, k: 'tactics' | 'development' | 'motivation'): number {
-  let best = 0
-  for (const m of state.staff ?? []) {
-    const weight = m.role === 'analyst'
-      ? (k === 'tactics' ? 0.5 : 0.15)
-      : (k === 'development' ? 0.45 : 0.2)
-    best += Math.max(0, m[k] - 55) * weight
-  }
-  return Math.min(14, best)
+  return Math.min(STAFF_CAP, staffRaw(state, k))
 }
 
 

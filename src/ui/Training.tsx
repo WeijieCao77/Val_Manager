@@ -12,7 +12,8 @@ import { doPhysio, physioBlock, PHYSIO_COST } from '../engine/training'
 import { useAction } from './useAction'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
-  facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, staffMarket, upgradeFacility,
+  facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus, staffMarket,
+  staffRaw, staffShare, upgradeFacility,
 } from '../engine/staff'
 import type { Attrs, Player, StaffRole } from '../engine/types'
 
@@ -468,9 +469,33 @@ export default function Training() {
               没有教练时按队伍整体水平计算训练与战术加成。
             </p>
           )}
-          {(game.staff ?? []).length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <div className="tiny faint" style={{ marginBottom: 5 }}>教练组其他成员</div>
+          {(game.staff ?? []).length > 0 && (() => {
+            // Contributions stack and then stop. Without this the fifth hire
+            // felt identical to the second and nothing on screen explained it.
+            const rows = ([['培养', 'development'], ['战术', 'tactics'], ['激励', 'motivation']] as const)
+              .map(([label, k]) => ({ label, k, raw: staffRaw(game, k), used: staffBonus(game, k) }))
+            const capped = rows.filter((r) => r.raw > r.used + 0.05)
+            return (
+              <div style={{ marginTop: 12 }}>
+                <div className="tiny faint" style={{ marginBottom: 5 }}>教练组加成（全组合计，各项上限 {STAFF_CAP}）</div>
+                {rows.map((r) => (
+                  <div key={r.k} className="row" style={{ gap: 10, marginBottom: 6 }}>
+                    <span className="small muted" style={{ width: 40 }}>{r.label}</span>
+                    <Bar value={(100 * r.used) / STAFF_CAP} />
+                    <span className="mono small" style={{ width: 74, textAlign: 'right' }}>
+                      +{r.used.toFixed(1)}/{STAFF_CAP}
+                    </span>
+                  </div>
+                ))}
+                {capped.length > 0 && (
+                  <p className="tiny" style={{ color: 'var(--warn)', margin: '6px 0 0' }}>
+                    ⚠️ {capped.map((r) => r.label).join('、')}已封顶——
+                    这几项再雇人<b>不会有任何提升</b>，只会多付一份薪水
+                    （目前浪费掉 {capped.map((r) => `${r.label} ${(r.raw - r.used).toFixed(1)}`).join('、')}）。
+                    想再变强只能<b>换更好的人</b>，或者去签<b>数据分析师</b>——他们的专精效果不占这个上限。
+                  </p>
+                )}
+                <div className="tiny faint" style={{ margin: '10px 0 5px' }}>教练组其他成员</div>
               {(game.staff ?? []).map((m) => (
                 <div key={m.name} className="row" style={{ gap: 8, marginBottom: 5 }}>
                   <span className="small" style={{ flex: 1 }}>
@@ -483,6 +508,9 @@ export default function Training() {
                     )}
                   </span>
                   <span className="tiny faint">战 {m.tactics} / 培 {m.development} / 激 {m.motivation}</span>
+                  <span className="tiny mono" title="他本人贡献的培养加成（属性高于 55 的部分才算）">
+                    培 +{staffShare(m, 'development').toFixed(1)}
+                  </span>
                   <span className="tiny mono">{money(m.salary)}</span>
                   <button className="sm ghost" onClick={() => {
                     if (!window.confirm(`确定与 ${m.name} 解约？`)) return
@@ -490,8 +518,9 @@ export default function Training() {
                   }}>解约</button>
                 </div>
               ))}
-            </div>
-          )}
+              </div>
+            )
+          })()}
 
           {(game.staffOffers ?? []).filter((o) => !o.answer).length > 0 && (
             <div style={{ marginTop: 12 }}>
