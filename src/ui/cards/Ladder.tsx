@@ -4,7 +4,7 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   DIVISIONS, PACKS, STAMINA_COST, STAMINA_MAX, canPlay, ladderOpponent, levelOf,
-  recordLadder, spendPlay, staminaNow, starsFor,
+  recordLadder, spendPlay, staminaFillHours, staminaNow, staminaRate, starsFor,
 } from '../../engine/gacha'
 import type { LadderOutcome } from '../../engine/gacha'
 import { playArenaMatch } from '../../engine/arena'
@@ -29,7 +29,7 @@ export default function Ladder() {
   const play = () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
     if (!spendPlay(g, 'ladder', now)) {
-      toast('体力不够了——每 2 小时回 1 点。')
+      toast(`体力不够了——${staminaRate()}。`)
       return
     }
     setBusy(true)
@@ -96,7 +96,8 @@ export default function Ladder() {
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。
-                每 2 小时回 1 点——攒满要 20 小时，所以一天分两次上线打得最划算。
+                {staminaRate()}，攒满 {STAMINA_MAX} 点要 {staminaFillHours()} 小时。
+                隔一会儿回来打两场，比攒着一次打完划算——攒满了就不再回体力了。
               </p>
             </>
           ) : (

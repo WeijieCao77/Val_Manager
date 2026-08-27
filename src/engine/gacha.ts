@@ -150,6 +150,22 @@ export type PlayKind = keyof typeof STAMINA_COST
 export const STAMINA_REGEN_MS = 60 * 60 * 1000
 
 /**
+ * "每小时回 1 点" — written from the constant, never typed out.
+ *
+ * The interval has been retuned twice and both times a hardcoded "每 2 小时"
+ * survived in three separate strings, so the game told players something that
+ * was no longer true.
+ */
+export const staminaRate = (): string => {
+  const h = STAMINA_REGEN_MS / 3600_000
+  return h === 1 ? '每小时回 1 点' : `每 ${h} 小时回 1 点`
+}
+
+/** How long a full meter takes to build from empty, in hours. */
+export const staminaFillHours = (): number =>
+  Math.round((STAMINA_MAX * STAMINA_REGEN_MS) / 3600_000)
+
+/**
  * There is no daily purchase limit, deliberately.
  *
  * There was one, and it was the wrong tool: opening packs is what the mode IS,

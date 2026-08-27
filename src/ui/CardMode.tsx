@@ -14,7 +14,8 @@ import {
   serverNow,
 } from '../engine/account'
 import {
-  DIVISIONS, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow, starsFor,
+  DIVISIONS, STAMINA_COST, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow,
+  staminaRate, starsFor,
 } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
@@ -181,7 +182,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
           <div
             className={`chip${staminaNow(g, now) === 0 ? ' spent' : ''}`}
-            title={`每场天梯 2 点、每轮杯赛 3 点。每 2 小时回 1 点，最多存 ${STAMINA_MAX} 点。`}
+            title={`每场天梯 ${STAMINA_COST.ladder} 点、每轮杯赛 ${STAMINA_COST.cup} 点。`
+              + `${staminaRate()}，最多存 ${STAMINA_MAX} 点。`}
           >
             ⚡ <b>{staminaNow(g, now)}/{STAMINA_MAX}</b>
             {staminaNow(g, now) < STAMINA_MAX && (
