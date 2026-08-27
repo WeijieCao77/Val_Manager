@@ -11,10 +11,17 @@ import Dossier from './Dossier'
 import Credit from './Credit'
 import {
   createAccount, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, saveAccount,
+  serverNow,
 } from '../engine/account'
-import { DIVISIONS, STAMINA_MAX, refreshDaily, starsFor, staminaLeft } from '../engine/gacha'
+import { DIVISIONS, STAMINA_MAX, refreshDaily, staminaIn, staminaNow, starsFor } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
+
+/** "1:23" — how long until the next 体力 lands. */
+const mmss = (ms: number): string => {
+  const m = Math.max(0, Math.ceil(ms / 60000))
+  return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` : `${m}分`
+}
 
 const TABS = [
   { key: 'packs', label: '抽卡' },
@@ -43,7 +50,14 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [dossierId, setDossierId] = useState<string | null>(null)
   const [fresh, setFresh] = useState(false)
+  const [now, setNow] = useState(() => serverNow())
   const mainRef = useRef<HTMLDivElement>(null)
+
+  // the 体力 meter refills on a clock, so the screens need one that moves
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(serverNow()), 30_000)
+    return () => window.clearInterval(t)
+  }, [])
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg)
@@ -102,6 +116,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const ctx = useMemo(() => ({
     g: gRef.current!,
     today,
+    now,
     cloud,
     commit,
     toast,
@@ -109,7 +124,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     go: setTab,
   // gRef is stable; bump() drives the re-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [commit, toast, today, cloud, gRef.current, tab])
+  }), [commit, toast, today, now, cloud, gRef.current, tab])
 
   if (booting) {
     return <div className="wrap" style={{ padding: 40 }}><p className="muted">正在读取卡牌账号…</p></div>
@@ -159,10 +174,15 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           <div className="brand">VAL<span>CARDS</span><em className="by">卡牌模式</em></div>
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
           <div
-            className={`chip${staminaLeft(g) === 0 ? ' spent' : ''}`}
-            title={`每场天梯 2 点、每轮杯赛 3 点。每天服务器零点（北京时间）回满 ${STAMINA_MAX} 点。`}
+            className={`chip${staminaNow(g, now) === 0 ? ' spent' : ''}`}
+            title={`每场天梯 2 点、每轮杯赛 3 点。每 2 小时回 1 点，最多存 ${STAMINA_MAX} 点。`}
           >
-            ⚡ <b>{staminaLeft(g)}/{STAMINA_MAX}</b>
+            ⚡ <b>{staminaNow(g, now)}/{STAMINA_MAX}</b>
+            {staminaNow(g, now) < STAMINA_MAX && (
+              <span className="faint" style={{ marginLeft: 5, fontSize: 11 }}>
+                +1 · {mmss(staminaIn(g, now))}
+              </span>
+            )}
           </div>
           <div className="chip" title="段位">
             {DIVISIONS[g.ladder.div]} <b>{g.ladder.stars}/{starsFor(g.ladder.div)}★</b>

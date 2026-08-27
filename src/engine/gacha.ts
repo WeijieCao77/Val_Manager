@@ -116,9 +116,25 @@ export const MYTHIC_FLOOR = 500
  * promotion, a cup title — are not capped, because those are already once-a-day
  * things and taking them away twice would just be mean.
  */
-export const STAMINA_MAX = 12
+export const STAMINA_MAX = 10
 export const STAMINA_COST = { ladder: 2, cup: 3 } as const
 export type PlayKind = keyof typeof STAMINA_COST
+
+/**
+ * How long one point takes to come back.
+ *
+ * It used to be a single refill at midnight, which produced exactly the shape
+ * you would expect: burn the lot in one sitting, then nothing to do until
+ * tomorrow. A trickle lets the same daily allowance be spent in two or three
+ * visits instead of one.
+ *
+ * The interval sets the ceiling, and the ceiling is what was balanced: at one
+ * point every two hours nobody can earn more than 12 a day however often they
+ * check in, which is the six ladder matches the economy was tuned around. One
+ * point an HOUR would be 24 a day — twelve matches — and would quietly undo
+ * the slowdown it is meant to reshape.
+ */
+export const STAMINA_REGEN_MS = 2 * 60 * 60 * 1000
 
 /** How many packs the shop will sell you in one day. */
 export const SHOP_LIMIT = 2
@@ -210,9 +226,11 @@ export interface DailyState {
   picked: QuestKey[]
   progress: Partial<Record<QuestKey, number>>
   taken: QuestKey[]
-  /** 体力 left today, and how many packs the shop has already sold today */
-  stamina: number
+  /** how many packs the shop has already sold today */
   bought: number
+  /** 体力 banked at `staminaAt`, and the moment it was banked (epoch ms) */
+  stamina: number
+  staminaAt: number
 }
 
 export interface LogEntry {
@@ -263,7 +281,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     cup: null,
     daily: {
       claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
-      stamina: STAMINA_MAX, bought: 0,
+      stamina: STAMINA_MAX, staminaAt: 0, bought: 0,
     },
     log: [],
     seed: hashStr(id + today) >>> 0,
@@ -666,20 +684,58 @@ export function refreshDaily(g: GachaState, today: string): void {
   g.daily.picked = questsFor(today, g.id)
   g.daily.progress = {}
   g.daily.taken = []
-  g.daily.stamina = STAMINA_MAX
+  // 体力 is NOT topped up here any more — it accrues by the clock, so the day
+  // rolling over is about quests and the shop, not about the meter
   g.daily.bought = 0
 }
 
-export const staminaLeft = (g: GachaState): number =>
-  Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
+/**
+ * 体力 right now: what was banked, plus whatever the clock has added since.
+ *
+ * `now` is the server's clock carried over by engine/account.ts, never the
+ * device's — for the same reason the check-in date is the server's.
+ */
+export function staminaNow(g: GachaState, now: number): number {
+  const at = g.daily.staminaAt || now
+  const banked = Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
+  const gained = Math.floor(Math.max(0, now - at) / STAMINA_REGEN_MS)
+  return Math.min(STAMINA_MAX, banked + gained)
+}
 
-export const canPlay = (g: GachaState, kind: PlayKind): boolean =>
-  staminaLeft(g) >= STAMINA_COST[kind]
+/** ms until the next point lands, or 0 when the meter is already full. */
+export function staminaIn(g: GachaState, now: number): number {
+  if (staminaNow(g, now) >= STAMINA_MAX) return 0
+  const at = g.daily.staminaAt || now
+  const since = Math.max(0, now - at)
+  return STAMINA_REGEN_MS - (since % STAMINA_REGEN_MS)
+}
+
+/**
+ * Fold the accrued points into the bank.
+ *
+ * The clock is advanced to the last whole tick rather than to `now`, so the
+ * part-hour already served is not thrown away every time anything reads the
+ * meter — otherwise a player who checks the screen often would never regen.
+ */
+function settle(g: GachaState, now: number): void {
+  const at = g.daily.staminaAt || now
+  const ticks = Math.floor(Math.max(0, now - at) / STAMINA_REGEN_MS)
+  const banked = Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
+  const next = Math.min(STAMINA_MAX, banked + ticks)
+  g.daily.stamina = next
+  g.daily.staminaAt = next >= STAMINA_MAX ? now : at + ticks * STAMINA_REGEN_MS
+}
+
+export const canPlay = (g: GachaState, kind: PlayKind, now: number): boolean =>
+  staminaNow(g, now) >= STAMINA_COST[kind]
 
 /** Pay for a match. Returns false — and spends nothing — when there is not enough. */
-export function spendPlay(g: GachaState, kind: PlayKind): boolean {
-  if (!canPlay(g, kind)) return false
-  g.daily.stamina = staminaLeft(g) - STAMINA_COST[kind]
+export function spendPlay(g: GachaState, kind: PlayKind, now: number): boolean {
+  settle(g, now)
+  if (g.daily.stamina < STAMINA_COST[kind]) return false
+  // the meter was full, so the clock starts from this moment
+  if (g.daily.stamina >= STAMINA_MAX) g.daily.staminaAt = now
+  g.daily.stamina -= STAMINA_COST[kind]
   return true
 }
 

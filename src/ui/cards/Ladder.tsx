@@ -3,8 +3,8 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import {
-  DIVISIONS, PACKS, STAMINA_COST, canPlay, ladderOpponent, levelOf, recordLadder,
-  spendPlay, staminaLeft, starsFor,
+  DIVISIONS, PACKS, STAMINA_COST, STAMINA_MAX, canPlay, ladderOpponent, levelOf,
+  recordLadder, spendPlay, staminaNow, starsFor,
 } from '../../engine/gacha'
 import type { LadderOutcome } from '../../engine/gacha'
 import { playArenaMatch } from '../../engine/arena'
@@ -15,7 +15,7 @@ import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 
 export default function Ladder() {
-  const { g, commit, toast, go } = useCards()
+  const { g, now, commit, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: LadderOutcome } | null>(null)
 
@@ -28,8 +28,8 @@ export default function Ladder() {
 
   const play = () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
-    if (!spendPlay(g, 'ladder')) {
-      toast('今天的体力用完了，明天再来。')
+    if (!spendPlay(g, 'ladder', now)) {
+      toast('体力不够了——每 2 小时回 1 点。')
       return
     }
     setBusy(true)
@@ -88,14 +88,15 @@ export default function Ladder() {
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
                 三局两胜，走完整的 BAN/PICK 和回合经济——和生涯模式是同一套比赛引擎。
               </p>
-              <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'ladder')}>
+              <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
                   : filled < 5 ? '先去组队'
-                    : !canPlay(g, 'ladder') ? '体力不够（明天恢复）'
+                    : !canPlay(g, 'ladder', now) ? '体力不够'
                       : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-                今天还剩 {staminaLeft(g)} 点体力，够打 {Math.floor(staminaLeft(g) / STAMINA_COST.ladder)} 场。
+                体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。
+                每 2 小时回 1 点——攒满要 20 小时，所以一天分两次上线打得最划算。
               </p>
             </>
           ) : (

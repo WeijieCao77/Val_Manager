@@ -65,6 +65,15 @@ const DAY_FMT = new Intl.DateTimeFormat('en-CA', {
 })
 export const serverDay = () => DAY_FMT.format(new Date())
 
+/**
+ * The server's clock, in epoch ms.
+ *
+ * 体力 accrues by the hour, so the client needs a moment as well as a date —
+ * and for the same reason the date is ours, the moment has to be too. The
+ * client keeps the offset between this and its own clock and reads through it.
+ */
+export const serverNow = () => Date.now()
+
 const sameId = (a, b) => {
   const x = Buffer.from(String(a))
   const y = Buffer.from(String(b))
@@ -121,9 +130,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     try {
       const rows = await sql`
         select state, rev, name from card_accounts where id_hash = ${hash(id)}`
-      if (!rows.length) { json(res, 200, { ok: false, missing: true, today }); return }
+      if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
       await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
-      json(res, 200, { ok: true, today, rev: rows[0].rev, state: rows[0].state })
+      json(res, 200, { ok: true, today, now: serverNow(), rev: rows[0].rev, state: rows[0].state })
     } catch (err) {
       console.warn('cards: load failed', err.message)
       json(res, 500, { ok: false, today })
@@ -188,7 +197,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         on conflict (id_hash) do nothing
         returning rev`
       if (!rows.length) { json(res, 409, { ok: false, taken: true, today }); return }
-      json(res, 200, { ok: true, today, rev: rows[0].rev })
+      json(res, 200, { ok: true, today, now: serverNow(), rev: rows[0].rev })
     } catch (err) {
       console.warn('cards: claim failed', err.message)
       json(res, 500, { ok: false, today })
@@ -199,7 +208,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/day') {
-        json(res, 200, { ok: true, today: serverDay(), cloud: !!sql })
+        json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })
         return true
       }
       if (path === '/api/card/load') { await load(req, res, bucket); return true }

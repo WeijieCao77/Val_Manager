@@ -78,6 +78,21 @@ export interface DayInfo {
   cloud: boolean
 }
 
+/**
+ * How far this device's clock is from the server's, in ms.
+ *
+ * 体力 comes back by the hour, so it needs a moment and not just a date. The
+ * offset is captured whenever the server answers, and `serverNow()` reads the
+ * local clock through it — which means moving the system clock forward moves
+ * the offset by the same amount and buys nothing.
+ */
+let skew = 0
+const noteNow = (serverMs: unknown): void => {
+  if (typeof serverMs === 'number' && Number.isFinite(serverMs)) skew = serverMs - Date.now()
+}
+
+export const serverNow = (): number => Date.now() + skew
+
 const api = (path: string) => `${import.meta.env.BASE_URL}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
 
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
@@ -85,6 +100,7 @@ export async function fetchDay(): Promise<DayInfo> {
   try {
     const r = await fetch(api('day'), { cache: 'no-store' })
     const j = await r.json()
+    noteNow(j?.now)
     if (j?.today) return { today: j.today, cloud: !!j.cloud }
   } catch { /* offline */ }
   return { today: localToday(), cloud: false }
@@ -118,6 +134,7 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
       body: JSON.stringify({ id }),
     })
     const j = await r.json()
+    noteNow(j?.now)
     if (j?.today) today = j.today
     if (j?.ok && j.state) {
       const state = migrate(j.state as GachaState, id)
@@ -157,6 +174,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
         body: JSON.stringify({ id, name: state.name, state }),
       })
       const j = await r.json()
+      noteNow(j?.now)
       // 100 bits does not collide; the retry is here so that if it ever did,
       // the newcomer gets a fresh id instead of a stranger's collection
       if (j?.taken) continue
@@ -234,13 +252,14 @@ function migrate(state: GachaState, id: string): GachaState {
   g.ladder ??= { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 }
   g.daily ??= {
     claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
-    stamina: STAMINA_MAX, bought: 0,
+    stamina: STAMINA_MAX, staminaAt: 0, bought: 0,
   }
   g.daily.picked ??= []
   g.daily.progress ??= {}
   g.daily.taken ??= []
   // accounts made before the daily budget existed start today with a full one
   g.daily.stamina ??= STAMINA_MAX
+  g.daily.staminaAt ??= 0
   g.daily.bought ??= 0
   return clampState(g)
 }

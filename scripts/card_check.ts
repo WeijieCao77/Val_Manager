@@ -18,6 +18,7 @@ import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
   collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, CUP_ENTRY, starsFor,
   MYTHIC_FLOOR, setSlot, refreshDaily, spendPlay, shopLeft, claimQuest, STAMINA_MAX,
+  STAMINA_COST,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
@@ -187,8 +188,33 @@ console.log('\n=== 默契 vs 纯数值 ===')
 
 // ---------------------------------------------------------------- 4. economy
 
-console.log('\n=== 每天上线打满、不氪，连打 60 天 ===')
+console.log('\n=== 体力方案对比：一天上线 N 次能打几场 ===')
 {
+  const HOUR = 3600_000
+  const SCHEMES = [
+    { name: '每 2 小时 +1，上限 10', regen: 2 * HOUR, cap: 10 },
+    { name: '每 1 小时 +1，上限 10', regen: 1 * HOUR, cap: 10 },
+    { name: '每天零点回满 12', regen: 0, cap: 12 },
+  ]
+  const SESSIONS = [1, 2, 3, 6]
+  console.log('  上线次数 →        ' + SESSIONS.map((n) => `${n}次/天`.padStart(8)).join(''))
+  for (const sc of SCHEMES) {
+    const row = SESSIONS.map((n) => {
+      const gapMs = (24 / n) * HOUR
+      // a visit can only bank what the clock made since the last one, capped
+      const perVisit = sc.regen === 0 ? (n === 1 ? sc.cap : 0)
+        : Math.min(sc.cap, Math.floor(gapMs / sc.regen))
+      const perDay = sc.regen === 0 ? sc.cap : perVisit * n
+      return `${Math.floor(perDay / STAMINA_COST.ladder)}场`.padStart(8)
+    })
+    console.log(`  ${sc.name.padEnd(22)}${row.join('')}`)
+  }
+  console.log(`  （天梯一场 ${STAMINA_COST.ladder} 点。零点回满的方案上线再多次也还是那一份。）`)
+}
+
+console.log('\n=== 每天分两次上线、打光体力、不氪，连打 60 天 ===')
+{
+  const HOUR = 3600_000
   const g: GachaState = newGacha('VM-ECON-ECON-ECON-ECON-ECON', '穷鬼', '2026-08-27')
   for (const [k, n] of Object.entries(g.packs)) {
     for (let i = 0; i < (n ?? 0); i++) openPack(g, k as PackKind, 'pack')
@@ -197,54 +223,47 @@ console.log('\n=== 每天上线打满、不氪，连打 60 天 ===')
   let matches = 0
   let hitTop = 0
   let opens = 0
-  let blockedByStamina = 0
-  let blockedByShop = 0
-  const date = new Date('2026-08-27T00:00:00Z')
+  const day0 = Date.parse('2026-08-27T00:00:00Z')
+  g.daily.stamina = STAMINA_MAX
+  g.daily.staminaAt = day0
+  const date = new Date(day0)
   for (let day = 0; day < 60; day++) {
     const today = date.toISOString().slice(0, 10)
     refreshDaily(g, today)
     checkIn(g, today)
     date.setUTCDate(date.getUTCDate() + 1)
-
-    // play until the day's 体力 runs out, which is the point of the budget
-    for (let m = 0; ; m++) {
-      if (!spendPlay(g, 'ladder')) { blockedByStamina++; break }
-      const opp = ladderOpponent(g)
-      const r = playArenaMatch(g.squad, (id) => g.cards[id]?.level ?? 0, opp, 3, (day * 7 + m) >>> 0)
-      recordLadder(g, r.win)
-      matches++
-      if (!hitTop && g.ladder.div === DIVISIONS.length - 1) hitTop = day + 1
-    }
-    // open everything earned, then buy what the shop will still sell
-    for (const k of ['ten', 'elite', 'scout', 'coach'] as PackKind[]) {
-      while ((g.packs[k] ?? 0) > 0) { openPack(g, k, 'pack'); opens++ }
-    }
-    for (const k of ['elite', 'scout'] as PackKind[]) {
-      while (shopLeft(g) > 0 && PACKS[k].shop !== false && g.coins >= PACKS[k].cost) {
-        openPack(g, k, 'coins')
-        opens++
+    for (const hour of [9, 21]) {
+      const clock = day0 + day * 24 * HOUR + hour * HOUR
+      for (let m = 0; m < 40; m++) {
+        if (!spendPlay(g, 'ladder', clock)) break
+        const opp = ladderOpponent(g)
+        const r = playArenaMatch(g.squad, (id) => g.cards[id]?.level ?? 0, opp, 3, (day * 7 + m) >>> 0)
+        recordLadder(g, r.win)
+        matches++
+        if (!hitTop && g.ladder.div === DIVISIONS.length - 1) hitTop = day + 1
+      }
+      for (const k of ['ten', 'elite', 'scout', 'coach'] as PackKind[]) {
+        while ((g.packs[k] ?? 0) > 0) { openPack(g, k, 'pack'); opens++ }
+      }
+      for (const k of ['elite', 'scout'] as PackKind[]) {
+        while (shopLeft(g) > 0 && PACKS[k].shop !== false && g.coins >= PACKS[k].cost) {
+          openPack(g, k, 'coins')
+          opens++
+        }
       }
     }
-    if (shopLeft(g) === 0) blockedByShop++
     for (const q of g.daily.picked) claimQuest(g, q)
     g.squad = autoSquad(g)
   }
   const prog = collectionProgress(g)
   console.log(`  ${matches} 场天梯（每天 ${(matches / 60).toFixed(1)} 场）· 战绩 ${g.ladder.wins}-${g.ladder.losses} (${pct(g.ladder.wins, matches)})`)
   console.log(`  开包 ${opens} 次（每天 ${(opens / 60).toFixed(1)} 次）· 抽卡 ${g.pulls} 张`)
-  console.log(`  体力天天打光 ${blockedByStamina}/60 天，商店天天买满 ${blockedByShop}/60 天`)
   console.log(`  段位 ${DIVISIONS[g.ladder.div]} ${g.ladder.stars}/${starsFor(g.ladder.div)}★`
     + `（最高 ${DIVISIONS[g.ladder.best]}${hitTop ? `，第 ${hitTop} 天登顶` : '，未登顶'}）`)
   console.log(`  收集 ${prog.owned}/${prog.total} (${pct(prog.owned, prog.total)})  余额 ${g.coins} 金币`)
-  // NOT owned/total scaled linearly: past the halfway mark almost every pull
-  // is a duplicate, so the tail is far longer than the head. Coupon-collector
-  // says the last card of N takes about N·ln(N) draws in total.
   const need = Math.round(prog.total * Math.log(prog.total))
-  console.log(`  集齐 ${prog.total} 张理论上要抽 ~${need} 张（约 ${Math.round(need / (g.pulls / 60) / 30)} 个月），`
-    + `所以彩卡是长期目标而不是月底就能清的清单`)
+  console.log(`  集齐 ${prog.total} 张理论上要抽 ~${need} 张（约 ${Math.round(need / Math.max(1, g.pulls / 60) / 30)} 个月）`)
 
-  // What the budget actually stopped: before it existed, nothing capped the
-  // ladder, so one determined evening was worth two months of this.
   const grind = newGacha('VM-GRND-GRND-GRND-GRND-GRND', '狂人', '2026-08-27')
   grind.squad = g.squad
   let coins = 0
@@ -252,11 +271,9 @@ console.log('\n=== 每天上线打满、不氪，连打 60 天 ===')
     const r = playArenaMatch(grind.squad, () => 0, ladderOpponent(grind), 3, m)
     coins += recordLadder(grind, r.win).coins
   }
-  console.log(`  对照：没有体力时，一口气打 60 场（一晚上）能拿 ${coins} 金币`
-    + ` = ${Math.floor(coins / PACKS.scout.cost)} 个试训包，现在要打 ${Math.ceil(60 / (STAMINA_MAX / 2))} 天`)
+  console.log(`  对照：没有体力时一口气打 60 场（一晚上）能拿 ${coins} 金币`
+    + ` = ${Math.floor(coins / PACKS.scout.cost)} 个试训包`)
 }
-
-// ---------------------------------------------------------------- 5. cup
 
 for (const [label, tens] of [['新号（3 个十连）', 3], ['大佬（30 个十连）', 30]] as const) {
 console.log(`\n=== 杯赛 100 次 · ${label} ===`)
