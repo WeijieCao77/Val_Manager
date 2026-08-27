@@ -20,6 +20,7 @@
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
 | 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
 | 选手照片 | vlr.gg 选手页 + Liquipedia | 430/518 人（vlr 399 + Liquipedia 31）；剩下的用剪影 |
+| 彩卡照片 | Liquipedia commons | 20/20，取自夺冠当场的比赛照，多张是捧杯照 |
 | 教练/分析师照片、国籍、真名 | vlr.gg 战队页教练组 + Liquipedia | 60/69 人 |
 | 生涯队伍履历（带起止日期） | Liquipedia `TeamHistoryAuto` | 448/518 人 |
 | 赛事名次、生涯奖金 | vlr.gg 选手页 Event Placements | 518/518 人，共 533 项赛事 |
@@ -131,6 +132,20 @@ FC / 电竞经理那一套，但卡面上的每一个人都是真的。
 分三类：Riot 官方 FMVP（11 张）、当年还没有官方奖项时的社区评选 MVP（3 张，
 2021–2023 大师赛）、以及没拿过 MVP 但地位公认的现象级人物（6 张）。README 末尾有完整名单
 和来源。
+
+**照片来自那一场**。彩卡不用 vlr 的白底证件照，用的是他夺冠当届的现场照——
+Alfajer、Boaster、CHICHOO、Chronicle、Derke、Ethan、zeek、ZmjjKK 抱着奖杯，
+其余大多在台上。取自 Liquipedia commons（CC BY-SA，卡片详情里附文件页链接）。
+
+身份靠文件名验证：Liquipedia 用选手 ID 命名照片（`EDG ZmjjKK at VALORANT Champions
+2024.jpg`），战队 logo 和赛事图不会。只接受 ID 以完整单词出现、**且**同时带上战队、
+真名或赛事名的文件——光有 ID 不够，「Neon」会匹配到英雄技能图标、两个别的战队和一个
+CS 皮肤。有一张 `Neon at Esports World Cup 2026.jpg` 看着像，但 Liquipedia 上没有任何
+页面引用它，身份无法确认，就丢掉了。
+
+Riot 官方的 [VCT 摄影档案](https://www.flickr.com/photos/valorantesports) 才是最好的
+捧杯照来源，但**没有用**：每张都是 "All rights reserved © Riot Games"，且 Flickr 的
+`robots.txt` 对通配 UA 是 `Disallow: /`。
 
 **稀有度和强度不是同一条轴**。大部分彩卡在 92–96，但 zeek（2021 世界冠军）是 88、
 Boaster（2023 双冠队长）是 86——数据从来不好看的世界冠军仍然是世界冠军，
@@ -460,6 +475,7 @@ scripts/
   fetch_vlr_profiles.py  从 vlr.gg 选手页抓照片、国籍、名次、奖金
   fetch_vlr_staff.py     从 vlr.gg 战队页抓教练组照片、国籍、真名
   fetch_liquipedia_faces.py  vlr 没有的那些，去 Liquipedia 找（按文件名校验身份）
+  fetch_legend_faces.py  彩卡的夺冠现场照，按 捧杯>夺冠赛事>同队同季 排序挑选
   fetch_faces.py         下载照片并压成 192px webp
   build_dossier.py       合并成 src/data/dossier.json
   smoke.ts               无头跑完整赛季并校验数据合理性

@@ -45,6 +45,16 @@ interface DossierFile {
   players: Record<string, DossierEntry>
   /** keyed by the coach's name as world.json spells it */
   coaches?: Record<string, DossierEntry>
+  /** keyed by legend id — the photo from the night, and where it came from */
+  legends?: Record<string, LegendPhoto>
+}
+
+export interface LegendPhoto {
+  img: string
+  /** how close the picture gets to the moment: trophy > event > era > club */
+  tier: 'trophy' | 'event' | 'era' | 'club' | 'person'
+  /** the Liquipedia file page, which is what CC BY-SA asks us to point at */
+  page?: string
 }
 
 export const DOSSIER = RAW as unknown as DossierFile
@@ -63,6 +73,17 @@ export const titleCount = (playerId: string): number => dossierOf(playerId)?.t ?
  */
 export const coachDossier = (name: string): DossierEntry | undefined =>
   DOSSIER.coaches?.[name]
+
+/**
+ * The photograph for a彩卡.
+ *
+ * Chosen off the filename by scripts/fetch_legend_faces.py — Liquipedia names
+ * these after the player and the event, so "with the VALORANT Champions 2021
+ * trophy" is a claim we can act on. `tier` says how close it got, and the card
+ * detail is honest about it rather than implying every one is a trophy shot.
+ */
+export const legendPhoto = (legendId: string): LegendPhoto | undefined =>
+  DOSSIER.legends?.[legendId]
 
 /**
  * `public/faces` is copied verbatim into the build; base may be a subpath.

@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "scripts" / "cache" / "vlr_profiles.json"
 STAFF = ROOT / "scripts" / "cache" / "vlr_staff.json"
 LP_FACES = ROOT / "scripts" / "cache" / "lp_faces.json"
+LEGEND_FACES = ROOT / "scripts" / "cache" / "legend_faces.json"
 TENURE = ROOT / "scripts" / "cache" / "liquipedia_tenure.json"
 WORLD = ROOT / "src" / "data" / "world.json"
 OUT = ROOT / "src" / "data" / "dossier.json"
@@ -45,6 +46,7 @@ def main() -> int:
     profiles = load(PROFILES, {})
     staff = load(STAFF, {"people": {}})
     lp = load(LP_FACES, {"players": {}, "coaches": {}})
+    legend_faces = load(LEGEND_FACES, {"picks": {}}).get("picks") or {}
     tenure = load(TENURE, {})
 
     # liquipedia keys are page titles; match case-insensitively on the ign
@@ -145,6 +147,14 @@ def main() -> int:
         if rec:
             coaches[name] = rec
 
+    # ---- the彩卡, which get a photo from the night they are ------------
+    legends: dict[str, dict] = {}
+    for lid, pick in legend_faces.items():
+        fname = "l-" + re.sub(r"[^a-z0-9-]", "-", lid.split(":", 1)[-1].lower()) + ".webp"
+        if not (FACES / fname).exists():
+            continue
+        legends[lid] = {"img": fname, "tier": pick.get("tier"), "page": pick.get("page")}
+
     OUT.write_text(json.dumps({
         "meta": {
             "sources": {
@@ -158,10 +168,12 @@ def main() -> int:
             "photos": photos,
             "coaches": len(coaches),
             "coachPhotos": coach_photos,
+            "legendPhotos": len(legends),
             "events": len(events),
         },
         "players": players,
         "coaches": coaches,
+        "legends": legends,
     }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     RECORDS.write_text(json.dumps({
         "events": events,
@@ -171,6 +183,10 @@ def main() -> int:
     print(f"dossier.json  {OUT.stat().st_size/1024:>5.0f}KB   （随主包加载：照片、国籍、真名、奖金、冠军数）")
     print(f"records.json  {RECORDS.stat().st_size/1024:>5.0f}KB   （按需加载：队伍履历与赛事记录）")
     print(f"  教练 {len(coaches)} 人，其中 {coach_photos} 有照片")
+    tiers: dict[str, int] = {}
+    for v in legends.values():
+        tiers[v["tier"]] = tiers.get(v["tier"], 0) + 1
+    print(f"  彩卡 {len(legends)} 张有照片 {tiers}")
     print(f"  players {len(players)}/{len(world['players'])}"
           f" | photos {photos} | nationality {nats}"
           f" | placements {withev} | club history {withth}"

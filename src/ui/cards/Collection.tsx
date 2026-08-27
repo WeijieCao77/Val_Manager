@@ -9,6 +9,7 @@ import {
 import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
 import { LEGEND_KIND_CN } from '../../engine/legends'
+import { legendPhoto } from '../../engine/dossier'
 
 type Filter = 'all' | Rarity | 'coach' | 'dupes'
 
@@ -135,6 +136,22 @@ export default function Collection() {
                         {LEGEND_KIND_CN[sel.legend.kind]} · {sel.legend.year} · {sel.legend.clubTag}
                       </span>
                       <div className="tiny muted" style={{ marginTop: 4 }}>{sel.legend.note}</div>
+                      {legendPhoto(sel.legend.id)?.page && (
+                        <div className="tiny faint" style={{ marginTop: 6 }}>
+                          {/* CC BY-SA asks us to point at where the picture came
+                              from; the tier is not claimed because it is derived
+                              from a filename and undersells half of them */}
+                          照片：
+                          <a
+                            href={legendPhoto(sel.legend.id)!.page}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            Liquipedia
+                          </a>
+                          {' '}· CC BY-SA
+                        </div>
+                      )}
                     </div>
                   )}
                   {isPlayerCard(sel) ? (

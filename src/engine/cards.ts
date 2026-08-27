@@ -9,7 +9,7 @@
  * what happens once you own one.
  */
 import { WORLD_PLAYERS, WORLD_TEAMS, WORLD_ANALYSTS } from './world'
-import { DOSSIER, coachDossier, faceUrl } from './dossier'
+import { DOSSIER, coachDossier, faceUrl, legendPhoto } from './dossier'
 import { LEGENDS } from './legends'
 import type { Legend } from './legends'
 import { clamp } from './rng'
@@ -210,12 +210,16 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
       console.warn(`legend ${l.id}: no player called ${l.ign} in world.json`)
       continue
     }
+    // the picture from that night, where Liquipedia has one; otherwise the
+    // ordinary studio portrait rather than nothing
+    const photo = legendPhoto(l.id)
     out.push({
       ...base,
       id: l.id,
       legend: l,
       clubId: l.clubId,
       clubTag: l.clubTag,
+      face: photo ? faceUrl(photo.img) : base.face,
       attrs: legendAttrs(base.attrs, l.rating - base.rating),
       rating: l.rating,
       rarity: 'mythic',

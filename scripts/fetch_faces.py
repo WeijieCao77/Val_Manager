@@ -4,10 +4,13 @@ Hotlinking somebody else's CDN on every card flip would spend their bandwidth
 for us, so each picture is fetched once here, cut down to what a card actually
 shows, and committed. Sources and credit are recorded in dossier.json's meta.
 
-Three inputs, in order of preference:
+Four inputs, in order of preference:
   vlr_profiles.json   the player's own vlr.gg page      (399 players)
   vlr_staff.json      the club's staff listing on vlr    (coaches, 54)
   lp_faces.json       Liquipedia, for what neither has   (31 + 6)
+  legend_faces.json   Liquipedia event photos for the彩卡 (20) — a彩卡 is a
+                      night, so it gets a picture from that night rather than
+                      the studio portrait the ordinary card uses
 
 Skips anything already on disk, so re-running after a partial scrape costs only
 the new faces.
@@ -32,6 +35,7 @@ CACHE = ROOT / "scripts" / "cache"
 PROFILES = CACHE / "vlr_profiles.json"
 STAFF = CACHE / "vlr_staff.json"
 LP = CACHE / "lp_faces.json"
+LEGEND = CACHE / "legend_faces.json"
 WORLD = ROOT / "src" / "data" / "world.json"
 OUT = ROOT / "public" / "faces"
 
@@ -70,6 +74,11 @@ def square(im: Image.Image) -> Image.Image:
 
 def load(p: Path, default):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else default
+
+
+def legend_file(lid: str) -> str:
+    """`L:zeek-champions-2021` is not a filename; `l-zeek-champions-2021` is."""
+    return "l-" + re.sub(r"[^a-z0-9-]", "-", lid.split(":", 1)[-1].lower()) + ".webp"
 
 
 def coach_file(name: str) -> str:
@@ -113,6 +122,10 @@ def main() -> int:
             or (lp["coaches"].get(name) or {}).get("url")
         if url:
             jobs.append((name, coach_file(name), url))
+
+    for lid, pick in (load(LEGEND, {}).get("picks") or {}).items():
+        if pick.get("url"):
+            jobs.append((lid, legend_file(lid), pick["url"]))
 
     done = skipped = failed = 0
     for label, fname, url in jobs:
