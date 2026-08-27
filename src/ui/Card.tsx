@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ATTR_CN } from '../engine/types'
-import { roleColor } from '../engine/player'
 import { RARITY_CN, ratingAt } from '../engine/cards'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
 import { isCoachCard, isPlayerCard } from '../engine/cards'
@@ -70,34 +69,39 @@ export function Flag({ nat }: { nat: string | null | undefined }) {
 }
 
 /**
- * The photograph, or the best stand-in there is.
+ * The stand-in when there is no photograph.
  *
- * vlr.gg has no picture for about one professional in ten, and the tier-two
- * players who make up most of the bronze pool are the ones it is missing. A
- * grey silhouette on a tenth of the collection would read as a bug, so the
- * fallback is the player's own initials on their role's colour — a card that
- * looks deliberate rather than broken.
+ * vlr.gg has no picture for 119 of the 518 — mostly tier-two and mostly
+ * Chinese and Pacific rosters. Initials were tried first and read as a
+ * placeholder for a name rather than a placeholder for a person; a plain bust
+ * is what every card game does and what the eye skips over. Drawn rather than
+ * loaded so it costs nothing and inherits the card's own colour.
  */
-function Face({ card, big }: { card: PlayerCard; big?: boolean }) {
+function Silhouette() {
+  return (
+    <svg className="cf-sil" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle cx="32" cy="23" r="11.5" />
+      <path d="M32 37c-11 0-19.5 6.6-21.6 16.4A2 2 0 0 0 12.4 56h39.2a2 2 0 0 0 2-2.6C51.5 43.6 43 37 32 37Z" />
+    </svg>
+  )
+}
+
+/** The photograph, with the silhouette behind it for the ones vlr has none of. */
+function Face({ src, alt }: { src: string | null; alt: string }) {
   const [failed, setFailed] = useState(false)
-  if (card.face && !failed) {
+  if (src && !failed) {
     return (
       <img
         className="cf-photo"
-        src={card.face}
-        alt={card.ign}
+        src={src}
+        alt={alt}
         loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
       />
     )
   }
-  const initials = card.ign.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || card.ign.slice(0, 1)
-  return (
-    <div className="cf-photo cf-noface" style={{ color: roleColor(card.role), fontSize: big ? 40 : 26 }}>
-      {initials}
-    </div>
-  )
+  return <div className="cf-photo cf-noface"><Silhouette /></div>
 }
 
 export interface CardFaceProps {
@@ -132,7 +136,7 @@ export default function CardFace({
 
   const body = isPlayerCard(card)
     ? <PlayerBody card={card} size={size} footer={footer} />
-    : <CoachBody card={card as CoachCard} footer={footer} />
+    : <CoachBody card={card as CoachCard} size={size} footer={footer} />
 
   return (
     <div className={cls} onClick={onClick} title={title} role={onClick ? 'button' : undefined}>
@@ -160,7 +164,7 @@ function PlayerBody({ card, size, footer }: { card: PlayerCard; size: string; fo
     : (['aim', 'reaction', 'awareness', 'utility', 'clutch', 'igl'] as const)
   return (
     <>
-      <Face card={card} big={size === 'lg'} />
+      <Face src={card.face} alt={card.ign} />
       <div className="cf-name">{card.ign}</div>
       {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}
       <div className="cf-meta">
@@ -179,12 +183,14 @@ function PlayerBody({ card, size, footer }: { card: PlayerCard; size: string; fo
   )
 }
 
-function CoachBody({ card, footer }: { card: CoachCard; footer?: string }) {
+function CoachBody({ card, size, footer }: { card: CoachCard; size: string; footer?: string }) {
   return (
     <>
-      <div className="cf-photo cf-noface cf-coach">🎧</div>
+      <Face src={card.face} alt={card.name} />
       <div className="cf-name">{card.name}</div>
+      {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}
       <div className="cf-meta">
+        <Flag nat={card.nat} />
         <span className="cf-club">{card.clubTag ?? '自由身'}</span>
         {card.spec && <span className="cf-igl" title="分析师">分析</span>}
       </div>
@@ -196,6 +202,22 @@ function CoachBody({ card, footer }: { card: CoachCard; footer?: string }) {
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * The back of a card, for the moment before it turns over.
+ *
+ * Deliberately says nothing about what is on the other side — no metal, no
+ * rating, no colour that could give a gold away early. The whole value of the
+ * flip is that you cannot tell yet.
+ */
+export function CardBack() {
+  return (
+    <div className="cardback">
+      <div className="cb-mark">VAL</div>
+      <div className="cb-sub">CARDS</div>
+    </div>
   )
 }
 

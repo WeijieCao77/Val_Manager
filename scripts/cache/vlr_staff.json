@@ -1,0 +1,5359 @@
+{
+ "people": {
+  "kingg": {
+   "vlrId": "8549",
+   "ign": "kiNgg",
+   "img": "https://owcdn.net/img/69234b213a609.png",
+   "nat": "cl",
+   "real": "Francisco Aravena",
+   "team": "LEV"
+  },
+  "spike": {
+   "vlrId": "21661",
+   "ign": "spike",
+   "img": "https://owcdn.net/img/69234b7d30781.png",
+   "nat": "br",
+   "real": "Rodrigo Lombardi",
+   "team": "LEV"
+  },
+  "blowz": {
+   "vlrId": "21251",
+   "ign": "blowz",
+   "img": "https://owcdn.net/img/69234aef86f4b.png",
+   "nat": "br",
+   "real": "Guilherme Oliviera",
+   "team": "LEV"
+  },
+  "neon": {
+   "vlrId": "29243",
+   "ign": "Neon",
+   "img": "https://owcdn.net/img/69234b3d0a58d.png",
+   "nat": "ar",
+   "real": "Bruno Rodríguez",
+   "team": "LEV"
+  },
+  "sato": {
+   "vlrId": "21659",
+   "ign": "Sato",
+   "img": "https://owcdn.net/img/69234b72ce3db.png",
+   "nat": "br",
+   "real": "Eduardo Kenzo Nagahama Sato",
+   "team": "LEV"
+  },
+  "onur": {
+   "vlrId": "2455",
+   "ign": "Onur",
+   "img": "https://owcdn.net/img/69234b4d36e7b.png",
+   "nat": "ar",
+   "real": "Rodrigo Dalmagro",
+   "role": "head coach",
+   "team": "LEV"
+  },
+  "jhein": {
+   "vlrId": "30972",
+   "ign": "Jhein",
+   "img": "https://owcdn.net/img/695ee3ba44d91.png",
+   "nat": "ar",
+   "real": "Cristian Camaño",
+   "role": "assistant coach",
+   "team": "LEV"
+  },
+  "valyn": {
+   "vlrId": "3885",
+   "ign": "valyn",
+   "img": "https://owcdn.net/img/65e4660ee20e5.png",
+   "nat": "us",
+   "real": "Jacob Batio",
+   "team": "G2"
+  },
+  "jawgemo": {
+   "vlrId": "3993",
+   "ign": "jawgemo",
+   "img": "https://owcdn.net/img/64169400bfed7.png",
+   "nat": "kh",
+   "real": "Alexander Mor",
+   "team": "G2"
+  },
+  "babybay": {
+   "vlrId": "2170",
+   "ign": "BABYBAY",
+   "img": "https://owcdn.net/img/6224a67aabf26.png",
+   "nat": "us",
+   "real": "Andrej Francisty",
+   "team": "G2"
+  },
+  "trent": {
+   "vlrId": "15500",
+   "ign": "trent",
+   "img": "https://owcdn.net/img/65e466071ca19.png",
+   "nat": "us",
+   "real": "Trent Cairns",
+   "team": "G2"
+  },
+  "leaf": {
+   "vlrId": "7873",
+   "ign": "leaf",
+   "img": "https://owcdn.net/img/6613103dd51a4.png",
+   "nat": "us",
+   "real": "Nathan Orf",
+   "team": "G2"
+  },
+  "ambrose": {
+   "vlrId": "63508",
+   "ign": "Ambrose",
+   "nat": "us",
+   "real": "Ambrose Lai",
+   "role": "manager",
+   "team": "G2"
+  },
+  "joshrt": {
+   "vlrId": "52",
+   "ign": "JoshRT",
+   "img": "https://owcdn.net/img/65e46376a2867.png",
+   "nat": "us",
+   "real": "Josh Lee",
+   "role": "head coach",
+   "team": "G2"
+  },
+  "shhhack": {
+   "vlrId": "6899",
+   "ign": "shhhack",
+   "img": "https://owcdn.net/img/65e46626795d3.png",
+   "nat": "sk",
+   "real": "Peter Belej",
+   "role": "assistant coach",
+   "team": "G2"
+  },
+  "robert": {
+   "vlrId": "61050",
+   "ign": "Robert",
+   "nat": "ie",
+   "real": "Robert Yip",
+   "role": "performance coach",
+   "team": "G2"
+  },
+  "zekken": {
+   "vlrId": "4004",
+   "ign": "zekken",
+   "img": "https://owcdn.net/img/69742b2cdd6c3.png",
+   "nat": "us",
+   "real": "Zachary Patrone",
+   "team": "MIBR"
+  },
+  "tex": {
+   "vlrId": "1818",
+   "ign": "tex",
+   "img": "https://owcdn.net/img/69742b4f94c53.png",
+   "nat": "de",
+   "real": "Ian Botsch",
+   "team": "MIBR"
+  },
+  "mazino": {
+   "vlrId": "7603",
+   "ign": "Mazino",
+   "img": "https://owcdn.net/img/69742ba0b7d17.png",
+   "nat": "cl",
+   "real": "Roberto Rivas",
+   "team": "MIBR"
+  },
+  "verno": {
+   "vlrId": "21668",
+   "ign": "Verno",
+   "img": "https://owcdn.net/img/69742b3c25b7c.png",
+   "nat": "us",
+   "real": "Andrew Maust",
+   "team": "MIBR"
+  },
+  "aspas": {
+   "vlrId": "8480",
+   "ign": "aspas",
+   "img": "https://owcdn.net/img/6977f8cf0996f.png",
+   "nat": "br",
+   "real": "Erick Santos",
+   "team": "MIBR"
+  },
+  "nandinnn": {
+   "vlrId": "61419",
+   "ign": "Nandinnn",
+   "img": "https://owcdn.net/img/69780bdc021d7.png",
+   "nat": "br",
+   "role": "manager",
+   "team": "MIBR"
+  },
+  "frod": {
+   "vlrId": "145",
+   "ign": "fRoD",
+   "img": "https://owcdn.net/img/6977f8fa9f7ae.png",
+   "nat": "us",
+   "real": "Daniel Montaner",
+   "role": "head coach",
+   "team": "MIBR"
+  },
+  "happy": {
+   "vlrId": "255",
+   "ign": "Happy",
+   "img": "https://owcdn.net/img/67925038e29d3.png",
+   "nat": "fr",
+   "real": "Vincent Schopenhauer",
+   "role": "assistant coach",
+   "team": "MIBR"
+  },
+  "ethan": {
+   "vlrId": "11225",
+   "ign": "Ethan",
+   "img": "https://owcdn.net/img/6974068bad561.png",
+   "nat": "us",
+   "real": "Ethan Arnold",
+   "team": "NRG"
+  },
+  "keiko": {
+   "vlrId": "11494",
+   "ign": "keiko",
+   "img": "https://owcdn.net/img/697406c5ecbcd.png",
+   "nat": "gb",
+   "real": "Georgio Sanassy",
+   "team": "NRG"
+  },
+  "brawk": {
+   "vlrId": "2172",
+   "ign": "brawk",
+   "img": "https://owcdn.net/img/697426e1f3308.png",
+   "nat": "us",
+   "real": "Brock Somerhalder",
+   "team": "NRG"
+  },
+  "mada": {
+   "vlrId": "5132",
+   "ign": "mada",
+   "img": "https://owcdn.net/img/697406cf6b086.png",
+   "nat": "ca",
+   "real": "Adam Pampuch",
+   "team": "NRG"
+  },
+  "skuba": {
+   "vlrId": "11118",
+   "ign": "skuba",
+   "img": "https://owcdn.net/img/6974067806f34.png",
+   "nat": "us",
+   "real": "Logan Jenkins",
+   "team": "NRG"
+  },
+  "ry": {
+   "vlrId": "47029",
+   "ign": "Ry",
+   "nat": "co",
+   "real": "Zachary Parr",
+   "role": "manager",
+   "team": "NRG"
+  },
+  "bonkar": {
+   "vlrId": "7",
+   "ign": "bonkar",
+   "img": "https://owcdn.net/img/69740665ea1d3.png",
+   "nat": "se",
+   "real": "Malkolm Rench",
+   "role": "head coach",
+   "team": "NRG"
+  },
+  "mitch": {
+   "vlrId": "612",
+   "ign": "mitch",
+   "img": "https://owcdn.net/img/696eb214bb188.png",
+   "nat": "us",
+   "real": "Mitch Semago",
+   "role": "assistant coach",
+   "team": "NRG"
+  },
+  "johnqt": {
+   "vlrId": "1265",
+   "ign": "johnqt",
+   "img": "https://owcdn.net/img/69741441b9923.png",
+   "nat": "ma",
+   "real": "Mohamed Amine Ouarid",
+   "team": "SEN"
+  },
+  "reduxx": {
+   "vlrId": "8419",
+   "ign": "Reduxx",
+   "img": "https://owcdn.net/img/6974144d86cdb.png",
+   "nat": "us",
+   "real": "Yassin Aboulalazm",
+   "team": "SEN"
+  },
+  "jerrwin": {
+   "vlrId": "34057",
+   "ign": "Jerrwin",
+   "nat": "in",
+   "real": "Gurjiwan Gill",
+   "team": "SEN"
+  },
+  "cortezia": {
+   "vlrId": "5395",
+   "ign": "cortezia",
+   "img": "https://owcdn.net/img/69741432dd5e2.png",
+   "nat": "br",
+   "real": "Gabriel Cortez",
+   "team": "SEN"
+  },
+  "jonahp": {
+   "vlrId": "4581",
+   "ign": "JonahP",
+   "img": "https://owcdn.net/img/65e4636c00e46.png",
+   "nat": "ca",
+   "real": "Jonah Pulice",
+   "team": "SEN"
+  },
+  "marved": {
+   "vlrId": "263",
+   "ign": "Marved",
+   "img": "https://owcdn.net/img/6207474eb81b1.png",
+   "nat": "ca",
+   "real": "Jimmy Nguyen",
+   "role": "stand-in",
+   "team": "SEN"
+  },
+  "zyto": {
+   "vlrId": "47462",
+   "ign": "Zyto",
+   "img": "https://owcdn.net/img/66c25238e898d.png",
+   "nat": "us",
+   "real": "Bryan Ybanez",
+   "role": "manager",
+   "team": "SEN"
+  },
+  "ewok": {
+   "vlrId": "8347",
+   "ign": "Ewok",
+   "img": "https://owcdn.net/img/6821f785e3ef1.png",
+   "nat": "za",
+   "real": "Marthinus Jacobus Van Der Walt",
+   "role": "head coach",
+   "team": "SEN"
+  },
+  "gunter": {
+   "vlrId": "28113",
+   "ign": "GUNTER",
+   "nat": "gb",
+   "real": "Luke Clives",
+   "role": "assistant coach",
+   "team": "SEN"
+  },
+  "artzin": {
+   "vlrId": "5957",
+   "ign": "artzin",
+   "img": "https://owcdn.net/img/6984ec87c63c1.png",
+   "nat": "br",
+   "real": "Arthur Araujo",
+   "team": "FUR"
+  },
+  "basic": {
+   "vlrId": "37354",
+   "ign": "basic",
+   "img": "https://owcdn.net/img/67ae72c12777e.png",
+   "nat": "br",
+   "real": "Luis Henrique Ferlin Tessaro",
+   "team": "FUR"
+  },
+  "shyy": {
+   "vlrId": "24007",
+   "ign": "Shyy",
+   "img": "https://owcdn.net/img/687bfb9a9e913.png",
+   "nat": "cl",
+   "real": "Fabian Usnayo",
+   "team": "FUR"
+  },
+  "c0m": {
+   "vlrId": "619",
+   "ign": "C0M",
+   "img": "https://owcdn.net/img/641693c3a0312.png",
+   "nat": "us",
+   "real": "Corbin Lee",
+   "team": "FUR"
+  },
+  "koalanoob": {
+   "vlrId": "3722",
+   "ign": "koalanoob",
+   "img": "https://owcdn.net/img/6984ecbcc0f22.png",
+   "nat": "ca",
+   "real": "Gianfranco Potestio",
+   "team": "FUR"
+  },
+  "eeiu": {
+   "vlrId": "796",
+   "ign": "eeiu",
+   "img": "https://owcdn.net/img/6984ecacc0ffe.png",
+   "nat": "ca",
+   "real": "Daniel Vucenovic",
+   "role": "Inactive",
+   "team": "FUR"
+  },
+  "shaw": {
+   "vlrId": "19156",
+   "ign": "shaW",
+   "img": "https://owcdn.net/img/63ca0f6e7ca4f.png",
+   "nat": "br",
+   "real": "Ian Jardim",
+   "role": "head coach",
+   "team": "FUR"
+  },
+  "kamino": {
+   "vlrId": "18932",
+   "ign": "Kamino",
+   "nat": "br",
+   "real": "Lucas Kamino",
+   "role": "assistant coach",
+   "team": "FUR"
+  },
+  "vora": {
+   "vlrId": "20140",
+   "ign": "vora",
+   "img": "https://owcdn.net/img/69704e204d563.png",
+   "nat": "ca",
+   "real": "Jordan Pulwer",
+   "team": "100T"
+  },
+  "cryocells": {
+   "vlrId": "4147",
+   "ign": "Cryocells",
+   "img": "https://owcdn.net/img/69704e38872a4.png",
+   "nat": "us",
+   "real": "Matthew Panganiban",
+   "team": "100T"
+  },
+  "asuna": {
+   "vlrId": "601",
+   "ign": "Asuna",
+   "img": "https://owcdn.net/img/69704e530cfac.png",
+   "nat": "us",
+   "real": "Peter Mazuryk",
+   "team": "100T"
+  },
+  "timotino": {
+   "vlrId": "29893",
+   "ign": "Timotino",
+   "img": "https://owcdn.net/img/69704e811ce7c.png",
+   "nat": "ca",
+   "real": "Timothée Lavigne Dupont",
+   "team": "100T"
+  },
+  "bang": {
+   "vlrId": "3880",
+   "ign": "bang",
+   "img": "https://owcdn.net/img/69704e67e3e2b.png",
+   "nat": "us",
+   "real": "Sean Bezerra",
+   "team": "100T"
+  },
+  "nbs": {
+   "vlrId": "1622",
+   "ign": "Nbs",
+   "img": "https://owcdn.net/img/613e111eb7fee.png",
+   "nat": "lt",
+   "real": "Laurynas Kisielius",
+   "role": "head coach",
+   "team": "100T"
+  },
+  "d00mbr0s": {
+   "vlrId": "452",
+   "ign": "d00mbr0s",
+   "img": "https://owcdn.net/img/642eabe168fd7.png",
+   "nat": "se",
+   "real": "Carl Erik Victor William Sandgren",
+   "role": "assistant coach",
+   "team": "100T"
+  },
+  "saadhak": {
+   "vlrId": "727",
+   "ign": "saadhak",
+   "img": "https://owcdn.net/img/69e6509789324.png",
+   "nat": "ar",
+   "real": "Matias Delipetro",
+   "team": "KRÜ"
+  },
+  "mwzera": {
+   "vlrId": "939",
+   "ign": "mwzera",
+   "img": "https://owcdn.net/img/69e6507319f13.png",
+   "nat": "br",
+   "real": "Leonardo Serrati",
+   "team": "KRÜ"
+  },
+  "less": {
+   "vlrId": "8447",
+   "ign": "Less",
+   "img": "https://owcdn.net/img/69e64fe599b45.png",
+   "nat": "br",
+   "real": "Felipe de Loyola Basso",
+   "team": "KRÜ"
+  },
+  "dantedeu5": {
+   "vlrId": "41135",
+   "ign": "Dantedeu5",
+   "img": "https://owcdn.net/img/69e64fdcabd75.png",
+   "nat": "ar",
+   "real": "Jesús Federico Larrosa",
+   "team": "KRÜ"
+  },
+  "heat": {
+   "vlrId": "8673",
+   "ign": "heat",
+   "img": "https://owcdn.net/img/6640398c585f8.png",
+   "nat": "br",
+   "real": "Olavo Marcelo",
+   "team": "KRÜ"
+  },
+  "torito": {
+   "vlrId": "2796",
+   "ign": "torito",
+   "img": "https://owcdn.net/img/69e650f4d872c.png",
+   "nat": "cl",
+   "real": "Cristobal Quintana",
+   "role": "manager",
+   "team": "KRÜ"
+  },
+  "zonyk": {
+   "vlrId": "2933",
+   "ign": "ZONYK",
+   "img": "https://owcdn.net/img/69e651196eca6.png",
+   "nat": "cl",
+   "real": "Nicolas Carboni",
+   "role": "head coach",
+   "team": "KRÜ"
+  },
+  "fadeout": {
+   "vlrId": "29380",
+   "ign": "Fadeout",
+   "img": "https://owcdn.net/img/69e64faea1f3f.png",
+   "nat": "ar",
+   "real": "Alex Argüello",
+   "role": "analyst",
+   "team": "KRÜ"
+  },
+  "psiarthurleon": {
+   "vlrId": "60310",
+   "ign": "Psiarthurleon",
+   "nat": "br",
+   "real": "Arthur Leon",
+   "role": "staff",
+   "team": "KRÜ"
+  },
+  "erde": {
+   "vlrId": "29242",
+   "ign": "erde",
+   "nat": "cl",
+   "real": "Roberto Lobos",
+   "team": "LOUD"
+  },
+  "lukxo": {
+   "vlrId": "28716",
+   "ign": "lukxo",
+   "img": "https://owcdn.net/img/69e023fe3a5b8.png",
+   "nat": "br",
+   "real": "Lucca Travaioli",
+   "team": "LOUD"
+  },
+  "davih": {
+   "vlrId": "10885",
+   "ign": "DaviH",
+   "img": "https://owcdn.net/img/69a8be6cb643d.png",
+   "nat": "pt",
+   "real": "David Cruz",
+   "team": "LOUD"
+  },
+  "darker": {
+   "vlrId": "10557",
+   "ign": "Darker",
+   "img": "https://owcdn.net/img/69e02450abf75.png",
+   "nat": "co",
+   "real": "Sebastián Castro Cicuamia",
+   "team": "LOUD"
+  },
+  "tkzin": {
+   "vlrId": "41224",
+   "ign": "tkzin",
+   "img": "https://owcdn.net/img/69e655026b8a8.png",
+   "nat": "br",
+   "real": "Enzo Zimiani",
+   "role": "loan",
+   "team": "LOUD"
+  },
+  "cauanzin": {
+   "vlrId": "6193",
+   "ign": "cauanzin",
+   "img": "https://owcdn.net/img/69e024587afee.png",
+   "nat": "br",
+   "real": "Cauan Pereira",
+   "team": "LOUD"
+  },
+  "wenty": {
+   "vlrId": "57335",
+   "ign": "Wenty",
+   "img": "https://owcdn.net/img/6889dbe04ee67.png",
+   "nat": "br",
+   "real": "Carlos Lira Portela",
+   "role": "manager",
+   "team": "LOUD"
+  },
+  "romanilly": {
+   "vlrId": "20833",
+   "ign": "Romanilly",
+   "img": "https://owcdn.net/img/69e023eeafb62.png",
+   "nat": "ar",
+   "real": "Gonzalo Manzano",
+   "role": "head coach",
+   "team": "LOUD"
+  },
+  "bati": {
+   "vlrId": "5203",
+   "ign": "Bati",
+   "img": "https://owcdn.net/img/69e024e2a1f17.png",
+   "nat": "pt",
+   "real": "Miguel Batista",
+   "role": "assistant coach",
+   "team": "LOUD"
+  },
+  "bajerski": {
+   "vlrId": "57334",
+   "ign": "bajerski",
+   "img": "https://owcdn.net/img/6889c7fc2b646.png",
+   "nat": "br",
+   "real": "Lucas Bajerski Pereira",
+   "role": "performance coach",
+   "team": "LOUD"
+  },
+  "zellsis": {
+   "vlrId": "729",
+   "ign": "Zellsis",
+   "img": "https://owcdn.net/img/671b20fca8019.png",
+   "nat": "us",
+   "real": "Jordan Montemurro",
+   "team": "C9"
+  },
+  "fireballops": {
+   "vlrId": "10053",
+   "ign": "FireBallOps",
+   "img": "https://owcdn.net/img/630aea53bcd96.png",
+   "nat": "us",
+   "real": "Cameron Tomaselli",
+   "team": "C9"
+  },
+  "jackk": {
+   "vlrId": "44842",
+   "ign": "Jackk",
+   "nat": "us",
+   "real": "Jack Foote",
+   "team": "C9"
+  },
+  "oxy": {
+   "vlrId": "18796",
+   "ign": "OXY",
+   "img": "https://owcdn.net/img/679c2222b0181.png",
+   "nat": "us",
+   "real": "Francis Hoang",
+   "team": "C9"
+  },
+  "v1c": {
+   "vlrId": "17433",
+   "ign": "v1c",
+   "img": "https://owcdn.net/img/679c222ec2d14.png",
+   "nat": "us",
+   "real": "Victor Truong",
+   "team": "C9"
+  },
+  "veer": {
+   "vlrId": "3877",
+   "ign": "Veer",
+   "img": "https://owcdn.net/img/69a870aee640d.png",
+   "nat": "us",
+   "real": "Wyatt Blevins",
+   "role": "head coach",
+   "team": "C9"
+  },
+  "immi": {
+   "vlrId": "9815",
+   "ign": "Immi",
+   "img": "https://owcdn.net/img/679c21d794f28.png",
+   "nat": "gb",
+   "real": "Ian Harding",
+   "role": "assistant coach",
+   "team": "C9"
+  },
+  "paincakes": {
+   "vlrId": "2164",
+   "ign": "Paincakes",
+   "img": "https://owcdn.net/img/697005236be2a.png",
+   "nat": "us",
+   "real": "Jake Hass",
+   "team": "EG"
+  },
+  "supamen": {
+   "vlrId": "826",
+   "ign": "supamen",
+   "img": "https://owcdn.net/img/67b5554423542.png",
+   "nat": "us",
+   "real": "Phat Le",
+   "team": "EG"
+  },
+  "bao": {
+   "vlrId": "34400",
+   "ign": "bao",
+   "nat": "vn",
+   "real": "Bao Nguyen",
+   "team": "EG"
+  },
+  "dgzin": {
+   "vlrId": "8873",
+   "ign": "dgzin",
+   "img": "https://owcdn.net/img/689e1886cc5ed.png",
+   "nat": "br",
+   "real": "Douglas Silva",
+   "team": "EG"
+  },
+  "zerona": {
+   "vlrId": "14048",
+   "ign": "zerona",
+   "img": "https://owcdn.net/img/697004f763e77.png",
+   "nat": "us",
+   "real": "Javan Varela",
+   "team": "EG"
+  },
+  "pho": {
+   "vlrId": "50169",
+   "ign": "PHO",
+   "img": "https://owcdn.net/img/67b55580ba673.png",
+   "nat": "cn",
+   "real": "Zhang Shicheng (张世成)",
+   "role": "staff",
+   "team": "FPX"
+  },
+  "potter": {
+   "vlrId": "23930",
+   "ign": "Potter",
+   "img": "https://owcdn.net/img/67b5555fad5c9.png",
+   "nat": "th",
+   "real": "Sutthichai Promsrikaew",
+   "role": "head coach",
+   "team": "RA"
+  },
+  "faded": {
+   "vlrId": "41776",
+   "ign": "Faded",
+   "img": "https://owcdn.net/img/6970057e4b36a.png",
+   "nat": "us",
+   "real": "Daniel Hwang",
+   "role": "assistant coach",
+   "team": "EG"
+  },
+  "meco1e": {
+   "vlrId": "48983",
+   "ign": "meco1e",
+   "nat": "us",
+   "real": "Cole Lewis",
+   "role": "assistant coach",
+   "team": "EG"
+  },
+  "eggsterr": {
+   "vlrId": "35302",
+   "ign": "Eggsterr",
+   "nat": "us",
+   "real": "Evan Grady",
+   "team": "ENVY"
+  },
+  "nightz": {
+   "vlrId": "41798",
+   "ign": "nightz",
+   "img": "https://owcdn.net/img/688c62c719cef.png",
+   "nat": "us",
+   "real": "Christian Smith",
+   "team": "ENVY"
+  },
+  "demon1": {
+   "vlrId": "26171",
+   "ign": "Demon1",
+   "nat": "us",
+   "real": "Max Mazanov",
+   "team": "ENVY"
+  },
+  "rossy": {
+   "vlrId": "1129",
+   "ign": "Rossy",
+   "img": "https://owcdn.net/img/65cc6f07740b9.png",
+   "nat": "us",
+   "real": "Daniel Abedrabbo",
+   "team": "ENVY"
+  },
+  "keznit": {
+   "vlrId": "2462",
+   "ign": "keznit",
+   "img": "https://owcdn.net/img/687bfb08ac062.png",
+   "nat": "cl",
+   "real": "Angelo Mori",
+   "team": "ENVY"
+  },
+  "glyph": {
+   "vlrId": "8286",
+   "ign": "GLYPH",
+   "img": "https://owcdn.net/img/697768b42430b.png",
+   "nat": "ph",
+   "real": "Conner Garcia",
+   "team": "ENVY"
+  },
+  "ion": {
+   "vlrId": "29547",
+   "ign": "ion",
+   "nat": "in",
+   "real": "Ayan Rastogi",
+   "role": "Inactive",
+   "team": "ENVY"
+  },
+  "p0ppin": {
+   "vlrId": "21778",
+   "ign": "P0PPIN",
+   "nat": "us",
+   "real": "Matteo Weber",
+   "role": "Inactive",
+   "team": "ENVY"
+  },
+  "stunner": {
+   "vlrId": "13109",
+   "ign": "Stunner",
+   "img": "https://owcdn.net/img/65cc6f253a03d.png",
+   "nat": "ca",
+   "real": "Dakota MacLeod",
+   "role": "head coach",
+   "team": "ENVY"
+  },
+  "wkn": {
+   "vlrId": "1296",
+   "ign": "WKN",
+   "img": "https://owcdn.net/img/688c62e2dbb98.png",
+   "nat": "cl",
+   "real": "Alvaro Bustos",
+   "role": "coach",
+   "team": "ENVY"
+  },
+  "jamppi": {
+   "vlrId": "9780",
+   "ign": "Jamppi",
+   "img": "https://owcdn.net/img/6977a6f130128.png",
+   "nat": "fi",
+   "real": "Elias Olkkonen",
+   "team": "VIT"
+  },
+  "profek": {
+   "vlrId": "5554",
+   "ign": "PROFEK",
+   "img": "https://owcdn.net/img/6977a6e4ea727.png",
+   "nat": "pl",
+   "real": "Dawid Święć",
+   "team": "VIT"
+  },
+  "derke": {
+   "vlrId": "5022",
+   "ign": "Derke",
+   "img": "https://owcdn.net/img/6977a70c4ff1b.png",
+   "nat": "fi",
+   "real": "Nikita Niko Sirmitev",
+   "team": "VIT"
+  },
+  "chronicle": {
+   "vlrId": "458",
+   "ign": "Chronicle",
+   "img": "https://owcdn.net/img/6977a6d8e354a.png",
+   "nat": "ru",
+   "real": "Timofey Khromov",
+   "team": "VIT"
+  },
+  "sayonara": {
+   "vlrId": "33902",
+   "ign": "Sayonara",
+   "img": "https://owcdn.net/img/6977a7018811e.png",
+   "nat": "md",
+   "real": "Ștefan Mîtcu",
+   "team": "VIT"
+  },
+  "bangovic": {
+   "vlrId": "48871",
+   "ign": "Bangovic",
+   "img": "https://owcdn.net/img/677d65369bfe4.png",
+   "nat": "de",
+   "real": "Andy Zajimovic",
+   "role": "manager",
+   "team": "VIT"
+  },
+  "pal": {
+   "vlrId": "30280",
+   "ign": "PAL",
+   "img": "https://owcdn.net/img/6977a7159f173.png",
+   "nat": "sx",
+   "real": "Gregor Morton",
+   "role": "coach",
+   "team": "VIT"
+  },
+  "scuttt": {
+   "vlrId": "42554",
+   "ign": "Scuttt",
+   "img": "https://owcdn.net/img/69d5f8dd1642b.png",
+   "nat": "ie",
+   "real": "Benjamin Hutchinson",
+   "role": "coach",
+   "team": "VIT"
+  },
+  "slk": {
+   "vlrId": "361",
+   "ign": "slk",
+   "img": "https://owcdn.net/img/61fcd0d862877.png",
+   "nat": "ru",
+   "real": "Aleksey Lynksov",
+   "role": "analyst",
+   "team": "VIT"
+  },
+  "boo": {
+   "vlrId": "1144",
+   "ign": "Boo",
+   "img": "https://owcdn.net/img/69778b1c2192b.png",
+   "nat": "lt",
+   "real": "Ričardas Lukaševičius",
+   "team": "TH"
+  },
+  "koshmaras": {
+   "vlrId": "23365",
+   "ign": "koshmaras",
+   "nat": "lt",
+   "real": "Martynas Namikas",
+   "team": "TH"
+  },
+  "wo0t": {
+   "vlrId": "21328",
+   "ign": "Wo0t",
+   "img": "https://owcdn.net/img/69778b5885054.png",
+   "nat": "tr",
+   "real": "Mert Alkan",
+   "team": "TH"
+  },
+  "riens": {
+   "vlrId": "10971",
+   "ign": "RieNs",
+   "img": "https://owcdn.net/img/69778b71c9366.png",
+   "nat": "tr",
+   "real": "Enes Ecirli",
+   "team": "TH"
+  },
+  "benjyfishy": {
+   "vlrId": "29873",
+   "ign": "benjyfishy",
+   "img": "https://owcdn.net/img/69778b2bf3e20.png",
+   "nat": "gb",
+   "real": "Benjamin David Fish",
+   "team": "TH"
+  },
+  "niklas": {
+   "vlrId": "46268",
+   "ign": "Niklas",
+   "img": "https://owcdn.net/img/665b775b3da55.png",
+   "nat": "de",
+   "real": "Niklas Geiss",
+   "role": "manager",
+   "team": "TH"
+  },
+  "copper": {
+   "vlrId": "61338",
+   "ign": "Copper",
+   "nat": "at",
+   "real": "Daniel Blaimauer",
+   "role": "manager",
+   "team": "TH"
+  },
+  "neilzinho": {
+   "vlrId": "2039",
+   "ign": "neilzinho",
+   "img": "https://owcdn.net/img/69778b4dbd0a9.png",
+   "nat": "gb",
+   "real": "Neil Finlay",
+   "role": "head coach",
+   "team": "TH"
+  },
+  "weber": {
+   "vlrId": "2038",
+   "ign": "weber",
+   "img": "https://owcdn.net/img/69778b9e2607f.png",
+   "nat": "gb",
+   "real": "Brandon Weber",
+   "role": "coach",
+   "team": "TH"
+  },
+  "rob": {
+   "vlrId": "61337",
+   "ign": "Rob",
+   "nat": "wa",
+   "real": "Robert William Davies",
+   "role": "performance coach",
+   "team": "TH"
+  },
+  "beni": {
+   "vlrId": "62235",
+   "ign": "Beni",
+   "nat": "de",
+   "real": "Benedikt Baumann",
+   "role": "analyst",
+   "team": "TH"
+  },
+  "boaster": {
+   "vlrId": "438",
+   "ign": "Boaster",
+   "img": "https://owcdn.net/img/687e2c495dcc6.png",
+   "nat": "gb",
+   "real": "Jake Howlett",
+   "team": "FNC"
+  },
+  "crashies": {
+   "vlrId": "4",
+   "ign": "crashies",
+   "img": "https://owcdn.net/img/687e2c376a05d.png",
+   "nat": "us",
+   "real": "Austin Roberts",
+   "team": "FNC"
+  },
+  "kaajak": {
+   "vlrId": "9554",
+   "ign": "kaajak",
+   "img": "https://owcdn.net/img/687e2c5192fe5.png",
+   "nat": "pl",
+   "real": "Kajetan Haremski",
+   "team": "FNC"
+  },
+  "cloud": {
+   "vlrId": "4181",
+   "ign": "Cloud",
+   "img": "https://owcdn.net/img/646bd06211000.png",
+   "nat": "ru",
+   "real": "Kirill Nehozhin",
+   "team": "FNC"
+  },
+  "alfajer": {
+   "vlrId": "9810",
+   "ign": "Alfajer",
+   "img": "https://owcdn.net/img/687e2c40ac175.png",
+   "nat": "tr",
+   "real": "Emir Ali Beder",
+   "team": "FNC"
+  },
+  "veqaj": {
+   "vlrId": "12928",
+   "ign": "Veqaj",
+   "img": "https://owcdn.net/img/689668c152fdd.png",
+   "nat": "fr",
+   "real": "Sylvain Pattyn",
+   "role": "Inactive",
+   "team": "FNC"
+  },
+  "cojo": {
+   "vlrId": "18972",
+   "ign": "CoJo",
+   "img": "https://owcdn.net/img/65d5c7d9a829e.png",
+   "nat": "us",
+   "real": "Colin Johnson",
+   "role": "manager",
+   "team": "FNC"
+  },
+  "engh": {
+   "vlrId": "460",
+   "ign": "ENGH",
+   "img": "https://owcdn.net/img/60a0cf472d122.png",
+   "nat": "ru",
+   "real": "Andrey Sholokhov",
+   "role": "head coach",
+   "team": "FNC"
+  },
+  "desmo": {
+   "vlrId": "195",
+   "ign": "Desmo",
+   "img": "https://owcdn.net/img/65785a3a4dac2.png",
+   "nat": "dk",
+   "real": "Casper Rasmussen",
+   "role": "assistant coach",
+   "team": "FNC"
+  },
+  "szed": {
+   "vlrId": "53027",
+   "ign": "Szed",
+   "img": "https://owcdn.net/img/688a7a22a8ec5.png",
+   "nat": "de",
+   "real": "Philipp Schickor",
+   "role": "performance coach",
+   "team": "FNC"
+  },
+  "sociablee": {
+   "vlrId": "5568",
+   "ign": "sociablEE",
+   "img": "https://owcdn.net/img/680a926893d7b.png",
+   "nat": "tr",
+   "real": "Volkan Yonal",
+   "team": "FUT"
+  },
+  "s0pp": {
+   "vlrId": "39357",
+   "ign": "s0pp",
+   "nat": "tr",
+   "real": "Efe Tur",
+   "team": "FUT"
+  },
+  "xeus": {
+   "vlrId": "12793",
+   "ign": "xeus",
+   "img": "https://owcdn.net/img/697ab97a4855f.png",
+   "nat": "tr",
+   "real": "Doğan Gözgen",
+   "team": "FUT"
+  },
+  "yetujey": {
+   "vlrId": "8369",
+   "ign": "yetujey",
+   "img": "https://owcdn.net/img/697ab948ca75e.png",
+   "nat": "tr",
+   "real": "Eray Budak",
+   "team": "FUT"
+  },
+  "krostaly": {
+   "vlrId": "15735",
+   "ign": "KROSTALY",
+   "img": "https://owcdn.net/img/697aba0af3cd9.png",
+   "nat": "tr",
+   "real": "Okan Alaçam",
+   "team": "FUT"
+  },
+  "mighty": {
+   "vlrId": "61439",
+   "ign": "Mighty",
+   "img": "https://owcdn.net/img/697abfa689e67.png",
+   "nat": "tr",
+   "real": "Berkalp Kaan Yılmazoğlu",
+   "role": "manager",
+   "team": "FUT"
+  },
+  "vlad": {
+   "vlrId": "19814",
+   "ign": "Vlad",
+   "img": "https://owcdn.net/img/68730dca15978.png",
+   "nat": "tr",
+   "real": "Berke Kantürk",
+   "role": "head coach",
+   "team": "FUT"
+  },
+  "bambino": {
+   "vlrId": "14222",
+   "ign": "Bambino",
+   "img": "https://owcdn.net/img/697ab9aca4566.png",
+   "nat": "gb",
+   "real": "Tyler Jay",
+   "role": "assistant coach",
+   "team": "FUT"
+  },
+  "flickless": {
+   "vlrId": "6959",
+   "ign": "Flickless",
+   "img": "https://owcdn.net/img/678094302930e.png",
+   "nat": "be",
+   "real": "Karel Maeckelbergh",
+   "team": "GX"
+  },
+  "westside": {
+   "vlrId": "34684",
+   "ign": "westside",
+   "img": "https://owcdn.net/img/6636bf8d94177.png",
+   "nat": "pl",
+   "real": "Miłosz Duda",
+   "team": "GX"
+  },
+  "ara": {
+   "vlrId": "11332",
+   "ign": "ara",
+   "nat": "ro",
+   "real": "Hanceriuc Eduard-George",
+   "team": "GX"
+  },
+  "jesse": {
+   "vlrId": "2653",
+   "ign": "Jesse",
+   "img": "https://owcdn.net/img/67e8879ace2a8.png",
+   "nat": "cz",
+   "real": "Adam Čtvrtníček",
+   "team": "GX"
+  },
+  "net": {
+   "vlrId": "6582",
+   "ign": "neT",
+   "img": "https://owcdn.net/img/679c2200b60f3.png",
+   "nat": "us",
+   "real": "Michael Bernet",
+   "team": "GX"
+  },
+  "tomaszy": {
+   "vlrId": "19691",
+   "ign": "tomaszy",
+   "img": "https://owcdn.net/img/63caf9c568a81.png",
+   "nat": "pt",
+   "real": "Tomás Machado",
+   "role": "Inactive",
+   "team": "GX"
+  },
+  "hehnal": {
+   "vlrId": "42506",
+   "ign": "Hehnal",
+   "nat": "de",
+   "real": "Alexandra Hehn",
+   "role": "manager",
+   "team": "GX"
+  },
+  "pipson": {
+   "vlrId": "319",
+   "ign": "pipsoN",
+   "img": "https://owcdn.net/img/646bd050b04f9.png",
+   "nat": "ru",
+   "real": "Daniil Mesheryakov",
+   "role": "head coach",
+   "team": "GX"
+  },
+  "waylander": {
+   "vlrId": "8813",
+   "ign": "wayLander",
+   "nat": "fi",
+   "real": "Jan Rahkonen",
+   "role": "assistant coach",
+   "team": "GX"
+  },
+  "mew": {
+   "vlrId": "50164",
+   "ign": "Mew",
+   "nat": "fr",
+   "real": "Théo Ponzoni",
+   "role": "performance coach",
+   "team": "GX"
+  },
+  "rosé": {
+   "vlrId": "5565",
+   "ign": "Rosé",
+   "img": "https://owcdn.net/img/6979757c1322c.png",
+   "nat": "tr",
+   "real": "Eren Erzan",
+   "team": "BBL"
+  },
+  "crewen": {
+   "vlrId": "12795",
+   "ign": "Crewen",
+   "img": "https://owcdn.net/img/69797451d6733.png",
+   "nat": "tr",
+   "real": "Ali Eren Sargin",
+   "team": "BBL"
+  },
+  "lar0k": {
+   "vlrId": "31305",
+   "ign": "Lar0k",
+   "img": "https://owcdn.net/img/697974e4d16d5.png",
+   "nat": "tr",
+   "real": "Yusuf Kaan Kanber",
+   "team": "BBL"
+  },
+  "loita": {
+   "vlrId": "24344",
+   "ign": "Loita",
+   "img": "https://owcdn.net/img/6979752e8d3fa.png",
+   "nat": "tr",
+   "real": "Utku Kart",
+   "team": "BBL"
+  },
+  "lovers rock": {
+   "vlrId": "40935",
+   "ign": "lovers rock",
+   "img": "https://owcdn.net/img/697975c71d41b.png",
+   "nat": "tr",
+   "real": "Umut Pekdoğan",
+   "team": "BBL"
+  },
+  "key": {
+   "vlrId": "15042",
+   "ign": "KEY",
+   "img": "https://owcdn.net/img/69797492d5ce7.png",
+   "nat": "tr",
+   "real": "Mert Çelebi",
+   "role": "head coach",
+   "team": "BBL"
+  },
+  "viento": {
+   "vlrId": "27333",
+   "ign": "Viento",
+   "img": "https://owcdn.net/img/697981e6c32a4.png",
+   "nat": "tr",
+   "real": "Göktuğ Alp Çebi",
+   "role": "assistant coach",
+   "team": "BBL"
+  },
+  "rexxtoned": {
+   "vlrId": "19526",
+   "ign": "rexxtoned",
+   "nat": "ru",
+   "real": "Roman Zhuravlev",
+   "team": "TL"
+  },
+  "prti": {
+   "vlrId": "3839",
+   "ign": "Prti",
+   "img": "https://owcdn.net/img/678ddfb454d1a.png",
+   "nat": "rs",
+   "real": "Ivan Erak",
+   "team": "TL"
+  },
+  "wanzeru": {
+   "vlrId": "39682",
+   "ign": "WanZeru",
+   "nat": "cz",
+   "team": "TL"
+  },
+  "donatellooo": {
+   "vlrId": "40750",
+   "ign": "DonatelloOO",
+   "nat": "cz",
+   "role": "Inactive",
+   "team": "TL"
+  },
+  "bacon9": {
+   "vlrId": "15906",
+   "ign": "Bacon9",
+   "nat": "gb",
+   "real": "Jake Lloyd",
+   "role": "coach",
+   "team": "TL"
+  },
+  "getdeluxe": {
+   "vlrId": "38101",
+   "ign": "getdeluxe",
+   "nat": "gb",
+   "role": "assistant coach",
+   "team": "TL"
+  },
+  "nekky": {
+   "vlrId": "12670",
+   "ign": "nekky",
+   "img": "https://owcdn.net/img/69e22617e9dba.png",
+   "nat": "tr",
+   "real": "Anıl Dağdeviren",
+   "team": "EF"
+  },
+  "spear": {
+   "vlrId": "41718",
+   "ign": "Spear",
+   "img": "https://owcdn.net/img/69c98fc775fe3.png",
+   "nat": "tr",
+   "real": "Arda Burak Kartal",
+   "team": "EF"
+  },
+  "audaz": {
+   "vlrId": "40843",
+   "ign": "audaz",
+   "img": "https://owcdn.net/img/69e2266f85fd8.png",
+   "nat": "tr",
+   "real": "Soner Ekiz",
+   "team": "EF"
+  },
+  "favian": {
+   "vlrId": "41720",
+   "ign": "Favian",
+   "img": "https://owcdn.net/img/69e226459b5e0.png",
+   "nat": "tr",
+   "real": "Enes Yiğiter",
+   "team": "EF"
+  },
+  "echo": {
+   "vlrId": "49346",
+   "ign": "echo",
+   "img": "https://owcdn.net/img/69e226559a674.png",
+   "nat": "tr",
+   "real": "Ömür Serkan Şenol",
+   "team": "EF"
+  },
+  "izzy": {
+   "vlrId": "10160",
+   "ign": "Izzy",
+   "img": "https://owcdn.net/img/69e2262aa9d9c.png",
+   "nat": "tr",
+   "real": "Baran Yılmaz",
+   "role": "Sub",
+   "team": "EF"
+  },
+  "afr0nfire": {
+   "vlrId": "4891",
+   "ign": "afr0nfire",
+   "img": "https://owcdn.net/img/69e2267b850ee.png",
+   "nat": "tr",
+   "real": "Hakan Pınarbaşı",
+   "role": "head coach",
+   "team": "EF"
+  },
+  "castell0": {
+   "vlrId": "29002",
+   "ign": "casteLL0",
+   "img": "https://owcdn.net/img/686b1271b86a6.png",
+   "nat": "tr",
+   "real": "Hazım Orhun Dalbeyler",
+   "role": "assistant coach",
+   "team": "EF"
+  },
+  "n1tze": {
+   "vlrId": "55080",
+   "ign": "n1tze",
+   "nat": "tr",
+   "team": "PCF"
+  },
+  "krish": {
+   "vlrId": "58373",
+   "ign": "krish",
+   "nat": "tr",
+   "team": "PCF"
+  },
+  "starxo": {
+   "vlrId": "565",
+   "ign": "starxo",
+   "img": "https://owcdn.net/img/697767895bac5.png",
+   "nat": "pl",
+   "real": "Patryk Kopczynski",
+   "team": "M8"
+  },
+  "proxh": {
+   "vlrId": "45494",
+   "ign": "Proxh",
+   "img": "https://owcdn.net/img/679c760fde2dd.png",
+   "nat": "tr",
+   "real": "Yusuf Emre Tunc",
+   "team": "M8"
+  },
+  "marteen": {
+   "vlrId": "10307",
+   "ign": "marteen",
+   "img": "https://owcdn.net/img/6977651551705.png",
+   "nat": "cz",
+   "real": "Martin Pátek",
+   "team": "M8"
+  },
+  "h1ber": {
+   "vlrId": "1524",
+   "ign": "H1ber",
+   "img": "https://owcdn.net/img/63b7a4264bfc0.png",
+   "nat": "fi",
+   "real": "Joona Parviainen",
+   "team": "M8"
+  },
+  "minny": {
+   "vlrId": "23169",
+   "ign": "Minny",
+   "img": "https://owcdn.net/img/697765bb6904c.png",
+   "nat": "cz",
+   "real": "Patrik Hušek",
+   "team": "M8"
+  },
+  "bipo": {
+   "vlrId": "18400",
+   "ign": "bipo",
+   "img": "https://owcdn.net/img/697767f365fc0.png",
+   "nat": "it",
+   "real": "Taranvir Singh",
+   "role": "Inactive",
+   "team": "M8"
+  },
+  "manyfender": {
+   "vlrId": "60065",
+   "ign": "ManyFender",
+   "img": "https://owcdn.net/img/697764c78adc8.png",
+   "nat": "fr",
+   "real": "Marc Kowolik",
+   "role": "manager",
+   "team": "M8"
+  },
+  "kundikundi": {
+   "vlrId": "1363",
+   "ign": "KUNDIKUNDI",
+   "img": "https://owcdn.net/img/6977694c5cf17.png",
+   "nat": "fi",
+   "real": "Jiri Honkala",
+   "role": "head coach",
+   "team": "M8"
+  },
+  "mavera": {
+   "vlrId": "557",
+   "ign": "Mavera",
+   "img": "https://owcdn.net/img/69bea0f6c844f.png",
+   "nat": "tr",
+   "real": "Erim Sasal",
+   "role": "assistant coach",
+   "team": "M8"
+  },
+  "luinwess": {
+   "vlrId": "59305",
+   "ign": "Luinwess",
+   "img": "https://owcdn.net/img/6977693bdfd76.png",
+   "nat": "tr",
+   "real": "Sinan Koyuncu",
+   "role": "staff",
+   "team": "M8"
+  },
+  "javelin": {
+   "vlrId": "29559",
+   "ign": "Javelin",
+   "img": "https://owcdn.net/img/6a37f42e868de.png",
+   "nat": "ua",
+   "real": "Vitalii Fedak",
+   "team": "NAVI"
+  },
+  "kolosha": {
+   "vlrId": "37925",
+   "ign": "Kolosha",
+   "img": "https://owcdn.net/img/6a37f3d63adbe.png",
+   "nat": "ua",
+   "real": "Herman Skrypka",
+   "team": "NAVI"
+  },
+  "darxcioo": {
+   "vlrId": "42358",
+   "ign": "Darxcioo",
+   "img": "https://owcdn.net/img/6a37f4580f782.png",
+   "nat": "be",
+   "real": "Waniss Mehl",
+   "team": "NAVI"
+  },
+  "avey": {
+   "vlrId": "42651",
+   "ign": "avey",
+   "img": "https://owcdn.net/img/6a2bc46895d30.png",
+   "nat": "lv",
+   "real": "Nikita Ivanovs",
+   "team": "NAVI"
+  },
+  "sizo": {
+   "vlrId": "42454",
+   "ign": "sizo",
+   "img": "https://owcdn.net/img/6a37f3c79f47a.png",
+   "nat": "pl",
+   "real": "Wiktor Bujak",
+   "team": "NAVI"
+  },
+  "johnta": {
+   "vlrId": "7780",
+   "ign": "Johnta",
+   "img": "https://owcdn.net/img/6a37f3dfd4cfd.png",
+   "nat": "ua",
+   "real": "Ivan Shevtsov",
+   "role": "coach",
+   "team": "NAVI"
+  },
+  "avez": {
+   "vlrId": "5654",
+   "ign": "Avez",
+   "img": "https://owcdn.net/img/63e4aecb51963.png",
+   "nat": "eg",
+   "real": "Hazem Khaled",
+   "team": "KC"
+  },
+  "dos9": {
+   "vlrId": "16215",
+   "ign": "dos9",
+   "img": "https://owcdn.net/img/69e903fd4c11a.png",
+   "nat": "kz",
+   "real": "Zhumagali Dastan",
+   "team": "KC"
+  },
+  "lewn": {
+   "vlrId": "20144",
+   "ign": "LewN",
+   "img": "https://owcdn.net/img/680a9297edd81.png",
+   "nat": "tr",
+   "real": "Burak Alkan",
+   "team": "KC"
+  },
+  "suygetsu": {
+   "vlrId": "2858",
+   "ign": "SUYGETSU",
+   "img": "https://owcdn.net/img/642eabfbd9478.png",
+   "nat": "un",
+   "real": "Dmitry Ilyushin",
+   "team": "KC"
+  },
+  "n4rrate": {
+   "vlrId": "36245",
+   "ign": "N4RRATE",
+   "img": "https://owcdn.net/img/6974146682328.png",
+   "nat": "us",
+   "real": "Marshall Massey",
+   "team": "KC"
+  },
+  "chaza": {
+   "vlrId": "48705",
+   "ign": "Chaza",
+   "nat": "gb",
+   "real": "Charlie Phillips",
+   "role": "Sub",
+   "team": "KC"
+  },
+  "sheydos": {
+   "vlrId": "1428",
+   "ign": "sheydos",
+   "img": "https://owcdn.net/img/65e74c694b17e.png",
+   "nat": "ru",
+   "real": "Bogdan Naumov",
+   "role": "Inactive",
+   "team": "KC"
+  },
+  "ze1sh": {
+   "vlrId": "302",
+   "ign": "ZE1SH",
+   "img": "https://owcdn.net/img/645c01ead0e8c.png",
+   "nat": "eg",
+   "real": "Ahmed El Sheikh",
+   "role": "head coach",
+   "team": "KC"
+  },
+  "simoz": {
+   "vlrId": "1943",
+   "ign": "simoz",
+   "img": "https://owcdn.net/img/6a51444ac69db.png",
+   "nat": "it",
+   "real": "Simone Giovannini",
+   "role": "assistant coach",
+   "team": "KC"
+  },
+  "invy": {
+   "vlrId": "8504",
+   "ign": "invy",
+   "img": "https://owcdn.net/img/69735f4a21e3b.png",
+   "nat": "ph",
+   "real": "Adrian Jiggs Reyes",
+   "team": "PRX"
+  },
+  "jinggg": {
+   "vlrId": "7378",
+   "ign": "Jinggg",
+   "img": "https://owcdn.net/img/69735f0889a6b.png",
+   "nat": "sg",
+   "real": "Wang Jing Jie",
+   "team": "PRX"
+  },
+  "f0rsaken": {
+   "vlrId": "9801",
+   "ign": "f0rsakeN",
+   "img": "https://owcdn.net/img/69735f135cf21.png",
+   "nat": "id",
+   "real": "Jason Susanto",
+   "team": "PRX"
+  },
+  "d4v41": {
+   "vlrId": "9803",
+   "ign": "d4v41",
+   "img": "https://owcdn.net/img/69735f207c9bf.png",
+   "nat": "my",
+   "real": "Khalish Rusyaidee",
+   "team": "PRX"
+  },
+  "something": {
+   "vlrId": "17086",
+   "ign": "something",
+   "img": "https://owcdn.net/img/69735f396861f.png",
+   "nat": "ru",
+   "real": "Ilya Petrov",
+   "team": "PRX"
+  },
+  "tommy": {
+   "vlrId": "9799",
+   "ign": "Tommy",
+   "img": "https://owcdn.net/img/69735f7397123.png",
+   "nat": "sg",
+   "real": "Kumaresan Ramani",
+   "role": "manager",
+   "team": "PRX"
+  },
+  "alecks": {
+   "vlrId": "9804",
+   "ign": "alecks",
+   "img": "https://owcdn.net/img/69735f608e3ed.png",
+   "nat": "fr",
+   "real": "Alexandre Sallé",
+   "role": "coach",
+   "team": "PRX"
+  },
+  "wendler": {
+   "vlrId": "55829",
+   "ign": "Wendler",
+   "img": "https://owcdn.net/img/69735f5257ee4.png",
+   "nat": "us",
+   "real": "Ashton Wendler",
+   "role": "assistant coach",
+   "team": "PRX"
+  },
+  "panda": {
+   "vlrId": "54678",
+   "ign": "Panda",
+   "img": "https://owcdn.net/img/69735f694e1cd.png",
+   "nat": "us",
+   "real": "Laijhun Cheng",
+   "role": "performance coach",
+   "team": "PRX"
+  },
+  "munchkin": {
+   "vlrId": "2489",
+   "ign": "Munchkin",
+   "img": "https://owcdn.net/img/696cbebe97d8d.png",
+   "nat": "kr",
+   "real": "Byeon Sang-beom (변상범)",
+   "team": "T1"
+  },
+  "stax": {
+   "vlrId": "485",
+   "ign": "stax",
+   "img": "https://owcdn.net/img/696cbe19de8ff.png",
+   "nat": "kr",
+   "real": "Kim Gu-taek (김구택)",
+   "team": "T1"
+  },
+  "meteor": {
+   "vlrId": "13039",
+   "ign": "Meteor",
+   "img": "https://owcdn.net/img/696cbecabc2af.png",
+   "nat": "kr",
+   "real": "Kim Tae-oh (김태오)",
+   "team": "T1"
+  },
+  "buzz": {
+   "vlrId": "804",
+   "ign": "BuZz",
+   "img": "https://owcdn.net/img/696cbe96ec066.png",
+   "nat": "kr",
+   "real": "Yu Byeong-cheol (유병철)",
+   "team": "T1"
+  },
+  "dh": {
+   "vlrId": "43057",
+   "ign": "DH",
+   "img": "https://owcdn.net/img/67a4c0f02c6a5.png",
+   "nat": "kr",
+   "real": "Kang Dong-ho (강동호)",
+   "team": "T1"
+  },
+  "izu": {
+   "vlrId": "29833",
+   "ign": "iZu",
+   "img": "https://owcdn.net/img/696cbeb2ce31f.png",
+   "nat": "kr",
+   "real": "Ham Woo-ju (함우주)",
+   "team": "T1"
+  },
+  "norman": {
+   "vlrId": "47420",
+   "ign": "Norman",
+   "img": "https://owcdn.net/img/6757d4046d6e5.png",
+   "nat": "kr",
+   "real": "Shin Jun-ho",
+   "role": "manager",
+   "team": "T1"
+  },
+  "kdg": {
+   "vlrId": "37518",
+   "ign": "KDG",
+   "img": "https://owcdn.net/img/696cbede6314d.png",
+   "nat": "kr",
+   "real": "Kim Dong-gun (김동건)",
+   "role": "head coach",
+   "team": "T1"
+  },
+  "cheonggak": {
+   "vlrId": "37198",
+   "ign": "CheongGak",
+   "img": "https://owcdn.net/img/696cbed457a6c.png",
+   "nat": "kr",
+   "real": "Lee Il-ho (이일호)",
+   "role": "coach",
+   "team": "T1"
+  },
+  "rb": {
+   "vlrId": "488",
+   "ign": "Rb",
+   "img": "https://owcdn.net/img/69d5f87b7c32d.png",
+   "nat": "kr",
+   "real": "Goo Sang-min (구상민)",
+   "team": "NS"
+  },
+  "woohyun": {
+   "vlrId": "66086",
+   "ign": "WoohyuN",
+   "nat": "kr",
+   "real": "Moon Woo-hyun (문우현)",
+   "team": "NS"
+  },
+  "xross": {
+   "vlrId": "42772",
+   "ign": "Xross",
+   "img": "https://owcdn.net/img/69d5f8a5ee90d.png",
+   "nat": "kr",
+   "real": "Jeonghwan (정환)",
+   "team": "NS"
+  },
+  "francis": {
+   "vlrId": "31828",
+   "ign": "Francis",
+   "img": "https://owcdn.net/img/69d5f885417ec.png",
+   "nat": "kr",
+   "real": "Kim Mu-bin (김무빈)",
+   "team": "NS"
+  },
+  "dambi": {
+   "vlrId": "31827",
+   "ign": "Dambi",
+   "img": "https://owcdn.net/img/69d5f88fbaaa2.png",
+   "nat": "kr",
+   "real": "Lee Hyuk-kyu (이혁규)",
+   "team": "NS"
+  },
+  "ivy": {
+   "vlrId": "31829",
+   "ign": "Ivy",
+   "img": "https://owcdn.net/img/69d5f899c514c.png",
+   "nat": "kr",
+   "real": "Park Sung-hyeon (박성현)",
+   "team": "NS"
+  },
+  "silkanon": {
+   "vlrId": "4124",
+   "ign": "SilKanoN",
+   "img": "https://owcdn.net/img/69d5f8be9b05f.png",
+   "nat": "kr",
+   "real": "Kim Gyeong-min (김경민)",
+   "role": "head coach",
+   "team": "NS"
+  },
+  "yoman": {
+   "vlrId": "25081",
+   "ign": "yoman",
+   "img": "https://owcdn.net/img/69d5f8aea21b3.png",
+   "nat": "kr",
+   "real": "Chae Young-moon (채영문)",
+   "role": "coach",
+   "team": "NS"
+  },
+  "sungmin": {
+   "vlrId": "35015",
+   "ign": "Sungmin",
+   "img": "https://owcdn.net/img/69d5f8b63528b.png",
+   "nat": "kr",
+   "real": "So Seong-min (소성민)",
+   "role": "coach",
+   "team": "NS"
+  },
+  "ash": {
+   "vlrId": "25017",
+   "ign": "Ash",
+   "nat": "kr",
+   "real": "Ha Hyun-cheol (하현철)",
+   "team": "GEN"
+  },
+  "karon": {
+   "vlrId": "34974",
+   "ign": "Karon",
+   "img": "https://owcdn.net/img/676ba061b7251.png",
+   "nat": "kr",
+   "real": "Kim Won-tae (김원태)",
+   "team": "GEN"
+  },
+  "t3xture": {
+   "vlrId": "9196",
+   "ign": "t3xture",
+   "img": "https://owcdn.net/img/676ba04aee5f9.png",
+   "nat": "kr",
+   "real": "Kim Na-ra (김나라)",
+   "team": "GEN"
+  },
+  "efina": {
+   "vlrId": "985",
+   "ign": "Efina",
+   "img": "https://owcdn.net/img/670020c9da004.png",
+   "nat": "kr",
+   "real": "Kim Nak-yeon (김낙연)",
+   "team": "GEN"
+  },
+  "raxcal": {
+   "vlrId": "48925",
+   "ign": "Raxcal",
+   "img": "https://owcdn.net/img/688488102c9bb.png",
+   "nat": "kr",
+   "real": "Kim Min-seok (김민석)",
+   "team": "GEN"
+  },
+  "xiesta": {
+   "vlrId": "62291",
+   "ign": "Xiesta",
+   "nat": "kr",
+   "real": "Jung Si-hwan (정시환)",
+   "role": "Inactive",
+   "team": "GEN"
+  },
+  "zynx": {
+   "vlrId": "51099",
+   "ign": "ZynX",
+   "nat": "kr",
+   "real": "Kim Dong-ha (김동하)",
+   "role": "Inactive",
+   "team": "GEN"
+  },
+  "solo": {
+   "vlrId": "4562",
+   "ign": "solo",
+   "img": "https://owcdn.net/img/676ba06a8c461.png",
+   "nat": "kr",
+   "real": "Kang Geun-chul (강근철)",
+   "role": "head coach",
+   "team": "GEN"
+  },
+  "hsk": {
+   "vlrId": "21792",
+   "ign": "HSK",
+   "img": "https://owcdn.net/img/676ba072a7070.png",
+   "nat": "kr",
+   "real": "Kim Hae-seong (김해성)",
+   "role": "coach",
+   "team": "GEN"
+  },
+  "peri": {
+   "vlrId": "4560",
+   "ign": "peri",
+   "nat": "kr",
+   "real": "Jung Bum-ki (정범기)",
+   "role": "coach",
+   "team": "GEN"
+  },
+  "beyn": {
+   "vlrId": "4678",
+   "ign": "BeYN",
+   "img": "https://owcdn.net/img/6360e2fa70458.png",
+   "nat": "kr",
+   "real": "Kang Ha-bin (강하빈)",
+   "team": "KRX"
+  },
+  "mako": {
+   "vlrId": "4462",
+   "ign": "MaKo",
+   "img": "https://owcdn.net/img/676b9d064081b.png",
+   "nat": "kr",
+   "real": "Kim Myeong-gwan (김명관)",
+   "team": "KRX"
+  },
+  "free1ng": {
+   "vlrId": "1916",
+   "ign": "free1ng",
+   "img": "https://owcdn.net/img/676b9d177fab9.png",
+   "nat": "kr",
+   "real": "No Ha-jun (노하준)",
+   "team": "KRX"
+  },
+  "hyunmin": {
+   "vlrId": "28400",
+   "ign": "HYUNMIN",
+   "img": "https://owcdn.net/img/676b9d1f6a2cd.png",
+   "nat": "kr",
+   "real": "Song Hyun-min (송현민)",
+   "team": "KRX"
+  },
+  "flicker": {
+   "vlrId": "51100",
+   "ign": "Flicker",
+   "nat": "kr",
+   "real": "Kim Tae-hee (김태희)",
+   "team": "KRX"
+  },
+  "yong": {
+   "vlrId": "51238",
+   "ign": "yong",
+   "nat": "kr",
+   "real": "Kim Ho-yong (김호용)",
+   "role": "Sub",
+   "team": "KRX"
+  },
+  "termi": {
+   "vlrId": "775",
+   "ign": "termi",
+   "img": "https://owcdn.net/img/6360e1d0a85c2.png",
+   "nat": "kr",
+   "real": "Pyeon Seon-ho (편선호)",
+   "role": "head coach",
+   "team": "KRX"
+  },
+  "glow": {
+   "vlrId": "770",
+   "ign": "glow",
+   "img": "https://owcdn.net/img/6360e21128b56.png",
+   "nat": "kr",
+   "real": "Kim Min-soo (김민수)",
+   "role": "coach",
+   "team": "KRX"
+  },
+  "argency": {
+   "vlrId": "776",
+   "ign": "Argency",
+   "img": "https://owcdn.net/img/6360e21c475b7.png",
+   "nat": "kr",
+   "real": "Kwon Soon-woo (권순우)",
+   "role": "coach",
+   "team": "KRX"
+  },
+  "sugarz3ro": {
+   "vlrId": "6668",
+   "ign": "SugarZ3ro",
+   "img": "https://owcdn.net/img/6a3f3a7b079c3.png",
+   "nat": "jp",
+   "real": "Shota Watanabe",
+   "team": "ZETA"
+  },
+  "absol": {
+   "vlrId": "34776",
+   "ign": "Absol",
+   "img": "https://owcdn.net/img/6a3f3b4e52bf5.png",
+   "nat": "jp",
+   "real": "Kazuki Fujinoki",
+   "team": "ZETA"
+  },
+  "syouta": {
+   "vlrId": "12990",
+   "ign": "SyouTa",
+   "img": "https://owcdn.net/img/6a3f3a8513b83.png",
+   "nat": "jp",
+   "real": "Shota Aoki",
+   "team": "ZETA"
+  },
+  "eko": {
+   "vlrId": "1960",
+   "ign": "eKo",
+   "img": "https://owcdn.net/img/6a3f3a9e662ce.png",
+   "nat": "kr",
+   "real": "Yeom Wang-ryong (염왕룡)",
+   "team": "ZETA"
+  },
+  "xdll": {
+   "vlrId": "25221",
+   "ign": "Xdll",
+   "img": "https://owcdn.net/img/6a3f3b45eb0eb.png",
+   "nat": "jp",
+   "real": "Yuto Mizomori",
+   "team": "ZETA"
+  },
+  "ryota-": {
+   "vlrId": "1030",
+   "ign": "ryota-",
+   "img": "https://owcdn.net/img/6a3f3b6c0e244.png",
+   "nat": "jp",
+   "real": "Ryota Okayama",
+   "role": "head coach",
+   "team": "ZETA"
+  },
+  "xqq": {
+   "vlrId": "6717",
+   "ign": "XQQ",
+   "img": "https://owcdn.net/img/6a3f3b85c1b2d.png",
+   "nat": "jp",
+   "real": "Motoyama Hibiki",
+   "role": "assistant coach",
+   "team": "ZETA"
+  },
+  "gya9": {
+   "vlrId": "31170",
+   "ign": "gya9",
+   "img": "https://owcdn.net/img/6a3f3b62a2792.png",
+   "nat": "jp",
+   "role": "analyst",
+   "team": "ZETA"
+  },
+  "mini": {
+   "vlrId": "3323",
+   "ign": "Mini",
+   "nat": "gb",
+   "real": "Jacob Harris",
+   "role": "staff",
+   "team": "ZETA"
+  },
+  "kellys": {
+   "vlrId": "7437",
+   "ign": "kellyS",
+   "img": "https://owcdn.net/img/6a0a2508dc57f.png",
+   "nat": "ph",
+   "real": "Kelly Sedillo",
+   "team": "TS"
+  },
+  "natz": {
+   "vlrId": "7049",
+   "ign": "natz",
+   "img": "https://owcdn.net/img/6821f7ca302fc.png",
+   "nat": "id",
+   "real": "Jonathan Adiputra",
+   "team": "TS"
+  },
+  "styron": {
+   "vlrId": "11704",
+   "ign": "STYRON",
+   "img": "https://owcdn.net/img/690485bc72e5e.png",
+   "nat": "sg",
+   "real": "Tidus Goh",
+   "team": "TS"
+  },
+  "zeus": {
+   "vlrId": "46135",
+   "ign": "Zeus",
+   "img": "https://owcdn.net/img/67a057beab3d6.png",
+   "nat": "ph",
+   "real": "Jhian Vega",
+   "team": "TS"
+  },
+  "sylvan": {
+   "vlrId": "4056",
+   "ign": "Sylvan",
+   "img": "https://owcdn.net/img/6757d389c06f5.png",
+   "nat": "kr",
+   "real": "Go Young-sup (고영섭)",
+   "team": "TS"
+  },
+  "yamyam yui": {
+   "vlrId": "35828",
+   "ign": "yamyam yui",
+   "img": "https://owcdn.net/img/63d6674503bdc.png",
+   "nat": "ph",
+   "real": "Yamyam Villanueva Yui",
+   "role": "manager",
+   "team": "TS"
+  },
+  "spin": {
+   "vlrId": "4355",
+   "ign": "Spin",
+   "img": "https://owcdn.net/img/69d5fab4688a5.png",
+   "nat": "gb",
+   "real": "Peter Bradford",
+   "role": "head coach",
+   "team": "TS"
+  },
+  "skye": {
+   "vlrId": "7416",
+   "ign": "skye",
+   "img": "https://owcdn.net/img/6821f7e470a3c.png",
+   "nat": "sg",
+   "real": "Felipe Skye Lim",
+   "role": "analyst",
+   "team": "TS"
+  },
+  "ssees": {
+   "vlrId": "21438",
+   "ign": "SSeeS",
+   "img": "https://owcdn.net/img/674037e9c4e3c.png",
+   "nat": "jp",
+   "real": "Tomonori Okimura",
+   "team": "DFM"
+  },
+  "meiy": {
+   "vlrId": "6672",
+   "ign": "Meiy",
+   "img": "https://owcdn.net/img/674037871e878.png",
+   "nat": "jp",
+   "real": "Ibuki Seki",
+   "team": "DFM"
+  },
+  "yatsuka": {
+   "vlrId": "29843",
+   "ign": "yatsuka",
+   "img": "https://owcdn.net/img/682d95bed801b.png",
+   "nat": "jp",
+   "real": "Kazuya Ikeda",
+   "team": "DFM"
+  },
+  "caedye": {
+   "vlrId": "29841",
+   "ign": "Caedye",
+   "img": "https://owcdn.net/img/682d95ad8a7a4.png",
+   "nat": "jp",
+   "real": "Amon Mateus Okakura",
+   "team": "DFM"
+  },
+  "akame": {
+   "vlrId": "13002",
+   "ign": "Akame",
+   "img": "https://owcdn.net/img/674037c47365d.png",
+   "nat": "kr",
+   "real": "Yu Gwang-hui (유광희)",
+   "team": "DFM"
+  },
+  "vorz": {
+   "vlrId": "19725",
+   "ign": "Vorz",
+   "img": "https://owcdn.net/img/682d95c6b376d.png",
+   "nat": "jp",
+   "real": "Kakeru Ikarashi",
+   "role": "head coach",
+   "team": "DFM"
+  },
+  "melofovia": {
+   "vlrId": "21437",
+   "ign": "Melofovia",
+   "img": "https://owcdn.net/img/674037ce2ecb6.png",
+   "nat": "jp",
+   "real": "Hirotaka Okazaki",
+   "role": "coach",
+   "team": "DFM"
+  },
+  "northernlights": {
+   "vlrId": "27974",
+   "ign": "NorthernLights",
+   "img": "https://owcdn.net/img/674037d6a9c48.png",
+   "nat": "jp",
+   "real": "Tsubasa Ando",
+   "role": "coach",
+   "team": "DFM"
+  },
+  "crazyguy": {
+   "vlrId": "1430",
+   "ign": "crazyguy",
+   "img": "https://owcdn.net/img/6821f7746590a.png",
+   "nat": "vn",
+   "real": "Ngô Công Anh",
+   "team": "RRQ"
+  },
+  "monyet": {
+   "vlrId": "8497",
+   "ign": "Monyet",
+   "img": "https://owcdn.net/img/6821f747b910a.png",
+   "nat": "id",
+   "real": "Cahya Nugraha",
+   "team": "RRQ"
+  },
+  "xffero": {
+   "vlrId": "4871",
+   "ign": "xffero",
+   "img": "https://owcdn.net/img/6821f77c54827.png",
+   "nat": "id",
+   "real": "David Monangin",
+   "team": "RRQ"
+  },
+  "xan": {
+   "vlrId": "11737",
+   "ign": "Xan",
+   "img": "https://owcdn.net/img/69d5faa486877.png",
+   "nat": "my",
+   "real": "Xan Ng",
+   "team": "RRQ"
+  },
+  "jemkin": {
+   "vlrId": "24895",
+   "ign": "Jemkin",
+   "img": "https://owcdn.net/img/6821f75962425.png",
+   "nat": "ru",
+   "real": "Maksim Batorov",
+   "team": "RRQ"
+  },
+  "kushy": {
+   "vlrId": "4866",
+   "ign": "Kushy",
+   "img": "https://owcdn.net/img/6821f764bd20a.png",
+   "nat": "id",
+   "real": "Bryan Carlos Setiawan",
+   "team": "RRQ"
+  },
+  "seasonz": {
+   "vlrId": "61084",
+   "ign": "SeasoNz",
+   "nat": "my",
+   "real": "Joe Lai",
+   "role": "manager",
+   "team": "RRQ"
+  },
+  "jovi": {
+   "vlrId": "6570",
+   "ign": "Jovi",
+   "img": "https://owcdn.net/img/65c672ac36698.png",
+   "nat": "cu",
+   "real": "Jovanni Vera",
+   "role": "head coach",
+   "team": "RRQ"
+  },
+  "warbirds": {
+   "vlrId": "12224",
+   "ign": "Warbirds",
+   "img": "https://owcdn.net/img/6821f79304fbe.png",
+   "nat": "us",
+   "real": "Evan Olzem",
+   "role": "assistant coach",
+   "team": "RRQ"
+  },
+  "rebecca": {
+   "vlrId": "50175",
+   "ign": "Rebecca",
+   "nat": "my",
+   "real": "Rebecca Wong",
+   "role": "performance coach",
+   "team": "RRQ"
+  },
+  "jomengz": {
+   "vlrId": "62037",
+   "ign": "Jomengz",
+   "nat": "id",
+   "real": "Jonathan Hoo",
+   "role": "staff",
+   "team": "RRQ"
+  },
+  "killua": {
+   "vlrId": "13784",
+   "ign": "Killua",
+   "img": "https://owcdn.net/img/6944048d3e33c.png",
+   "nat": "th",
+   "real": "Tanate Teerasawad",
+   "team": "FS"
+  },
+  "primmie": {
+   "vlrId": "25255",
+   "ign": "primmie",
+   "img": "https://owcdn.net/img/6944047b31bc9.png",
+   "nat": "th",
+   "real": "Papaphat Sriprapha",
+   "team": "FS"
+  },
+  "jitboys": {
+   "vlrId": "13788",
+   "ign": "JitBoyS",
+   "img": "https://owcdn.net/img/694404f04f64d.png",
+   "nat": "th",
+   "real": "Jittana Nokngam",
+   "team": "FS"
+  },
+  "seph1roth": {
+   "vlrId": "27244",
+   "ign": "seph1roth",
+   "img": "https://owcdn.net/img/698dc4936bb6b.png",
+   "nat": "th",
+   "real": "Chinnakrit Phoojaroen",
+   "team": "FS"
+  },
+  "thyy": {
+   "vlrId": "42901",
+   "ign": "thyy",
+   "img": "https://owcdn.net/img/69440472837f1.png",
+   "nat": "th",
+   "real": "Anupong Preamsak",
+   "role": "Inactive",
+   "team": "FS"
+  },
+  "leviathan": {
+   "vlrId": "27254",
+   "ign": "Leviathan",
+   "img": "https://owcdn.net/img/6944046a70e0c.png",
+   "nat": "th",
+   "real": "Thanyathon Nakmee",
+   "role": "Inactive",
+   "team": "FS"
+  },
+  "frost": {
+   "vlrId": "8707",
+   "ign": "FrosT",
+   "img": "https://owcdn.net/img/6a1960a272a31.png",
+   "nat": "us",
+   "real": "Hector Rosario",
+   "role": "head coach",
+   "team": "FS"
+  },
+  "theelovefamily": {
+   "vlrId": "2388",
+   "ign": "THEELOVEFAMILY",
+   "img": "https://owcdn.net/img/6944049f4b8dd.png",
+   "nat": "th",
+   "real": "Thanaphat Limpaphan",
+   "role": "coach",
+   "team": "FS"
+  },
+  "sushiboys": {
+   "vlrId": "3342",
+   "ign": "Sushiboys",
+   "img": "https://owcdn.net/img/68808fb164f1b.png",
+   "nat": "th",
+   "real": "Panyawat Subsiriroj",
+   "role": "assistant coach",
+   "team": "FS"
+  },
+  "xavi8k": {
+   "vlrId": "7754",
+   "ign": "xavi8k",
+   "img": "https://owcdn.net/img/6a1960983a0b5.png",
+   "nat": "ph",
+   "real": "Xavier Juan",
+   "team": "GE"
+  },
+  "patmen": {
+   "vlrId": "13744",
+   "ign": "PatMen",
+   "img": "https://owcdn.net/img/6a19607c9c6c7.png",
+   "nat": "ph",
+   "real": "Patrick Mendoza",
+   "team": "GE"
+  },
+  "udotan": {
+   "vlrId": "4428",
+   "ign": "UdoTan",
+   "img": "https://owcdn.net/img/6a19608573a71.png",
+   "nat": "kr",
+   "real": "Go Kyung-won (고경원)",
+   "team": "GE"
+  },
+  "kr1stal": {
+   "vlrId": "5796",
+   "ign": "Kr1stal",
+   "img": "https://owcdn.net/img/6a19608e4d952.png",
+   "nat": "ru",
+   "real": "Savva Fedorov",
+   "team": "GE"
+  },
+  "autumn": {
+   "vlrId": "2504",
+   "ign": "Autumn",
+   "img": "https://owcdn.net/img/65cc6f357d3c0.png",
+   "nat": "kr",
+   "real": "Yoon Eu-teum (윤으뜸)",
+   "team": "EDG",
+   "role": "head coach"
+  },
+  "vatsal": {
+   "vlrId": "4032",
+   "ign": "Vatsal",
+   "img": "https://owcdn.net/img/629f34c158a84.png",
+   "nat": "in",
+   "real": "Vatsal Uniyal",
+   "role": "manager",
+   "team": "GE"
+  },
+  "platoon": {
+   "vlrId": "54685",
+   "ign": "Platoon",
+   "img": "https://owcdn.net/img/6a1960ab16db3.png",
+   "nat": "ca",
+   "real": "Daniel Zhou",
+   "role": "head coach",
+   "team": "GE"
+  },
+  "aimix strange": {
+   "vlrId": "13058",
+   "ign": "Aimix Strange",
+   "img": "https://owcdn.net/img/69a49b3e91593.png",
+   "nat": "ph",
+   "real": "Derren dela Cruz",
+   "role": "assistant coach",
+   "team": "GE"
+  },
+  "fields": {
+   "vlrId": "7349",
+   "ign": "Fields",
+   "img": "https://owcdn.net/img/67fe13ad3ec79.png",
+   "nat": "gb",
+   "real": "Sam Greenfield",
+   "role": "analyst",
+   "team": "GE"
+  },
+  "taeri": {
+   "vlrId": "38838",
+   "ign": "taeri",
+   "nat": "kr",
+   "real": "Hose Son (손호세)",
+   "role": "staff",
+   "team": "GE"
+  },
+  "unknown": {
+   "vlrId": "54686",
+   "ign": "UnknowN",
+   "nat": "kr",
+   "real": "Minseong Kim",
+   "role": "staff",
+   "team": "GE"
+  },
+  "c1nder": {
+   "vlrId": "2149",
+   "ign": "C1ndeR",
+   "img": "https://owcdn.net/img/6540cb0ba90ed.png",
+   "nat": "kr",
+   "real": "Ko Jae-hyuk (고재혁)",
+   "team": "VL"
+  },
+  "foxy9": {
+   "vlrId": "11600",
+   "ign": "Foxy9",
+   "img": "https://owcdn.net/img/676ba0170dbab.png",
+   "nat": "kr",
+   "real": "Jung Jae-sung (정재성)",
+   "team": "VL"
+  },
+  "klaus": {
+   "vlrId": "4426",
+   "ign": "Klaus",
+   "nat": "kr",
+   "real": "Kim Min-hyuk (김민혁)",
+   "team": "VL"
+  },
+  "xuna": {
+   "vlrId": "42733",
+   "ign": "XuNa",
+   "nat": "kr",
+   "real": "Kim Tae-geon (김태건)",
+   "team": "VL"
+  },
+  "oonzmlp": {
+   "vlrId": "34926",
+   "ign": "oonzmlp",
+   "nat": "kr",
+   "real": "Shin Sang-beom (신상범)",
+   "team": "VL"
+  },
+  "zexy": {
+   "vlrId": "37532",
+   "ign": "Zexy",
+   "nat": "kr",
+   "real": "Jang Suk-hyun (장석현)",
+   "team": "VL"
+  },
+  "tk9": {
+   "vlrId": "25614",
+   "ign": "TK9",
+   "nat": "kr",
+   "real": "Goo Tae-kyun (구태균)",
+   "role": "head coach",
+   "team": "VL"
+  },
+  "r3thme": {
+   "vlrId": "51241",
+   "ign": "R3THME",
+   "nat": "kr",
+   "real": "Kim Ki-woon (김기운)",
+   "role": "analyst",
+   "team": "VL"
+  },
+  "nobody": {
+   "vlrId": "3017",
+   "ign": "nobody",
+   "img": "https://owcdn.net/img/677fe4210de6e.png",
+   "nat": "cn",
+   "real": "Wang Senxu (王森旭)",
+   "team": "EDG"
+  },
+  "zmjjkk": {
+   "vlrId": "3520",
+   "ign": "ZmjjKK",
+   "img": "https://owcdn.net/img/677fe40edf9da.png",
+   "nat": "cn",
+   "real": "Zheng Yongkang (郑永康)",
+   "team": "EDG"
+  },
+  "chichoo": {
+   "vlrId": "15559",
+   "ign": "CHICHOO",
+   "img": "https://owcdn.net/img/677fe4289bb34.png",
+   "nat": "cn",
+   "real": "Wan Shunzhi (万顺治)",
+   "team": "EDG"
+  },
+  "smoggy": {
+   "vlrId": "4742",
+   "ign": "Smoggy",
+   "img": "https://owcdn.net/img/677fe435edc57.png",
+   "nat": "cn",
+   "real": "Zhang Zhao (张钊)",
+   "team": "EDG"
+  },
+  "jieni7": {
+   "vlrId": "51244",
+   "ign": "Jieni7",
+   "img": "https://owcdn.net/img/67e2e8846d5a5.png",
+   "nat": "cn",
+   "real": "Zhang Juntai (张君泰)",
+   "team": "EDG"
+  },
+  "stew": {
+   "vlrId": "16924",
+   "ign": "stew",
+   "img": "https://owcdn.net/img/6780d408e3835.png",
+   "nat": "kr",
+   "real": "Park Young-chan (박영찬)",
+   "team": "EDG"
+  },
+  "zjc": {
+   "vlrId": "7135",
+   "ign": "zjc",
+   "img": "https://owcdn.net/img/6892da154edc5.png",
+   "nat": "cn",
+   "real": "Zhang Juncheng (张峻程)",
+   "role": "Sub",
+   "team": "EDG"
+  },
+  "hibari": {
+   "vlrId": "59434",
+   "ign": "Hibari",
+   "nat": "cn",
+   "real": "Jin Xingyu (金星宇)",
+   "role": "manager",
+   "team": "EDG"
+  },
+  "indigo": {
+   "vlrId": "44793",
+   "ign": "Indigo",
+   "img": "https://owcdn.net/img/6757d3c8ef4e1.png",
+   "nat": "kr",
+   "real": "Seol Do-hoon (설도훈)",
+   "role": "coach",
+   "team": "EDG"
+  },
+  "signed": {
+   "vlrId": "1175",
+   "ign": "signed",
+   "nat": "nz",
+   "real": "Dale Tang",
+   "role": "coach",
+   "team": "EDG"
+  },
+  "wsleo": {
+   "vlrId": "24308",
+   "ign": "WsLeo",
+   "img": "https://owcdn.net/img/6585b7ad2cb28.png",
+   "nat": "tw",
+   "real": "Huang Pinwei (黄品维)",
+   "team": "XLG"
+  },
+  "sharks": {
+   "vlrId": "64849",
+   "ign": "Sharks",
+   "nat": "cn",
+   "real": "Qiu Ge (邱戈)",
+   "team": "XLG"
+  },
+  "lysoar": {
+   "vlrId": "37489",
+   "ign": "Lysoar",
+   "img": "https://owcdn.net/img/677d1df2d375a.png",
+   "nat": "cn",
+   "real": "Liang Youhao (梁优好)",
+   "team": "XLG"
+  },
+  "noman": {
+   "vlrId": "11527",
+   "ign": "NoMan",
+   "nat": "hk",
+   "real": "James Man",
+   "team": "XLG"
+  },
+  "rarga": {
+   "vlrId": "22047",
+   "ign": "Rarga",
+   "img": "https://owcdn.net/img/6782528608fd1.png",
+   "nat": "ru",
+   "real": "Arthur Churyumov",
+   "team": "XLG"
+  },
+  "happywei": {
+   "vlrId": "37927",
+   "ign": "happywei",
+   "img": "https://owcdn.net/img/6782528e85d4c.png",
+   "nat": "tw",
+   "real": "Deng Minwei (邓闵维)",
+   "team": "XLG"
+  },
+  "arty": {
+   "vlrId": "4343",
+   "ign": "Arty",
+   "nat": "cn",
+   "real": "Yang Zhe (杨喆)",
+   "role": "manager",
+   "team": "XLG"
+  },
+  "hvoya": {
+   "vlrId": "1348",
+   "ign": "hvoya",
+   "img": "https://owcdn.net/img/678252641b6da.png",
+   "nat": "ru",
+   "real": "Aleksandr Eremin",
+   "role": "head coach",
+   "team": "XLG"
+  },
+  "steady": {
+   "vlrId": "1874",
+   "ign": "steady",
+   "nat": "ru",
+   "real": "Dmitry Prutkov",
+   "role": "assistant coach",
+   "team": "XLG"
+  },
+  "coffin0": {
+   "vlrId": "50163",
+   "ign": "Coffin0",
+   "nat": "cn",
+   "real": "Tao Yumeng (陶禹萌)",
+   "role": "staff",
+   "team": "XLG"
+  },
+  "siufatbb": {
+   "vlrId": "7849",
+   "ign": "SiuFatBB",
+   "img": "https://owcdn.net/img/677d1d70cab8d.png",
+   "nat": "hk",
+   "real": "Pong Gaa Hei (庞加曦)",
+   "team": "TYL"
+  },
+  "splash": {
+   "vlrId": "36685",
+   "ign": "splash",
+   "nat": "id",
+   "real": "Moses Christophe Jonathan",
+   "team": "TYL"
+  },
+  "scales": {
+   "vlrId": "39485",
+   "ign": "Scales",
+   "img": "https://owcdn.net/img/6848f4745a824.png",
+   "nat": "cn",
+   "real": "Zhang Zhen (张震)",
+   "team": "TYL"
+  },
+  "erv": {
+   "vlrId": "55085",
+   "ign": "Erv",
+   "nat": "cn",
+   "real": "Shen Zhiwei",
+   "team": "TYL"
+  },
+  "slowly": {
+   "vlrId": "41739",
+   "ign": "slowly",
+   "img": "https://owcdn.net/img/6848f4fd4ff85.png",
+   "nat": "cn",
+   "real": "Kelun Sun (孙科伦)",
+   "team": "TYL"
+  },
+  "xihe": {
+   "vlrId": "64854",
+   "ign": "xihe",
+   "nat": "cn",
+   "real": "Peng Wenbo (彭文博)",
+   "team": "TYL"
+  },
+  "fc4t": {
+   "vlrId": "45809",
+   "ign": "fc4t",
+   "nat": "cn",
+   "real": "Yang Jiawei (杨家玮)",
+   "role": "manager",
+   "team": "TYL"
+  },
+  "hypnotizing": {
+   "vlrId": "48568",
+   "ign": "hypnotizing",
+   "img": "https://owcdn.net/img/6848f52b9a361.png",
+   "nat": "cn",
+   "real": "Xie Haozhi (谢昊志)",
+   "role": "head coach",
+   "team": "TYL"
+  },
+  "billyo": {
+   "vlrId": "34214",
+   "ign": "Billyo",
+   "img": "https://owcdn.net/img/6848f5c1b53a4.png",
+   "nat": "cn",
+   "real": "Li Xinyu (李新宇)",
+   "role": "assistant coach",
+   "team": "TYL"
+  },
+  "sword9": {
+   "vlrId": "3049",
+   "ign": "sword9",
+   "img": "https://owcdn.net/img/6848f52264464.png",
+   "nat": "cn",
+   "real": "Li Wei (李卫)",
+   "role": "assistant coach",
+   "team": "TYL"
+  },
+  "ominous": {
+   "vlrId": "27277",
+   "ign": "Ominous",
+   "img": "https://owcdn.net/img/68ba84f7f2061.png",
+   "nat": "np",
+   "real": "Sushant Jha",
+   "role": "analyst",
+   "team": "TYL"
+  },
+  "glacier": {
+   "vlrId": "49973",
+   "ign": "glacier",
+   "nat": "tw",
+   "real": "Liang Zhekai (梁哲恺)",
+   "team": "WOL"
+  },
+  "yosemite": {
+   "vlrId": "6022",
+   "ign": "yosemite",
+   "img": "https://owcdn.net/img/6780cc7ef001a.png",
+   "nat": "cn",
+   "real": "Wang Lei (王磊)",
+   "team": "WOL"
+  },
+  "spring": {
+   "vlrId": "14125",
+   "ign": "Spring",
+   "img": "https://owcdn.net/img/677d1dbded193.png",
+   "nat": "tw",
+   "real": "Liu Jiunting (刘俊霆)",
+   "team": "WOL"
+  },
+  "deryeon": {
+   "vlrId": "9152",
+   "ign": "Deryeon",
+   "img": "https://owcdn.net/img/69d5fa9c535ea.png",
+   "nat": "sg",
+   "real": "Derrick Yee",
+   "team": "WOL"
+  },
+  "aluba": {
+   "vlrId": "14441",
+   "ign": "aluba",
+   "img": "https://owcdn.net/img/65dd9eae52a03.png",
+   "nat": "cn",
+   "real": "Zhong Haojun (钟皓钧)",
+   "team": "WOL"
+  },
+  "nothing": {
+   "vlrId": "66083",
+   "ign": "nothing",
+   "nat": "cn",
+   "real": "Xie Junzheng (谢君正)",
+   "role": "Sub",
+   "team": "WOL"
+  },
+  "chao": {
+   "vlrId": "61329",
+   "ign": "Chao",
+   "nat": "cn",
+   "role": "manager",
+   "team": "WOL"
+  },
+  "alexrr": {
+   "vlrId": "1163",
+   "ign": "alexRr",
+   "img": "https://owcdn.net/img/68644d4e93037.png",
+   "nat": "de",
+   "real": "Alexander Frisch",
+   "role": "head coach",
+   "team": "WOL"
+  },
+  "ja7": {
+   "vlrId": "61330",
+   "ign": "Ja7",
+   "nat": "cn",
+   "role": "staff",
+   "team": "WOL"
+  },
+  "aaaay": {
+   "vlrId": "19530",
+   "ign": "AAAAY",
+   "img": "https://owcdn.net/img/6780cc68aef3a.png",
+   "nat": "cn",
+   "real": "Zhang Yang (张杨)",
+   "team": "FPX"
+  },
+  "kovaq": {
+   "vlrId": "7987",
+   "ign": "KovaQ",
+   "img": "https://owcdn.net/img/69712a6cda076.png",
+   "nat": "ch",
+   "real": "Blendi Kovaci",
+   "team": "FPX"
+  },
+  "coconut": {
+   "vlrId": "12365",
+   "ign": "coconut",
+   "img": "https://owcdn.net/img/6782529707e67.png",
+   "nat": "hk",
+   "real": "Colin Patrick Chung (钟弘祖)",
+   "team": "FPX"
+  },
+  "xlele": {
+   "vlrId": "54487",
+   "ign": "Xlele",
+   "nat": "cn",
+   "real": "Zhao Yanbo (赵炎博)",
+   "team": "FPX"
+  },
+  "setrod": {
+   "vlrId": "50025",
+   "ign": "Setrod",
+   "nat": "tw",
+   "real": "Ou Taigeng (欧泰赓)",
+   "team": "FPX"
+  },
+  "9hr": {
+   "vlrId": "34676",
+   "ign": "9hr",
+   "img": "https://owcdn.net/img/63bdae6234f4d.png",
+   "nat": "cn",
+   "real": "Guan Haoran (管豪然)",
+   "role": "manager",
+   "team": "FPX"
+  },
+  "legija": {
+   "vlrId": "22782",
+   "ign": "LEGIJA",
+   "img": "https://owcdn.net/img/651eeca590cf0.png",
+   "nat": "de",
+   "real": "Nikola Ninić",
+   "role": "head coach",
+   "team": "FPX"
+  },
+  "york": {
+   "vlrId": "6021",
+   "ign": "York",
+   "img": "https://owcdn.net/img/6780cc9560c9d.png",
+   "nat": "cn",
+   "real": "Yao Kun (姚堃)",
+   "role": "assistant coach",
+   "team": "FPX"
+  },
+  "qiutian": {
+   "vlrId": "43007",
+   "ign": "qiutiaN",
+   "img": "https://owcdn.net/img/6a230284a8142.png",
+   "nat": "tw",
+   "real": "Bijan Moeinzadeh (慕英毕强)",
+   "team": "NOVA"
+  },
+  "cb": {
+   "vlrId": "39697",
+   "ign": "cb",
+   "img": "https://owcdn.net/img/6780f19239654.png",
+   "nat": "cn",
+   "real": "Wang Qingchuan (王庆川)",
+   "team": "NOVA"
+  },
+  "ezeir": {
+   "vlrId": "46460",
+   "ign": "Ezeir",
+   "img": "https://owcdn.net/img/6780f19ae199e.png",
+   "nat": "cn",
+   "real": "Zhao Zejun (赵泽骏)",
+   "team": "NOVA"
+  },
+  "guang": {
+   "vlrId": "41054",
+   "ign": "GuanG",
+   "img": "https://owcdn.net/img/6780f1a2e0d06.png",
+   "nat": "cn",
+   "real": "Guang Honglin (光洪霖)",
+   "team": "NOVA"
+  },
+  "swagzor": {
+   "vlrId": "45492",
+   "ign": "swagzor",
+   "nat": "ru",
+   "real": "Mikhail Vaniushin",
+   "team": "NOVA"
+  },
+  "kodeth": {
+   "vlrId": "39060",
+   "ign": "kodeth",
+   "nat": "cn",
+   "real": "Bo Li",
+   "role": "Sub",
+   "team": "NOVA"
+  },
+  "green": {
+   "vlrId": "34181",
+   "ign": "GREEN",
+   "img": "https://owcdn.net/img/658658c275a25.png",
+   "nat": "tw",
+   "real": "Qiu Jianzhi (邱建智)",
+   "role": "Sub",
+   "team": "NOVA"
+  },
+  "24k": {
+   "vlrId": "44580",
+   "ign": "24K",
+   "img": "https://owcdn.net/img/6780f1aa8d75b.png",
+   "nat": "cn",
+   "real": "Shao Yubo (邵玉波)",
+   "role": "head coach",
+   "team": "NOVA"
+  },
+  "onbush": {
+   "vlrId": "51240",
+   "ign": "OnbusH",
+   "nat": "kr",
+   "real": "Kim Taek-soo (김택수)",
+   "role": "coach",
+   "team": "NOVA"
+  },
+  "whzy": {
+   "vlrId": "4885",
+   "ign": "whzy",
+   "img": "https://owcdn.net/img/677fdfcb36dac.png",
+   "nat": "cn",
+   "real": "Wang Haozhe (王昊哲)",
+   "team": "BLG"
+  },
+  "rushia": {
+   "vlrId": "48878",
+   "ign": "rushia",
+   "img": "https://owcdn.net/img/677fdfeb6f40b.png",
+   "nat": "cn",
+   "real": "Wang Xiaojie (王晓杰)",
+   "team": "BLG"
+  },
+  "nephh": {
+   "vlrId": "10698",
+   "ign": "nephh",
+   "img": "https://owcdn.net/img/677fdff5be5db.png",
+   "nat": "sg",
+   "real": "Marcus Tan",
+   "team": "BLG"
+  },
+  "yilai": {
+   "vlrId": "62947",
+   "ign": "yilai",
+   "nat": "cn",
+   "real": "Gu Yiming (顾依铭)",
+   "team": "BLG"
+  },
+  "knight": {
+   "vlrId": "4774",
+   "ign": "Knight",
+   "img": "https://owcdn.net/img/677fdffe244c5.png",
+   "nat": "cn",
+   "real": "Liu Yuxiang (刘宇翔)",
+   "team": "BLG"
+  },
+  "bud": {
+   "vlrId": "56260",
+   "ign": "bud",
+   "nat": "cn",
+   "real": "Yang Renyu (杨韧余)",
+   "team": "BLG"
+  },
+  "ft": {
+   "vlrId": "64029",
+   "ign": "FT",
+   "img": "https://owcdn.net/img/6a01732c154d2.png",
+   "nat": "cn",
+   "real": "Yan Shuaibo (闫帅博)",
+   "team": "BLG"
+  },
+  "levius": {
+   "vlrId": "40845",
+   "ign": "Levius",
+   "img": "https://owcdn.net/img/677fdfe36d135.png",
+   "nat": "cn",
+   "real": "Lu Yinzhong (卢胤中)",
+   "role": "Inactive",
+   "team": "WSIG"
+  },
+  "gandolf": {
+   "vlrId": "53130",
+   "ign": "Gandolf",
+   "img": "https://owcdn.net/img/67f0e602e4eb6.png",
+   "nat": "cn",
+   "real": "Jiang Hao (蒋浩)",
+   "role": "manager",
+   "team": "BLG"
+  },
+  "anaks": {
+   "vlrId": "2331",
+   "ign": "Anaks",
+   "img": "https://owcdn.net/img/6360e30e01936.png",
+   "nat": "kr",
+   "real": "Ye Sang-jun (예상준)",
+   "role": "head coach",
+   "team": "BLG"
+  },
+  "yaoxie": {
+   "vlrId": "59555",
+   "ign": "YaoXie",
+   "nat": "cn",
+   "real": "Zhang Jihang (張繼航)",
+   "role": "coach",
+   "team": "BLG"
+  },
+  "jexen": {
+   "vlrId": "39525",
+   "ign": "Jexen",
+   "img": "https://owcdn.net/img/677fe007f0a1c.png",
+   "nat": "cn",
+   "real": "Wang Lin Xiao (王林骁)",
+   "role": "coach",
+   "team": "BLG"
+  },
+  "balax": {
+   "vlrId": "51670",
+   "ign": "balax",
+   "nat": "sg",
+   "real": "Thong Chern Kwi",
+   "role": "analyst",
+   "team": "BLG"
+  },
+  "rain": {
+   "vlrId": "53129",
+   "ign": "Rain",
+   "img": "https://owcdn.net/img/68370af5b15ea.png",
+   "nat": "cn",
+   "real": "Deng Shiyao (邓诗耀)",
+   "role": "staff",
+   "team": "BLG"
+  },
+  "shr1mp": {
+   "vlrId": "25494",
+   "ign": "Shr1mp",
+   "img": "https://owcdn.net/img/67e2eb755cab7.png",
+   "nat": "cn",
+   "real": "Yang Yong (杨勇)",
+   "team": "AG"
+  },
+  "k1ra": {
+   "vlrId": "46748",
+   "ign": "K1ra",
+   "img": "https://owcdn.net/img/677fbe754983a.png",
+   "nat": "cn",
+   "real": "Huang Zhihao (黄志豪)",
+   "team": "AG"
+  },
+  "bai": {
+   "vlrId": "52101",
+   "ign": "Bai",
+   "img": "https://owcdn.net/img/67d41e9ad9fef.png",
+   "nat": "cn",
+   "real": "Zhang Zeyang (张泽洋)",
+   "team": "AG"
+  },
+  "f4ngeer": {
+   "vlrId": "21216",
+   "ign": "f4ngeer",
+   "nat": "ru",
+   "real": "Roman Smirnov",
+   "team": "AG"
+  },
+  "iamgrq": {
+   "vlrId": "58959",
+   "ign": "iamgrq",
+   "nat": "cn",
+   "real": "Gao Ruiqi (高锐琦)",
+   "team": "AG"
+  },
+  "aaron0": {
+   "vlrId": "56520",
+   "ign": "AaRon0",
+   "nat": "cn",
+   "real": "Xu Maoxiao (徐茂蕭)",
+   "role": "manager",
+   "team": "AG"
+  },
+  "ed101": {
+   "vlrId": "40619",
+   "ign": "ED101",
+   "nat": "cn",
+   "real": "Han Tianqi (韩天奇)",
+   "role": "head coach",
+   "team": "AG"
+  },
+  "master": {
+   "vlrId": "50082",
+   "ign": "Master",
+   "nat": "cn",
+   "real": "Cheng Zihan (程子晗)",
+   "role": "staff",
+   "team": "AG"
+  },
+  "luok1ng": {
+   "vlrId": "3045",
+   "ign": "LuoK1ng",
+   "img": "https://owcdn.net/img/67f0f3ba506f5.png",
+   "nat": "cn",
+   "real": "Zhang Zhanpeng (张展鹏)",
+   "team": "TE"
+  },
+  "kai": {
+   "vlrId": "37494",
+   "ign": "Kai",
+   "img": "https://owcdn.net/img/67f0f409bdfc4.png",
+   "nat": "cn",
+   "real": "Lu Zhinan (卢智楠)",
+   "team": "TE"
+  },
+  "fengf": {
+   "vlrId": "4770",
+   "ign": "FengF",
+   "img": "https://owcdn.net/img/67f0f41260680.png",
+   "nat": "cn",
+   "real": "Song Xuefeng (宋学锋)",
+   "team": "TE"
+  },
+  "fkey": {
+   "vlrId": "51249",
+   "ign": "FKEY",
+   "nat": "cn",
+   "real": "Ke Chen",
+   "team": "TE"
+  },
+  "delb": {
+   "vlrId": "10821",
+   "ign": "deLb",
+   "img": "https://owcdn.net/img/677fbe994eb91.png",
+   "nat": "id",
+   "real": "Delbert Tanoto",
+   "team": "TE"
+  },
+  "abo": {
+   "vlrId": "5011",
+   "ign": "Abo",
+   "img": "https://owcdn.net/img/678247f0bb722.png",
+   "nat": "cn",
+   "real": "Han Bohao (韩博皓)",
+   "role": "Sub",
+   "team": "TE"
+  },
+  "toosy": {
+   "vlrId": "66427",
+   "ign": "Toosy",
+   "nat": "cn",
+   "real": "Wu Yufeng (吴雨峰)",
+   "role": "Sub",
+   "team": "TE"
+  },
+  "kaka": {
+   "vlrId": "50170",
+   "ign": "KaKa",
+   "nat": "cn",
+   "real": "Zhou Wenxing (周文兴)",
+   "role": "manager",
+   "team": "TE"
+  },
+  "destroyer": {
+   "vlrId": "15249",
+   "ign": "destroyeR",
+   "img": "https://owcdn.net/img/67f0f42e979c1.png",
+   "nat": "cn",
+   "real": "Gu Jiaming (顾佳鸣)",
+   "role": "head coach",
+   "team": "TE"
+  },
+  "yiyee": {
+   "vlrId": "38518",
+   "ign": "Yiyee",
+   "img": "https://owcdn.net/img/67f0f4387e029.png",
+   "nat": "cn",
+   "real": "Zhang Tianyuan (张天元)",
+   "role": "coach",
+   "team": "TE"
+  },
+  "viva": {
+   "vlrId": "36415",
+   "ign": "Viva",
+   "img": "https://owcdn.net/img/6782527d74487.png",
+   "nat": "cn",
+   "real": "Lifan Ran (冉立凡)",
+   "role": "coach",
+   "team": "TE"
+  },
+  "draven": {
+   "vlrId": "50171",
+   "ign": "Draven",
+   "nat": "cn",
+   "role": "staff",
+   "team": "TE"
+  },
+  "jkuro": {
+   "vlrId": "3519",
+   "ign": "jkuro",
+   "img": "https://owcdn.net/img/6780d3d43a117.png",
+   "nat": "cn",
+   "real": "Yong Haochong (杨浩聪)",
+   "team": "JDG"
+  },
+  "zhe": {
+   "vlrId": "49476",
+   "ign": "zhe",
+   "img": "https://owcdn.net/img/6739e1d4086dd.png",
+   "nat": "cn",
+   "real": "Niu Zhe (牛哲)",
+   "team": "JDG"
+  },
+  "yuicaw": {
+   "vlrId": "11218",
+   "ign": "Yuicaw",
+   "img": "https://owcdn.net/img/677d1d79e76fc.png",
+   "nat": "tw",
+   "real": "Huang Yung-chieh (黃湧傑)",
+   "team": "JDG"
+  },
+  "crownfisher": {
+   "vlrId": "64969",
+   "ign": "crownfisher",
+   "nat": "cn",
+   "real": "Li Ao (李翱)",
+   "team": "JDG"
+  },
+  "berlin": {
+   "vlrId": "7857",
+   "ign": "BerLIN",
+   "img": "https://owcdn.net/img/6780cc73ecfb7.png",
+   "nat": "tw",
+   "real": "Zhang Bolin (張柏霖)",
+   "team": "JDG"
+  },
+  "jiandan": {
+   "vlrId": "61326",
+   "ign": "JIANDAN",
+   "nat": "cn",
+   "real": "Wang Sai (王赛)",
+   "role": "manager",
+   "team": "JDG"
+  },
+  "bail": {
+   "vlrId": "980",
+   "ign": "bail",
+   "img": "https://owcdn.net/img/677fe01102263.png",
+   "nat": "kr",
+   "real": "Lee Sung-jae (이성재)",
+   "role": "head coach",
+   "team": "JDG"
+  },
+  "desire": {
+   "vlrId": "61268",
+   "ign": "Desire",
+   "nat": "cn",
+   "real": "Peng Siji (彭思骥)",
+   "role": "assistant coach",
+   "team": "JDG"
+  },
+  "phong": {
+   "vlrId": "50166",
+   "ign": "Phong",
+   "nat": "cn",
+   "real": "Huang Chunfeng (黄春峰)",
+   "role": "staff",
+   "team": "JDG"
+  },
+  "nicc": {
+   "vlrId": "11524",
+   "ign": "Nicc",
+   "img": "https://owcdn.net/img/6782611e6a470.png",
+   "nat": "tw",
+   "real": "Shao Yi-qun (邵逸群)",
+   "team": "DRG"
+  },
+  "flex1n": {
+   "vlrId": "4705",
+   "ign": "Flex1n",
+   "img": "https://owcdn.net/img/678260fd260da.png",
+   "nat": "cn",
+   "real": "Lo Rui (罗瑞)",
+   "team": "DRG"
+  },
+  "life": {
+   "vlrId": "3028",
+   "ign": "Life",
+   "img": "https://owcdn.net/img/6780cc893eb8f.png",
+   "nat": "cn",
+   "real": "Qu Donghao (瞿东豪)",
+   "team": "DRG"
+  },
+  "vo0kashu": {
+   "vlrId": "3741",
+   "ign": "vo0kashu",
+   "img": "https://owcdn.net/img/67826114df9ea.png",
+   "nat": "ru",
+   "real": "Ilya Ushakov",
+   "team": "DRG"
+  },
+  "verse": {
+   "vlrId": "55817",
+   "ign": "Verse",
+   "nat": "cn",
+   "real": "Zhou Zijun (周子钧)",
+   "team": "DRG"
+  },
+  "spiritz1": {
+   "vlrId": "31753",
+   "ign": "SpiritZ1",
+   "img": "https://owcdn.net/img/67826152e8ca0.png",
+   "nat": "tw",
+   "real": "Lin Dingyu (林定宇)",
+   "team": "DRG"
+  },
+  "nathand": {
+   "vlrId": "3532",
+   "ign": "NaThanD",
+   "img": "https://owcdn.net/img/6846943684830.png",
+   "nat": "cn",
+   "real": "Deng Senqiao (邓森侨)",
+   "role": "head coach",
+   "team": "DRG"
+  },
+  "1t": {
+   "vlrId": "38519",
+   "ign": "1t",
+   "img": "https://owcdn.net/img/67826125c955e.png",
+   "nat": "cn",
+   "real": "Huang Biaohong (黄彪宏)",
+   "role": "assistant coach",
+   "team": "DRG"
+  },
+  "alti": {
+   "vlrId": "25716",
+   "ign": "Alti",
+   "nat": "cn",
+   "role": "performance coach",
+   "team": "DRG"
+  },
+  "melon": {
+   "vlrId": "66045",
+   "ign": "Melon",
+   "nat": "cn",
+   "role": "analyst",
+   "team": "DRG"
+  },
+  "haodong": {
+   "vlrId": "4720",
+   "ign": "Haodong",
+   "img": "https://owcdn.net/img/678247ccb12a1.png",
+   "nat": "cn",
+   "real": "Guo Haodong (郭浩东)",
+   "team": "TEC"
+  },
+  "lucas": {
+   "vlrId": "19677",
+   "ign": "lucas",
+   "nat": "cn",
+   "real": "Yunkun Lu (路昀昆)",
+   "team": "TEC"
+  },
+  "dynamite": {
+   "vlrId": "42235",
+   "ign": "Dynamite",
+   "img": "https://owcdn.net/img/678247deda472.png",
+   "nat": "cn",
+   "real": "Zhao Zihao (赵梓浩)",
+   "team": "TEC"
+  },
+  "ra1ny": {
+   "vlrId": "63107",
+   "ign": "ra1ny",
+   "nat": "cn",
+   "real": "Chen Baohuan (陈葆桓)",
+   "team": "TEC"
+  },
+  "coco": {
+   "vlrId": "47629",
+   "ign": "Coco",
+   "img": "https://owcdn.net/img/67f0eca557498.png",
+   "nat": "cn",
+   "real": "Ding Dajian (丁达建)",
+   "team": "TEC"
+  },
+  "spitfires": {
+   "vlrId": "4881",
+   "ign": "Spitfires",
+   "img": "https://owcdn.net/img/661971c10b083.png",
+   "nat": "cn",
+   "real": "Xin Mingyan (辛明阳)",
+   "role": "Sub",
+   "team": "TEC"
+  },
+  "gazero": {
+   "vlrId": "42709",
+   "ign": "Gazero",
+   "nat": "cn",
+   "real": "Li Zhe (李哲)",
+   "role": "manager",
+   "team": "TEC"
+  },
+  "after": {
+   "vlrId": "8643",
+   "ign": "AfteR",
+   "img": "https://owcdn.net/img/678247f9e0935.png",
+   "nat": "tw",
+   "real": "Lo Wen-Hsin (罗文信)",
+   "role": "head coach",
+   "team": "TEC"
+  },
+  "muggle": {
+   "vlrId": "29401",
+   "ign": "Muggle",
+   "img": "https://owcdn.net/img/677fe44baa46b.png",
+   "nat": "cn",
+   "real": "Tang Shijun (唐时俊)",
+   "role": "coach",
+   "team": "TEC"
+  },
+  "3water": {
+   "vlrId": "42154",
+   "ign": "3water",
+   "img": "https://owcdn.net/img/6782480148bb8.png",
+   "nat": "cn",
+   "real": "Liu Miao (刘淼)",
+   "role": "assistant coach",
+   "team": "TEC"
+  },
+  "sora": {
+   "vlrId": "56519",
+   "ign": "sora",
+   "nat": "cn",
+   "real": "Hao Jinyu (郝金淼)",
+   "role": "analyst",
+   "team": "TEC"
+  },
+  "lemon": {
+   "vlrId": "61328",
+   "ign": "LemoN",
+   "nat": "cn",
+   "real": "Liu Qirui (刘骐瑞)",
+   "role": "staff",
+   "team": "TEC"
+  },
+  "kyu": {
+   "vlrId": "30470",
+   "ign": "Kyu",
+   "img": "https://owcdn.net/img/688c62cf8c6b1.png",
+   "nat": "ca",
+   "real": "Mirel Braco Hrustemovic",
+   "team": "M80"
+  },
+  "spaz": {
+   "vlrId": "8422",
+   "ign": "Spaz",
+   "nat": "us",
+   "real": "Adam Laamoumi",
+   "team": "M80"
+  },
+  "boni": {
+   "vlrId": "24553",
+   "ign": "Boni",
+   "nat": "ph",
+   "team": "M80"
+  },
+  "nismo": {
+   "vlrId": "4828",
+   "ign": "NiSMO",
+   "img": "https://owcdn.net/img/688c62bcd5f73.png",
+   "nat": "lb",
+   "real": "Marc-Andre Tayar",
+   "team": "M80"
+  },
+  "alvinboy": {
+   "vlrId": "17770",
+   "ign": "alvinboy",
+   "nat": "cn",
+   "real": "Alvin Hong",
+   "team": "M80"
+  },
+  "fluctra": {
+   "vlrId": "63193",
+   "ign": "Fluctra",
+   "nat": "un",
+   "role": "manager",
+   "team": "M80"
+  },
+  "kaplan": {
+   "vlrId": "757",
+   "ign": "kaplan",
+   "img": "https://owcdn.net/img/6974148adac17.png",
+   "nat": "us",
+   "real": "Adam Kaplan",
+   "role": "head coach",
+   "team": "M80"
+  },
+  "fin": {
+   "vlrId": "820",
+   "ign": "FIN",
+   "nat": "us",
+   "real": "Franklin Ascencio",
+   "role": "coach",
+   "team": "M80"
+  },
+  "zander": {
+   "vlrId": "8082",
+   "ign": "zander",
+   "img": "https://owcdn.net/img/65a1dde2ae314.png",
+   "nat": "ca",
+   "real": "Alexander Dituri",
+   "team": "SRB"
+  },
+  "satellite": {
+   "vlrId": "29076",
+   "ign": "satellite",
+   "img": "https://owcdn.net/img/69b49f491979d.png",
+   "nat": "ca",
+   "team": "SRB"
+  },
+  "exa": {
+   "vlrId": "30556",
+   "ign": "exa",
+   "img": "https://owcdn.net/img/67a4c0b5a9704.png",
+   "nat": "kr",
+   "real": "Kim Lee-hwan (김이환)",
+   "team": "SRB"
+  },
+  "smoke": {
+   "vlrId": "24228",
+   "ign": "Smoke",
+   "nat": "us",
+   "team": "SRB"
+  },
+  "nature": {
+   "vlrId": "4927",
+   "ign": "NaturE",
+   "img": "https://owcdn.net/img/67b55597715e8.png",
+   "nat": "us",
+   "real": "Nicholas Garrison",
+   "team": "SRB"
+  },
+  "lyka": {
+   "vlrId": "42184",
+   "ign": "lyka",
+   "nat": "ca",
+   "real": "Angelika Alda",
+   "role": "manager",
+   "team": "SRB"
+  },
+  "effys": {
+   "vlrId": "65",
+   "ign": "effys",
+   "img": "https://owcdn.net/img/6224ab028a0a6.png",
+   "nat": "ca",
+   "real": "Loic Sauvageau",
+   "role": "head coach",
+   "team": "SRB"
+  },
+  "oderus": {
+   "vlrId": "1851",
+   "ign": "oderus",
+   "img": "https://owcdn.net/img/6296960dc11f3.png",
+   "nat": "us",
+   "real": "Chad Miller",
+   "role": "assistant coach",
+   "team": "SRB"
+  },
+  "welyy": {
+   "vlrId": "16671",
+   "ign": "welyy",
+   "img": "https://owcdn.net/img/6a74bbc7cfcee.png",
+   "nat": "no",
+   "team": "SE"
+  },
+  "payne": {
+   "vlrId": "39239",
+   "ign": "payne",
+   "nat": "us",
+   "team": "SE"
+  },
+  "zaj": {
+   "vlrId": "41550",
+   "ign": "zaj",
+   "nat": "kh",
+   "team": "SE"
+  },
+  "pa1nt": {
+   "vlrId": "23407",
+   "ign": "Pa1nt",
+   "nat": "us",
+   "team": "SE"
+  },
+  "vita": {
+   "vlrId": "45696",
+   "ign": "vita",
+   "nat": "us",
+   "team": "SE"
+  },
+  "kaitlynxe": {
+   "vlrId": "60017",
+   "ign": "kaitlynxe",
+   "nat": "us",
+   "real": "Kaitlyn Perkovic",
+   "role": "manager",
+   "team": "SE"
+  },
+  "mikey": {
+   "vlrId": "39252",
+   "ign": "mikey",
+   "nat": "us",
+   "role": "head coach",
+   "team": "SE"
+  },
+  "scorezy": {
+   "vlrId": "34315",
+   "ign": "scorezy",
+   "nat": "bd",
+   "role": "assistant coach",
+   "team": "SE"
+  },
+  "ech0": {
+   "vlrId": "4354",
+   "ign": "ech0",
+   "nat": "sg",
+   "real": "Hong Wei Teo",
+   "role": "staff",
+   "team": "SE"
+  },
+  "haeyoday": {
+   "vlrId": "46011",
+   "ign": "haeyoday",
+   "nat": "cn",
+   "real": "Dylan Tong",
+   "team": "NA"
+  },
+  "renz": {
+   "vlrId": "2119",
+   "ign": "renz",
+   "nat": "de",
+   "real": "Austin Dickman",
+   "team": "NA"
+  },
+  "ange": {
+   "vlrId": "766",
+   "ign": "Ange",
+   "img": "https://owcdn.net/img/63dac1bf3c77f.png",
+   "nat": "ca",
+   "real": "Adam Milian",
+   "team": "NA"
+  },
+  "geeza": {
+   "vlrId": "12932",
+   "ign": "geeza",
+   "img": "https://owcdn.net/img/6713dcd1eb913.png",
+   "nat": "us",
+   "real": "Tanner McGhee",
+   "team": "NA"
+  },
+  "shondex": {
+   "vlrId": "25902",
+   "ign": "Shondex",
+   "nat": "tr",
+   "real": "Yahya Amani",
+   "team": "NA"
+  },
+  "mce": {
+   "vlrId": "7874",
+   "ign": "mCe",
+   "img": "https://owcdn.net/img/6713dff7b0af5.png",
+   "nat": "us",
+   "real": "Matthew Elmore",
+   "role": "head coach",
+   "team": "NA"
+  },
+  "zelo": {
+   "vlrId": "2637",
+   "ign": "zelo",
+   "nat": "gb",
+   "real": "Harry Davies",
+   "role": "assistant coach",
+   "team": "NA"
+  },
+  "flyuh": {
+   "vlrId": "3685",
+   "ign": "flyuh",
+   "nat": "us",
+   "real": "Xavier Carlson",
+   "team": "QOR"
+  },
+  "derrek": {
+   "vlrId": "1533",
+   "ign": "Derrek",
+   "img": "https://owcdn.net/img/67b555baa3969.png",
+   "nat": "us",
+   "real": "Derrek Ha",
+   "team": "QOR"
+  },
+  "infiltrator": {
+   "vlrId": "9063",
+   "ign": "infiltrator",
+   "nat": "vn",
+   "real": "Philip Nguyen",
+   "team": "QOR"
+  },
+  "moose": {
+   "vlrId": "7458",
+   "ign": "moose",
+   "img": "https://owcdn.net/img/66193fcfde2a8.png",
+   "nat": "ca",
+   "real": "Kaleb Jayne",
+   "team": "QOR"
+  },
+  "kumi": {
+   "vlrId": "25745",
+   "ign": "kumi",
+   "nat": "us",
+   "team": "QOR"
+  },
+  "alexis": {
+   "vlrId": "3079",
+   "ign": "alexis",
+   "img": "https://owcdn.net/img/69732a848585e.png",
+   "nat": "us",
+   "real": "Alexis Guarrasi",
+   "role": "Sub",
+   "team": "QOR"
+  },
+  "lapras": {
+   "vlrId": "17960",
+   "ign": "lapras",
+   "nat": "ca",
+   "role": "manager",
+   "team": "QOR"
+  },
+  "cody": {
+   "vlrId": "53761",
+   "ign": "Cody",
+   "nat": "us",
+   "role": "coach",
+   "team": "QOR"
+  },
+  "sonofcar": {
+   "vlrId": "29074",
+   "ign": "sonofcar",
+   "nat": "us",
+   "team": "NG"
+  },
+  "zeek": {
+   "vlrId": "26848",
+   "ign": "zeek",
+   "nat": "ca",
+   "real": "Burair Ali",
+   "team": "NG"
+  },
+  "stunna": {
+   "vlrId": "20957",
+   "ign": "stunna",
+   "img": "https://owcdn.net/img/697004c8daf2a.png",
+   "nat": "us",
+   "real": "Riley Stunard",
+   "team": "NG"
+  },
+  "stellar": {
+   "vlrId": "733",
+   "ign": "stellar",
+   "img": "https://owcdn.net/img/6416922568477.png",
+   "nat": "us",
+   "real": "Brenden McGrath",
+   "team": "NG"
+  },
+  "toozy": {
+   "vlrId": "20959",
+   "ign": "toozy",
+   "nat": "gt",
+   "real": "Anthony De Leon",
+   "team": "NG"
+  },
+  "monsi": {
+   "vlrId": "4385",
+   "ign": "monSi",
+   "img": "https://owcdn.net/img/630aea1c12da5.png",
+   "nat": "ca",
+   "real": "Ludovic Lefebvre",
+   "role": "head coach",
+   "team": "NG"
+  },
+  "practo": {
+   "vlrId": "36036",
+   "ign": "practo",
+   "nat": "kr",
+   "real": "Christopher Ryu",
+   "role": "assistant coach",
+   "team": "NG"
+  },
+  "mas": {
+   "vlrId": "18198",
+   "ign": "mas",
+   "img": "https://owcdn.net/img/63056f6f49cdd.png",
+   "nat": "us",
+   "real": "Michael Smith",
+   "role": "staff",
+   "team": "NG"
+  },
+  "devy": {
+   "vlrId": "28114",
+   "ign": "devy",
+   "nat": "us",
+   "real": "Jaiden Mantz",
+   "team": "YFT"
+  },
+  "muddy": {
+   "vlrId": "28892",
+   "ign": "Muddy",
+   "img": "https://owcdn.net/img/6894336d5d501.png",
+   "nat": "la",
+   "real": "Bradley Saephan",
+   "team": "YFT"
+  },
+  "xxif": {
+   "vlrId": "1023",
+   "ign": "XXiF",
+   "img": "https://owcdn.net/img/65a83fa8a4646.png",
+   "nat": "ca",
+   "real": "Damion Cook",
+   "team": "YFT"
+  },
+  "atlas": {
+   "vlrId": "32654",
+   "ign": "atlas",
+   "nat": "us",
+   "real": "David Griffiths",
+   "team": "YFT"
+  },
+  "stallion": {
+   "vlrId": "21887",
+   "ign": "stallion",
+   "nat": "ca",
+   "real": "Ali Kadhim",
+   "team": "YFT"
+  },
+  "zanatsu": {
+   "vlrId": "3455",
+   "ign": "Zanatsu",
+   "img": "https://owcdn.net/img/65e0a6b77f994.png",
+   "nat": "br",
+   "real": "Carlos Eduardo",
+   "team": "LM"
+  },
+  "palla": {
+   "vlrId": "15681",
+   "ign": "Palla",
+   "img": "https://owcdn.net/img/697ab590e3a4d.png",
+   "nat": "br",
+   "real": "Davi Alcides",
+   "team": "LM"
+  },
+  "mazin": {
+   "vlrId": "8872",
+   "ign": "mazin",
+   "img": "https://owcdn.net/img/65a4933f9b56c.png",
+   "nat": "br",
+   "real": "Matheus Araújo",
+   "team": "LM"
+  },
+  "tuyz": {
+   "vlrId": "2408",
+   "ign": "tuyz",
+   "img": "https://owcdn.net/img/66306e474531d.png",
+   "nat": "br",
+   "real": "Arthur Andrade",
+   "team": "LM"
+  },
+  "jzz": {
+   "vlrId": "13093",
+   "ign": "jzz",
+   "img": "https://owcdn.net/img/6856183f4d380.png",
+   "nat": "br",
+   "real": "João Pedro",
+   "team": "LM"
+  },
+  "stkj": {
+   "vlrId": "5709",
+   "ign": "stkJ",
+   "img": "https://owcdn.net/img/66306e51e3886.png",
+   "nat": "br",
+   "real": "Jordan Nunes",
+   "role": "coach",
+   "team": "LM"
+  },
+  "mepeezy": {
+   "vlrId": "41719",
+   "ign": "mepeezy",
+   "img": "https://owcdn.net/img/67e3a9e894abf.png",
+   "nat": "tr",
+   "real": "Enes Öztürk",
+   "team": "ILEK"
+  },
+  "wtex": {
+   "vlrId": "33527",
+   "ign": "wtex",
+   "nat": "tr",
+   "real": "Muhammet Emin Kılıç",
+   "team": "ILEK"
+  },
+  "ibonata": {
+   "vlrId": "40842",
+   "ign": "ibonata",
+   "nat": "tr",
+   "real": "İbrahim Taha Güler",
+   "team": "ILEK"
+  },
+  "kabzi": {
+   "vlrId": "40841",
+   "ign": "kabzi",
+   "img": "https://owcdn.net/img/679eb17e82dc7.png",
+   "nat": "tr",
+   "real": "Mert Oal",
+   "team": "ILEK"
+  },
+  "slaughter": {
+   "vlrId": "33551",
+   "ign": "Slaughter",
+   "nat": "tr",
+   "real": "İrfancan Çakıl",
+   "team": "ILEK"
+  },
+  "rêveur": {
+   "vlrId": "53804",
+   "ign": "rêveur",
+   "nat": "tr",
+   "real": "Oğuz Kağan Yarim",
+   "role": "head coach",
+   "team": "ILEK"
+  },
+  "vince": {
+   "vlrId": "4329",
+   "ign": "Vince",
+   "img": "https://owcdn.net/img/69a8be46b7260.png",
+   "nat": "de",
+   "real": "Vincent Kranz",
+   "team": "CE"
+  },
+  "wolfen": {
+   "vlrId": "9558",
+   "ign": "Wolfen",
+   "img": "https://owcdn.net/img/69a8be56b1dcc.png",
+   "nat": "bg",
+   "real": "Berkant Joshkun",
+   "team": "CE"
+  },
+  "jady": {
+   "vlrId": "2256",
+   "ign": "Jady",
+   "img": "https://owcdn.net/img/686ce24fb5015.png",
+   "nat": "ru",
+   "real": "Yaroslav Nikolaev",
+   "team": "CE"
+  },
+  "samed": {
+   "vlrId": "35513",
+   "ign": "samed",
+   "img": "https://owcdn.net/img/69a8be502971c.png",
+   "nat": "at",
+   "real": "Samed Topbas",
+   "team": "CE"
+  },
+  "zyppan": {
+   "vlrId": "11",
+   "ign": "Zyppan",
+   "img": "https://owcdn.net/img/69a8bfacbffc8.png",
+   "nat": "se",
+   "real": "Pontus Eek",
+   "team": "CE"
+  },
+  "kalle": {
+   "vlrId": "54178",
+   "ign": "Kalle",
+   "img": "https://owcdn.net/img/680ab42a0a929.png",
+   "nat": "de",
+   "real": "Miguel Heinen",
+   "role": "manager",
+   "team": "CE"
+  },
+  "kapio": {
+   "vlrId": "16431",
+   "ign": "Kapio",
+   "img": "https://owcdn.net/img/69a8be65a5420.png",
+   "nat": "de",
+   "real": "Navid Javadi",
+   "role": "coach",
+   "team": "CE"
+  },
+  "zescht": {
+   "vlrId": "40725",
+   "ign": "Zescht",
+   "nat": "de",
+   "role": "analyst",
+   "team": "CE"
+  },
+  "natank": {
+   "vlrId": "5004",
+   "ign": "nataNk",
+   "img": "https://owcdn.net/img/6975a71445742.png",
+   "nat": "fr",
+   "real": "Nathan Bocqueho",
+   "team": "MAND"
+  },
+  "kada": {
+   "vlrId": "20871",
+   "ign": "Kada",
+   "img": "https://owcdn.net/img/6975a65c3602b.png",
+   "nat": "fr",
+   "real": "Thomas Johner",
+   "team": "MAND"
+  },
+  "sh1n": {
+   "vlrId": "2625",
+   "ign": "sh1n",
+   "img": "https://owcdn.net/img/6975a844c6600.png",
+   "nat": "fr",
+   "real": "Ryad Ensaad",
+   "team": "MAND"
+  },
+  "sevire": {
+   "vlrId": "11322",
+   "ign": "Sevire",
+   "img": "https://owcdn.net/img/6975a7ba3a65a.png",
+   "nat": "gb",
+   "real": "Ethan Starke",
+   "team": "MAND"
+  },
+  "takas": {
+   "vlrId": "301",
+   "ign": "TakaS",
+   "img": "https://owcdn.net/img/6975a804a5006.png",
+   "nat": "fr",
+   "real": "Jonathan Paupard",
+   "team": "MAND"
+  },
+  "madc": {
+   "vlrId": "38412",
+   "ign": "madc",
+   "img": "https://owcdn.net/img/6975a6b4d4080.png",
+   "nat": "fr",
+   "real": "Kevin Ducourtioux",
+   "role": "head coach",
+   "team": "MAND"
+  },
+  "noa": {
+   "vlrId": "53117",
+   "ign": "Noa",
+   "nat": "fr",
+   "real": "Noa Chaplin",
+   "role": "assistant coach",
+   "team": "MAND"
+  },
+  "road": {
+   "vlrId": "10300",
+   "ign": "Road",
+   "img": "https://owcdn.net/img/6975a7556b605.png",
+   "nat": "fr",
+   "real": "Valentin Terrier",
+   "role": "assistant coach",
+   "team": "MAND"
+  },
+  "batujnax": {
+   "vlrId": "18615",
+   "ign": "batujnax",
+   "img": "https://owcdn.net/img/69c433f2239b4.png",
+   "nat": "tr",
+   "real": "Mehmet Batu Özaslan",
+   "team": "FFE"
+  },
+  "hezacoil": {
+   "vlrId": "55694",
+   "ign": "hezacoil",
+   "img": "https://owcdn.net/img/69bea0e7ea395.png",
+   "nat": "tr",
+   "real": "Berkay Doğar",
+   "team": "FFE"
+  },
+  "kachoww": {
+   "vlrId": "58496",
+   "ign": "Kachoww",
+   "img": "https://owcdn.net/img/69bea0ef6d14c.png",
+   "nat": "tr",
+   "real": "Samet Arıcı",
+   "team": "FFE"
+  },
+  "deadink": {
+   "vlrId": "5564",
+   "ign": "DeadInk",
+   "img": "https://owcdn.net/img/69bea0e1db36b.png",
+   "nat": "tr",
+   "real": "Utku Onur Aydin",
+   "team": "FFE"
+  },
+  "reazy": {
+   "vlrId": "10146",
+   "ign": "reazy",
+   "img": "https://owcdn.net/img/69bea0feb8e04.png",
+   "nat": "tr",
+   "real": "Kaan Ürpek",
+   "team": "FFE"
+  },
+  "b1squw1": {
+   "vlrId": "58501",
+   "ign": "b1squw1",
+   "nat": "tr",
+   "real": "Mehmet Aydın",
+   "role": "Sub",
+   "team": "FFE"
+  },
+  "lev": {
+   "vlrId": "39524",
+   "ign": "Lev",
+   "nat": "tr",
+   "real": "Levent Köktürk",
+   "role": "coach",
+   "team": "FFE"
+  },
+  "xovlov": {
+   "vlrId": "22630",
+   "ign": "XovLoV",
+   "nat": "tr",
+   "real": "Buğra Erdönmez",
+   "role": "assistant coach",
+   "team": "FFE"
+  },
+  "fit1nho": {
+   "vlrId": "292",
+   "ign": "Fit1nho",
+   "img": "https://owcdn.net/img/69721627dcc11.png",
+   "nat": "es",
+   "real": "Adolfo Gallego",
+   "team": "BE"
+  },
+  "guardy": {
+   "vlrId": "5199",
+   "ign": "Guardy",
+   "img": "https://owcdn.net/img/6972164b21163.png",
+   "nat": "es",
+   "real": "Antonio Guardiola",
+   "team": "BE"
+  },
+  "kajuks": {
+   "vlrId": "15064",
+   "ign": "Kajuks",
+   "img": "https://owcdn.net/img/697220faede56.png",
+   "nat": "lt",
+   "real": "Kajus Skurvydas",
+   "team": "BE"
+  },
+  "globex": {
+   "vlrId": "40004",
+   "ign": "globeX",
+   "img": "https://owcdn.net/img/6972163a75513.png",
+   "nat": "gb",
+   "real": "Michail Kostylew",
+   "team": "BE"
+  },
+  "stonezy": {
+   "vlrId": "33731",
+   "ign": "stonezy",
+   "img": "https://owcdn.net/img/6972167d98c26.png",
+   "nat": "ua",
+   "real": "Albert Makushev",
+   "team": "BE"
+  },
+  "meison": {
+   "vlrId": "8819",
+   "ign": "meisoN",
+   "img": "https://owcdn.net/img/6972166d7b734.png",
+   "nat": "es",
+   "real": "Juan Carlos Chacón",
+   "role": "head coach",
+   "team": "BE"
+  },
+  "xikii": {
+   "vlrId": "6041",
+   "ign": "xikii",
+   "img": "https://owcdn.net/img/6972168d0dac5.png",
+   "nat": "es",
+   "real": "Victor Garcia",
+   "role": "assistant coach",
+   "team": "BE"
+  },
+  "iluri": {
+   "vlrId": "3674",
+   "ign": "iluri",
+   "img": "https://owcdn.net/img/6a350db9bdff3.png",
+   "nat": "fi",
+   "real": "Ilari Puranen",
+   "team": "EP"
+  },
+  "magnum": {
+   "vlrId": "2173",
+   "ign": "MAGNUM",
+   "img": "https://owcdn.net/img/6a350dd0914c4.png",
+   "nat": "cz",
+   "real": "Martin Penkov",
+   "team": "EP"
+  },
+  "lime": {
+   "vlrId": "10338",
+   "ign": "Lime",
+   "img": "https://owcdn.net/img/6a350dda6c82d.png",
+   "nat": "gb",
+   "real": "Jacob Foster",
+   "team": "EP"
+  },
+  "patitek": {
+   "vlrId": "309",
+   "ign": "paTiTek",
+   "img": "https://owcdn.net/img/6a350dc9c4aeb.png",
+   "nat": "pl",
+   "real": "Patryk Fabrowski",
+   "team": "EP"
+  },
+  "kozzy": {
+   "vlrId": "55681",
+   "ign": "kozzy",
+   "img": "https://owcdn.net/img/6a350de1f252b.png",
+   "nat": "ro",
+   "real": "Denis Stefan Aionitoaei",
+   "team": "EP"
+  },
+  "itopata": {
+   "vlrId": "333",
+   "ign": "Itopata",
+   "img": "https://owcdn.net/img/6a350db31d8bb.png",
+   "nat": "bg",
+   "real": "Dimitar Staev",
+   "role": "head coach",
+   "team": "EP"
+  },
+  "shadow": {
+   "vlrId": "451",
+   "ign": "ShadoW",
+   "img": "https://owcdn.net/img/6a350dc20c2c1.png",
+   "nat": "se",
+   "real": "Tobias Flodström",
+   "role": "assistant coach",
+   "team": "EP"
+  },
+  "daky": {
+   "vlrId": "61352",
+   "ign": "daky",
+   "img": "https://owcdn.net/img/6970c3c806d95.png",
+   "nat": "sk",
+   "real": "Roland Nguyen",
+   "role": "staff",
+   "team": "EP"
+  },
+  "musashi": {
+   "vlrId": "4325",
+   "ign": "musashi",
+   "img": "https://owcdn.net/img/6a4be2836943b.png",
+   "nat": "de",
+   "real": "Alessio Xhaferi",
+   "team": "SGE"
+  },
+  "azury": {
+   "vlrId": "4629",
+   "ign": "azury",
+   "img": "https://owcdn.net/img/6a4be26312ede.png",
+   "nat": "de",
+   "real": "Luca Sammer",
+   "team": "SGE"
+  },
+  "jamelinho213": {
+   "vlrId": "57336",
+   "ign": "Jamelinho213",
+   "img": "https://owcdn.net/img/6a4be273ebe2b.png",
+   "nat": "fr",
+   "real": "Ryad Bentot",
+   "team": "SGE"
+  },
+  "fizzy": {
+   "vlrId": "7660",
+   "ign": "Fizzy",
+   "img": "https://owcdn.net/img/6a4be26ac75eb.png",
+   "nat": "pt",
+   "real": "David Figueiredo",
+   "team": "SGE"
+  },
+  "monsteerr": {
+   "vlrId": "3127",
+   "ign": "MONSTEERR",
+   "img": "https://owcdn.net/img/6a4be27c8214f.png",
+   "nat": "cz",
+   "real": "Ondřej Petrů",
+   "team": "SGE"
+  },
+  "kendo": {
+   "vlrId": "33986",
+   "ign": "kendo",
+   "nat": "gb",
+   "real": "Khian-Kai Rufin",
+   "role": "Sub",
+   "team": "SGE"
+  },
+  "tony": {
+   "vlrId": "48982",
+   "ign": "TonY",
+   "img": "https://owcdn.net/img/69dfaa50b0fbd.png",
+   "nat": "nl",
+   "role": "head coach",
+   "team": "SGE"
+  },
+  "sebe": {
+   "vlrId": "9722",
+   "ign": "Sebe",
+   "img": "https://owcdn.net/img/6a4be28bb644c.png",
+   "nat": "de",
+   "real": "Sebastian Kruft",
+   "role": "coach",
+   "team": "SGE"
+  },
+  "unfake": {
+   "vlrId": "4521",
+   "ign": "UNFAKE",
+   "img": "https://owcdn.net/img/6977a6f8ca2b2.png",
+   "nat": "pl",
+   "real": "Bartosz Bernacki",
+   "team": "JL"
+  },
+  "kamyk": {
+   "vlrId": "1475",
+   "ign": "kamyk",
+   "img": "https://owcdn.net/img/6680475aa53c9.png",
+   "nat": "pl",
+   "real": "Maks Rychlewski",
+   "team": "JL"
+  },
+  "doma": {
+   "vlrId": "1369",
+   "ign": "doma",
+   "img": "https://owcdn.net/img/68644d64be9a2.png",
+   "nat": "hr",
+   "real": "Domagoj Fancev",
+   "team": "JL"
+  },
+  "chiwa": {
+   "vlrId": "321",
+   "ign": "chiwa",
+   "img": "https://owcdn.net/img/680a933bb42b3.png",
+   "nat": "ru",
+   "real": "Egor Stepanyuk",
+   "team": "JL"
+  },
+  "runner": {
+   "vlrId": "21610",
+   "ign": "runneR",
+   "img": "https://owcdn.net/img/65e9ef0c3da3d.png",
+   "nat": "mk",
+   "real": "Emil Trajkovski",
+   "team": "JL"
+  },
+  "pa1ze": {
+   "vlrId": "24424",
+   "ign": "Pa1ze",
+   "img": "https://owcdn.net/img/695fd2da345e8.png",
+   "nat": "dk",
+   "real": "Mohammad Khatib",
+   "team": "JL"
+  },
+  "enzo": {
+   "vlrId": "114",
+   "ign": "Enzo",
+   "img": "https://owcdn.net/img/65a3e4c4873fc.png",
+   "nat": "fr",
+   "real": "Enzo Mestari",
+   "role": "Inactive",
+   "team": "JL"
+  },
+  "bilal": {
+   "vlrId": "56957",
+   "ign": "Bilal",
+   "nat": "ma",
+   "role": "manager",
+   "team": "JL"
+  },
+  "larsson": {
+   "vlrId": "20578",
+   "ign": "Larsson",
+   "img": "https://owcdn.net/img/67b8e75a241df.png",
+   "nat": "fr",
+   "role": "head coach",
+   "team": "JL"
+  },
+  "skazz": {
+   "vlrId": "6341",
+   "ign": "SKAZZ",
+   "img": "https://owcdn.net/img/67b8e79b5f40b.png",
+   "nat": "fr",
+   "role": "assistant coach",
+   "team": "JL"
+  },
+  "yoshiii": {
+   "vlrId": "7745",
+   "ign": "Yoshiii",
+   "img": "https://owcdn.net/img/6639d03c599b4.png",
+   "nat": "ph",
+   "real": "John Yoshiharu Kawakami",
+   "team": "REJE"
+  },
+  "dep": {
+   "vlrId": "424",
+   "ign": "Dep",
+   "img": "https://owcdn.net/img/678a91bae6ff9.png",
+   "nat": "jp",
+   "real": "Yuma Hashimoto",
+   "team": "REJE"
+  },
+  "persia": {
+   "vlrId": "4122",
+   "ign": "Persia",
+   "img": "https://owcdn.net/img/679066f3851eb.png",
+   "nat": "kr",
+   "real": "Yang Zi-on (양지온)",
+   "team": "REJE"
+  },
+  "brian": {
+   "vlrId": "25915",
+   "ign": "BRIAN",
+   "nat": "jp",
+   "team": "REJE"
+  },
+  "jremy": {
+   "vlrId": "7405",
+   "ign": "Jremy",
+   "img": "https://owcdn.net/img/65a8f7423ad9f.png",
+   "nat": "ph",
+   "real": "Jeremy Cabrera",
+   "team": "REJE"
+  },
+  "hiroronn": {
+   "vlrId": "10588",
+   "ign": "hiroronn",
+   "img": "https://owcdn.net/img/65dc4f188894f.png",
+   "nat": "jp",
+   "real": "Hiroki Yanai",
+   "role": "Inactive",
+   "team": "REJE"
+  },
+  "egi": {
+   "vlrId": "25138",
+   "ign": "Egi",
+   "nat": "jp",
+   "role": "head coach",
+   "team": "REJE"
+  },
+  "bullco": {
+   "vlrId": "1050",
+   "ign": "Bullco",
+   "img": "https://owcdn.net/img/6639d054b3496.png",
+   "nat": "kr",
+   "role": "coach",
+   "team": "REJE"
+  },
+  "shuu": {
+   "vlrId": "56657",
+   "ign": "shuu",
+   "nat": "jp",
+   "role": "assistant coach",
+   "team": "REJE"
+  },
+  "kippei": {
+   "vlrId": "48431",
+   "ign": "Kippei",
+   "nat": "jp",
+   "team": "QD"
+  },
+  "misaya": {
+   "vlrId": "10628",
+   "ign": "Misaya",
+   "nat": "jp",
+   "team": "QD"
+  },
+  "yuran": {
+   "vlrId": "29840",
+   "ign": "yuran",
+   "img": "https://owcdn.net/img/65dc4f104710e.png",
+   "nat": "jp",
+   "real": "Yushin Hato",
+   "team": "QD"
+  },
+  "pkm": {
+   "vlrId": "28401",
+   "ign": "Pkm",
+   "nat": "kr",
+   "real": "Park Kang-min (박강민)",
+   "team": "QD"
+  },
+  "margaret": {
+   "vlrId": "33576",
+   "ign": "margaret",
+   "img": "https://owcdn.net/img/6790670449e9a.png",
+   "nat": "kr",
+   "real": "Kim Ji-woo (김지우)",
+   "team": "QD"
+  },
+  "relife": {
+   "vlrId": "20401",
+   "ign": "Relife",
+   "nat": "jp",
+   "role": "head coach",
+   "team": "QD"
+  },
+  "joxjo": {
+   "vlrId": "4663",
+   "ign": "JoXJo",
+   "img": "https://owcdn.net/img/682d9595bfeda.png",
+   "nat": "kr",
+   "real": "Cho Byung-yeon (조병연)",
+   "team": "RO"
+  },
+  "minty": {
+   "vlrId": "5476",
+   "ign": "Minty",
+   "img": "https://owcdn.net/img/682d95a293246.png",
+   "nat": "jp",
+   "real": "Daiki Kato",
+   "team": "RO"
+  },
+  "seoldam": {
+   "vlrId": "10584",
+   "ign": "Seoldam",
+   "img": "https://owcdn.net/img/682d95b7398ab.png",
+   "nat": "kr",
+   "real": "Park Sang-min (박상민)",
+   "team": "RO"
+  },
+  "gyen": {
+   "vlrId": "48577",
+   "ign": "gyen",
+   "nat": "jp",
+   "real": "Koki Nakamura",
+   "team": "RO"
+  },
+  "luca": {
+   "vlrId": "37393",
+   "ign": "Luca",
+   "img": "https://owcdn.net/img/6914367b790c7.png",
+   "nat": "jp",
+   "team": "RO"
+  },
+  "nokaze37": {
+   "vlrId": "41740",
+   "ign": "nokaze37",
+   "nat": "jp",
+   "role": "coach",
+   "team": "RO"
+  },
+  "mun": {
+   "vlrId": "19724",
+   "ign": "mun",
+   "nat": "jp",
+   "real": "Yusuke Ota",
+   "role": "coach",
+   "team": "RO"
+  },
+  "aace": {
+   "vlrId": "43064",
+   "ign": "Aace",
+   "img": "https://owcdn.net/img/69722581d2be1.png",
+   "nat": "jp",
+   "real": "Souta Itou",
+   "team": "FENN"
+  },
+  "hals": {
+   "vlrId": "34827",
+   "ign": "Hals",
+   "img": "https://owcdn.net/img/6972258e7a11e.png",
+   "nat": "jp",
+   "team": "FENN"
+  },
+  "clz": {
+   "vlrId": "2615",
+   "ign": "CLZ",
+   "img": "https://owcdn.net/img/697225a8e3781.png",
+   "nat": "jp",
+   "real": "Hikaru Mizutani",
+   "team": "FENN"
+  },
+  "anthem": {
+   "vlrId": "6700",
+   "ign": "Anthem",
+   "img": "https://owcdn.net/img/697225b167d2f.png",
+   "nat": "jp",
+   "real": "Yoshitaka Enomoto",
+   "team": "FENN"
+  },
+  "gangpin": {
+   "vlrId": "4664",
+   "ign": "GangPin",
+   "img": "https://owcdn.net/img/697225d309342.png",
+   "nat": "kr",
+   "real": "Chae Jung-moo (채정무)",
+   "team": "FENN"
+  },
+  "euler": {
+   "vlrId": "26200",
+   "ign": "Euler",
+   "img": "https://owcdn.net/img/697225b949d76.png",
+   "nat": "jp",
+   "real": "Kazuki Kubota",
+   "role": "head coach",
+   "team": "FENN"
+  },
+  "sieg": {
+   "vlrId": "41741",
+   "ign": "sieg",
+   "img": "https://owcdn.net/img/697223f8c047e.png",
+   "nat": "jp",
+   "role": "coach",
+   "team": "FENN"
+  },
+  "nolozy": {
+   "vlrId": "45851",
+   "ign": "nolozy",
+   "img": "https://owcdn.net/img/697225c27dff4.png",
+   "nat": "jp",
+   "role": "analyst",
+   "team": "FENN"
+  },
+  "popogachi": {
+   "vlrId": "2671",
+   "ign": "popogachi",
+   "img": "https://owcdn.net/img/6975bbd0e3d1f.png",
+   "nat": "jp",
+   "real": "Souta Morita",
+   "team": "IGZI"
+  },
+  "frxeez": {
+   "vlrId": "47481",
+   "ign": "Frxeez",
+   "img": "https://owcdn.net/img/6975bbd931a6a.png",
+   "nat": "jp",
+   "team": "IGZI"
+  },
+  "oitan": {
+   "vlrId": "1971",
+   "ign": "oitaN",
+   "img": "https://owcdn.net/img/6975bbe0d9146.png",
+   "nat": "jp",
+   "real": "Masayuki Takahashi",
+   "team": "IGZI"
+  },
+  "kayle": {
+   "vlrId": "34727",
+   "ign": "kAyle",
+   "img": "https://owcdn.net/img/6975bbe8d0a88.png",
+   "nat": "kr",
+   "real": "Jung Soo-yong (정수용)",
+   "team": "IGZI"
+  },
+  "sid": {
+   "vlrId": "25048",
+   "ign": "SID",
+   "img": "https://owcdn.net/img/6975bbc80750d.png",
+   "nat": "kr",
+   "real": "Kim Min-seung (김민승)",
+   "team": "IGZI"
+  },
+  "gainpe": {
+   "vlrId": "51137",
+   "ign": "gainpe",
+   "nat": "jp",
+   "role": "coach",
+   "team": "IGZI"
+  },
+  "yukufuru": {
+   "vlrId": "34714",
+   "ign": "yukufuru",
+   "nat": "jp",
+   "role": "coach",
+   "team": "IGZI"
+  },
+  "sitimentyo": {
+   "vlrId": "33067",
+   "ign": "sitimentyo",
+   "nat": "jp",
+   "real": "Takahiro Koshikawa",
+   "role": "coach",
+   "team": "IGZI"
+  },
+  "poem": {
+   "vlrId": "1972",
+   "ign": "poem",
+   "nat": "jp",
+   "real": "Yumeki Shibasaki (柴﨑 夢輝)",
+   "role": "staff",
+   "team": "IGZI"
+  },
+  "moothie": {
+   "vlrId": "806",
+   "ign": "Moothie",
+   "img": "https://owcdn.net/img/67a4c0a495cb5.png",
+   "nat": "kr",
+   "real": "Yoo Seung-Woo (유승우)",
+   "team": "AGEL"
+  },
+  "fukuken": {
+   "vlrId": "33417",
+   "ign": "fukukeN",
+   "img": "https://owcdn.net/img/686cdf419110c.png",
+   "nat": "jp",
+   "team": "AGEL"
+  },
+  "allen": {
+   "vlrId": "17111",
+   "ign": "Allen",
+   "img": "https://owcdn.net/img/6547ec75ef3d1.png",
+   "nat": "jp",
+   "team": "AGEL"
+  },
+  "banger": {
+   "vlrId": "27444",
+   "ign": "Banger",
+   "img": "https://owcdn.net/img/6655b79bb9486.png",
+   "nat": "kr",
+   "real": "An Hyung-gi (안형기)",
+   "team": "AGEL"
+  },
+  "sayu": {
+   "vlrId": "58162",
+   "ign": "Sayu",
+   "nat": "jp",
+   "team": "AGEL"
+  },
+  "pirateflag": {
+   "vlrId": "15278",
+   "ign": "PirateFlag",
+   "img": "https://owcdn.net/img/69804f0ab866a.png",
+   "nat": "sx",
+   "real": "Cullan Smith",
+   "role": "head coach",
+   "team": "AGEL"
+  },
+  "flora": {
+   "vlrId": "47482",
+   "ign": "flora",
+   "nat": "kr",
+   "team": "INSO"
+  },
+  "karaage": {
+   "vlrId": "62034",
+   "ign": "Karaage",
+   "nat": "jp",
+   "team": "INSO"
+  },
+  "yuki": {
+   "vlrId": "54017",
+   "ign": "yuki",
+   "nat": "jp",
+   "role": "loan",
+   "team": "INSO"
+  },
+  "ady": {
+   "vlrId": "47467",
+   "ign": "Ady",
+   "nat": "kr",
+   "team": "INSO"
+  },
+  "satwoshi": {
+   "vlrId": "43074",
+   "ign": "Satwoshi",
+   "nat": "jp",
+   "team": "INSO"
+  },
+  "meatpien": {
+   "vlrId": "34760",
+   "ign": "MeatPieN",
+   "nat": "jp",
+   "team": "INSO"
+  },
+  "ryoma": {
+   "vlrId": "51477",
+   "ign": "Ryoma",
+   "nat": "jp",
+   "role": "coach",
+   "team": "INSO"
+  },
+  "woo": {
+   "vlrId": "62130",
+   "ign": "woo",
+   "nat": "jp",
+   "role": "coach",
+   "team": "INSO"
+  },
+  "akeman": {
+   "vlrId": "52904",
+   "ign": "Akeman",
+   "nat": "cn",
+   "real": "Zhang Haoran (张浩然)",
+   "team": "KBG"
+  },
+  "sibeastw0w": {
+   "vlrId": "6126",
+   "ign": "sibeastw0w",
+   "img": "https://owcdn.net/img/63e32ba283f04.png",
+   "nat": "ru",
+   "real": "Anton Govorukhin",
+   "team": "KBG"
+  },
+  "tonk": {
+   "vlrId": "58008",
+   "ign": "Tonk",
+   "nat": "hk",
+   "team": "KBG"
+  },
+  "ying": {
+   "vlrId": "51250",
+   "ign": "Ying",
+   "nat": "cn",
+   "real": "Wang Chenxu (王晨旭)",
+   "team": "KBG"
+  },
+  "krst1ng": {
+   "vlrId": "58009",
+   "ign": "Krst1Ng",
+   "nat": "cn",
+   "team": "KBG"
+  },
+  "coldfish": {
+   "vlrId": "3020",
+   "ign": "coldfish",
+   "img": "https://owcdn.net/img/67824f9e45cfc.png",
+   "nat": "cn",
+   "real": "Xiang Pengzhi (向鹏志)",
+   "role": "Sub",
+   "team": "KBG"
+  },
+  "naint": {
+   "vlrId": "4337",
+   "ign": "Naint",
+   "img": "https://owcdn.net/img/65dd9f06be494.png",
+   "nat": "ru",
+   "real": "Mingiyan Goldaev",
+   "role": "coach",
+   "team": "KBG"
+  },
+  "monk": {
+   "vlrId": "14431",
+   "ign": "monk",
+   "img": "https://owcdn.net/img/677fbe91d1c1d.png",
+   "nat": "cn",
+   "real": "Wang Haoyu (王浩宇)",
+   "team": "AT"
+  },
+  "eren": {
+   "vlrId": "14444",
+   "ign": "Eren",
+   "img": "https://owcdn.net/img/67824c72eeb11.png",
+   "nat": "cn",
+   "real": "Yang Zhengwei (杨曾威)",
+   "team": "AT"
+  },
+  "folykiki": {
+   "vlrId": "56305",
+   "ign": "Folykiki",
+   "nat": "cn",
+   "team": "AT"
+  },
+  "dingwei": {
+   "vlrId": "42513",
+   "ign": "Dingwei",
+   "img": "https://owcdn.net/img/65d4b12288fae.png",
+   "nat": "cn",
+   "real": "Wei Dingwei (魏定伟)",
+   "team": "AT"
+  },
+  "layla": {
+   "vlrId": "8240",
+   "ign": "Layla",
+   "img": "https://owcdn.net/img/6833222e70ab8.png",
+   "nat": "vn",
+   "real": "Hoàng Đức Hùng",
+   "team": "AT"
+  },
+  "pink": {
+   "vlrId": "15549",
+   "ign": "Pink",
+   "nat": "cn",
+   "real": "Li Songyuan (李松原)",
+   "role": "Sub",
+   "team": "AT"
+  },
+  "chaos": {
+   "vlrId": "14440",
+   "ign": "Chaos",
+   "nat": "cn",
+   "real": "Chen Junlin (陈俊霖)",
+   "role": "Sub",
+   "team": "AT"
+  },
+  "malix": {
+   "vlrId": "14316",
+   "ign": "Malix",
+   "img": "https://owcdn.net/img/608845626de98.png",
+   "nat": "kr",
+   "real": "Yoon Kyung-ho (윤경호)",
+   "role": "head coach",
+   "team": "AT"
+  },
+  "juicy": {
+   "vlrId": "7426",
+   "ign": "Juicy",
+   "img": "https://owcdn.net/img/677d1e0000b8e.png",
+   "nat": "sg",
+   "real": "Tyler James Aeria",
+   "team": "AQ"
+  },
+  "s1mon": {
+   "vlrId": "13768",
+   "ign": "S1Mon",
+   "img": "https://owcdn.net/img/677fe418eaaf8.png",
+   "nat": "tw",
+   "real": "Hsien Meng-Hsun (谢孟勋)",
+   "team": "AQ"
+  },
+  "5cm": {
+   "vlrId": "47101",
+   "ign": "5CM",
+   "img": "https://owcdn.net/img/6848f51407674.png",
+   "nat": "cn",
+   "real": "Ding Xuanpeng (丁宣鹏)",
+   "team": "AQ"
+  },
+  "ffs": {
+   "vlrId": "14439",
+   "ign": "FFs",
+   "img": "https://owcdn.net/img/65dd9ee14bdfa.png",
+   "nat": "mo",
+   "real": "Leung Cheuk Nam (梁卓南)",
+   "team": "AQ"
+  },
+  "dannyy": {
+   "vlrId": "32183",
+   "ign": "Dannyy",
+   "nat": "cn",
+   "team": "AQ"
+  },
+  "guran": {
+   "vlrId": "36513",
+   "ign": "Guran",
+   "img": "https://owcdn.net/img/6739e1f6dced6.png",
+   "nat": "cn",
+   "real": "Zhou Minyan (周铭言)",
+   "team": "RA"
+  },
+  "nnono": {
+   "vlrId": "58960",
+   "ign": "nnono",
+   "nat": "cn",
+   "team": "RA"
+  },
+  "croudy": {
+   "vlrId": "49612",
+   "ign": "Croudy",
+   "nat": "tw",
+   "team": "RA"
+  },
+  "ben1ley": {
+   "vlrId": "55823",
+   "ign": "Ben1Ley",
+   "nat": "cn",
+   "real": "Shi Benyu",
+   "team": "RA"
+  },
+  "z1yan": {
+   "vlrId": "41029",
+   "ign": "Z1yan",
+   "img": "https://owcdn.net/img/6780d3f6d3f99.png",
+   "nat": "cn",
+   "real": "Liu Zihan (刘紫涵)",
+   "team": "RA"
+  },
+  "mikiya": {
+   "vlrId": "42705",
+   "ign": "mikiya",
+   "img": "https://owcdn.net/img/6739e201ce53c.png",
+   "nat": "cn",
+   "real": "Zhu Jianan (朱佳楠)",
+   "role": "coach",
+   "team": "RA"
+  },
+  "punch1": {
+   "vlrId": "49478",
+   "ign": "Punch1",
+   "nat": "cn",
+   "real": "Wang Yiquan (王亦权)",
+   "role": "staff",
+   "team": "RA"
+  },
+  "nana": {
+   "vlrId": "48171",
+   "ign": "Nana",
+   "nat": "cn",
+   "team": "VNLG"
+  },
+  "ayu": {
+   "vlrId": "48226",
+   "ign": "Ayu",
+   "nat": "cn",
+   "team": "VNLG"
+  },
+  "p1katong": {
+   "vlrId": "48227",
+   "ign": "p1katong",
+   "nat": "cn",
+   "team": "VNLG"
+  },
+  "maofish": {
+   "vlrId": "54355",
+   "ign": "maofish",
+   "nat": "cn",
+   "team": "VNLG"
+  },
+  "yunni": {
+   "vlrId": "58919",
+   "ign": "Yunni",
+   "nat": "cn",
+   "team": "VNLG"
+  },
+  "m1ng929": {
+   "vlrId": "56259",
+   "ign": "M1ng929",
+   "nat": "cn",
+   "real": "Cui Jiaming (崔珈铭)",
+   "team": "WSIG"
+  },
+  "apathy": {
+   "vlrId": "63106",
+   "ign": "Apathy",
+   "nat": "cn",
+   "real": "Huang Yingsheng (黄盈盛)",
+   "team": "WSIG"
+  },
+  "ye": {
+   "vlrId": "63004",
+   "ign": "Ye",
+   "nat": "cn",
+   "real": "Liu Bocai (刘博才)",
+   "team": "WSIG"
+  },
+  "ugly": {
+   "vlrId": "58954",
+   "ign": "Ugly",
+   "nat": "cn",
+   "team": "WSIG"
+  },
+  "jowa": {
+   "vlrId": "19292",
+   "ign": "jowa",
+   "nat": "cn",
+   "real": "Jordan Wang",
+   "team": "WSIG"
+  },
+  "ending": {
+   "vlrId": "56248",
+   "ign": "Ending",
+   "nat": "cn",
+   "team": "WSIG"
+  },
+  "acme": {
+   "vlrId": "4666",
+   "ign": "AcMe",
+   "img": "https://owcdn.net/img/679f5bf4294d8.png",
+   "nat": "kr",
+   "real": "Cha Il-hwan (차일환)",
+   "team": "WBG"
+  },
+  "yoyo": {
+   "vlrId": "11843",
+   "ign": "Yoyo",
+   "img": "https://owcdn.net/img/65532c4463b60.png",
+   "nat": "tw",
+   "real": "Xu Youxiang (徐佑翔)",
+   "team": "WBG"
+  },
+  "satoshi": {
+   "vlrId": "46532",
+   "ign": "Satoshi",
+   "img": "https://owcdn.net/img/6739e1ee74231.png",
+   "nat": "cn",
+   "real": "Fei Zhixian (费郅贤)",
+   "team": "WBG"
+  },
+  "heybay": {
+   "vlrId": "4712",
+   "ign": "heybay",
+   "img": "https://owcdn.net/img/67f0f41c3f3b5.png",
+   "nat": "hk",
+   "real": "Ho Shun Hei",
+   "team": "WBG"
+  },
+  "leav3u": {
+   "vlrId": "58014",
+   "ign": "Leav3u",
+   "nat": "cn",
+   "team": "WBG"
+  },
+  "milan": {
+   "vlrId": "4010",
+   "ign": "Milan",
+   "img": "https://owcdn.net/img/687e2c5f80388.png",
+   "nat": "nl",
+   "real": "Milan de Meij",
+   "role": "head coach",
+   "team": "WBG"
+  },
+  "stardust": {
+   "vlrId": "66112",
+   "ign": "Stardust",
+   "nat": "cn",
+   "role": "coach",
+   "team": "WBG"
+  },
+  "currie": {
+   "vlrId": "53080",
+   "ign": "Currie",
+   "img": "https://owcdn.net/img/6a51430a141ee.png",
+   "nat": "ie",
+   "real": "Scott Currie",
+   "role": "assistant coach",
+   "team": "WBG"
+  }
+ },
+ "teams": {
+  "T0": "2359",
+  "T2": "11058",
+  "T3": "7386",
+  "T4": "2",
+  "T5": "2406",
+  "T6": "120",
+  "T7": "2355",
+  "T8": "6961",
+  "T9": "188",
+  "T10": "5248",
+  "T11": "427",
+  "T12": "2059",
+  "T13": "1001",
+  "T14": "2593",
+  "T15": "1184",
+  "T16": "14419",
+  "T17": "397",
+  "T18": "17297",
+  "T19": "6392",
+  "T20": "19882",
+  "T21": "12694",
+  "T22": "21715",
+  "T23": "8877",
+  "T24": "624",
+  "T25": "14",
+  "T26": "11060",
+  "T27": "17",
+  "T28": "8185",
+  "T29": "5448",
+  "T30": "6199",
+  "T31": "278",
+  "T32": "878",
+  "T33": "4050",
+  "T34": "918",
+  "T35": "11229",
+  "T36": "1120",
+  "T37": "13581",
+  "T38": "731",
+  "T39": "13790",
+  "T40": "11328",
+  "T41": "12064",
+  "T42": "12010",
+  "T43": "1119",
+  "T44": "12685",
+  "T45": "13576",
+  "T46": "11981",
+  "T47": "14137",
+  "T48": "11001",
+  "T49": "9353",
+  "T50": "13920",
+  "T51": "21049",
+  "T52": "6985",
+  "T53": "5601",
+  "T54": "22589",
+  "T55": "21121",
+  "T56": "22601",
+  "T57": "5214",
+  "T58": "7967",
+  "T59": "20085",
+  "T60": "14461",
+  "T62": "14478",
+  "T63": "11232",
+  "T64": "104",
+  "T65": "18299",
+  "T66": "14375",
+  "T67": "2934",
+  "T68": "6869",
+  "T69": "21338",
+  "T70": "5148",
+  "T71": "12784",
+  "T72": "20603",
+  "T73": "19531",
+  "T74": "11985",
+  "T75": "20082",
+  "T76": "21699",
+  "T77": "1224",
+  "T1": "1034",
+  "T61": "876"
+ },
+ "scraped": [
+  "T0",
+  "T2",
+  "T3",
+  "T1",
+  "T4",
+  "T5",
+  "T6",
+  "T7",
+  "T8",
+  "T9",
+  "T10",
+  "T11",
+  "T12",
+  "T13",
+  "T14",
+  "T15",
+  "T16",
+  "T17",
+  "T18",
+  "T19",
+  "T20",
+  "T21",
+  "T22",
+  "T23",
+  "T24",
+  "T25",
+  "T26",
+  "T27",
+  "T28",
+  "T29",
+  "T30",
+  "T31",
+  "T32",
+  "T33",
+  "T34",
+  "T35",
+  "T36",
+  "T37",
+  "T38",
+  "T39",
+  "T40",
+  "T41",
+  "T42",
+  "T43",
+  "T44",
+  "T45",
+  "T46",
+  "T47",
+  "T48",
+  "T49",
+  "T50",
+  "T51",
+  "T52",
+  "T53",
+  "T54",
+  "T55",
+  "T56",
+  "T57",
+  "T58",
+  "T59",
+  "T60",
+  "T61",
+  "T62",
+  "T63",
+  "T64",
+  "T65",
+  "T66",
+  "T67",
+  "T68",
+  "T69",
+  "T70",
+  "T71",
+  "T72",
+  "T73",
+  "T74",
+  "T75",
+  "T76",
+  "T77"
+ ]
+}

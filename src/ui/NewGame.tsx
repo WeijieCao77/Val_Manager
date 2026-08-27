@@ -15,14 +15,8 @@ import { money, OvrBadge, Bar } from './common'
 import Credit from './Credit'
 
 export default function NewGame({
-  onStart, canContinue, onContinue, onCards,
-}: {
-  onStart: (g: GameState) => void
-  canContinue: boolean
-  onContinue: () => void
-  /** the other game in the box — a separate save, reached from the same door */
-  onCards: () => void
-}) {
+  onStart, canContinue, onContinue,
+}: { onStart: (g: GameState) => void; canContinue: boolean; onContinue: () => void }) {
   const [name, setName] = useState('')
   const [age, setAge] = useState(24)
   const [originKey, setOriginKey] = useState<string | null>(null)
@@ -358,12 +352,9 @@ export default function NewGame({
       </label>
 
       {err && <p className="neg small">{err}</p>}
-      <div className="row wrap" style={{ marginTop: 14, gap: 10 }}>
+      <div style={{ marginTop: 14 }}>
         <button className="primary" onClick={begin} disabled={!manager || !teamId}>
           开始职业生涯 →
-        </button>
-        <button onClick={onCards} title="抽真实选手卡组队打比赛，和生涯存档互不影响">
-          🃏 卡牌模式
         </button>
       </div>
 

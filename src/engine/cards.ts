@@ -9,7 +9,7 @@
  * what happens once you own one.
  */
 import { WORLD_PLAYERS, WORLD_TEAMS, WORLD_ANALYSTS } from './world'
-import { DOSSIER, faceUrl } from './dossier'
+import { DOSSIER, coachDossier, faceUrl } from './dossier'
 import type { Attrs, Coach, Region, Role } from './types'
 
 export type Rarity = 'gold' | 'silver' | 'bronze'
@@ -64,6 +64,10 @@ export interface CoachCard {
   kind: 'coach'
   id: string
   name: string
+  /** real name and nationality, from the club's staff listing on vlr.gg */
+  realName: string | null
+  nat: string | null
+  face: string | null
   /** the club they coach, or the club an analyst was hired away from */
   clubId: string | null
   clubTag: string | null
@@ -128,8 +132,12 @@ function buildCoachCards(): CoachCard[] {
     if (!c?.name || seen.has(c.name)) continue
     seen.add(c.name)
     const rating = coachRating(c)
+    const d = coachDossier(c.name)
     out.push({
       kind: 'coach', id: `c:${c.name}`, name: c.name,
+      realName: d?.real ?? null,
+      nat: d?.nat ?? null,
+      face: d?.img ? faceUrl(d.img) : null,
       clubId: t.id, clubTag: t.tag, region: t.region as Region,
       tactics: c.tactics, development: c.development, motivation: c.motivation,
       rating, rarity: coachRarityOf(rating),
@@ -142,8 +150,12 @@ function buildCoachCards(): CoachCard[] {
     seen.add(a.name)
     const club = WORLD_TEAMS.find((t) => t.name === a.from || t.tag === a.from)
     const rating = coachRating(a)
+    const d = coachDossier(a.name)
     out.push({
       kind: 'coach', id: `c:${a.name}`, name: a.name,
+      realName: d?.real ?? null,
+      nat: d?.nat ?? null,
+      face: d?.img ? faceUrl(d.img) : null,
       clubId: club?.id ?? null, clubTag: club?.tag ?? a.from,
       region: (club?.region as Region) ?? null,
       tactics: a.tactics, development: a.development, motivation: a.motivation,

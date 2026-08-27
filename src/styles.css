@@ -1098,3 +1098,52 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .cm-squad .cf-attrs { grid-template-columns: repeat(2, 1fr); font-size: 9px; }
   .cm-squad .cf-name { font-size: 12px; }
 }
+
+/* ---- the flip ---------------------------------------------------------
+ *
+ * A card that simply appears has no moment in it. The pack is worth opening
+ * because of the half second before you know, so the card turns over: it
+ * starts face down, and the back gives nothing away — no metal, no rating.
+ */
+.flip { perspective: 1200px; }
+.flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: card-flip .62s cubic-bezier(.22, .8, .28, 1) both;
+}
+.flip-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-back {
+  position: absolute; inset: 0;
+  transform: rotateY(180deg);
+}
+@keyframes card-flip {
+  from { transform: rotateY(180deg) scale(.9); }
+  60%  { transform: rotateY(8deg) scale(1.02); }
+  to   { transform: rotateY(0deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { animation: none; }
+  .flip-back { display: none; }
+}
+
+.cardback {
+  width: 184px; height: 100%;
+  min-height: 268px;
+  border-radius: 7px;
+  border: 1px solid #2c3f55;
+  background:
+    repeating-linear-gradient(126deg,
+      rgba(255, 255, 255, .028) 0 2px, transparent 2px 7px),
+    radial-gradient(120% 80% at 50% 0%, #22344a 0%, #101a25 62%, #0b131b 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+}
+.cb-mark {
+  font-weight: 800; font-size: 30px; letter-spacing: .1em;
+  color: var(--accent);
+}
+.cb-sub {
+  font-weight: 700; font-size: 12px; letter-spacing: .34em;
+  color: var(--faint); margin-top: 2px;
+}

@@ -269,6 +269,16 @@ createServer((req, res) => {
       .catch((e) => json(res, 500, { ok: false, why: e.message }))
     return
   }
+  // The card mode is served from /cards. The build's asset URLs are relative
+  // (base './', so the same bundle works under a GitHub Pages subpath), which
+  // resolves correctly from /cards and NOT from /cards/ — there the browser
+  // would ask for /cards/assets/index-*.js, get the index.html fallback, and
+  // render nothing. One redirect is cheaper than an absolute base.
+  if (path === '/cards/') {
+    res.writeHead(301, { Location: '/cards' }).end()
+    return
+  }
+
   if (path === '/admin') {
     // 404 rather than 401: an endpoint that admits it exists is an endpoint
     // someone comes back to

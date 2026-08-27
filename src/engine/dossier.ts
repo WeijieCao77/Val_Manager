@@ -34,6 +34,8 @@ export interface DossierEntry {
 interface DossierFile {
   meta: { sources: Record<string, string>; players: number; photos: number; events: number }
   players: Record<string, DossierEntry>
+  /** keyed by the coach's name as world.json spells it */
+  coaches?: Record<string, DossierEntry>
 }
 
 export const DOSSIER = RAW as unknown as DossierFile
@@ -42,6 +44,16 @@ export const dossierOf = (playerId: string): DossierEntry | undefined =>
   DOSSIER.players[playerId]
 
 export const titleCount = (playerId: string): number => dossierOf(playerId)?.t ?? 0
+
+/**
+ * A coach's photograph and flag, off their club's staff listing.
+ *
+ * Matched on the name the club lists them under rather than by search: vlr has
+ * two people called Autumn, and putting the wrong face on a real person is a
+ * worse failure than showing no face at all.
+ */
+export const coachDossier = (name: string): DossierEntry | undefined =>
+  DOSSIER.coaches?.[name]
 
 /**
  * `public/faces` is copied verbatim into the build; base may be a subpath.

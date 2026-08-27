@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCards } from './ctx'
-import CardFace from '../Card'
+import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, QUESTS, HARD_PITY, SOFT_PITY,
@@ -153,7 +153,11 @@ export default function Packs() {
         <PackStage
           pulled={opening}
           shown={shown}
-          onNext={() => setShown((n) => Math.min(n + 1, opening.length))}
+          // ceiling is length + 1, not length: `finished` is `shown >
+          // pulled.length`, so clamping at length meant the last card of a
+          // multi-card pack could never be got past — the reveal sat on 3/3
+          // and swallowed every click
+          onNext={() => setShown((n) => Math.min(n + 1, opening.length + 1))}
           onDone={done}
           onSellAll={() => {
             let coins = 0
@@ -164,6 +168,24 @@ export default function Packs() {
         />
       )}
     </>
+  )
+}
+
+/**
+ * One card turning over.
+ *
+ * The whole point of a pack is the half-second before you know what it is, and
+ * a card that simply appears has no half-second. `key` on the caller restarts
+ * the animation for each new card.
+ */
+function Flip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flip">
+      <div className="flip-inner">
+        <div className="flip-face flip-back"><CardBack /></div>
+        <div className="flip-face flip-front">{children}</div>
+      </div>
+    </div>
   )
 }
 
@@ -206,9 +228,9 @@ function PackStage({
       <div className="pack-reveal">
         {(!finished || single) && current && (
           <>
-            <div key={current.card.id + shown} className="pack-card">
+            <Flip key={`${current.card.id}-${shown}`}>
               <CardFace card={current.card} size="lg" />
-            </div>
+            </Flip>
             <div className="row" style={{ gap: 8 }}>
               <span className={`tag ${current.card.rarity === 'gold' ? 't1' : 't2'}`}>
                 {RARITY_CN[current.card.rarity]}

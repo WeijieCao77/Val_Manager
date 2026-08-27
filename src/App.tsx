@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import { GameCtx } from './ui/ctx'
 import NewGame from './ui/NewGame'
@@ -26,10 +26,20 @@ import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
 import Credit from './ui/Credit'
-import CardMode from './ui/CardMode'
 import Dossier from './ui/Dossier'
 
-const MODE_KEY = 'valmanager:mode'
+/**
+ * The card mode lives at /cards and is not linked from anywhere.
+ *
+ * It is still being built, and the owner does not want the ordinary visitor
+ * walking into a half-finished mode from the front page. Unlisted, not
+ * secret — anyone with the URL gets in. Loaded lazily so it is also not in the
+ * bundle every visitor downloads.
+ */
+const CardMode = lazy(() => import('./ui/CardMode'))
+const CARDS_PATH = '/cards'
+const onCardsPath = () =>
+  typeof location !== 'undefined' && location.pathname.replace(/\/+$/, '').endsWith(CARDS_PATH)
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -44,22 +54,28 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'career', label: '经理', group: '生涯' },
   { key: 'dossier', label: '资料库' },
   { key: 'saves', label: '存档', group: '系统' },
-  // its own group, and a two-character label: the rail is narrow enough that
-  // "卡牌模式" wrapped onto two lines
-  { key: 'cards', label: '卡牌', group: '模式' },
 ]
 
 export default function App() {
-  // The card mode is a different game with a different save; it gets the whole
-  // window rather than a screen inside the career shell. Which one you were in
-  // survives a reload — refreshing mid-pack-opening and landing on the career
-  // set-up screen is a small betrayal.
-  const [mode, setModeRaw] = useState<'career' | 'cards'>(() => {
-    try { return localStorage.getItem(MODE_KEY) === 'cards' ? 'cards' : 'career' } catch { return 'career' }
-  })
+  // The card mode is a different game with a different save, so it gets the
+  // whole window rather than a screen inside the career shell. Which one you
+  // are in is the URL and nothing else: /cards is the card mode, everything
+  // else is the career. That way a refresh keeps you where you were, the back
+  // button works, and there is exactly one way in.
+  const [mode, setModeRaw] = useState<'career' | 'cards'>(() => (onCardsPath() ? 'cards' : 'career'))
   const setMode = useCallback((m: 'career' | 'cards') => {
-    try { localStorage.setItem(MODE_KEY, m) } catch { /* private mode */ }
+    try {
+      const to = m === 'cards' ? CARDS_PATH : '/'
+      if (location.pathname !== to) history.pushState({}, '', to)
+    } catch { /* file:// or a sandboxed frame; the state change still works */ }
     setModeRaw(m)
+  }, [])
+
+  // back and forward move between the two modes rather than leaving the site
+  useEffect(() => {
+    const onPop = () => setModeRaw(onCardsPath() ? 'cards' : 'career')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
   const gameRef = useRef<GameState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
@@ -68,7 +84,6 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null)
   const goScreen = (k: string) => {
     track('screen', { to: k })
-    if (k === 'cards') { setMode('cards'); return }
     if (k !== 'dossier') setDossierId(null)
     setScreen(k)
   }
@@ -146,11 +161,17 @@ export default function App() {
   )
 
   if (!booted) return null
-  if (mode === 'cards') return <CardMode onExit={() => setMode('career')} />
+  if (mode === 'cards') {
+    return (
+      <Suspense fallback={<div className="wrap" style={{ padding: 40 }}><p className="muted">载入中…</p></div>}>
+        <CardMode onExit={() => setMode('career')} />
+      </Suspense>
+    )
+  }
 
   const game = gameRef.current
   if (!game) {
-    return <NewGame onStart={start} canContinue={hasAutosave()} onCards={() => setMode('cards')} onContinue={() => {
+    return <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
       const g = loadAutosave()
       if (g) {
         // A return only means something if it is a career being picked up.
