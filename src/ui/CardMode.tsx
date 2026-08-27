@@ -13,7 +13,9 @@ import {
   createAccount, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, saveAccount,
   serverNow,
 } from '../engine/account'
-import { DIVISIONS, STAMINA_MAX, refreshDaily, staminaIn, staminaNow, starsFor } from '../engine/gacha'
+import {
+  DIVISIONS, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow, starsFor,
+} from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
 
@@ -89,6 +91,9 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         gRef.current = r.state
         setCloud(r.cloud)
         refreshDaily(r.state, r.today)
+        // a save from before the meter had a clock has no anchor; give it one
+        // now, or it would read as "just spent" forever and never regenerate
+        if (primeStamina(r.state, serverNow())) saveAccount(r.state, true)
         track('card_start', {
           fresh: false, cloud: r.cloud,
           owned: Object.keys(r.state.cards).length,
@@ -140,6 +145,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           setCloud(isCloud)
           setToday(day)
           refreshDaily(state, day)
+          primeStamina(state, serverNow())
           track('card_start', { fresh: isNew, cloud: isCloud, owned: Object.keys(state.cards).length })
           setFresh(isNew)
           setTab(isNew ? 'account' : 'packs')

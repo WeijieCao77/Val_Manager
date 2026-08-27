@@ -252,7 +252,7 @@ function migrate(state: GachaState, id: string): GachaState {
   g.ladder ??= { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 }
   g.daily ??= {
     claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
-    stamina: STAMINA_MAX, staminaAt: 0, bought: 0,
+    stamina: STAMINA_MAX, staminaAt: 0,
   }
   g.daily.picked ??= []
   g.daily.progress ??= {}
@@ -260,6 +260,5 @@ function migrate(state: GachaState, id: string): GachaState {
   // accounts made before the daily budget existed start today with a full one
   g.daily.stamina ??= STAMINA_MAX
   g.daily.staminaAt ??= 0
-  g.daily.bought ??= 0
   return clampState(g)
 }

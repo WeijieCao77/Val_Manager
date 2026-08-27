@@ -17,8 +17,8 @@ import type { Squad } from '../src/engine/cards'
 import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
   collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, CUP_ENTRY, starsFor,
-  MYTHIC_FLOOR, setSlot, refreshDaily, spendPlay, shopLeft, claimQuest, STAMINA_MAX,
-  STAMINA_COST,
+  MYTHIC_FLOOR, setSlot, refreshDaily, spendPlay, claimQuest, STAMINA_MAX,
+  STAMINA_COST, STAMINA_REGEN_MS,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
@@ -192,8 +192,9 @@ console.log('\n=== 体力方案对比：一天上线 N 次能打几场 ===')
 {
   const HOUR = 3600_000
   const SCHEMES = [
+    { name: `每 ${STAMINA_REGEN_MS / HOUR} 小时 +1，上限 ${STAMINA_MAX}（现行）`,
+      regen: STAMINA_REGEN_MS, cap: STAMINA_MAX },
     { name: '每 2 小时 +1，上限 10', regen: 2 * HOUR, cap: 10 },
-    { name: '每 1 小时 +1，上限 10', regen: 1 * HOUR, cap: 10 },
     { name: '每天零点回满 12', regen: 0, cap: 12 },
   ]
   const SESSIONS = [1, 2, 3, 6]
@@ -209,7 +210,8 @@ console.log('\n=== 体力方案对比：一天上线 N 次能打几场 ===')
     })
     console.log(`  ${sc.name.padEnd(22)}${row.join('')}`)
   }
-  console.log(`  （天梯一场 ${STAMINA_COST.ladder} 点。零点回满的方案上线再多次也还是那一份。）`)
+  console.log(`  （天梯一场 ${STAMINA_COST.ladder} 点。零点回满的方案上线再多次也还是那一份，`
+    + '这正是「一口气打完、剩下一整天没得玩」的形状。）')
 }
 
 console.log('\n=== 每天分两次上线、打光体力、不氪，连打 60 天 ===')
@@ -245,8 +247,9 @@ console.log('\n=== 每天分两次上线、打光体力、不氪，连打 60 天
       for (const k of ['ten', 'elite', 'scout', 'coach'] as PackKind[]) {
         while ((g.packs[k] ?? 0) > 0) { openPack(g, k, 'pack'); opens++ }
       }
+      // no purchase cap any more: buy until the coins run out, best first
       for (const k of ['elite', 'scout'] as PackKind[]) {
-        while (shopLeft(g) > 0 && PACKS[k].shop !== false && g.coins >= PACKS[k].cost) {
+        while (PACKS[k].shop !== false && g.coins >= PACKS[k].cost) {
           openPack(g, k, 'coins')
           opens++
         }

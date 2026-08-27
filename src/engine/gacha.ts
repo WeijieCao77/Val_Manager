@@ -53,16 +53,25 @@ export interface PackDef {
   pool: 'player' | 'coach'
 }
 
+/**
+ * Prices, set from what a day actually earns rather than from feel.
+ *
+ * scripts/economy_check.ts measures E(coins) per match from the simulation —
+ * the reward table alone cannot, because it does not know the win rate. At
+ * 大师 with the meter played out that is about 2,250 coins a day, so 750 buys
+ * three 试训包 or banks most of a 选拔包, and choosing between those is the
+ * decision the old two-a-day counter took away.
+ */
 export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。大部分是铜卡，但金卡就是从这里出的。',
-    cost: 500, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26, shop: true,
+    cost: 750, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26, shop: true,
   },
   elite: {
     kind: 'elite', name: '选拔包', pool: 'player',
     blurb: '三张选手卡，至少一张银卡起。',
-    cost: 1800, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2400, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver', shop: true,
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
@@ -74,7 +83,7 @@ export const PACKS: Record<PackKind, PackDef> = {
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
     // no legend coaches: a彩卡 is a night somebody played, and these twenty
     // nights were played by players
-    cost: 900, draws: 1, mythic: 0, gold: 0.15, silver: 0.42, shop: true,
+    cost: 1200, draws: 1, mythic: 0, gold: 0.15, silver: 0.42, shop: true,
   },
 }
 
@@ -116,7 +125,7 @@ export const MYTHIC_FLOOR = 500
  * promotion, a cup title — are not capped, because those are already once-a-day
  * things and taking them away twice would just be mean.
  */
-export const STAMINA_MAX = 10
+export const STAMINA_MAX = 12
 export const STAMINA_COST = { ladder: 2, cup: 3 } as const
 export type PlayKind = keyof typeof STAMINA_COST
 
@@ -128,16 +137,27 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * The interval sets the ceiling, and the ceiling is what was balanced: at one
- * point every two hours nobody can earn more than 12 a day however often they
- * check in, which is the six ladder matches the economy was tuned around. One
- * point an HOUR would be 24 a day — twelve matches — and would quietly undo
- * the slowdown it is meant to reshape.
+ * One an hour, cap 12: a ladder match every two hours sustained, six in a row
+ * from a full meter, and 24 points a day if you check in through the day.
+ *
+ * It was one every two hours, chosen to hold the daily ceiling at six matches.
+ * That reasoning ignored that nobody is awake for 24 hours — eight of those
+ * hours are spent asleep, and with a 20-hour fill time the meter was still
+ * only part full on waking. Two hours between matches is already a long wait
+ * for a browser game. The pacing moved to where it belongs instead: the price
+ * of a pack, which throttles without ever telling anyone they may not play.
  */
-export const STAMINA_REGEN_MS = 2 * 60 * 60 * 1000
+export const STAMINA_REGEN_MS = 60 * 60 * 1000
 
-/** How many packs the shop will sell you in one day. */
-export const SHOP_LIMIT = 2
+/**
+ * There is no daily purchase limit, deliberately.
+ *
+ * There was one, and it was the wrong tool: opening packs is what the mode IS,
+ * and a counter that says "no more today" with coins still in your pocket is a
+ * closed door on the front of the game. It also barely bound — at the old
+ * prices a day's play only ever bought two packs anyway, so the cap was mostly
+ * decoration with an occasional insult attached. Prices do the pacing now.
+ */
 
 const goldChance = (base: number, pity: number): number => {
   if (pity >= HARD_PITY - 1) return 1
@@ -226,8 +246,6 @@ export interface DailyState {
   picked: QuestKey[]
   progress: Partial<Record<QuestKey, number>>
   taken: QuestKey[]
-  /** how many packs the shop has already sold today */
-  bought: number
   /** 体力 banked at `staminaAt`, and the moment it was banked (epoch ms) */
   stamina: number
   staminaAt: number
@@ -281,7 +299,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     cup: null,
     daily: {
       claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
-      stamina: STAMINA_MAX, staminaAt: 0, bought: 0,
+      stamina: STAMINA_MAX, staminaAt: 0,
     },
     log: [],
     seed: hashStr(id + today) >>> 0,
@@ -344,10 +362,8 @@ export function openPack(g: GachaState, kind: PackKind, payWith: 'pack' | 'coins
     g.packs[kind] = (g.packs[kind] ?? 0) - 1
   } else {
     if (def.shop === false) throw new Error(`${def.name}买不到，只能靠升段、夺冠或连签拿`)
-    if (shopLeft(g) < 1) throw new Error(`今天已经买满 ${SHOP_LIMIT} 个包了，明天再来`)
     if (g.coins < def.cost) throw new Error('金币不够')
     g.coins -= def.cost
-    g.daily.bought = (g.daily.bought ?? 0) + 1
   }
 
   const rng = roll(g)
@@ -590,15 +606,16 @@ export function recordLadder(g: GachaState, win: boolean): LadderOutcome {
  * What a cup run is worth.
  *
  * The first pass paid 9000 for a title and charged 600 to enter, which a
- * finished collection converted into 550,000 coins across a hundred runs —
- * every other part of the mode became irrelevant. The numbers below are set so
- * that a strong squad earns roughly what the same three matches would have
- * earned on the ladder, and the reason to play a cup is the trophy and the
- * pack, not the coins.
+ * finished collection converted into 550,000 coins across a hundred runs.
+ * Cutting that left it still paying 231 coins per point of 体力 against the
+ * ladder's 94 — two and a half times the rate, which makes the ladder
+ * pointless for anyone counting. Halved again, so a cup leg is worth a little
+ * more than a ladder match and no more; the reason to enter is the trophy and
+ * the pack it comes with.
  */
-export const CUP_ENTRY = 1000
-export const CUP_PRIZE = [350, 850, 1900] // out in QF / SF / lost the final
-export const CUP_WIN = 3600
+export const CUP_ENTRY = 800
+export const CUP_PRIZE = [150, 400, 900] // out in QF / SF / lost the final
+export const CUP_WIN = 1800
 
 /**
  * Draw a cup: three clubs, each harder than the last.
@@ -684,9 +701,32 @@ export function refreshDaily(g: GachaState, today: string): void {
   g.daily.picked = questsFor(today, g.id)
   g.daily.progress = {}
   g.daily.taken = []
-  // 体力 is NOT topped up here any more — it accrues by the clock, so the day
-  // rolling over is about quests and the shop, not about the meter
-  g.daily.bought = 0
+  // 体力 is NOT touched here — it accrues by the clock, so the day rolling
+  // over is about the quest board and nothing else
+}
+
+/**
+ * When the meter was last counted from.
+ *
+ * A save with no anchor — one written before 体力 accrued on a clock — used to
+ * be read as `staminaAt || now`, which is a trap: zero is falsy, so the anchor
+ * was "now" on every single read and not one second ever accumulated. An
+ * account that hit zero stayed at zero permanently. There is no honest way to
+ * date an unanchored save, so it is anchored the first time anybody asks, and
+ * `primeStamina` writes that back.
+ */
+const anchorOf = (g: GachaState, now: number): number => g.daily.staminaAt || now
+
+/**
+ * Give an unanchored save a starting point, once.
+ *
+ * Called when the mode opens. Separate from the readers because reading should
+ * not mutate, and because this is the one place that can also persist it.
+ */
+export function primeStamina(g: GachaState, now: number): boolean {
+  if (g.daily.staminaAt) return false
+  g.daily.staminaAt = now
+  return true
 }
 
 /**
@@ -696,7 +736,7 @@ export function refreshDaily(g: GachaState, today: string): void {
  * device's — for the same reason the check-in date is the server's.
  */
 export function staminaNow(g: GachaState, now: number): number {
-  const at = g.daily.staminaAt || now
+  const at = anchorOf(g, now)
   const banked = Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
   const gained = Math.floor(Math.max(0, now - at) / STAMINA_REGEN_MS)
   return Math.min(STAMINA_MAX, banked + gained)
@@ -705,7 +745,7 @@ export function staminaNow(g: GachaState, now: number): number {
 /** ms until the next point lands, or 0 when the meter is already full. */
 export function staminaIn(g: GachaState, now: number): number {
   if (staminaNow(g, now) >= STAMINA_MAX) return 0
-  const at = g.daily.staminaAt || now
+  const at = anchorOf(g, now)
   const since = Math.max(0, now - at)
   return STAMINA_REGEN_MS - (since % STAMINA_REGEN_MS)
 }
@@ -718,7 +758,7 @@ export function staminaIn(g: GachaState, now: number): number {
  * meter — otherwise a player who checks the screen often would never regen.
  */
 function settle(g: GachaState, now: number): void {
-  const at = g.daily.staminaAt || now
+  const at = anchorOf(g, now)
   const ticks = Math.floor(Math.max(0, now - at) / STAMINA_REGEN_MS)
   const banked = Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
   const next = Math.min(STAMINA_MAX, banked + ticks)
@@ -739,8 +779,7 @@ export function spendPlay(g: GachaState, kind: PlayKind, now: number): boolean {
   return true
 }
 
-export const shopLeft = (g: GachaState): number =>
-  Math.max(0, SHOP_LIMIT - (g.daily.bought ?? 0))
+
 
 function bumpQuest(g: GachaState, key: QuestKey, by: number): void {
   if (!g.daily.picked.includes(key)) return
