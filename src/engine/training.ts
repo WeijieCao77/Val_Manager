@@ -86,6 +86,14 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
 
 /** Add progress toward an attribute, converting a full bar into a point. */
 function addXp(p: Player, k: keyof Attrs, amount: number): boolean {
+  // The ceiling is checked here, not only in trainPlayer. Team drills and the
+  // pair drill go through this path, and they used to walk a maxed player
+  // several points past his own potential — the number the whole scouting and
+  // transfer economy is priced on.
+  if (p.overall >= p.potential) {
+    p.xp[k] = Math.min(p.xp[k] ?? 0, 99)
+    return false
+  }
   p.xp[k] = (p.xp[k] ?? 0) + amount
   if ((p.xp[k] ?? 0) < 100) return false
   p.xp[k] = (p.xp[k] ?? 0) - 100
@@ -197,7 +205,18 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
     }
     case 'agent': {
       const p = state.players[drill.playerId]
-      if (!p) break
+      // A learner who was sold, released or retired kept being coached from
+      // afar; one who is injured was coached from the treatment table. The
+      // other drills all filter their squad — this one never did.
+      if (!p || p.teamId !== state.myTeam) {
+        state.drill = { kind: 'none' }
+        notes.push('⚠️ 原定的「练新英雄」对象已经不在队中，本轮团队训练没有产生效果。')
+        break
+      }
+      if (p.injuredUntil > state.day) {
+        notes.push(`⚠️ ${p.ign} 伤停中，本轮「练新英雄」没有进行。`)
+        break
+      }
       // Learning a position is a grind, not a switch. A quick learner still
       // needs the better part of a season, which is what makes buying a real
       // specialist worth the money.
@@ -324,6 +343,10 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         p.injuredUntil = state.day + days
         p.injuryNote = inj.note
         p.morale = clamp(p.morale - 10, 0, 100)
+        // An injured man rests. The training screen greys his plan out, so the
+        // manager cannot set this himself — and the weekly trust tick used to
+        // dock him 0.8 for "being used while hurt" regardless.
+        state.training[p.id] = 'rest'
         if (isMine) notes.push(`⚕️ ${p.ign} ${inj.note}，预计缺阵 ${days} 天。`)
       }
 
@@ -382,6 +405,7 @@ export function applyMatchFatigue(
     p.injuredUntil = state.day + days
     p.injuryNote = inj.note
     p.morale = clamp(p.morale - 10, 0, 100)
+    state.training[p.id] = 'rest'
     if (isMine) notes?.push(`⚕️ ${p.ign} 赛后${inj.note}，预计缺阵 ${days} 天。`)
   }
 }

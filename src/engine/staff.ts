@@ -62,9 +62,13 @@ export function analystMarket(state: GameState): StaffCandidate[] {
 }
 
 export function staffMarket(state: GameState): StaffCandidate[] {
-  const taken = new Set(
-    Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
-  )
+  // Our own staff belong in here too — analystMarket has always included them,
+  // this one did not, so an assistant already on the payroll stayed on the
+  // shelf and could be hired again, and again, each time drawing a full salary.
+  const taken = new Set([
+    ...(state.staff ?? []).map((m) => m.name),
+    ...Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
+  ])
   const out: StaffCandidate[] = []
   for (const t of WORLD_TEAMS) {
     for (const name of t.coach?.assistants ?? []) {

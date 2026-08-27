@@ -1,4 +1,5 @@
 import raw from '../data/world.json'
+import { dossierOf } from './dossier'
 import { Rng, clamp, hashStr } from './rng'
 import { AGENTS, MAPS, SPONSOR_NAMES } from './content'
 import { defaultTactics, emptyStats, ROLES } from './types'
@@ -80,7 +81,15 @@ export function autoStarters(state: GameState, teamId: string): string[] {
     // him, not because he is average. Sharks came out ahead of Lysoar on 119
     // rounds against 8031, and was picked to start over him. Thin samples are
     // discounted for selection.
-    .sort((a, b) => confidentRating(b) - confidentRating(a))
+    //
+    // A man in the treatment room goes to the back of the queue whatever he
+    // rates: "已自动排出最佳首发" used to hand back a five with three injured
+    // men in it, and the same screen then warned the caller was unavailable.
+    // He is still eligible — a squad with nobody fit must field somebody.
+    .sort((a, b) => {
+      const fit = (x: Player) => (x.injuredUntil > state.day ? 1 : 0)
+      return fit(a) - fit(b) || confidentRating(b) - confidentRating(a)
+    })
 
   const chosen: Player[] = []
   // 自由人 is "covers anything", not a slot to fill — treating it as one forced
@@ -145,8 +154,16 @@ export function createNewGame(
   const players: Record<string, Player> = {}
   for (const rp of RAW.players) {
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
+    // world.json was built before the player pages were scraped and is missing
+    // a nationality for 178 people; the dossier has all 518. Overlaid here
+    // rather than rewritten into world.json so the two files keep their jobs —
+    // world.json is what the simulation reads, dossier.json is who these
+    // people are.
+    const d = dossierOf(rp.id)
     players[rp.id] = {
       ...rp,
+      nat: rp.nat || d?.nat || undefined,
+      realName: rp.realName ?? d?.real ?? null,
       // The spread is shallow. Nested objects that the game MUTATES must be
       // copied, or every career in one page session shares them with the
       // imported world file — the roster array taught this lesson below, and

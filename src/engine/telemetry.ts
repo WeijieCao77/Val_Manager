@@ -164,7 +164,15 @@ function tick(): void {
   sinceReport += HEARTBEAT_MS
   if (sinceReport >= 3 * HEARTBEAT_MS) {
     sinceReport = 0
-    track('session_ping', { active_s: Math.round(activeMs / 1000) })
+    // Deliberately NOT through track(): track() stamps lastActivity, so the
+    // heartbeat kept resetting the very idle timer that is supposed to stop
+    // it. A tab left open and untouched reported four hours of "active" play.
+    queue.push({
+      name: 'session_ping',
+      t: now(),
+      n: ++eventNo,
+      props: { active_s: Math.round(activeMs / 1000) },
+    })
     flush()
   }
 }

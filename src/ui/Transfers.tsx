@@ -6,7 +6,7 @@ import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Club, clubMatches, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
-  INTEREST_CN, makeOffer, rosterBlock, windowBlock, windowOpen,
+  INTEREST_CN, makeOffer, rosterBlock, TRANSFER_WINDOWS, windowBlock, windowOpen,
 } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { IMPORT_MAX, importCount, isImport } from '../engine/imports'
@@ -109,7 +109,7 @@ export default function Transfers() {
         <p className="small neg">
           转会窗口目前关闭：<b>不能再提出新的报价或问价，但已经在谈的照常进行</b>——
           对方仍会给你答复，窗口内下的报价谈成了照样成，别队对我们球员的报价也仍需你答复。
-          开放时段：季前准备（第 0–20 天）、Masters II 期间（第 169–194 天）、休赛期（第 311 天起）。
+          开放时段：{TRANSFER_WINDOWS.map(([a, b]) => `第 ${a}–${b} 天`).join('、')}。
         </p>
       )}
 
@@ -210,7 +210,7 @@ export default function Transfers() {
         <Panel title="市场动态 · 其他俱乐部的转会" flush>
           {marketNews.map((n, i) => (
             <div key={i} className={`news-item${n.important ? ' important' : ''}`}>
-              <span className="d">{fmtDay(n.day)}</span>
+              <span className="d">{fmtDay(n.day, game.year)}</span>
               <span>{n.text}</span>
             </div>
           ))}

@@ -208,7 +208,7 @@ export async function overview(sql, days = 30) {
  * this year" is not a retention policy. Raw events older than half a year go;
  * nothing on the dashboard looks further back than that.
  */
-export async function prune(sql, days = 180, maxRows = 3_000_000) {
+export async function prune(sql, days = 180, maxRows = 3_000_000, maxBytes = 1_200_000_000) {
   const byAge = await sql`delete from events where ts < now() - ${`${days} days`}::interval`
   // Age alone cannot recover from a flood: a million rows written this morning
   // are all in date. Oldest-first by id gives the table a hard ceiling that a
@@ -216,5 +216,27 @@ export async function prune(sql, days = 180, maxRows = 3_000_000) {
   const byCount = await sql`
     delete from events
     where id <= (select max(id) - ${maxRows} from events)`
-  return (byAge.count ?? 0) + (byCount.count ?? 0)
+
+  // ...and a row ceiling alone cannot recover from a FAT flood. Measured on a
+  // real engine the widest legal row is ~2.4kB, so the 1.5GB write-refusal
+  // budget is reached at roughly 640k rows — a fifth of the row ceiling. The
+  // table filled, ingestion switched itself off, and prune deleted nothing
+  // because both ceilings were still far away. Delete oldest-first in batches
+  // until the size is back under budget.
+  let bySize = 0
+  for (let pass = 0; pass < 20; pass++) {
+    let bytes = 0
+    try {
+      const r = await sql`select pg_total_relation_size('events') as b`
+      bytes = Number(r[0]?.b ?? 0)
+    } catch { break }
+    if (bytes <= maxBytes) break
+    const cut = await sql`
+      delete from events
+      where id in (select id from events order by id limit 200000)`
+    if (!cut.count) break
+    bySize += cut.count
+    try { await sql`vacuum (analyze) events` } catch { /* not fatal */ }
+  }
+  return (byAge.count ?? 0) + (byCount.count ?? 0) + bySize
 }

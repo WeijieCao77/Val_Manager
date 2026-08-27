@@ -158,8 +158,16 @@ export function Condition({ p, day }: { p: Player; day: number }) {
   )
 }
 
-export const fmtDay = (day: number): string => {
-  const d = new Date(Date.UTC(2000, 0, 1))
+/**
+ * A season day as a date label.
+ *
+ * The base year matters: 2000 is a leap year, so from day 59 every date here
+ * sat one day behind the one in the header (which counts from the save's own
+ * year), and day 59 printed "2/29" in a season that has no such date. Pass the
+ * save's year; the default keeps old call sites compiling on a common year.
+ */
+export const fmtDay = (day: number, year = 2026): string => {
+  const d = new Date(Date.UTC(year, 0, 1))
   d.setUTCDate(d.getUTCDate() + day)
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`
 }

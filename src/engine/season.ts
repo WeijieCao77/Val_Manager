@@ -7,7 +7,7 @@ import {
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
-import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek } from './commercial'
+import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -210,6 +210,8 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   if (comp.region && comp.finished.includes(state.myTeam)) {
     const me = state.teams[state.myTeam]
     const place = comp.finished.indexOf(state.myTeam) + 1
+    // the best regional finish of the season is what a `placing` clause reads
+    state.bestPlacing = Math.min(state.bestPlacing ?? 99, place)
     for (const sp of me?.sponsors ?? []) {
       if (sp.bonusPaidYear === state.year || place > sp.bonusPlacement || !sp.bonus) continue
       sp.bonusPaidYear = state.year
@@ -531,6 +533,21 @@ export function acceptJob(state: GameState, offerId: string): string {
   return moveToClub(state, to.id)
 }
 
+/**
+ * The five who actually played for this club in this fixture.
+ *
+ * `starters` is the intention; `result.lineups` is what happened. They differ
+ * whenever anyone was injured, and the post-match rewards were reading the
+ * intention — which is how a man who never left the physio room banked the
+ * win bonus.
+ */
+function played(
+  state: GameState, f: Fixture, teamId: string, result: MatchResult,
+): string[] {
+  const lineup = teamId === f.teamA ? result.lineups?.a : result.lineups?.b
+  return lineup ?? state.teams[teamId]?.starters ?? []
+}
+
 /** Take over at another club, however the job came about. */
 export function moveToClub(state: GameState, teamId: string): string {
   const to = state.teams[teamId]
@@ -554,6 +571,21 @@ export function moveToClub(state: GameState, teamId: string): string {
   state.finances = { balance: to.budget, log: [] }
   state.training = {}
   state.drill = { kind: 'none' }
+  // ...and everything else that belonged to the old job. A drill lock left
+  // running greyed out the new club's training panel for up to a week; a pair
+  // drill kept coaching two players who now work somewhere else; and a bid
+  // left pending settled later at the OLD club, spending the new club's money
+  // to sign a player for the one you just left.
+  state.drillLock = undefined
+  state.duo = undefined
+  state.physioOn = {}
+  state.commercialDays = {}
+  for (const o of state.offers) {
+    if (o.status === 'pending' && (o.toTeam === from?.id || o.fromTeam === from?.id)) {
+      o.status = 'rejected'
+    }
+  }
+  state.enquiries = []
   for (const pid of to.roster) state.training[pid] = 'rest'
 
   state.managerContract = defaultContract(state)
@@ -644,7 +676,10 @@ export function commitFixture(
     applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes, result.lineups?.b)
     const aWon = result.mapsWonA > result.mapsWonB
     for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
-      for (const pid of state.teams[teamId]?.starters ?? []) {
+      // whoever actually played, not whoever was nominally a starter: an
+      // injured man collected the win's morale from the treatment table while
+      // the substitute who played every map got nothing
+      for (const pid of played(state, f, teamId, result)) {
         const p = state.players[pid]
         if (!p) continue
         // losing used to average +0.35 form, so a defeat made a player sharper
@@ -668,7 +703,7 @@ export function commitFixture(
 
   const aWon = result.mapsWonA > result.mapsWonB
   for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
-    for (const pid of state.teams[teamId]?.starters ?? []) {
+    for (const pid of played(state, f, teamId, result)) {
       const p = state.players[pid]
       if (p) p.morale = clamp(p.morale + (won ? rng.range(1, 5) : -rng.range(1, 5)), 10, 100)
     }
@@ -841,11 +876,15 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         sp.bonus = Math.round(sp.bonus * factor)
       }
     }
-    // 2.5x, down from 4.2: with pitching capped at five deals and priced off
-    // standing, promotion should be a raise, not a lottery win. (The insolvency
-    // the 4.2 was fighting is gone — tier-2 upkeep is scaled separately now.)
-    reprice(promoted, 2.5)
-    reprice(relegated, 1 / 2.5)
+    // Priced off what a sponsorship in each league is actually worth rather
+    // than a flat guess. A flat 2.5x left promoted clubs structurally
+    // insolvent — around $700k of sponsorship against $926k of VCT running
+    // costs before a single wage — and 25 of 36 AI promotions measured over
+    // four seasons ended up in the red and out of the transfer market.
+    const step = sponsorWorth({ ...promoted, tier: 1 } as Team) /
+      Math.max(1, sponsorWorth({ ...promoted, tier: 2 } as Team))
+    reprice(promoted, step)
+    reprice(relegated, 1 / step)
     if (promoted.id === state.myTeam) {
       notes.push('💰 升入一级联赛后，赞助合同全部重新议价，收入大幅提高。')
     }
@@ -878,12 +917,29 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       if (keep && team && team.id !== state.myTeam) {
         p.contractYears = contractLength(p, rng, team.roster.map((id) => state.players[id]))
       } else if (team && team.id === state.myTeam) {
-        state.news.push({
-          day: state.day, kind: 'club', important: true,
-          text: `⏳ ${p.ign} 的合同已到期，需要在休赛期内续约或放走。`,
-        })
-        notes.push(`⏳ ${p.ign} 的合同已到期，休赛期内要续约或放走。`)
-        p.contractYears = 0
+        // One winter of grace, then he actually goes. It used to be an
+        // unlimited stay: the agenda warned every single day that he would
+        // leave if not renewed, and he never did — he simply drew wages
+        // forever on a contract that had run out.
+        if (p.expiredYear != null && p.expiredYear < state.year) {
+          team.roster = team.roster.filter((id) => id !== p.id)
+          team.starters = team.starters.filter((id) => id !== p.id)
+          p.teamId = null
+          p.expiredYear = undefined
+          state.news.push({
+            day: state.day, kind: 'club', important: true,
+            text: `👋 ${p.ign} 的合同到期满一年未续约，已经离队。`,
+          })
+          notes.push(`👋 ${p.ign} 合同到期一年未续，已自由转会离队。`)
+        } else {
+          p.expiredYear ??= state.year
+          state.news.push({
+            day: state.day, kind: 'club', important: true,
+            text: `⏳ ${p.ign} 的合同已到期，本赛季内必须续约，否则下个休赛期他会走。`,
+          })
+          notes.push(`⏳ ${p.ign} 的合同已到期——这是最后一个赛季，不续约他就走了。`)
+          p.contractYears = 0
+        }
       } else if (team) {
         team.roster = team.roster.filter((id) => id !== p.id)
         team.starters = team.starters.filter((id) => id !== p.id)
@@ -912,6 +968,10 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     honours: state.honours.length,
     confidence: Math.round(state.boardConfidence),
   })
+  // clauses are judged on the season that just ended, before the counters reset
+  notes.push(...settleSponsorDemands(state))
+  state.seasonGigs = 0
+  state.bestPlacing = undefined
   notes.push(...seasonRollover(state, rng))
 
   // ---- retirements. With no invented prospects backfilling the pool these are

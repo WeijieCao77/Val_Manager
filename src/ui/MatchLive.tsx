@@ -131,7 +131,7 @@ export default function MatchLive({
           <div className="panel-head"><h2>赛前战术</h2></div>
           <div className="panel-body">
             <p className="tiny faint" style={{ marginTop: 0 }}>
-              针对这个对手定好打法。改动会保存下来，观战时叫暂停还能再调。
+              针对这个对手定好打法——<b>现在改的会用在这场的每一张图上</b>。观战中叫暂停可以用强攻／稳守临场应变，滑杆的改动则从下一张图起生效。
             </p>
             <TacticSliders game={game} commit={commit} compact />
           </div>
@@ -204,7 +204,9 @@ export default function MatchLive({
                 稳守 <span className="tiny faint">减少伤亡与波动，适合领先或缺钱</span>
               </button>
             </div>
-            <div className="small muted" style={{ marginBottom: 6 }}>调整战术（立刻生效，持续整场）：</div>
+            <div className="small muted" style={{ marginBottom: 6 }}>
+              调整战术（<b>从下一张图开始生效</b>，本图请用上面的强攻／稳守）：
+            </div>
             <div style={{ marginBottom: 12 }}>
               <TacticSliders game={game} commit={commit} compact />
             </div>

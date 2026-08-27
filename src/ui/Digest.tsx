@@ -46,7 +46,7 @@ export default function Digest({
 
   return (
     <Modal
-      title={days <= 1 ? `${fmtDay(game.day)} · 今天` : `${fmtDay(fromDay)} — ${fmtDay(game.day)} · 这 ${days} 天`}
+      title={days <= 1 ? `${fmtDay(game.day, game.year)} · 今天` : `${fmtDay(fromDay, game.year)} — ${fmtDay(game.day, game.year)} · 这 ${days} 天`}
       onClose={onClose}
     >
       {stageChanged && (

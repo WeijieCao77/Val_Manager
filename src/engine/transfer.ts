@@ -31,6 +31,10 @@ export const TRANSFER_WINDOWS: [number, number][] = [
   [311, 335], // 休赛期
 ]
 
+/** The last day of the window that is open on this day, or null. */
+export const windowEnd = (day: number): number | null =>
+  TRANSFER_WINDOWS.find(([a, b]) => day >= a && day <= b)?.[1] ?? null
+
 export const windowOpen = (day: number): boolean =>
   // the guided trial day sits before the calendar starts; it is a sandbox that
   // gets rolled back, so the window is open there rather than locking the page
@@ -352,6 +356,7 @@ export function doTransfer(
   p.contract = { ...terms }
   p.salary = terms.salary
   p.contractYears = terms.years
+  p.expiredYear = undefined      // a renewal ends the countdown to a free exit
   p.grievance = 0
   p.listed = false
   p.listedOn = undefined
@@ -432,7 +437,11 @@ export function releasePlayer(state: GameState, p: Player): string {
 /** Rough squad need: which role is the club thinnest at? */
 function weakestRole(state: GameState, team: Team): { role: Player['role']; strength: number } | null {
   const squad = squadOf(state, team.id)
-  const roles: Player['role'][] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
+  // 自由人 is not a position to fill — in the data it means "vlr never recorded
+  // one", and world.ts's autoStarters already excludes it. Leaving it in made
+  // it every squad's "weakest role" (nobody has one), which pointed two thirds
+  // of the AI's shopping at a pool of ten players and killed the paid market.
+  const roles: Player['role'][] = ['决斗者', '先锋', '控场', '哨卫']
   let worst: { role: Player['role']; strength: number } | null = null
   for (const r of roles) {
     const best = squad.filter((p) => p.role === r).sort((a, b) => b.overall - a.overall)[0]
@@ -627,6 +636,9 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
   const rivalry = Math.min(state.rivalry ?? 0, 2)
   for (const team of Object.values(state.teams)) {
     if (team.id === state.myTeam) continue
+    // a club with no room cannot complete the deal, so it must not open one:
+    // the bid arrived, 接受 failed, and the toast never said why
+    if (rosterBlock(state, team.id)) continue
     if (!rng.chance(0.12 + 0.05 * rivalry)) continue
 
     const need = weakestRole(state, team)
@@ -637,6 +649,10 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     )
     const target = targets.sort((a, b) => b.overall - a.overall)[0]
     if (!target) continue
+    // `mine` was snapshotted before the loop, so a player already sold to the
+    // first club this tick was still offered to the second and the third — a
+    // clause could be "paid" three times and he changed clubs twice in a day
+    if (target.teamId !== state.myTeam) continue
     if (target.contract?.noPoach && !target.listed) continue
 
     const clause = target.contract?.releaseClause ?? 0

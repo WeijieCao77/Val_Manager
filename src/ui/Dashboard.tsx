@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useGame } from './ctx'
 import { track } from '../engine/telemetry'
+import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, recentResultsFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
@@ -56,7 +57,7 @@ export default function Dashboard() {
     track('turn_done', { quiet, sim_ms: Math.round(performance.now() - simStartRef.current), day: game.day })
     if (quiet) {
       const span = game.day - fromDay
-      toast(span > 1 ? `${fmtDay(game.day)} · 平静的 ${span} 天` : `${fmtDay(game.day)} · 平静的一天`)
+      toast(span > 1 ? `${fmtDay(game.day, game.year)} · 平静的 ${span} 天` : `${fmtDay(game.day, game.year)} · 平静的一天`)
       return
     }
     setDigest({ reports, fromDay })
@@ -77,7 +78,13 @@ export default function Dashboard() {
         const from = game.day
         const reports: DayReport[] = []
         if (fast) {
-          reports.push(...advanceToNextMatch(game, 40, { deferMine: true }))
+          // In the offseason there is no fixture to stop at, so this used to
+          // run the clock to the end of the season — a single click spent the
+          // whole 25-day transfer window and the rebuild that goes with it.
+          // Stop at the edge of an open window instead.
+          const stopAt = windowOpen(game.day) ? windowEnd(game.day) : undefined
+          const budget = stopAt != null ? Math.max(1, stopAt - game.day) : 40
+          reports.push(...advanceToNextMatch(game, budget, { deferMine: true }))
         } else {
           for (let i = 0; i < span; i++) {
             // over a multi-day turn, practice matches play themselves so the
@@ -251,7 +258,8 @@ export default function Dashboard() {
               这是做买卖的时候。中途遇到正式比赛会自动停下（训练赛自动打完）。
             </>
           ) : (
-            <>比赛期间一天一回合，行动力 2 点——转会窗关着，事情本来就少。</>
+            <>比赛期间一天一回合，行动力 2 点——
+              {windowOpen(game.day) ? '转会窗现在开着，别忘了看看市场。' : '转会窗关着，事情本来就少。'}</>
           )}
         </div>
       </div>
@@ -268,7 +276,7 @@ export default function Dashboard() {
               <div className="row small muted wrap" style={{ gap: 10, justifyContent: 'center' }}>
                 <span className="tag">{game.comps[next.comp]?.name ?? next.comp}</span>
                 <span className="tag">{next.label.replace(/^KO:\d+:/, '')}</span>
-                <span className="tag">{fmtDay(next.day)}（{next.day - game.day} 天后）</span>
+                <span className="tag">{fmtDay(next.day, game.year)}（{next.day - game.day} 天后）</span>
               </div>
             </>
           ) : (
@@ -298,7 +306,7 @@ export default function Dashboard() {
                       </span>
                       <span className="small" style={{ flex: 1, textAlign: 'left' }} title={game.teams[mine ? f.teamB : f.teamA]?.name}>{foe}</span>
                       <span className="tag">{f.comp === 'scrim' ? '训练赛' : game.comps[f.comp]?.name ?? f.comp}</span>
-                      <span className="tiny faint">{fmtDay(f.day)}</span>
+                      <span className="tiny faint">{fmtDay(f.day, game.year)}</span>
                     </button>
                   )
                 })}
@@ -571,7 +579,7 @@ export default function Dashboard() {
         {recentNews.length ? (
           recentNews.map((n, i) => (
             <div key={i} className={`news-item${n.important ? ' important' : ''}`}>
-              <span className="d">{fmtDay(n.day)}</span>
+              <span className="d">{fmtDay(n.day, game.year)}</span>
               <span>{n.text}</span>
             </div>
           ))

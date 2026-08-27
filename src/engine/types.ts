@@ -98,6 +98,8 @@ export interface JobOffer {
 
 /** Something the manager did, so the day can be recounted. */
 export interface Activity {
+  /** the season it happened in — day alone repeats every year */
+  year?: number
   day: number
   kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics' | 'commercial'
   text: string
@@ -236,6 +238,8 @@ export interface Player {
   trust?: number
   /** a streaming contract this player has signed */
   stream?: StreamDeal
+  /** the year this player's deal ran out — a second winter and he walks */
+  expiredYear?: number
   /** set when the player has been transfer-listed by their club */
   listed?: boolean
   /** the day they went on the list, so a stale listing can be withdrawn */
@@ -469,6 +473,12 @@ export interface SponsorTalk {
 
 export interface Sponsor {
   name: string
+  /** kept so an exclusivity clause has something to check against */
+  industry?: string
+  /** what the club promised in return for a richer guarantee */
+  demands?: { key: 'gigs' | 'placing' | 'stream' | 'exclusive'; text: string }[]
+  /** the placing a `placing` clause asks for */
+  demandPlacing?: number
   perSeason: number
   /** bonus paid if the team finishes at/above this league placement */
   bonusPlacement: number
@@ -765,6 +775,10 @@ export interface GameState {
   rivalry?: number
   /** day each player last had physio, so a session is once a week per player */
   physioOn?: Record<string, number>
+  /** commercial appearances completed this season, for sponsorship clauses */
+  seasonGigs?: number
+  /** best regional stage finish this season, for sponsorship clauses */
+  bestPlacing?: number
   /** last processed match ids so the UI can surface results */
   lastResults: string[]
   boardConfidence: number

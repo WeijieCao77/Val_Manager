@@ -2,7 +2,7 @@ import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './world'
 import { skillMod } from './manager'
 import { duoBonded } from './bonds'
-import type { GameState, Gig, GigKind, Player, SponsorTalk, StreamDeal, Team, VentureKind } from './types'
+import type { GameState, Gig, GigKind, Player, Sponsor, SponsorTalk, StreamDeal, Team, VentureKind } from './types'
 
 /**
  * The commercial side of running a club.
@@ -183,6 +183,7 @@ export function runGigsToday(state: GameState, notes: string[]): void {
   for (const gig of state.gigs ?? []) {
     if (gig.done || !gig.accepted || gig.day !== state.day) continue
     gig.done = true
+    state.seasonGigs = (state.seasonGigs ?? 0) + 1
 
     const attendees = (gig.attendees ?? [])
       .map((id) => state.players[id])
@@ -491,7 +492,12 @@ export function signSponsor(state: GameState, id: string): string {
   if (team.sponsors.some((x) => x.name === t.name)) return `已经和 ${t.name} 有合作了。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
-    name: t.name, perSeason: t.base, bonusPlacement: t.bonusPlacement, bonus: t.bonus,
+    name: t.name, industry: t.industry, perSeason: t.base,
+    bonusPlacement: t.bonusPlacement, bonus: t.bonus,
+    demands: t.demands.length ? t.demands : undefined,
+    demandPlacing: t.demands.find((d) => d.key === 'placing')
+      ? Number(/前 (\d+)/.exec(t.demands.find((d) => d.key === 'placing')!.text)?.[1] ?? 8)
+      : undefined,
   }]
   state.news.push({
     day: state.day, kind: 'club', important: true,
@@ -639,11 +645,51 @@ export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
 
 /** Offers that are still open, soonest first. */
 export function openGigs(state: GameState): Gig[] {
+  // An unaccepted invitation is open until its window closes, not until its
+  // first possible day passes. It used to vanish from the screen on day two
+  // while still holding one of the three slots that gate new invitations —
+  // so the offers dried up and nothing on screen explained why.
   return (state.gigs ?? [])
-    .filter((g) => !g.done && g.day >= state.day)
+    .filter((g) => !g.done && (g.accepted ? g.day >= state.day : (g.windowEnd ?? g.expiresOn ?? g.day) >= state.day))
     .sort((a, b) => a.day - b.day)
 }
 
 export function gigRng(state: GameState): Rng {
   return new Rng(hashStr(`gig:${state.seed}:${state.year}:${state.day}`))
+}
+
+
+/**
+ * Sponsorship clauses, settled at the end of the season.
+ *
+ * A talk with two demands pays 25% more than one with none — the commercial
+ * screen says so in as many words. Nothing ever checked whether the club kept
+ * its side, so the correct play was always to take the most demanding offer
+ * and ignore it. A breached clause now ends the contract.
+ */
+export function settleSponsorDemands(state: GameState): string[] {
+  const notes: string[] = []
+  const team = state.teams[state.myTeam]
+  if (!team) return notes
+  const squad = squadOf(state, state.myTeam)
+  const kept: Sponsor[] = []
+  for (const sp of team.sponsors) {
+    const broken = (sp.demands ?? []).find((d) => {
+      if (d.key === 'gigs') return (state.seasonGigs ?? 0) < 3
+      if (d.key === 'stream') return !squad.some((p) => p.stream)
+      if (d.key === 'placing') return (state.bestPlacing ?? 99) > (sp.demandPlacing ?? 8)
+      if (d.key === 'exclusive') {
+        return team.sponsors.some((o) => o !== sp && o.industry && o.industry === sp.industry)
+      }
+      return false
+    })
+    if (!broken) { kept.push(sp); continue }
+    notes.push(`📄 ${sp.name} 终止了合作：合同写明「${broken.text}」，本赛季没有做到。`)
+    state.news.push({
+      day: state.day, kind: 'club', important: true,
+      text: `📄 ${team.name} 与 ${sp.name} 的赞助因未达成约定条件而终止。`,
+    })
+  }
+  team.sponsors = kept
+  return notes
 }

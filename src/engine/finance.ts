@@ -89,6 +89,15 @@ export function weeklyFinance(state: GameState): void {
 
     if (team.id === state.myTeam) {
       state.finances.balance += net
+      // "资金为负会持续削弱董事会信任度" is printed on the finance page and
+      // was true of nothing: every write to boardConfidence came from results.
+      // Debt now costs confidence, scaled to how deep it is, so the warning
+      // and the sack chain it points at actually connect.
+      if (state.finances.balance < 0) {
+        const depth = Math.min(3, -state.finances.balance / Math.max(1, wages * 4))
+        const hit = 0.5 + depth * 1.5
+        state.boardConfidence = Math.max(0, state.boardConfidence - hit)
+      }
       state.finances.log.push({ day: state.day, label: '赞助收入', amount: sponsor })
       state.finances.log.push({ day: state.day, label: '选手薪资', amount: -wages })
       state.finances.log.push({ day: state.day, label: '运营开支', amount: -upkeep })

@@ -7,14 +7,24 @@ import type { Activity, GameState, StageKey } from './types'
 export function logActivity(state: GameState, kind: Activity['kind'], text: string): void {
   state.activity ??= []
   // one line per distinct action per day; repeating an action just updates it
-  const existing = state.activity.find((a) => a.day === state.day && a.text === text)
+  const existing = state.activity.find(
+    (a) => a.day === state.day && (a.year ?? state.year) === state.year && a.text === text)
   if (existing) return
-  state.activity.push({ day: state.day, kind, text })
+  state.activity.push({ day: state.day, year: state.year, kind, text })
   if (state.activity.length > 300) state.activity.splice(0, state.activity.length - 300)
 }
 
+/**
+ * What was done on a given day OF THIS SEASON.
+ *
+ * The clock resets every new year while the log deliberately keeps its old
+ * entries, so matching on day alone showed last season's errands under
+ * today's heading. Entries written before this carried no year; treat them as
+ * belonging to whatever season they are being read in, which is the old
+ * behaviour and cannot make an existing save worse.
+ */
 export const activityOn = (state: GameState, day: number): Activity[] =>
-  (state.activity ?? []).filter((a) => a.day === day)
+  (state.activity ?? []).filter((a) => a.day === day && (a.year ?? state.year) === state.year)
 
 /**
  * What actually deserves the manager's attention right now.
@@ -215,7 +225,8 @@ export function agendaFor(state: GameState): AgendaItem[] {
   }
 
   // commercial work has to be booked before the day arrives, so surface it
-  const gigs = (state.gigs ?? []).filter((g) => !g.done && g.day >= state.day)
+  const gigs = (state.gigs ?? []).filter(
+    (g) => !g.done && (g.accepted ? g.day >= state.day : (g.windowEnd ?? g.expiresOn ?? g.day) >= state.day))
   const unbooked = gigs.filter((g) => !g.accepted)
   if (unbooked.length) {
     const soon = unbooked.reduce((a, b) => (a.day < b.day ? a : b))

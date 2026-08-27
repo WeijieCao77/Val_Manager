@@ -5,7 +5,7 @@ import { logActivity } from '../engine/agenda'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { appointIgl, squadOf, autoStarters } from '../engine/world'
 import { statLine } from '../engine/player'
-import { ratingOf } from '../engine/match'
+import { ratingOf, selectLineup } from '../engine/match'
 import { releasePlayer, squadFloorBlock } from '../engine/transfer'
 import { bondBetween, notableBonds, squadHarmony } from '../engine/bonds'
 import { departureImpact, trustLabel, trustOf, trustOnBench } from '../engine/trust'
@@ -81,8 +81,15 @@ export default function Squad() {
   // "no caller" means nobody who will actually walk out and call: an IGL who
   // is named in the five but injured is filtered out on match day, and the
   // game was played without one while this screen showed no warning at all
-  const noIgl = me.starters.length >= 5
-    && !me.starters.some((id) => {
+  // The `>= 5` guard used to hide this warning exactly when it mattered most:
+  // selling the caller drops the five to four AND removes the only man who
+  // calls, so the one screen that would have said "nobody is calling" went
+  // quiet on the same transaction. Judge the men who will actually walk out.
+  const willPlay = me.starters.length >= 5
+    ? me.starters
+    : selectLineup(game, game.myTeam).map((p) => p.id)
+  const noIgl = willPlay.length > 0
+    && !willPlay.some((id) => {
       const x = game.players[id]
       return x?.isIgl && x.injuredUntil <= game.day
     })

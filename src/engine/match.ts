@@ -761,8 +761,11 @@ export class MatchSim {
     for (const h of highlights) {
       if (this.highlights.length < 10) this.highlights.push(`[${score.map}] ${h}`)
     }
+    // A 24-round scrim can finish 12-12. The else branch used to hand that to
+    // side B: the news read "0-1", the whole squad lost form and morale for a
+    // defeat, and the scoreboard right above it said 12–12.
     if (score.scoreA > score.scoreB) this.wonA++
-    else this.wonB++
+    else if (score.scoreB > score.scoreA) this.wonB++
     this.current = null
   }
 

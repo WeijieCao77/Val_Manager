@@ -82,7 +82,7 @@ export default function Schedule() {
                         className={`${mine ? 'me' : ''} ${f.played ? 'clickable' : ''}`}
                         onClick={() => f.played && openMatch(f)}
                       >
-                        <td className="num muted mono sticky-name at-left">{fmtDay(f.day)}</td>
+                        <td className="num muted mono sticky-name at-left">{fmtDay(f.day, game.year)}</td>
                         <td className="small hide-m">{game.comps[f.comp]?.name ?? f.comp}</td>
                         <td className="small muted">{f.label.replace(/^KO:\d+:/, '')}</td>
                         <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>{a?.tag}</td>

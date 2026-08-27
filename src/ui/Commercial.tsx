@@ -242,7 +242,7 @@ export default function Commercial() {
                       {freeDays(game, g).map((d) => (
                         <button key={d} className={`sm${gigDay === d ? ' primary' : ''}`}
                           onClick={() => setGigDay(d)}>
-                          {fmtDay(d)}
+                          {fmtDay(d, game.year)}
                           <span className="tiny faint"> {d - game.day}天后</span>
                         </button>
                       ))}

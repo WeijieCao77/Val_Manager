@@ -388,7 +388,7 @@ export default function Training() {
       <Panel title={`理疗室 · 每次 ${money(PHYSIO_COST)}`}>
         <p className="small muted" style={{ marginTop: 0 }}>
           花钱不花行动力：一次理疗<b>大幅恢复体能</b>；如果人正在伤停，还会<b>缩短复出时间</b>。
-          每名选手每 7 天最多一次。体能是伤病的根源——50 以下几乎不会受伤。
+          每名选手每 7 天最多一次。体能是伤病的根源——<b>体能 55 以上几乎不会受伤</b>，低于 55 风险随体能下降快速上升。
         </p>
         <div className="row wrap" style={{ gap: 8 }}>
           {squad.map((p) => {
