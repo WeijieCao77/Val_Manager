@@ -19,7 +19,7 @@
  */
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
-import { extname, join, normalize } from 'node:path'
+import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
 import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
@@ -43,6 +43,7 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
 }
@@ -290,9 +291,17 @@ createServer((req, res) => {
 
   const ext = extname(file)
   const hashed = /-[A-Za-z0-9_]{8,}\./.test(file)
+  // The 399 player photographs are named after the player, not their contents,
+  // so they cannot be immutable — a re-scrape reuses the filename. But they are
+  // also not index.html: revalidating four hundred of them on every visit is
+  // four hundred round trips to be told nothing changed. A day is short enough
+  // that a new photo lands on its own and long enough that browsing is free.
+  const face = file.includes(`${sep}faces${sep}`)
   res.writeHead(200, {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
-    'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'Cache-Control': hashed ? 'public, max-age=31536000, immutable'
+      : face ? 'public, max-age=86400'
+        : 'no-cache',
   })
   createReadStream(file).pipe(res)
 }).on('clientError', (_err, socket) => {
