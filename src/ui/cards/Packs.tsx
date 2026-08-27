@@ -7,7 +7,7 @@ import {
   checkIn, claimQuest, collectionProgress, openPack, refreshDaily, salvage,
 } from '../../engine/gacha'
 import type { PackKind, Pulled, QuestKey } from '../../engine/gacha'
-import { RARITY_CN } from '../../engine/cards'
+import { RARITY_CN, isPlayerCard } from '../../engine/cards'
 import { track } from '../../engine/telemetry'
 
 export default function Packs() {
@@ -224,17 +224,29 @@ function PackStage({
 
   return (
     <div className="pack-stage" onClick={finished ? undefined : onNext}>
-      {current?.card.rarity === 'gold' && <div key={shown} className="pack-glow" />}
+      {(current?.card.rarity === 'gold' || current?.card.rarity === 'mythic') && (
+        <div key={shown} className={`pack-glow${current.card.rarity === 'mythic' ? ' holo' : ''}`} />
+      )}
       <div className="pack-reveal">
         {(!finished || single) && current && (
           <>
             <Flip key={`${current.card.id}-${shown}`}>
               <CardFace card={current.card} size="lg" />
             </Flip>
-            <div className="row" style={{ gap: 8 }}>
-              <span className={`tag ${current.card.rarity === 'gold' ? 't1' : 't2'}`}>
+            <div className="row" style={{ gap: 8, flexDirection: 'column' }}>
+              <span
+                className={`tag ${current.card.rarity === 'mythic' ? 'holo'
+                  : current.card.rarity === 'gold' ? 't1' : 't2'}`}
+              >
                 {RARITY_CN[current.card.rarity]}
               </span>
+              {isPlayerCard(current.card) && current.card.legend && (
+                <span className="small" style={{ color: '#e9dcff', textAlign: 'center' }}>
+                  <b>{current.card.legend.title}</b>
+                  <br />
+                  <span className="tiny muted">{current.card.legend.note}</span>
+                </span>
+              )}
               {current.dupe && <span className="tiny muted">重复 · 可分解 {current.salvage} 金币</span>}
             </div>
             {single ? actions : <div className="pack-hint">{shown}/{pulled.length} · 点任意位置继续</div>}

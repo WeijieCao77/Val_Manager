@@ -227,6 +227,7 @@ function migrate(state: GachaState, id: string): GachaState {
   g.id = id
   g.cards ??= {}
   g.packs ??= {}
+  g.mythicDry ??= 0
   g.log ??= []
   g.squad ??= { slots: [null, null, null, null, null], coach: null }
   g.squad.slots ??= [null, null, null, null, null]

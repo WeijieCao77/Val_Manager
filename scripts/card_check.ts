@@ -9,11 +9,14 @@
  *
  *   npx tsx scripts/card_check.ts
  */
-import { PLAYER_CARDS, COACH_CARDS, chemistry, squadRating, emptySquad } from '../src/engine/cards'
+import {
+  PLAYER_CARDS, COACH_CARDS, LEGEND_CARDS, GOLD_AT, chemistry, squadRating, emptySquad,
+} from '../src/engine/cards'
 import type { Squad } from '../src/engine/cards'
 import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
   collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, CUP_ENTRY, starsFor,
+  MYTHIC_FLOOR, setSlot,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
@@ -24,7 +27,7 @@ const pct = (n: number, d: number) => `${((100 * n) / Math.max(1, d)).toFixed(1)
 // ---------------------------------------------------------------- 1. pools
 
 console.log('=== 卡池 ===')
-for (const metal of ['gold', 'silver', 'bronze'] as const) {
+for (const metal of ['mythic', 'gold', 'silver', 'bronze'] as const) {
   const p = PLAYER_CARDS.filter((c) => c.rarity === metal)
   const c = COACH_CARDS.filter((x) => x.rarity === metal)
   console.log(`  ${metal.padEnd(6)} 选手 ${String(p.length).padStart(3)} (${pct(p.length, PLAYER_CARDS.length)})`
@@ -94,29 +97,42 @@ console.log('\n=== 默契 vs 纯数值 ===')
   }
   const clubSquad: Squad = { slots: bestClub[1].slice(0, 5).map((c) => c.id), coach: null }
   const stars = PLAYER_CARDS.slice().sort((a, b) => b.rating - a.rating)
+  // deliberately scattered: no two from the same club, and never the same man
+  // twice — the legend and the ordinary card of one player are one person
   const picked: string[] = []
-  const seenRegion = new Set<string>()
+  const seenClub = new Set<string>()
+  const seenPerson = new Set<string>()
   for (const c of stars) {
-    // deliberately scattered: no two from the same club, spread across regions
     if (picked.length >= 5) break
-    if (seenRegion.has(c.clubId ?? '')) continue
-    seenRegion.add(c.clubId ?? '')
+    if (seenClub.has(c.clubId ?? '') || seenPerson.has(c.playerId)) continue
+    seenClub.add(c.clubId ?? '')
+    seenPerson.add(c.playerId)
     picked.push(c.id)
   }
   const starSquad: Squad = { slots: picked, coach: null }
 
-  // the same all-star idea, but with one card per role, so the comparison is
-  // about links and not about five duelists sharing a server
+  // the same all-star idea, but one card per role, so the comparison is about
+  // links rather than about five duelists sharing a server
   const SLOTS = ['决斗者', '先锋', '控场', '哨卫', '自由人'] as const
-  const usedIds = new Set<string>()
+  const tidyPerson = new Set<string>()
   const tidy: (string | null)[] = SLOTS.map((role) => {
-    const c = stars.find((x) => !usedIds.has(x.id)
-      && !seenRegion.has(`${x.clubId}#`) && x.roles.includes(role as never))
-      ?? stars.find((x) => !usedIds.has(x.id))
-    if (c) { usedIds.add(c.id); return c.id }
+    const c = stars.find((x) => !tidyPerson.has(x.playerId) && x.roles.includes(role as never))
+      ?? stars.find((x) => !tidyPerson.has(x.playerId))
+    if (c) { tidyPerson.add(c.playerId); return c.id }
     return null
   })
   const tidySquad: Squad = { slots: tidy, coach: null }
+
+  // the same all-stars, but one seat given to the best caller available. The
+  // no-IGL penalty is a separate rule from chemistry and worth separating out:
+  // a彩卡 five that forgot to bring a voice is not the same experiment.
+  const iglSquad: Squad = { slots: [...tidy], coach: null }
+  if (!tidy.some((id) => PLAYER_CARDS.find((c) => c.id === id)?.isIgl)) {
+    const caller = stars.find((c) => c.isIgl && !tidyPerson.has(c.playerId))
+    if (caller) iglSquad.slots[4] = caller.id
+  }
+  const iglAvg = iglSquad.slots.filter(Boolean)
+    .map((id) => PLAYER_CARDS.find((c) => c.id === id)!.rating).reduce((s, v) => s + v, 0) / 5
   const tidyAvg = tidy.filter(Boolean).length
     ? tidy.map((id) => PLAYER_CARDS.find((c) => c.id === id)!.rating).reduce((s, v) => s + v, 0) / 5
     : 0
@@ -130,6 +146,7 @@ console.log('\n=== 默契 vs 纯数值 ===')
 
   let clubWins = 0
   let tidyDelta = 0
+  let iglDelta = 0
   for (let i = 0; i < 300; i++) {
     // both play the same opponent with the same seed, so the only difference
     // between the two runs is the five people on the server
@@ -137,14 +154,18 @@ console.log('\n=== 默契 vs 纯数值 ===')
     const a = playArenaMatch(clubSquad, level, opp, 3, 1000 + i)
     const b = playArenaMatch(starSquad, level, opp, 3, 1000 + i)
     const c = playArenaMatch(tidySquad, level, opp, 3, 1000 + i)
+    const d = playArenaMatch(iglSquad, level, opp, 3, 1000 + i)
     if (a.win && !b.win) clubWins++
     else if (b.win && !a.win) clubWins--
     if (a.win && !c.win) tidyDelta++
     else if (c.win && !a.win) tidyDelta--
+    if (a.win && !d.win) iglDelta++
+    else if (d.win && !a.win) iglDelta--
   }
   console.log(`  300 组同对手同种子对照：`)
   console.log(`    同队五人 vs 乱选全明星      净胜 ${clubWins > 0 ? '+' : ''}${clubWins} 场（均分低 ${(starAvg - clubAvg).toFixed(1)}）`)
-  console.log(`    同队五人 vs 按位置补齐全明星 净胜 ${tidyDelta > 0 ? '+' : ''}${tidyDelta} 场（均分低 ${(tidyAvg - clubAvg).toFixed(1)}）`)
+  console.log(`    同队五人 vs 按位置补齐全明星 净胜 ${tidyDelta > 0 ? '+' : ''}${tidyDelta} 场（均分低 ${(tidyAvg - clubAvg).toFixed(1)}，对面无指挥）`)
+  console.log(`    同队五人 vs 带指挥的全明星   净胜 ${iglDelta > 0 ? '+' : ''}${iglDelta} 场（均分低 ${(iglAvg - clubAvg).toFixed(1)}，对面有指挥）`)
 }
 
 // ---------------------------------------------------------------- 4. economy
@@ -221,6 +242,64 @@ console.log(`\n=== 杯赛 100 次 · ${label} ===`)
   console.log(`  报名费共 ${spent}，余额变化 ${g.coins - before > 0 ? '+' : ''}${g.coins - before}`
     + `  → 每场约 ${Math.round((g.coins - before) / legs)} 金币（天梯大师约 240）`)
 }
+}
+
+console.log('\n=== 彩卡 ===')
+{
+  const g = newGacha('VM-MYTH-MYTH-MYTH-MYTH-MYTH', 'myth', '2026-08-27')
+  g.coins = 1e9
+  const pulls = 40000
+  let mythic = 0
+  const seen = new Set<string>()
+  let longestDry = 0
+  let dry = 0
+  const packs: PackKind[] = ['scout', 'elite', 'ten']
+  let i = 0
+  while (i < pulls) {
+    const kind = packs[i % packs.length]
+    for (const p of openPack(g, kind, 'coins')) {
+      i++
+      if (p.card.rarity === 'mythic') {
+        mythic++
+        seen.add(p.card.id)
+        longestDry = Math.max(longestDry, dry)
+        dry = 0
+      } else dry++
+    }
+  }
+  console.log(`  ${i} 抽里出了 ${mythic} 张彩卡（${((100 * mythic) / i).toFixed(3)}%，约 ${Math.round(i / Math.max(1, mythic))} 抽一张）`)
+  // packs reveal worst-first, so a彩卡 rolled mid-pack is shown last and a run
+  // measured off the reveal can read up to one pack longer than it ran
+  const bound = MYTHIC_FLOOR + 10
+  console.log(`  最长连续不出彩卡 ${longestDry} 抽（保底 ${MYTHIC_FLOOR}，揭示顺序上限 ${bound}）`)
+  console.log(`  ${seen.size}/${LEGEND_CARDS.length} 种彩卡出现过`)
+  console.log(`  ${longestDry <= bound ? 'ok' : 'FAIL'} 保底没有被突破`)
+
+  // every legend must be a real person already in the game
+  const orphan = LEGEND_CARDS.filter((c) => !WORLD_TEAMS && !c.playerId)
+  console.log(`  ${orphan.length === 0 ? 'ok' : 'FAIL'} 每张彩卡都对应真实选手`)
+  const byPerson = new Map<string, number>()
+  for (const c of LEGEND_CARDS) byPerson.set(c.playerId, (byPerson.get(c.playerId) ?? 0) + 1)
+  console.log(`  ${LEGEND_CARDS.length} 张彩卡，覆盖 ${byPerson.size} 名选手`)
+  console.log(`  评分区间 ${Math.min(...LEGEND_CARDS.map((c) => c.rating))}–${Math.max(...LEGEND_CARDS.map((c) => c.rating))}`
+    + `（金卡线 ${GOLD_AT}，最强金卡 ${Math.max(...PLAYER_CARDS.filter((c) => c.rarity === 'gold').map((c) => c.rating))}）`)
+  const weaker = LEGEND_CARDS.filter((c) => c.rating < 90)
+  console.log(`  其中 ${weaker.length} 张低于 90，纯收藏向：${weaker.map((c) => c.ign).join('、')}`)
+}
+
+console.log('\n=== 同一个人不能上两次 ===')
+{
+  const g = newGacha('VM-DUPE-DUPE-DUPE-DUPE-DUPE', 'dupe', '2026-08-27')
+  const derke = PLAYER_CARDS.find((c) => c.ign === 'Derke' && !c.legend)!
+  const legend = LEGEND_CARDS.find((c) => c.ign === 'Derke')!
+  g.cards[derke.id] = { id: derke.id, level: 0, dupes: 0, seen: 1, got: '2026-08-27' }
+  g.cards[legend.id] = { id: legend.id, level: 0, dupes: 0, seen: 1, got: '2026-08-27' }
+  setSlot(g, 0, derke.id)
+  console.log(`  放入普通 Derke：${g.squad.slots.filter(Boolean).length} 人在场`)
+  setSlot(g, 1, legend.id)
+  const live = g.squad.slots.filter(Boolean)
+  console.log(`  再放入彩卡 Derke：${live.length} 人在场（应为 1，普通卡被顶替）`)
+  console.log(`  ${live.length === 1 && g.squad.slots[1] === legend.id ? 'ok' : 'FAIL'} 同一个人只能上场一次`)
 }
 
 console.log('\n=== 自动组队 ===')

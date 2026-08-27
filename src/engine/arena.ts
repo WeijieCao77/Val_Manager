@@ -12,12 +12,28 @@ import { createNewGame, WORLD_TEAMS } from './world'
 import { simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
-import { cardById, chemistry, isCoachCard, isPlayerCard, ratingAt, SQUAD_SLOTS } from './cards'
+import {
+  cardById, chemistry, isCoachCard, isPlayerCard, personOf, ratingAt, SQUAD_SLOTS,
+} from './cards'
 import type { Squad } from './cards'
+import type { PlayerCard } from './cards'
 import type { GameState, MatchResult, Player, Role } from './types'
 import { defaultTactics } from './types'
 
 export const ARENA_TEAM = 'ARENA'
+
+/**
+ * What chemistry is worth, in rating points per point of chemistry.
+ *
+ * Read this together with the two other places chemistry lands: the bond table
+ * below (worth about ±4.5 at the extremes, via squadHarmony) and the teamwork
+ * and communication lift (about ±0.5). Routed through those two alone it was
+ * worth a third of a rating point, which made the links decorative and "pick
+ * the biggest numbers" the correct answer, so this direct term carries most of
+ * it. Measured, not guessed: a same-club five four to six points below an
+ * all-star five wins the head-to-head; nine points below, it loses.
+ */
+const CHEM_RATING = 0.12
 
 export interface ArenaSquad extends Squad {
   /** display name for the assembled club */
@@ -26,10 +42,18 @@ export interface ArenaSquad extends Squad {
   tag?: string
 }
 
-/** How far a level takes a card: +1 rating a level, spread across the attributes. */
-function levelled(p: Player, level: number, misfit: boolean): Player {
+/**
+ * Turn a card into the player who walks onto the server.
+ *
+ * The numbers come from the CARD, not from world.json. That distinction was
+ * missing and it quietly made the whole彩卡 tier cosmetic: a 96-rated 2024
+ * 首尔 FMVP ZmjjKK played at ZmjjKK's ordinary 85, because the clone was built
+ * from the world player and never read the card it came from. Levels had the
+ * same problem in miniature.
+ */
+function levelled(p: Player, card: PlayerCard, level: number, misfit: boolean): Player {
   const bump = Math.max(0, level)
-  const attrs = { ...p.attrs }
+  const attrs = { ...card.attrs }
   for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
     attrs[k] = clamp(Math.round(attrs[k] + bump), 1, 99)
   }
@@ -39,7 +63,7 @@ function levelled(p: Player, level: number, misfit: boolean): Player {
     // A card standing in a role it does not cover is worse at it. The engine
     // already punishes the resulting hole in the composition; this is the
     // separate cost of the individual being out of position.
-    overall: clamp(ratingAt(p.overall, bump) - (misfit ? 5 : 0), 1, 99),
+    overall: clamp(ratingAt(card.rating, bump) - (misfit ? 5 : 0), 1, 99),
     traits: p.traits ? [...p.traits] : p.traits,
     // cards arrive rested and confident: the card mode has no season to tire
     // anyone out, and form drift would make the same squad a different squad
@@ -71,16 +95,23 @@ export function buildArena(
   const chem = chemistry(squad)
   const cardOf: Record<string, string> = {}
   const roster: string[] = []
+  // The squad builder will not let you seat a man twice, but a save written
+  // before that rule — or edited by hand — can still hold the ordinary Derke
+  // and the 2023 FNATIC Derke in the same five. The engine is the last word,
+  // so the second copy is dropped here and the side plays short.
+  const seated = new Set<string>()
 
   squad.slots.forEach((cardId, i) => {
     if (!cardId) return
     const card = cardById(cardId)
     if (!isPlayerCard(card)) return
+    if (seated.has(personOf(card))) return
+    seated.add(personOf(card))
     const src = state.players[card.playerId]
     if (!src) return
     const id = `A${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
-    const clone = levelled(src, level(cardId), misfit)
+    const clone = levelled(src, card, level(cardId), misfit)
     // Chemistry lands in two places, and it has to land hard.
     //
     // Routed through teamwork and communication alone it was worth about a
@@ -96,7 +127,7 @@ export function buildArena(
       teamwork: clamp(clone.attrs.teamwork + lift, 1, 99),
       communication: clamp(clone.attrs.communication + lift, 1, 99),
     }
-    clone.overall = clamp(Math.round(clone.overall + (chem.score - 50) * 0.12), 1, 99)
+    clone.overall = clamp(Math.round(clone.overall + (chem.score - 50) * CHEM_RATING), 1, 99)
     state.players[id] = { ...clone, id, teamId: ARENA_TEAM }
     cardOf[id] = cardId
     roster.push(id)

@@ -104,6 +104,15 @@ function Face({ src, alt }: { src: string | null; alt: string }) {
   return <div className="cf-photo cf-noface"><Silhouette /></div>
 }
 
+const hashOf = (s: string): number => {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
 export interface CardFaceProps {
   card: Card
   /** 0-5 — drawn as pips and folded into the rating */
@@ -131,15 +140,32 @@ export default function CardFace({
   const rating = ratingAt(card.rating, level)
   const cls = `cardface r-${card.rarity} s-${size}`
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
-  const title = `${card.kind === 'player' ? card.ign : card.name} · ${RARITY_CN[card.rarity]} ${rating}`
-    + (level ? `（+${level}）` : '')
+  const legend = isPlayerCard(card) ? card.legend : undefined
+  const title = legend
+    ? `${legend.title} · ${card.kind === 'player' ? card.ign : ''} · 彩卡 ${rating}`
+    : `${card.kind === 'player' ? card.ign : card.name} · ${RARITY_CN[card.rarity]} ${rating}`
+      + (level ? `（+${level}）` : '')
 
   const body = isPlayerCard(card)
     ? <PlayerBody card={card} size={size} footer={footer} />
     : <CoachBody card={card as CoachCard} size={size} footer={footer} />
 
+  // A grid of彩卡 all animating in step reads as "a row of red cards", not as
+  // iridescence. Each one starts somewhere else in the cycle, keyed off its own
+  // id so it is the same every time you open the page.
+  const holo = card.rarity === 'mythic'
+    ? { animationDelay: `-${(hashOf(card.id) % 90) / 10}s` }
+    : undefined
+
   return (
-    <div className={cls} onClick={onClick} title={title} role={onClick ? 'button' : undefined}>
+    <div
+      className={cls}
+      style={holo}
+      onClick={onClick}
+      title={title}
+      role={onClick ? 'button' : undefined}
+    >
+      {legend && <span className="cf-star" aria-hidden="true">★</span>}
       <div className="cf-rate">
         <b>{rating}</b>
         {level > 0 && <i className="cf-plus">+{level}</i>}
@@ -165,6 +191,7 @@ function PlayerBody({ card, size, footer }: { card: PlayerCard; size: string; fo
   return (
     <>
       <Face src={card.face} alt={card.ign} />
+      {card.legend && <div className="cf-moment">{card.legend.short}</div>}
       <div className="cf-name">{card.ign}</div>
       {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}
       <div className="cf-meta">

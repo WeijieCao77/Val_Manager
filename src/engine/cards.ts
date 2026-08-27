@@ -10,13 +10,20 @@
  */
 import { WORLD_PLAYERS, WORLD_TEAMS, WORLD_ANALYSTS } from './world'
 import { DOSSIER, coachDossier, faceUrl } from './dossier'
+import { LEGENDS } from './legends'
+import type { Legend } from './legends'
+import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
 
-export type Rarity = 'gold' | 'silver' | 'bronze'
+export type Rarity = 'mythic' | 'gold' | 'silver' | 'bronze'
 
 export const RARITY_CN: Record<Rarity, string> = {
-  gold: '金卡', silver: '银卡', bronze: '铜卡',
+  mythic: '彩卡', gold: '金卡', silver: '银卡', bronze: '铜卡',
 }
+
+/** worst to best, for anywhere that has to compare two metals */
+export const RARITY_ORDER: Rarity[] = ['bronze', 'silver', 'gold', 'mythic']
+export const rarityRank = (r: Rarity): number => RARITY_ORDER.indexOf(r)
 
 /**
  * Where the three metals sit.
@@ -29,6 +36,10 @@ export const RARITY_CN: Record<Rarity, string> = {
 export const GOLD_AT = 84
 export const SILVER_AT = 72
 
+/**
+ * The metal a rating earns. Never 彩卡 — that tier is not something a number
+ * can qualify for, it is awarded to a specific night by engine/legends.ts.
+ */
 export const rarityOf = (rating: number): Rarity =>
   rating >= GOLD_AT ? 'gold' : rating >= SILVER_AT ? 'silver' : 'bronze'
 
@@ -41,6 +52,13 @@ export interface PlayerCard {
   id: string
   /** the world.json player id this card is a face of */
   playerId: string
+  /**
+   * Set on a彩卡: the night this version of him is.
+   *
+   * A legend keeps the club he played it FOR, not the one he is at now, so the
+   * chemistry graph reads 2023 FNATIC rather than wherever he ended up.
+   */
+  legend?: Legend
   ign: string
   realName: string | null
   /** two-letter country code, lowercased, from vlr.gg */
@@ -165,7 +183,50 @@ function buildCoachCards(): CoachCard[] {
   return out
 }
 
-export const PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
+/**
+ * Where a legend's numbers come from.
+ *
+ * The rating is authored — it is a claim about a night, and Boaster's 62 in
+ * 2026 says nothing about the two majors he called in 2023. The attributes are
+ * not authored: they are his own, moved by the same amount the rating moved,
+ * so the shape of the player survives. A duelist stays a duelist.
+ */
+function legendAttrs(base: Attrs, delta: number): Attrs {
+  const out = { ...base }
+  for (const k of Object.keys(out) as (keyof Attrs)[]) {
+    out[k] = clamp(Math.round(out[k] + delta), 1, 99)
+  }
+  return out
+}
+
+function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
+  const byIgn = new Map(players.map((c) => [c.ign.toLowerCase(), c]))
+  const out: PlayerCard[] = []
+  for (const l of LEGENDS) {
+    const base = byIgn.get(l.ign.toLowerCase())
+    // A legend with no live player behind it would be a fabricated person,
+    // which this project does not have. Skipped loudly rather than invented.
+    if (!base) {
+      console.warn(`legend ${l.id}: no player called ${l.ign} in world.json`)
+      continue
+    }
+    out.push({
+      ...base,
+      id: l.id,
+      legend: l,
+      clubId: l.clubId,
+      clubTag: l.clubTag,
+      attrs: legendAttrs(base.attrs, l.rating - base.rating),
+      rating: l.rating,
+      rarity: 'mythic',
+    })
+  }
+  return out
+}
+
+const BASE_PLAYER_CARDS = buildPlayerCards()
+export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(BASE_PLAYER_CARDS)
+export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
 export const COACH_CARDS: CoachCard[] = buildCoachCards()
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...COACH_CARDS]
 
@@ -177,6 +238,16 @@ export const isCoachCard = (c: Card | undefined): c is CoachCard => c?.kind === 
 
 /** Display name, whichever kind of card it is. */
 export const cardName = (c: Card): string => (c.kind === 'player' ? c.ign : c.name)
+
+/**
+ * Who a card actually IS, as opposed to which card it is.
+ *
+ * A legend and the ordinary card share a person: "2023 双冠 FNATIC Derke" and
+ * "Derke, Team Vitality" are the same man, and a five containing both is a
+ * five of four people. Anything picking a squad compares this, not the id.
+ */
+export const personOf = (c: Card): string =>
+  c.kind === 'player' ? c.playerId : `c:${c.name}`
 
 // ---------------------------------------------------------------- levels
 
@@ -197,7 +268,11 @@ export const DUPES_FOR = [1, 1, 2, 3, 5]
 export const COINS_FOR = [400, 900, 2000, 4200, 9000]
 
 /** What a spare copy sells for. */
-export const SALVAGE: Record<Rarity, number> = { gold: 700, silver: 200, bronze: 60 }
+export const SALVAGE: Record<Rarity, number> = {
+  // a spare彩卡 is worth more than a pack of anything else, and still nobody
+  // sane sells one
+  mythic: 4000, gold: 700, silver: 200, bronze: 60,
+}
 
 export const ratingAt = (base: number, level: number): number =>
   Math.min(99, base + Math.max(0, Math.min(MAX_LEVEL, level)))

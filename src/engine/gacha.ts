@@ -9,10 +9,11 @@
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './world'
 import {
-  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, MAX_LEVEL, PLAYER_CARDS, SALVAGE,
-  SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, ratingAt, squadRating,
+  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, MAX_LEVEL, PLAYER_CARDS,
+  SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
+  squadRating,
 } from './cards'
-import type { Card, Rarity, Squad } from './cards'
+import type { Card, CoachCard, Rarity, Squad } from './cards'
 
 export const GACHA_VERSION = 1
 
@@ -26,6 +27,13 @@ export interface PackDef {
   blurb: string
   cost: number
   draws: number
+  /**
+   * Chance of a彩卡 on each individual draw.
+   *
+   * Deliberately a lottery: twenty cards, and at five pulls a day it is months
+   * between them. MYTHIC_FLOOR is the only thing that makes it a certainty.
+   */
+  mythic: number
   /** chance of a gold on each individual draw */
   gold: number
   silver: number
@@ -39,22 +47,24 @@ export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。大部分是铜卡，但金卡就是从这里出的。',
-    cost: 500, draws: 1, gold: 0.04, silver: 0.26,
+    cost: 500, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26,
   },
   elite: {
     kind: 'elite', name: '选拔包', pool: 'player',
     blurb: '三张选手卡，至少一张银卡起。',
-    cost: 1800, draws: 3, gold: 0.10, silver: 0.38, floor: 'silver',
+    cost: 1800, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver',
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
-    blurb: '十张选手卡，必出金卡。',
-    cost: 5000, draws: 10, gold: 0.08, silver: 0.34, floor: 'gold',
+    blurb: '十张选手卡，必出金卡。彩卡也只从这里出得最多。',
+    cost: 5000, draws: 10, mythic: 0.0025, gold: 0.08, silver: 0.34, floor: 'gold',
   },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
-    cost: 900, draws: 1, gold: 0.15, silver: 0.42,
+    // no legend coaches: a彩卡 is a night somebody played, and these twenty
+    // nights were played by players
+    cost: 900, draws: 1, mythic: 0, gold: 0.15, silver: 0.42,
   },
 }
 
@@ -69,6 +79,16 @@ export const PACK_ORDER: PackKind[] = ['scout', 'elite', 'ten', 'coach']
  */
 export const SOFT_PITY = 25
 export const HARD_PITY = 45
+
+/**
+ * How long a彩卡 drought is allowed to run.
+ *
+ * The odds alone are months between cards, which is the point — but "never" is
+ * not a feeling a collection should be able to produce. Five hundred pulls is
+ * roughly two and a half months of daily play, so the tier stays a lottery
+ * while still being a thing you can aim at.
+ */
+export const MYTHIC_FLOOR = 500
 
 const goldChance = (base: number, pity: number): number => {
   if (pity >= HARD_PITY - 1) return 1
@@ -176,6 +196,8 @@ export interface GachaState {
   squad: Squad
   /** pulls since the last gold */
   pity: number
+  /** pulls since the last彩卡 — see MYTHIC_FLOOR */
+  mythicDry: number
   pulls: number
   ladder: LadderState
   cup: CupState | null
@@ -199,6 +221,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     packs: { scout: 3, elite: 1, coach: 1 },
     squad: emptySquad(),
     pity: 0,
+    mythicDry: 0,
     pulls: 0,
     ladder: { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 },
     cup: null,
@@ -229,11 +252,13 @@ export const owns = (g: GachaState, cardId: string): boolean => !!g.cards[cardId
 
 const POOLS = {
   player: {
+    mythic: LEGEND_CARDS,
     gold: PLAYER_CARDS.filter((c) => c.rarity === 'gold'),
     silver: PLAYER_CARDS.filter((c) => c.rarity === 'silver'),
     bronze: PLAYER_CARDS.filter((c) => c.rarity === 'bronze'),
   },
   coach: {
+    mythic: [] as CoachCard[],
     gold: COACH_CARDS.filter((c) => c.rarity === 'gold'),
     silver: COACH_CARDS.filter((c) => c.rarity === 'silver'),
     bronze: COACH_CARDS.filter((c) => c.rarity === 'bronze'),
@@ -269,26 +294,44 @@ export function openPack(g: GachaState, kind: PackKind, payWith: 'pack' | 'coins
   const pool = POOLS[def.pool]
   const metals: Rarity[] = []
   for (let i = 0; i < def.draws; i++) {
-    const gc = goldChance(def.gold, g.pity)
     const r = rng.next()
     let metal: Rarity
-    if (r < gc) metal = 'gold'
-    else if (r < gc + def.silver) metal = 'silver'
-    else metal = 'bronze'
-    if (metal === 'gold') g.pity = 0
-    else g.pity++
+    // the彩卡 roll happens first and on its own budget, so raising the gold
+    // rate never quietly changes how rare a legend is
+    const owed = def.mythic > 0 && g.mythicDry >= MYTHIC_FLOOR
+    if (owed || r < def.mythic) {
+      metal = 'mythic'
+    } else {
+      const gc = goldChance(def.gold, g.pity)
+      // re-roll inside the remaining probability so the metals still sum to 1
+      const rest = (r - def.mythic) / Math.max(1e-9, 1 - def.mythic)
+      if (rest < gc) metal = 'gold'
+      else if (rest < gc + def.silver) metal = 'silver'
+      else metal = 'bronze'
+    }
+    if (metal === 'mythic') { g.mythicDry = 0; g.pity = 0 } else {
+      // a coach pack cannot produce a彩卡, so it must not count toward the
+      // floor either — otherwise the guarantee could be spent on a deck it
+      // can never be paid out of
+      if (def.mythic > 0) g.mythicDry = (g.mythicDry ?? 0) + 1
+      if (metal === 'gold') g.pity = 0
+      else g.pity++
+    }
     metals.push(metal)
   }
   // honour the pack's promise on the last card, which is the one being watched
   if (def.floor) {
-    const rank = { bronze: 0, silver: 1, gold: 2 }
-    const bestAt = metals.reduce((b, m, i) => (rank[m] > rank[metals[b]] ? i : b), 0)
-    if (rank[metals[bestAt]] < rank[def.floor]) {
+    const bestAt = metals.reduce(
+      (b, m, i) => (rarityRank(m) > rarityRank(metals[b]) ? i : b), 0)
+    if (rarityRank(metals[bestAt]) < rarityRank(def.floor)) {
       metals[bestAt] = def.floor
       if (def.floor === 'gold') g.pity = 0
     }
   }
-  metals.sort((a, b) => ({ bronze: 0, silver: 1, gold: 2 })[a] - ({ bronze: 0, silver: 1, gold: 2 })[b])
+  // worst first, so the card that matters is the last one turned over. Note
+  // this is REVEAL order, not roll order — the floor counter above ran in roll
+  // order, so a run measured off the reveal can look one pack longer than it was.
+  metals.sort((a, b) => rarityRank(a) - rarityRank(b))
 
   const out: Pulled[] = []
   for (const metal of metals) {
@@ -308,10 +351,14 @@ export function openPack(g: GachaState, kind: PackKind, payWith: 'pack' | 'coins
   g.pulls += def.draws
   bumpQuest(g, 'open2', 1)
 
+  const name = (c: Card) => (c.kind === 'player' ? c.ign : c.name)
+  const mythics = out.filter((p) => p.card.rarity === 'mythic')
   const golds = out.filter((p) => p.card.rarity === 'gold')
-  note(g, golds.length
-    ? `${def.name}：抽到 ${golds.map((p) => (p.card.kind === 'player' ? p.card.ign : p.card.name)).join('、')}（金卡）`
-    : `${def.name}：${def.draws} 张，没有金卡`)
+  note(g, mythics.length
+    ? `${def.name}：★ 彩卡 ${mythics.map((p) => (isPlayerCard(p.card) && p.card.legend ? p.card.legend.title : name(p.card))).join('、')}`
+    : golds.length
+      ? `${def.name}：抽到 ${golds.map((p) => name(p.card)).join('、')}（金卡）`
+      : `${def.name}：${def.draws} 张，没有金卡`)
   return out
 }
 
@@ -630,14 +677,44 @@ export function checkIn(g: GachaState, today: string): CheckIn {
 
 // ---------------------------------------------------------------- squad
 
-/** Put a card in a slot, taking it out of whatever slot it was already in. */
+/**
+ * Put a card in a slot.
+ *
+ * Two rules. The same CARD moving in from another slot swaps with whatever was
+ * there. The same PERSON already on the squad under a different card — the
+ * ordinary Derke and the 2023 FNATIC Derke — is removed instead of swapped:
+ * you cannot field a man twice, and silently letting it happen would be the
+ * strongest squad in the game.
+ */
 export function setSlot(g: GachaState, index: number, cardId: string | null): void {
   if (index < 0 || index >= g.squad.slots.length) return
   if (cardId) {
     const at = g.squad.slots.indexOf(cardId)
-    if (at >= 0) g.squad.slots[at] = g.squad.slots[index]
+    if (at >= 0) {
+      g.squad.slots[at] = g.squad.slots[index]
+    } else {
+      const who = cardById(cardId)
+      if (who) {
+        g.squad.slots.forEach((other, i) => {
+          if (i === index || !other) return
+          const c = cardById(other)
+          if (c && personOf(c) === personOf(who)) g.squad.slots[i] = null
+        })
+      }
+    }
   }
   g.squad.slots[index] = cardId
+}
+
+/** True when this card's person is already on the squad in another slot. */
+export function personTaken(g: GachaState, cardId: string, exceptSlot = -1): boolean {
+  const who = cardById(cardId)
+  if (!who) return false
+  return g.squad.slots.some((other, i) => {
+    if (i === exceptSlot || !other || other === cardId) return false
+    const c = cardById(other)
+    return !!c && personOf(c) === personOf(who)
+  })
 }
 
 /**
@@ -652,13 +729,15 @@ export function autoSquad(g: GachaState): Squad {
   const level = (id: string) => g.cards[id]?.level ?? 0
   const mine = collection(g).filter((c) => isPlayerCard(c.card))
   const squad = emptySquad()
+  // keyed on the person, not the card: the legend and the ordinary card are
+  // the same man and only one of them can be on the server
   const used = new Set<string>()
   SQUAD_SLOTS.forEach((role, i) => {
-    const fit = mine.find((c) => !used.has(c.card.id)
-      && isPlayerCard(c.card) && c.card.roles.includes(role))
-    const pick = fit ?? mine.find((c) => !used.has(c.card.id))
+    const free = (c: { card: Card }) => !used.has(personOf(c.card))
+    const fit = mine.find((c) => free(c) && isPlayerCard(c.card) && c.card.roles.includes(role))
+    const pick = fit ?? mine.find(free)
     if (pick) {
-      used.add(pick.card.id)
+      used.add(personOf(pick.card))
       squad.slots[i] = pick.card.id
     }
   })
@@ -677,6 +756,7 @@ export function autoSquad(g: GachaState): Squad {
       let cur = squad.slots[i]
       for (const id of bench) {
         if (id === cur || squad.slots.includes(id)) continue
+        if (personTaken(g, id, i)) continue
         squad.slots[i] = id
         const score = squadRating(squad, level)
         if (score > best) { best = score; cur = id; moved = true } else squad.slots[i] = cur

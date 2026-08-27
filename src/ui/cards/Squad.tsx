@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardSlot } from '../Card'
 import { Panel } from '../common'
-import { autoSquad, collection, levelOf, setSlot } from '../../engine/gacha'
+import { autoSquad, collection, levelOf, personTaken, setSlot } from '../../engine/gacha'
 import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
 
@@ -189,6 +189,10 @@ export default function SquadScreen() {
                 <div className="cm-grid sm">
                   {options.slice(0, 120).map(({ card, owned }) => {
                     const inSquad = g.squad.slots.includes(card.id) || g.squad.coach === card.id
+                    // the same man under another card — picking him replaces
+                    // that one rather than putting him on twice
+                    const dupPerson = typeof picking === 'number'
+                      && personTaken(g, card.id, picking)
                     const fits = typeof picking === 'number' && isPlayerCard(card)
                       && card.roles.includes(SQUAD_SLOTS[picking])
                     return (
@@ -199,7 +203,8 @@ export default function SquadScreen() {
                         size="sm"
                         dimmed={inSquad}
                         onClick={() => pick(card.id)}
-                        footer={inSquad ? '已上场' : fits ? '位置吻合' : undefined}
+                        footer={inSquad ? '已上场' : dupPerson ? '会顶替本人'
+                          : fits ? '位置吻合' : undefined}
                       />
                     )
                   })}

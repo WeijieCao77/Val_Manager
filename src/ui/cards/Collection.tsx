@@ -8,11 +8,13 @@ import {
 } from '../../engine/cards'
 import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
+import { LEGEND_KIND_CN } from '../../engine/legends'
 
 type Filter = 'all' | Rarity | 'coach' | 'dupes'
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: '全部' },
+  { key: 'mythic', label: '彩卡' },
   { key: 'gold', label: '金卡' },
   { key: 'silver', label: '银卡' },
   { key: 'bronze', label: '铜卡' },
@@ -119,6 +121,22 @@ export default function Collection() {
               <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <CardFace card={sel} level={owned.level} size="lg" />
                 <div style={{ flex: 1, minWidth: 240 }}>
+                  {isPlayerCard(sel) && sel.legend && (
+                    <div
+                      className="small"
+                      style={{
+                        marginBottom: 10, padding: '9px 11px', borderRadius: 4, lineHeight: 1.7,
+                        background: 'rgba(180,120,255,.10)',
+                        border: '1px solid rgba(180,120,255,.35)',
+                      }}
+                    >
+                      <b>★ {sel.legend.title}</b>
+                      <span className="tiny faint" style={{ marginLeft: 6 }}>
+                        {LEGEND_KIND_CN[sel.legend.kind]} · {sel.legend.year} · {sel.legend.clubTag}
+                      </span>
+                      <div className="tiny muted" style={{ marginTop: 4 }}>{sel.legend.note}</div>
+                    </div>
+                  )}
                   {isPlayerCard(sel) ? (
                     <>
                       <div className="small muted" style={{ marginBottom: 8, lineHeight: 1.8 }}>
