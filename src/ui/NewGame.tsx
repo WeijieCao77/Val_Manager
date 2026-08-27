@@ -15,8 +15,14 @@ import { money, OvrBadge, Bar } from './common'
 import Credit from './Credit'
 
 export default function NewGame({
-  onStart, canContinue, onContinue,
-}: { onStart: (g: GameState) => void; canContinue: boolean; onContinue: () => void }) {
+  onStart, canContinue, onContinue, onCards,
+}: {
+  onStart: (g: GameState) => void
+  canContinue: boolean
+  onContinue: () => void
+  /** the other game in the box — a separate save, reached from the same door */
+  onCards: () => void
+}) {
   const [name, setName] = useState('')
   const [age, setAge] = useState(24)
   const [originKey, setOriginKey] = useState<string | null>(null)
@@ -352,16 +358,19 @@ export default function NewGame({
       </label>
 
       {err && <p className="neg small">{err}</p>}
-      <div style={{ marginTop: 14 }}>
+      <div className="row wrap" style={{ marginTop: 14, gap: 10 }}>
         <button className="primary" onClick={begin} disabled={!manager || !teamId}>
           开始职业生涯 →
+        </button>
+        <button onClick={onCards} title="抽真实选手卡组队打比赛，和生涯存档互不影响">
+          🃏 卡牌模式
         </button>
       </div>
 
       <div style={{ marginTop: 20 }}><Credit /></div>
       <p className="tiny muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
-        游戏内所有战队与选手均为真实人物。阵容、国籍、位置与全部比赛数据取自 <b>vlr.gg</b> 的
-        VCT 2026 赛季统计；真名、生日、教练与指挥取自 <b>Liquipedia</b>；英雄池取自真实出场记录。
+        游戏内所有战队与选手均为真实人物。阵容、国籍、位置、照片、赛事名次与全部比赛数据取自
+        <b> vlr.gg</b>；真名、生日、教练、指挥与生涯队伍履历取自 <b>Liquipedia</b>；英雄池取自真实出场记录。
         八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡所需的估算值。
       </p>
     </div>

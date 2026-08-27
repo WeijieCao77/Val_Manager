@@ -38,6 +38,12 @@ export const EVENTS = new Set([
   'game_over',
   'save_export',
   'save_import',
+  // the card mode — a separate game with a separate save, so it gets its own
+  // names rather than muddying the career funnel
+  'card_start',
+  'card_pull',
+  'card_match',
+  'card_signin',
   'error',
 ])
 

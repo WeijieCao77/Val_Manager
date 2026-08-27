@@ -6,17 +6,23 @@
  *
  * The other half exists because the owner had no way to tell whether anyone
  * came back a second time. It records what people do with the game — never who
- * they are. There are no accounts and no IP addresses in the database; a
- * browser makes up a random id for itself on first visit and that is the whole
- * of identity. Without a DATABASE_URL the game runs exactly as it did before
- * and every event is dropped on the floor, which is the correct behaviour for
- * a local checkout.
+ * they are. There are no IP addresses in the database; a browser makes up a
+ * random id for itself on first visit and that is the whole of identity.
+ * Without a DATABASE_URL the game runs exactly as it did before and every
+ * event is dropped on the floor, which is the correct behaviour for a local
+ * checkout.
+ *
+ * The card mode adds the one account this game has, under /api/card — a random
+ * string the player keeps, stored only as a hash, holding only a collection.
+ * See cards-api.js for why it needs to exist at all. The career mode still has
+ * no accounts and still saves in the browser.
  */
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
+import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
 import { overview, prune } from './stats.js'
 import { dashboardHtml } from './dashboard.js'
 
@@ -57,6 +63,7 @@ if (process.env.DATABASE_URL) {
       onnotice: () => {},
     })
     await sql.unsafe(SCHEMA)
+    await sql.unsafe(CARD_SCHEMA)
     console.log('analytics: connected, schema ready')
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
@@ -212,6 +219,9 @@ async function stats(req, res, url) {
   }
 }
 
+const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json }))
+let _cardApi = null
+
 createServer((req, res) => {
   // A malformed escape — GET /% is enough — makes decodeURIComponent throw,
   // and an uncaught throw in the request handler takes the whole process with
@@ -229,6 +239,16 @@ createServer((req, res) => {
   if (path === '/api/e') {
     if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
     void ingest(req, res)
+    return
+  }
+  if (path.startsWith('/api/card/')) {
+    if (req.method !== 'POST' && path !== '/api/card/day') { json(res, 405, { ok: false }); return }
+    void cardApi().route(req, res, path, bucketOf(req)).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('cards: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
     return
   }
   if (path === '/api/stats') { void stats(req, res, url); return }

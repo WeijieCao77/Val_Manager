@@ -26,6 +26,10 @@ import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
 import Credit from './ui/Credit'
+import CardMode from './ui/CardMode'
+import Dossier from './ui/Dossier'
+
+const MODE_KEY = 'valmanager:mode'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -38,10 +42,25 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'schedule', label: '赛程', group: '赛事' },
   { key: 'standings', label: '积分榜' },
   { key: 'career', label: '经理', group: '生涯' },
+  { key: 'dossier', label: '资料库' },
   { key: 'saves', label: '存档', group: '系统' },
+  // its own group, and a two-character label: the rail is narrow enough that
+  // "卡牌模式" wrapped onto two lines
+  { key: 'cards', label: '卡牌', group: '模式' },
 ]
 
 export default function App() {
+  // The card mode is a different game with a different save; it gets the whole
+  // window rather than a screen inside the career shell. Which one you were in
+  // survives a reload — refreshing mid-pack-opening and landing on the career
+  // set-up screen is a small betrayal.
+  const [mode, setModeRaw] = useState<'career' | 'cards'>(() => {
+    try { return localStorage.getItem(MODE_KEY) === 'cards' ? 'cards' : 'career' } catch { return 'career' }
+  })
+  const setMode = useCallback((m: 'career' | 'cards') => {
+    try { localStorage.setItem(MODE_KEY, m) } catch { /* private mode */ }
+    setModeRaw(m)
+  }, [])
   const gameRef = useRef<GameState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
@@ -49,6 +68,8 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null)
   const goScreen = (k: string) => {
     track('screen', { to: k })
+    if (k === 'cards') { setMode('cards'); return }
+    if (k !== 'dossier') setDossierId(null)
     setScreen(k)
   }
   // a new screen starts at its top — the scroller is <main>, not the window,
@@ -58,6 +79,7 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [tour, setTour] = useState(() => !tutorialSeen())
   const [playerId, setPlayerId] = useState<string | null>(null)
+  const [dossierId, setDossierId] = useState<string | null>(null)
   const [playerRenew, setPlayerRenew] = useState(false)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
@@ -124,10 +146,11 @@ export default function App() {
   )
 
   if (!booted) return null
+  if (mode === 'cards') return <CardMode onExit={() => setMode('career')} />
 
   const game = gameRef.current
   if (!game) {
-    return <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
+    return <NewGame onStart={start} canContinue={hasAutosave()} onCards={() => setMode('cards')} onContinue={() => {
       const g = loadAutosave()
       if (g) {
         // A return only means something if it is a career being picked up.
@@ -225,7 +248,12 @@ export default function App() {
           </nav>
 
           <main className="main" ref={mainRef}>
-            <Screen />
+            {/* rendered directly rather than through the map above: an arrow in
+                that object would be a new component type on every render, and
+                the dossier would lose its search box mid-word */}
+            {screen === 'dossier'
+              ? <Dossier playerId={dossierId} onOpen={setDossierId} />
+              : <Screen />}
             <Credit />
           </main>
         </div>

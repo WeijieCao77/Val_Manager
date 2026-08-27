@@ -727,3 +727,374 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   .credit .sep { display: none; }
   .credit span { width: 100%; text-align: center; }
 }
+
+/* ---------------------------------------------------------------- card mode
+ *
+ * The one place in this game that is allowed to be shiny. Everything else is a
+ * spreadsheet with opinions; a pack opening is a moment, and a gold has to
+ * read as gold across a grid, on a phone, in a second.
+ *
+ * The three metals are real gradients with a sheen band, and the text on them
+ * is dark — a card is a physical object under a light, not a panel.
+ */
+.cardface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 7px;
+  padding: 8px 8px 7px;
+  color: #17140d;
+  isolation: isolate;
+  overflow: hidden;
+  user-select: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+}
+.cardface.tap { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.cardface.tap:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0, 0, 0, .55); }
+.cardface.dim { opacity: .38; filter: grayscale(.5); }
+.cardface.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* the sheen: one diagonal band, static, so a grid of 60 cards costs nothing */
+.cardface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, .30) 47%,
+    rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cardface.r-gold {
+  background:
+    radial-gradient(120% 70% at 50% 0%, #fff3c4 0%, rgba(255, 243, 196, 0) 55%),
+    linear-gradient(160deg, #f6d878 0%, #d4a03a 42%, #9d6f1c 100%);
+  border: 1px solid #ffe9a3;
+}
+.cardface.r-silver {
+  background:
+    radial-gradient(120% 70% at 50% 0%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, #e6ecf3 0%, #b3bfcc 44%, #7d8b9b 100%);
+  border: 1px solid #f2f6fa;
+}
+.cardface.r-bronze {
+  background:
+    radial-gradient(120% 70% at 50% 0%, #f3cba6 0%, rgba(243, 203, 166, 0) 55%),
+    linear-gradient(160deg, #d8a274 0%, #a86f42 45%, #74451f 100%);
+  border: 1px solid #eec5a1;
+  color: #1c1206;
+}
+
+.cardface.s-sm { width: 96px; }
+.cardface.s-md { width: 132px; }
+.cardface.s-lg { width: 184px; padding: 12px 12px 11px; }
+
+/* rating block, top-left, the way every football card has done it */
+.cf-rate {
+  position: absolute;
+  top: 7px; left: 9px;
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1;
+  z-index: 3;
+}
+.cf-rate b { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.s-sm .cf-rate b { font-size: 17px; }
+.s-lg .cf-rate b { font-size: 29px; }
+.cf-kind {
+  font-size: 9px; font-weight: 700; letter-spacing: .06em;
+  margin-top: 2px; opacity: .72;
+}
+.cf-plus {
+  font-size: 9.5px; font-weight: 800; font-style: normal;
+  color: #7a2018; margin-top: 1px;
+}
+
+.cf-dupes {
+  position: absolute; top: 7px; right: 8px; z-index: 3;
+  font-size: 10px; font-weight: 800;
+  background: rgba(23, 20, 13, .7); color: #ffeab5;
+  border-radius: 999px; padding: 1px 6px;
+}
+
+.cf-photo {
+  width: 74px; height: 74px;
+  margin: 16px 0 2px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
+}
+.s-sm .cf-photo { width: 52px; height: 52px; margin-top: 14px; }
+.s-lg .cf-photo { width: 104px; height: 104px; margin-top: 20px; }
+.cf-noface {
+  display: grid; place-items: center;
+  font-weight: 800; letter-spacing: .02em;
+  background: rgba(20, 18, 12, .72);
+}
+.cf-coach { font-size: 30px; }
+
+.cf-name {
+  width: 100%;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(23, 20, 13, .28);
+  font-size: 13px; font-weight: 800;
+  text-align: center;
+  letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-sm .cf-name { font-size: 11px; }
+.s-lg .cf-name { font-size: 17px; }
+
+.cf-meta {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 10px; font-weight: 700;
+  margin-top: 1px;
+  opacity: .84;
+}
+.cf-club { letter-spacing: .04em; }
+.cf-igl {
+  font-size: 8.5px; font-weight: 800;
+  background: rgba(23, 20, 13, .74); color: #ffe9a3;
+  border-radius: 2px; padding: 0 3px;
+}
+
+.cf-attrs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px 4px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(23, 20, 13, .28);
+  font-size: 9.5px;
+}
+.s-sm .cf-attrs { grid-template-columns: repeat(2, 1fr); }
+.s-lg .cf-attrs { font-size: 11.5px; gap: 2px 6px; }
+.cf-attrs span { display: flex; justify-content: space-between; gap: 3px; }
+.cf-attrs i { font-style: normal; opacity: .66; }
+.cf-attrs b { font-weight: 800; }
+
+.cf-foot {
+  width: 100%; margin-top: 6px; padding-top: 5px;
+  border-top: 1px solid rgba(23, 20, 13, .28);
+  font-size: 10px; font-weight: 700; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.cf-pips { display: flex; gap: 2px; margin-top: 5px; }
+.cf-pips i {
+  width: 9px; height: 3px; border-radius: 2px;
+  background: #7a2018;
+}
+
+/* an empty seat */
+.cardface.slot {
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  color: var(--faint);
+  box-shadow: none;
+  justify-content: center;
+  min-height: 196px;
+}
+.cardface.slot::before { display: none; }
+.cardface.slot:hover { background: var(--panel-2); border-color: var(--accent-line); color: var(--muted); }
+.cf-slot-plus { font-size: 26px; line-height: 1; }
+.cf-slot-label { font-size: 11px; margin-top: 6px; letter-spacing: .04em; }
+
+/* ---- the mode's own shell -------------------------------------------- */
+
+.cardmode { display: flex; flex-direction: column; height: 100%; }
+.cardmode .topbar .brand span { color: #f0c14b; }
+
+.cm-tabs {
+  display: flex; gap: 2px; overflow-x: auto;
+  padding: 0 14px;
+  background: var(--bg-rail);
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.cm-tabs::-webkit-scrollbar { display: none; }
+.cm-tab {
+  background: transparent; border: none; border-radius: 0;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  color: var(--muted); white-space: nowrap;
+}
+.cm-tab:hover:not(:disabled) { background: transparent; color: var(--text); }
+.cm-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 650; }
+
+.cm-body { flex: 1; overflow-y: auto; padding: 16px 18px 40px; }
+.cm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+  justify-items: center;
+}
+.cm-grid.sm { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+
+.cm-squad {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .cm-squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cm-body { padding: 12px 10px 40px; }
+}
+
+/* ---- pack opening ----------------------------------------------------- */
+
+.pack-stage {
+  position: fixed; inset: 0; z-index: 60;
+  background: radial-gradient(70% 60% at 50% 40%, #1d2b3c 0%, #080c12 78%);
+  display: grid; place-items: center;
+  padding: 20px;
+}
+.pack-reveal { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pack-card { animation: pack-in .42s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes pack-in {
+  from { opacity: 0; transform: translateY(26px) scale(.86) rotateY(28deg); }
+  to   { opacity: 1; transform: none; }
+}
+.pack-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(38% 34% at 50% 42%, rgba(255, 214, 120, .34), transparent 70%);
+  opacity: 0; animation: pack-flash .7s ease-out both;
+}
+@keyframes pack-flash { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 0 } }
+.pack-strip {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  max-width: 760px;
+}
+.pack-hint { color: var(--muted); font-size: var(--t-small); }
+
+/* ---- packs on the shelf ----------------------------------------------- */
+
+.pack-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.pack-box {
+  position: relative;
+  background: linear-gradient(158deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 14px 14px 12px;
+  text-align: left;
+  overflow: hidden;
+}
+.pack-box::after {
+  content: ''; position: absolute; right: -30px; top: -30px;
+  width: 110px; height: 110px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 193, 75, .16), transparent 68%);
+}
+.pack-box h4 { margin: 0 0 5px; font-size: 15px; }
+.pack-box p { margin: 0 0 12px; color: var(--muted); font-size: var(--t-small); line-height: 1.55; }
+.pack-own { color: var(--warn); font-weight: 700; }
+
+/* ---- ladder ----------------------------------------------------------- */
+
+.div-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 19px; font-weight: 800; letter-spacing: .04em;
+}
+.stars { display: inline-flex; gap: 3px; }
+.stars i { width: 11px; height: 11px; border-radius: 2px; background: var(--line); transform: rotate(45deg); }
+.stars i.on { background: var(--warn); box-shadow: 0 0 8px rgba(232, 178, 58, .5); }
+
+.bracket-leg {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.bracket-leg.now { border-color: var(--accent-line); background: var(--accent-wash); }
+.bracket-leg.won { border-left: 3px solid var(--win); }
+.bracket-leg.lost { border-left: 3px solid var(--loss); opacity: .68; }
+
+/* ---- dossier ---------------------------------------------------------- */
+
+.dossier-head { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.dossier-photo {
+  width: 108px; height: 108px; border-radius: 5px; object-fit: cover; object-position: top center;
+  background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.cv { list-style: none; margin: 0; padding: 0; }
+.cv li {
+  position: relative;
+  padding: 7px 0 7px 20px;
+  border-left: 1px solid var(--line);
+  margin-left: 5px;
+}
+.cv li::before {
+  content: ''; position: absolute; left: -4.5px; top: 14px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--panel-3); box-shadow: 0 0 0 2px var(--bg);
+}
+.cv li.now::before { background: var(--accent); }
+.cv .yrs { color: var(--faint); font-size: var(--t-tiny); font-variant-numeric: tabular-nums; }
+
+.trophy {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+}
+.trophy.major { border-color: rgba(240, 193, 75, .4); background: rgba(240, 193, 75, .07); }
+.trophy .yr { color: var(--faint); font-size: var(--t-tiny); margin-left: auto; }
+
+.acct-id {
+  font-family: var(--mono);
+  font-size: 17px; letter-spacing: .08em;
+  background: var(--bg-rail); border: 1px dashed var(--accent-line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  word-break: break-all;
+  text-align: center;
+}
+
+/* the nationality mark — an emoji where the platform draws flags, and the
+   country code where it does not (Windows Chrome draws neither) */
+.cf-flag { line-height: 1; }
+.cf-flag.code {
+  font-size: 8.5px; font-weight: 800; letter-spacing: .04em;
+  background: rgba(23, 20, 13, .58); color: inherit;
+  border-radius: 2px; padding: 1px 3px;
+}
+td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(--muted); }
+
+/* the real name, on the big card only — there is no room for it at 132px and
+   the reveal is where people actually read who they just pulled */
+.cf-real {
+  width: 100%;
+  font-size: 10.5px; font-weight: 600;
+  text-align: center; opacity: .7;
+  margin-top: -1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* An inline stat chip. Not `.pill` — that one is a fixed 19×19 W/L square for
+   the form guide, and reusing it here squashed "Sunset 13–11" into a box the
+   size of a letter. */
+.chiplet {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  font-size: var(--t-tiny); font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The squad grid hands each seat a column; the card has to take the column
+   rather than its own 132px, or three cards plus gaps overflow a 375px phone
+   and the fifth seat sits off-screen. */
+.cm-squad .cardface { width: 100%; max-width: 150px; }
+.cm-squad .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+@media (max-width: 420px) {
+  .cm-squad { gap: 6px; }
+  .cm-squad .cf-attrs { grid-template-columns: repeat(2, 1fr); font-size: 9px; }
+  .cm-squad .cf-name { font-size: 12px; }
+}
