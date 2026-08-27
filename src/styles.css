@@ -832,10 +832,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .s-lg .cf-photo { width: 104px; height: 104px; margin-top: 20px; }
 .cf-noface {
   display: grid; place-items: center;
-  font-weight: 800; letter-spacing: .02em;
-  background: rgba(20, 18, 12, .72);
+  background: rgba(20, 18, 12, .58);
 }
-.cf-coach { font-size: 30px; }
+/* the bust for the 88 players and 9 coaches nobody has photographed. Drawn in
+   the card's own ink at low opacity so it reads as "no photo" rather than as a
+   missing asset. */
+.cf-sil {
+  width: 76%; height: 76%;
+  fill: currentColor;
+  opacity: .3;
+  transform: translateY(6%);
+}
 
 .cf-name {
   width: 100%;

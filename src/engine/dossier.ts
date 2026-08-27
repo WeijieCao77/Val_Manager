@@ -32,7 +32,16 @@ export interface DossierEntry {
 }
 
 interface DossierFile {
-  meta: { sources: Record<string, string>; players: number; photos: number; events: number }
+  meta: {
+    sources: Record<string, string>
+    players: number
+    photos: number
+    /** how many of those photos came from Liquipedia, which needs a CC-BY-SA credit */
+    lpPhotos?: number
+    coaches?: number
+    coachPhotos?: number
+    events: number
+  }
   players: Record<string, DossierEntry>
   /** keyed by the coach's name as world.json spells it */
   coaches?: Record<string, DossierEntry>

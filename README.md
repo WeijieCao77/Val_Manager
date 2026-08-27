@@ -19,7 +19,8 @@
 | 战队、阵容、国籍、位置 | [vlr.gg](https://www.vlr.gg) | VCT 2026 赛季 |
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
 | 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
-| 选手照片 | vlr.gg 选手页 | 399/518 人；没有照片的用首字母卡面代替，不用剪影 |
+| 选手照片 | vlr.gg 选手页 + Liquipedia | 430/518 人（vlr 399 + Liquipedia 31）；剩下的用剪影 |
+| 教练/分析师照片、国籍、真名 | vlr.gg 战队页教练组 + Liquipedia | 60/69 人 |
 | 生涯队伍履历（带起止日期） | Liquipedia `TeamHistoryAuto` | 448/518 人 |
 | 赛事名次、生涯奖金 | vlr.gg 选手页 Event Placements | 518/518 人，共 533 项赛事 |
 | 主教练、助教、IGL（指挥） | Liquipedia 战队 infobox | 49/53 教练，47/53 IGL |
@@ -115,9 +116,13 @@ VCT 年龄分布推算，选手详情页会显示"（推算）"。缺失的主�
 
 FC / 电竞经理那一套，但卡面上的每一个人都是真的。
 
-**卡片**：518 名现役职业选手 + 74 名真实教练/分析师，各自一张卡。卡面有照片、国旗、
+**卡片**：518 名现役职业选手 + 69 名真实教练/分析师，各自一张卡。卡面有照片、国旗、
 ID、真名、所属战队、位置和八项能力。按能力分金（≥84，91 人）、银（72–83，170 人）、
-铜（≤71，257 人）三档。
+铜（≤71，257 人）三档。开包时卡片会翻面。
+
+照片 430/518（83%）来自 vlr.gg 选手页，其中 31 张来自 Liquipedia——只接受文件名里含
+本人 ID 的图片（Liquipedia 就是这么命名选手照片的，战队 logo 不会），因为给真人配错脸
+比没脸更糟。剩下 88 人（其中 40 名中国选手）和 9 名教练用剪影。
 
 **抽卡**：四种卡包——试训包（1 张）、选拔包（3 张保底银）、十连包（必出金）、教练包。
 25 抽起进保底区间，45 抽必出金。重复卡可以分解换金币，也可以喂给同一张卡升级，
@@ -425,6 +430,8 @@ scripts/
   build_world.py         由真实数据构建 world.json
   fetch_liquipedia.py    从 Liquipedia 批量获取生日与教练
   fetch_vlr_profiles.py  从 vlr.gg 选手页抓照片、国籍、名次、奖金
+  fetch_vlr_staff.py     从 vlr.gg 战队页抓教练组照片、国籍、真名
+  fetch_liquipedia_faces.py  vlr 没有的那些，去 Liquipedia 找（按文件名校验身份）
   fetch_faces.py         下载照片并压成 192px webp
   build_dossier.py       合并成 src/data/dossier.json
   smoke.ts               无头跑完整赛季并校验数据合理性
