@@ -755,7 +755,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .cardface.dim { opacity: .38; filter: grayscale(.5); }
 .cardface.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* the sheen: one diagonal band, static, so a grid of 60 cards costs nothing */
+/* The sheen: one diagonal band, static, so a grid of 60 cards costs nothing.
+ *
+ * It belongs to the metal, not to the photograph. Painted over the top of
+ * everything it washed the face out — worst on the彩卡, whose band is the
+ * brightest and whose picture is the whole point — so the portrait sits above
+ * it and the light passes behind the window instead of across it. */
 .cardface::before {
   content: '';
   position: absolute;
@@ -767,6 +772,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   pointer-events: none;
   z-index: 2;
 }
+.cf-photo { position: relative; z-index: 3; }
 
 .cardface.r-gold {
   background:
