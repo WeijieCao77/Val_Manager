@@ -3,8 +3,8 @@ import { useCards } from './ctx'
 import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
 import {
-  PACKS, PACK_ORDER, QUESTS, HARD_PITY, SOFT_PITY,
-  checkIn, claimQuest, collectionProgress, openPack, refreshDaily, salvage,
+  PACKS, PACK_ORDER, QUESTS, HARD_PITY, SHOP_LIMIT, SOFT_PITY,
+  checkIn, claimQuest, collectionProgress, openPack, refreshDaily, salvage, shopLeft,
 } from '../../engine/gacha'
 import type { PackKind, Pulled, QuestKey } from '../../engine/gacha'
 import { RARITY_CN, isPlayerCard } from '../../engine/cards'
@@ -119,11 +119,16 @@ export default function Packs() {
         actions={
           <span className="tiny muted">
             收集 {prog.owned}/{prog.total} ·
+            今日可买 {shopLeft(g)}/{SHOP_LIMIT} ·
             距保底 {Math.max(0, HARD_PITY - g.pity)} 抽
             {g.pity >= SOFT_PITY ? '（已进入保底区间，出金率提升中）' : ''}
           </span>
         }
       >
+        <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
+          金币每天最多买 {SHOP_LIMIT} 个包——签到、日常、升段和杯赛拿到的包不受这个限制，
+          攒着慢慢开就行。
+        </p>
         <div className="pack-shelf">
           {PACK_ORDER.map((kind) => {
             const def = PACKS[kind]
@@ -139,9 +144,18 @@ export default function Packs() {
                   <button className="primary sm" onClick={() => open(kind, 'pack')} disabled={own < 1}>
                     打开（{own}）
                   </button>
-                  <button className="sm" onClick={() => open(kind, 'coins')} disabled={g.coins < def.cost}>
-                    花 {def.cost} 金币
-                  </button>
+                  {def.shop === false ? (
+                    <span className="tiny faint" style={{ alignSelf: 'center' }}>非卖品</span>
+                  ) : (
+                    <button
+                      className="sm"
+                      onClick={() => open(kind, 'coins')}
+                      disabled={g.coins < def.cost || shopLeft(g) < 1}
+                      title={shopLeft(g) < 1 ? `每天最多买 ${SHOP_LIMIT} 个包` : ''}
+                    >
+                      花 {def.cost} 金币
+                    </button>
+                  )}
                 </div>
               </div>
             )

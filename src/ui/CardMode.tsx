@@ -12,7 +12,7 @@ import Credit from './Credit'
 import {
   createAccount, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, saveAccount,
 } from '../engine/account'
-import { DIVISIONS, refreshDaily, starsFor } from '../engine/gacha'
+import { DIVISIONS, STAMINA_MAX, refreshDaily, starsFor, staminaLeft } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
 
@@ -158,6 +158,12 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         <header className="topbar">
           <div className="brand">VAL<span>CARDS</span><em className="by">卡牌模式</em></div>
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
+          <div
+            className={`chip${staminaLeft(g) === 0 ? ' spent' : ''}`}
+            title={`每场天梯 2 点、每轮杯赛 3 点。每天服务器零点（北京时间）回满 ${STAMINA_MAX} 点。`}
+          >
+            ⚡ <b>{staminaLeft(g)}/{STAMINA_MAX}</b>
+          </div>
           <div className="chip" title="段位">
             {DIVISIONS[g.ladder.div]} <b>{g.ladder.stars}/{starsFor(g.ladder.div)}★</b>
           </div>

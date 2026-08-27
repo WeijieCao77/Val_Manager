@@ -39,6 +39,16 @@ export interface PackDef {
   silver: number
   /** the pack promises at least one card of this metal */
   floor?: Rarity
+  /**
+   * Whether coins can buy it at all.
+   *
+   * The ten-pull cannot. Capping the shop at two packs a day did nothing while
+   * both of them could be ten-pulls — twenty cards is not a slower day than
+   * twenty cards. It is now earned only: a promotion, a cup title, or a
+   * seven-day streak. That also gives it something to be, which "the expensive
+   * one" never was.
+   */
+  shop?: boolean
   /** coach packs deal from a different deck */
   pool: 'player' | 'coach'
 }
@@ -47,24 +57,24 @@ export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。大部分是铜卡，但金卡就是从这里出的。',
-    cost: 500, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26,
+    cost: 500, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26, shop: true,
   },
   elite: {
     kind: 'elite', name: '选拔包', pool: 'player',
     blurb: '三张选手卡，至少一张银卡起。',
-    cost: 1800, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver',
+    cost: 1800, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver', shop: true,
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
-    blurb: '十张选手卡，必出金卡。彩卡也只从这里出得最多。',
-    cost: 5000, draws: 10, mythic: 0.0025, gold: 0.08, silver: 0.34, floor: 'gold',
+    blurb: '十张选手卡，必出金卡，彩卡出得最多。买不到——升段、夺冠、连签七天才有。',
+    cost: 5000, draws: 10, mythic: 0.0025, gold: 0.08, silver: 0.34, floor: 'gold', shop: false,
   },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
     // no legend coaches: a彩卡 is a night somebody played, and these twenty
     // nights were played by players
-    cost: 900, draws: 1, mythic: 0, gold: 0.15, silver: 0.42,
+    cost: 900, draws: 1, mythic: 0, gold: 0.15, silver: 0.42, shop: true,
   },
 }
 
@@ -89,6 +99,29 @@ export const HARD_PITY = 45
  * while still being a thing you can aim at.
  */
 export const MYTHIC_FLOOR = 500
+
+// ---------------------------------------------------------------- the day
+
+/**
+ * Why the mode has a daily budget at all.
+ *
+ * It did not, and the whole thing collapsed into one sitting: the ladder and
+ * the cup could be played forever, forever meant unlimited coins, and unlimited
+ * coins meant unlimited packs. A collection you can finish in an afternoon is
+ * not a collection, and there was no reason to ever come back tomorrow.
+ *
+ * Two taps, closed in the two places that were open. Matches cost 体力, which
+ * refills once a day; and coins can only buy a couple of packs a day however
+ * many coins you have. Packs you were GIVEN — the check-in, the quest board, a
+ * promotion, a cup title — are not capped, because those are already once-a-day
+ * things and taking them away twice would just be mean.
+ */
+export const STAMINA_MAX = 12
+export const STAMINA_COST = { ladder: 2, cup: 3 } as const
+export type PlayKind = keyof typeof STAMINA_COST
+
+/** How many packs the shop will sell you in one day. */
+export const SHOP_LIMIT = 2
 
 const goldChance = (base: number, pity: number): number => {
   if (pity >= HARD_PITY - 1) return 1
@@ -177,6 +210,9 @@ export interface DailyState {
   picked: QuestKey[]
   progress: Partial<Record<QuestKey, number>>
   taken: QuestKey[]
+  /** 体力 left today, and how many packs the shop has already sold today */
+  stamina: number
+  bought: number
 }
 
 export interface LogEntry {
@@ -225,7 +261,10 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     pulls: 0,
     ladder: { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 },
     cup: null,
-    daily: { claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [] },
+    daily: {
+      claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
+      stamina: STAMINA_MAX, bought: 0,
+    },
     log: [],
     seed: hashStr(id + today) >>> 0,
   }
@@ -286,8 +325,11 @@ export function openPack(g: GachaState, kind: PackKind, payWith: 'pack' | 'coins
     if ((g.packs[kind] ?? 0) < 1) throw new Error('没有这种卡包')
     g.packs[kind] = (g.packs[kind] ?? 0) - 1
   } else {
+    if (def.shop === false) throw new Error(`${def.name}买不到，只能靠升段、夺冠或连签拿`)
+    if (shopLeft(g) < 1) throw new Error(`今天已经买满 ${SHOP_LIMIT} 个包了，明天再来`)
     if (g.coins < def.cost) throw new Error('金币不够')
     g.coins -= def.cost
+    g.daily.bought = (g.daily.bought ?? 0) + 1
   }
 
   const rng = roll(g)
@@ -484,7 +526,11 @@ export function recordLadder(g: GachaState, win: boolean): LadderOutcome {
     // a streak is worth an extra star, but only while there is still a ladder
     // above you to climb
     L.stars += L.streak >= 3 && L.div < 4 ? 2 : 1
-    out.coins = 140 + L.div * 70
+    // Lowered with the daily budget. The shop's two-a-day cap was binding on
+    // 55 days out of 60, which means coins were never a decision — you always
+    // had enough for both. Now a day's play buys two 试训包 or most of a
+    // 选拔包, and which one is the question.
+    out.coins = 110 + L.div * 45
     while (L.stars >= starsFor(L.div) && L.div < DIVISIONS.length - 1) {
       L.stars -= starsFor(L.div)
       L.div++
@@ -502,7 +548,7 @@ export function recordLadder(g: GachaState, win: boolean): LadderOutcome {
     L.losses++
     L.streak = Math.min(0, L.streak - 1)
     L.stars -= 1
-    out.coins = 40
+    out.coins = 30
     if (L.stars < 0) {
       if (L.div >= 3) {
         L.div--
@@ -608,13 +654,37 @@ export function questsFor(day: string, id: string): QuestKey[] {
   return rng.shuffle(QUEST_KEYS.slice()).slice(0, 3)
 }
 
+/**
+ * Roll the day over: new quests, full 体力, shop counter back to zero.
+ *
+ * `today` is the server's date, never the device's — the whole point of the
+ * account is that this line cannot be moved by changing a clock.
+ */
 export function refreshDaily(g: GachaState, today: string): void {
   if (g.daily.questDay === today) return
   g.daily.questDay = today
   g.daily.picked = questsFor(today, g.id)
   g.daily.progress = {}
   g.daily.taken = []
+  g.daily.stamina = STAMINA_MAX
+  g.daily.bought = 0
 }
+
+export const staminaLeft = (g: GachaState): number =>
+  Math.max(0, Math.min(STAMINA_MAX, g.daily.stamina ?? STAMINA_MAX))
+
+export const canPlay = (g: GachaState, kind: PlayKind): boolean =>
+  staminaLeft(g) >= STAMINA_COST[kind]
+
+/** Pay for a match. Returns false — and spends nothing — when there is not enough. */
+export function spendPlay(g: GachaState, kind: PlayKind): boolean {
+  if (!canPlay(g, kind)) return false
+  g.daily.stamina = staminaLeft(g) - STAMINA_COST[kind]
+  return true
+}
+
+export const shopLeft = (g: GachaState): number =>
+  Math.max(0, SHOP_LIMIT - (g.daily.bought ?? 0))
 
 function bumpQuest(g: GachaState, key: QuestKey, by: number): void {
   if (!g.daily.picked.includes(key)) return

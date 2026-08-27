@@ -13,7 +13,7 @@
  * localStorage — and still falls back to it when the server is unreachable.
  */
 import type { GachaState } from './gacha'
-import { GACHA_VERSION, clampState, newGacha } from './gacha'
+import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
 
 const ID_KEY = 'valmanager:card:id'
 const MIRROR = 'valmanager:card:state:'
@@ -232,9 +232,15 @@ function migrate(state: GachaState, id: string): GachaState {
   g.squad ??= { slots: [null, null, null, null, null], coach: null }
   g.squad.slots ??= [null, null, null, null, null]
   g.ladder ??= { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 }
-  g.daily ??= { claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [] }
+  g.daily ??= {
+    claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
+    stamina: STAMINA_MAX, bought: 0,
+  }
   g.daily.picked ??= []
   g.daily.progress ??= {}
   g.daily.taken ??= []
+  // accounts made before the daily budget existed start today with a full one
+  g.daily.stamina ??= STAMINA_MAX
+  g.daily.bought ??= 0
   return clampState(g)
 }

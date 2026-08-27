@@ -3,7 +3,8 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import {
-  CUP_ENTRY, CUP_PRIZE, CUP_WIN, PACKS, cupOpponent, enterCup, levelOf, recordCup,
+  CUP_ENTRY, CUP_PRIZE, CUP_WIN, PACKS, STAMINA_COST, canPlay, cupOpponent, enterCup,
+  levelOf, recordCup, spendPlay,
 } from '../../engine/gacha'
 import type { CupOutcome } from '../../engine/gacha'
 import { playArenaMatch } from '../../engine/arena'
@@ -39,6 +40,10 @@ export default function Cup() {
   const play = () => {
     const oppId = cupOpponent(g)
     if (!oppId || !cup) return
+    if (!spendPlay(g, 'cup')) {
+      toast('今天的体力用完了。杯赛进度会留着，明天接着打。')
+      return
+    }
     setBusy(true)
     window.setTimeout(() => {
       const seed = (Date.now() ^ (cup.round * 7919) ^ (cup.legs.length * 31)) >>> 0
@@ -61,6 +66,7 @@ export default function Cup() {
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           三轮单败淘汰，每轮 BO3，输一场就结束。对手按你的阵容分抽签，一轮比一轮硬。
+          每轮花 {STAMINA_COST.cup} 点体力——打不完可以明天接着打，进度留着。
           八强出局 {CUP_PRIZE[0]}、四强 {CUP_PRIZE[1]}、亚军 {CUP_PRIZE[2]}，
           冠军 <b>{CUP_WIN} 金币 + 一个{PACKS.elite.name}</b>。
         </p>
@@ -102,8 +108,10 @@ export default function Cup() {
 
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
               {live ? (
-                <button className="primary" onClick={play} disabled={busy}>
-                  {busy ? '比赛中…' : `打${ROUND_CN[cup.round]}`}
+                <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'cup')}>
+                  {busy ? '比赛中…'
+                    : !canPlay(g, 'cup') ? '体力不够（明天恢复）'
+                      : `打${ROUND_CN[cup.round]}（${STAMINA_COST.cup} 体力）`}
                 </button>
               ) : (
                 <>
