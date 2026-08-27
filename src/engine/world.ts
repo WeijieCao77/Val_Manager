@@ -1,5 +1,4 @@
 import raw from '../data/world.json'
-import { dossierOf } from './dossier'
 import { Rng, clamp, hashStr } from './rng'
 import { AGENTS, MAPS, SPONSOR_NAMES } from './content'
 import { defaultTactics, emptyStats, ROLES } from './types'
@@ -154,15 +153,8 @@ export function createNewGame(
   const players: Record<string, Player> = {}
   for (const rp of RAW.players) {
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
-    // world.json was built before the player pages were scraped and is missing
-    // a nationality for 178 people; the dossier has all 518. Overlaid here
-    // rather than rewritten into world.json so the two files keep their jobs —
-    // world.json is what the simulation reads, dossier.json is who these
-    // people are.
-    const d = dossierOf(rp.id)
     players[rp.id] = {
       ...rp,
-      nat: rp.nat || d?.nat || undefined,
       realName: rp.realName ?? d?.real ?? null,
       // The spread is shallow. Nested objects that the game MUTATES must be
       // copied, or every career in one page session shares them with the
