@@ -26,6 +26,7 @@ import { money } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
 import Credit from './ui/Credit'
+import Support from './ui/Support'
 import Dossier from './ui/Dossier'
 
 /**
@@ -278,6 +279,8 @@ export default function App() {
             <Credit />
           </main>
         </div>
+
+        <Support />
 
         {playerId && (
           <PlayerModal
