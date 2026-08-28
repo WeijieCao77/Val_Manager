@@ -468,9 +468,15 @@ export default function Dashboard() {
         {gapDays >= 2 && (
         <Panel title={next ? `空档期 · 距下一场还有 ${gapDays} 天` : '空档期 · 本赛段没有比赛'}>
           <p className="small muted" style={{ marginTop: 0 }}>
-            约一场训练赛：不计积分与个人数据，但会影响状态与体能。训练赛没有 BP，
-            双方提前商定地图。
+            约一场训练赛：<b>不计积分、不进个人数据</b>。训练赛没有 BP，双方提前商定地图。
           </p>
+          <div className="tiny faint" style={{ margin: '0 0 12px', lineHeight: 1.85 }}>
+            打完一场（每人每张图）实际影响：
+            <b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2、士气 +0~2</b>；
+            <b style={{ color: 'var(--accent)' }}>输 状态 −0.4~2.2、士气 −0~1.5</b>；
+            <b>体能 −3.5~6.5</b>（疲劳越高越容易受伤）；同时会累积<b>队内默契</b>。<br />
+            <b style={{ color: 'var(--warn)' }}>不会提升地图熟练度</b>——那只能靠训练页的「跑图」。
+          </div>
           <div className="grid c3" style={{ gap: 12, alignItems: 'end' }}>
             <div className="field">
               <label className="small muted">对手</label>

@@ -204,7 +204,7 @@ TIER2 = {
     'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
     'EMEA': [('EIN', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
     'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
-    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VNLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming'), ('WBG', 'Weibo Gaming')],
+    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming'), ('WBG', 'Weibo Gaming')],
 }
 
 ROLE_CN = {"d": "决斗者", "i": "先锋", "c": "控场", "s": "哨卫", "": "自由人"}
@@ -411,6 +411,8 @@ TIER1_TAGS = {t for lst in TIER1.values() for t, _ in lst}
 VCL_TAG_FIX = {
     "any questions gaming": "AQ",
     "weibo gaming": "WBG",
+    # initialises to VNLG, but the org — and its own crest — says VLG
+    "victory no limits gaming": "VLG",
 }
 
 

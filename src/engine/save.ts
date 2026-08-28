@@ -1,4 +1,5 @@
 import { pruneMatchDetail } from './match'
+import { WORLD_TEAMS } from './world'
 import type { GameState } from './types'
 
 const PREFIX = 'valmanager:save:'
@@ -148,6 +149,12 @@ function migrate(state: GameState): GameState {
   state.training ??= {}
   state.boardConfidence ??= 60
   for (const t of Object.values(state.teams)) {
+    // A club's tag and name are the world file's to decide, not the save's.
+    // They are display-only — nothing in a save is keyed on them — so a
+    // correction (VNLG → VLG, which is what the org and its own crest say)
+    // reaches careers already in progress instead of only new ones.
+    const canon = WORLD_TEAMS.find((w) => w.id === t.id)
+    if (canon) { t.tag = canon.tag; t.name = canon.name }
     t.champPoints ??= 0
     t.seasonPrize ??= 0
     t.sponsors ??= []
