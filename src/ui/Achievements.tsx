@@ -13,12 +13,67 @@
  */
 import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
-import { ACHIEVEMENTS, ACHIEVEMENT_COUNT, earnedNow } from '../engine/achievements'
-import { ENDINGS, ENDING_COUNT } from '../engine/endings'
+import {
+  ACHIEVEMENTS, ACHIEVEMENT_COUNT, LIFE_ACHIEVEMENTS, RUN_ACHIEVEMENTS, earnedNow,
+} from '../engine/achievements'
+import { DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, STORY_ENDINGS } from '../engine/endings'
+import type { Ending } from '../engine/endings'
+import type { Achievement } from '../engine/achievements'
 import { readProfile, record, siteId, syncProfile, type Profile } from '../engine/profile'
 import { Panel } from './common'
 
-const GROUPS = ['赛场', '养成', '阵容', '经营', '生涯'] as const
+const RUN_GROUPS = ['冠军', '赛场', '养成', '阵容', '经营', '生涯'] as const
+
+function Group(
+  { name, rows, has }: { name: string; rows: Achievement[]; has: Set<string> },
+) {
+  const done = rows.filter((a) => has.has(a.key)).length
+  return (
+    <div className="ach-group">
+      {name && <h3>{name} <em>{done}/{rows.length}</em></h3>}
+      <div className="ach-list">
+        {rows.map((a) => {
+          const got = has.has(a.key)
+          return (
+            <div key={a.key} className={`ach${got ? ' got' : ''}${a.hard ? ' hard' : ''}`}>
+              <span className="mark">{got ? '★' : '☆'}</span>
+              <div>
+                <b>{a.title}</b>
+                <span className="tiny muted">{a.brief}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Endings(
+  { name, rows, has }: { name: string; rows: Ending[]; has: Set<string> },
+) {
+  const done = rows.filter((e) => has.has(e.key)).length
+  return (
+    <div className="ach-group">
+      <h3>{name} <em>{done}/{rows.length}</em></h3>
+      <div className="ach-list">
+        {rows.map((e) => {
+          const got = has.has(e.key)
+          return (
+            <div key={e.key} className={`ach${got ? ' got' : ''}`}>
+              <span className="mark">{got ? '★' : '☆'}</span>
+              <div>
+                {/* the name IS the spoiler, so it stays hidden until it is seen */}
+                <b>{got ? e.title : '？？？'}</b>
+                <span className="tiny muted">{e.brief}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 export default function Achievements() {
   const { game } = useGame()
@@ -39,8 +94,16 @@ export default function Achievements() {
     return () => { alive = false }
   }, [id])
 
-  const has = new Set(profile.achievements)
-  const seenEnding = new Set(profile.endings)
+  // Count only keys that still exist. A profile is a permanent record and the
+  // catalogues get rewritten — an account holding a key from an older build
+  // would otherwise be told 「6/22」 above a list showing one, because the
+  // header counted the stored strings and the rows counted the real ones.
+  const known = <T extends { key: string }>(rows: T[], keys: string[]) => {
+    const live = new Set(rows.map((r) => r.key))
+    return new Set(keys.filter((k) => live.has(k)))
+  }
+  const has = known(ACHIEVEMENTS, profile.achievements)
+  const seenEnding = known(ENDINGS, profile.endings)
   const masked = id ? `${id.slice(0, 7)}-••••-${id.slice(-4)}` : ''
 
   const copy = async () => {
@@ -58,50 +121,27 @@ export default function Achievements() {
         <p className="tiny faint" style={{ marginTop: 0 }}>
           记在你的账号上，跨存档累计——换俱乐部、被解雇、开新档都不会清零。
         </p>
-        {GROUPS.map((g) => {
-          const rows = ACHIEVEMENTS.filter((a) => a.group === g)
-          const done = rows.filter((a) => has.has(a.key)).length
-          return (
-            <div key={g} className="ach-group">
-              <h3>{g} <em>{done}/{rows.length}</em></h3>
-              <div className="ach-list">
-                {rows.map((a) => {
-                  const got = has.has(a.key)
-                  return (
-                    <div key={a.key} className={`ach${got ? ' got' : ''}${a.hard ? ' hard' : ''}`}>
-                      <span className="mark">{got ? '★' : '☆'}</span>
-                      <div>
-                        <b>{a.title}</b>
-                        <span className="tiny muted">{a.brief}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
+        {RUN_GROUPS.map((g) => {
+          const rows = RUN_ACHIEVEMENTS.filter((a) => a.group === g)
+          if (!rows.length) return null
+          return <Group key={g} name={g} rows={rows} has={has} />
         })}
+      </Panel>
+
+      <Panel title={`生涯累计 · ${LIFE_ACHIEVEMENTS.filter((a) => has.has(a.key)).length}/${LIFE_ACHIEVEMENTS.length}`}>
+        <p className="tiny faint" style={{ marginTop: 0 }}>
+          这些看的是你所有存档加起来的总数，一段生涯做不完。
+        </p>
+        <Group name="" rows={LIFE_ACHIEVEMENTS} has={has} />
       </Panel>
 
       <Panel title={`结局收藏 · ${seenEnding.size}/${ENDING_COUNT}`}>
         <p className="tiny faint" style={{ marginTop: 0 }}>
-          每段生涯走完十年会得到一个结局，同时达成的其它结局也一并解锁。
-          没见过的只显示达成条件。
+          每段生涯走完十年会同时给出两个结局：<b>王朝线</b>看你拿了什么，
+          <b>故事线</b>看这十年是怎么过的。没见过的只显示达成条件。
         </p>
-        <div className="ach-list">
-          {ENDINGS.map((e) => {
-            const got = seenEnding.has(e.key)
-            return (
-              <div key={e.key} className={`ach${got ? ' got' : ''}`}>
-                <span className="mark">{got ? '★' : '☆'}</span>
-                <div>
-                  <b>{got ? e.title : '？？？'}</b>
-                  <span className="tiny muted">{e.brief}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <Endings name="王朝线 · 看战绩" rows={DYNASTY_ENDINGS} has={seenEnding} />
+        <Endings name="故事线 · 看经历" rows={STORY_ENDINGS} has={seenEnding} />
       </Panel>
 
       <Panel title="生涯累计">

@@ -792,6 +792,14 @@ export interface GameState {
   prospectsTaken?: string[]
   /** the squad you inherited, so an ending can ask who is still here */
   startingSquad?: string[]
+  /**
+   * The training facility as you found it.
+   *
+   * Four of the 78 clubs already sit at 90, so a badge for "reach 90" is
+   * handed to whoever took the right job. What the manager actually does is
+   * pay to raise it, and that is only visible against where it started.
+   */
+  startFacilities?: number
   /** the career is over because ten seasons are up, not because you were sacked */
   finished?: boolean
   /** agents the manager has chosen for the next match, keyed by map */
@@ -827,6 +835,25 @@ export interface GameState {
   managerContract?: ManagerContract
   /** clubs we have managed, in order */
   tenures?: { teamId: string; fromYear: number; toYear?: number }[]
+  /**
+   * Running totals for things no snapshot can answer.
+   *
+   * A badge like 「轮换过 15 名选手」 or 「商务累计 5000 万」 is about what
+   * happened over a decade, and the save keeps none of it: a squad shows who
+   * is here now, not who passed through, and finances.log is capped at 200
+   * entries so it forgets the first eight seasons. These are counted at the
+   * moment the thing happens, which is the only time it is knowable.
+   */
+  tally?: {
+    /** players signed to our club, over the whole career */
+    signed: number
+    /** coaches and analysts hired */
+    hired: number
+    /** the manager's own pay, banked season by season */
+    earned: number
+    /** commercial and sponsorship income, added up */
+    commercial: number
+  }
   /** set when the career is over; the text is why */
   gameOver?: string
 }

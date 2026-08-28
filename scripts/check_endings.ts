@@ -1,15 +1,24 @@
 /**
- * Ten seasons, and a verdict that can actually be reached.
+ * Two verdicts, and conditions that can actually be reached.
  *
- * Every ending is judged off the save's own record — honours and tenures —
- * never off a flag written when something happened, so an imported save gets
- * the same answer as one played straight through. These build the record and
- * check the answer.
+ * Every ending is judged off the save's own record — honours, tenures, the
+ * squad — never off a flag written when something happened, so an imported
+ * save gets the same answer as one played straight through. These build the
+ * record by hand and check the answer.
+ *
+ * The trophy line is built on the season the game really runs: three
+ * international events a year, so a 全冠年 is Masters I + Masters II +
+ * Champions, and 黄金之路 is three of those in a row. The exact strings matter
+ * — they are what settleCompetition writes into `honours` — so the ones used
+ * here are asserted against the engine's own list rather than retyped.
+ *
+ *     npx tsx scripts/check_endings.ts
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { setupSeason, advanceDay } from '../src/engine/season'
 import {
-  ENDINGS, ENDING_COUNT, endingOf, endingsFor, factsOf, FINAL_YEAR,
+  DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf,
+  FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
 } from '../src/engine/endings'
 import type { GameState } from '../src/engine/types'
 
@@ -27,110 +36,167 @@ const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
   if (!ok) bad++
 }
-const mk = (): GameState => {
-  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260828)
+const mk = (tag = 'TYL'): GameState => {
+  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === tag)!.id, '审计', 20260828)
   setupSeason(g)
   g.year = FINAL_YEAR
+  g.finished = true
   return g
 }
 const won = (g: GameState, year: number, title: string) => g.honours.push({ year, title })
+/** A clean sweep of a year's three international events. */
+const perfect = (g: GameState, year: number) => {
+  for (const t of INTL_TITLES) won(g, year, t)
+}
+const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === key)
 
-// ---- every ending is reachable, and none is a duplicate
+// ---- the catalogue is well-formed
 {
   const keys = ENDINGS.map((e) => e.key)
-  check('no two endings share a key', new Set(keys).size === keys.length)
-  check('the collection knows how many there are', ENDING_COUNT === ENDINGS.length)
-  const ranks = ENDINGS.map((e) => e.rank)
-  check('they are ordered', ranks.every((r, i) => i === 0 || r >= ranks[i - 1]))
+  check('结局 key 不重复', new Set(keys).size === keys.length)
+  check('两条线都有内容',
+    DYNASTY_ENDINGS.length > 0 && STORY_ENDINGS.length > 0,
+    `王朝 ${DYNASTY_ENDINGS.length}，故事 ${STORY_ENDINGS.length}，共 ${ENDING_COUNT}`)
+  check('每个结局都有标题和条件说明',
+    ENDINGS.every((e) => e.title.length > 0 && e.brief.length > 0))
+  // each track must end in a catch-all, or a career can finish and be told nothing
+  const blank = mk()
+  const two = endingOf(blank)
+  check('哪怕一无所获也有两个结局', !!two.dynasty && !!two.story,
+    `${two.dynasty?.title} ／ ${two.story?.title}`)
 }
 
-// ---- each one, built from a record that should produce it
+// ---- no ending is unconditional, and none contradicts another
 {
-  const cases: [string, (g: GameState) => void][] = [
-    ['dynasty5', (g) => { for (let y = 2032; y <= 2036; y++) won(g, y, 'Champions') }],
-    ['dynasty3', (g) => { for (let y = 2034; y <= 2036; y++) won(g, y, 'Masters') }],
-    ['treble', (g) => {
-      for (let y = 2034; y <= 2036; y++) { won(g, y, 'Champions'); won(g, y, 'VCT China · Stage 1') }
-      // three consecutive sweeps but the world streak is also 3 — treble
-      // outranks dynasty3, which is the point of the ordering
-    }],
-    ['worldFirst', (g) => won(g, 2030, 'Masters')],
-    ['promoted', (g) => won(g, 2028, '晋级 VCT China')],
-    ['fallen', () => { /* nothing at all */ }],
-  ]
-  for (const [key, build] of cases) {
-    const g = mk()
-    build(g)
-    const got = endingsFor(g)
-    check(`「${ENDINGS.find((e) => e.key === key)!.title}」可以达成`,
-      got.some((e) => e.key === key), got.map((e) => e.title).join('、') || '（无）')
+  // Written as `() => true` fallbacks, 「空手而归」 and 「来过」 unlocked for
+  // everybody — a nine-title dynasty was told it had also finished empty-handed.
+  const rich = mk()
+  perfect(rich, FINAL_YEAR - 1); perfect(rich, FINAL_YEAR)
+  const got = endingsFor(rich).map((e) => e.key)
+  check('夺冠的生涯不会同时解锁「空手而归」', !got.includes('nothing'), got.join('、'))
+  check('也不会同时解锁「有过高光」', !got.includes('silverware'))
+  check('走完十年不会同时解锁「来过」', !got.includes('shortStay'))
+
+  // and the two tracks still always resolve, at both extremes
+  for (const [label, g] of [['一无所获', mk()], ['满贯', rich]] as const) {
+    const two = endingOf(g)
+    check(`${label}的生涯仍然两条线都有结局`, !!two.dynasty && !!two.story,
+      `${two.dynasty?.title} ／ ${two.story?.title}`)
   }
 }
 
-// ---- the ordering actually decides which one is shown
+// ---- 全冠年 is the three international events, and nothing else counts
 {
   const g = mk()
-  for (let y = 2032; y <= 2036; y++) won(g, y, 'Champions')
-  check('五连霸盖过单次夺冠', endingOf(g)?.key === 'dynasty5', endingOf(g)?.title)
-  const g2 = mk()
-  for (let y = 2034; y <= 2036; y++) { won(g2, y, 'Champions'); won(g2, y, 'VCT China · Stage 1') }
-  check('全冠三连盖过三连霸', endingOf(g2)?.key === 'treble', endingOf(g2)?.title)
+  won(g, 2030, 'Masters I')
+  won(g, 2030, 'Masters II')
+  check('只拿两站大师赛不算全冠年', !has(g, 'perfectYear'), `全冠 ${factsOf(g).perfectYears.length} 年`)
+  won(g, 2030, 'Champions')
+  check('补上冠军赛才是全冠年', has(g, 'perfectYear'))
+
+  // and a regional title cannot stand in for one of them
+  const h = mk()
+  won(h, 2030, 'Masters I')
+  won(h, 2030, 'Masters II')
+  won(h, 2030, 'VCT China · Stage 1')
+  check('赛区冠军不能顶替冠军赛', !has(h, 'perfectYear'))
 }
 
-// ---- 初始队员还在队里
+// ---- 黄金之路 is three perfect years running: nine titles, none dropped
 {
   const g = mk()
-  check('开局记下了初始阵容', (g.startingSquad ?? []).length >= 5,
-    `${(g.startingSquad ?? []).length} 人`)
-  const f = factsOf(g)
-  check('十年没动阵容时全员都在', f.originalsLeft === f.originalsAt, `${f.originalsLeft}/${f.originalsAt}`)
-  check('「一起走到最后」可以达成', endingsFor(g).some((e) => e.key === 'loyalWithMe'))
-  // sell everyone and it goes away
-  const g2 = mk()
-  g2.teams[g2.myTeam].roster = []
-  check('把人全卖了就不算', !endingsFor(g2).some((e) => e.key === 'loyalWithMe'))
+  perfect(g, 2030); perfect(g, 2031); perfect(g, 2032)
+  check('连续三个全冠年 →「黄金之路」', has(g, 'golden'),
+    `${g.honours.length} 冠，连续 ${factsOf(g).perfectStreak} 年`)
+  check('九座国际冠军', g.honours.length === 9)
+
+  const gap = mk()
+  perfect(gap, 2030); perfect(gap, 2031); perfect(gap, 2033)
+  check('中间断了一年就不算', !has(gap, 'golden'), `最长连续 ${factsOf(gap).perfectStreak} 年`)
+
+  const five = mk()
+  for (const y of [2030, 2031, 2032, 2033, 2034]) perfect(five, y)
+  check('连续五个全冠年 →「不朽」', has(five, 'immortal'))
+  check('「不朽」排在「黄金之路」前面', endingOf(five).dynasty?.key === 'immortal')
 }
 
-// ---- 没有外援
+// ---- the Champions streak line
 {
   const g = mk()
+  won(g, 2030, 'Champions'); won(g, 2031, 'Champions')
+  check('连续两年冠军赛 →「卫冕」', has(g, 'defend'))
+  won(g, 2032, 'Champions')
+  check('连续三年 →「三连霸」', has(g, 'threePeat'))
+  won(g, 2033, 'Champions'); won(g, 2034, 'Champions')
+  check('连续五年 →「五连霸」', has(g, 'fivePeat'))
+  check('五连霸压过三连霸', endingOf(g).dynasty?.key === 'fivePeat')
+}
+
+// ---- 大师 is for the nearly-man: internationals, but never the big one
+{
+  const g = mk()
+  won(g, 2030, 'Masters I'); won(g, 2032, 'Masters II')
+  check('只拿大师赛 →「大师」', endingOf(g).dynasty?.key === 'masterOnly')
   won(g, 2033, 'Champions')
-  const me = g.teams[g.myTeam]
-  // isImport reads NATIONALITY first and only falls back to region, so a
-  // homegrown squad has to be homegrown by passport
-  for (const p of squadOf(g, g.myTeam)) { p.region = me.region; p.nat = undefined }
-  check('全本土夺冠 →「本土主义」', endingsFor(g).some((e) => e.key === 'homegrown'),
-    `外援 ${factsOf(g).imports} 人`)
-  squadOf(g, g.myTeam)[0].nat = me.region === 'EMEA' ? 'kr' : 'fr'
-  check('签一个外援就没了', !endingsFor(g).some((e) => e.key === 'homegrown'),
-    `外援 ${factsOf(g).imports} 人`)
+  check('拿到冠军赛之后就不再是「大师」', !has(g, 'masterOnly'))
 }
 
-// ---- 连冠之后爆冷
+// ---- 乐极生悲: a fall, not merely an absence
+{
+  const g = mk()
+  won(g, 2030, 'Champions'); won(g, 2031, 'Champions')
+  g.year = 2033
+  check('连冠之后颗粒无收 →「乐极生悲」', has(g, 'icarus'))
+
+  const one = mk()
+  won(one, 2030, 'Champions')
+  one.year = 2033
+  check('只拿过一次冠军不算「乐极生悲」', !has(one, 'icarus'))
+
+  const still = mk()
+  won(still, 2030, 'Champions'); won(still, 2031, 'Champions')
+  won(still, 2033, 'VCT China · Stage 1')
+  still.year = 2034
+  check('之后还有进账就不算', !has(still, 'icarus'))
+}
+
+// ---- 本土主义 counts imports by passport, not by the region field
 {
   const g = mk()
   won(g, 2030, 'Champions')
-  won(g, 2031, 'Champions')
-  check('夺冠后再无所获 →「功亏一篑」', endingsFor(g).some((e) => e.key === 'nearly'))
-  won(g, 2035, 'VCT China · Stage 2')
-  check('之后又拿到东西就不算', !endingsFor(g).some((e) => e.key === 'nearly'))
+  const me = g.teams[g.myTeam]!
+  // isImport reads NATIONALITY first and only falls back to region, so a
+  // homegrown squad has to be homegrown by passport
+  for (const p of squadOf(g, g.myTeam)) { p.region = me.region; p.nat = undefined }
+  check('全本土夺冠 →「本土主义」', has(g, 'homegrown'), `外援 ${factsOf(g).imports} 人`)
+  squadOf(g, g.myTeam)[0]!.nat = me.region === 'EMEA' ? 'kr' : 'fr'
+  check('签一个外援就没了', !has(g, 'homegrown'), `外援 ${factsOf(g).imports} 人`)
+}
+
+// ---- the two tracks are independent: you get one of each
+{
+  // The sweep runs to the final year on purpose: leave a gap after it and
+  // 「乐极生悲」 correctly takes the story slot, which is a different test.
+  const g = mk()
+  perfect(g, FINAL_YEAR - 2); perfect(g, FINAL_YEAR - 1); perfect(g, FINAL_YEAR)
+  const me = g.teams[g.myTeam]!
+  for (const p of squadOf(g, g.myTeam)) { p.region = me.region; p.nat = undefined }
+  const two = endingOf(g)
+  check('战绩线给出「黄金之路」', two.dynasty?.key === 'golden')
+  check('同一段生涯的故事线另有其人', two.story?.key === 'homegrown',
+    `${two.story?.title}`)
+  check('两个结局分属不同的线', two.dynasty?.track !== two.story?.track)
 }
 
 // ---- 判定发生在休赛期之前：结算的是刚打完最后一季的那支队，不是散伙后的残部
 {
-  // The check used to sit at the BOTTOM of endSeason, after expiring contracts
-  // had emptied the squad and ensureMinimumRosters had reshuffled the league.
-  // Everyone here is on a deal that runs out at this rollover, and one of them
-  // is an import — if the endings are judged after the off-season he is gone
-  // and 「本土主义」 fires on the two or three men left behind.
   const g = mk()
   won(g, FINAL_YEAR, 'Champions')
+  g.finished = false
   const me = g.teams[g.myTeam]!
   const squad = squadOf(g, g.myTeam)
   // A deal that ran out LAST winter: the managed club gets one year of grace,
   // so `contractYears = 1` would only put him on notice, not out the door.
-  // These men leave at this rollover, which is exactly the moment the ending
-  // is decided.
   for (const p of squad) {
     p.contractYears = 0
     p.expiredYear = FINAL_YEAR - 1
@@ -149,8 +215,7 @@ const won = (g: GameState, year: number, title: string) => g.honours.push({ year
   check('结局判定时阵容还没散', after.length >= before - 1,
     `赛季末 ${before} 人，判定时 ${after.length} 人`)
   check('刚到期的外援仍然算数——「本土主义」不会白送',
-    !endingsFor(g).some((e) => e.key === 'homegrown'),
-    `外援 ${factsOf(g).imports} 人`)
+    !has(g, 'homegrown'), `外援 ${factsOf(g).imports} 人`)
 }
 
 // ---- 十年真的会结束，而不是无限跑下去
@@ -164,8 +229,10 @@ const won = (g: GameState, year: number, title: string) => g.honours.push({ year
     advanceDay(g)
   }
   check('十个赛季之后生涯自动结束', !!g.finished, `${g.year} 年：${g.gameOver ?? '仍在进行'}`)
-  check('结束于最后一个赛季', g.year === FINAL_YEAR, `${g.year}`)
-  check('并且给出了一个结局', !!endingOf(g), endingOf(g)?.title)
+  check('结束于最后一个赛季', g.year === FINAL_YEAR, String(g.year))
+  const two = endingOf(g)
+  check('并且给出了两个结局', !!two.dynasty && !!two.story,
+    `${two.dynasty?.title} ／ ${two.story?.title}`)
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

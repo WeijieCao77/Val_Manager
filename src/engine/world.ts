@@ -6,6 +6,7 @@ import { defaultTactics, emptyStats, ROLES } from './types'
 import type { Attrs, GameState, Player, Role, Sponsor, Team } from './types'
 import { ORIGINS } from './manager'
 import type { Manager } from './manager'
+import { freeAgentPool } from './prospects'
 
 interface RawTeam {
   id: string; name: string; tag: string; region: string; tier: number; league: string
@@ -189,6 +190,14 @@ export function createNewGame(
     }
   }
 
+  // The rest of the professional scene: real players from below the simulated
+  // leagues, without a club. They are ordinary free agents from day one — the
+  // market lists them, AI sides short of five sign them — which is the whole
+  // point, because a world of 518 that only ages runs out of people.
+  for (const p of freeAgentPool(2026)) {
+    if (!players[p.id]) players[p.id] = p
+  }
+
   const teams: Record<string, Team> = {}
   for (const rt of RAW.teams) {
     const trng = new Rng(hashStr(rt.id + 'team') ^ s)
@@ -247,6 +256,7 @@ export function createNewGame(
   // the squad you inherited, kept so an ending can ask who is still here in
   // ten years' time — the record, not a flag set when somebody leaves
   state.startingSquad = [...teams[myTeamId].roster]
+  state.startFacilities = teams[myTeamId].facilities
   // they are yours from today, so today is where their development is measured from
   for (const id of state.startingSquad) {
     const p = state.players[id]

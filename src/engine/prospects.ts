@@ -1,39 +1,33 @@
 /**
- * New blood, so a long career still has somebody to sign.
+ * More real professionals, so the world does not run out of people.
  *
- * The world is 518 real professionals and it only ever ages. Players retire,
- * nobody arrives, and by the sixth or seventh season the free-agent list is
- * empty, AI squads are down to five, and every mechanic built on youth — the
- * winter re-rating, 带新人, the rivalry drill — is developing nobody.
+ * The world is 518 real players and it only ever ages. Players retire, nobody
+ * arrives, and by the sixth or seventh season the free-agent list is empty and
+ * AI squads are down to five.
  *
- * The answer could not be to invent people. Every name in this game is a real
- * professional and that is the whole premise, so instead scripts/fetch_prospects.py
+ * The answer could not be to invent people — every name in this game is a real
+ * professional and that is the whole premise — so scripts/fetch_prospects.py
  * goes and finds more real ones: players from the tiers below the leagues we
- * simulate — regional Challengers, academies, Game Changers — who are not in
- * world.json and who are young enough that arriving years from now still
- * leaves a career to play.
+ * simulate who are not in world.json. They are not a youth academy and there
+ * is no intake ceremony; they are simply the rest of the professional scene,
+ * available from day one like anybody else without a club.
  *
  * Two rules keep them honest:
  *
- *  - Their age is computed from a real recorded birthdate against the game's
- *    own year. A prospect born in 2008 arrives in 2031 aged 23, not aged 18,
- *    because that is how old he is. Nobody's age is chosen to be convenient.
- *  - The youngest go first. The pool is finite, so spending it oldest-first
- *    would hand a rebuilding club a 27-year-old "prospect" while the teenagers
- *    waited their turn.
- *
- * What is NOT real, and cannot be: their ability. These are players with no
- * top-flight record, so there is nothing to derive a rating from. They arrive
- * unproven — a modest overall with a wide, deliberately uncertain ceiling,
- * seeded from the player's own id so the same man is the same man in every
- * career. Finding the one worth signing is the point.
+ *  - Their age comes from a real recorded birthdate. Someone born in 2004 is
+ *    22 in 2026 because that is how old he is, and nobody's age is chosen to
+ *    be convenient.
+ *  - What is NOT real, and cannot be, is their ability: these are players with
+ *    no top-flight record, so there is nothing to derive a rating from. They
+ *    arrive unproven, seeded from their own id so the same man is the same man
+ *    in every career, with a ceiling that closes as they get older.
  */
 import RAW from '../data/prospects.json'
 import { Rng, clamp, hashStr } from './rng'
 import { AGENT_ROLE } from './content'
 import { recomputeOverall, refreshValue } from './player'
 import { ATTR_KEYS, defaultContract } from './types'
-import type { Attrs, GameState, Player, Region, Role } from './types'
+import type { Attrs, Player, Region, Role } from './types'
 
 export interface ProspectRow {
   id: string
@@ -51,11 +45,6 @@ interface ProspectFile {
 }
 
 export const PROSPECTS = (RAW as unknown as ProspectFile).players ?? []
-
-/** The first season new blood arrives, and how many a year. */
-export const INTAKE_FROM = 2027
-export const INTAKE_MIN = 10
-export const INTAKE_MAX = 15
 
 /** Nationality → region, mirroring imports.ts so the import rule still works. */
 const NAT_REGION: Record<string, Region> = {
@@ -184,43 +173,15 @@ export function makeProspect(row: ProspectRow, year: number): Player {
 }
 
 /**
- * Let a year's worth of new blood into the world.
+ * Everyone this file can add to a world, as free agents.
  *
- * Called once at the season rollover. They arrive as free agents rather than
- * being placed on clubs: the point is that there is somebody to sign.
+ * Called once when the world is built. They go straight into the player pool
+ * with no club, which is what "in the pool" means — the transfer market lists
+ * them, AI clubs short of five sign them, and a manager scouting the market
+ * finds them next to everybody else.
  */
-export function admitProspects(state: GameState, rng: Rng): string[] {
-  if (state.year < INTAKE_FROM) return []
-  state.prospectsTaken ??= []
-  const taken = new Set(state.prospectsTaken)
-  const pool = PROSPECTS.filter((r) => !taken.has(r.id) && !state.players[r.id])
-  if (!pool.length) return []
-
-  // youngest first: the pool is finite, and spending it oldest-first would
-  // hand a rebuilding club a 27-year-old "prospect"
-  pool.sort((a, b) => ageIn(a, state.year) - ageIn(b, state.year))
-  const n = Math.min(pool.length, rng.int(INTAKE_MIN, INTAKE_MAX))
-  const arriving = pool.slice(0, n)
-
-  for (const row of arriving) {
-    const p = makeProspect(row, state.year)
-    state.players[p.id] = p
-    state.prospectsTaken.push(row.id)
-  }
-  const ages = arriving.map((r) => ageIn(r, state.year))
-  const lo = Math.min(...ages)
-  const hi = Math.max(...ages)
-  // Say what actually arrived. The pool ages in real time — everyone in it was
-  // born by 2009 — so after a few seasons the intake is not teenagers any
-  // more, and announcing 27-year-olds as 「年轻选手」 is simply a lie the
-  // player can read straight off the ages in the same sentence.
-  const what = lo <= 21 ? '新一批年轻选手进入职业圈'
-    : lo <= 24 ? '新一批选手进入职业圈'
-    : '一批次级联赛选手进入自由市场'
-  return [
-    `🌱 ${what}：${arriving.length} 人成为自由人`
-    + `（${lo}~${hi} 岁），转会市场可以签下他们。`,
-  ]
+export function freeAgentPool(year: number): Player[] {
+  return PROSPECTS.map((row) => makeProspect(row, year))
 }
 
 void defaultContract

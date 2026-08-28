@@ -9,7 +9,6 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { mapCn } from './content'
-import { admitProspects } from './prospects'
 import { endingsFor, FINAL_YEAR } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
@@ -564,6 +563,7 @@ export function moveToClub(state: GameState, teamId: string): string {
   state.tenures.push({ teamId: to.id, fromYear: state.year })
 
   state.myTeam = to.id
+  state.startFacilities = to.facilities
   // a new squad, and their development starts being yours from today — the
   // stars you walked in on are not something you built
   for (const id of to.roster) {
@@ -895,6 +895,13 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
  * goes into the digest, so the season turns over in front of you.
  */
 function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
+  // The manager's own pay, banked. It had no destination at all before this —
+  // a number on the contract screen that nothing ever read — and it is the
+  // one figure in the game that belongs to the person rather than the club.
+  // Counted before the finale check, because the last season was worked.
+  state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
+  state.tally.earned += state.managerContract?.salary ?? 0
+
   // Ten seasons is the whole story: 2036 is the last campaign played, and when
   // it is settled the career ends on its own terms rather than running on until
   // somebody is sacked.
@@ -1042,7 +1049,6 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   notes.push(...settleSponsorDemands(state))
   // and a new intake arrives, so a career that runs long still has somebody
   // to sign and somebody to develop
-  notes.push(...admitProspects(state, rng))
   state.seasonGigs = 0
   state.bestPlacing = undefined
   notes.push(...seasonRollover(state, rng))

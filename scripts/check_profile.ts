@@ -11,7 +11,9 @@
  *     npx tsx scripts/check_profile.ts
  */
 import { claimLocal, mergeProfile, emptyProfile, readProfile, record } from '../src/engine/profile'
-import { ACHIEVEMENTS, ACHIEVEMENT_COUNT, earnedNow } from '../src/engine/achievements'
+import {
+  ACHIEVEMENTS, ACHIEVEMENT_COUNT, LIFE_ACHIEVEMENTS, RUN_ACHIEVEMENTS, earnedNow,
+} from '../src/engine/achievements'
 import { ENDINGS } from '../src/engine/endings'
 import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
 import { setupSeason } from '../src/engine/season'
@@ -118,7 +120,11 @@ const check = (name: string, ok: boolean, detail = '') => {
 {
   const keys = ACHIEVEMENTS.map((a) => a.key)
   check('成就 key 不重复', new Set(keys).size === keys.length)
-  check(`成就正好 ${ACHIEVEMENT_COUNT} 条`, ACHIEVEMENT_COUNT === 25, `${ACHIEVEMENT_COUNT} 条`)
+  check('成就分成局内和生涯两类，两类都不为空',
+    RUN_ACHIEVEMENTS.length > 0 && LIFE_ACHIEVEMENTS.length > 0,
+    `局内 ${RUN_ACHIEVEMENTS.length} 条，生涯 ${LIFE_ACHIEVEMENTS.length} 条，共 ${ACHIEVEMENT_COUNT}`)
+  check('局内成就都有判定，生涯成就都有判定',
+    RUN_ACHIEVEMENTS.every((a) => !!a.test) && LIFE_ACHIEVEMENTS.every((a) => !!a.lifeTest))
   check('每条成就都有标题和条件说明',
     ACHIEVEMENTS.every((a) => a.title.length > 0 && a.brief.length > 0))
   // endings and achievements share one namespace on the profile, so a key

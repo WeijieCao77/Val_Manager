@@ -1645,3 +1645,12 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .ach.got.hard .mark { color: var(--accent); }
 .ach.got.hard { border-color: var(--accent-line); }
 @media (max-width: 720px) { .ach-list { grid-template-columns: minmax(0, 1fr); } }
+
+/* the two endings on the game-over screen, one per track */
+.ending { margin: 0 0 16px; }
+.ending .k {
+  display: block; color: var(--faint); font-size: 11px; letter-spacing: .1em;
+  margin-bottom: 3px;
+}
+.ending b { display: block; font-size: 22px; letter-spacing: -.01em; margin-bottom: 6px; }
+.ending p { margin: 0; font-size: var(--t-body); line-height: 1.95; color: var(--text); }

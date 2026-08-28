@@ -1,186 +1,250 @@
 /**
- * Twenty-five things worth having done, kept for the account rather than the save.
+ * The small stuff: forty-two things worth having done.
  *
- * Endings are a verdict on one career: you get exactly one, at the end, and it
- * asks what the ten years added up to. Achievements are the opposite shape —
- * they are small, they unlock the moment they happen, and they accumulate
- * across every career the account ever plays. Losing your job in 2029 does not
- * take them away.
+ * Endings are a verdict on a decade and you get two per career. Achievements
+ * are the opposite shape — each one is a single afternoon, they unlock the
+ * moment they happen, and they stay on the account forever. Being sacked in
+ * 2029 does not take any of them away.
  *
- * Same rule as endings, for the same reason: every condition is a question
- * asked of the save's own state, never a flag written when something happened.
- * A save carried over from an older version answers them the same as one
- * played from the start, and there is no event to miss — the check runs every
- * day, so anything true for even one day is caught.
+ * They come in two kinds, because two different questions are worth asking:
  *
- * The cost of that rule is that a few genuinely momentary things — a 13-0, an
- * overtime map — are only visible while the fixture that holds them is still
- * in the save. That is fine: the daily check sees the match the day it is
- * played, which is the day it matters.
+ *   局内 — something you did inside one career. Read off the save.
+ *   生涯 — something true of everything you have ever played. Read off the
+ *          account's own record, which is the only place a total across
+ *          careers can live.
+ *
+ * The 局内 rule is the same one the endings follow: every condition is a
+ * question asked of the save's state, never a flag written when something
+ * happened. The check runs after every turn, so anything true for even one day
+ * is caught, and a save imported from an older version answers the same as one
+ * played from the start.
+ *
+ * A handful of things no snapshot can answer — how many players passed through
+ * over ten years, what the manager was paid across a decade — are counted in
+ * `state.tally` at the moment they happen, because that is the only moment
+ * they are knowable: a squad shows who is here now, and finances.log keeps
+ * only the last 200 lines.
  */
 import { isImport } from './imports'
-import { squadOf } from './world'
+import { squadOf, WORLD_TEAMS } from './world'
 import type { GameState, Player } from './types'
+import type { CareerRecord } from './profile'
+
+export type AchScope = 'run' | 'life'
+export type AchGroup = '冠军' | '赛场' | '养成' | '阵容' | '经营' | '生涯' | '收藏'
 
 export interface Achievement {
   key: string
   title: string
   /** what it takes; shown whether or not it is unlocked */
   brief: string
-  group: '赛场' | '养成' | '阵容' | '经营' | '生涯'
+  scope: AchScope
+  group: AchGroup
   /** the rare ones, shown differently — nothing else turns on this */
   hard?: boolean
-  test: (s: GameState, f: Facts) => boolean
+  /** 局内: asked of one save. Only defined for scope 'run'. */
+  test?: (s: GameState, f: Facts) => boolean
+  /** 生涯: asked of the account's record. Only defined for scope 'life'. */
+  lifeTest?: (r: CareerRecord, unlocked: { endings: string[]; achievements: string[] }) => boolean
 }
+
+// ----------------------------------------------------------------- the save
+
+const INTL = ['Masters I', 'Masters II', 'Champions']
+const isIntl = (t: string) => INTL.includes(t)
+const isMasters = (t: string) => t === 'Masters I' || t === 'Masters II'
+const isRegional = (t: string) => /Kickoff$/.test(t) || /^VCT .+ · Stage \d$/.test(t)
 
 export interface Facts {
   squad: Player[]
-  worldYears: number[]
-  regionYears: number[]
-  seasons: number
+  honours: { year: number; title: string }[]
   imports: number
-  /** prospects (youth-pool arrivals) currently on our books */
-  prospects: Player[]
-  /** our own maps this season that finished 13-0 our way */
+  /** our own maps that finished 13-0 our way */
   perfectMaps: number
   /** our own maps that went to overtime and came home */
   overtimeWins: number
-  /** series we won by the last map — 2-1 or 3-2 */
+  /** series won on the last map — 2-1 or 3-2 */
   deciders: number
+  /** series won without dropping a map, in a best-of-three or longer */
+  sweeps: number
+  /** years in which all three international events came home */
+  perfectYears: number
+  /** years in which every tier-1 regional trophy came home */
+  regionalSweeps: number
   clubs: number
+  seasons: number
 }
-
-const isWorld = (t: string) => /Masters|Champions/i.test(t) && !/Challengers/i.test(t)
-const isRegional = (t: string) => /VCT|Challengers|Kickoff|Stage/i.test(t)
 
 export function factsOf(state: GameState): Facts {
   const squad = squadOf(state, state.myTeam)
   const me = state.teams[state.myTeam]
+  const honours = state.honours ?? []
 
   let perfectMaps = 0
   let overtimeWins = 0
   let deciders = 0
+  let sweeps = 0
   for (const f of state.fixtures ?? []) {
-    if (!f.played || !f.result) continue
+    if (!f.played || !f.result || f.scrim) continue
     const usA = f.teamA === state.myTeam
     const usB = f.teamB === state.myTeam
     if (!usA && !usB) continue
-    // scrims are practice; they do not count for anything here
-    if (f.scrim) continue
     for (const m of f.result.maps ?? []) {
       const ours = usA ? m.scoreA : m.scoreB
       const theirs = usA ? m.scoreB : m.scoreA
-      if (ours > theirs) {
-        if (theirs === 0 && ours >= 13) perfectMaps++
-        // a map only passes 13 by going to overtime
-        if (ours > 13) overtimeWins++
-      }
+      if (ours <= theirs) continue
+      if (theirs === 0 && ours >= 13) perfectMaps++
+      // a map only goes past 13 by going to overtime
+      if (ours > 13) overtimeWins++
     }
     const ourMaps = usA ? f.result.mapsWonA : f.result.mapsWonB
     const theirMaps = usA ? f.result.mapsWonB : f.result.mapsWonA
-    if (f.bo > 1 && ourMaps > theirMaps && theirMaps === ourMaps - 1) deciders++
+    if (f.bo > 1 && ourMaps > theirMaps) {
+      if (theirMaps === ourMaps - 1) deciders++
+      if (theirMaps === 0) sweeps++
+    }
+  }
+
+  // a perfect international year: Masters I, Masters II and Champions
+  const intlBy = new Map<number, Set<string>>()
+  const regBy = new Map<number, Set<string>>()
+  for (const h of honours) {
+    if (isIntl(h.title)) {
+      if (!intlBy.has(h.year)) intlBy.set(h.year, new Set())
+      intlBy.get(h.year)!.add(h.title)
+    }
+    if (isRegional(h.title)) {
+      if (!regBy.has(h.year)) regBy.set(h.year, new Set())
+      regBy.get(h.year)!.add(h.title)
+    }
   }
 
   return {
     squad,
-    worldYears: (state.honours ?? []).filter((h) => isWorld(h.title)).map((h) => h.year),
-    regionYears: (state.honours ?? []).filter((h) => isRegional(h.title)).map((h) => h.year),
-    seasons: state.year - 2026 + 1,
+    honours,
     imports: me ? squad.filter((p) => isImport(p, me)).length : 0,
-    prospects: squad.filter((p) => p.id.startsWith('Y')),
-    perfectMaps,
-    overtimeWins,
-    deciders,
+    perfectMaps, overtimeWins, deciders, sweeps,
+    perfectYears: [...intlBy.values()].filter((got) => INTL.every((t) => got.has(t))).length,
+    // Kickoff plus both Stages is every tier-1 trophy the region has to give
+    regionalSweeps: [...regBy.values()].filter((got) => got.size >= 3).length,
     clubs: new Set((state.tenures ?? []).map((t) => t.teamId)).size || 1,
+    seasons: state.year - 2026 + 1,
   }
 }
 
-/** Two years in a row present in a list. */
-const backToBack = (years: number[]): boolean => {
-  const set = new Set(years)
-  return [...set].some((y) => set.has(y + 1))
+const tally = (s: GameState) => s.tally ?? { signed: 0, hired: 0, earned: 0, commercial: 0 }
+const won = (f: Facts, pred: (t: string) => boolean) => f.honours.some((h) => pred(h.title))
+
+/** Regions the account has ever managed in, from the clubs it has held. */
+export function regionsManaged(clubs: string[]): string[] {
+  const byId = new Map(WORLD_TEAMS.map((t) => [t.id, t.region as string]))
+  return [...new Set(clubs.map((id) => byId.get(id)).filter((r): r is string => !!r))]
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  // ------------------------------------------------------------------ 赛场
+  // =================================================================== 冠军
   {
-    key: 'firstTitle', group: '赛场', title: '开张',
+    key: 'firstTitle', scope: 'run', group: '冠军', title: '开张',
     brief: '拿下第一座奖杯',
-    test: (s) => (s.honours ?? []).length >= 1,
+    test: (_s, f) => f.honours.length >= 1,
   },
   {
-    key: 'worldTitle', group: '赛场', title: '世界第一',
-    brief: '拿下一次 Masters 或 Champions',
-    test: (_s, f) => f.worldYears.length > 0,
+    key: 'firstRegional', scope: 'run', group: '冠军', title: '赛区冠军',
+    brief: '第一次拿下 Kickoff 或某个赛段的赛区冠军',
+    test: (_s, f) => won(f, isRegional),
   },
   {
-    key: 'sweep', group: '赛场', title: '大满贯',
-    brief: '同一年拿下赛区冠军和世界冠军',
+    key: 'firstChallengers', scope: 'run', group: '冠军', title: '次级联赛冠军',
+    brief: '第一次拿下 Challengers 赛段冠军',
+    test: (_s, f) => won(f, (t) => /^Challengers /.test(t)),
+  },
+  {
+    key: 'firstAscension', scope: 'run', group: '冠军', title: '晋升赛冠军',
+    brief: '第一次通过 Ascension 升入 VCT',
+    test: (_s, f) => won(f, (t) => /^晋级 VCT/.test(t)),
+  },
+  {
+    key: 'firstMasters', scope: 'run', group: '冠军', title: '大师赛冠军',
+    brief: '第一次拿下 Masters',
+    test: (_s, f) => won(f, isMasters),
+  },
+  {
+    key: 'firstChampions', scope: 'run', group: '冠军', title: '冠军赛冠军',
+    brief: '第一次拿下 Champions',
     hard: true,
-    test: (_s, f) => f.worldYears.some((y) => f.regionYears.includes(y)),
+    test: (_s, f) => won(f, (t) => t === 'Champions'),
   },
   {
-    key: 'backToBack', group: '赛场', title: '卫冕',
-    brief: '连续两年拿下世界冠军',
+    key: 'regionalSweep', scope: 'run', group: '冠军', title: '赛区全扫',
+    brief: '同一年拿下 Kickoff、Stage 1 和 Stage 2',
     hard: true,
-    test: (_s, f) => backToBack(f.worldYears),
+    test: (_s, f) => f.regionalSweeps > 0,
   },
   {
-    // deliberately not 'promoted': endings and achievements share one key
-    // namespace on the profile, and there is an ending by that name
-    key: 'climbed', group: '赛场', title: '升上来了',
-    brief: '带队从次级联赛升入 VCT',
-    test: (s) => (s.honours ?? []).some((h) => /晋级/.test(h.title)),
+    // not 'perfectYear': endings and achievements share one key namespace on
+    // the profile, and there is an ending by that name
+    key: 'perfectSeason', scope: 'run', group: '冠军', title: '全冠之年',
+    brief: '同一年拿下两站大师赛和冠军赛',
+    hard: true,
+    test: (_s, f) => f.perfectYears > 0,
   },
   {
-    key: 'perfect', group: '赛场', title: '十三比零',
+    key: 'tenTitles', scope: 'run', group: '冠军', title: '陈列柜',
+    brief: '单段生涯累计十座奖杯',
+    test: (_s, f) => f.honours.length >= 10,
+  },
+  {
+    key: 'twentyTitles', scope: 'run', group: '冠军', title: '柜子不够用了',
+    brief: '单段生涯累计二十座奖杯',
+    hard: true,
+    test: (_s, f) => f.honours.length >= 20,
+  },
+
+  // =================================================================== 赛场
+  {
+    key: 'perfect', scope: 'run', group: '赛场', title: '十三比零',
     brief: '在一张图上 13:0 零封对手',
     hard: true,
     test: (_s, f) => f.perfectMaps > 0,
   },
   {
-    key: 'overtime', group: '赛场', title: '加时局',
+    key: 'overtime', scope: 'run', group: '赛场', title: '加时局',
     brief: '赢下一张打进加时的地图',
     test: (_s, f) => f.overtimeWins > 0,
   },
   {
-    key: 'decider', group: '赛场', title: '决胜图',
+    key: 'decider', scope: 'run', group: '赛场', title: '决胜图',
     brief: '在最后一张图上拿下系列赛',
     test: (_s, f) => f.deciders > 0,
   },
   {
-    key: 'tenTitles', group: '赛场', title: '陈列柜',
-    brief: '生涯累计十座奖杯',
-    hard: true,
-    test: (s) => (s.honours ?? []).length >= 10,
+    key: 'sweep', scope: 'run', group: '赛场', title: '干净利落',
+    brief: '一张图不丢地赢下一个系列赛',
+    test: (_s, f) => f.sweeps > 0,
   },
 
-  // ------------------------------------------------------------------ 养成
+  // =================================================================== 养成
   {
-    key: 'firstProspect', group: '养成', title: '第一个青训',
-    brief: '签下一名从青训池进入职业圈的选手',
-    test: (_s, f) => f.prospects.length > 0,
-  },
-  {
-    key: 'prospectStar', group: '养成', title: '点石成金',
-    brief: '把一名青训选手练到 85 以上',
+    key: 'ceiling', scope: 'run', group: '养成', title: '天花板',
+    brief: '把一名选手从 85 以下练到 90 以上',
     hard: true,
-    test: (_s, f) => f.prospects.some((p) => p.overall >= 85),
+    test: (_s, f) => f.squad.some(
+      (p) => p.overall >= 90 && (p.arrivedOverall ?? p.overall) <= 85),
   },
   {
-    key: 'academy3', group: '养成', title: '自家出品',
-    brief: '同时拥有三名青训出身的选手',
-    test: (_s, f) => f.prospects.length >= 3,
-  },
-  {
-    key: 'teenStar', group: '养成', title: '少年成名',
+    key: 'teenStar', scope: 'run', group: '养成', title: '少年成名',
     brief: '把一名 20 岁及以下的选手练到 80 以上',
     hard: true,
     test: (_s, f) => f.squad.some(
       (p) => p.age <= 20 && p.overall >= 80 && (p.arrivedOverall ?? p.overall) < 75),
   },
   {
-    key: 'veteran', group: '养成', title: '老而弥坚',
+    key: 'grew15', scope: 'run', group: '养成', title: '脱胎换骨',
+    brief: '让一名选手在你手下涨 15 点能力',
+    test: (_s, f) => f.squad.some((p) => p.overall - (p.arrivedOverall ?? p.overall) >= 15),
+  },
+  {
+    key: 'veteran', scope: 'run', group: '养成', title: '老而弥坚',
     brief: '让一名 30 岁以上、能力 80 以上的选手仍然首发',
     test: (s, f) => {
       const starters = new Set(s.teams[s.myTeam]?.starters ?? [])
@@ -188,29 +252,34 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
   },
   {
-    key: 'ceiling', group: '养成', title: '天花板',
-    brief: '把一名选手从 85 以下练到 90 以上',
-    hard: true,
-    test: (_s, f) => f.squad.some(
-      (p) => p.overall >= 90 && (p.arrivedOverall ?? p.overall) <= 85),
-  },
-  {
-    key: 'mvpMachine', group: '养成', title: 'MVP 收割机',
-    brief: '一名选手生涯累计 20 次 MVP',
+    key: 'mvpMachine', scope: 'run', group: '养成', title: 'MVP 收割机',
+    brief: '队内一名选手生涯累计 20 次 MVP',
     hard: true,
     test: (_s, f) => f.squad.some((p) => (p.career?.mvps ?? 0) >= 20),
   },
-
-  // ------------------------------------------------------------------ 阵容
   {
-    key: 'noImports', group: '阵容', title: '全本土',
+    key: 'facility', scope: 'run', group: '养成', title: '基建狂魔',
+    brief: '把训练设施在你接手的基础上升 10 级',
+    test: (s) => {
+      const now = s.teams[s.myTeam]?.facilities ?? 0
+      return now - (s.startFacilities ?? now) >= 10
+    },
+  },
+  {
+    key: 'facilityMax', scope: 'run', group: '养成', title: '顶级设施',
+    brief: '把训练设施升到满级 95',
+    hard: true,
+    test: (s) => (s.teams[s.myTeam]?.facilities ?? 0) >= 95,
+  },
+
+  // =================================================================== 阵容
+  {
+    key: 'noImports', scope: 'run', group: '阵容', title: '全本土',
     brief: '一套五人以上的阵容里没有一名外援',
     test: (_s, f) => f.squad.length >= 5 && f.imports === 0,
   },
   {
-    // 「满编」 was here and was free: a top club starts with seven men. What
-    // is not free is having replaced most of them.
-    key: 'rebuilt', group: '阵容', title: '大换血',
+    key: 'rebuilt', scope: 'run', group: '阵容', title: '大换血',
     brief: '阵容里有五人不是你接手时的那批',
     test: (s, f) => {
       const inherited = new Set(s.startingSquad ?? [])
@@ -218,69 +287,157 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
   },
   {
-    key: 'keptCore', group: '阵容', title: '老班底',
-    brief: '接手五年之后，当初的三名队员还在队里',
-    hard: true,
-    test: (s, f) => {
-      if (f.seasons < 5) return false
-      const here = new Set(f.squad.map((p) => p.id))
-      return (s.startingSquad ?? []).filter((id) => here.has(id)).length >= 3
-    },
+    key: 'signed15', scope: 'run', group: '阵容', title: '流水的兵',
+    brief: '一段生涯里签下 15 名选手',
+    test: (s) => tally(s).signed >= 15,
   },
   {
-    key: 'staffed', group: '阵容', title: '幕后班底',
-    brief: '同时雇佣四名以上教练组成员',
+    key: 'signed30', scope: 'run', group: '阵容', title: '铁打的营盘',
+    brief: '一段生涯里签下 30 名选手',
+    hard: true,
+    test: (s) => tally(s).signed >= 30,
+  },
+  {
+    key: 'staff5', scope: 'run', group: '阵容', title: '教练组',
+    brief: '一段生涯里聘用过 5 名教练或分析师',
+    test: (s) => tally(s).hired >= 5,
+  },
+  {
+    key: 'staffFull', scope: 'run', group: '阵容', title: '幕后班底',
+    brief: '同时拥有四名以上教练组成员',
     test: (s) => (s.staff ?? []).length >= 4,
   },
 
-  // ------------------------------------------------------------------ 经营
+  // =================================================================== 经营
   {
-    key: 'rich', group: '经营', title: '家底',
-    brief: '账面资金超过 2000 万',
-    test: (s) => (s.finances?.balance ?? 0) >= 20_000_000,
-  },
-  {
-    key: 'bigDeal', group: '经营', title: '大生意',
+    key: 'bigDeal', scope: 'run', group: '经营', title: '大生意',
     brief: '单笔进账超过 100 万',
     test: (s) => (s.finances?.log ?? []).some((e) => e.amount >= 1_000_000),
   },
   {
-    // Not "one big deal": a pitched sponsor is priced off sponsorWorth, which
-    // tops out near $500K, while the deals a club is holding on day one run to
-    // $1.8M. Any single-deal threshold is therefore either free on arrival or
-    // impossible to reach by playing. The board a manager can actually move is
-    // the total — start at $2.0M–4.0M, and a full slate at high reputation is
-    // worth $5M–6.5M.
-    key: 'topSponsor', group: '经营', title: '商业版图',
+    key: 'sponsorBook', scope: 'run', group: '经营', title: '商业版图',
     brief: '赞助总收入达到每赛季 450 万',
     hard: true,
     test: (s) => (s.teams[s.myTeam]?.sponsors ?? [])
       .reduce((n, sp) => n + sp.perSeason, 0) >= 4_500_000,
   },
-
-  // ------------------------------------------------------------------ 生涯
   {
-    key: 'trusted', group: '生涯', title: '一言九鼎',
+    key: 'commercial20', scope: 'run', group: '经营', title: '会做生意',
+    brief: '商务与赞助累计进账 2000 万',
+    test: (s) => tally(s).commercial >= 20_000_000,
+  },
+  {
+    key: 'commercial60', scope: 'run', group: '经营', title: '商业帝国',
+    brief: '商务与赞助累计进账 6000 万',
+    hard: true,
+    test: (s) => tally(s).commercial >= 60_000_000,
+  },
+  {
+    key: 'rich', scope: 'run', group: '经营', title: '家底',
+    brief: '账面资金超过 2000 万',
+    test: (s) => (s.finances?.balance ?? 0) >= 20_000_000,
+  },
+  {
+    key: 'savings', scope: 'run', group: '经营', title: '积蓄',
+    brief: '自己的工资累计拿满 200 万',
+    test: (s) => tally(s).earned >= 2_000_000,
+  },
+  {
+    key: 'savingsBig', scope: 'run', group: '经营', title: '不缺钱了',
+    brief: '自己的工资累计拿满 800 万',
+    hard: true,
+    test: (s) => tally(s).earned >= 8_000_000,
+  },
+
+  // =================================================================== 生涯
+  {
+    key: 'trusted', scope: 'run', group: '生涯', title: '一言九鼎',
     brief: '把董事会信任度做到 95 以上',
     test: (s) => (s.boardConfidence ?? 0) >= 95,
   },
   {
-    key: 'threeClubs', group: '生涯', title: '三朝元老',
+    key: 'threeClubs', scope: 'run', group: '生涯', title: '三朝元老',
     brief: '一段生涯里执教过三家俱乐部',
     test: (_s, f) => f.clubs >= 3,
+  },
+  {
+    key: 'tenYears', scope: 'run', group: '生涯', title: '走完十年',
+    brief: '完整走完 2026 到 2036',
+    test: (s) => !!s.finished,
+  },
+
+  // =============================================================== 生涯累计
+  {
+    key: 'allRegions', scope: 'life', group: '收藏', title: '走遍四大赛区',
+    brief: '在美洲、EMEA、太平洋、中国都执教过',
+    hard: true,
+    lifeTest: (r) => regionsManaged(r.clubs).length >= 4,
+  },
+  {
+    key: 'careers5', scope: 'life', group: '收藏', title: '老江湖',
+    brief: '累计开始过五段执教生涯',
+    lifeTest: (r) => r.careers >= 5,
+  },
+  {
+    key: 'finished3', scope: 'life', group: '收藏', title: '三个十年',
+    brief: '累计三次走完十年任期',
+    hard: true,
+    lifeTest: (r) => r.finished >= 3,
+  },
+  {
+    key: 'titles50', scope: 'life', group: '收藏', title: '五十冠',
+    brief: '所有生涯累计五十座奖杯',
+    lifeTest: (r) => r.titles >= 50,
+  },
+  {
+    key: 'worlds10', scope: 'life', group: '收藏', title: '十座国际冠军',
+    brief: '所有生涯累计十座国际冠军',
+    hard: true,
+    lifeTest: (r) => r.worldTitles >= 10,
+  },
+  {
+    key: 'endings10', scope: 'life', group: '收藏', title: '结局收藏家',
+    brief: '解锁十种不同的结局',
+    lifeTest: (_r, u) => u.endings.length >= 10,
   },
 ]
 
 export const ACHIEVEMENT_COUNT = ACHIEVEMENTS.length
+export const RUN_ACHIEVEMENTS = ACHIEVEMENTS.filter((a) => a.scope === 'run')
+export const LIFE_ACHIEVEMENTS = ACHIEVEMENTS.filter((a) => a.scope === 'life')
 
-/** Every achievement this save currently satisfies. */
+/**
+ * Every 局内 achievement this save currently satisfies.
+ *
+ * Each predicate is guarded on its own: a malformed save must not take the
+ * game down over a badge, and one bad condition must not hide the other
+ * forty-one.
+ */
 export function earnedNow(state: GameState): string[] {
-  const f = factsOf(state)
+  let f: Facts
+  try {
+    f = factsOf(state)
+  } catch {
+    return []
+  }
   const out: string[] = []
-  for (const a of ACHIEVEMENTS) {
+  for (const a of RUN_ACHIEVEMENTS) {
     try {
-      if (a.test(state, f)) out.push(a.key)
-    } catch { /* a malformed save must not take the game down over a badge */ }
+      if (a.test?.(state, f)) out.push(a.key)
+    } catch { /* skip this one only */ }
+  }
+  return out
+}
+
+/** Every 生涯 achievement the account's record satisfies. */
+export function earnedLifetime(
+  record: CareerRecord, unlocked: { endings: string[]; achievements: string[] },
+): string[] {
+  const out: string[] = []
+  for (const a of LIFE_ACHIEVEMENTS) {
+    try {
+      if (a.lifeTest?.(record, unlocked)) out.push(a.key)
+    } catch { /* same */ }
   }
   return out
 }

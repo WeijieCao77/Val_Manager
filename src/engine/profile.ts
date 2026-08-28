@@ -19,6 +19,7 @@
  * write lands there first, so the whole thing works with no network at all.
  */
 import { rememberedId } from './account'
+import { earnedLifetime } from './achievements'
 
 const KEY = 'valmanager:profile:'
 
@@ -147,11 +148,23 @@ export function record(
   const nothingNew = !fresh.endings.length && !fresh.achievements.length && !patch.record
   if (nothingNew) return { fresh, profile: before }
 
-  const next = mergeProfile(before, {
+  const merged = mergeProfile(before, {
     endings: patch.endings,
     achievements: patch.achievements,
     record: patch.record ? { ...before.record, ...patch.record } as CareerRecord : undefined,
   })
+
+  // 生涯成就 are a function of the record, not of anything a caller passes in,
+  // so they are recomputed here rather than at every call site. Doing it after
+  // the merge matters: 「解锁十种结局」 has to see the ending that was just
+  // added, and 「走遍四大赛区」 the club that was just recorded.
+  const life = earnedLifetime(merged.record, merged)
+  const newLife = life.filter((k) => !merged.achievements.includes(k))
+  const next = newLife.length
+    ? mergeProfile(merged, { achievements: newLife })
+    : merged
+  fresh.achievements = [...fresh.achievements, ...newLife]
+
   writeLocal(next)
   push(next)
   return { fresh, profile: next }

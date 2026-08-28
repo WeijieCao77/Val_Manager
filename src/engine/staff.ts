@@ -316,6 +316,8 @@ export function resolveStaffOffers(state: GameState, rng: Rng): string[] {
         salary: o.salary, years: o.years,
       }]
     }
+    state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
+    state.tally.hired += 1
     notes.push(`✅ ${o.name} 接受了邀请，出任${ROLE_CN[o.role]}。`)
   }
   state.staffOffers = (state.staffOffers ?? []).filter(

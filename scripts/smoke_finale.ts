@@ -14,9 +14,9 @@
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { Rng } from '../src/engine/rng'
 import { setupSeason, advanceDay, SEASON_DAYS } from '../src/engine/season'
-import { endingsFor, ENDING_COUNT, FINAL_YEAR } from '../src/engine/endings'
-import { ACHIEVEMENTS, ACHIEVEMENT_COUNT, earnedNow } from '../src/engine/achievements'
-import { INTAKE_FROM, PROSPECTS } from '../src/engine/prospects'
+import { endingOf, endingsFor, ENDING_COUNT, FINAL_YEAR } from '../src/engine/endings'
+import { RUN_ACHIEVEMENTS, earnedNow } from '../src/engine/achievements'
+import { PROSPECTS } from '../src/engine/prospects'
 import { doTransfer, windowOpen } from '../src/engine/transfer'
 import { contractLength, expectedSalary } from '../src/engine/player'
 import type { GameState, Player } from '../src/engine/types'
@@ -121,7 +121,7 @@ for (let s = 0; s < SEEDS; s++) {
       signings += n
     }
     if (g.year !== lastYear) {
-      if (g.year >= INTAKE_FROM) intakeYears++
+      intakeYears++
       lastYear = g.year
       // the world must not run dry mid-career
       const pool = Object.values(g.players)
@@ -138,10 +138,12 @@ for (let s = 0; s < SEEDS; s++) {
   }
 
   const earned = endingsFor(g)
+  const two = endingOf(g)
   const mine = squadOf(g, g.myTeam)
   const label = `${tag} → ${g.year} 年 · ${g.finished ? '任期走完' : '中途下课'}`
     + ` · ${g.honours.length} 冠 · 结局「${earned[0]?.title ?? '无'}」`
-    + `（共 ${earned.length}）· 阵容 ${mine.length} 人`
+    + ` · ${two.dynasty?.title ?? '—'}／${two.story?.title ?? '—'}`
+    + `（共解锁 ${earned.length}）· 阵容 ${mine.length} 人`
     + ` · 签入 ${signings} 人（其中青训 ${mine.filter((p) => p.id.startsWith('Y')).length} 人在队）`
     + (droughtFrom ? ` · ${droughtFrom} 年起世界上再无 21 岁以下选手` : '')
   console.log(label)
@@ -153,17 +155,17 @@ for (let s = 0; s < SEEDS; s++) {
     if (mine.length < 5) gripe(`${tag} 结束时自家阵容只剩 ${mine.length} 人`)
     if (intakeYears < 5) gripe(`${tag} 只经历了 ${intakeYears} 次赛季轮转`)
   }
-  for (const e of earned) seen.set(e.title, (seen.get(e.title) ?? 0) + 1)
+  for (const e of earned) seen.set(`${e.track}·${e.title}`, (seen.get(`${e.track}·${e.title}`) ?? 0) + 1)
 }
 
-console.log(`\n青训池 ${PROSPECTS.length} 人，${INTAKE_FROM} 年起入池`
+console.log(`\n世界额外并入 ${PROSPECTS.length} 名真实选手（开局即自由人）`
   + (SURVIVE ? '｜董事会压力已关闭，专测十年路径' : '｜董事会照常施压'))
 console.log(`${SEEDS} 段生涯里出现过的结局（共 ${ENDING_COUNT} 种）：`)
 for (const [t, n] of [...seen].sort((a, b) => b[1] - a[1])) console.log(`  ${t} ×${n}`)
 
-console.log(`\n成就（共 ${ACHIEVEMENT_COUNT} 条）——这 ${SEEDS} 段生涯里拿到了哪些：`)
-const got = ACHIEVEMENTS.filter((a) => badges.has(a.key))
-const missed = ACHIEVEMENTS.filter((a) => !badges.has(a.key))
+console.log(`\n局内成就（共 ${RUN_ACHIEVEMENTS.length} 条）——这 ${SEEDS} 段生涯里拿到了哪些：`)
+const got = RUN_ACHIEVEMENTS.filter((a) => badges.has(a.key))
+const missed = RUN_ACHIEVEMENTS.filter((a) => !badges.has(a.key))
 console.log('  拿到 ' + got.length + '：' + got.map((a) => a.title).join('、'))
 console.log('  没拿到 ' + missed.length + '：' + missed.map((a) => `${a.title}（${a.brief}）`).join('；'))
 

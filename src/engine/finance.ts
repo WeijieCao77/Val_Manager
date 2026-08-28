@@ -99,6 +99,8 @@ export function weeklyFinance(state: GameState): void {
         state.boardConfidence = Math.max(0, state.boardConfidence - hit)
       }
       state.finances.log.push({ day: state.day, label: '赞助收入', amount: sponsor })
+      state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
+      state.tally.commercial += sponsor
       state.finances.log.push({ day: state.day, label: '选手薪资', amount: -wages })
       state.finances.log.push({ day: state.day, label: '运营开支', amount: -upkeep })
       if (state.finances.log.length > 200) {

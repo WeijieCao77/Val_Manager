@@ -195,6 +195,8 @@ export function runGigsToday(state: GameState, notes: string[]): void {
 
     state.finances.balance += gig.fee
     state.finances.log.push({ day: state.day, label: `商务：${gig.label}`, amount: gig.fee })
+    state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
+    state.tally.commercial += gig.fee
     team.reputation = clamp(team.reputation + gig.fans * 0.05, 0, 99)
 
     for (const p of attendees) {
