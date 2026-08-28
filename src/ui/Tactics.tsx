@@ -2,7 +2,7 @@ import { useGame } from './ctx'
 import { Bar, Panel, RoleTag } from './common'
 import { buildLineup, selectLineup } from '../engine/match'
 import { activePool } from '../engine/match'
-import { MAPS } from '../engine/content'
+import { MAPS, mapCn } from '../engine/content'
 import { SLIDERS } from './TacticSliders'
 
 export default function Tactics() {
@@ -103,7 +103,7 @@ export default function Tactics() {
                 const inPool = pool.includes(m)
                 return (
                   <tr key={m} style={inPool ? undefined : { opacity: 0.42 }}>
-                    <td><b>{m}</b></td>
+                    <td><b>{mapCn(m)}</b> <span className="tiny faint">{m}</span></td>
                     <td><Bar value={v} /></td>
                     <td className="num mono">{v}</td>
                     <td className="small muted">{inPool ? '现役图池' : '轮换出池'}</td>

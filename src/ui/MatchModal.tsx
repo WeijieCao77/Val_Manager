@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import WhyPanel from './WhyPanel'
+import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { Modal, MultiRadar, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
@@ -53,7 +54,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       <div className="panel" style={{ marginTop: 14 }}>
         {r.maps.map((m, i) => (
           <div key={i} className="mapline">
-            <span className="m">{m.map}</span>
+            <span className="m">{mapCn(m.map)}</span>
             <span className="mono" style={{ width: 62 }}>
               <b className={m.scoreA > m.scoreB ? 'pos' : 'muted'}>{m.scoreA}</b>
               <span className="faint"> – </span>
@@ -71,7 +72,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
         <div className="seg" style={{ marginBottom: 12 }}>
           {r.maps.map((m, i) => (
             <button key={i} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}>
-              {m.map}
+              {mapCn(m.map)}
             </button>
           ))}
         </div>
@@ -80,7 +81,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       {involved && map && (
         <div style={{ marginBottom: 16 }}>
           <div className="nav-group" style={{ padding: '0 0 8px' }}>
-            为什么是这个结果 · {map.map}
+            为什么是这个结果 · {mapCn(map.map)}
           </div>
           <WhyPanel map={map} mineIsA={mineIsA} />
         </div>
@@ -88,7 +89,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
 
       {map?.rounds && map.rounds.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <div className="nav-group" style={{ padding: '0 0 8px' }}>回合走势 · {map.map}</div>
+          <div className="nav-group" style={{ padding: '0 0 8px' }}>回合走势 · {mapCn(map.map)}</div>
           <RoundRibbon
             rounds={map.rounds} mineIsA={mineIsA}
             mineTag={(mineIsA ? a : b)?.tag} theirTag={(mineIsA ? b : a)?.tag}

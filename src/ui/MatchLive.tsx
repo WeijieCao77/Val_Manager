@@ -3,13 +3,16 @@ import { useGame } from './ctx'
 import { Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import TacticSliders from './TacticSliders'
+import MapVeto from './MapVeto'
+import AgentPick from './AgentPick'
 import { MatchSim } from '../engine/match'
+import { mapCn } from '../engine/content'
 import type { Side } from '../engine/match'
 import { commitFixture, fixtureRng } from '../engine/season'
 import type { Fixture } from '../engine/types'
 import { track } from '../engine/telemetry'
 
-type Phase = 'choose' | 'watching' | 'timeout' | 'done'
+type Phase = 'choose' | 'bp' | 'watching' | 'timeout' | 'done'
 
 const TICK_MS = 420
 
@@ -116,6 +119,29 @@ export default function MatchLive({
   }
 
   // ---------------------------------------------------------------- choose
+  if (phase === 'bp') {
+    return (
+      <Modal title={`赛前 BP · BO${fixture.bo}`} onClose={() => setPhase('choose')} onBgClose={() => {}}>
+        <MapVeto
+          fixture={fixture}
+          onCancel={() => setPhase('choose')}
+          onDone={(maps, log) => {
+            game.vetoPlan = { fixtureId: fixture.id, maps, log }
+            // the sim decided its maps when it was built; rebuild it now that
+            // the manager has decided them instead. Nothing has been played.
+            game.agentPicks = undefined
+            simRef.current = new MatchSim(
+              game, fixture.teamA, fixture.teamB, fixture.bo,
+              fixtureRng(game, fixture), fixture.scrim,
+            )
+            commit()
+            setPhase('choose')
+          }}
+        />
+      </Modal>
+    )
+  }
+
   if (phase === 'choose') {
     return (
       <Modal title={`${game.comps[fixture.comp]?.name ?? fixture.comp} · BO${fixture.bo}`} onClose={skip} onBgClose={() => {}}>
@@ -127,7 +153,33 @@ export default function MatchLive({
         <p className="center small muted" style={{ marginTop: -6 }}>
           {fixture.label.replace(/^KO:\d+:/, '')}
         </p>
-        <div className="panel" style={{ marginTop: 14 }}>
+        {!fixture.scrim && (
+          <div className="panel" style={{ marginTop: 14 }}>
+            <div className="panel-head">
+              <h2>地图 · {simRef.current!.maps.map(mapCn).join(' / ')}</h2>
+              <div className="spacer" style={{ flex: 1 }} />
+              <button className="sm" onClick={() => setPhase('bp')}>手动 BP</button>
+            </div>
+            <div className="panel-body">
+              <p className="tiny faint" style={{ margin: 0 }}>
+                {game.vetoPlan
+                  ? `你亲自 BP 的结果：${simRef.current!.vetoLog.join('，')}`
+                  : '双方按各自的地图熟练度自动 BP 完成了。想亲自 ban 图就点右上角。'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!fixture.scrim && (
+          <div className="panel" style={{ marginTop: 12 }}>
+            <div className="panel-head"><h2>英雄选择</h2></div>
+            <div className="panel-body">
+              <AgentPick maps={simRef.current!.maps} />
+            </div>
+          </div>
+        )}
+
+        <div className="panel" style={{ marginTop: 12 }}>
           <div className="panel-head"><h2>赛前战术</h2></div>
           <div className="panel-body">
             <p className="tiny faint" style={{ marginTop: 0 }}>
@@ -163,11 +215,11 @@ export default function MatchLive({
   const roundNo = Math.max(1, map?.round ?? 1)
 
   return (
-    <Modal wide title={`${map?.map ?? '换图中'} · 第 ${roundNo} 回合`} onClose={skip} onBgClose={() => {}}>
+    <Modal wide title={`${map ? mapCn(map.map) : '换图中'} · 第 ${roundNo} 回合`} onClose={skip} onBgClose={() => {}}>
       <div className="row" style={{ gap: 8, justifyContent: 'center', marginBottom: 6 }}>
         {sim.played.map((m, i) => (
           <span key={i} className="tag">
-            {m.map} {m.scoreA}-{m.scoreB}
+            {mapCn(m.map)} {m.scoreA}-{m.scoreB}
           </span>
         ))}
         <span className="tag t1">大比分 {sim.wonA} - {sim.wonB}</span>

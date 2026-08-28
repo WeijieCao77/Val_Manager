@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { squadOf } from '../engine/world'
@@ -182,7 +183,7 @@ export default function Training() {
                 <button key={m}
                   className={`sm${drill.kind === 'map' && drill.map === m ? ' primary' : ''}`}
                   onClick={() => setDrill({ kind: 'map', map: m }, `跑图 ${m}`)}>
-                  {m} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
+                  {mapCn(m)} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
                 </button>
               ))}
             </div>

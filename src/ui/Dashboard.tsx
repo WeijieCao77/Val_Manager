@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { track } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
@@ -338,7 +339,7 @@ export default function Dashboard() {
           const drill = drillRunning ? game.drill : undefined
           const drillText =
             !drill || drill.kind === 'none' ? null
-              : drill.kind === 'map' ? `团队跑图 · ${drill.map}`
+              : drill.kind === 'map' ? `团队跑图 · ${mapCn(drill.map)}`
                 : drill.kind === 'review' ? '教练复盘'
                   : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
           const duoText = drillRunning && game.duo
@@ -378,7 +379,7 @@ export default function Dashboard() {
                   <span className="d">训练赛</span>
                   <span className="small">
                     已约 {game.teams[f.teamA === game.myTeam ? f.teamB : f.teamA]?.name}
-                    {f.scrim ? ` @ ${f.scrim.map}` : ''}，{f.day - game.day <= 0 ? '今天' : `${f.day - game.day} 天后`}进行
+                    {f.scrim ? ` @ ${mapCn(f.scrim.map)}` : ''}，{f.day - game.day <= 0 ? '今天' : `${f.day - game.day} 天后`}进行
                   </span>
                 </div>
               ))}
@@ -488,7 +489,7 @@ export default function Dashboard() {
                 <option value="">选择地图…</option>
                 {pool.map((m) => (
                   <option key={m} value={m}>
-                    {m}（熟练度 {Math.round(me.mapPrefs[m] ?? 50)}）
+                    {mapCn(m)}（熟练度 {Math.round(me.mapPrefs[m] ?? 50)}）
                   </option>
                 ))}
               </select>

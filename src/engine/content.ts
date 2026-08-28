@@ -21,6 +21,62 @@ export const AGENTS: Record<Role, string[]> = {
 
 export const ALL_AGENTS = Array.from(new Set(Object.values(AGENTS).flat())).sort()
 
+/**
+ * Official Chinese map names.
+ *
+ * The English name stays the key everywhere — it is what `mapPrefs` is stored
+ * under in every existing save, what vlr.gg calls them, and what the broadcast
+ * says — so this is a display layer, not a rename. `mapCn` is what screens
+ * print.
+ */
+export const MAP_CN: Record<string, string> = {
+  Ascent: '亚海悬城', Bind: '源工重镇', Breeze: '微风岛屿', Corrode: '盐海矿镇',
+  Fracture: '裂变峡谷', Haven: '隐世修所', Icebox: '森寒冬港', Lotus: '莲华古城',
+  Pearl: '深海明珠', Split: '霓虹町', Summit: '天枢云阙', Sunset: '日落之城',
+  Abyss: '幽邃地窟',
+}
+
+/** A map as the manager reads it: Chinese, falling back to whatever we were given. */
+export const mapCn = (m: string): string => MAP_CN[m] ?? m
+
+/**
+ * Which job an agent is actually picked for.
+ *
+ * Derived from AGENTS rather than written twice, and 自由人 is skipped on
+ * purpose — that key is a grab-bag of agents other roles already own, not a
+ * fifth role an agent can belong to.
+ */
+export const AGENT_ROLE: Record<string, Role> = Object.fromEntries(
+  (Object.entries(AGENTS) as [Role, string[]][])
+    .filter(([role]) => role !== '自由人')
+    .flatMap(([role, list]) => list.map((a) => [a, role] as const)),
+) as Record<string, Role>
+
+/**
+ * What each map is usually played with, best-known first.
+ *
+ * A composition table, not a roster: these are agents, so nothing here has to
+ * be a real person. Ordered by how routinely the agent shows up on that map in
+ * professional play, and used two ways — to fill a lineup automatically with
+ * something sensible, and to tell the manager when a hand-made pick is
+ * unusual for the map.
+ */
+export const MAP_META: Record<string, string[]> = {
+  Ascent: ['Jett', 'KAY/O', 'Omen', 'Killjoy', 'Sova', 'Gekko', 'Cypher', 'Iso'],
+  Bind: ['Raze', 'Skye', 'Brimstone', 'Cypher', 'Gekko', 'Viper', 'Fade', 'Yoru'],
+  Breeze: ['Jett', 'Sova', 'Viper', 'Cypher', 'Gekko', 'Harbor', 'Chamber', 'Fade'],
+  Corrode: ['Raze', 'Tejo', 'Omen', 'Killjoy', 'Sova', 'Clove', 'Vyse', 'Neon'],
+  Fracture: ['Neon', 'Breach', 'Brimstone', 'Killjoy', 'Fade', 'Viper', 'Vyse', 'Raze'],
+  Haven: ['Jett', 'Breach', 'Omen', 'Killjoy', 'Sova', 'Astra', 'Cypher', 'Fade'],
+  Icebox: ['Jett', 'Sova', 'Viper', 'Killjoy', 'Harbor', 'Gekko', 'Sage', 'Raze'],
+  Lotus: ['Raze', 'Fade', 'Omen', 'Killjoy', 'Skye', 'Viper', 'Cypher', 'Neon'],
+  Pearl: ['Neon', 'Fade', 'Astra', 'Killjoy', 'Sova', 'Harbor', 'Cypher', 'Jett'],
+  Split: ['Raze', 'Skye', 'Omen', 'Cypher', 'Breach', 'Astra', 'Sage', 'Jett'],
+  Summit: ['Jett', 'Sova', 'Omen', 'Cypher', 'Tejo', 'Clove', 'Killjoy', 'Raze'],
+  Sunset: ['Raze', 'Breach', 'Omen', 'Cypher', 'Skye', 'Clove', 'Sage', 'Jett'],
+  Abyss: ['Neon', 'Tejo', 'Clove', 'Vyse', 'Sova', 'Omen', 'Killjoy', 'Waylay'],
+}
+
 export const SPONSOR_NAMES = [
   'Hyperion Energy', 'Nexon Peripherals', 'Vertex Bank', 'Kaido Motors', 'BitStream',
   'Solaris Airlines', 'RedShift Gaming', 'Momentum Apparel', 'Auralink Audio', 'ZenCore PC',

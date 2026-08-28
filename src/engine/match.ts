@@ -1,5 +1,6 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
+import { agentMod, autoAgents } from './agents'
 import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
@@ -63,12 +64,32 @@ export function selectLineup(state: GameState, teamId: string): Player[] {
     if (p && chosen.length < 5) chosen.push(p)
   }
   if (chosen.length < 5) {
-    const rest = all
-      .filter((p) => !chosen.includes(p))
-      .sort((a, b) => effectiveRating(b) - effectiveRating(a))
-    for (const p of rest) {
-      if (chosen.length >= 5) break
-      chosen.push(p)
+    // Fill on merit, and let an injured man compete for the place. His rating
+    // already carries the injury (−22%), so a star who can barely walk beats a
+    // reserve who is 30 points worse, and a real backup beats him — which is
+    // what carrying a bench is supposed to buy. Excluding the injured outright
+    // forced a weak substitute on and made depth cost MORE than an injury.
+    const pool = team.roster
+      .map((id) => state.players[id])
+      .filter((p): p is Player => !!p && !chosen.includes(p))
+    // Filled one at a time, and a man who plugs a job the five is missing is
+    // worth more than his rating says — the same judgement compositionScore
+    // makes about the finished lineup. Ranking on rating alone benched an
+    // injured specialist for a fitter reserve of the wrong job and left the
+    // side worse off, which made carrying a bench a liability.
+    // Judged on the same scale the lineup itself is scored on. A composition
+    // gap costs `atk` directly, while one man's rating reaches it through a
+    // weighted mean — roughly a sixth of his number — so comparing the two raw
+    // numbers made a 20-point rating gap look six times more important than a
+    // missing role. It is not: the engine's own compositionScore says what the
+    // hole is worth, so use it.
+    const SLOT = 0.15
+    while (chosen.length < 5 && pool.length) {
+      const value = (p: Player) =>
+        effectiveRating(p, state.day) * SLOT + compositionScore([...chosen, p])
+      const best = pool.reduce((x, y) => (value(y) > value(x) ? y : x))
+      chosen.push(best)
+      pool.splice(pool.indexOf(best), 1)
     }
   }
   // a club with fewer than 5 fit players fields whoever is left, injured included
@@ -131,7 +152,11 @@ function compositionScore(players: Player[]): number {
 export function buildLineup(state: GameState, teamId: string, map: string): Lineup {
   const team = state.teams[teamId]
   const players = selectLineup(state, teamId)
-  const effs = players.map((x) => effectiveRating(x, state.day))
+  // Who is on which agent. The manager's own picks for this map if he made
+  // any; otherwise the map's usual composition, handed to whoever can play it.
+  // Agents used to be decoration — this is where a pick starts to cost or pay.
+  const picks = state.agentPicks?.[map] ?? autoAgents(state, teamId, players, map)
+  const effs = players.map((x) => effectiveRating(x, state.day) * agentMod(x, picks[x.id]))
 
   // the top performers carry slightly more than a flat mean
   const sorted = effs.slice().sort((a, b) => b - a)
@@ -213,11 +238,32 @@ export function activePool(seed: number): string[] {
   return rng.shuffle(MAPS.slice() as string[]).slice(0, 7).sort()
 }
 
-function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
+export function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
   // 7-map pool
   if (bo === 1) return ['ban', 'ban', 'ban', 'ban', 'ban', 'ban']
   if (bo === 3) return ['ban', 'ban', 'pick', 'pick', 'ban', 'ban']
   return ['ban', 'ban', 'pick', 'pick', 'pick', 'pick']
+}
+
+/**
+ * What the AI would do with this board, right now.
+ *
+ * The same judgement runVeto makes, exposed one step at a time so the
+ * interactive veto on the pre-match screen can hand the board back and forth
+ * instead of running the whole thing in one go.
+ */
+export function vetoChoice(
+  state: GameState, actorId: string, otherId: string,
+  action: 'ban' | 'pick', remaining: string[], rng: Rng,
+): string {
+  const actor = state.teams[actorId]
+  const other = state.teams[otherId]
+  const prefOf = (t: Team, m: string) => (t.mapPrefs[m] ?? 50) + rng.range(-6, 6)
+  if (action === 'ban') {
+    return remaining.reduce((best, m) =>
+      prefOf(other, m) - prefOf(actor, m) > prefOf(other, best) - prefOf(actor, best) ? m : best)
+  }
+  return remaining.reduce((best, m) => (prefOf(actor, m) > prefOf(actor, best) ? m : best))
 }
 
 export function runVeto(
@@ -723,6 +769,10 @@ export class MatchSim {
       // a scrim has no veto — both sides agreed the map when booking it
       this.maps = [agreed.map]
       this.vetoLog = []
+    } else if (state.vetoPlan && state.vetoPlan.maps.length === bo) {
+      // the manager ran the veto himself on the pre-match screen
+      this.maps = state.vetoPlan.maps.slice()
+      this.vetoLog = state.vetoPlan.log.slice()
     } else {
       const pool = activePool(state.seed + state.year)
       const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)

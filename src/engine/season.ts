@@ -698,6 +698,11 @@ export function commitFixture(
   applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes, result.lineups?.a)
   applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes, result.lineups?.b)
 
+  // A veto and an agent sheet belong to the match they were made for; leaving
+  // them behind would silently apply last week's plan to next week's opponent.
+  state.vetoPlan = undefined
+  state.agentPicks = undefined
+
   const comp = state.comps[f.comp]
   if (comp && !f.label.startsWith('KO:')) applyResultToStandings(comp, f)
 

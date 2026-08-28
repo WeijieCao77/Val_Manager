@@ -192,20 +192,29 @@ const mk = (tag = 'TYL'): GameState => {
     effectiveRating(p, g.day) < fit * 0.85, `${fit.toFixed(1)} → ${effectiveRating(p, g.day).toFixed(1)}`)
   check('and unchanged when it is not (ranking fit players)', effectiveRating(p) === fit)
 
+  // Depth is compared on ONE squad against itself: the same seven men, once
+  // with a bench to bring on and once cut to the five who must play through
+  // it. Comparing two different clubs measured the quality of their backups,
+  // not the value of having one — and agent assignment reshuffles when a
+  // substitute of another role comes on, which can honestly cost more than
+  // playing the specialist hurt.
   const g2 = mk()
-  const five = Object.values(g2.teams).find((t) => t.roster.length === 5)!
-  const seven = Object.values(g2.teams).find((t) => t.roster.length >= 7)!
-  const drop = (t: typeof five) => {
-    const b = buildLineup(g2, t.id, 'Ascent').atk
-    g2.players[t.starters[0]].injuredUntil = g2.day + 10
-    const a = buildLineup(g2, t.id, 'Ascent').atk
-    g2.players[t.starters[0]].injuredUntil = 0
-    return b - a
-  }
-  const thin = drop(five)
-  const deep = drop(seven)
-  check('a club with no bench suffers more than one with a bench',
-    thin > deep, `五人 -${thin.toFixed(2)} vs 七人 -${deep.toFixed(2)}`)
+  const deep = Object.values(g2.teams).find((t) => t.roster.length >= 7)!
+  const hurt = g2.players[deep.starters[0]]
+  const fitAtk = buildLineup(g2, deep.id, 'Ascent').atk
+  hurt.injuredUntil = g2.day + 10
+  const withBench = fitAtk - buildLineup(g2, deep.id, 'Ascent').atk
+  // now take the bench away: the same five, forced to field the injured man
+  deep.roster = deep.starters.slice()
+  const noBench = fitAtk - buildLineup(g2, deep.id, 'Ascent').atk
+  // Having a bench can only help. Where the reserve is a genuine replacement
+  // he comes on; where he is not, the coach plays the specialist hurt and the
+  // squad is no worse off than one that had no choice. What must never happen
+  // is the version that used to: a fitter reserve of the wrong job forced on,
+  // leaving the deep squad WORSE than the shallow one.
+  check('carrying a bench is never worse than not having one',
+    withBench <= noBench + 0.05, `有替补 -${withBench.toFixed(2)} vs 无替补 -${noBench.toFixed(2)}`)
+  check('and the injury still costs something either way', noBench > 1, `-${noBench.toFixed(2)}`)
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

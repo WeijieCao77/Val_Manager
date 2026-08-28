@@ -775,6 +775,10 @@ export interface GameState {
   rivalry?: number
   /** day each player last had physio, so a session is once a week per player */
   physioOn?: Record<string, number>
+  /** agents the manager has chosen for the next match, keyed by map */
+  agentPicks?: Record<string, Record<string, string>>
+  /** maps the manager banned/picked himself for the next match */
+  vetoPlan?: { fixtureId: string; maps: string[]; log: string[] }
   /** commercial appearances completed this season, for sponsorship clauses */
   seasonGigs?: number
   /** best regional stage finish this season, for sponsorship clauses */
