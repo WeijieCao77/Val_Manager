@@ -643,6 +643,21 @@ export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
   }
 }
 
+/**
+ * The window an unaccepted invitation still has, measured from today.
+ *
+ * `gig.day` is where the window STARTS, and an invitation stays on the board
+ * for the whole of it — so once today is past that start, `gig.day - day` is
+ * negative and every screen that printed it said things like "-2 天后". What
+ * the manager actually needs is the part of the window that is still ahead:
+ * the earliest day it can still be held, and how long before it lapses.
+ */
+export function gigWindow(state: GameState, g: Gig): { from: number; to: number; left: number } {
+  const to = g.windowEnd ?? g.expiresOn ?? g.day
+  const from = Math.max(g.day, state.day)
+  return { from, to, left: Math.max(0, to - state.day) }
+}
+
 /** Offers that are still open, soonest first. */
 export function openGigs(state: GameState): Gig[] {
   // An unaccepted invitation is open until its window closes, not until its

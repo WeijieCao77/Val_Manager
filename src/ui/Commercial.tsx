@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { Condition, fmtDay, money, OvrBadge, Panel, Stat } from './common'
 import {
   bookGig, cancelGig, declineSponsor, endStream, freeDays, openGigs, pitchSponsor, sponsorSlots,
-  signSponsor, signStream, startVenture, streamOffer, ventureInfo,
+  signSponsor, signStream, startVenture, streamOffer, ventureInfo, gigWindow,
 } from '../engine/commercial'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
@@ -205,6 +205,9 @@ export default function Commercial() {
 
         <div className="grid c2" style={{ gap: 12 }}>
           {gigs.map((g) => {
+            // for an unaccepted invitation the window may have already opened,
+            // so measure the part of it that is still ahead
+            const w = gigWindow(game, g)
             const days = g.day - game.day
             const isPicking = picking === g.id
             return (
@@ -220,7 +223,9 @@ export default function Commercial() {
                   <span className="tag">
                     {g.accepted
                       ? (days <= 0 ? '就在今天' : `${days} 天后`)
-                      : `${days}~${(g.windowEnd ?? g.day) - game.day} 天内可安排`}
+                      : (w.from - game.day <= 0
+                        ? `今天起 ${w.left} 天内可安排`
+                        : `${w.from - game.day}~${w.to - game.day} 天内可安排`)}
                   </span>
                   <span className="tag">{g.heads} 人出席</span>
                   <span className="tag">体能 −{g.fatigue}</span>

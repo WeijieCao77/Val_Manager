@@ -1,6 +1,7 @@
 import { squadOf, wageBill } from './world'
 import { windowOpen, TRANSFER_WINDOWS } from './transfer'
 import { nextFixtureFor, stageName } from './season'
+import { gigWindow } from './commercial'
 import type { Activity, GameState, StageKey } from './types'
 
 /** Record something the manager did today. */
@@ -229,11 +230,16 @@ export function agendaFor(state: GameState): AgendaItem[] {
     (g) => !g.done && (g.accepted ? g.day >= state.day : (g.windowEnd ?? g.expiresOn ?? g.day) >= state.day))
   const unbooked = gigs.filter((g) => !g.accepted)
   if (unbooked.length) {
-    const soon = unbooked.reduce((a, b) => (a.day < b.day ? a : b))
+    // Rank by what is running out — the deadline to arrange it — not by a
+    // window start that may already be behind us.
+    const soon = unbooked.reduce((a, b) =>
+      (gigWindow(state, a).left <= gigWindow(state, b).left ? a : b))
+    const left = gigWindow(state, soon).left
     items.push({
       key: 'gig',
-      text: `有 ${unbooked.length} 个商务邀约待处理，最近的是${soon.label}（${soon.day - state.day} 天后）`,
-      tone: soon.day - state.day <= 2 ? 'urgent' : 'todo',
+      text: `有 ${unbooked.length} 个商务邀约待处理，${soon.label}`
+        + (left <= 0 ? '今天是最后一天' : `还剩 ${left} 天可安排`),
+      tone: left <= 2 ? 'urgent' : 'todo',
       go: 'commercial',
     })
   }

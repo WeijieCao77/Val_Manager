@@ -5,10 +5,10 @@
 import { createNewGame, WORLD_TEAMS, squadOf, autoStarters } from '../src/engine/world'
 import { advanceDay, setupSeason, moveToClub } from '../src/engine/season'
 import { aiTransferTick, bidForOurPlayers, doTransfer, rosterBlock, windowEnd } from '../src/engine/transfer'
-import { openGigs, settleSponsorDemands, dropSponsor } from '../src/engine/commercial'
+import { gigWindow, openGigs, settleSponsorDemands, dropSponsor } from '../src/engine/commercial'
 import { staffMarket } from '../src/engine/staff'
 import { weeklyTick } from '../src/engine/training'
-import { activityOn, logActivity } from '../src/engine/agenda'
+import { activityOn, agendaFor, logActivity } from '../src/engine/agenda'
 import { MatchSim } from '../src/engine/match'
 import { fmtDay } from '../src/ui/common'
 import { defaultContract } from '../src/engine/types'
@@ -174,6 +174,42 @@ const mk = (tag = 'TYL'): GameState => {
   g.day += 5
   check('an invitation is open until its window closes, not its first day',
     openGigs(g).length === 1)
+}
+
+// ---- no countdown on the agenda ever runs backwards
+{
+  const g = mk()
+  // mid-season, where the agenda is not already full of preseason errands
+  // (it only ever shows five, in insertion order)
+  g.day = 100
+  g.stage = 'stage1'
+  g.drillLock = g.day + 7
+  // an invitation whose window opened two days ago and closes in five
+  g.gigs = [{
+    id: 'G1', kind: 'stream', label: '直播', partner: '某平台', blurb: '',
+    day: g.day - 2, windowEnd: g.day + 5, expiresOn: g.day + 5,
+    fee: 30000, heads: 1, fatigue: 5, morale: 1, fans: 3,
+  }] as never
+  const item = agendaFor(g).find((x) => x.key === 'gig')
+  check('a window that already opened is still on the agenda', !!item, item?.text ?? '不见了')
+  check('and it counts forward, not backward',
+    !!item && !/-\d/.test(item.text) && item.text.includes('还剩 5 天'), item?.text ?? '')
+
+  // and the window helper agrees
+  const w = gigWindow(g, g.gigs![0])
+  check('the earliest day it can still be held is today, not two days ago',
+    w.from === g.day && w.left === 5, `from ${w.from - g.day}，剩 ${w.left}`)
+
+  // walk the whole window and assert nothing ever goes negative
+  let worst = 99
+  for (let d = 0; d <= 5; d++) {
+    const t = agendaFor(g).find((x) => x.key === 'gig')?.text ?? ''
+    const n = /还剩 (\d+) 天/.exec(t)
+    if (n) worst = Math.min(worst, Number(n[1]))
+    if (/-\d/.test(t)) { check(`day +${d} prints a negative`, false, t); break }
+    g.day += 1
+  }
+  check('the countdown reaches zero without going under', worst === 0 || worst === 1, `最小值 ${worst}`)
 }
 
 // ---- sponsorship clauses are enforced
