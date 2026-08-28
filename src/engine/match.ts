@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
-import { agentMod, autoAgents } from './agents'
+import { agentMod, autoAgents, normalizeAgents } from './agents'
 import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
@@ -23,6 +23,8 @@ const ENTRY_WEIGHT: Record<Role, number> = {
 export interface Lineup {
   team: Team
   players: Player[]
+  /** who played which agent on this map, keyed by player id */
+  agents: Record<string, string>
   atk: number
   def: number
   chem: number
@@ -155,7 +157,8 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   // Who is on which agent. The manager's own picks for this map if he made
   // any; otherwise the map's usual composition, handed to whoever can play it.
   // Agents used to be decoration — this is where a pick starts to cost or pay.
-  const picks = state.agentPicks?.[map] ?? autoAgents(state, teamId, players, map)
+  const picks = normalizeAgents(
+    state, teamId, players, map, state.agentPicks?.[map] ?? autoAgents(state, teamId, players, map))
   const effs = players.map((x) => effectiveRating(x, state.day) * agentMod(x, picks[x.id]))
 
   // the top performers carry slightly more than a flat mean
@@ -227,7 +230,7 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
     tacticsAtk: paceAtk + aggroAtk, tacticsDef: paceDef + aggroDef,
     atk, def,
   }
-  return { team, players, atk, def, chem, midRound, edge }
+  return { team, players, agents: picks, atk, def, chem, midRound, edge }
 }
 
 // ---------------------------------------------------------------- map veto
@@ -718,6 +721,7 @@ export class MapSim {
         map: this.map, scoreA: this.a, scoreB: this.b,
         edge: { a: this.A.edge, b: this.B.edge },
         lines: this.ctx.lines, rounds: this.ctx.rounds,
+        agents: { ...this.A.agents, ...this.B.agents },
       },
       highlights: this.ctx.highlights,
     }

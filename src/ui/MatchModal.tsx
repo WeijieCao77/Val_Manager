@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import WhyPanel from './WhyPanel'
-import { mapCn } from '../engine/content'
+import { mapCn, AGENT_ROLE } from '../engine/content'
 import { useGame } from './ctx'
 import { Modal, MultiRadar, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
@@ -18,7 +18,41 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
   const mineIsA = fixture.teamA === game.myTeam
   const involved = fixture.teamA === game.myTeam || fixture.teamB === game.myTeam
   const aWon = r.mapsWonA > r.mapsWonB
-  const map = r.maps[Math.min(tab, r.maps.length - 1)]
+  // vlr shows an All Maps sheet next to the per-map ones, and so does this:
+  // tab 0 is every map added together, tab n the nth map. The aggregate has no
+  // single map behind it, so the veto explanation and the round ribbon stay
+  // hidden there.
+  const allMaps: MapScore | null = r.maps.length > 1 ? (() => {
+    const lines: Record<string, MapLine> = {}
+    let rounds = 0
+    for (const m of r.maps) {
+      rounds += (m.scoreA ?? 0) + (m.scoreB ?? 0)
+      for (const [pid, l] of Object.entries(m.lines)) {
+        const t = lines[pid] ??= {
+          kills: 0, deaths: 0, assists: 0, damage: 0,
+          firstKills: 0, firstDeaths: 0, clutches: 0, rounds: 0, acs: 0,
+        }
+        t.kills += l.kills; t.deaths += l.deaths; t.assists += l.assists
+        t.damage += l.damage; t.firstKills += l.firstKills; t.firstDeaths += l.firstDeaths
+        t.clutches += l.clutches; t.rounds += l.rounds
+      }
+    }
+    for (const l of Object.values(lines)) {
+      l.acs = l.rounds ? Math.round((l.damage / l.rounds) * 1.45) : 0
+    }
+    void rounds
+    return { map: '全部地图', scoreA: r.mapsWonA, scoreB: r.mapsWonB, lines }
+  })() : null
+
+  const perMap = allMaps ? tab > 0 : true
+  const map = allMaps
+    ? (tab === 0 ? allMaps : r.maps[Math.min(tab - 1, r.maps.length - 1)])
+    : r.maps[Math.min(tab, r.maps.length - 1)]
+  // every agent each player was seen on across this match
+  const agentsOf = (pid: string): string[] =>
+    perMap
+      ? [map.agents?.[pid]].filter(Boolean) as string[]
+      : Array.from(new Set(r.maps.map((m) => m.agents?.[pid]).filter(Boolean) as string[]))
 
   return (
     <Modal
@@ -70,15 +104,16 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       {/* per-map detail */}
       {r.maps.length > 1 && (
         <div className="seg" style={{ marginBottom: 12 }}>
+          <button className={tab === 0 ? 'on' : ''} onClick={() => setTab(0)}>全部地图</button>
           {r.maps.map((m, i) => (
-            <button key={i} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}>
+            <button key={i} className={tab === i + 1 ? 'on' : ''} onClick={() => setTab(i + 1)}>
               {mapCn(m.map)}
             </button>
           ))}
         </div>
       )}
 
-      {involved && map && (
+      {involved && map && perMap && (
         <div style={{ marginBottom: 16 }}>
           <div className="nav-group" style={{ padding: '0 0 8px' }}>
             为什么是这个结果 · {mapCn(map.map)}
@@ -87,7 +122,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
         </div>
       )}
 
-      {map?.rounds && map.rounds.length > 0 && (
+      {perMap && map?.rounds && map.rounds.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div className="nav-group" style={{ padding: '0 0 8px' }}>回合走势 · {mapCn(map.map)}</div>
           <RoundRibbon
@@ -107,7 +142,7 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       {map && (
         <Scoreboard
           map={map} teamA={fixture.teamA} teamB={fixture.teamB}
-          onPlayer={openPlayer} mvp={r.mvp} lineups={r.lineups}
+          onPlayer={openPlayer} mvp={r.mvp} lineups={r.lineups} agentsOf={agentsOf}
         />
       )}
 
@@ -279,11 +314,14 @@ function Performance({
 }
 
 function Scoreboard({
-  map, teamA, teamB, onPlayer, mvp, lineups,
+  map, teamA, teamB, onPlayer, mvp, lineups, agentsOf,
 }: {
   map: MapScore; teamA: string; teamB: string
   onPlayer: (id: string) => void; mvp: string | null
   lineups?: { a: string[]; b: string[] }
+  /** every agent this player was seen on — one on a map sheet, several on the
+      All Maps sheet, exactly as vlr shows it */
+  agentsOf: (pid: string) => string[]
 }) {
   const { game } = useGame()
 
@@ -312,7 +350,7 @@ function Scoreboard({
           <table>
             <thead>
               <tr>
-                <th>选手</th><th>位置</th><th className="num">评分</th><th className="num">ACS</th>
+                <th>选手</th><th>英雄</th><th>位置</th><th className="num">评分</th><th className="num">ACS</th>
                 <th className="num">K</th><th className="num">D</th><th className="num">A</th>
                 <th className="num">ADR</th><th className="num">首杀</th><th className="num">残局</th>
               </tr>
@@ -325,6 +363,15 @@ function Scoreboard({
                     <td>
                       <b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
+                    </td>
+                    <td className="small">
+                      {agentsOf(p.id).length
+                        ? <span className="row wrap" style={{ gap: 4 }}>
+                          {agentsOf(p.id).map((ag) => (
+                            <span key={ag} className="tag" title={AGENT_ROLE[ag] ?? ''}>{ag}</span>
+                          ))}
+                        </span>
+                        : <span className="tiny faint">—</span>}
                     </td>
                     <td><Roles p={p} /></td>
                     <td className="num">

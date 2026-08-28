@@ -558,6 +558,9 @@ export interface MapScore {
   edge?: { a: EdgeBreakdown; b: EdgeBreakdown }
   /** per-player line for this map, keyed by player id */
   lines: Record<string, MapLine>
+  /** who played which agent on this map, keyed by player id — vlr shows this
+      per map and so does the post-match screen */
+  agents?: Record<string, string>
   /** kept only for the managed club's matches, to bound save size */
   rounds?: RoundLog[]
 }

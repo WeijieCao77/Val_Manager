@@ -34,13 +34,18 @@ export function agentFit(p: Player, agent: string | undefined): number {
 /** What playing out of position costs a player, at worst. */
 export const OFF_ROLE = 0.12
 
-/** The multiplier a player's rating takes for the agent he is on. */
+/**
+ * The multiplier a player's rating takes for the agent he is on.
+ *
+ * The JOB is the whole of it. There was also a −3% for a character outside his
+ * recorded pool, and it had to go: `agentPool` is scraped from what vlr
+ * happened to record, the training screen drills POSITIONS rather than
+ * individual agents, and so a manager had no way at all to remove that
+ * penalty — monk on Omen was worse than monk on Brimstone with nothing he
+ * could ever do about it. A cost the player cannot answer is not a decision.
+ */
 export function agentMod(p: Player, agent: string | undefined): number {
-  // −12% for a job that is not his, scaled by how far into it he has trained;
-  // a further −3% for a character nobody has ever seen him on
-  const wrongJob = (1 - agentFit(p, agent)) * OFF_ROLE
-  const strange = agent && !p.agentPool.includes(agent) ? 0.03 : 0
-  return 1 - wrongJob - strange
+  return 1 - (1 - agentFit(p, agent)) * OFF_ROLE
 }
 
 /** Is this agent one the manager should be warned about for this player? */
@@ -140,6 +145,36 @@ export function autoAgents(
     if (pick) { out[p.id] = pick; used.add(pick); taken.add(p.id) }
   }
   void state; void teamId
+  return out
+}
+
+/**
+ * A sheet with nobody missing and nobody doubled.
+ *
+ * The pre-match screen swaps rather than overwrites, so it cannot produce
+ * either — but a hand-edited save, or a five that changed after the sheet was
+ * made, can. Anyone left without an agent is given one his role can play.
+ */
+export function normalizeAgents(
+  state: GameState, teamId: string, five: Player[], map: string,
+  picks: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {}
+  const used = new Set<string>()
+  for (const p of five) {
+    const want = picks[p.id]
+    if (want && !used.has(want)) { out[p.id] = want; used.add(want) }
+  }
+  const missing = five.filter((p) => !out[p.id])
+  if (!missing.length) return out
+  const fallback = autoAgents(state, teamId, missing, map)
+  for (const p of missing) {
+    const covers = p.roles ?? [p.role]
+    const pick = (!used.has(fallback[p.id]) ? fallback[p.id] : undefined)
+      ?? covers.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a))
+      ?? (MAP_META[map] ?? []).find((a) => !used.has(a))
+    if (pick) { out[p.id] = pick; used.add(pick) }
+  }
   return out
 }
 

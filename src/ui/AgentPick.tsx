@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { selectLineup } from '../engine/match'
-import { agentMod, agentRoleGaps, agentWarn, autoAgents } from '../engine/agents'
+import { agentMod, agentRoleGaps, agentWarn, autoAgents, normalizeAgents } from '../engine/agents'
 import { AGENT_ROLE, ALL_AGENTS, MAP_META, mapCn } from '../engine/content'
 import { OvrBadge } from './common'
 
@@ -20,12 +20,16 @@ export default function AgentPick({ maps }: { maps: string[] }) {
   const [open, setOpen] = useState(maps[0] ?? '')
 
   const picksFor = (map: string): Record<string, string> =>
-    game.agentPicks?.[map] ?? autoAgents(game, game.myTeam, five, map)
+    normalizeAgents(game, game.myTeam, five, map,
+      game.agentPicks?.[map] ?? autoAgents(game, game.myTeam, five, map))
 
   const set = (map: string, playerId: string, agent: string) => {
     const cur = { ...picksFor(map) }
-    // one agent per side: whoever else had it gives it up
-    for (const id of Object.keys(cur)) if (cur[id] === agent && id !== playerId) delete cur[id]
+    // A side is five different agents. Whoever already had this one takes the
+    // one being given up — a swap, not a hand-off, so nobody is ever left
+    // without a character and no two players ever show the same one.
+    const holder = Object.keys(cur).find((id) => cur[id] === agent && id !== playerId)
+    if (holder) cur[holder] = cur[playerId]
     cur[playerId] = agent
     game.agentPicks = { ...(game.agentPicks ?? {}), [map]: cur }
     commit()
@@ -98,8 +102,8 @@ export default function AgentPick({ maps }: { maps: string[] }) {
                     </select>
                   </td>
                   <td className="num mono" style={{
-                    color: mod >= 0.999 ? 'var(--win)' : mod >= 0.96 ? 'var(--muted)' : 'var(--accent)',
-                  }} title={warn ?? '本行，打得顺手'}>
+                    color: mod >= 0.999 ? 'var(--win)' : 'var(--accent)',
+                  }} title={warn ?? '本行，随便挑哪个都一样'}>
                     {mod >= 0.999 ? '—' : `${Math.round((mod - 1) * 100)}%`}
                   </td>
                 </tr>
