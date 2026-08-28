@@ -85,6 +85,33 @@ function repair(raw: unknown, id: string): Profile {
   }
 }
 
+const COUNTED = 'valmanager:counted:'
+
+/**
+ * Claim a career for the lifetime totals, once and only once.
+ *
+ * The totals are sums — trophies, seasons, careers ended — and the screen that
+ * writes them is a modal that mounts whenever the career tree renders with a
+ * finished save. Leaving to the front page and coming back mounts it again,
+ * and the whole career was added a second time: three visits to a single
+ * eleven-season career read 「48 座冠军、33 个赛季、完成 3 次」.
+ *
+ * Endings and achievements never needed this — a set union is idempotent by
+ * itself. Only the running totals do, so only they are gated.
+ *
+ * If localStorage is unavailable the answer is yes: counting a career once per
+ * visit is wrong, but not counting it at all is worse, and that is the old
+ * behaviour rather than a new failure.
+ */
+export function claimCareer(seed: number, id: string | null = siteId()): boolean {
+  try {
+    const key = `${COUNTED}${id ?? 'local'}:${seed}`
+    if (localStorage.getItem(key)) return false
+    localStorage.setItem(key, '1')
+    return true
+  } catch { return true }
+}
+
 export function readProfile(id: string | null = siteId()): Profile {
   if (!id) return emptyProfile('local')
   try {

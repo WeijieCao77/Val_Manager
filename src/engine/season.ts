@@ -9,7 +9,7 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { mapCn } from './content'
-import { endingsFor, FINAL_YEAR } from './endings'
+import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2 } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -286,10 +286,10 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 
   // international events unlock as their feeder stages conclude
   const kickoffDone = REGIONS.every((r) => state.comps[compKey('kickoff', r)]?.champion)
-  if (kickoffDone) createInternational(state, 'masters1', 'Masters I', qualifiersFrom(state, 'kickoff', 2), Math.max(state.day + 3, 66))
+  if (kickoffDone) createInternational(state, 'masters1', MASTERS_1, qualifiersFrom(state, 'kickoff', 2), Math.max(state.day + 3, 66))
 
   const s1Done = REGIONS.every((r) => state.comps[compKey('stage1', r)]?.champion)
-  if (s1Done) createInternational(state, 'masters2', 'Masters II', qualifiersFrom(state, 'stage1', 2), Math.max(state.day + 3, 172))
+  if (s1Done) createInternational(state, 'masters2', MASTERS_2, qualifiersFrom(state, 'stage1', 2), Math.max(state.day + 3, 172))
 
   const s2Done = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
   if (s2Done && !state.comps.champions) {
@@ -300,7 +300,7 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
         .sort((a, b) => b.champPoints - a.champPoints || b.rating - a.rating)
       field.push(...ranked.slice(0, 4).map((t) => t.id))
     }
-    createInternational(state, 'champions', 'VALORANT Champions', field, Math.max(state.day + 4, 278))
+    createInternational(state, 'champions', CHAMPIONS, field, Math.max(state.day + 4, 278))
   }
 }
 

@@ -46,10 +46,28 @@ export interface Ending {
 // --------------------------------------------------------------- the record
 
 /** The three international events of a season. All three in a year is 全冠. */
-export const INTL_TITLES = ['Masters I', 'Masters II', 'Champions'] as const
+/**
+ * The three international trophies, spelled the way the season actually
+ * awards them.
+ *
+ * They were spelled a fourth way here — 'Champions' — while season.ts hands
+ * out 'VALORANT Champions', and an exact-match check between the two never
+ * fired. Every Champions-shaped ending was unreachable, and a three-time world
+ * champion was told 「有过高光——不是一个会被写进历史的十年」.
+ *
+ * check_endings.ts could not catch it, because it builds its test careers by
+ * awarding INTL_TITLES back to itself: the test and the code agreed with each
+ * other and both disagreed with the game. So the names live here now and
+ * season.ts imports them, which is the only arrangement where the two cannot
+ * drift apart again.
+ */
+export const MASTERS_1 = 'Masters I'
+export const MASTERS_2 = 'Masters II'
+export const CHAMPIONS = 'VALORANT Champions'
+export const INTL_TITLES = [MASTERS_1, MASTERS_2, CHAMPIONS] as const
 
 const isIntl = (t: string) => (INTL_TITLES as readonly string[]).includes(t)
-const isChampions = (t: string) => t === 'Champions'
+const isChampions = (t: string) => t === CHAMPIONS
 /** A tier-1 regional trophy: a Kickoff or one of the two Stages. */
 const isRegional = (t: string) => /Kickoff$/.test(t) || /^VCT .+ · Stage \d$/.test(t)
 const isChallengers = (t: string) => /^Challengers /.test(t)

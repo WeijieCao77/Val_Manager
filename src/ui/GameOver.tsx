@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import {
-  DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf, STORY_ENDINGS,
+  DYNASTY_ENDINGS, ENDINGS, ENDING_COUNT, INTL_TITLES, STORY_ENDINGS,
+  endingOf, endingsFor, factsOf,
 } from '../engine/endings'
 import { earnedNow } from '../engine/achievements'
-import { readProfile, record, siteId } from '../engine/profile'
+import { claimCareer, readProfile, record, siteId } from '../engine/profile'
 import { money } from './common'
 import { ORIGINS } from '../engine/manager'
 
@@ -32,18 +33,32 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
   const id = siteId()
   const [{ earned, fresh, unlocked }] = useState(() => {
     const list = game.finished ? endingsFor(game) : []
-    const worlds = game.honours.filter(
-      (h) => /Masters|Champions/i.test(h.title) && !/Challengers/i.test(h.title),
-    ).length
+    // The same list the endings judge by, not a second regex that happens to
+    // agree. They did not agree: this one matched 'VALORANT Champions' while
+    // the endings asked for 'Champions', so the profile could say 「十座国际
+    // 冠军」 on a career the verdict called 「一座也没有」.
+    const worlds = game.honours.filter((h) =>
+      (INTL_TITLES as readonly string[]).includes(h.title)).length
     const before = readProfile(id)
     const r = before.record
+    // This modal mounts every time the career tree renders a finished save, so
+    // it can run several times for one career — going to the front page and
+    // coming back is enough. The endings and the achievements do not care: a
+    // union of sets is the same however often it is taken. The totals are
+    // sums, and adding the same career twice made an eleven-season run read as
+    // twenty-two. So the sums are written only for a career not yet claimed.
+    const first = claimCareer(game.seed, id)
     const { fresh: got, profile } = record({
       endings: list.map((e) => e.key),
       // achievements are checked again here: a career can end on the very turn
       // one is earned, and that turn's dashboard check never runs
       achievements: earnedNow(game),
-      record: {
-        careers: Math.max(r.careers, 1),
+      record: first ? {
+        // Counted when a career ENDS, so it is the number of jobs that are
+        // over. It used to be Math.max(r.careers, 1), which is 1 forever — a
+        // fifth career never moved it, and 「老江湖」（五段生涯）could not be
+        // earned by anybody.
+        careers: r.careers + 1,
         finished: r.finished + (game.finished ? 1 : 0),
         sacked: r.sacked + (game.finished ? 0 : 1),
         titles: r.titles + game.honours.length,
@@ -51,7 +66,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
         bestHaul: Math.max(r.bestHaul, game.honours.length),
         seasons: r.seasons + (game.year - 2026 + 1),
         clubs: [...r.clubs, ...(game.tenures ?? []).map((t) => t.teamId), game.myTeam],
-      },
+      } : undefined,
     }, id)
     // only keys this build still knows about — see the note in Achievements.tsx
     const live = new Set(ENDINGS.map((e) => e.key))

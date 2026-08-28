@@ -14,11 +14,14 @@
  *
  *     npx tsx scripts/check_endings.ts
  */
+// Titles come from the constant, never a literal: this file used to spell
+// Champions its own way, matching a copy in endings.ts that the season never
+// awarded — so the test and the code agreed and both were wrong.
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { setupSeason, advanceDay } from '../src/engine/season'
 import {
   DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf,
-  FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
+  CHAMPIONS, FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
 } from '../src/engine/endings'
 import type { GameState } from '../src/engine/types'
 
@@ -91,7 +94,7 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
   won(g, 2030, 'Masters I')
   won(g, 2030, 'Masters II')
   check('只拿两站大师赛不算全冠年', !has(g, 'perfectYear'), `全冠 ${factsOf(g).perfectYears.length} 年`)
-  won(g, 2030, 'Champions')
+  won(g, 2030, CHAMPIONS)
   check('补上冠军赛才是全冠年', has(g, 'perfectYear'))
 
   // and a regional title cannot stand in for one of them
@@ -123,11 +126,11 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
 // ---- the Champions streak line
 {
   const g = mk()
-  won(g, 2030, 'Champions'); won(g, 2031, 'Champions')
+  won(g, 2030, CHAMPIONS); won(g, 2031, CHAMPIONS)
   check('连续两年冠军赛 →「卫冕」', has(g, 'defend'))
-  won(g, 2032, 'Champions')
+  won(g, 2032, CHAMPIONS)
   check('连续三年 →「三连霸」', has(g, 'threePeat'))
-  won(g, 2033, 'Champions'); won(g, 2034, 'Champions')
+  won(g, 2033, CHAMPIONS); won(g, 2034, CHAMPIONS)
   check('连续五年 →「五连霸」', has(g, 'fivePeat'))
   check('五连霸压过三连霸', endingOf(g).dynasty?.key === 'fivePeat')
 }
@@ -137,24 +140,24 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
   const g = mk()
   won(g, 2030, 'Masters I'); won(g, 2032, 'Masters II')
   check('只拿大师赛 →「大师」', endingOf(g).dynasty?.key === 'masterOnly')
-  won(g, 2033, 'Champions')
+  won(g, 2033, CHAMPIONS)
   check('拿到冠军赛之后就不再是「大师」', !has(g, 'masterOnly'))
 }
 
 // ---- 乐极生悲: a fall, not merely an absence
 {
   const g = mk()
-  won(g, 2030, 'Champions'); won(g, 2031, 'Champions')
+  won(g, 2030, CHAMPIONS); won(g, 2031, CHAMPIONS)
   g.year = 2033
   check('连冠之后颗粒无收 →「乐极生悲」', has(g, 'icarus'))
 
   const one = mk()
-  won(one, 2030, 'Champions')
+  won(one, 2030, CHAMPIONS)
   one.year = 2033
   check('只拿过一次冠军不算「乐极生悲」', !has(one, 'icarus'))
 
   const still = mk()
-  won(still, 2030, 'Champions'); won(still, 2031, 'Champions')
+  won(still, 2030, CHAMPIONS); won(still, 2031, CHAMPIONS)
   won(still, 2033, 'VCT China · Stage 1')
   still.year = 2034
   check('之后还有进账就不算', !has(still, 'icarus'))
@@ -163,7 +166,7 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
 // ---- 本土主义 counts imports by passport, not by the region field
 {
   const g = mk()
-  won(g, 2030, 'Champions')
+  won(g, 2030, CHAMPIONS)
   const me = g.teams[g.myTeam]!
   // isImport reads NATIONALITY first and only falls back to region, so a
   // homegrown squad has to be homegrown by passport
@@ -191,7 +194,7 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
 // ---- 判定发生在休赛期之前：结算的是刚打完最后一季的那支队，不是散伙后的残部
 {
   const g = mk()
-  won(g, FINAL_YEAR, 'Champions')
+  won(g, FINAL_YEAR, CHAMPIONS)
   g.finished = false
   const me = g.teams[g.myTeam]!
   const squad = squadOf(g, g.myTeam)

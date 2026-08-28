@@ -25,6 +25,7 @@
  * they are knowable: a squad shows who is here now, and finances.log keeps
  * only the last 200 lines.
  */
+import { CHAMPIONS, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
 import { isImport } from './imports'
 import { squadOf, WORLD_TEAMS } from './world'
 import type { GameState, Player } from './types'
@@ -50,9 +51,12 @@ export interface Achievement {
 
 // ----------------------------------------------------------------- the save
 
-const INTL = ['Masters I', 'Masters II', 'Champions']
-const isIntl = (t: string) => INTL.includes(t)
-const isMasters = (t: string) => t === 'Masters I' || t === 'Masters II'
+// Imported rather than restated: this file had its own copy of the three
+// titles, with the same wrong spelling of Champions, so 「冠军赛冠军」 and
+// 「全冠之年」 were unreachable for the same reason the endings were.
+const isIntl = (t: string) => (INTL_TITLES as readonly string[]).includes(t)
+const isMasters = (t: string) => t === MASTERS_1 || t === MASTERS_2
+const isChampions = (t: string) => t === CHAMPIONS
 const isRegional = (t: string) => /Kickoff$/.test(t) || /^VCT .+ · Stage \d$/.test(t)
 
 export interface Facts {
@@ -124,7 +128,7 @@ export function factsOf(state: GameState): Facts {
     honours,
     imports: me ? squad.filter((p) => isImport(p, me)).length : 0,
     perfectMaps, overtimeWins, deciders, sweeps,
-    perfectYears: [...intlBy.values()].filter((got) => INTL.every((t) => got.has(t))).length,
+    perfectYears: [...intlBy.values()].filter((got) => INTL_TITLES.every((t) => got.has(t))).length,
     // Kickoff plus both Stages is every tier-1 trophy the region has to give
     regionalSweeps: [...regBy.values()].filter((got) => got.size >= 3).length,
     clubs: new Set((state.tenures ?? []).map((t) => t.teamId)).size || 1,
@@ -172,7 +176,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     key: 'firstChampions', scope: 'run', group: '冠军', title: '冠军赛冠军',
     brief: '第一次拿下 Champions',
     hard: true,
-    test: (_s, f) => won(f, (t) => t === 'Champions'),
+    test: (_s, f) => won(f, isChampions),
   },
   {
     key: 'regionalSweep', scope: 'run', group: '冠军', title: '赛区全扫',
