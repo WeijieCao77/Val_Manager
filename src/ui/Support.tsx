@@ -31,7 +31,7 @@ function Qr() {
   )
 }
 
-export default function Support() {
+export default function Support({ raised = false }: { raised?: boolean }) {
   const [open, setOpen] = useState(false)
   const [hidden, setHidden] = useState(() => {
     try { return localStorage.getItem(DISMISSED) === '1' } catch { return false }
@@ -55,7 +55,7 @@ export default function Support() {
     <>
       {!hidden && (
         <button
-          className={`support-fab${open ? ' on' : ''}`}
+          className={`support-fab${open ? ' on' : ''}${raised ? ' raised' : ''}`}
           onClick={() => setOpen((x) => !x)}
           aria-expanded={open}
           title="游戏永久免费——如果你愿意支持一下"

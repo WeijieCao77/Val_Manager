@@ -1215,8 +1215,11 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 
 @media (max-width: 720px) {
   /* the advance bar owns the bottom of a phone screen — sit above it, and
-     drop to the icon so the button never covers a control */
-  .support-fab { right: 10px; bottom: 68px; padding: 10px; }
+     drop to the icon so the button never covers a control. Only inside a
+     career: the front page has no advance bar, and a button floating 68px up
+     from nothing just looks lost. */
+  .support-fab { right: 10px; bottom: 10px; padding: 10px; }
+  .support-fab.raised { bottom: 68px; }
   .support-fab .lbl { display: none; }
   .support-card {
     right: 8px; left: 8px; bottom: 8px; width: auto;

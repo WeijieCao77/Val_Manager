@@ -172,7 +172,10 @@ export default function App() {
 
   const game = gameRef.current
   if (!game) {
-    return <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
+    // Support sits outside the career shell as well as inside it: someone who
+    // has not started a save yet is exactly the person reading the front page.
+    return <>
+      <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
       const g = loadAutosave()
       if (g) {
         // A return only means something if it is a career being picked up.
@@ -185,8 +188,10 @@ export default function App() {
           over: !!g.gameOver,
         })
         start(g)
-      } else toast('没有找到自动存档。')
-    }} />
+        } else toast('没有找到自动存档。')
+      }} />
+      <Support />
+    </>
   }
 
   const myTeam = game.teams[game.myTeam]
@@ -280,7 +285,7 @@ export default function App() {
           </main>
         </div>
 
-        <Support />
+        <Support raised />
 
         {playerId && (
           <PlayerModal
