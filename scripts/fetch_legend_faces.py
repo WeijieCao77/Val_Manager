@@ -48,6 +48,14 @@ _last = 0.0
 
 # id -> what counts as this man, and what counts as that night.
 # `club` also carries the spellings Liquipedia actually uses in filenames.
+# Hand-picked overrides. Liquipedia had nothing on the night for these two —
+# only white-background studio portraits — and the owner found the trophy shots
+# himself, so the picker is told to leave them alone.
+MANUAL: dict[str, str] = {
+    "L:nats-berlin-2021": "51496042175_e20b6b07ff_o.jpg",
+    "L:neon-london-2026": "55348185912_d7d333db67_o.jpg",
+}
+
 LEGENDS: dict[str, dict] = {
     "L:zeek-champions-2021":      {"ign": "zeek", "real": "Zygmunt", "club": ["acend"], "event": [r"champions 2021"], "year": ["2021"]},
     "L:aspas-champions-2022":     {"ign": "aspas", "real": "Santos", "club": ["loud"], "event": [r"champions 2022"], "year": ["2022"]},
@@ -137,6 +145,8 @@ def main() -> int:
 
     try:
         for lid, spec in LEGENDS.items():
+            if lid in MANUAL:
+                continue          # found by hand; the picker must not overrule it
             if lid in picks and not args.refresh:
                 continue
             r = api({"list": "search", "srnamespace": "6", "srsearch": spec["ign"], "srlimit": "50"})
@@ -154,7 +164,8 @@ def main() -> int:
         print(f"RATE LIMITED: {e}", file=sys.stderr)
 
     # resolve the picks to URLs, and to the credit CC BY-SA asks for
-    files = sorted({p["file"] for p in picks.values() if "url" not in p})
+    files = sorted({p["file"] for p in picks.values()
+                    if args.refresh or "url" not in p})
     for i in range(0, len(files), 25):
         batch = files[i:i + 25]
         try:

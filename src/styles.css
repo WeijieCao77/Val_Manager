@@ -1307,3 +1307,96 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   background: linear-gradient(100deg, #ffd6f2, #d6b3ff, #b3e6ff, #ffe9b3);
   font-weight: 800;
 }
+
+/* ---- the photograph as the card -------------------------------------
+ *
+ * A彩卡 is a night, so the picture of that night is the card rather than a
+ * stamp on it. The text sits on a scrim that fades up from the bottom, which
+ * is the only way a caption stays legible over an arena shot: stage lighting
+ * puts a hard highlight somewhere different in every photograph, so nothing
+ * short of a gradient can be relied on.
+ */
+.cardface.shot { justify-content: flex-end; padding-top: 0; }
+.cf-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 12%;
+  z-index: 0;
+}
+.cf-scrim {
+  position: absolute; inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom,
+      /* just enough at the top to keep the rating off a bright stage light */
+      rgba(8, 6, 18, .52) 0%,
+      rgba(8, 6, 18, .04) 20%,
+      rgba(8, 6, 18, .08) 44%,
+      /* and a hard ramp where the caption starts, so the photograph stays a
+         photograph for as long as possible */
+      rgba(8, 6, 18, .82) 64%,
+      rgba(8, 6, 18, .96) 100%);
+}
+/* the holo band rides over the photograph, tinting rather than hiding it */
+.cardface.shot::before { mix-blend-mode: soft-light; opacity: .9; }
+/* the metal underneath only shows at the very edges, so it is the frame */
+.cardface.r-mythic.shot { background-size: 100% 100%, 200% 200%; }
+.cardface.shot .cf-name,
+.cardface.shot .cf-attrs,
+.cardface.shot .cf-foot { border-top-color: rgba(255, 255, 255, .28); }
+.cardface.shot .cf-name,
+.cardface.shot .cf-real,
+.cardface.shot .cf-meta,
+.cardface.shot .cf-attrs { text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.cardface.shot .cf-rate b,
+.cardface.shot .cf-rate .cf-kind { text-shadow: 0 1px 4px rgba(0, 0, 0, .85); }
+/* The caption has to be lifted over the backdrop.
+ *
+ * `.cf-bg` and `.cf-scrim` are positioned, and a positioned element paints
+ * above a static sibling whatever the source order says — so the photograph
+ * and its scrim covered the name, the moment and the numbers completely.
+ *
+ * Listed one by one rather than as `> *`: the rating block and the star are
+ * absolutely positioned, and a blanket `position: relative` dropped them back
+ * into the flow, which put the score in the middle of the card and pushed
+ * everything else off the bottom. They already sit at z-index 3. */
+.cardface.shot .cf-push,
+.cardface.shot .cf-moment,
+.cardface.shot .cf-name,
+.cardface.shot .cf-real,
+.cardface.shot .cf-meta,
+.cardface.shot .cf-attrs,
+.cardface.shot .cf-foot,
+.cardface.shot .cf-pips { position: relative; z-index: 2; }
+
+/* the card takes the photograph's shape, and the caption sits in the bottom of
+   it rather than hanging off the end */
+.cardface.shot { aspect-ratio: 36 / 50; }
+.cf-push { flex: 1; }
+
+/* ---- the club crest, behind an ordinary card ------------------------
+ *
+ * A gold card is a player AT a club, and the club was three letters in 10px
+ * type. The crest goes behind the portrait, big and faint: readable as a badge
+ * across a grid, never competing with the face.
+ */
+.cf-crest {
+  position: absolute;
+  top: 6%; left: 50%;
+  width: 88%; height: 62%;
+  transform: translateX(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: .17;
+  z-index: 0;
+  pointer-events: none;
+  /* the crests are full-colour PNGs; flattened to the card's own ink they read
+     as an emboss instead of a sticker */
+  filter: grayscale(1) contrast(.6) brightness(.35);
+}
+.cardface.r-gold .cf-crest { filter: grayscale(1) contrast(.7) brightness(.3); opacity: .2; }
+.cardface.r-silver .cf-crest { filter: grayscale(1) contrast(.7) brightness(.3); opacity: .18; }
+.cardface.r-bronze .cf-crest { filter: grayscale(1) contrast(.7) brightness(.25); opacity: .2; }

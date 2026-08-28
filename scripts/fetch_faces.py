@@ -42,7 +42,10 @@ OUT = ROOT / "public" / "faces"
 UA = ("ValManagerGameBuild/0.1 (hobby esports-manager project; "
       "contact: yankejing711@gmail.com)")
 MIN_INTERVAL = 1.0          # a CDN image, not a rendered page
-SIDE = 192                  # twice the largest size a card draws it at
+SIDE = 192                  # twice the largest size a round avatar is drawn at
+# A彩卡 is the photograph — it fills the card — so those are kept as a portrait
+# at card proportions instead of the square an avatar needs.
+LEGEND_W, LEGEND_H = 360, 500
 QUALITY = 80
 _last = 0.0
 
@@ -56,6 +59,21 @@ def get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read()
+
+
+def portrait(im: Image.Image) -> Image.Image:
+    """Crop to the card's shape, centre horizontally, favour the top."""
+    want = LEGEND_W / LEGEND_H
+    w, h = im.size
+    if w / h > want:
+        new_w = int(h * want)
+        x = (w - new_w) // 2
+        im = im.crop((x, 0, x + new_w, h))
+    else:
+        new_h = int(w / want)
+        y = min(int(h * 0.08), max(0, h - new_h))
+        im = im.crop((0, y, w, y + new_h))
+    return im.resize((LEGEND_W, LEGEND_H), Image.LANCZOS)
 
 
 def square(im: Image.Image) -> Image.Image:
@@ -123,7 +141,10 @@ def main() -> int:
         if url:
             jobs.append((name, coach_file(name), url))
 
+    manual = load(CACHE / "manual_faces.json", {})
     for lid, pick in (load(LEGEND, {}).get("picks") or {}).items():
+        if lid in manual:
+            continue              # imported by hand; leave it alone
         if pick.get("url"):
             jobs.append((lid, legend_file(lid), pick["url"]))
 
@@ -137,7 +158,8 @@ def main() -> int:
             raw = get(url)
             im = Image.open(io.BytesIO(raw)).convert("RGBA")
             # webp keeps the transparent cut-outs vlr uses for some players
-            square(im).save(dest, "WEBP", quality=QUALITY, method=6)
+            shaped = portrait(im.convert("RGB")) if fname.startswith("l-") else square(im)
+            shaped.save(dest, "WEBP", quality=QUALITY, method=6)
             done += 1
             print(f"  {label:<16} {dest.stat().st_size/1024:5.1f}KB", flush=True)
         except (urllib.error.URLError, OSError, ValueError) as e:

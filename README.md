@@ -20,7 +20,8 @@
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
 | 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
 | 选手照片 | vlr.gg 选手页 + Liquipedia | 430/518 人（vlr 399 + Liquipedia 31）；剩下的用剪影 |
-| 彩卡照片 | Liquipedia commons | 20/20，取自夺冠当场的比赛照，多张是捧杯照 |
+| 彩卡照片 | Liquipedia commons + 手工补 2 张 | 20/20，取自夺冠当场的比赛照，多张是捧杯照 |
+| 战队队标 | vlr.gg 战队页 | 76/78，作普通卡背景水印 |
 | 教练/分析师照片、国籍、真名 | vlr.gg 战队页教练组 + Liquipedia | 60/69 人 |
 | 生涯队伍履历（带起止日期） | Liquipedia `TeamHistoryAuto` | 448/518 人 |
 | 赛事名次、生涯奖金 | vlr.gg 选手页 Event Placements | 518/518 人，共 533 项赛事 |
@@ -133,7 +134,9 @@ FC / 电竞经理那一套，但卡面上的每一个人都是真的。
 2021–2023 大师赛）、以及没拿过 MVP 但地位公认的现象级人物（6 张）。README 末尾有完整名单
 和来源。
 
-**照片来自那一场**。彩卡不用 vlr 的白底证件照，用的是他夺冠当届的现场照——
+**照片就是卡面**。彩卡不画圆头像，整张夺冠现场照铺满卡片，说明文字压在从底部升起的
+遮罩上——舞台灯每张照片的高光位置都不一样，只有渐变遮罩能保证字始终读得清。
+用的是他夺冠当届的现场照——
 Alfajer、Boaster、CHICHOO、Chronicle、Derke、Ethan、zeek、ZmjjKK 抱着奖杯，
 其余大多在台上。取自 Liquipedia commons（CC BY-SA，卡片详情里附文件页链接）。
 
@@ -535,6 +538,8 @@ scripts/
   fetch_vlr_staff.py     从 vlr.gg 战队页抓教练组照片、国籍、真名
   fetch_liquipedia_faces.py  vlr 没有的那些，去 Liquipedia 找（按文件名校验身份）
   fetch_legend_faces.py  彩卡的夺冠现场照，按 捧杯>夺冠赛事>同队同季 排序挑选
+  import_manual_faces.py 手工找到的照片，走同一套裁切与压缩
+  fetch_team_logos.py    76 支战队的队标，做普通卡背景水印
   fetch_faces.py         下载照片并压成 192px webp
   build_dossier.py       合并成 src/data/dossier.json
   smoke.ts               无头跑完整赛季并校验数据合理性

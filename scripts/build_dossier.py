@@ -35,6 +35,7 @@ WORLD = ROOT / "src" / "data" / "world.json"
 OUT = ROOT / "src" / "data" / "dossier.json"
 RECORDS = ROOT / "src" / "data" / "records.json"
 FACES = ROOT / "public" / "faces"
+LOGOS = ROOT / "public" / "logos"
 
 
 def load(p: Path, default):
@@ -155,6 +156,10 @@ def main() -> int:
             continue
         legends[lid] = {"img": fname, "tier": pick.get("tier"), "page": pick.get("page")}
 
+    # which clubs have a crest — the card draws it as a CSS background, which
+    # fails silently as an empty box, so it must know before it asks
+    logos = sorted(p.stem for p in LOGOS.glob("*.webp")) if LOGOS.exists() else []
+
     OUT.write_text(json.dumps({
         "meta": {
             "sources": {
@@ -169,11 +174,13 @@ def main() -> int:
             "coaches": len(coaches),
             "coachPhotos": coach_photos,
             "legendPhotos": len(legends),
+            "logos": len(logos),
             "events": len(events),
         },
         "players": players,
         "coaches": coaches,
         "legends": legends,
+        "logos": logos,
     }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     RECORDS.write_text(json.dumps({
         "events": events,
@@ -187,6 +194,7 @@ def main() -> int:
     for v in legends.values():
         tiers[v["tier"]] = tiers.get(v["tier"], 0) + 1
     print(f"  彩卡 {len(legends)} 张有照片 {tiers}")
+    print(f"  队标 {len(logos)} 张")
     print(f"  players {len(players)}/{len(world['players'])}"
           f" | photos {photos} | nationality {nats}"
           f" | placements {withev} | club history {withth}"

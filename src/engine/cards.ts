@@ -228,7 +228,14 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
   return out
 }
 
-const BASE_PLAYER_CARDS = buildPlayerCards()
+/**
+ * One card per real player, before the彩卡 versions are added.
+ *
+ * Anything listing PEOPLE wants this; anything listing CARDS wants
+ * PLAYER_CARDS. The dossier used the latter and so printed everyone with a
+ * legend twice — two Derkes, two Boasters — and counted 538 players out of 518.
+ */
+export const BASE_PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
 export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(BASE_PLAYER_CARDS)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
 export const COACH_CARDS: CoachCard[] = buildCoachCards()

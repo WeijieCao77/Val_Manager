@@ -1,0 +1,382 @@
+{
+ "T0": {
+  "tag": "LEV",
+  "vlrId": "2359",
+  "url": "https://owcdn.net/img/61b8888cc3860.png"
+ },
+ "T1": {
+  "tag": "NRG",
+  "vlrId": "1034",
+  "url": "https://owcdn.net/img/6610f026c1a9e.png"
+ },
+ "T2": {
+  "tag": "G2",
+  "vlrId": "11058",
+  "url": "https://owcdn.net/img/633822848a741.png"
+ },
+ "T3": {
+  "tag": "MIBR",
+  "vlrId": "7386",
+  "url": "https://owcdn.net/img/632be7626d6d9.png"
+ },
+ "T4": {
+  "tag": "SEN",
+  "vlrId": "2",
+  "url": "https://owcdn.net/img/62875027c8e06.png"
+ },
+ "T5": {
+  "tag": "FUR",
+  "vlrId": "2406",
+  "url": "https://owcdn.net/img/632be843b7d51.png"
+ },
+ "T6": {
+  "tag": "100T",
+  "vlrId": "120",
+  "url": "https://owcdn.net/img/603c00d5c5a08.png"
+ },
+ "T7": {
+  "tag": "KRÜ",
+  "vlrId": "2355",
+  "url": "https://owcdn.net/img/63976677069e1.png"
+ },
+ "T8": {
+  "tag": "LOUD",
+  "vlrId": "6961",
+  "url": "https://owcdn.net/img/62bbec8dc1b9f.png"
+ },
+ "T9": {
+  "tag": "C9",
+  "vlrId": "188",
+  "url": "https://owcdn.net/img/628addcbd509e.png"
+ },
+ "T10": {
+  "tag": "EG",
+  "vlrId": "5248",
+  "url": "https://owcdn.net/img/667462f046618.png"
+ },
+ "T11": {
+  "tag": "ENVY",
+  "vlrId": "427",
+  "url": "https://owcdn.net/img/5f3ca822464a3.png"
+ },
+ "T12": {
+  "tag": "VIT",
+  "vlrId": "2059",
+  "url": "https://owcdn.net/img/6466d79e1ed40.png"
+ },
+ "T13": {
+  "tag": "TH",
+  "vlrId": "1001",
+  "url": "https://owcdn.net/img/637b755224c12.png"
+ },
+ "T14": {
+  "tag": "FNC",
+  "vlrId": "2593",
+  "url": "https://owcdn.net/img/62a40cc2b5e29.png"
+ },
+ "T15": {
+  "tag": "FUT",
+  "vlrId": "1184",
+  "url": "https://owcdn.net/img/632be9976b8fe.png"
+ },
+ "T16": {
+  "tag": "GX",
+  "vlrId": "14419",
+  "url": "https://owcdn.net/img/657b2f3fcd199.png"
+ },
+ "T17": {
+  "tag": "BBL",
+  "vlrId": "397",
+  "url": "https://owcdn.net/img/65b8ccef5e273.png"
+ },
+ "T18": {
+  "tag": "TL",
+  "vlrId": "17297",
+  "url": "https://owcdn.net/img/640c381f0603f.png"
+ },
+ "T19": {
+  "tag": "EF",
+  "vlrId": "6392",
+  "url": "https://owcdn.net/img/6628980dcdaea.png"
+ },
+ "T20": {
+  "tag": "PCF",
+  "vlrId": "19882",
+  "url": "https://owcdn.net/img/656e2ae2b8a48.png"
+ },
+ "T21": {
+  "tag": "M8",
+  "vlrId": "12694",
+  "url": "https://owcdn.net/img/6670153fa9120.png"
+ },
+ "T22": {
+  "tag": "NAVI",
+  "vlrId": "21715",
+  "url": "https://owcdn.net/img/62a4109ddbd7f.png"
+ },
+ "T23": {
+  "tag": "KC",
+  "vlrId": "8877",
+  "url": "https://owcdn.net/img/627403a0d9e48.png"
+ },
+ "T24": {
+  "tag": "PRX",
+  "vlrId": "624",
+  "url": "https://owcdn.net/img/62bbeba74d5cb.png"
+ },
+ "T25": {
+  "tag": "T1",
+  "vlrId": "14",
+  "url": "https://owcdn.net/img/62fe0b8f6b084.png"
+ },
+ "T26": {
+  "tag": "NS",
+  "vlrId": "11060",
+  "url": "https://owcdn.net/img/6399bb707aacb.png"
+ },
+ "T27": {
+  "tag": "GEN",
+  "vlrId": "17",
+  "url": "https://owcdn.net/img/6970c986eddc6.png"
+ },
+ "T28": {
+  "tag": "KRX",
+  "vlrId": "8185",
+  "url": "https://owcdn.net/img/6a353ee73ab25.png"
+ },
+ "T29": {
+  "tag": "ZETA",
+  "vlrId": "5448",
+  "url": "https://owcdn.net/img/62a411783d94d.png"
+ },
+ "T30": {
+  "tag": "TS",
+  "vlrId": "6199",
+  "url": "https://owcdn.net/img/629f13085ead6.png"
+ },
+ "T31": {
+  "tag": "DFM",
+  "vlrId": "278",
+  "url": "https://owcdn.net/img/63972e548cdc9.png"
+ },
+ "T32": {
+  "tag": "RRQ",
+  "vlrId": "878",
+  "url": "https://owcdn.net/img/629f17f51e7a3.png"
+ },
+ "T33": {
+  "tag": "FS",
+  "vlrId": "4050",
+  "url": "https://owcdn.net/img/6537a7954d915.png"
+ },
+ "T34": {
+  "tag": "GE",
+  "vlrId": "918",
+  "url": "https://owcdn.net/img/629f316ddd4dd.png"
+ },
+ "T35": {
+  "tag": "VL",
+  "vlrId": "11229",
+  "url": "https://owcdn.net/img/63a74624cc76a.png"
+ },
+ "T36": {
+  "tag": "EDG",
+  "vlrId": "1120",
+  "url": "https://owcdn.net/img/62c82049253b2.png"
+ },
+ "T37": {
+  "tag": "XLG",
+  "vlrId": "13581",
+  "url": "https://owcdn.net/img/671742f863b9b.png"
+ },
+ "T38": {
+  "tag": "TYL",
+  "vlrId": "731",
+  "url": "https://owcdn.net/img/63eb60fb08390.png"
+ },
+ "T39": {
+  "tag": "WOL",
+  "vlrId": "13790",
+  "url": "https://owcdn.net/img/651d33f8e6a1f.png"
+ },
+ "T40": {
+  "tag": "FPX",
+  "vlrId": "11328",
+  "url": "https://owcdn.net/img/65a17b313b131.png"
+ },
+ "T41": {
+  "tag": "NOVA",
+  "vlrId": "12064",
+  "url": "https://owcdn.net/img/6404c0174250b.png"
+ },
+ "T42": {
+  "tag": "BLG",
+  "vlrId": "12010",
+  "url": "https://owcdn.net/img/63f25d72216c1.png"
+ },
+ "T43": {
+  "tag": "AG",
+  "vlrId": "1119",
+  "url": "https://owcdn.net/img/6549c2b905061.png"
+ },
+ "T44": {
+  "tag": "TE",
+  "vlrId": "12685",
+  "url": "https://owcdn.net/img/6433a2cc3ae72.png"
+ },
+ "T45": {
+  "tag": "JDG",
+  "vlrId": "13576",
+  "url": "https://owcdn.net/img/64f9825408326.png"
+ },
+ "T46": {
+  "tag": "DRG",
+  "vlrId": "11981",
+  "url": "https://owcdn.net/img/642233fc01f26.png"
+ },
+ "T47": {
+  "tag": "TEC",
+  "vlrId": "14137",
+  "url": "https://owcdn.net/img/65487414b8562.png"
+ },
+ "T48": {
+  "tag": "M80",
+  "vlrId": "11001",
+  "url": "https://owcdn.net/img/6945c73504452.png"
+ },
+ "T49": {
+  "tag": "SRB",
+  "vlrId": "9353",
+  "url": "https://owcdn.net/img/679314c8ac387.png"
+ },
+ "T50": {
+  "tag": "SE",
+  "vlrId": "13920",
+  "url": "https://owcdn.net/img/6528e9505cb61.png"
+ },
+ "T51": {
+  "tag": "NA",
+  "vlrId": "21049",
+  "url": "https://owcdn.net/img/6610f026c1a9e.png"
+ },
+ "T52": {
+  "tag": "QOR",
+  "vlrId": "6985",
+  "url": "https://owcdn.net/img/63e9a11797f41.png"
+ },
+ "T53": {
+  "tag": "NG",
+  "vlrId": "5601",
+  "url": "https://owcdn.net/img/61f13e1258cab.png"
+ },
+ "T54": {
+  "tag": "YFT",
+  "vlrId": "22589",
+  "url": "https://owcdn.net/img/6a1e4c6d6db88.png"
+ },
+ "T56": {
+  "tag": "ILEK",
+  "vlrId": "22601",
+  "url": "https://owcdn.net/img/6a528de2088e7.png"
+ },
+ "T57": {
+  "tag": "CE",
+  "vlrId": "5214",
+  "url": "https://owcdn.net/img/60defafec983c.png"
+ },
+ "T58": {
+  "tag": "MAND",
+  "vlrId": "7967",
+  "url": "https://owcdn.net/img/695c961fbab82.png"
+ },
+ "T59": {
+  "tag": "FFE",
+  "vlrId": "20085",
+  "url": "https://owcdn.net/img/68e6e1bcca45d.png"
+ },
+ "T60": {
+  "tag": "BE",
+  "vlrId": "14461",
+  "url": "https://owcdn.net/img/65843488833d1.png"
+ },
+ "T61": {
+  "tag": "EP",
+  "vlrId": "876",
+  "url": "https://owcdn.net/img/68643d0b1c72b.png"
+ },
+ "T62": {
+  "tag": "SGE",
+  "vlrId": "14478",
+  "url": "https://owcdn.net/img/659d1013d5cf5.png"
+ },
+ "T63": {
+  "tag": "JL",
+  "vlrId": "11232",
+  "url": "https://owcdn.net/img/63a944e6cbe49.png"
+ },
+ "T64": {
+  "tag": "REJE",
+  "vlrId": "104",
+  "url": "https://owcdn.net/img/62a4139de7f7e.png"
+ },
+ "T65": {
+  "tag": "QD",
+  "vlrId": "18299",
+  "url": "https://owcdn.net/img/67f4e2e7b3802.png"
+ },
+ "T66": {
+  "tag": "RO",
+  "vlrId": "14375",
+  "url": "https://owcdn.net/img/6569a81625295.png"
+ },
+ "T67": {
+  "tag": "FENN",
+  "vlrId": "2934",
+  "url": "https://owcdn.net/img/60d3986152cd4.png"
+ },
+ "T68": {
+  "tag": "IGZI",
+  "vlrId": "6869",
+  "url": "https://owcdn.net/img/61b3107a6a139.png"
+ },
+ "T69": {
+  "tag": "AGEL",
+  "vlrId": "21338",
+  "url": "https://owcdn.net/img/698354a79aa30.png"
+ },
+ "T70": {
+  "tag": "INSO",
+  "vlrId": "5148",
+  "url": "https://owcdn.net/img/6a1be9015b7b5.png"
+ },
+ "T71": {
+  "tag": "KBG",
+  "vlrId": "12784",
+  "url": "https://owcdn.net/img/64461a1131da5.png"
+ },
+ "T72": {
+  "tag": "AT",
+  "vlrId": "20603",
+  "url": "https://owcdn.net/img/6a70722c7c24b.png"
+ },
+ "T73": {
+  "tag": "AQ",
+  "vlrId": "19531",
+  "url": "https://owcdn.net/img/68ecda499e5e2.png"
+ },
+ "T74": {
+  "tag": "RA",
+  "vlrId": "11985",
+  "url": "https://owcdn.net/img/63eb5aa842f05.png"
+ },
+ "T76": {
+  "tag": "WSIG",
+  "vlrId": "21699",
+  "url": "https://owcdn.net/img/69b7b6dff08e9.png"
+ },
+ "T77": {
+  "tag": "WBG",
+  "vlrId": "1224",
+  "url": "https://owcdn.net/img/62232bd14e5d7.png"
+ }
+}

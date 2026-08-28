@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ATTR_CN } from '../engine/types'
 import { RARITY_CN, ratingAt } from '../engine/cards'
+import { CRESTS } from '../engine/dossier'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
 import { isCoachCard, isPlayerCard } from '../engine/cards'
 
@@ -45,6 +46,12 @@ const flagsRender = (() => {
  * code where it does not. Never a blank box — a card with an empty flag slot
  * looks broken, and the code is a perfectly good answer.
  */
+/** The club crest, where we have one. Built by scripts/fetch_team_logos.py. */
+export const crestUrl = (clubId: string | null | undefined): string | null => {
+  if (!clubId || !CRESTS.has(clubId)) return null
+  return `${typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'}logos/${clubId}.webp`
+}
+
 export function flagEmoji(nat: string | null | undefined): string {
   if (!nat || nat.length !== 2) return '🏴'
   const up = nat.toUpperCase()
@@ -141,13 +148,19 @@ export default function CardFace({
   const cls = `cardface r-${card.rarity} s-${size}`
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
   const legend = isPlayerCard(card) ? card.legend : undefined
+  const crest = crestUrl(card.clubId)
   const title = legend
     ? `${legend.title} · ${card.kind === 'player' ? card.ign : ''} · 彩卡 ${rating}`
     : `${card.kind === 'player' ? card.ign : card.name} · ${RARITY_CN[card.rarity]} ${rating}`
       + (level ? `（+${level}）` : '')
 
+  // A彩卡 IS the photograph — it fills the card and the text sits on a scrim
+  // over it. Everything else keeps the round portrait with the club's crest
+  // behind it, which is the only place a card ever showed who he plays for
+  // beyond three letters of small type.
+  const asBackdrop = card.rarity === 'mythic' && !!card.face
   const body = isPlayerCard(card)
-    ? <PlayerBody card={card} size={size} footer={footer} />
+    ? <PlayerBody card={card} size={size} footer={footer} backdrop={asBackdrop} />
     : <CoachBody card={card as CoachCard} size={size} footer={footer} />
 
   // A grid of彩卡 all animating in step reads as "a row of red cards", not as
@@ -159,12 +172,25 @@ export default function CardFace({
 
   return (
     <div
-      className={cls}
+      className={`${cls}${asBackdrop ? ' shot' : ''}`}
       style={holo}
       onClick={onClick}
       title={title}
       role={onClick ? 'button' : undefined}
     >
+      {asBackdrop && (
+        <>
+          <img className="cf-bg" src={card.face!} alt="" aria-hidden="true" loading="lazy" />
+          <span className="cf-scrim" aria-hidden="true" />
+        </>
+      )}
+      {!asBackdrop && crest && (
+        <span
+          className="cf-crest"
+          style={{ backgroundImage: `url(${crest})` }}
+          aria-hidden="true"
+        />
+      )}
       {legend && <span className="cf-star" aria-hidden="true">★</span>}
       <div className="cf-rate">
         <b>{rating}</b>
@@ -184,13 +210,15 @@ export default function CardFace({
   )
 }
 
-function PlayerBody({ card, size, footer }: { card: PlayerCard; size: string; footer?: string }) {
+function PlayerBody({
+  card, size, footer, backdrop,
+}: { card: PlayerCard; size: string; footer?: string; backdrop?: boolean }) {
   const keys = size === 'sm'
     ? (['aim', 'awareness'] as const)
     : (['aim', 'reaction', 'awareness', 'utility', 'clutch', 'igl'] as const)
   return (
     <>
-      <Face src={card.face} alt={card.ign} />
+      {backdrop ? <span className="cf-push" /> : <Face src={card.face} alt={card.ign} />}
       {card.legend && <div className="cf-moment">{card.legend.short}</div>}
       <div className="cf-name">{card.ign}</div>
       {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
 import { DOSSIER, dossierOf, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
 import type { Records } from '../engine/dossier'
-import { PLAYER_CARDS, RARITY_CN } from '../engine/cards'
+import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN } from '../engine/cards'
 import type { PlayerCard } from '../engine/cards'
 import CardFace, { Flag, natName } from './Card'
 import { Panel, Bar, moneyFull } from './common'
@@ -11,7 +11,16 @@ import type { Region, Role } from '../engine/types'
 
 const ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
 
-const cardOf = new Map(PLAYER_CARDS.map((c) => [c.playerId, c]))
+// the ordinary card, never the彩卡 version: this screen lists people
+const cardOf = new Map(BASE_PLAYER_CARDS.map((c) => [c.playerId, c]))
+
+/** playerId -> the彩卡 that exist of him, for the ★ in the list. */
+const legendsOf = new Map<string, typeof LEGEND_CARDS>()
+for (const c of LEGEND_CARDS) {
+  const list = legendsOf.get(c.playerId) ?? []
+  list.push(c)
+  legendsOf.set(c.playerId, list)
+}
 const teamOf = new Map(WORLD_TEAMS.map((t) => [t.id, t]))
 
 /**
@@ -38,7 +47,7 @@ export default function Dossier({
 
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase()
-    return PLAYER_CARDS
+    return BASE_PLAYER_CARDS
       .filter((c) => {
         if (region !== 'all' && c.region !== region) return false
         if (role !== 'all' && !c.roles.includes(role)) return false
@@ -121,7 +130,19 @@ export default function Dossier({
           <tbody>
             {rows.slice(0, 300).map(({ card, titles, winnings }) => (
               <tr key={card.id} style={{ cursor: 'pointer' }} onClick={() => onOpen(card.playerId)}>
-                <td><b>{card.ign}</b>{card.isIgl && <span className="tag t2" style={{ marginLeft: 5 }}>IGL</span>}</td>
+                <td>
+                  <b>{card.ign}</b>
+                  {legendsOf.has(card.playerId) && (
+                    <span
+                      className="cf-star"
+                      style={{ position: 'static', marginLeft: 5, fontSize: 11 }}
+                      title={legendsOf.get(card.playerId)!.map((l) => l.legend!.title).join('、')}
+                    >
+                      ★
+                    </span>
+                  )}
+                  {card.isIgl && <span className="tag t2" style={{ marginLeft: 5 }}>IGL</span>}
+                </td>
                 <td className="muted small">{card.realName ?? '—'}</td>
                 <td className="small"><Flag nat={card.nat} /> {natName(card.nat)}</td>
                 <td>{card.clubTag ?? <span className="faint">自由人</span>}</td>
@@ -192,6 +213,24 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
               {card.roles.join(' / ')}{card.isIgl && ' · 队内指挥'}
               {' · '}{RARITY_CN[card.rarity]} {card.rating}
             </div>
+            {!!legendsOf.get(card.playerId)?.length && (
+              <div
+                className="small"
+                style={{
+                  marginTop: 10, padding: '8px 11px', borderRadius: 4, lineHeight: 1.7,
+                  background: 'rgba(180,120,255,.10)',
+                  border: '1px solid rgba(180,120,255,.35)',
+                }}
+              >
+                <b>★ 彩卡</b>
+                {legendsOf.get(card.playerId)!.map((l) => (
+                  <div key={l.id} className="tiny" style={{ marginTop: 3 }}>
+                    {l.legend!.title}
+                    <span className="faint"> · {l.legend!.clubTag} · 评分 {l.rating}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
               {titleCount(card.playerId) > 0 && (
                 <span className="trait" data-good="y">{titleCount(card.playerId)} 座冠军</span>

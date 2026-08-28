@@ -47,6 +47,8 @@ interface DossierFile {
   coaches?: Record<string, DossierEntry>
   /** keyed by legend id — the photo from the night, and where it came from */
   legends?: Record<string, LegendPhoto>
+  /** world team ids we actually have a crest file for */
+  logos?: string[]
 }
 
 export interface LegendPhoto {
@@ -84,6 +86,15 @@ export const coachDossier = (name: string): DossierEntry | undefined =>
  */
 export const legendPhoto = (legendId: string): LegendPhoto | undefined =>
   DOSSIER.legends?.[legendId]
+
+/**
+ * Which clubs have a crest on disk.
+ *
+ * A set rather than a probe: the crest is drawn as a CSS background and a
+ * missing file fails silently as an empty box, so the card has to know before
+ * it asks.
+ */
+export const CRESTS = new Set<string>(DOSSIER.logos ?? [])
 
 /**
  * `public/faces` is copied verbatim into the build; base may be a subpath.
