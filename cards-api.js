@@ -153,6 +153,24 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }
   }
 
+  /**
+   * Write the collection back, refusing to overwrite somebody's newer play.
+   *
+   * There was no version check at all, and the failure it allows is not
+   * theoretical: a tab left open on a phone holds an hour-old state in memory,
+   * and when the browser thaws it, flushAccount's sendBeacon posts that state
+   * and the server took it. An evening on the desktop disappeared.
+   *
+   * So a save carries the revision it was built on. If the row has moved past
+   * it, the write is refused and the current state handed back — whoever has
+   * the older base loses at most their last action, instead of the other
+   * device losing everything. A beacon cannot read the reply, which is fine:
+   * the point is that it does not land.
+   *
+   * A save with no baseRev is accepted. Only tabs loaded before this shipped
+   * send none, and they will be gone by tomorrow; refusing them would lose
+   * real progress today to protect against a rarer loss.
+   */
   async function save(req, res, bucket) {
     if (guard(req, res, `cs:${bucket}`, 120)) return
     const today = serverDay()
@@ -169,6 +187,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     const state = vetState(body?.state, today)
     if (!state) { json(res, 400, { ok: false, why: 'state' }); return }
     const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
+    const baseRev = Number.isInteger(body?.baseRev) ? body.baseRev : null
     try {
       const rows = await sql`
         insert into card_accounts (id_hash, name, state, rev, saved)
@@ -179,7 +198,23 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
               rev   = card_accounts.rev + 1,
               seen  = now(),
               saved = now()
+          -- one static predicate rather than a spliced fragment: a nested
+          -- tagged template here is not a boolean in every driver, and the
+          -- check script caught it as "Invalid input for boolean type".
+          -- A null baseRev compares the row against itself, which is always
+          -- true, so a legacy client still writes.
+          where card_accounts.rev = coalesce(${baseRev}::int, card_accounts.rev)
         returning rev`
+      if (!rows.length) {
+        // somebody else wrote since this client last read; hand back the truth
+        const cur = await sql`
+          select state, rev from card_accounts where id_hash = ${hash(id)}`
+        json(res, 409, {
+          ok: false, stale: true, today, now: serverNow(),
+          rev: cur[0]?.rev ?? null, state: cur[0]?.state ?? null,
+        })
+        return
+      }
       json(res, 200, { ok: true, today, rev: rows[0].rev })
     } catch (err) {
       console.warn('cards: save failed', err.message)

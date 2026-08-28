@@ -132,6 +132,49 @@ r = await call('/api/card/load', { id: ID })
 check('the refused save did not land',
   (r.body.state as { coins: number }).coins === 4200)
 
+// ---- two devices ------------------------------------------------------
+//
+// The case this exists for: a tab left open on a phone holds an hour-old
+// state, the browser thaws it, and its beacon posts that state over an
+// evening played on the desktop. Without a version check the server took it.
+
+const TWO = 'VM-2222-3333-4444-5555-6666'
+await call('/api/card/claim', { id: TWO, name: 'two', state: { coins: 100, daily: { claimed: null } } })
+let phone = await call('/api/card/load', { id: TWO })
+const phoneRev = phone.body.rev as number
+
+// the desktop loads the same state, plays, and saves twice
+let desk = await call('/api/card/load', { id: TWO })
+let deskRev = desk.body.rev as number
+for (const coins of [500, 900]) {
+  const w = await call('/api/card/save', { id: TWO, baseRev: deskRev, state: { coins, daily: { claimed: null } } })
+  deskRev = w.body.rev as number
+}
+check('the desktop\'s saves land', deskRev === phoneRev + 2, `rev ${deskRev}`)
+
+// now the phone wakes up and beacons what it remembers
+const beacon = await call('/api/card/save', {
+  id: TWO, baseRev: phoneRev, state: { coins: 100, daily: { claimed: null } },
+})
+check('a save built on a stale revision is refused',
+  beacon.code === 409 && beacon.body.stale === true, `code ${beacon.code}`)
+check('the refusal hands back the newer state',
+  (beacon.body.state as { coins: number })?.coins === 900)
+
+const after = await call('/api/card/load', { id: TWO })
+check('the evening on the desktop survives',
+  (after.body.state as { coins: number }).coins === 900,
+  `coins ${(after.body.state as { coins: number }).coins}`)
+
+// and a client that resyncs can then write
+const resync = await call('/api/card/save', {
+  id: TWO, baseRev: after.body.rev as number, state: { coins: 1000, daily: { claimed: null } },
+})
+check('after resyncing, the same client can save again', resync.body.ok === true)
+
+check('a save with no baseRev is still accepted (tabs open across the deploy)',
+  (await call('/api/card/save', { id: TWO, state: { coins: 1100, daily: { claimed: null } } })).body.ok === true)
+
 // ---- brute force ------------------------------------------------------
 
 rateHits.clear()

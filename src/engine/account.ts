@@ -94,6 +94,22 @@ const noteNow = (serverMs: unknown): void => {
 export const serverNow = (): number => Date.now() + skew
 
 /**
+ * The revision this session last read or wrote.
+ *
+ * Sent with every save so the server can refuse one built on a state somebody
+ * else has already moved past — a phone tab thawing out of the background and
+ * beaconing an hour-old collection over a newer one is the case that made this
+ * necessary, and there is no way to spot it without a version.
+ */
+let rev: number | null = null
+export const knownRev = (): number | null => rev
+
+/** Called when a foreign, newer state arrives and the local one must yield. */
+type StaleHandler = (state: GachaState) => void
+let onStale: StaleHandler | null = null
+export const whenStale = (fn: StaleHandler | null): void => { onStale = fn }
+
+/**
  * Date an unanchored 体力 meter from when the account was last saved.
  *
  * Only ever fills a blank; it never moves an anchor that already exists, so a
@@ -153,6 +169,7 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
     })
     const j = await r.json()
     noteNow(j?.now)
+    if (typeof j?.rev === 'number') rev = j.rev
     if (j?.today) today = j.today
     if (j?.ok && j.state) {
       const state = migrate(j.state as GachaState, id)
@@ -199,6 +216,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
       })
       const j = await r.json()
       noteNow(j?.now)
+      if (typeof j?.rev === 'number') rev = j.rev
       // 100 bits does not collide; the retry is here so that if it ever did,
       // the newcomer gets a fresh id instead of a stranger's collection
       if (j?.taken) continue
@@ -236,11 +254,22 @@ export function saveAccount(state: GachaState, immediate = false): void {
     if (inflight) { pending = window.setTimeout(send, 400); return }
     inflight = true
     try {
-      await fetch(api('save'), {
+      const r = await fetch(api('save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: state.id, name: state.name, state }),
+        body: JSON.stringify({ id: state.id, name: state.name, state, baseRev: rev }),
       })
+      const j = await r.json().catch(() => null)
+      if (typeof j?.rev === 'number') rev = j.rev
+      if (j?.stale && j.state) {
+        // Another device wrote while this one was holding an older copy. It
+        // does not get to win: take the server's state and let the screens
+        // redraw from it, rather than overwriting an evening of somebody's
+        // play with whatever this tab happened to remember.
+        const fresh = migrate(j.state as GachaState, state.id)
+        writeMirror(fresh)
+        onStale?.(fresh)
+      }
     } catch { /* the mirror already has it; the next save will retry */ } finally {
       inflight = false
     }
@@ -254,7 +283,7 @@ export function flushAccount(state: GachaState): void {
   if (pending) { clearTimeout(pending); pending = null }
   writeMirror(state)
   try {
-    const body = JSON.stringify({ id: state.id, name: state.name, state })
+    const body = JSON.stringify({ id: state.id, name: state.name, state, baseRev: rev })
     // sendBeacon survives the page going away; fetch does not
     if (navigator.sendBeacon) {
       navigator.sendBeacon(api('save'), new Blob([body], { type: 'application/json' }))

@@ -11,7 +11,7 @@ import Dossier from './Dossier'
 import Credit from './Credit'
 import {
   createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId,
-  saveAccount, serverNow,
+  saveAccount, serverNow, whenStale,
 } from '../engine/account'
 import {
   DIVISIONS, STAMINA_COST, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow,
@@ -20,10 +20,57 @@ import {
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
 
-/** "1:23" — how long until the next 体力 lands. */
-const mmss = (ms: number): string => {
-  const m = Math.max(0, Math.ceil(ms / 60000))
-  return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` : `${m}分`
+/** "12:34" or "1:02:34" — seconds included, because a clock that does not move
+ *  reads as a clock that is not running. */
+const hhmmss = (ms: number): string => {
+  const t = Math.max(0, Math.ceil(ms / 1000))
+  const s = t % 60
+  const m = Math.floor(t / 60) % 60
+  const h = Math.floor(t / 3600)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
+
+/**
+ * The 体力 meter, ticking once a second.
+ *
+ * Its own timer rather than the shell's: the countdown has to move every second
+ * to read as running, and re-rendering the whole mode that often would redraw a
+ * grid of six hundred cards for the sake of one digit. When a point actually
+ * lands it calls up, so the screens that gate on 体力 refresh too.
+ */
+function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
+  const [t, setT] = useState(() => serverNow())
+  const wasRef = useRef(staminaNow(g, serverNow()))
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const now = serverNow()
+      setT(now)
+      const has = staminaNow(g, now)
+      if (has !== wasRef.current) {
+        wasRef.current = has
+        onTick()
+      }
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [g, onTick])
+
+  const have = staminaNow(g, t)
+  const left = staminaIn(g, t)
+  return (
+    <div
+      className={`chip${have === 0 ? ' spent' : ''}`}
+      title={`每场天梯 ${STAMINA_COST.ladder} 点、每轮杯赛 ${STAMINA_COST.cup} 点。`
+        + `${staminaRate()}，最多存 ${STAMINA_MAX} 点。`}
+    >
+      ⚡ <b>{have}/{STAMINA_MAX}</b>
+      {have < STAMINA_MAX && (
+        <span className="faint mono" style={{ marginLeft: 5, fontSize: 11 }}>
+          +1 · {hhmmss(left)}
+        </span>
+      )}
+    </div>
+  )
 }
 
 const TABS = [
@@ -120,6 +167,18 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     return () => { alive = false }
   }, [])
 
+  // When the server says this tab was holding an older copy, take its state
+  // rather than argue. Nothing is lost that was not already overwritten
+  // somewhere else, and the alternative is this tab clobbering it.
+  useEffect(() => {
+    whenStale((fresh) => {
+      gRef.current = fresh
+      bump()
+      toast('这个账号刚在别的设备上玩过，已经同步到最新进度。')
+    })
+    return () => whenStale(null)
+  }, [toast])
+
   // a tab that goes away mid-pull should still land the pull
   useEffect(() => {
     const onHide = () => { if (gRef.current && document.visibilityState === 'hidden') flushAccount(gRef.current) }
@@ -190,18 +249,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         <header className="topbar">
           <div className="brand">VAL<span>CARDS</span><em className="by">卡牌模式</em></div>
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
-          <div
-            className={`chip${staminaNow(g, now) === 0 ? ' spent' : ''}`}
-            title={`每场天梯 ${STAMINA_COST.ladder} 点、每轮杯赛 ${STAMINA_COST.cup} 点。`
-              + `${staminaRate()}，最多存 ${STAMINA_MAX} 点。`}
-          >
-            ⚡ <b>{staminaNow(g, now)}/{STAMINA_MAX}</b>
-            {staminaNow(g, now) < STAMINA_MAX && (
-              <span className="faint" style={{ marginLeft: 5, fontSize: 11 }}>
-                +1 · {mmss(staminaIn(g, now))}
-              </span>
-            )}
-          </div>
+          <StaminaChip g={g} onTick={() => setNow(serverNow())} />
           <div className="chip" title="段位">
             {DIVISIONS[g.ladder.div]} <b>{g.ladder.stars}/{starsFor(g.ladder.div)}★</b>
           </div>
