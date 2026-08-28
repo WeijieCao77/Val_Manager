@@ -10,8 +10,8 @@ import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import Credit from './Credit'
 import {
-  createAccount, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, saveAccount,
-  serverNow,
+  createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId,
+  saveAccount, serverNow,
 } from '../engine/account'
 import {
   DIVISIONS, STAMINA_COST, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow,
@@ -47,16 +47,23 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const gRef = useRef<GachaState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [tab, setTab] = useState('packs')
-  const [today, setToday] = useState('')
+
   const [cloud, setCloud] = useState(false)
   const [booting, setBooting] = useState(true)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [dossierId, setDossierId] = useState<string | null>(null)
   const [fresh, setFresh] = useState(false)
   const [now, setNow] = useState(() => serverNow())
+  // NOT a fetched string. The date is derived from the ticking server clock,
+  // so a tab left open across midnight rolls over on its own instead of
+  // insisting all day that it is still yesterday — which brought the check-in
+  // button back for a day already claimed and reset the quest board to the
+  // wrong one. Same computation the server does, so the two always agree.
+  const today = dayOf(now)
   const mainRef = useRef<HTMLDivElement>(null)
 
-  // the 体力 meter refills on a clock, so the screens need one that moves
+  // the 体力 meter refills on a clock and the day turns over on one, so the
+  // screens need a clock that moves
   useEffect(() => {
     const t = window.setInterval(() => setNow(serverNow()), 30_000)
     return () => window.clearInterval(t)
@@ -80,20 +87,23 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
       if (!id) {
         const day = await fetchDay()
         if (!alive) return
-        setToday(day.today)
+        setNow(serverNow())
         setCloud(day.cloud)
         setBooting(false)
         return
       }
       const r = await loadAccount(id)
       if (!alive) return
-      setToday(r.today)
+      // loadAccount has just synced the clock offset, so re-read it before
+      // anything derives a date or a 体力 figure from it
+      setNow(serverNow())
       if (r.ok) {
         gRef.current = r.state
         setCloud(r.cloud)
         refreshDaily(r.state, r.today)
-        // a save from before the meter had a clock has no anchor; give it one
-        // now, or it would read as "just spent" forever and never regenerate
+        // loadAccount anchors from the server's `seen` where the save has no
+        // anchor of its own; this only covers the offline path, where there is
+        // nothing better to date it from than this moment
         if (primeStamina(r.state, serverNow())) saveAccount(r.state, true)
         track('card_start', {
           fresh: false, cloud: r.cloud,
@@ -144,8 +154,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         onReady={(state, isNew, isCloud, day) => {
           gRef.current = state
           setCloud(isCloud)
-          setToday(day)
-          refreshDaily(state, day)
+          setNow(serverNow())
+            refreshDaily(state, day)
           primeStamina(state, serverNow())
           track('card_start', { fresh: isNew, cloud: isCloud, owned: Object.keys(state.cards).length })
           setFresh(isNew)

@@ -25,6 +25,12 @@ create table if not exists card_accounts (
   state    jsonb not null
 );
 create index if not exists card_seen_idx on card_accounts (seen desc);
+-- "seen" is bumped by reads as well as writes, so it cannot date a save. The
+-- stamina meter needs to know when the state itself was last WRITTEN, which is
+-- a different question and needs its own column. (No backticks in here: this
+-- is a template literal and one would end it.)
+alter table card_accounts add column if not exists saved timestamptz;
+update card_accounts set saved = seen where saved is null;
 `
 
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */
@@ -129,10 +135,18 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     if (!id) { json(res, 200, { ok: false, bad: true, today }); return }
     try {
       const rows = await sql`
-        select state, rev, name from card_accounts where id_hash = ${hash(id)}`
+        select state, rev, name, extract(epoch from coalesce(saved, seen)) * 1000 as saved
+        from card_accounts where id_hash = ${hash(id)}`
       if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
       await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
-      json(res, 200, { ok: true, today, now: serverNow(), rev: rows[0].rev, state: rows[0].state })
+      // `saved` dates the 体力 meter for a save with no anchor of its own: it
+      // is the last moment the state was WRITTEN, which is the last moment the
+      // meter was known to be where it claims to be. Deliberately not `seen`,
+      // which this very handler bumps on the way past.
+      json(res, 200, {
+        ok: true, today, now: serverNow(), saved: Number(rows[0].saved) || null,
+        rev: rows[0].rev, state: rows[0].state,
+      })
     } catch (err) {
       console.warn('cards: load failed', err.message)
       json(res, 500, { ok: false, today })
@@ -157,13 +171,14 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
     try {
       const rows = await sql`
-        insert into card_accounts (id_hash, name, state, rev)
-        values (${hash(id)}, ${name}, ${sql.json(state)}, 1)
+        insert into card_accounts (id_hash, name, state, rev, saved)
+        values (${hash(id)}, ${name}, ${sql.json(state)}, 1, now())
         on conflict (id_hash) do update
           set state = excluded.state,
               name  = coalesce(excluded.name, card_accounts.name),
               rev   = card_accounts.rev + 1,
-              seen  = now()
+              seen  = now(),
+              saved = now()
         returning rev`
       json(res, 200, { ok: true, today, rev: rows[0].rev })
     } catch (err) {
@@ -192,8 +207,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
     try {
       const rows = await sql`
-        insert into card_accounts (id_hash, name, state)
-        values (${hash(id)}, ${name}, ${sql.json(state)})
+        insert into card_accounts (id_hash, name, state, saved)
+        values (${hash(id)}, ${name}, ${sql.json(state)}, now())
         on conflict (id_hash) do nothing
         returning rev`
       if (!rows.length) { json(res, 409, { ok: false, taken: true, today }); return }

@@ -93,6 +93,18 @@ const noteNow = (serverMs: unknown): void => {
 
 export const serverNow = (): number => Date.now() + skew
 
+/**
+ * Date an unanchored 体力 meter from when the account was last saved.
+ *
+ * Only ever fills a blank; it never moves an anchor that already exists, so a
+ * player cannot earn time by reloading.
+ */
+function anchorFrom(state: GachaState, saved: number | undefined): void {
+  const d = state.daily as { staminaAt?: number }
+  if (d.staminaAt) return
+  d.staminaAt = saved && Number.isFinite(saved) ? saved : serverNow()
+}
+
 const api = (path: string) => `${import.meta.env.BASE_URL}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
 
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
@@ -106,18 +118,24 @@ export async function fetchDay(): Promise<DayInfo> {
   return { today: localToday(), cloud: false }
 }
 
+const DAY_FMT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+})
+
 /**
- * The device's idea of today, in Shanghai time.
+ * Which day a moment falls on, in the one timezone the calendar rolls over in.
  *
- * Only used when the server cannot be reached. It is trivially spoofable by
- * changing the system date, which is precisely why the server owns the real
- * one — but refusing to run offline would be worse than a check-in somebody
- * could cheat in a single-player game.
+ * The same computation the server does, so the two always agree — which means
+ * the client can work the date out from the server's CLOCK and never has to
+ * hold a date string that goes stale. It used to hold one, fetched once at
+ * boot: a tab left open across midnight went on believing it was yesterday,
+ * so the check-in button came back for a day already claimed and the quest
+ * board reset to the wrong day.
  */
-export const localToday = (): string =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date())
+export const dayOf = (ms: number): string => DAY_FMT.format(new Date(ms))
+
+/** Today, by the server's clock where we have it and the device's otherwise. */
+export const localToday = (): string => dayOf(serverNow())
 
 export type LoadResult =
   | { ok: true; state: GachaState; today: string; cloud: boolean }
@@ -138,6 +156,12 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
     if (j?.today) today = j.today
     if (j?.ok && j.state) {
       const state = migrate(j.state as GachaState, id)
+      // The 体力 meter is a stopwatch, and a save with no anchor has to be
+      // dated from something real: `saved`, the last moment the state was
+      // written. Anchoring to "now" instead — which is what opening the page
+      // used to do — silently throws away every hour the player was offline,
+      // which is most of them.
+      anchorFrom(state, typeof j.saved === 'number' ? j.saved : undefined)
       writeMirror(state)
       return { ok: true, state, today, cloud: true }
     }
