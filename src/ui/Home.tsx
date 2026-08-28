@@ -15,15 +15,32 @@ import { hasAutosave, loadAutosave } from '../engine/save'
 import { ENDING_COUNT } from '../engine/endings'
 import { ACHIEVEMENT_COUNT } from '../engine/achievements'
 import { readProfile, siteId, syncProfile, type Profile } from '../engine/profile'
+import { REGION_CN } from '../engine/types'
+import type { Region } from '../engine/types'
 import { Crest } from './common'
 import Support from './Support'
+import Changelog from './Changelog'
 
 type Mode = 'home' | 'career' | 'cards'
 
-/** Crests for the strip on the manager card — recognisable clubs, in order. */
-const CREST_TAGS = ['T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
-/** Faces for the strip on the card-mode card. */
-const FACE_IDS = ['P0', 'P1', 'P2', 'P3', 'P4', 'P5']
+/**
+ * The four regions, each behind a club anyone would recognise.
+ *
+ * The strip used to be the first eight crests in world.json, which is eight
+ * Americas clubs — a picture of one league standing in for a game about four.
+ * One crest per region says what the game actually covers, and the label says
+ * it in words for anyone who does not know the badges.
+ */
+const REGION_FACES: { region: Region; crest: string; face: string }[] = [
+  // Sentinels / aspas — the Americas, and the most recognisable player in the game
+  { region: 'Americas', crest: 'T4', face: 'P16' },
+  // FNATIC / Derke
+  { region: 'EMEA', crest: 'T14', face: 'P67' },
+  // Paper Rex / f0rsakeN
+  { region: 'Pacific', crest: 'T24', face: 'P136' },
+  // EDward Gaming / ZmjjKK — the two names this game's own players know best
+  { region: 'China', crest: 'T36', face: 'P200' },
+]
 
 interface Resume {
   club: string | null
@@ -131,7 +148,12 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         {/* ---------------------------------------------------------- 经理 */}
         <article className="home-card">
           <div className="home-art crests">
-            {CREST_TAGS.map((t) => <Crest key={t} id={t} size={44} />)}
+            {REGION_FACES.map((r) => (
+              <div key={r.region} className="home-region">
+                <Crest id={r.crest} size={44} />
+                <span>{REGION_CN[r.region]}</span>
+              </div>
+            ))}
           </div>
           <div className="home-body">
             <h2>VCT电竞经理</h2>
@@ -161,9 +183,16 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
 
         {/* ---------------------------------------------------------- 抽卡 */}
         <article className="home-card">
+          {/* one player from each region, for the same reason the crests are:
+              the collection is not a single league's */}
           <div className="home-art faces">
-            {FACE_IDS.map((p) => (
-              <img key={p} src={`${import.meta.env.BASE_URL}faces/${p}.webp`} alt="" loading="lazy" />
+            {REGION_FACES.map((r) => (
+              <img
+                key={r.face}
+                src={`${import.meta.env.BASE_URL}faces/${r.face}.webp`}
+                alt=""
+                loading="lazy"
+              />
             ))}
           </div>
           <div className="home-body">
@@ -217,6 +246,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         <span className="faint">游戏全部免费</span>
       </footer>
 
+      <Changelog />
       <Support />
     </div>
   )

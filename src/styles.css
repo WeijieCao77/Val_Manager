@@ -1546,11 +1546,20 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   background: linear-gradient(to top, var(--panel) 2%, transparent 62%);
   pointer-events: none;
 }
-.home-art.crests .crest { width: 44px; height: 44px; opacity: .82; }
+.home-region {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;
+  /* above .home-art::after — the band's bottom fade was washing the labels out */
+  position: relative; z-index: 1;
+}
+.home-region .crest { width: 44px; height: 44px; opacity: .88; }
+.home-region span {
+  font-size: 11px; letter-spacing: .08em; color: var(--muted); white-space: nowrap;
+}
+.home-art.faces { justify-content: space-around; }
 .home-art.faces img {
-  width: 62px; height: 82px; object-fit: cover; object-position: top center;
-  border-radius: 2px; opacity: .9;
-  /* a slight fan, so six portraits read as a hand of cards and not a row */
+  width: 74px; height: 96px; object-fit: cover; object-position: top center;
+  border-radius: 2px; opacity: .92;
+  /* a slight fan, so the portraits read as a hand of cards and not a row */
   transform: rotate(-3deg);
 }
 .home-art.faces img:nth-child(even) { transform: rotate(3deg) translateY(4px); }
@@ -1608,8 +1617,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .home { gap: 16px; padding: 0 14px 32px; }
   .home-bar { margin: 0 -14px; padding: 0 14px; }
   .home-art { height: 108px; gap: 10px; }
-  .home-art.crests .crest { width: 36px; height: 36px; }
-  .home-art.faces img { width: 50px; height: 68px; }
+  .home-region .crest { width: 34px; height: 34px; }
+  .home-region span { font-size: 9.5px; letter-spacing: .06em; }
+  .home-art.faces img { width: 58px; height: 76px; }
   .home-body h2 { font-size: 21px; }
   .home-id { gap: 6px; padding: 4px 8px; }
   .home-id b { font-size: 10px; letter-spacing: 0; }
@@ -1654,3 +1664,38 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 }
 .ending b { display: block; font-size: 22px; letter-spacing: -.01em; margin-bottom: 6px; }
 .ending p { margin: 0; font-size: var(--t-body); line-height: 1.95; color: var(--text); }
+
+/* ---------------------------------------------------------------- changelog
+
+   Sits above the support button, sharing its shell. Two FABs stacked is the
+   most the corner can hold without becoming a toolbar. */
+.log-fab { bottom: 62px; }
+.log-fab.raised { bottom: 106px; }
+.log-fab .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex: none; margin-left: 1px;
+}
+.log-card { width: min(520px, calc(100vw - 32px)); }
+.log-list { display: flex; flex-direction: column; gap: 16px; }
+.log-list section { display: flex; flex-direction: column; gap: 7px; }
+.log-list header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  border-bottom: 1px solid var(--line-soft); padding-bottom: 5px;
+}
+.log-list header b { font-size: var(--t-body); }
+.log-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.log-list li {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: var(--t-small); line-height: 1.7; color: var(--muted);
+}
+.log-kind {
+  flex: none; font-size: 10.5px; line-height: 1.6; padding: 1px 6px;
+  border-radius: 2px; letter-spacing: .04em;
+}
+.k-新增 { background: var(--win-wash); color: var(--win); }
+.k-调整 { background: var(--accent-wash); color: var(--accent); }
+.k-修复 { background: var(--warn-wash); color: var(--warn); }
+@media (max-width: 720px) {
+  .log-fab { bottom: 58px; }
+  .log-fab.raised { bottom: 100px; }
+}

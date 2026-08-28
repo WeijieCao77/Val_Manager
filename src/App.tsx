@@ -28,6 +28,7 @@ import { track } from './engine/telemetry'
 import Achievements from './ui/Achievements'
 import Credit from './ui/Credit'
 import Support from './ui/Support'
+import Changelog from './ui/Changelog'
 import Dossier from './ui/Dossier'
 
 /**
@@ -215,6 +216,7 @@ export default function App() {
         start(g)
         } else toast('没有找到自动存档。')
       }} />
+      <Changelog />
       <Support />
     </>
   }
@@ -316,6 +318,7 @@ export default function App() {
           </main>
         </div>
 
+        <Changelog raised />
         <Support raised />
 
         {playerId && (
