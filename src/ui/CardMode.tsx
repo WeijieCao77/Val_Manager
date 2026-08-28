@@ -273,7 +273,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           </div>
           <div className="spacer" />
           {!cloud && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
-          <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 回经理模式</button>
+          <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
         </header>
 
         <nav className="cm-tabs">
@@ -446,7 +446,7 @@ function Gate({
       </div>
 
       <div className="row" style={{ marginTop: 22 }}>
-        <button className="ghost sm" onClick={onExit}>← 回经理模式</button>
+        <button className="ghost sm" onClick={onExit}>← 返回首页</button>
       </div>
       <div style={{ marginTop: 20 }}><Credit /></div>
     </div>
