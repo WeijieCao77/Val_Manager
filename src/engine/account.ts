@@ -59,15 +59,79 @@ export const rememberId = (id: string | null): void => {
   } catch { /* private mode; the id is still in memory for this session */ }
 }
 
-const readMirror = (id: string): GachaState | null => {
+/**
+ * The mirror is the journal; the server is a copy of it.
+ *
+ * That is the inversion this file was missing, and it cost somebody a pack. A
+ * save can fail silently in more ways than it can succeed — a phone that has
+ * just been put down freezes the debounce timer, kills the in-flight fetch and
+ * can refuse the beacon, and none of that raises anything the old code looked
+ * at. When it happens, the only copy of what the player just did is the one
+ * sitting in this localStorage, and `loadAccount` used to overwrite it with
+ * the server's older state on the very next visit.
+ *
+ * So the mirror carries two extra facts: the revision it was built on, and
+ * whether it holds anything the server has not acknowledged. That is enough
+ * for a load to tell "this device is behind" from "this device is ahead".
+ */
+interface Mirror {
+  state: GachaState
+  /** the server revision this was built on, null if never confirmed */
+  rev: number | null
+  /** true while it holds changes the server has not said yes to */
+  dirty: boolean
+}
+
+const readMirror = (id: string): Mirror | null => {
   try {
     const raw = localStorage.getItem(MIRROR + id)
-    return raw ? (JSON.parse(raw) as GachaState) : null
+    if (!raw) return null
+    const j: unknown = JSON.parse(raw)
+    if (j && typeof j === 'object' && 'state' in j) return j as Mirror
+    // Written before this shipped: a bare state, no revision. One of these is
+    // holding the 试训包 that started all of this, so it is read, not dropped.
+    return { state: j as GachaState, rev: null, dirty: true }
   } catch { return null }
 }
 
-const writeMirror = (state: GachaState): void => {
-  try { localStorage.setItem(MIRROR + state.id, JSON.stringify(state)) } catch { /* full or blocked */ }
+const writeMirror = (state: GachaState, dirty: boolean): void => {
+  try {
+    const m: Mirror = { state, rev, dirty }
+    localStorage.setItem(MIRROR + state.id, JSON.stringify(m))
+  } catch { /* full or blocked */ }
+}
+
+/** When the newest thing in a save's log happened, or 0 if it has none. */
+const newestAt = (s: GachaState | null | undefined): number => {
+  const log = (s as { log?: { at?: string }[] } | null | undefined)?.log
+  let max = 0
+  for (const e of log ?? []) {
+    const t = Date.parse(e?.at ?? '')
+    if (Number.isFinite(t) && t > max) max = t
+  }
+  return max
+}
+
+/**
+ * Is this device holding play the server never received?
+ *
+ * Two ways to know, and the second exists only for mirrors written before the
+ * first one was possible:
+ *
+ *   - it is dirty, and built on a revision the server has not moved past. Then
+ *     nobody else has written since, so these changes are simply the newest
+ *     and taking them loses nothing.
+ *   - it has no revision at all, and its newest logged action is later than
+ *     anything the server holds. The server cannot be hiding something this
+ *     mirror lacks: there is nothing after the mirror's own newest entry.
+ *
+ * Anything else and the server wins — in particular a dirty mirror whose base
+ * revision has been passed, which means another device really did play, and
+ * choosing between them needs a merge this game does not deserve.
+ */
+function mirrorIsAhead(m: Mirror, server: GachaState, serverRev: number | null): boolean {
+  if (m.rev !== null) return m.dirty && (serverRev === null || m.rev >= serverRev)
+  return newestAt(m.state) > newestAt(server)
 }
 
 // ---------------------------------------------------------------- server
@@ -121,7 +185,9 @@ function anchorFrom(state: GachaState, saved: number | undefined): void {
   d.staminaAt = saved && Number.isFinite(saved) ? saved : serverNow()
 }
 
-const api = (path: string) => `${import.meta.env.BASE_URL}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
+// guarded the way dossier.ts is, so a check script can import this file
+const BASE = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : '/'
+const api = (path: string) => `${BASE}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
 
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
@@ -154,7 +220,7 @@ export const dayOf = (ms: number): string => DAY_FMT.format(new Date(ms))
 export const localToday = (): string => dayOf(serverNow())
 
 export type LoadResult =
-  | { ok: true; state: GachaState; today: string; cloud: boolean }
+  | { ok: true; state: GachaState; today: string; cloud: boolean; recovered?: boolean }
   | { ok: false; reason: 'missing' | 'bad' | 'offline'; today: string }
 
 export async function loadAccount(rawId: string): Promise<LoadResult> {
@@ -179,7 +245,19 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
       // used to do — silently throws away every hour the player was offline,
       // which is most of them.
       anchorFrom(state, typeof j.saved === 'number' ? j.saved : undefined)
-      writeMirror(state)
+      const m = readMirror(id)
+      if (m && mirrorIsAhead(m, state, typeof j.rev === 'number' ? j.rev : null)) {
+        // This device did something the server never got. Hand it back and
+        // push it up, instead of writing the server's older copy over the
+        // only record of it — which is what used to happen, once per visit,
+        // quietly, and made a lost save permanent on the next page load.
+        const local = migrate(m.state, id)
+        anchorFrom(local, typeof j.saved === 'number' ? j.saved : undefined)
+        writeMirror(local, true)
+        saveAccount(local, true)
+        return { ok: true, state: local, today, cloud: true, recovered: true }
+      }
+      writeMirror(state, false)
       return { ok: true, state, today, cloud: true }
     }
     if (j?.missing) {
@@ -187,12 +265,12 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
       // still exist — the account was made while the server was down — so it
       // is offered rather than discarded.
       const local = readMirror(id)
-      if (local) return { ok: true, state: migrate(local, id), today, cloud: false }
+      if (local) return { ok: true, state: migrate(local.state, id), today, cloud: false }
       return { ok: false, reason: 'missing', today }
     }
   } catch { /* fall through to the mirror */ }
   const local = readMirror(id)
-  if (local) return { ok: true, state: migrate(local, id), today, cloud: false }
+  if (local) return { ok: true, state: migrate(local.state, id), today, cloud: false }
   return { ok: false, reason: 'offline', today }
 }
 
@@ -221,34 +299,43 @@ export async function createAccount(name: string): Promise<CreateResult> {
       // the newcomer gets a fresh id instead of a stranger's collection
       if (j?.taken) continue
       rememberId(id)
-      writeMirror(state)
+      writeMirror(state, false)
       return { state, today: j?.today ?? today, cloud: !!j?.ok }
     } catch {
       rememberId(id)
-      writeMirror(state)
+      writeMirror(state, true)
       return { state, today, cloud: false }
     }
   }
   const id = newId()
   const state = newGacha(id, name.trim().slice(0, 20) || '经理', today)
   rememberId(id)
-  writeMirror(state)
+  writeMirror(state, true)
   return { state, today, cloud: false }
 }
 
 let pending: number | null = null
 let inflight = false
+let retries = 0
 
 /**
- * Write the collection back.
+ * Write the collection back, and keep trying until it lands.
  *
  * Debounced, because every pack, match and upgrade calls it and a ten-pull is
- * eleven state changes in two seconds. The local mirror is written straight
- * away regardless — if the tab dies before the upload, nothing is lost that a
- * reload cannot recover.
+ * eleven state changes in two seconds.
+ *
+ * The version that lost a pack swallowed every failure under "the next save
+ * will retry", which is true right up until the failed save is the last thing
+ * the session does — and on a phone that is the ordinary way a session ends.
+ * You win the match, open the pack it paid for, put the phone down, and the
+ * browser freezes the timer and drops the request. There was no next save.
+ *
+ * So a non-2xx counts as a failure now rather than being read for a field it
+ * does not carry, a failure schedules its own retry, and the mirror stays
+ * marked dirty until the server has actually said yes.
  */
 export function saveAccount(state: GachaState, immediate = false): void {
-  writeMirror(state)
+  writeMirror(state, true)
   if (pending) { clearTimeout(pending); pending = null }
   const send = async () => {
     if (inflight) { pending = window.setTimeout(send, 400); return }
@@ -267,10 +354,23 @@ export function saveAccount(state: GachaState, immediate = false): void {
         // redraw from it, rather than overwriting an evening of somebody's
         // play with whatever this tab happened to remember.
         const fresh = migrate(j.state as GachaState, state.id)
-        writeMirror(fresh)
+        writeMirror(fresh, false)
         onStale?.(fresh)
+      } else if (!r.ok) {
+        // 429, 400, a proxy's 502 — all of them used to land here looking for
+        // `rev`, not find it, and return as though the save had worked
+        throw new Error(`save ${r.status}`)
+      } else {
+        retries = 0
+        writeMirror(state, false)
       }
-    } catch { /* the mirror already has it; the next save will retry */ } finally {
+    } catch {
+      // Back off, but do not give up while the tab is alive. The mirror is the
+      // only copy of whatever this was, and it stays dirty until it lands, so
+      // even a tab that dies here is recoverable on the next load.
+      const wait = Math.min(30_000, 1500 * 2 ** retries++)
+      pending = window.setTimeout(send, wait)
+    } finally {
       inflight = false
     }
   }
@@ -281,14 +381,33 @@ export function saveAccount(state: GachaState, immediate = false): void {
 /** Push whatever is pending right now — for page-hide, where a timer will not fire. */
 export function flushAccount(state: GachaState): void {
   if (pending) { clearTimeout(pending); pending = null }
-  writeMirror(state)
+  writeMirror(state, true)
   try {
     const body = JSON.stringify({ id: state.id, name: state.name, state, baseRev: rev })
-    // sendBeacon survives the page going away; fetch does not
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(api('save'), new Blob([body], { type: 'application/json' }))
-    }
-  } catch { /* nothing more to try */ }
+    const blob = new Blob([body], { type: 'application/json' })
+    // sendBeacon survives the page going away; fetch does not. It also returns
+    // false when it will not queue — over quota, or a page already too far
+    // gone — and ignoring that meant sending nothing and believing otherwise.
+    if (navigator.sendBeacon?.(api('save'), blob)) return
+    void fetch(api('save'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true,
+    }).catch(() => { /* mirror is dirty; the next load picks it up */ })
+  } catch { /* same */ }
+  // Nothing here can learn whether the write was accepted — a beacon has no
+  // reply to read. It does not need to: the mirror is left dirty, and if the
+  // save did land the server's revision moves past it and the next load
+  // prefers the server anyway. Both endings are correct without an answer.
+}
+
+/**
+ * Try again, now that there is a reason to think it might work.
+ *
+ * Called when the tab comes back to the front and when the network returns —
+ * the two moments when a save that died in the background can finally land.
+ */
+export function retryPending(state: GachaState): void {
+  const m = readMirror(state.id)
+  if (m?.dirty) { retries = 0; saveAccount(state, true) }
 }
 
 /** Bring an older save up to the current shape. */

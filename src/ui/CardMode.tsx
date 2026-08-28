@@ -10,7 +10,7 @@ import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import Credit from './Credit'
 import {
-  createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId,
+  createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, retryPending,
   saveAccount, serverNow, whenStale,
 } from '../engine/account'
 import {
@@ -152,6 +152,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         // anchor of its own; this only covers the offline path, where there is
         // nothing better to date it from than this moment
         if (primeStamina(r.state, serverNow())) saveAccount(r.state, true)
+        // this device was holding play that never reached the server
+        if (r.recovered) toast('上次有一段进度没能存上，已经从本机恢复。')
         track('card_start', {
           fresh: false, cloud: r.cloud,
           owned: Object.keys(r.state.cards).length,
@@ -179,11 +181,24 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     return () => whenStale(null)
   }, [toast])
 
-  // a tab that goes away mid-pull should still land the pull
+  // A tab that goes away mid-pull should still land the pull — and a tab that
+  // comes back should find out whether it did. Coming back to the front and
+  // getting the network back are the only two moments a save that died in the
+  // background can succeed, so both are worth a retry; retryPending is a no-op
+  // unless the mirror is actually still holding something.
   useEffect(() => {
-    const onHide = () => { if (gRef.current && document.visibilityState === 'hidden') flushAccount(gRef.current) }
-    document.addEventListener('visibilitychange', onHide)
-    return () => document.removeEventListener('visibilitychange', onHide)
+    const onVis = () => {
+      if (!gRef.current) return
+      if (document.visibilityState === 'hidden') flushAccount(gRef.current)
+      else retryPending(gRef.current)
+    }
+    const onOnline = () => { if (gRef.current) retryPending(gRef.current) }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('online', onOnline)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('online', onOnline)
+    }
   }, [])
 
   useEffect(() => { mainRef.current?.scrollTo(0, 0) }, [tab])
