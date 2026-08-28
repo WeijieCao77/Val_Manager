@@ -21,6 +21,8 @@ import RAW from '../data/dossier.json'
 
 export interface DossierEntry {
   img?: string
+  /** eight characters of the image's content, so a replaced photo busts caches */
+  v?: string
   nat?: string
   real?: string
   /** career prize money in USD, as vlr.gg totals it */
@@ -47,12 +49,13 @@ interface DossierFile {
   coaches?: Record<string, DossierEntry>
   /** keyed by legend id — the photo from the night, and where it came from */
   legends?: Record<string, LegendPhoto>
-  /** world team ids we actually have a crest file for */
-  logos?: string[]
+  /** world team id -> the crest's content stamp */
+  logos?: Record<string, string>
 }
 
 export interface LegendPhoto {
   img: string
+  v?: string
   /** how close the picture gets to the moment: trophy > event > era > club */
   tier: 'trophy' | 'event' | 'era' | 'club' | 'person'
   /** the Liquipedia file page, which is what CC BY-SA asks us to point at */
@@ -87,14 +90,7 @@ export const coachDossier = (name: string): DossierEntry | undefined =>
 export const legendPhoto = (legendId: string): LegendPhoto | undefined =>
   DOSSIER.legends?.[legendId]
 
-/**
- * Which clubs have a crest on disk.
- *
- * A set rather than a probe: the crest is drawn as a CSS background and a
- * missing file fails silently as an empty box, so the card has to know before
- * it asks.
- */
-export const CRESTS = new Set<string>(DOSSIER.logos ?? [])
+
 
 /**
  * `public/faces` is copied verbatim into the build; base may be a subpath.
@@ -102,9 +98,19 @@ export const CRESTS = new Set<string>(DOSSIER.logos ?? [])
  * Guarded because the check scripts under scripts/ import this module through
  * tsx, where there is no Vite env and reading it throws before any test runs.
  */
-export const faceUrl = (file: string): string => {
+export const faceUrl = (file: string, v?: string): string => {
   const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
-  return `${base}faces/${file}`
+  // the stamp is the file's own content: same picture, same URL; different
+  // picture, different URL, and nobody is left looking at the old one
+  return `${base}faces/${file}${v ? `?v=${v}` : ''}`
+}
+
+/** The club crest, where we have one, stamped the same way. */
+export const crestUrl = (clubId: string | null | undefined): string | null => {
+  const v = clubId ? DOSSIER.logos?.[clubId] : undefined
+  if (!clubId || !v) return null
+  const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
+  return `${base}logos/${clubId}.webp?v=${v}`
 }
 
 // ---------------------------------------------------------------- records

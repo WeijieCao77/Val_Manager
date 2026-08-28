@@ -25,6 +25,21 @@ import json
 import re
 from pathlib import Path
 
+
+def stamp(path: Path) -> str | None:
+    """
+    Eight characters of the file's content, for the URL.
+
+    Faces are named after the player, so replacing one leaves the URL identical
+    and every browser that already has it goes on showing the old picture until
+    its cache expires — which is exactly what happened when two photographs
+    were swapped by hand and the owner kept seeing the originals. The stamp
+    goes on the query string, so a changed image is a changed URL.
+    """
+    if not path.exists():
+        return None
+    return hashlib.sha1(path.read_bytes()).hexdigest()[:8]
+
 ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "scripts" / "cache" / "vlr_profiles.json"
 STAFF = ROOT / "scripts" / "cache" / "vlr_staff.json"
@@ -68,6 +83,7 @@ def main() -> int:
         face = FACES / f"{pid}.webp"
         if face.exists():
             rec["img"] = f"{pid}.webp"
+            rec["v"] = stamp(face)
             photos += 1
             if ign in lp["players"]:
                 rec["src"] = "lp"
@@ -135,6 +151,7 @@ def main() -> int:
         face = FACES / f"c-{slug}.webp"
         if face.exists():
             rec["img"] = f"c-{slug}.webp"
+            rec["v"] = stamp(face)
             coach_photos += 1
             if name in lp["coaches"]:
                 rec["src"] = "lp"
@@ -154,11 +171,15 @@ def main() -> int:
         fname = "l-" + re.sub(r"[^a-z0-9-]", "-", lid.split(":", 1)[-1].lower()) + ".webp"
         if not (FACES / fname).exists():
             continue
-        legends[lid] = {"img": fname, "tier": pick.get("tier"), "page": pick.get("page")}
+        legends[lid] = {
+            "img": fname, "v": stamp(FACES / fname),
+            "tier": pick.get("tier"), "page": pick.get("page"),
+        }
 
     # which clubs have a crest — the card draws it as a CSS background, which
     # fails silently as an empty box, so it must know before it asks
-    logos = sorted(p.stem for p in LOGOS.glob("*.webp")) if LOGOS.exists() else []
+    logos = ({p.stem: stamp(p) for p in sorted(LOGOS.glob("*.webp"))}
+             if LOGOS.exists() else {})
 
     OUT.write_text(json.dumps({
         "meta": {

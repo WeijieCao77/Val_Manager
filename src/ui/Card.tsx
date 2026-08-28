@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ATTR_CN } from '../engine/types'
 import { RARITY_CN, ratingAt } from '../engine/cards'
-import { CRESTS } from '../engine/dossier'
+import { crestUrl } from '../engine/dossier'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
 import { isCoachCard, isPlayerCard } from '../engine/cards'
 
@@ -55,12 +55,6 @@ const flagsRender = (() => {
  * code where it does not. Never a blank box — a card with an empty flag slot
  * looks broken, and the code is a perfectly good answer.
  */
-/** The club crest, where we have one. Built by scripts/fetch_team_logos.py. */
-export const crestUrl = (clubId: string | null | undefined): string | null => {
-  if (!clubId || !CRESTS.has(clubId)) return null
-  return `${typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'}logos/${clubId}.webp`
-}
-
 export function flagEmoji(nat: string | null | undefined): string {
   if (!nat || nat.length !== 2) return '🏴'
   const up = (FLAG_AS[nat.toLowerCase()] ?? nat).toUpperCase()

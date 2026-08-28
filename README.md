@@ -532,7 +532,8 @@ src/
   ui/cards/        卡牌模式各页
   data/world.json  由脚本生成的世界数据
   data/dossier.json 由脚本生成的资料库数据
-  public/faces/    选手照片（192px webp）
+  public/faces/    选手照片（头像 192px、彩卡 360×500，webp）
+  public/logos/    战队队标（256px webp）
 
 cards-api.js           服务端：/api/card/{day,claim,load,save}
 

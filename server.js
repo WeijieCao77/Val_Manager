@@ -301,16 +301,17 @@ createServer((req, res) => {
 
   const ext = extname(file)
   const hashed = /-[A-Za-z0-9_]{8,}\./.test(file)
-  // The 399 player photographs are named after the player, not their contents,
-  // so they cannot be immutable — a re-scrape reuses the filename. But they are
-  // also not index.html: revalidating four hundred of them on every visit is
-  // four hundred round trips to be told nothing changed. A day is short enough
-  // that a new photo lands on its own and long enough that browsing is free.
-  const face = file.includes(`${sep}faces${sep}`)
+  // Photographs and crests are named after the player or the club, so the
+  // filename cannot change when the picture does — which is why every URL for
+  // one carries ?v=<content hash> and a replaced image is a different URL.
+  // Given that, a long cache is correct: the day-long compromise that was here
+  // before meant a photograph swapped by hand stayed invisible for a day, and
+  // that is exactly what happened.
+  const face = file.includes(`${sep}faces${sep}`) || file.includes(`${sep}logos${sep}`)
   res.writeHead(200, {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
     'Cache-Control': hashed ? 'public, max-age=31536000, immutable'
-      : face ? 'public, max-age=86400'
+      : face ? 'public, max-age=604800'
         : 'no-cache',
   })
   createReadStream(file).pipe(res)
