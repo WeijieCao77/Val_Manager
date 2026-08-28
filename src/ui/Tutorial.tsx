@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
 import type { GameState } from '../engine/types'
 import { TUTORIAL_SNAPSHOT } from '../engine/save'
+import { FINAL_YEAR } from '../engine/endings'
 
 /**
  * A guided trial day, played in a sandbox.
@@ -48,7 +49,12 @@ const STEPS: Step[] = [
     body: '你不打比赛。你决定谁上场、练什么、买谁、接哪些商务——然后推进时间，看结果。\n\n'
       + '⚡ 每回合有几点行动力，对外的事（报价、商务、约战）花点数，队内设置不花。\n'
       + '📅 赛季中一天一回合，空档期一周一回合。\n'
-      + '🏛 董事会给你赛段目标，达不到会先警告、再下课。',
+      + '🏛 董事会给你赛段目标，达不到会先警告、再下课。\n'
+      // Worth saying on the first screen rather than discovering it in 2036:
+      // this career has an end, and the end is graded. Interpolated from
+      // FINAL_YEAR so the sentence cannot drift away from the engine.
+      + `🏁 生涯到 ${FINAL_YEAR} 年为止——最后一届冠军赛打完，十年任期结束，`
+      + '届时会按你这十年做到的事给出结局。',
   },
   {
     title: '下面用一天试一遍',

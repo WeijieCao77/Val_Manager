@@ -36,8 +36,8 @@ const REGION_FACES: { region: Region; crest: string; face: string }[] = [
   { region: 'Americas', crest: 'T4', face: 'P16' },
   // FNATIC / Derke
   { region: 'EMEA', crest: 'T14', face: 'P67' },
-  // Paper Rex / f0rsakeN
-  { region: 'Pacific', crest: 'T24', face: 'P136' },
+  // Paper Rex / Jinggg
+  { region: 'Pacific', crest: 'T24', face: 'P134' },
   // EDward Gaming / ZmjjKK — the two names this game's own players know best
   { region: 'China', crest: 'T36', face: 'P200' },
 ]
