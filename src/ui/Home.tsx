@@ -24,22 +24,23 @@ import Changelog from './Changelog'
 type Mode = 'home' | 'career' | 'cards'
 
 /**
- * The four regions, each behind a club anyone would recognise.
+ * The four leagues, and one player from each.
  *
- * The strip used to be the first eight crests in world.json, which is eight
- * Americas clubs — a picture of one league standing in for a game about four.
- * One crest per region says what the game actually covers, and the label says
- * it in words for anyone who does not know the badges.
+ * The strip is the VCT league marks themselves — not a club standing in for a
+ * league. Putting a club there said "here are four teams" and, worse, put
+ * EDward Gaming's badge in the place that belongs to VCT CN.
+ *
+ * scripts/fetch_league_logos.py writes public/leagues/<Region>.webp. VCT EMEA
+ * ships as solid black, which is invisible on this page, so that one is
+ * repainted light at build time — which is how the mark is used on dark
+ * grounds anyway.
  */
-const REGION_FACES: { region: Region; crest: string; face: string }[] = [
-  // Sentinels / aspas — the Americas, and the most recognisable player in the game
-  { region: 'Americas', crest: 'T4', face: 'P16' },
-  // FNATIC / Derke
-  { region: 'EMEA', crest: 'T14', face: 'P67' },
-  // Paper Rex / Jinggg
-  { region: 'Pacific', crest: 'T24', face: 'P134' },
-  // EDward Gaming / ZmjjKK — the two names this game's own players know best
-  { region: 'China', crest: 'T36', face: 'P200' },
+const REGION_FACES: { region: Region; face: string }[] = [
+  // aspas — the most recognisable player in the game
+  { region: 'Americas', face: 'P16' },
+  { region: 'EMEA', face: 'P67' },        // Derke
+  { region: 'Pacific', face: 'P134' },    // Jinggg
+  { region: 'China', face: 'P200' },      // ZmjjKK
 ]
 
 interface Resume {
@@ -150,7 +151,11 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           <div className="home-art crests">
             {REGION_FACES.map((r) => (
               <div key={r.region} className="home-region">
-                <Crest id={r.crest} size={44} />
+                <img
+                  src={`${import.meta.env.BASE_URL}leagues/${r.region}.webp`}
+                  alt=""
+                  loading="lazy"
+                />
                 <span>{REGION_CN[r.region]}</span>
               </div>
             ))}

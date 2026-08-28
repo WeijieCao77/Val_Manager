@@ -1551,7 +1551,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   /* above .home-art::after — the band's bottom fade was washing the labels out */
   position: relative; z-index: 1;
 }
-.home-region .crest { width: 44px; height: 44px; opacity: .88; }
+.home-region img { width: 46px; height: 46px; object-fit: contain; opacity: .95; }
 .home-region span {
   font-size: 11px; letter-spacing: .08em; color: var(--muted); white-space: nowrap;
 }
@@ -1617,7 +1617,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .home { gap: 16px; padding: 0 14px 32px; }
   .home-bar { margin: 0 -14px; padding: 0 14px; }
   .home-art { height: 108px; gap: 10px; }
-  .home-region .crest { width: 34px; height: 34px; }
+  .home-region img { width: 36px; height: 36px; }
   .home-region span { font-size: 9.5px; letter-spacing: .06em; }
   .home-art.faces img { width: 58px; height: 76px; }
   .home-body h2 { font-size: 21px; }
