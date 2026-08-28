@@ -378,5 +378,15 @@
   "tag": "WBG",
   "vlrId": "1224",
   "url": "https://owcdn.net/img/62232bd14e5d7.png"
+ },
+ "T75": {
+  "tag": "VLG",
+  "vlrId": null,
+  "url": "supplied by hand — vlr serves a placeholder for this club"
+ },
+ "T55": {
+  "tag": "LM",
+  "vlrId": null,
+  "url": "supplied by hand — vlr serves a placeholder for this club"
  }
 }

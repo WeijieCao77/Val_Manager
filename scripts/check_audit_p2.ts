@@ -3,7 +3,7 @@
  * either quietly did the wrong thing or told the manager something untrue.
  */
 import { createNewGame, WORLD_TEAMS, squadOf, autoStarters } from '../src/engine/world'
-import { advanceDay, setupSeason, moveToClub } from '../src/engine/season'
+import { advanceDay, commitFixture, setupSeason, moveToClub } from '../src/engine/season'
 import { aiTransferTick, bidForOurPlayers, doTransfer, rosterBlock, windowEnd } from '../src/engine/transfer'
 import { gigWindow, openGigs, settleSponsorDemands, dropSponsor } from '../src/engine/commercial'
 import { staffMarket } from '../src/engine/staff'
@@ -277,6 +277,38 @@ const mk = (tag = 'TYL'): GameState => {
   g.day = 315
   check('an open window has an end to stop at', windowEnd(315) === 335, String(windowEnd(315)))
   check('and a closed day has none', windowEnd(200) === null)
+}
+
+// ---- a scrim teaches the map it is played on, up to a point
+{
+  const g = mk()
+  const foe = Object.values(g.teams).find((t) => t.id !== g.myTeam)!
+  const play = (map: string) => {
+    const f = {
+      id: `S${g.day}`, day: g.day, stage: g.stage, comp: 'scrim',
+      teamA: g.myTeam, teamB: foe.id, bo: 1, label: '训练赛', played: false,
+      scrim: { map, format: 'first13' },
+    } as never
+    const sim = new MatchSim(g, g.myTeam, foe.id, 1, new Rng(g.day), { map, format: 'first13' })
+    while (!sim.decided && sim.nextMap()) { sim.current!.runOut(); sim.closeMap() }
+    commitFixture(g, f, sim.finish(), [])
+    g.day += 1
+  }
+  const me = g.teams[g.myTeam]
+  me.mapPrefs.Ascent = 45
+  const foeBefore = foe.mapPrefs.Ascent ?? 50
+  play('Ascent')
+  const one = me.mapPrefs.Ascent - 45
+  check('a scrim raises the map it was played on', one >= 0.6 && one <= 1.0, `+${one.toFixed(2)}`)
+  check('and the opponent learns it too', (foe.mapPrefs.Ascent ?? 0) > foeBefore)
+  const other = me.mapPrefs.Bind
+  check('but only that map', me.mapPrefs.Bind === other)
+
+  // it stops well short of mastery, or the 跑图 drill would be pointless
+  for (let i = 0; i < 400; i++) play('Ascent')
+  check('scrims alone stop at comfortable, not mastered',
+    me.mapPrefs.Ascent <= 80.01 && me.mapPrefs.Ascent >= 79,
+    `400 场后 ${me.mapPrefs.Ascent.toFixed(1)}（跑图上限 95）`)
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

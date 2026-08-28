@@ -8,6 +8,7 @@ import {
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
+import { mapCn } from './content'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -636,6 +637,13 @@ export const isScrim = (f: Fixture) => f.comp === 'scrim'
  * prize money, championship points and the board's reaction — so the caller is
  * handed those lines rather than having them vanish.
  */
+/**
+ * How far a practice match alone can take a map, and how soon it starts to
+ * teach less. Comfortable, not mastered.
+ */
+const SCRIM_MAP_CEIL = 80
+const SCRIM_MAP_TAPER = 25
+
 export function commitFixture(
   state: GameState, f: Fixture, result: MatchResult, notes: string[] = [],
 ): void {
@@ -685,6 +693,30 @@ export function commitFixture(
         // losing used to average +0.35 form, so a defeat made a player sharper
         p.form = clamp(p.form + (won ? rng.range(0.4, 2.2) : -rng.range(0.4, 2.2)), 30, 99)
         p.morale = clamp(p.morale + (won ? rng.range(0, 2) : -rng.range(0, 1.5)), 10, 100)
+      }
+    }
+    // Practising a map is the reason a scrim is booked on one, and until now
+    // it did nothing for that map at all — the panel said so because it was
+    // true. Both sides learn, win or lose, and less than a week of the 跑图
+    // drill: that costs a whole team-training slot and gives about +2, this
+    // costs a day and a squad's condition.
+    const scrimMap = f.scrim?.map
+    if (scrimMap) {
+      for (const teamId of [f.teamA, f.teamB]) {
+        const t = state.teams[teamId]
+        if (!t) continue
+        const before = t.mapPrefs[scrimMap] ?? 50
+        // Diminishing, and that is the whole balance of it. A flat gain let a
+        // manager book the same map every free day and reach the 95 ceiling
+        // inside one season — measured at 293 scrims and +50 — which would
+        // have made the 跑图 drill pointless. Practice matches take a map to
+        // comfortable; going past that is what the drill and real fixtures
+        // are for.
+        const room = clamp((SCRIM_MAP_CEIL - before) / SCRIM_MAP_TAPER, 0, 1)
+        t.mapPrefs[scrimMap] = clamp(before + rng.range(0.6, 1.0) * room, 0, 95)
+        if (teamId === state.myTeam && Math.round(t.mapPrefs[scrimMap]) > Math.round(before)) {
+          notes.push(`🗺 ${mapCn(scrimMap)} 熟练度提升到 ${Math.round(t.mapPrefs[scrimMap])}。`)
+        }
       }
     }
     if (isMine) state.lastResults.push(f.id)

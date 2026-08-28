@@ -475,7 +475,8 @@ export default function Dashboard() {
             <b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2、士气 +0~2</b>；
             <b style={{ color: 'var(--accent)' }}>输 状态 −0.4~2.2、士气 −0~1.5</b>；
             <b>体能 −3.5~6.5</b>（疲劳越高越容易受伤）；同时会累积<b>队内默契</b>。<br />
-            <b style={{ color: 'var(--warn)' }}>不会提升地图熟练度</b>——那只能靠训练页的「跑图」。
+            <b style={{ color: 'var(--win)' }}>约在哪张图就练哪张图</b>：熟练度每场 +0.6~1.0，
+            但越熟悉涨得越慢，<b>练到 80 左右就到头了</b>——再往上要靠训练页的「跑图」和正式比赛。
           </div>
           <div className="grid c3" style={{ gap: 12, alignItems: 'end' }}>
             <div className="field">
