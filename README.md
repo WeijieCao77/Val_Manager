@@ -19,7 +19,7 @@
 | 战队、阵容、国籍、位置 | [vlr.gg](https://www.vlr.gg) | VCT 2026 赛季 |
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
 | 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
-| 选手照片 | vlr.gg 选手页 + Liquipedia | 430/518 人（vlr 399 + Liquipedia 31）；剩下的用剪影 |
+| 选手照片 | vlr.gg + Liquipedia + 号角 | 459/518 人（vlr 398 + Liquipedia 40 + 号角 21）；剩下的用剪影 |
 | 国旗 | vlr.gg | 中国台湾 / 中国香港 / 中国澳门 统一显示五星红旗 |
 | 彩卡照片 | Liquipedia commons + 手工补 2 张 | 20/20，取自夺冠当场的比赛照，多张是捧杯照 |
 | 战队队标 | vlr.gg 战队页 | 76/78，放在普通卡右上角 |
@@ -545,7 +545,8 @@ scripts/
   fetch_liquipedia_faces.py  vlr 没有的那些，去 Liquipedia 找（按文件名校验身份）
   fetch_legend_faces.py  彩卡的夺冠现场照，按 捧杯>夺冠赛事>同队同季 排序挑选
   import_manual_faces.py 手工找到的照片，走同一套裁切与压缩
-  fetch_team_logos.py    76 支战队的队标，做普通卡背景水印
+  fetch_team_logos.py    76 支战队的队标，放普通卡右上角
+  cache/haojiao_faces.json  号角官方证件照，中国与太平洋赛区专用（人工核对后写入）
   fetch_faces.py         下载照片并压成 192px webp
   build_dossier.py       合并成 src/data/dossier.json
   smoke.ts               无头跑完整赛季并校验数据合理性

@@ -7,7 +7,11 @@ shows, and committed. Sources and credit are recorded in dossier.json's meta.
 Four inputs, in order of preference:
   vlr_profiles.json   the player's own vlr.gg page      (399 players)
   vlr_staff.json      the club's staff listing on vlr    (coaches, 54)
-  lp_faces.json       Liquipedia, for what neither has   (31 + 6)
+  lp_faces.json       Liquipedia, for what neither has   (40 + 6)
+  haojiao_faces.json  号角 haojiao.cc, for the Chinese and Pacific rosters that
+                      none of the above photograph (21). Matched on exact tag
+                      AND agreeing club, and the site's own default_player.png
+                      is filtered out — it is a placeholder, not a person.
   legend_faces.json   Liquipedia event photos for the彩卡 (20) — a彩卡 is a
                       night, so it gets a picture from that night rather than
                       the studio portrait the ordinary card uses
@@ -36,6 +40,7 @@ PROFILES = CACHE / "vlr_profiles.json"
 STAFF = CACHE / "vlr_staff.json"
 LP = CACHE / "lp_faces.json"
 LEGEND = CACHE / "legend_faces.json"
+HAOJIAO = CACHE / "haojiao_faces.json"
 WORLD = ROOT / "src" / "data" / "world.json"
 OUT = ROOT / "public" / "faces"
 
@@ -155,6 +160,7 @@ def main() -> int:
     profiles = load(PROFILES, {})
     staff = load(STAFF, {"people": {}})
     lp = load(LP, {"players": {}, "coaches": {}})
+    hj = load(HAOJIAO, {"players": {}})
     world = load(WORLD, {"players": [], "teams": []})
 
     # (label, destination filename, [urls to try in order]) — players first,
@@ -165,7 +171,8 @@ def main() -> int:
     for p in world["players"]:
         ign = p["ign"]
         urls = [u for u in [(profiles.get(ign.lower()) or {}).get("img"),
-                            (lp["players"].get(ign) or {}).get("url")] if u]
+                            (lp["players"].get(ign) or {}).get("url"),
+                            (hj["players"].get(ign) or {}).get("url")] if u]
         if urls:
             jobs.append((ign, f"{p['id']}.webp", urls))
 
