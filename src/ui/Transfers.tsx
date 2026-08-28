@@ -24,6 +24,9 @@ export default function Transfers() {
   const [tab, setTab] = useState<'free' | 'listed' | 'all'>('free')
   const [askClub, setAskClub] = useState<string | null>(null)
   const [askRegion, setAskRegion] = useState<string>('all')
+  // 按位置找人：不先挑俱乐部，而是先说要什么位置
+  const [askRole, setAskRole] = useState<string>('')
+  const [askMinOvr, setAskMinOvr] = useState<number>(0)
   const [role, setRole] = useState<Role | 'all'>('all')
   const [maxOvr, setMaxOvr] = useState(99)
   const [search, setSearch] = useState('')
@@ -44,6 +47,25 @@ export default function Transfers() {
 
   // 78 clubs as buttons filled the page before the enquiry itself; a region
   // picker plus a club picker is two clicks and no scrolling
+  /**
+   * Everyone in the world who plays a given position.
+   *
+   * The enquiry screen could only be worked club by club, which is the wrong
+   * way round: a manager knows he needs a controller long before he knows who
+   * has one. Ranked by ability, filtered by region and a floor, and it names
+   * the club so the old flow is still one click away.
+   */
+  const roleHits = useMemo(() => {
+    if (!askRole) return []
+    return Object.values(game.players)
+      .filter((p) => p.teamId && p.teamId !== game.myTeam)
+      .filter((p) => (p.roles ?? [p.role]).includes(askRole as Role))
+      .filter((p) => p.overall >= askMinOvr)
+      .filter((p) => askRegion === 'all' || game.teams[p.teamId!]?.region === askRegion)
+      .sort((a, b) => b.overall - a.overall)
+      .slice(0, 40)
+  }, [game.players, game.teams, game.myTeam, askRole, askMinOvr, askRegion])
+
   const askClubs = useMemo(
     () => Object.values(game.teams)
       .filter((t) => t.id !== game.myTeam && (askRegion === 'all' || t.region === askRegion))
@@ -235,6 +257,25 @@ export default function Transfers() {
               <option key={r} value={r}>{REGION_CN[r as Region]}</option>
             ))}
           </select>
+          <select className="sm" style={{ width: 150, flex: '0 0 auto' }} value={askRole}
+            onChange={(e) => { setAskRole(e.target.value); if (e.target.value) setAskClub(null) }}>
+            <option value="">按位置找人…</option>
+            {ROLES.filter((r) => r !== '自由人').map((r) => (
+              <option key={r} value={r}>要一个{r}</option>
+            ))}
+          </select>
+          {askRole && (
+            <label className="tiny faint row" style={{ gap: 6, alignItems: 'center' }}>
+              能力不低于
+              <input
+                type="number" className="sm" min={0} max={99} step={1}
+                style={{ width: 66 }}
+                value={askMinOvr || ''}
+                placeholder="0"
+                onChange={(e) => setAskMinOvr(Math.max(0, Math.min(99, Number(e.target.value) || 0)))}
+              />
+            </label>
+          )}
           <select className="sm" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 420 }} value={askClub ?? ''}
             onChange={(e) => setAskClub(e.target.value || null)}>
             <option value="">选择俱乐部…</option>
@@ -247,9 +288,70 @@ export default function Transfers() {
           <span className="tiny faint">{askClubs.length} 支俱乐部</span>
         </div>
 
-        {!askClub ? (
+        {askRole ? (
+          <div>
+            <div className="row wrap" style={{ gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
+              <b>全世界的{askRole}</b>
+              <span className="tag">{roleHits.length} 人{roleHits.length === 40 ? '（只列前 40）' : ''}</span>
+              <span className="tiny faint">按能力排序 · 兼任这个位置的人也在内</span>
+            </div>
+            {roleHits.length === 0 ? (
+              <p className="tiny faint" style={{ margin: 0 }}>没有符合条件的人，放宽能力下限或换个赛区试试。</p>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="sticky-name at-left">选手</th>
+                      <th>俱乐部</th><th>位置</th><th className="num">能力</th>
+                      <th className="num hide-m">潜力</th><th className="num hide-m">年龄</th>
+                      <th className="num hide-m">估值</th><th>问价结果</th><th className="sticky-act" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roleHits.map((p) => {
+                      const e = enq.get(p.id)
+                      const club = game.teams[p.teamId!]
+                      return (
+                        <tr key={p.id}>
+                          <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
+                            <b>{p.ign}</b>
+                            {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
+                          </td>
+                          <td className="small">
+                            <span className="clickable" onClick={() => { setAskRole(''); setAskClub(p.teamId!) }}>
+                              <Club id={p.teamId} game={game} crest />
+                            </span>
+                          </td>
+                          <td><Roles p={p} /></td>
+                          <td className="num"><OvrBadge value={p.overall} /></td>
+                          <td className="num hide-m"><Potential p={p} game={game} /></td>
+                          <td className="num hide-m">{p.age}</td>
+                          <td className="num mono faint hide-m">{money(askingPrice(p))}</td>
+                          <td className="small">
+                            {e?.askingFee ? (
+                              <span style={{ color: 'var(--warn)' }}>要价 {money(e.askingFee)}</span>
+                            ) : e && !e.answer ? (
+                              <span className="tiny faint">问价中（{Math.max(0, e.replyOn - game.day)} 天）</span>
+                            ) : <span className="tiny faint">未问价</span>}
+                          </td>
+                          <td className="sticky-act">
+                            <button className="sm" disabled={!!e || !open} onClick={() => act('offer', () => {
+                              toast(enquireAbout(game, p.id))
+                              logActivity(game, 'transfer', `就 ${p.ign} 向 ${club?.name} 问价`)
+                            })}>问价</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : !askClub ? (
           <p className="tiny faint" style={{ margin: 0 }}>
-            选一支俱乐部，下面会列出他们的全部选手。
+            选一支俱乐部列出他们的全部选手，或者用上面的「按位置找人」直接横扫全世界。
           </p>
         ) : (() => {
           const club = game.teams[askClub]
