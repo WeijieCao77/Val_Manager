@@ -1,0 +1,1480 @@
+{
+ "meta": {
+  "built": "scripts/build_prospects.py",
+  "source": "vlr.gg rosters below the simulated leagues; birthdates from liquipedia",
+  "intakeFrom": 2027,
+  "count": 121
+ },
+ "players": [
+  {
+   "id": "Y58391",
+   "ign": "caelia",
+   "real": null,
+   "nat": "de",
+   "born": "2009-08-10",
+   "agents": [
+    "cypher",
+    "viper",
+    "sage",
+    "chamber",
+    "jett",
+    "raze"
+   ]
+  },
+  {
+   "id": "Y54175",
+   "ign": "DaNa",
+   "real": "Jo Se-won (조세원)",
+   "nat": "kr",
+   "born": "2009-05-05",
+   "agents": [
+    "jett",
+    "waylay",
+    "neon"
+   ]
+  },
+  {
+   "id": "Y55446",
+   "ign": "kaoru",
+   "real": null,
+   "nat": "kr",
+   "born": "2008-12-31",
+   "agents": [
+    "omen",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y29241",
+   "ign": "MiradaNinja",
+   "real": "Waldo Barahona",
+   "nat": "cl",
+   "born": "2008-08-07",
+   "agents": [
+    "cypher",
+    "harbor",
+    "omen",
+    "chamber",
+    "viper",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y47911",
+   "ign": "berryx",
+   "real": "Emine Çoban",
+   "nat": "tr",
+   "born": "2008-06-17",
+   "agents": [
+    "neon",
+    "raze",
+    "phoenix",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y48660",
+   "ign": "Anita",
+   "real": null,
+   "nat": "bg",
+   "born": "2008-05-12",
+   "agents": [
+    "viper",
+    "phoenix",
+    "yoru",
+    "raze",
+    "kayo"
+   ]
+  },
+  {
+   "id": "Y42785",
+   "ign": "Hidden",
+   "real": null,
+   "nat": "kr",
+   "born": "2007-12-12",
+   "agents": [
+    "cypher",
+    "killjoy",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y60577",
+   "ign": "Faither",
+   "real": "Lee Hwi-seong (이휘성)",
+   "nat": "kr",
+   "born": "2007-10-18",
+   "agents": []
+  },
+  {
+   "id": "Y54224",
+   "ign": "ReZet",
+   "real": null,
+   "nat": "kr",
+   "born": "2007-09-01",
+   "agents": [
+    "raze",
+    "neon",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y41927",
+   "ign": "Gold",
+   "real": null,
+   "nat": "au",
+   "born": "2007-07-22",
+   "agents": []
+  },
+  {
+   "id": "Y36175",
+   "ign": "rezq",
+   "real": "Eda Naz Akçocuk",
+   "nat": "tr",
+   "born": "2007-03-06",
+   "agents": [
+    "phoenix",
+    "raze",
+    "kayo",
+    "skye"
+   ]
+  },
+  {
+   "id": "Y40410",
+   "ign": "332",
+   "real": "Park Min-ju (박민주)",
+   "nat": "kr",
+   "born": "2007-02-07",
+   "agents": [
+    "phoenix",
+    "viper",
+    "vyse",
+    "cypher",
+    "killjoy",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y37105",
+   "ign": "Loss",
+   "real": "Lorenzo Suffredini de Biazzi",
+   "nat": "br",
+   "born": "2007-02-01",
+   "agents": [
+    "phoenix",
+    "sage",
+    "neon",
+    "jett",
+    "yoru",
+    "waylay"
+   ]
+  },
+  {
+   "id": "Y43744",
+   "ign": "Akita",
+   "real": "Esllene Xu",
+   "nat": "fr",
+   "born": "2007-01-26",
+   "agents": [
+    "neon",
+    "raze",
+    "jett",
+    "yoru",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y37521",
+   "ign": "miNt",
+   "real": "Jeong Ye-rim (정예림)",
+   "nat": "kr",
+   "born": "2007-01-12",
+   "agents": [
+    "raze",
+    "chamber",
+    "phoenix",
+    "jett",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y39027",
+   "ign": "Leen",
+   "real": "Leen Alanzi",
+   "nat": "sa",
+   "born": "2007-01-07",
+   "agents": [
+    "raze",
+    "iso",
+    "waylay",
+    "phoenix",
+    "harbor",
+    "yoru"
+   ]
+  },
+  {
+   "id": "Y25580",
+   "ign": "Jenniffer",
+   "real": "Jenniffer Aysha",
+   "nat": "br",
+   "born": "2006-12-22",
+   "agents": [
+    "jett",
+    "neon",
+    "raze"
+   ]
+  },
+  {
+   "id": "Y29240",
+   "ign": "skyppervz",
+   "real": "Lucas Ignacio Pizarro Rodriguez",
+   "nat": "cl",
+   "born": "2006-11-28",
+   "agents": [
+    "fade",
+    "sova",
+    "skye",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y43884",
+   "ign": "mali",
+   "real": "Marita Melstveit Østvik",
+   "nat": "no",
+   "born": "2006-10-29",
+   "agents": [
+    "fade",
+    "sova"
+   ]
+  },
+  {
+   "id": "Y28535",
+   "ign": "misu",
+   "real": null,
+   "nat": "kr",
+   "born": "2006-09-01",
+   "agents": [
+    "omen",
+    "viper",
+    "harbor",
+    "fade",
+    "sova"
+   ]
+  },
+  {
+   "id": "Y54234",
+   "ign": "Quest",
+   "real": null,
+   "nat": "kr",
+   "born": "2006-07-22",
+   "agents": [
+    "vyse",
+    "cypher",
+    "killjoy"
+   ]
+  },
+  {
+   "id": "Y53131",
+   "ign": "Sabortzz",
+   "real": null,
+   "nat": "mx",
+   "born": "2006-06-23",
+   "agents": [
+    "waylay",
+    "jett",
+    "phoenix",
+    "neon",
+    "sage"
+   ]
+  },
+  {
+   "id": "Y48863",
+   "ign": "Mystizip",
+   "real": null,
+   "nat": "cl",
+   "born": "2006-06-22",
+   "agents": [
+    "viper",
+    "omen",
+    "brimstone",
+    "vyse",
+    "chamber",
+    "clove"
+   ]
+  },
+  {
+   "id": "Y25167",
+   "ign": "Kazler",
+   "real": null,
+   "nat": "pl",
+   "born": "2006-03-22",
+   "agents": [
+    "sova",
+    "jett",
+    "raze",
+    "fade",
+    "kayo",
+    "sage"
+   ]
+  },
+  {
+   "id": "Y25663",
+   "ign": "dods",
+   "real": "Caue Fernandes",
+   "nat": "br",
+   "born": "2006-03-06",
+   "agents": []
+  },
+  {
+   "id": "Y58018",
+   "ign": "mont1",
+   "real": null,
+   "nat": "cl",
+   "born": "2006-02-17",
+   "agents": [
+    "chamber",
+    "vyse",
+    "cypher",
+    "killjoy",
+    "viper"
+   ]
+  },
+  {
+   "id": "Y39904",
+   "ign": "SereNa",
+   "real": "Kim Sia (김시아)",
+   "nat": "kr",
+   "born": "2006-02-14",
+   "agents": [
+    "viper",
+    "chamber",
+    "cypher",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y29442",
+   "ign": "Wens",
+   "real": "Gülce Eda Sürmeli",
+   "nat": "tr",
+   "born": "2006-01-31",
+   "agents": [
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y36433",
+   "ign": "phc",
+   "real": "Pedro Campos",
+   "nat": "br",
+   "born": "2006-01-12",
+   "agents": [
+    "omen",
+    "viper",
+    "harbor",
+    "brimstone",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y22997",
+   "ign": "waved",
+   "real": null,
+   "nat": "br",
+   "born": "2005-12-23",
+   "agents": [
+    "phoenix",
+    "cypher",
+    "raze",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y45029",
+   "ign": "grahams",
+   "real": "Leanne Ti-in",
+   "nat": "ph",
+   "born": "2005-12-14",
+   "agents": [
+    "neon",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y53197",
+   "ign": "Leg1t",
+   "real": null,
+   "nat": "kr",
+   "born": "2005-12-05",
+   "agents": []
+  },
+  {
+   "id": "Y30395",
+   "ign": "edith",
+   "real": "Eden Bryce Cutlip",
+   "nat": "us",
+   "born": "2005-10-04",
+   "agents": [
+    "neon",
+    "raze",
+    "jett",
+    "waylay",
+    "phoenix",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y23049",
+   "ign": "alkyia",
+   "real": "Azra Erin",
+   "nat": "tr",
+   "born": "2005-09-17",
+   "agents": [
+    "neon",
+    "raze",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y19556",
+   "ign": "melya",
+   "real": "Emily Khan",
+   "nat": "pk",
+   "born": "2005-08-05",
+   "agents": [
+    "viper",
+    "cypher",
+    "jett",
+    "iso",
+    "killjoy",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y33694",
+   "ign": "evv",
+   "real": null,
+   "nat": "ca",
+   "born": "2005-06-27",
+   "agents": [
+    "fade",
+    "sova",
+    "kayo",
+    "tejo"
+   ]
+  },
+  {
+   "id": "Y30325",
+   "ign": "EveR",
+   "real": "Kim Ji-min (김지민)",
+   "nat": "kr",
+   "born": "2005-05-03",
+   "agents": [
+    "sova",
+    "fade",
+    "skye"
+   ]
+  },
+  {
+   "id": "Y21435",
+   "ign": "Jelly",
+   "real": "Julia Iris",
+   "nat": "br",
+   "born": "2005-04-29",
+   "agents": [
+    "neon",
+    "jett",
+    "raze"
+   ]
+  },
+  {
+   "id": "Y39902",
+   "ign": "UR",
+   "real": null,
+   "nat": "jp",
+   "born": "2005-04-27",
+   "agents": [
+    "kayo",
+    "sage",
+    "phoenix",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y25080",
+   "ign": "empty",
+   "real": "Lee Won-bin (이원빈)",
+   "nat": "kr",
+   "born": "2005-04-14",
+   "agents": []
+  },
+  {
+   "id": "Y26122",
+   "ign": "soko",
+   "real": null,
+   "nat": "au",
+   "born": "2005-04-06",
+   "agents": [
+    "neon",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y18091",
+   "ign": "shirazi",
+   "real": "Kelly Jaudian",
+   "nat": "ph",
+   "born": "2005-04-01",
+   "agents": [
+    "viper",
+    "cypher",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y21158",
+   "ign": "Marti",
+   "real": "Martyna Pabian",
+   "nat": "pl",
+   "born": "2005-03-28",
+   "agents": [
+    "phoenix",
+    "breach",
+    "yoru"
+   ]
+  },
+  {
+   "id": "Y24131",
+   "ign": "Lexa",
+   "real": "Kader Karaöz",
+   "nat": "tr",
+   "born": "2005-02-25",
+   "agents": [
+    "omen",
+    "viper",
+    "skye",
+    "killjoy",
+    "sova",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y33177",
+   "ign": "none",
+   "real": null,
+   "nat": "br",
+   "born": "2005-02-23",
+   "agents": [
+    "jett",
+    "neon",
+    "waylay",
+    "raze"
+   ]
+  },
+  {
+   "id": "Y15931",
+   "ign": "Peloncito",
+   "real": "Oscar Israel Palacios Martinez",
+   "nat": "mx",
+   "born": "2005-02-06",
+   "agents": [
+    "sova",
+    "omen",
+    "skye",
+    "tejo",
+    "astra",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y19255",
+   "ign": "luiza",
+   "real": "Luiza Parron",
+   "nat": "br",
+   "born": "2005-01-17",
+   "agents": [
+    "cypher",
+    "vyse",
+    "viper",
+    "sage",
+    "brimstone"
+   ]
+  },
+  {
+   "id": "Y9185",
+   "ign": "dodonut",
+   "real": "Karnthida Chaisrakeo",
+   "nat": "th",
+   "born": "2005-01-01",
+   "agents": [
+    "neon",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y11235",
+   "ign": "biazik",
+   "real": "Beatriz Begnossi",
+   "nat": "br",
+   "born": "2004-12-27",
+   "agents": [
+    "sova",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y18093",
+   "ign": "Kamiyu",
+   "real": "Camille Enriquez",
+   "nat": "ph",
+   "born": "2004-12-24",
+   "agents": [
+    "omen",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y49571",
+   "ign": "paganus",
+   "real": null,
+   "nat": "mx",
+   "born": "2004-12-23",
+   "agents": [
+    "neon",
+    "phoenix",
+    "deadlock",
+    "waylay"
+   ]
+  },
+  {
+   "id": "Y30315",
+   "ign": "FullMoon",
+   "real": "Jeong Ye-jin (정예진)",
+   "nat": "kr",
+   "born": "2004-12-08",
+   "agents": [
+    "viper",
+    "deadlock",
+    "killjoy"
+   ]
+  },
+  {
+   "id": "Y17397",
+   "ign": "Noia",
+   "real": "Nicole Tierce",
+   "nat": "dk",
+   "born": "2004-12-03",
+   "agents": [
+    "viper",
+    "chamber",
+    "cypher",
+    "clove",
+    "yoru"
+   ]
+  },
+  {
+   "id": "Y19492",
+   "ign": "Amy",
+   "real": "Julekha Parvin",
+   "nat": "in",
+   "born": "2004-12-02",
+   "agents": [
+    "vyse",
+    "killjoy",
+    "sage",
+    "viper",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y41128",
+   "ign": "Mathi",
+   "real": null,
+   "nat": "uy",
+   "born": "2004-10-29",
+   "agents": [
+    "phoenix",
+    "cypher",
+    "chamber",
+    "raze"
+   ]
+  },
+  {
+   "id": "Y12055",
+   "ign": "mmonch",
+   "real": null,
+   "nat": "mx",
+   "born": "2004-10-29",
+   "agents": []
+  },
+  {
+   "id": "Y38025",
+   "ign": "Addi",
+   "real": null,
+   "nat": "gb",
+   "born": "2004-10-06",
+   "agents": [
+    "omen",
+    "viper",
+    "harbor",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y11232",
+   "ign": "daiki",
+   "real": "Natalia Vilela",
+   "nat": "br",
+   "born": "2004-10-04",
+   "agents": [
+    "skye",
+    "sova",
+    "phoenix",
+    "breach",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y3077",
+   "ign": "Jazzyk1ns",
+   "real": "Jasmine Manankil",
+   "nat": "ca",
+   "born": "2004-07-27",
+   "agents": [
+    "kayo",
+    "killjoy",
+    "skye",
+    "vyse",
+    "phoenix",
+    "tejo"
+   ]
+  },
+  {
+   "id": "Y12872",
+   "ign": "david",
+   "real": "David Olivares",
+   "nat": "cl",
+   "born": "2004-07-12",
+   "agents": [
+    "cypher",
+    "viper",
+    "killjoy",
+    "deadlock"
+   ]
+  },
+  {
+   "id": "Y24100",
+   "ign": "Anva",
+   "real": "Nehir Dinçer",
+   "nat": "tr",
+   "born": "2004-07-09",
+   "agents": [
+    "cypher",
+    "killjoy",
+    "viper",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y35662",
+   "ign": "Zebeej",
+   "real": "Miguel Silva Yañez",
+   "nat": "cl",
+   "born": "2004-05-18",
+   "agents": []
+  },
+  {
+   "id": "Y19371",
+   "ign": "eva",
+   "real": "Nur Çakır",
+   "nat": "tr",
+   "born": "2004-04-23",
+   "agents": [
+    "sova",
+    "fade",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y45174",
+   "ign": "PuriTy",
+   "real": null,
+   "nat": "us",
+   "born": "2004-04-18",
+   "agents": [
+    "fade",
+    "phoenix",
+    "raze",
+    "omen",
+    "skye",
+    "reyna"
+   ]
+  },
+  {
+   "id": "Y46383",
+   "ign": "vkzinn",
+   "real": "Carlos Santana",
+   "nat": "br",
+   "born": "2004-03-05",
+   "agents": []
+  },
+  {
+   "id": "Y8176",
+   "ign": "enerii",
+   "real": "Odella Abraham",
+   "nat": "id",
+   "born": "2004-03-02",
+   "agents": [
+    "raze",
+    "waylay",
+    "jett",
+    "yoru"
+   ]
+  },
+  {
+   "id": "Y36904",
+   "ign": "Sinon",
+   "real": "Samantha Penelope K.",
+   "nat": "id",
+   "born": "2004-01-31",
+   "agents": []
+  },
+  {
+   "id": "Y24026",
+   "ign": "GeneralSteak",
+   "real": null,
+   "nat": "gt",
+   "born": "2004-01-14",
+   "agents": [
+    "fade",
+    "sova"
+   ]
+  },
+  {
+   "id": "Y21558",
+   "ign": "micaela",
+   "real": "Micaela Ferreyra",
+   "nat": "ar",
+   "born": "2003-12-15",
+   "agents": [
+    "sage",
+    "omen",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y23064",
+   "ign": "jvsz",
+   "real": "João Vitor",
+   "nat": "br",
+   "born": "2003-11-28",
+   "agents": []
+  },
+  {
+   "id": "Y20064",
+   "ign": "Vania",
+   "real": "Aleyna Keskin",
+   "nat": "tr",
+   "born": "2003-11-13",
+   "agents": [
+    "omen",
+    "harbor",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y39057",
+   "ign": "safiaa",
+   "real": "Safia Leghzal",
+   "nat": "fr",
+   "born": "2003-11-02",
+   "agents": [
+    "vyse",
+    "killjoy",
+    "raze",
+    "chamber",
+    "phoenix",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y14386",
+   "ign": "isaa",
+   "real": "Isabeli Esser",
+   "nat": "br",
+   "born": "2003-10-08",
+   "agents": [
+    "viper",
+    "cypher",
+    "vyse",
+    "killjoy"
+   ]
+  },
+  {
+   "id": "Y39506",
+   "ign": "cabbit",
+   "real": "Kayla Hartley",
+   "nat": "gb",
+   "born": "2003-09-06",
+   "agents": [
+    "cypher",
+    "vyse",
+    "viper",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y28870",
+   "ign": "k0rupt",
+   "real": "Wylie Watts",
+   "nat": "us",
+   "born": "2003-08-28",
+   "agents": [
+    "omen",
+    "fade",
+    "viper",
+    "sage",
+    "skye",
+    "harbor"
+   ]
+  },
+  {
+   "id": "Y28187",
+   "ign": "mili",
+   "real": "Selene Angel",
+   "nat": "mx",
+   "born": "2003-08-26",
+   "agents": [
+    "neon",
+    "raze",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y35660",
+   "ign": "tok1o",
+   "real": "Amaro Miranda",
+   "nat": "ar",
+   "born": "2003-08-26",
+   "agents": [
+    "chamber",
+    "vyse",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y40405",
+   "ign": "Ayman",
+   "real": "Mohammad Ayman Alam",
+   "nat": "bd",
+   "born": "2003-08-22",
+   "agents": []
+  },
+  {
+   "id": "Y29715",
+   "ign": "venture",
+   "real": null,
+   "nat": "us",
+   "born": "2003-06-10",
+   "agents": [
+    "sova",
+    "fade",
+    "jett",
+    "omen",
+    "raze",
+    "neon"
+   ]
+  },
+  {
+   "id": "Y20116",
+   "ign": "jademwah",
+   "real": "Jade Duffy",
+   "nat": "sx",
+   "born": "2003-05-16",
+   "agents": [
+    "fade",
+    "sova",
+    "skye"
+   ]
+  },
+  {
+   "id": "Y43935",
+   "ign": "ruso",
+   "real": null,
+   "nat": "ar",
+   "born": "2003-05-13",
+   "agents": [
+    "neon"
+   ]
+  },
+  {
+   "id": "Y42920",
+   "ign": "dave",
+   "real": "David Hunter",
+   "nat": "us",
+   "born": "2003-05-12",
+   "agents": []
+  },
+  {
+   "id": "Y24021",
+   "ign": "Snapss",
+   "real": null,
+   "nat": "cr",
+   "born": "2003-04-24",
+   "agents": [
+    "sova",
+    "tejo",
+    "skye",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y38133",
+   "ign": "anesilia",
+   "real": "Anastasia Ivanova",
+   "nat": "ru",
+   "born": "2003-04-19",
+   "agents": [
+    "viper",
+    "sage",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y30107",
+   "ign": "fluxxy",
+   "real": "Lola Ainslie",
+   "nat": "sx",
+   "born": "2003-04-15",
+   "agents": [
+    "omen",
+    "astra",
+    "harbor"
+   ]
+  },
+  {
+   "id": "Y28620",
+   "ign": "freya",
+   "real": "Leticia Almenda",
+   "nat": "br",
+   "born": "2003-03-25",
+   "agents": [
+    "cypher",
+    "vyse",
+    "killjoy",
+    "viper",
+    "chamber"
+   ]
+  },
+  {
+   "id": "Y2431",
+   "ign": "basya",
+   "real": "Branislav Koritca",
+   "nat": "ru",
+   "born": "2003-03-20",
+   "agents": []
+  },
+  {
+   "id": "Y29903",
+   "ign": "madv",
+   "real": "Modhi Alkanhal",
+   "nat": "sa",
+   "born": "2003-03-10",
+   "agents": [
+    "deadlock",
+    "waylay",
+    "tejo",
+    "phoenix"
+   ]
+  },
+  {
+   "id": "Y12143",
+   "ign": "Bizerra",
+   "real": "Vitoria Vieira",
+   "nat": "br",
+   "born": "2003-01-06",
+   "agents": [
+    "raze",
+    "sova",
+    "phoenix",
+    "sage",
+    "jett",
+    "tejo"
+   ]
+  },
+  {
+   "id": "Y28679",
+   "ign": "Reta",
+   "real": "Retaj Zuhair",
+   "nat": "sa",
+   "born": "2002-12-01",
+   "agents": []
+  },
+  {
+   "id": "Y11234",
+   "ign": "lule",
+   "real": "Luiza Meira",
+   "nat": "br",
+   "born": "2002-11-19",
+   "agents": [
+    "jett",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y11236",
+   "ign": "antG",
+   "real": "Antônia Garcia",
+   "nat": "br",
+   "born": "2002-11-07",
+   "agents": [
+    "viper",
+    "phoenix",
+    "tejo",
+    "omen",
+    "kayo"
+   ]
+  },
+  {
+   "id": "Y24107",
+   "ign": "sarah",
+   "real": "Sarah Ahmed",
+   "nat": "gb",
+   "born": "2002-09-30",
+   "agents": [
+    "cypher",
+    "viper",
+    "vyse"
+   ]
+  },
+  {
+   "id": "Y16621",
+   "ign": "Alexy",
+   "real": "Alexy Francisco",
+   "nat": "ph",
+   "born": "2002-08-14",
+   "agents": [
+    "sova",
+    "skye",
+    "kayo",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y24058",
+   "ign": "tokameite",
+   "real": "Anastasia Pozharskaya",
+   "nat": "ru",
+   "born": "2002-08-02",
+   "agents": [
+    "sova",
+    "fade",
+    "skye"
+   ]
+  },
+  {
+   "id": "Y40151",
+   "ign": "h4ste",
+   "real": "Park Ju-hwi (박주희)",
+   "nat": "kr",
+   "born": "2002-07-30",
+   "agents": [
+    "omen",
+    "astra",
+    "kayo"
+   ]
+  },
+  {
+   "id": "Y3079",
+   "ign": "alexis",
+   "real": "Alexis Guarrasi",
+   "nat": "us",
+   "born": "2002-07-25",
+   "agents": [
+    "fade",
+    "omen",
+    "kayo",
+    "deadlock",
+    "sage"
+   ]
+  },
+  {
+   "id": "Y22792",
+   "ign": "Jiex",
+   "real": "Şura Yıldırım",
+   "nat": "tr",
+   "born": "2002-07-07",
+   "agents": [
+    "omen",
+    "harbor",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y29223",
+   "ign": "Tura",
+   "real": "Frida Cervantes Camacho",
+   "nat": "mx",
+   "born": "2002-06-26",
+   "agents": [
+    "omen",
+    "harbor",
+    "brimstone",
+    "astra",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y7639",
+   "ign": "ezznap",
+   "real": "Faber Murillo",
+   "nat": "co",
+   "born": "2002-06-04",
+   "agents": [
+    "omen",
+    "astra",
+    "brimstone"
+   ]
+  },
+  {
+   "id": "Y5280",
+   "ign": "972",
+   "real": "Kim Tae-il (김태일)",
+   "nat": "kr",
+   "born": "2002-04-12",
+   "agents": []
+  },
+  {
+   "id": "Y18062",
+   "ign": "capriciouS",
+   "real": "Mary Grace Sabado",
+   "nat": "ph",
+   "born": "2002-04-10",
+   "agents": [
+    "fade",
+    "sova",
+    "omen"
+   ]
+  },
+  {
+   "id": "Y1328",
+   "ign": "Javiierh",
+   "real": "Javier Castro Alcantar",
+   "nat": "mx",
+   "born": "2002-02-21",
+   "agents": []
+  },
+  {
+   "id": "Y30060",
+   "ign": "Alessia",
+   "real": "Alessia Crisafo",
+   "nat": "es",
+   "born": "2002-02-21",
+   "agents": []
+  },
+  {
+   "id": "Y2909",
+   "ign": "alca",
+   "real": "Cristóbal Cancino",
+   "nat": "cl",
+   "born": "2002-01-07",
+   "agents": [
+    "sova",
+    "fade",
+    "tejo",
+    "skye"
+   ]
+  },
+  {
+   "id": "Y16018",
+   "ign": "babytz",
+   "real": "Pornlapat Wittayanan",
+   "nat": "th",
+   "born": "2001-12-31",
+   "agents": [
+    "cypher",
+    "chamber",
+    "viper"
+   ]
+  },
+  {
+   "id": "Y20222",
+   "ign": "crona",
+   "real": null,
+   "nat": "br",
+   "born": "2001-11-21",
+   "agents": [
+    "viper",
+    "chamber",
+    "sova",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y16642",
+   "ign": "CaspeR",
+   "real": "Neha Sottany",
+   "nat": "in",
+   "born": "2001-10-20",
+   "agents": [
+    "vyse",
+    "cypher",
+    "viper"
+   ]
+  },
+  {
+   "id": "Y30186",
+   "ign": "Nami",
+   "real": "Iman Nagaaoui",
+   "nat": "fr",
+   "born": "2001-09-21",
+   "agents": [
+    "omen",
+    "harbor"
+   ]
+  },
+  {
+   "id": "Y29279",
+   "ign": "ZIAN",
+   "real": "Lee Ji-an (이지안)",
+   "nat": "kr",
+   "born": "2001-09-05",
+   "agents": [
+    "skye",
+    "sova",
+    "fade"
+   ]
+  },
+  {
+   "id": "Y22180",
+   "ign": "SPMAK",
+   "real": "Markus Talliniemi",
+   "nat": "fi",
+   "born": "2001-08-09",
+   "agents": []
+  },
+  {
+   "id": "Y44075",
+   "ign": "dedmos",
+   "real": null,
+   "nat": "mx",
+   "born": "2001-07-16",
+   "agents": [
+    "omen",
+    "phoenix",
+    "brimstone",
+    "astra",
+    "harbor",
+    "sage"
+   ]
+  },
+  {
+   "id": "Y8329",
+   "ign": "StarBound",
+   "real": null,
+   "nat": "ca",
+   "born": "2001-07-15",
+   "agents": [
+    "chamber",
+    "vyse",
+    "cypher",
+    "killjoy"
+   ]
+  },
+  {
+   "id": "Y17332",
+   "ign": "jduh",
+   "real": "Ceyda Kondu",
+   "nat": "tr",
+   "born": "2001-07-12",
+   "agents": [
+    "omen",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y37990",
+   "ign": "adora",
+   "real": null,
+   "nat": "lt",
+   "born": "2001-06-06",
+   "agents": [
+    "neon",
+    "raze",
+    "waylay",
+    "jett"
+   ]
+  },
+  {
+   "id": "Y9123",
+   "ign": "DRAGziKW",
+   "real": "Elias Santiles",
+   "nat": "br",
+   "born": "2001-05-26",
+   "agents": [
+    "fade"
+   ]
+  },
+  {
+   "id": "Y15297",
+   "ign": "Joojina",
+   "real": "Letícia Paiva",
+   "nat": "br",
+   "born": "2001-05-21",
+   "agents": [
+    "omen",
+    "brimstone",
+    "astra"
+   ]
+  },
+  {
+   "id": "Y27724",
+   "ign": "Natasha",
+   "real": "Giulia Natasha",
+   "nat": "br",
+   "born": "2001-05-05",
+   "agents": [
+    "omen",
+    "vyse",
+    "cypher"
+   ]
+  },
+  {
+   "id": "Y17343",
+   "ign": "ness",
+   "real": "Neslişah Demir",
+   "nat": "tr",
+   "born": "2001-04-26",
+   "agents": [
+    "sova",
+    "fade",
+    "breach"
+   ]
+  },
+  {
+   "id": "Y29503",
+   "ign": "Medusa",
+   "real": "Anushka Patronia",
+   "nat": "in",
+   "born": "2001-01-25",
+   "agents": [
+    "cypher",
+    "vyse",
+    "viper"
+   ]
+  },
+  {
+   "id": "Y38185",
+   "ign": "Vam",
+   "real": null,
+   "nat": "sa",
+   "born": "2001-01-18",
+   "agents": [
+    "omen",
+    "breach",
+    "astra"
+   ]
+  }
+ ]
+}

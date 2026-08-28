@@ -13,3 +13,6 @@ dist-ssr
 # python bytecode
 __pycache__/
 *.pyc
+
+# scrape caches: raw vlr/liquipedia responses, rebuildable
+scripts/cache/

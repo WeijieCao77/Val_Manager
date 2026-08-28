@@ -778,6 +778,12 @@ export interface GameState {
   rivalry?: number
   /** day each player last had physio, so a session is once a week per player */
   physioOn?: Record<string, number>
+  /** prospects already let into the world, so nobody arrives twice */
+  prospectsTaken?: string[]
+  /** the squad you inherited, so an ending can ask who is still here */
+  startingSquad?: string[]
+  /** the career is over because ten seasons are up, not because you were sacked */
+  finished?: boolean
   /** agents the manager has chosen for the next match, keyed by map */
   agentPicks?: Record<string, Record<string, string>>
   /** maps the manager banned/picked himself for the next match */

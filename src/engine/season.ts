@@ -9,6 +9,8 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { mapCn } from './content'
+import { admitProspects } from './prospects'
+import { endingsFor, FINAL_YEAR } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -887,6 +889,31 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
  * goes into the digest, so the season turns over in front of you.
  */
 function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
+  // Ten seasons is the whole story: 2036 is the last campaign played, and when
+  // it is settled the career ends on its own terms rather than running on until
+  // somebody is sacked.
+  //
+  // This has to come FIRST, before a single line of the off-season runs. The
+  // check used to sit at the bottom, and by the time it was reached every
+  // expiring contract had already been let go, the retirements had already
+  // happened and ensureMinimumRosters had reshuffled the league — so the
+  // endings were judging a squad that had just been dissolved. 「一起走到最后」
+  // was decided after the men in question had walked out the door on the same
+  // afternoon, and 「本土主义」 came free to anyone left with three players.
+  // There is no 2037 to prepare for, so none of that should happen at all: the
+  // record ends with the last season, and the last season's squad is the one
+  // that gets judged.
+  if (state.year >= FINAL_YEAR) {
+    const earned = endingsFor(state)
+    state.finished = true
+    state.gameOver = earned[0]
+      ? `十年任期结束——${earned[0].title}`
+      : '十年任期结束。'
+    notes.push(`🏁 ${state.gameOver}`)
+    state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
+    return
+  }
+
   // ---- Ascension: each region's Challengers champion swaps with the weakest tier-1 side
   for (const region of REGIONS) {
     const chal = state.comps[compKey('challengers2', region)]
@@ -1007,6 +1034,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   })
   // clauses are judged on the season that just ended, before the counters reset
   notes.push(...settleSponsorDemands(state))
+  // and a new intake arrives, so a career that runs long still has somebody
+  // to sign and somebody to develop
+  notes.push(...admitProspects(state, rng))
   state.seasonGigs = 0
   state.bestPlacing = undefined
   notes.push(...seasonRollover(state, rng))

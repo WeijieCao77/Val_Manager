@@ -244,6 +244,9 @@ export function createNewGame(
   for (const pid of teams[myTeamId].roster) {
     state.training[pid] = 'rest'
   }
+  // the squad you inherited, kept so an ending can ask who is still here in
+  // ten years' time — the record, not a flag set when somebody leaves
+  state.startingSquad = [...teams[myTeamId].roster]
 
   void rng
   return state
