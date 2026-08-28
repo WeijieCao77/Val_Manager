@@ -11,7 +11,7 @@ import {
 import type { ManagerOrigin } from '../engine/manager'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { GameState, Region } from '../engine/types'
-import { money, OvrBadge, Bar } from './common'
+import { money, OvrBadge, Bar, Crest } from './common'
 import Credit from './Credit'
 
 export default function NewGame({
@@ -261,7 +261,10 @@ export default function NewGame({
                       title={top ? '联赛顶尖球队，需要靠成绩解锁' : ok ? '' : '你的声望还不足以接手这支球队'}
                       onClick={() => { setTeamId(t.id); setErr(null) }}>
                       <div className="row" style={{ justifyContent: 'space-between', gap: 6 }}>
-                        <div className="n">{t.name}</div>
+                        <div className="n" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <Crest id={t.id} size={22} />
+                          <span>{t.name}</span>
+                        </div>
                         <span className={`tag ${t.tier === 1 ? 't1' : ''}`}>
                           {t.tier === 1 ? 'VCT' : 'CHAL'}
                         </span>

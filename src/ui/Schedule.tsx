@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Panel, fmtDay } from './common'
+import { Panel, fmtDay, Crest } from './common'
 import { STAGES, fixturesFor, stageName } from '../engine/season'
 
 export default function Schedule() {
@@ -85,11 +85,16 @@ export default function Schedule() {
                         <td className="num muted mono sticky-name at-left">{fmtDay(f.day, game.year)}</td>
                         <td className="small hide-m">{game.comps[f.comp]?.name ?? f.comp}</td>
                         <td className="small muted">{f.label.replace(/^KO:\d+:/, '')}</td>
-                        <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>{a?.tag}</td>
+                        <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>
+                          <span className="club" style={{ justifyContent: 'flex-end' }}>
+                            <span>{a?.tag}</span><Crest id={f.teamA} /></span>
+                        </td>
                         <td className="center mono">
                           {r ? <b>{r.mapsWonA} : {r.mapsWonB}</b> : <span className="muted">BO{f.bo}</span>}
                         </td>
-                        <td className={r && !aWon ? 'pos' : ''} title={b?.name}>{b?.tag}</td>
+                        <td className={r && !aWon ? 'pos' : ''} title={b?.name}>
+                          <span className="club"><Crest id={f.teamB} /><span>{b?.tag}</span></span>
+                        </td>
                         <td className="tiny muted">{f.played ? '查看 ›' : ''}</td>
                       </tr>
                     )

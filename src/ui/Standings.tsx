@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { OvrBadge, Panel } from './common'
+import { OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
 import { sortStandings } from '../engine/league'
 import { ratingOf } from '../engine/match'
@@ -49,7 +49,9 @@ function Table({ comp }: { comp: Competition }) {
                   {!comp.champion && i + 1 === cut && ''}
                 </td>
                 <td style={{ borderLeft: !comp.champion && i < cut ? '2px solid var(--accent)' : '2px solid transparent' }}>
-                  <span title={game.teams[id]?.name}>{game.teams[id]?.tag}</span>
+                  <span className="club" title={game.teams[id]?.name}>
+                    <Crest id={id} /><span>{game.teams[id]?.tag}</span>
+                  </span>
                 </td>
                 <td className="num mono">{r.w}-{r.l}</td>
                 <td className="num muted">{r.mapW}-{r.mapL}</td>
@@ -144,7 +146,9 @@ export default function Standings() {
                         {c.finished.map((id, i) => (
                           <tr key={id} className={id === game.myTeam ? 'me' : ''}>
                             <td className="num muted">{i + 1}{c.champion === id && ' 🏆'}</td>
-                            <td><span title={game.teams[id]?.name}>{game.teams[id]?.tag}</span></td>
+                            <td><span className="club" title={game.teams[id]?.name}>
+                              <Crest id={id} /><span>{game.teams[id]?.tag}</span>
+                            </span></td>
                             <td className="small muted">{REGION_CN[game.teams[id]?.region]}</td>
                           </tr>
                         ))}

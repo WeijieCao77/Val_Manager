@@ -2,7 +2,7 @@ import { useState } from 'react'
 import WhyPanel from './WhyPanel'
 import { mapCn, AGENT_ROLE } from '../engine/content'
 import { useGame } from './ctx'
-import { Modal, MultiRadar, OvrBadge, Roles } from './common'
+import { Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import { ratingOf } from '../engine/match'
 import type { Fixture, MapLine, MapScore } from '../engine/types'
@@ -67,13 +67,17 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       onClose={onClose}
     >
       <div className="score-line">
-        <div className={`t a ${aWon ? 'win' : ''}`} title={a.name}>{a.tag}</div>
+        <div className={`t a ${aWon ? 'win' : ''}`} title={a.name}>
+          <Crest id={fixture.teamA} size={30} /><span>{a.tag}</span>
+        </div>
         <div className="s">
           <span className={aWon ? 'win' : 'muted'}>{r.mapsWonA}</span>
           <span className="muted"> : </span>
           <span className={!aWon ? 'win' : 'muted'}>{r.mapsWonB}</span>
         </div>
-        <div className={`t ${!aWon ? 'win' : ''}`} title={b.name}>{b.tag}</div>
+        <div className={`t ${!aWon ? 'win' : ''}`} title={b.name}>
+          <Crest id={fixture.teamB} size={30} /><span>{b.tag}</span>
+        </div>
       </div>
 
       {involved && (

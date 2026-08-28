@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
 import { analystEdge } from '../engine/staff'
+import { crestUrl } from '../engine/dossier'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
@@ -75,12 +76,46 @@ export function Potential({ p, game }: { p: Player; game: GameState }) {
  * with the full name on hover; `full` is for the places that warrant it: match
  * headers, news, contract screens.
  */
+/**
+ * A club's crest.
+ *
+ * The images were scraped for the card mode; there is no reason the career
+ * should be the plainer of the two. 76 of the world's 78 clubs have one, so
+ * this renders nothing at all rather than a placeholder for the other two —
+ * a missing crest should leave the layout as it was, not put a grey box in it.
+ */
+export function Crest({
+  id, size = 18, className,
+}: { id: string | null | undefined; size?: number; className?: string }) {
+  const src = crestUrl(id)
+  if (!src) return null
+  return (
+    <img
+      className={`crest${className ? ' ' + className : ''}`}
+      src={src}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+    />
+  )
+}
+
 export function Club({
-  id, game, full = false,
-}: { id: string | null | undefined; game: GameState; full?: boolean }) {
+  id, game, full = false, crest = false,
+}: { id: string | null | undefined; game: GameState; full?: boolean; crest?: boolean }) {
   const t = id ? game.teams[id] : null
   if (!t) return <span className="muted">自由人</span>
-  return <span title={full ? t.tag : t.name}>{full ? t.name : t.tag}</span>
+  const label = full ? t.name : t.tag
+  if (!crest) return <span title={full ? t.tag : t.name}>{label}</span>
+  return (
+    <span className="club" title={full ? t.tag : t.name}>
+      <Crest id={id} />
+      <span>{label}</span>
+    </span>
+  )
 }
 
 /** Does this query match the club by tag or by full name? */

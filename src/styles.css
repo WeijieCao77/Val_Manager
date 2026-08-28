@@ -488,8 +488,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .score-line {
   display: flex; align-items: center; justify-content: center; gap: 18px; padding: 16px 0;
 }
-.score-line .t { font-size: 18px; font-weight: 700; flex: 1; }
-.score-line .t.a { text-align: right; }
+.score-line .t {
+  font-size: 18px; font-weight: 700; flex: 1;
+  display: flex; align-items: center; gap: 9px;
+}
+.score-line .t.a { justify-content: flex-end; text-align: right; }
 .score-line .s {
   font-family: var(--mono); font-size: 32px; font-weight: 800;
   letter-spacing: .04em; white-space: nowrap; font-variant-numeric: tabular-nums;
@@ -1449,3 +1452,17 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   box-shadow: 0 12px 28px rgba(0, 0, 0, .6);
 }
 .cardface.r-mythic.tap:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, .6), 0 0 26px rgba(180, 120, 255, .35); }
+
+/* ---------------------------------------------------------------- crests
+
+   Scraped for the card mode and equally at home in the career. Sized in em so
+   a crest tracks whatever type it sits beside, and never wider than tall — a
+   few of the source images are letterboxed. */
+.crest {
+  flex: none; object-fit: contain; vertical-align: -.18em;
+  border-radius: 2px;
+}
+.club { display: inline-flex; align-items: center; gap: 6px; }
+.club .crest { vertical-align: baseline; }
+/* the club in the header wears its crest a size up */
+.brand-club { display: inline-flex; align-items: center; gap: 7px; }

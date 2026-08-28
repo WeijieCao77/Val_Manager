@@ -22,7 +22,7 @@ import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
 import { screenLocked } from './engine/agenda'
-import { money } from './ui/common'
+import { money, Crest } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
 import Credit from './ui/Credit'
@@ -221,7 +221,8 @@ export default function App() {
             VAL<span>MANAGER</span>
             <em className="by">猪之家出品</em>
           </div>
-          <div className="chip" title="所属俱乐部">
+          <div className="chip brand-club" title="所属俱乐部">
+            <Crest id={game.myTeam} size={20} />
             <b>{myTeam?.name}</b>
             <span className={`tag ${myTeam?.tier === 1 ? 't1' : 't2'}`}>
               {myTeam?.tier === 1 ? 'VCT' : 'CHAL'}
