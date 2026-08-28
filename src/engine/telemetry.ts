@@ -17,7 +17,12 @@
  * events are dropped.
  */
 
-const ENDPOINT = '/api/e'
+// Relative like the card api, so a copy served under a subpath (the B站 Toy
+// platform, a GitHub Pages checkout) posts into its own path — where the 404
+// drops the event, as designed — instead of at the host's real API root.
+// Guarded because scripts/ import the engine through tsx, where there is no
+// Vite env and reading it throws before any test runs.
+const ENDPOINT = `${typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'}api/e`
 const ID_KEY = 'vm:vid'
 const SEQ_KEY = 'vm:vseq'
 
