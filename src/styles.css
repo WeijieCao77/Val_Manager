@@ -1376,27 +1376,73 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .cardface.shot { aspect-ratio: 36 / 50; }
 .cf-push { flex: 1; }
 
-/* ---- the club crest, behind an ordinary card ------------------------
+/* ---- the club crest ---------------------------------------------------
  *
- * A gold card is a player AT a club, and the club was three letters in 10px
- * type. The crest goes behind the portrait, big and faint: readable as a badge
- * across a grid, never competing with the face.
+ * It started as a big watermark behind the portrait and covered a good part of
+ * the photograph, which on a card whose whole job is the photograph is the
+ * wrong trade. It sits in the top-right corner now: small enough to stay out
+ * of the way, solid enough to actually read as a badge.
  */
 .cf-crest {
   position: absolute;
-  top: 6%; left: 50%;
-  width: 88%; height: 62%;
-  transform: translateX(-50%);
+  top: 7px; right: 8px;
+  width: 30px; height: 30px;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: .17;
-  z-index: 0;
+  opacity: .92;
+  z-index: 3;
   pointer-events: none;
-  /* the crests are full-colour PNGs; flattened to the card's own ink they read
-     as an emboss instead of a sticker */
-  filter: grayscale(1) contrast(.6) brightness(.35);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55));
 }
-.cardface.r-gold .cf-crest { filter: grayscale(1) contrast(.7) brightness(.3); opacity: .2; }
-.cardface.r-silver .cf-crest { filter: grayscale(1) contrast(.7) brightness(.3); opacity: .18; }
-.cardface.r-bronze .cf-crest { filter: grayscale(1) contrast(.7) brightness(.25); opacity: .2; }
+.s-sm .cf-crest { width: 21px; height: 21px; top: 5px; right: 6px; }
+.s-lg .cf-crest { width: 40px; height: 40px; top: 10px; right: 11px; }
+/* a legend already has its star up there */
+.cardface.shot .cf-crest { display: none; }
+
+/* ---- polish ----------------------------------------------------------
+ *
+ * Small things that add up: a card should look like it was printed, not like
+ * a div with a gradient.
+ */
+
+/* a hairline inside the border reads as the edge of a laminate */
+.cardface::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+  pointer-events: none;
+  z-index: 3;
+}
+.cardface.r-mythic::after { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .34); }
+
+/* the rating is the first thing read, so give it some weight */
+.cf-rate b {
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .25);
+}
+.cardface.shot .cf-rate b { text-shadow: 0 2px 6px rgba(0, 0, 0, .9); }
+
+/* the portrait gets a soft ring instead of a hard 1px line */
+.cf-photo {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .55),
+    0 2px 8px rgba(0, 0, 0, .3);
+}
+
+/* the moment ribbon: a plate rather than a grey box */
+.cf-moment {
+  background: linear-gradient(180deg, rgba(20, 14, 40, .82), rgba(8, 6, 18, .9));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+
+/* hover lifts the whole thing rather than just nudging it */
+.cardface.tap:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .6);
+}
+.cardface.r-mythic.tap:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, .6), 0 0 26px rgba(180, 120, 255, .35); }

@@ -51,6 +51,21 @@ _last = 0.0
 # Hand-picked overrides. Liquipedia had nothing on the night for these two —
 # only white-background studio portraits — and the owner found the trophy shots
 # himself, so the picker is told to leave them alone.
+# The scorer ranks by what the filename claims, and a filename cannot say
+# whether the man is actually visible in the picture. These were overruled by
+# eye: f0rsakeN's top-scoring file is a motion shot of a monitor with a
+# shoulder behind it.
+OVERRIDE_FILE: dict[str, str] = {
+    "L:forsaken-toronto-2025": "File:Paper Rex f0rsakeN at VCT Pacific 2026 Kickoff.jpg",
+}
+
+# Where the subject's face is in the source, as a fraction of height, and how
+# much of the frame to take. Default is the top of the image; these are the
+# ones where the face sits low and the caption would land on it.
+CROP: dict[str, dict] = {
+    "L:chichoo-champions-2024": {"cy": 0.62, "zoom": 0.62},
+}
+
 MANUAL: dict[str, str] = {
     "L:nats-berlin-2021": "51496042175_e20b6b07ff_o.jpg",
     "L:neon-london-2026": "55348185912_d7d333db67_o.jpg",
@@ -159,6 +174,8 @@ def main() -> int:
                 print(f"  ✗ {spec['ign']:<10} 没有可用照片", flush=True)
                 continue
             picks[lid] = {"file": best[1], "tier": best[2], "score": best[0]}
+            if lid in OVERRIDE_FILE:
+                picks[lid] = {"file": OVERRIDE_FILE[lid], "tier": "override", "score": 999}
             print(f"  {'🏆' if best[2] == 'trophy' else '·'} {spec['ign']:<10} [{best[2]:<6}] {best[1]}", flush=True)
     except RateLimited as e:
         print(f"RATE LIMITED: {e}", file=sys.stderr)
@@ -187,6 +204,9 @@ def main() -> int:
             if pick["file"] in info:
                 pick.update(info[pick["file"]])
 
+    for lid, c in CROP.items():
+        if lid in picks:
+            picks[lid]["crop"] = c
     OUT.write_text(json.dumps({"picks": picks}, ensure_ascii=False, indent=1), encoding="utf-8")
     tiers: dict[str, int] = {}
     for p in picks.values():

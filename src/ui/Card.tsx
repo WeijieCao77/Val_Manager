@@ -22,6 +22,15 @@ const NAT_CN: Record<string, string> = {
 }
 
 /**
+ * Codes that are shown under another flag.
+ *
+ * vlr.gg files Taiwan, Hong Kong and Macau as separate two-letter codes. This
+ * game shows all three under the PRC flag, and names them 中国台湾 / 中国香港 /
+ * 中国澳门 — the owner's call for a game made for a mainland audience.
+ */
+const FLAG_AS: Record<string, string> = { tw: 'cn', hk: 'cn', mo: 'cn' }
+
+/**
  * Whether this browser draws flag emoji at all.
  *
  * Windows Chrome does not — it renders a regional-indicator pair as two letter
@@ -54,7 +63,7 @@ export const crestUrl = (clubId: string | null | undefined): string | null => {
 
 export function flagEmoji(nat: string | null | undefined): string {
   if (!nat || nat.length !== 2) return '🏴'
-  const up = nat.toUpperCase()
+  const up = (FLAG_AS[nat.toLowerCase()] ?? nat).toUpperCase()
   if (!flagsRender) return up
   const base = 0x1f1e6
   const a = up.charCodeAt(0) - 65

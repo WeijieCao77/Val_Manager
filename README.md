@@ -20,8 +20,9 @@
 | Rating / ACS / K/D / KAST / ADR / KPR / APR / 首杀率 / 爆头率 | vlr.gg | 真实赛季统计 |
 | 选手真名、生日 | [Liquipedia](https://liquipedia.net/valorant) | 官方 MediaWiki API，318/340 人 |
 | 选手照片 | vlr.gg 选手页 + Liquipedia | 430/518 人（vlr 399 + Liquipedia 31）；剩下的用剪影 |
+| 国旗 | vlr.gg | 中国台湾 / 中国香港 / 中国澳门 统一显示五星红旗 |
 | 彩卡照片 | Liquipedia commons + 手工补 2 张 | 20/20，取自夺冠当场的比赛照，多张是捧杯照 |
-| 战队队标 | vlr.gg 战队页 | 76/78，作普通卡背景水印 |
+| 战队队标 | vlr.gg 战队页 | 76/78，放在普通卡右上角 |
 | 教练/分析师照片、国籍、真名 | vlr.gg 战队页教练组 + Liquipedia | 60/69 人 |
 | 生涯队伍履历（带起止日期） | Liquipedia `TeamHistoryAuto` | 448/518 人 |
 | 赛事名次、生涯奖金 | vlr.gg 选手页 Event Placements | 518/518 人，共 533 项赛事 |
@@ -136,6 +137,10 @@ FC / 电竞经理那一套，但卡面上的每一个人都是真的。
 
 **照片就是卡面**。彩卡不画圆头像，整张夺冠现场照铺满卡片，说明文字压在从底部升起的
 遮罩上——舞台灯每张照片的高光位置都不一样，只有渐变遮罩能保证字始终读得清。
+底部三分之一是文字区，所以裁切默认从画面上方取；个别照片里人站得低（CHICHOO 举杯那张），
+在 `fetch_legend_faces.py` 的 `CROP` 里单独给了焦点和缩放。挑选器只认文件名，
+认不出「人有没有真的入镜」——f0rsakeN 得分最高的那张是一块显示器加半个肩膀，
+所以 `OVERRIDE_FILE` 里换掉了。
 用的是他夺冠当届的现场照——
 Alfajer、Boaster、CHICHOO、Chronicle、Derke、Ethan、zeek、ZmjjKK 抱着奖杯，
 其余大多在台上。取自 Liquipedia commons（CC BY-SA，卡片详情里附文件页链接）。

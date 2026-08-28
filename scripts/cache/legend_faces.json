@@ -73,11 +73,11 @@
    "author": null
   },
   "L:forsaken-toronto-2025": {
-   "file": "File:PRX f0rsaken at Valorant Champions 2025 - Day 5.jpg",
-   "tier": "era",
-   "score": 200,
-   "url": "https://liquipedia.net/commons/images/thumb/9/97/PRX_f0rsaken_at_Valorant_Champions_2025_-_Day_5.jpg/500px-PRX_f0rsaken_at_Valorant_Champions_2025_-_Day_5.jpg",
-   "page": "https://liquipedia.net/commons/File:PRX_f0rsaken_at_Valorant_Champions_2025_-_Day_5.jpg",
+   "file": "File:Paper Rex f0rsakeN at VCT Pacific 2026 Kickoff.jpg",
+   "tier": "override",
+   "score": 999,
+   "url": "https://liquipedia.net/commons/images/thumb/4/4b/Paper_Rex_f0rsakeN_at_VCT_Pacific_2026_Kickoff.jpg/500px-Paper_Rex_f0rsakeN_at_VCT_Pacific_2026_Kickoff.jpg",
+   "page": "https://liquipedia.net/commons/File:Paper_Rex_f0rsakeN_at_VCT_Pacific_2026_Kickoff.jpg",
    "license": null,
    "author": null
   },
@@ -178,7 +178,11 @@
    "url": "https://liquipedia.net/commons/images/thumb/2/21/EDG_CHICHOO_at_Champions_2024.jpg/500px-EDG_CHICHOO_at_Champions_2024.jpg",
    "page": "https://liquipedia.net/commons/File:EDG_CHICHOO_at_Champions_2024.jpg",
    "license": null,
-   "author": null
+   "author": null,
+   "crop": {
+    "cy": 0.62,
+    "zoom": 0.62
+   }
   }
  }
 }

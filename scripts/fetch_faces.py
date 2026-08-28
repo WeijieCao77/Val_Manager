@@ -61,11 +61,31 @@ def get(url: str) -> bytes:
         return r.read()
 
 
-def portrait(im: Image.Image) -> Image.Image:
-    """Crop to the card's shape, centre horizontally, favour the top."""
+def portrait(im: Image.Image, crop: dict | None = None) -> Image.Image:
+    """
+    Crop to the card's shape.
+
+    By default: centre horizontally, take from the top, because the bottom
+    third of a card is caption and a face that lands there is a face nobody
+    sees. `crop` overrides that for the photographs where the subject is low
+    in the frame — `cy` is where his face is as a fraction of the height, and
+    `zoom` is how much of the frame to keep.
+    """
     want = LEGEND_W / LEGEND_H
     w, h = im.size
-    if w / h > want:
+    if crop:
+        keep_h = max(1, int(h * float(crop.get("zoom", 1.0))))
+        keep_w = max(1, int(keep_h * want))
+        if keep_w > w:
+            keep_w, keep_h = w, int(w / want)
+        # put the face a third of the way down the kept region, which is where
+        # the card shows it above the caption
+        cy = float(crop.get("cy", 0.4)) * h
+        y = int(min(max(0, cy - keep_h * 0.34), h - keep_h))
+        cx = float(crop.get("cx", 0.5)) * w
+        x = int(min(max(0, cx - keep_w / 2), w - keep_w))
+        im = im.crop((x, y, x + keep_w, y + keep_h))
+    elif w / h > want:
         new_w = int(h * want)
         x = (w - new_w) // 2
         im = im.crop((x, 0, x + new_w, h))
@@ -142,11 +162,14 @@ def main() -> int:
             jobs.append((name, coach_file(name), url))
 
     manual = load(CACHE / "manual_faces.json", {})
+    crops: dict[str, dict] = {}
     for lid, pick in (load(LEGEND, {}).get("picks") or {}).items():
         if lid in manual:
             continue              # imported by hand; leave it alone
         if pick.get("url"):
             jobs.append((lid, legend_file(lid), pick["url"]))
+            if pick.get("crop"):
+                crops[legend_file(lid)] = pick["crop"]
 
     done = skipped = failed = 0
     for label, fname, url in jobs:
@@ -158,7 +181,8 @@ def main() -> int:
             raw = get(url)
             im = Image.open(io.BytesIO(raw)).convert("RGBA")
             # webp keeps the transparent cut-outs vlr uses for some players
-            shaped = portrait(im.convert("RGB")) if fname.startswith("l-") else square(im)
+            shaped = (portrait(im.convert("RGB"), crops.get(fname))
+                      if fname.startswith("l-") else square(im))
             shaped.save(dest, "WEBP", quality=QUALITY, method=6)
             done += 1
             print(f"  {label:<16} {dest.stat().st_size/1024:5.1f}KB", flush=True)
