@@ -15,6 +15,7 @@ import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { Rng } from '../src/engine/rng'
 import { setupSeason, advanceDay, SEASON_DAYS } from '../src/engine/season'
 import { endingsFor, ENDING_COUNT, FINAL_YEAR } from '../src/engine/endings'
+import { ACHIEVEMENTS, ACHIEVEMENT_COUNT, earnedNow } from '../src/engine/achievements'
 import { INTAKE_FROM, PROSPECTS } from '../src/engine/prospects'
 import { doTransfer, windowOpen } from '../src/engine/transfer'
 import { contractLength, expectedSalary } from '../src/engine/player'
@@ -84,6 +85,8 @@ function state_keepFaith(g: GameState): void {
 
 const TAGS = ['TYL', 'SEN', 'FNC', 'PRX', 'NRG', 'T1']
 const seen = new Map<string, number>()
+/** every achievement any of these careers managed to earn, and how often */
+const badges = new Map<string, number>()
 
 for (let s = 0; s < SEEDS; s++) {
   const tag = TAGS[s % TAGS.length]
@@ -107,6 +110,9 @@ for (let s = 0; s < SEEDS; s++) {
       break
     }
     days++
+    // achievements are cumulative in the real game, so collect them as they
+    // become true rather than only asking at the end
+    if (days % 7 === 0) for (const k of earnedNow(g)) badges.set(k, (badges.get(k) ?? 0) + 1)
     if (SURVIVE) {
       state_keepFaith(g)
     }
@@ -154,6 +160,12 @@ console.log(`\n青训池 ${PROSPECTS.length} 人，${INTAKE_FROM} 年起入池`
   + (SURVIVE ? '｜董事会压力已关闭，专测十年路径' : '｜董事会照常施压'))
 console.log(`${SEEDS} 段生涯里出现过的结局（共 ${ENDING_COUNT} 种）：`)
 for (const [t, n] of [...seen].sort((a, b) => b[1] - a[1])) console.log(`  ${t} ×${n}`)
+
+console.log(`\n成就（共 ${ACHIEVEMENT_COUNT} 条）——这 ${SEEDS} 段生涯里拿到了哪些：`)
+const got = ACHIEVEMENTS.filter((a) => badges.has(a.key))
+const missed = ACHIEVEMENTS.filter((a) => !badges.has(a.key))
+console.log('  拿到 ' + got.length + '：' + got.map((a) => a.title).join('、'))
+console.log('  没拿到 ' + missed.length + '：' + missed.map((a) => `${a.title}（${a.brief}）`).join('；'))
 
 console.log(bad ? `\n${bad} 处异常` : '\n没有异常')
 process.exit(bad ? 1 : 0)

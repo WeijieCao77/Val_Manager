@@ -564,6 +564,12 @@ export function moveToClub(state: GameState, teamId: string): string {
   state.tenures.push({ teamId: to.id, fromYear: state.year })
 
   state.myTeam = to.id
+  // a new squad, and their development starts being yours from today — the
+  // stars you walked in on are not something you built
+  for (const id of to.roster) {
+    const p = state.players[id]
+    if (p) p.arrivedOverall = p.overall
+  }
   state.jobOffers = []
   state.jobApplications = []
   state.managerContract = undefined

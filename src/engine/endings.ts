@@ -226,31 +226,7 @@ export const endingsFor = (state: GameState): Ending[] => {
 /** The one it is remembered by. */
 export const endingOf = (state: GameState): Ending | null => endingsFor(state)[0] ?? null
 
-// ---------------------------------------------------------------- collection
-
-const UNLOCKED = 'valmanager:endings'
-
-/** Endings this account has ever reached, keyed by the card mode's id. */
-export function unlockedEndings(id: string | null): EndingKey[] {
-  try {
-    const raw = localStorage.getItem(`${UNLOCKED}:${id ?? 'local'}`)
-    const list = raw ? (JSON.parse(raw) as string[]) : []
-    return list.filter((k): k is EndingKey => ENDINGS.some((e) => e.key === k))
-  } catch {
-    return []
-  }
-}
-
-/** Record a finished career. Returns the ones that are new. */
-export function recordEndings(id: string | null, keys: EndingKey[]): EndingKey[] {
-  const had = new Set(unlockedEndings(id))
-  const fresh = keys.filter((k) => !had.has(k))
-  if (!fresh.length) return []
-  try {
-    localStorage.setItem(
-      `${UNLOCKED}:${id ?? 'local'}`,
-      JSON.stringify([...had, ...fresh]),
-    )
-  } catch { /* a collection that cannot be saved is not worth a crash */ }
-  return fresh
-}
+// The collection used to live here, in its own localStorage key. It moved to
+// engine/profile.ts when the account stopped being the card mode's and became
+// the site's — endings, achievements and the lifetime record are one row now,
+// and keeping a second copy of half of it here could only ever disagree.

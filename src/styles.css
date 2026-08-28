@@ -1466,3 +1466,182 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .club .crest { vertical-align: baseline; }
 /* the club in the header wears its crest a size up */
 .brand-club { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ---------------------------------------------------------------- home
+
+   The front page. Two games, one account, and nothing that needs either
+   game's bundle to render.
+
+   It borrows the same tokens as the rest of the site rather than inventing a
+   landing-page palette — the point of a front page for these two is that they
+   look like they come from the same place. The one thing it does differently
+   is scale: the cards are the only objects on the screen, so they get room. */
+.home {
+  min-height: 100dvh; background: var(--bg);
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 0 20px 40px;
+}
+.home-bar {
+  display: flex; align-items: center; gap: 12px;
+  height: 52px; border-bottom: 1px solid var(--line-soft);
+  margin: 0 -20px 0; padding: 0 20px;
+}
+.home-bar .spacer { flex: 1; }
+.home-mark {
+  font-weight: 800; letter-spacing: .14em; font-size: 14px;
+  color: var(--accent); text-transform: uppercase; white-space: nowrap;
+}
+.home-mark span { color: var(--text); }
+
+.home-id {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 5px 10px;
+  color: var(--text); font-size: var(--t-small);
+}
+.home-id:hover { border-color: var(--accent-line); }
+.home-id .lnk {
+  background: none; border: 0; padding: 0 2px; cursor: pointer;
+  color: var(--faint); font-size: 11px; font-family: var(--sans);
+}
+.home-id .lnk:hover { color: var(--accent); }
+.home-id .k { color: var(--faint); letter-spacing: .1em; font-size: 10px; }
+.home-id b { font-size: 11.5px; letter-spacing: .02em; }
+.home-id.ghost { cursor: default; color: var(--muted); }
+.home-id.ghost:hover { border-color: var(--line); }
+
+.home-hero { max-width: 1120px; width: 100%; margin: 14px auto 0; }
+.home-hero h1 {
+  margin: 0 0 6px; font-size: var(--t-display); line-height: 1.15;
+  letter-spacing: -.01em; text-wrap: balance;
+}
+.home-hero p { margin: 0; color: var(--muted); font-size: var(--t-body); max-width: 62ch; }
+
+.home-cards {
+  max-width: 1120px; width: 100%; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;
+}
+.home-card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: border-color .16s ease, transform .16s ease;
+}
+.home-card:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+
+/* The artwork band is made of things the game already ships — club crests and
+   the players' own photographs — so each card is a picture of its own game
+   rather than stock decoration. */
+.home-art {
+  height: 132px; position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 18px;
+  background:
+    linear-gradient(115deg, rgba(255, 70, 85, .16), transparent 62%),
+    var(--panel-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+.home-art::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to top, var(--panel) 2%, transparent 62%);
+  pointer-events: none;
+}
+.home-art.crests .crest { width: 44px; height: 44px; opacity: .82; }
+.home-art.faces img {
+  width: 62px; height: 82px; object-fit: cover; object-position: top center;
+  border-radius: 2px; opacity: .9;
+  /* a slight fan, so six portraits read as a hand of cards and not a row */
+  transform: rotate(-3deg);
+}
+.home-art.faces img:nth-child(even) { transform: rotate(3deg) translateY(4px); }
+
+.home-body { padding: 16px 18px 18px; display: flex; flex-direction: column; flex: 1; gap: 8px; }
+.home-body h2 { margin: 0; font-size: 25px; letter-spacing: -.01em; }
+.home-body .lede { margin: 0; color: var(--accent); font-size: var(--t-small); letter-spacing: .04em; }
+.home-body .blurb { margin: 2px 0 0; color: var(--muted); font-size: var(--t-body); line-height: 1.75; }
+.home-facts {
+  list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 6px 16px;
+  color: var(--faint); font-size: var(--t-small);
+}
+.home-facts b { color: var(--text); font-variant-numeric: tabular-nums; }
+.home-go {
+  margin-top: auto; padding-top: 14px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.home-go .primary { padding: 9px 18px; font-size: var(--t-body); }
+.home-resume {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: var(--t-small);
+}
+.tag.beta { background: var(--warn-wash); color: var(--warn); border-color: transparent; }
+
+.home-strip {
+  max-width: 1120px; width: 100%; margin: 0 auto;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: var(--radius); padding: 14px 18px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 34px;
+}
+.home-stat { display: flex; flex-direction: column; gap: 2px; }
+.home-stat .k { color: var(--faint); font-size: 11px; letter-spacing: .08em; }
+.home-stat .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.home-stat .v em { font-style: normal; color: var(--faint); font-size: 12px; font-weight: 500; }
+.home-note { flex-basis: 100%; margin: 4px 0 0; line-height: 1.7; }
+
+.home-foot {
+  max-width: 1120px; width: 100%; margin: 6px auto 0;
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  color: var(--muted); font-size: var(--t-small);
+}
+
+/* The wordmark in the career header is a link home now, so it has to stop
+   looking like a <button> without stopping behaving like one. */
+.brand.as-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; display: inline-flex; align-items: baseline; gap: 6px;
+}
+.brand.as-link:hover span { color: var(--accent); }
+
+@media (max-width: 860px) {
+  .home-cards { grid-template-columns: minmax(0, 1fr); }
+  .home-hero h1 { font-size: 30px; }
+  .home { gap: 16px; padding: 0 14px 32px; }
+  .home-bar { margin: 0 -14px; padding: 0 14px; }
+  .home-art { height: 108px; gap: 10px; }
+  .home-art.crests .crest { width: 36px; height: 36px; }
+  .home-art.faces img { width: 50px; height: 68px; }
+  .home-body h2 { font-size: 21px; }
+  .home-id { gap: 6px; padding: 4px 8px; }
+  .home-id b { font-size: 10px; letter-spacing: 0; }
+  .home-id .lnk { font-size: 10px; }
+  .home-mark { letter-spacing: .1em; font-size: 12.5px; }
+  .home-strip { gap: 10px 22px; }
+}
+
+/* ---------------------------------------------------------------- achievements */
+.ach-group { margin-top: 14px; }
+.ach-group:first-child { margin-top: 0; }
+.ach-group h3 {
+  margin: 0 0 8px; font-size: var(--t-small); color: var(--muted);
+  letter-spacing: .08em; font-weight: 600;
+}
+.ach-group h3 em {
+  font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums;
+  margin-left: 6px;
+}
+.ach-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.ach {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 8px 10px; border: 1px solid var(--line-soft);
+  border-radius: var(--radius); background: var(--bg-rail);
+}
+.ach > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ach b { font-size: var(--t-body); color: var(--faint); font-weight: 600; }
+.ach .mark { color: var(--faint); line-height: 1.5; flex: none; }
+.ach.got { background: var(--panel-2); border-color: var(--line); }
+.ach.got b { color: var(--text); }
+.ach.got .mark { color: var(--warn); }
+/* the rare ones earn the brand colour; nothing else in this list gets it */
+.ach.got.hard .mark { color: var(--accent); }
+.ach.got.hard { border-color: var(--accent-line); }
+@media (max-width: 720px) { .ach-list { grid-template-columns: minmax(0, 1fr); } }

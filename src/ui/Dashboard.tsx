@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { achievementBy, earnedNow } from '../engine/achievements'
+import { record } from '../engine/profile'
 import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { track } from '../engine/telemetry'
@@ -41,6 +43,15 @@ export default function Dashboard() {
   const handleReports = (reports: DayReport[], fromDay: number) => {
     const pending = reports.map((r) => r.pendingMine).filter(Boolean)[0]
     commit()
+    // Achievements are read off the save rather than raised as events, so the
+    // check simply runs after every turn and asks what is true now. `record`
+    // returns only what was NOT already unlocked, which is what stops a badge
+    // popping again every single day once it has been earned.
+    const fresh = record({ achievements: earnedNow(game) }).fresh.achievements
+    for (const key of fresh.slice(0, 3)) {
+      const a = achievementBy(key)
+      if (a) toast(`🏅 成就解锁：${a.title}`)
+    }
     // your own match is handed to the live view, which offers watch or skip;
     // otherwise the turn reports what it did rather than dropping every note
     // but the last one into a toast

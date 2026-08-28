@@ -159,6 +159,16 @@ export interface Player {
   birth?: string | null
   /** true when age was inferred rather than taken from a real birthdate */
   ageEstimated?: boolean
+  /**
+   * What he was rated the day he became yours.
+   *
+   * Set when a player joins the managed club — including the squad inherited
+   * at the start, because those are yours from day one too. It exists so that
+   * 「练到 90」 can mean练: without it the question a badge asks is only "is
+   * there a 90 on the roster", which a top club answers before you have done
+   * anything at all.
+   */
+  arrivedOverall?: number
   /** the real statistical line this player's attributes were derived from */
   vlr?: VlrLine
   /** primary role — the one they play most */

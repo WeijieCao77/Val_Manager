@@ -23,6 +23,7 @@ import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
 import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
+import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
 import { overview, prune } from './stats.js'
 import { dashboardHtml } from './dashboard.js'
 
@@ -65,6 +66,7 @@ if (process.env.DATABASE_URL) {
     })
     await sql.unsafe(SCHEMA)
     await sql.unsafe(CARD_SCHEMA)
+    await sql.unsafe(PROFILE_SCHEMA)
     console.log('analytics: connected, schema ready')
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
@@ -222,6 +224,8 @@ async function stats(req, res, url) {
 
 const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json }))
 let _cardApi = null
+const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
+let _profileApi = null
 
 createServer((req, res) => {
   // A malformed escape — GET /% is enough — makes decodeURIComponent throw,
@@ -252,6 +256,16 @@ createServer((req, res) => {
     })
     return
   }
+  if (path.startsWith('/api/profile/')) {
+    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
+    void profileApi().route(req, res, path, bucketOf(req)).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('profile: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
+    return
+  }
   if (path === '/api/stats') { void stats(req, res, url); return }
   if (path === '/api/forget') {
     // Remove one visitor's rows. Needed because the ingest endpoint is public:
@@ -269,13 +283,18 @@ createServer((req, res) => {
       .catch((e) => json(res, 500, { ok: false, why: e.message }))
     return
   }
-  // The card mode is served from /cards. The build's asset URLs are relative
-  // (base './', so the same bundle works under a GitHub Pages subpath), which
-  // resolves correctly from /cards and NOT from /cards/ — there the browser
-  // would ask for /cards/assets/index-*.js, get the index.html fallback, and
-  // render nothing. One redirect is cheaper than an absolute base.
-  if (path === '/cards/') {
-    res.writeHead(301, { Location: '/cards' }).end()
+  // The build's asset URLs are relative (base './', so the same bundle works
+  // under a GitHub Pages subpath), which resolves correctly from /cards and
+  // NOT from /cards/ — there the browser would ask for /cards/assets/index-*.js,
+  // get the index.html fallback, and render nothing. One redirect is cheaper
+  // than an absolute base.
+  //
+  // Written for /cards when /cards was the only route below the root. The site
+  // now has a front page and the career lives at /manager, so this has to hold
+  // for every app route rather than one hard-coded name — a visitor typing the
+  // trailing slash gets a blank page otherwise, and typing it is normal.
+  if (path.length > 1 && path.endsWith('/')) {
+    res.writeHead(301, { Location: path.replace(/\/+$/, '') || '/' }).end()
     return
   }
 

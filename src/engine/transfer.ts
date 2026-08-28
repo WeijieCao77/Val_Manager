@@ -353,6 +353,9 @@ export function doTransfer(
   }
 
   p.teamId = toTeamId
+  // stamp the rating he arrives on, but only for our own signings — the badge
+  // that reads it is about what the manager did with him
+  if (toTeamId === state.myTeam) p.arrivedOverall = p.overall
   p.contract = { ...terms }
   p.salary = terms.salary
   p.contractYears = terms.years

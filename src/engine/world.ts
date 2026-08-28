@@ -247,6 +247,11 @@ export function createNewGame(
   // the squad you inherited, kept so an ending can ask who is still here in
   // ten years' time — the record, not a flag set when somebody leaves
   state.startingSquad = [...teams[myTeamId].roster]
+  // they are yours from today, so today is where their development is measured from
+  for (const id of state.startingSquad) {
+    const p = state.players[id]
+    if (p) p.arrivedOverall = p.overall
+  }
 
   void rng
   return state

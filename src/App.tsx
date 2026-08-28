@@ -25,22 +25,36 @@ import { screenLocked } from './engine/agenda'
 import { money, Crest } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
 import { track } from './engine/telemetry'
+import Achievements from './ui/Achievements'
 import Credit from './ui/Credit'
 import Support from './ui/Support'
 import Dossier from './ui/Dossier'
 
 /**
- * The card mode lives at /cards and is not linked from anywhere.
+ * Three places to be, and the URL is the only thing that decides which.
  *
- * It is still being built, and the owner does not want the ordinary visitor
- * walking into a half-finished mode from the front page. Unlisted, not
- * secret — anyone with the URL gets in. Loaded lazily so it is also not in the
- * bundle every visitor downloads.
+ * `/` is the front page, `/manager` is the career and `/cards` is 开瓦包. Both
+ * games are loaded lazily, so a visitor who opens the front page and reads it
+ * downloads neither.
+ *
+ * The career used to be at `/`, which is the URL everybody already has. It
+ * still works: the front page is what they land on, and the career card on it
+ * offers 「继续上次存档」 when there is one, so a returning player is one click
+ * from exactly where they were rather than being told their game is gone.
  */
 const CardMode = lazy(() => import('./ui/CardMode'))
-const CARDS_PATH = '/cards'
-const onCardsPath = () =>
-  typeof location !== 'undefined' && location.pathname.replace(/\/+$/, '').endsWith(CARDS_PATH)
+const Home = lazy(() => import('./ui/Home'))
+
+type Mode = 'home' | 'career' | 'cards'
+const PATHS: Record<Mode, string> = { home: '/', career: '/manager', cards: '/cards' }
+
+const modeOf = (): Mode => {
+  if (typeof location === 'undefined') return 'home'
+  const p = location.pathname.replace(/\/+$/, '')
+  if (p.endsWith('/cards')) return 'cards'
+  if (p.endsWith('/manager')) return 'career'
+  return 'home'
+}
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -53,6 +67,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'schedule', label: '赛程', group: '赛事' },
   { key: 'standings', label: '积分榜' },
   { key: 'career', label: '经理', group: '生涯' },
+  { key: 'awards', label: '成就' },
   { key: 'dossier', label: '资料库' },
   { key: 'saves', label: '存档', group: '系统' },
 ]
@@ -63,18 +78,18 @@ export default function App() {
   // are in is the URL and nothing else: /cards is the card mode, everything
   // else is the career. That way a refresh keeps you where you were, the back
   // button works, and there is exactly one way in.
-  const [mode, setModeRaw] = useState<'career' | 'cards'>(() => (onCardsPath() ? 'cards' : 'career'))
-  const setMode = useCallback((m: 'career' | 'cards') => {
+  const [mode, setModeRaw] = useState<Mode>(modeOf)
+  const setMode = useCallback((m: Mode) => {
     try {
-      const to = m === 'cards' ? CARDS_PATH : '/'
+      const to = PATHS[m]
       if (location.pathname !== to) history.pushState({}, '', to)
     } catch { /* file:// or a sandboxed frame; the state change still works */ }
     setModeRaw(m)
   }, [])
 
-  // back and forward move between the two modes rather than leaving the site
+  // back and forward move between the three, rather than leaving the site
   useEffect(() => {
-    const onPop = () => setModeRaw(onCardsPath() ? 'cards' : 'career')
+    const onPop = () => setModeRaw(modeOf())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -162,10 +177,20 @@ export default function App() {
   )
 
   if (!booted) return null
+  const loading = (
+    <div className="wrap" style={{ padding: 40 }}><p className="muted">载入中…</p></div>
+  )
+  if (mode === 'home') {
+    return (
+      <Suspense fallback={loading}>
+        <Home onOpen={setMode} />
+      </Suspense>
+    )
+  }
   if (mode === 'cards') {
     return (
-      <Suspense fallback={<div className="wrap" style={{ padding: 40 }}><p className="muted">载入中…</p></div>}>
-        <CardMode onExit={() => setMode('career')} />
+      <Suspense fallback={loading}>
+        <CardMode onExit={() => setMode('home')} />
       </Suspense>
     )
   }
@@ -210,6 +235,7 @@ export default function App() {
     commercial: Commercial,
     finance: Finances,
     career: Career,
+    awards: Achievements,
     saves: Saves,
   } as Record<string, ComponentType>)[screen] ?? Dashboard
 
@@ -217,10 +243,14 @@ export default function App() {
     <GameCtx.Provider value={ctxValue}>
       <div className="app">
         <header className="topbar">
-          <div className="brand" title="猪之家出品 · 小红书/抖音 @点点点点点点点点">
-            VAL<span>MANAGER</span>
+          <button
+            className="brand as-link"
+            title="回到首页 · 猪之家出品 · 小红书/抖音 @点点点点点点点点"
+            onClick={() => setMode('home')}
+          >
+            VCT<span>电竞经理</span>
             <em className="by">猪之家出品</em>
-          </div>
+          </button>
           <div className="chip brand-club" title="所属俱乐部">
             <Crest id={game.myTeam} size={20} />
             <b>{myTeam?.name}</b>

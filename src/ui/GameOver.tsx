@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { rememberedId } from '../engine/account'
 import {
-  ENDING_COUNT, ENDINGS, endingsFor, factsOf, recordEndings, unlockedEndings,
+  ENDING_COUNT, ENDINGS, endingsFor, factsOf,
 } from '../engine/endings'
-import type { Ending } from '../engine/endings'
+import { earnedNow } from '../engine/achievements'
+import { readProfile, record, siteId } from '../engine/profile'
 import { money } from './common'
 import { ORIGINS } from '../engine/manager'
 
@@ -25,17 +25,35 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
   // say it out loud — printing `11` next to 「十年任期」 just looked wrong.
   const tenure = game.year > 2026 ? `2026–${game.year}` : '2026'
 
-  // A finished career is graded; a sacking is not. Recorded once, on the
-  // account the card mode already uses, so the collection follows the person
-  // rather than the save.
-  const id = rememberedId()
+  // A finished career is graded; a sacking is not — but both are the end of a
+  // job, and both belong in the lifetime record. Written once, to the site id
+  // the card mode already uses, so the collection follows the person and not
+  // the save file.
+  const id = siteId()
   const [{ earned, fresh, unlocked }] = useState(() => {
-    if (!game.finished) {
-      return { earned: [] as Ending[], fresh: [] as string[], unlocked: unlockedEndings(id) }
-    }
-    const list = endingsFor(game)
-    const isNew = recordEndings(id, list.map((e) => e.key))
-    return { earned: list, fresh: isNew, unlocked: unlockedEndings(id) }
+    const list = game.finished ? endingsFor(game) : []
+    const worlds = game.honours.filter(
+      (h) => /Masters|Champions/i.test(h.title) && !/Challengers/i.test(h.title),
+    ).length
+    const before = readProfile(id)
+    const r = before.record
+    const { fresh: got, profile } = record({
+      endings: list.map((e) => e.key),
+      // achievements are checked again here: a career can end on the very turn
+      // one is earned, and that turn's dashboard check never runs
+      achievements: earnedNow(game),
+      record: {
+        careers: Math.max(r.careers, 1),
+        finished: r.finished + (game.finished ? 1 : 0),
+        sacked: r.sacked + (game.finished ? 0 : 1),
+        titles: r.titles + game.honours.length,
+        worldTitles: r.worldTitles + worlds,
+        bestHaul: Math.max(r.bestHaul, game.honours.length),
+        seasons: r.seasons + (game.year - 2026 + 1),
+        clubs: [...r.clubs, ...(game.tenures ?? []).map((t) => t.teamId), game.myTeam],
+      },
+    }, id)
+    return { earned: list, fresh: got.endings, unlocked: profile.endings }
   })
   const ending = earned[0] ?? null
 
