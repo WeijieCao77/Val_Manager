@@ -61,6 +61,24 @@ def get(url: str) -> bytes:
         return r.read()
 
 
+def is_placeholder(im: Image.Image) -> bool:
+    """
+    A grey cut-out standing in for a person, dressed up as a photograph.
+
+    vlr serves /img/base/ph/sil.png for most players it has no picture of, and
+    that one is filtered at the scrape. brawk had a different one — a
+    per-player upload that is a flat grey bust — so it came through as a real
+    photograph and sat on his card looking nothing like the silhouette the game
+    draws for everyone else. No press photograph is entirely colourless: across
+    the 430 faces the median saturation is 17 and the next lowest after brawk's
+    zero is well clear of this line.
+    """
+    small = im.convert("RGB").resize((64, 64))
+    px = list(small.getdata())
+    sat = sum(max(p) - min(p) for p in px) / len(px)
+    return sat < 3.0
+
+
 def portrait(im: Image.Image, crop: dict | None = None) -> Image.Image:
     """
     Crop to the card's shape.
@@ -139,14 +157,17 @@ def main() -> int:
     lp = load(LP, {"players": {}, "coaches": {}})
     world = load(WORLD, {"players": [], "teams": []})
 
-    # (label, destination filename, url) — players first, then the staff
-    jobs: list[tuple[str, str, str]] = []
+    # (label, destination filename, [urls to try in order]) — players first,
+    # then the staff. A LIST, not one url: the preferred source can turn out to
+    # be a grey cut-out dressed as a photograph, and when it does the next
+    # source should get its turn rather than the player being left faceless.
+    jobs: list[tuple[str, str, list[str]]] = []
     for p in world["players"]:
         ign = p["ign"]
-        url = (profiles.get(ign.lower()) or {}).get("img") \
-            or (lp["players"].get(ign) or {}).get("url")
-        if url:
-            jobs.append((ign, f"{p['id']}.webp", url))
+        urls = [u for u in [(profiles.get(ign.lower()) or {}).get("img"),
+                            (lp["players"].get(ign) or {}).get("url")] if u]
+        if urls:
+            jobs.append((ign, f"{p['id']}.webp", urls))
 
     names = set()
     for t in world["teams"]:
@@ -156,10 +177,10 @@ def main() -> int:
     for a in (world.get("meta", {}).get("analysts") or []):
         names.add(a["name"])
     for name in sorted(names):
-        url = (staff["people"].get(name.lower()) or {}).get("img") \
-            or (lp["coaches"].get(name) or {}).get("url")
-        if url:
-            jobs.append((name, coach_file(name), url))
+        urls = [u for u in [(staff["people"].get(name.lower()) or {}).get("img"),
+                            (lp["coaches"].get(name) or {}).get("url")] if u]
+        if urls:
+            jobs.append((name, coach_file(name), urls))
 
     manual = load(CACHE / "manual_faces.json", {})
     crops: dict[str, dict] = {}
@@ -167,33 +188,44 @@ def main() -> int:
         if lid in manual:
             continue              # imported by hand; leave it alone
         if pick.get("url"):
-            jobs.append((lid, legend_file(lid), pick["url"]))
+            jobs.append((lid, legend_file(lid), [pick["url"]]))
             if pick.get("crop"):
                 crops[legend_file(lid)] = pick["crop"]
 
-    done = skipped = failed = 0
-    for label, fname, url in jobs:
+    done = skipped = failed = skipped_grey = 0
+    for label, fname, urls in jobs:
         dest = OUT / fname
         if dest.exists() and not args.refresh:
             skipped += 1
             continue
-        try:
-            raw = get(url)
-            im = Image.open(io.BytesIO(raw)).convert("RGBA")
-            # webp keeps the transparent cut-outs vlr uses for some players
-            shaped = (portrait(im.convert("RGB"), crops.get(fname))
-                      if fname.startswith("l-") else square(im))
-            shaped.save(dest, "WEBP", quality=QUALITY, method=6)
-            done += 1
-            print(f"  {label:<16} {dest.stat().st_size/1024:5.1f}KB", flush=True)
-        except (urllib.error.URLError, OSError, ValueError) as e:
+        saved = False
+        for i, url in enumerate(urls):
+            try:
+                raw = get(url)
+                im = Image.open(io.BytesIO(raw)).convert("RGBA")
+                if is_placeholder(im):
+                    skipped_grey += 1
+                    nxt = "，改用下一个来源" if i + 1 < len(urls) else "，没有别的来源了"
+                    print(f"  -- {label:<16} 是灰度剪影，不是照片{nxt}", flush=True)
+                    continue
+                # webp keeps the transparent cut-outs vlr uses for some players
+                shaped = (portrait(im.convert("RGB"), crops.get(fname))
+                          if fname.startswith("l-") else square(im))
+                shaped.save(dest, "WEBP", quality=QUALITY, method=6)
+                saved = True
+                done += 1
+                print(f"  {label:<16} {dest.stat().st_size/1024:5.1f}KB", flush=True)
+                break
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                print(f"  !! {label}: {e}", file=sys.stderr, flush=True)
+        if not saved and urls:
             failed += 1
-            print(f"  !! {label}: {e}", file=sys.stderr, flush=True)
         if args.limit and done >= args.limit:
             break
 
     total = sum(f.stat().st_size for f in OUT.glob("*.webp"))
-    print(f"\nfaces: {done} new, {skipped} already had, {failed} failed"
+    print(f"\nfaces: {done} new, {skipped} already had, {failed} failed,"
+          f" {skipped_grey} 灰度剪影已剔除"
           f" | {len(list(OUT.glob('*.webp')))} on disk, {total/1024/1024:.1f}MB")
     return 0
 
