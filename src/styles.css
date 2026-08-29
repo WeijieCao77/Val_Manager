@@ -1792,3 +1792,18 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .unlock { left: 10px; right: 10px; bottom: 10px; width: auto; }
   .unlock-body b { font-size: 15px; }
 }
+
+/* ---------------------------------------------------------------- odds */
+.odds-pack { margin-top: 16px; }
+.odds-pack:first-of-type { margin-top: 4px; }
+.odds-head {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+.odds-head b { font-size: var(--t-h2); }
+.odds-why { margin: 0 0 12px; padding-left: 18px; }
+.odds-why li {
+  font-size: var(--t-small); line-height: 1.85; color: var(--muted);
+  margin-bottom: 8px;
+}
+.odds-why b { color: var(--text); }

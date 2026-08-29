@@ -8,6 +8,7 @@ import Ladder from './cards/Ladder'
 import Cup from './cards/Cup'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
+import Odds from './cards/Odds'
 import Credit from './Credit'
 import {
   createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, retryPending,
@@ -80,6 +81,7 @@ const TABS = [
   { key: 'ladder', label: '天梯' },
   { key: 'cup', label: '杯赛' },
   { key: 'dossier', label: '资料库' },
+  { key: 'odds', label: '概率' },
   { key: 'account', label: '账号' },
 ]
 
@@ -306,6 +308,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
             </div>
           )}
           {tab === 'dossier' ? <Dossier playerId={dossierId} onOpen={setDossierId} />
+            : tab === 'odds' ? <Odds />
             : tab === 'account' ? <AccountScreen onSignOut={signOut} />
             : Screen ? <Screen /> : <Packs />}
           <Credit />

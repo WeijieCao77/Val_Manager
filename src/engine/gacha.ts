@@ -66,24 +66,24 @@ export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。大部分是铜卡，但金卡就是从这里出的。',
-    cost: 750, draws: 1, mythic: 0.0003, gold: 0.04, silver: 0.26, shop: true,
+    cost: 750, draws: 1, mythic: 0.0001, gold: 0.03, silver: 0.26, shop: true,
   },
   elite: {
     kind: 'elite', name: '选拔包', pool: 'player',
     blurb: '三张选手卡，至少一张银卡起。',
-    cost: 2400, draws: 3, mythic: 0.001, gold: 0.10, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2400, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
     blurb: '十张选手卡，必出金卡，彩卡出得最多。买不到——升段、夺冠、连签七天才有。',
-    cost: 5000, draws: 10, mythic: 0.0025, gold: 0.08, silver: 0.34, floor: 'gold', shop: false,
+    cost: 5000, draws: 10, mythic: 0.0012, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
   },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
     // no legend coaches: a彩卡 is a night somebody played, and these twenty
     // nights were played by players
-    cost: 1200, draws: 1, mythic: 0, gold: 0.15, silver: 0.42, shop: true,
+    cost: 1200, draws: 1, mythic: 0, gold: 0.12, silver: 0.42, shop: true,
   },
 }
 
@@ -103,11 +103,15 @@ export const HARD_PITY = 45
  * How long a彩卡 drought is allowed to run.
  *
  * The odds alone are months between cards, which is the point — but "never" is
- * not a feeling a collection should be able to produce. Five hundred pulls is
- * roughly two and a half months of daily play, so the tier stays a lottery
- * while still being a thing you can aim at.
+ * not a feeling a collection should be able to produce.
+ *
+ * This number, not the `mythic` rates above, is what decides how rare a legend
+ * actually is. At one draw a pack the floor alone pays 1/500, while the
+ * natural roll paid 0.03% — measured, the 试训包 handed out a彩卡 every 458
+ * packs and seven eighths of them came from here. Lowering the published rate
+ * without moving this would have changed almost nothing.
  */
-export const MYTHIC_FLOOR = 500
+export const MYTHIC_FLOOR = 1200
 
 // ---------------------------------------------------------------- the day
 
