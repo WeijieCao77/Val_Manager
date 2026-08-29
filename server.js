@@ -17,8 +17,9 @@
  * See cards-api.js for why it needs to exist at all. The career mode still has
  * no accounts and still saves in the browser.
  */
-import { createReadStream, existsSync, statSync } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
+import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
@@ -227,6 +228,58 @@ let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
 
+/** Which formats are worth compressing — the rest are already compressed. */
+const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
+
+/**
+ * The best encoding the client offered, or null to send it raw.
+ *
+ * Brotli beats gzip by roughly 15% on this bundle and every browser that can
+ * run the game supports it; gzip is the fallback for anything else.
+ */
+function pickEncoding(accept, ext) {
+  if (!TEXTY.has(ext)) return null
+  const a = String(accept || '')
+  if (/\bbr\b/.test(a)) return 'br'
+  if (/\bgzip\b/.test(a)) return 'gzip'
+  return null
+}
+
+/**
+ * Compress a file once and keep it.
+ *
+ * The built assets are immutable — their names carry a content hash — so a
+ * compressed copy is valid for the life of the process, and brotli at a high
+ * quality is far too slow to run per request. Bounded because the cache is
+ * keyed by path and a request can name any file under dist/.
+ */
+const zipped = new Map()
+const ZIP_MAX = 64
+function compressed(file, enc) {
+  const key = enc + ':' + file
+  const hit = zipped.get(key)
+  if (hit) return hit
+  try {
+    const raw = readFileSync(file)
+    // below about a kilobyte the header costs more than the saving
+    if (raw.length < 1024) return null
+    const out = enc === 'br'
+      ? brotliCompressSync(raw, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: 10,
+          [constants.BROTLI_PARAM_SIZE_HINT]: raw.length,
+        },
+      })
+      : gzipSync(raw, { level: 8 })
+    if (zipped.size >= ZIP_MAX) zipped.clear()
+    zipped.set(key, out)
+    return out
+  } catch {
+    // unreadable, or too big to hold — fall through to streaming it raw
+    return null
+  }
+}
+
 createServer((req, res) => {
   // A malformed escape — GET /% is enough — makes decodeURIComponent throw,
   // and an uncaught throw in the request handler takes the whole process with
@@ -327,12 +380,38 @@ createServer((req, res) => {
   // before meant a photograph swapped by hand stayed invisible for a day, and
   // that is exactly what happened.
   const face = file.includes(`${sep}faces${sep}`) || file.includes(`${sep}logos${sep}`)
-  res.writeHead(200, {
+  const head = {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
     'Cache-Control': hashed ? 'public, max-age=31536000, immutable'
       : face ? 'public, max-age=604800'
         : 'no-cache',
-  })
+  }
+
+  // Compress the text, and only the text.
+  //
+  // Nothing here did, and the bundle is a megabyte: every first-time visitor
+  // was sent 1,053,546 bytes of JavaScript that gzips to 279,805. Over a phone
+  // connection from the other side of the Pacific that is most of the wait
+  // before the game appears — a bigger difference than the server's region,
+  // and it costs nothing.
+  //
+  // The photographs and crests are already compressed formats; running them
+  // through gzip spends CPU to make them very slightly larger.
+  const enc = pickEncoding(req.headers['accept-encoding'], ext)
+  if (enc) {
+    const body = compressed(file, enc)
+    if (body) {
+      head['Content-Encoding'] = enc
+      head['Content-Length'] = String(body.length)
+      // caches key on this, or a proxy hands a gzipped body to a client that
+      // never asked for one
+      head.Vary = 'Accept-Encoding'
+      res.writeHead(200, head)
+      res.end(req.method === 'HEAD' ? undefined : body)
+      return
+    }
+  }
+  res.writeHead(200, head)
   createReadStream(file).pipe(res)
 }).on('clientError', (_err, socket) => {
   if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
