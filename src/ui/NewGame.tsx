@@ -132,7 +132,7 @@ export default function NewGame({
 
   return (
     <div className="newgame">
-      <h1>VAL<span className="r"> MANAGER</span></h1>
+      <h1>VCT<span className="r">电竞经理</span></h1>
       <p className="muted" style={{ marginTop: 0, marginBottom: 24 }}>
         无畏契约电竞经理 · 执掌一支战队，征战 VCT 四大赛区与次级联赛
       </p>

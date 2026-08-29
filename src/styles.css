@@ -1699,3 +1699,40 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .log-fab { bottom: 58px; }
   .log-fab.raised { bottom: 100px; }
 }
+
+/* ---------------------------------------------------------------- account
+
+   Shares the support panel's shell — the site only needs one kind of
+   corner-anchored dialog, and two would drift apart. */
+.acct-card { width: min(460px, calc(100vw - 32px)); }
+.acct-id {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--bg-rail); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 9px 11px;
+}
+.acct-id b { font-size: 13px; letter-spacing: .02em; flex: 1; min-width: 0; word-break: break-all; }
+.acct-row { display: flex; gap: 8px; align-items: center; }
+.acct-row input {
+  flex: 1; min-width: 0;
+  background: var(--bg-rail); border: 1px solid var(--line); color: var(--text);
+  border-radius: var(--radius); padding: 8px 10px; font-size: var(--t-small);
+  font-family: inherit;
+}
+.acct-row input.mono { font-family: var(--mono); letter-spacing: .02em; }
+.acct-row input:focus { outline: none; border-color: var(--accent-line); }
+.acct-row button { white-space: nowrap; }
+.acct-sep {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--faint); font-size: var(--t-small);
+}
+.acct-sep::after {
+  content: ''; flex: 1; height: 1px; background: var(--line-soft);
+}
+.acct-mine {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  color: var(--muted); font-size: var(--t-small);
+}
+.acct-mine b { color: var(--text); font-variant-numeric: tabular-nums; }
+/* the front-page chip is a button now, not a static readout */
+.home-id { cursor: pointer; }
+.home-id:hover { border-color: var(--accent-line); }

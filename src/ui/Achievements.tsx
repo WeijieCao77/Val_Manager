@@ -21,6 +21,7 @@ import type { Ending } from '../engine/endings'
 import type { Achievement } from '../engine/achievements'
 import { readProfile, record, siteId, syncProfile, type Profile } from '../engine/profile'
 import { Panel } from './common'
+import Account, { maskId } from './Account'
 
 const RUN_GROUPS = ['冠军', '赛场', '养成', '阵容', '经营', '生涯'] as const
 
@@ -85,8 +86,7 @@ export default function Achievements() {
     record({ achievements: earnedNow(game) }, id)
     return readProfile(id)
   })
-  const [copied, setCopied] = useState(false)
-  const [shown, setShown] = useState(false)
+  const [acct, setAcct] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -104,16 +104,7 @@ export default function Achievements() {
   }
   const has = known(ACHIEVEMENTS, profile.achievements)
   const seenEnding = known(ENDINGS, profile.endings)
-  const masked = id ? `${id.slice(0, 7)}-••••-${id.slice(-4)}` : ''
 
-  const copy = async () => {
-    if (!id) return
-    try {
-      await navigator.clipboard.writeText(id)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    } catch { /* no clipboard permission; 显示 puts it on screen instead */ }
-  }
 
   return (
     <div className="grid">
@@ -158,15 +149,24 @@ export default function Achievements() {
 
         <div className="row wrap" style={{ gap: 8, marginTop: 14, alignItems: 'center' }}>
           <span className="tiny faint">账号 ID</span>
-          <b className="mono" style={{ fontSize: 12 }}>{id ? (shown ? id : masked) : '尚未创建'}</b>
-          {id && <button className="sm ghost" onClick={() => setShown((v) => !v)}>{shown ? '隐藏' : '显示'}</button>}
-          {id && <button className="sm ghost" onClick={copy}>{copied ? '已复制' : '复制'}</button>}
+          <b className="mono" style={{ fontSize: 12 }}>{id ? maskId(id) : '尚未创建'}</b>
+          <button className="sm ghost" onClick={() => setAcct(true)}>
+            {id ? '账号设置' : '创建账号'}
+          </button>
         </div>
         <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-          这串 ID 和开瓦包是同一个账号，<b>相当于账号密码，不要发给别人</b>。
-          换手机时在任意一个游戏里填进去，成就、结局和卡牌收藏都会跟过来。
+          {id
+            ? '这串 ID 和开瓦包是同一个账号，相当于账号密码，不要发给别人。换手机时在账号设置里填进去，成就、结局和卡牌收藏都会跟过来。'
+            : '现在这些记录只存在这台浏览器上。创建一个 ID，它们就能跟着你换设备——开瓦包用的也是同一个账号。'}
         </p>
       </Panel>
+
+      {acct && (
+        <Account
+          onClose={() => setAcct(false)}
+          onChange={() => setProfile(readProfile(siteId()))}
+        />
+      )}
     </div>
   )
 }

@@ -235,7 +235,7 @@ export function exportSave(state: GameState): string {
 export function importSave(text: string): GameState {
   const parsed = JSON.parse(text) as { format?: string; state?: GameState }
   if (parsed.format !== 'VAL_MANAGER_SAVE' || !parsed.state) {
-    throw new Error('这不是一个有效的 VAL MANAGER 存档文件。')
+    throw new Error('这不是一个有效的 VCT电竞经理 存档文件。')
   }
   return migrate(parsed.state)
 }

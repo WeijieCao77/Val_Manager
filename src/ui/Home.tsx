@@ -18,6 +18,7 @@ import { readProfile, siteId, syncProfile, type Profile } from '../engine/profil
 import { REGION_CN } from '../engine/types'
 import type { Region } from '../engine/types'
 import { Crest } from './common'
+import Account, { maskId } from './Account'
 import Support from './Support'
 import Changelog from './Changelog'
 
@@ -53,21 +54,11 @@ interface Resume {
 export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
   const [resume, setResume] = useState<Resume | null>(null)
   const [profile, setProfile] = useState<Profile>(() => readProfile())
-  const [copied, setCopied] = useState(false)
-  const [shown, setShown] = useState(false)
-  const id = siteId()
+  // The id itself lives in Account.tsx now — this only needs to know whether
+  // there is one, and to hear about it when that changes.
+  const [id, setId] = useState<string | null>(() => siteId())
+  const [acct, setAcct] = useState(false)
 
-  // The id is the entire password — account.ts says so, and it is true: anyone
-  // holding this string IS you. So the front page must not print it. People
-  // screenshot front pages, and this one is going in a WeChat group.
-  //
-  // Masked by default, revealed on demand, and copyable without ever being
-  // revealed — which is the case that actually matters, because copying is
-  // what you do when you move to a new phone.
-  // Short on purpose: the full mask is 27 characters and pushed 显示/复制 into
-  // a second line on a 375px phone, which is what most of these players use.
-  // The head and tail are what let someone recognise their own account.
-  const masked = id ? `${id.slice(0, 7)}-••••-${id.slice(-4)}` : ''
 
   // Reading the autosave means parsing a whole world, so it happens after the
   // page has painted rather than before it.
@@ -96,14 +87,6 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
     return () => { alive = false }
   }, [])
 
-  const copyId = async () => {
-    if (!id) return
-    try {
-      await navigator.clipboard.writeText(id)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    } catch { /* no clipboard permission; the id is on screen to read */ }
-  }
 
   const endings = profile.endings.length
   const badges = profile.achievements.length
@@ -115,24 +98,14 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           猪之家<span>游戏</span>
         </div>
         <div className="spacer" />
-        {id ? (
-          <div className="home-id">
-            <span className="k">ID</span>
-            <b className="mono">{shown ? id : masked}</b>
-            <button
-              className="lnk"
-              onClick={() => setShown((v) => !v)}
-              title={shown ? '隐藏' : '这串 ID 就是你的账号密码，不要截图给别人'}
-            >{shown ? '隐藏' : '显示'}</button>
-            <button className="lnk" onClick={copyId} title="复制完整 ID，换设备时用它找回全部记录">
-              {copied ? '已复制' : '复制'}
-            </button>
-          </div>
-        ) : (
-          <span className="home-id ghost" title="进入任意一个游戏后会拿到一个 ID">
-            <span className="k">ID</span><b className="mono">尚未创建</b>
-          </span>
-        )}
+        <button
+          className="home-id"
+          onClick={() => setAcct(true)}
+          title={id ? '账号设置——查看、复制或换一个 ID' : '创建一个 ID，成就和结局才能跨设备保存'}
+        >
+          <span className="k">ID</span>
+          <b className="mono">{id ? maskId(id) : '创建账号'}</b>
+        </button>
       </header>
 
       <section className="home-hero">
@@ -251,6 +224,12 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         <span className="faint">游戏全部免费</span>
       </footer>
 
+      {acct && (
+        <Account
+          onClose={() => setAcct(false)}
+          onChange={(next) => { setId(next); setProfile(readProfile(next)) }}
+        />
+      )}
       <Changelog />
       <Support />
     </div>
