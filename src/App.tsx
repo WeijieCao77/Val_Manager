@@ -17,7 +17,7 @@ import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
-import { autosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
+import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
@@ -124,6 +124,8 @@ export default function App() {
   const [unlocks, setUnlocks] = useState<UnlockItem[]>([])
   const [booted, setBooted] = useState(false)
   const warnedSaveRef = useRef(false)
+  // 'behind' = another tab is ahead; 'failed' = the write itself threw
+  const [saveWarn, setSaveWarn] = useState<'behind' | 'failed' | null>(null)
 
   useEffect(() => {
     setBooted(true)
@@ -141,21 +143,25 @@ export default function App() {
     bump()
     if (gameRef.current) {
       try {
-        autosave(gameRef.current)
+        // 'behind' means another tab holds a career further along than this
+        // one, and writing would put its progress back. Refusing is the whole
+        // point, but the player has to be told — silently not saving is the
+        // failure they cannot see coming.
+        if (autosave(gameRef.current) === 'behind') setSaveWarn('behind')
+        else setSaveWarn(null)
       } catch (err) {
         // The game keeps running in memory, but the player's progress is no
-        // longer being written. Say so once — a player who closes the tab
-        // without knowing loses everything since the failure began.
+        // longer being written. A toast said this once and vanished; somebody
+        // played four more seasons past it and lost all of them, so it is a
+        // banner now and it stays until the writing works again.
         track('error', {
           msg: `autosave: ${err instanceof Error ? err.name : 'unknown'}`,
           day: gameRef.current.day,
           kb: warnedSaveRef.current ? undefined
             : Math.round(JSON.stringify(gameRef.current).length / 1024),
         })
-        if (!warnedSaveRef.current) {
-          warnedSaveRef.current = true
-          toast('⚠ 自动存档写入失败——进度只存在当前页面里。请到「存档」页导出为文件。')
-        }
+        warnedSaveRef.current = true
+        setSaveWarn('failed')
       }
     }
   }, [])
@@ -167,6 +173,10 @@ export default function App() {
 
   const start = useCallback((g: GameState) => {
     gameRef.current = g
+    // Opening a save deliberately — continuing, importing, loading a slot —
+    // makes this tab the one that counts, so the cross-tab guard stops
+    // treating some other tab's further-along career as the truth.
+    claimAutosave(g)
     setScreen('dashboard')
     commit()
   }, [commit])
@@ -216,7 +226,7 @@ export default function App() {
     // Support sits outside the career shell as well as inside it: someone who
     // has not started a save yet is exactly the person reading the front page.
     return <>
-      <NewGame onStart={start} canContinue={hasAutosave()} onContinue={() => {
+      <NewGame onHome={() => setMode('home')} onStart={start} canContinue={hasAutosave()} onContinue={() => {
       const g = loadAutosave()
       if (g) {
         // A return only means something if it is a career being picked up.
@@ -333,6 +343,18 @@ export default function App() {
           </main>
         </div>
 
+        {saveWarn && (
+          <div className="save-warn" role="alert">
+            <b>⚠ 进度没有被保存</b>
+            <span>
+              {saveWarn === 'behind'
+                ? '另一个标签页里有更靠后的存档，为了不覆盖它，这一页暂时不写入。'
+                  + '请关掉其它的游戏标签页，然后刷新这一页。'
+                : '浏览器拒绝了写入（多半是存储空间满了）。'
+                  + '现在的进度只存在这个页面里——请去「存档」页导出成文件。'}
+            </span>
+          </div>
+        )}
         <Unlocked
           queue={unlocks}
           onNext={() => setUnlocks((q) => q.slice(1))}

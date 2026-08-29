@@ -14,9 +14,9 @@ import type { GameState, Region } from '../engine/types'
 import { money, OvrBadge, Bar, Crest } from './common'
 import Credit from './Credit'
 
-export default function NewGame({
+export default function NewGame({ onHome,
   onStart, canContinue, onContinue,
-}: { onStart: (g: GameState) => void; canContinue: boolean; onContinue: () => void }) {
+}: { onHome: () => void; onStart: (g: GameState) => void; canContinue: boolean; onContinue: () => void }) {
   const [name, setName] = useState('')
   const [age, setAge] = useState(24)
   const [originKey, setOriginKey] = useState<string | null>(null)
@@ -132,6 +132,11 @@ export default function NewGame({
 
   return (
     <div className="newgame">
+      {/* The only way back. This screen renders outside the career shell, so
+          the wordmark in the top bar — which is the home link everywhere else
+          — is not on the page at all, and a player who opened /manager
+          directly had no route to the front page. */}
+      <button className="ng-home" onClick={onHome}>← 返回首页</button>
       <h1>VCT<span className="r">电竞经理</span></h1>
       <p className="muted" style={{ marginTop: 0, marginBottom: 24 }}>
         无畏契约电竞经理 · 执掌一支战队，征战 VCT 四大赛区与次级联赛

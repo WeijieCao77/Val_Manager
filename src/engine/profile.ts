@@ -113,12 +113,17 @@ export function claimCareer(seed: number, id: string | null = siteId()): boolean
 }
 
 export function readProfile(id: string | null = siteId()): Profile {
-  if (!id) return emptyProfile('local')
+  // Falls back to the same 'local' bucket `record` writes to when there is no
+  // account yet. It used to return an empty profile here instead of reading
+  // it, which meant everything a player earned before making an id was
+  // recorded and then never shown to them: somebody finished ten years,
+  // unlocked twelve endings, and the front page told them 0/22.
+  const key = id ?? 'local'
   try {
-    const raw = localStorage.getItem(KEY + id)
-    return repair(raw ? JSON.parse(raw) : null, id)
+    const raw = localStorage.getItem(KEY + key)
+    return repair(raw ? JSON.parse(raw) : null, key)
   } catch {
-    return emptyProfile(id)
+    return emptyProfile(key)
   }
 }
 

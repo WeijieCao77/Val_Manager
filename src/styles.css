@@ -1807,3 +1807,28 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   margin-bottom: 8px;
 }
 .odds-why b { color: var(--text); }
+
+/* ---------------------------------------------------------------- save warning
+
+   Not a toast. The old one-shot toast for a failed autosave was missed by a
+   player who then played four more seasons and lost all of them, so this stays
+   on screen until writing works again. */
+.save-warn {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: 10px; z-index: 70; max-width: min(660px, calc(100vw - 24px));
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--panel); border: 1px solid var(--warn);
+  border-left-width: 3px; border-radius: var(--radius);
+  padding: 11px 15px; box-shadow: 0 14px 40px rgba(0, 0, 0, .6);
+}
+.save-warn b { color: var(--warn); font-size: var(--t-body); }
+.save-warn span { color: var(--muted); font-size: var(--t-small); line-height: 1.7; }
+
+/* The new-game screen renders outside the career shell, so it needs its own
+   way back — the wordmark that is the home link everywhere else is not here. */
+.ng-home {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--muted); font-size: var(--t-small); font-family: inherit;
+  margin-bottom: 14px;
+}
+.ng-home:hover { color: var(--accent); }

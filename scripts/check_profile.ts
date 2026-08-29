@@ -132,6 +132,24 @@ const check = (name: string, ok: boolean, detail = '') => {
     after.fresh.achievements.join('、') || '没有报告任何新解锁')
 }
 
+// ---- 没有账号时，记录写在哪就要从哪读回来
+{
+  // The bug a player hit live: `record` writes to the 'local' bucket when
+  // there is no id, and `readProfile()` returned an EMPTY profile instead of
+  // reading it. Ten years, twelve endings, and a front page saying 0/22.
+  store.clear()
+  record({ endings: ['summit', 'quiet'], achievements: ['firstTitle'] }, null)
+  const back = readProfile(null)
+  check('没有账号时也能读回自己的记录',
+    back.endings.length === 2 && back.achievements.includes('firstTitle'),
+    `结局 ${back.endings.length}／成就 ${back.achievements.length}`)
+
+  // and the default-argument path, which is what the UI actually calls
+  const viaDefault = readProfile()
+  check('UI 用的默认参数走的是同一个桶',
+    viaDefault.endings.length === 2, `结局 ${viaDefault.endings.length}`)
+}
+
 // ---- damaged input cannot poison the record
 {
   store.set('valmanager:profile:X', JSON.stringify({

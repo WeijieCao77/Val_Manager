@@ -241,9 +241,68 @@ export function importSave(text: string): GameState {
 }
 
 const AUTOSAVE = 'autosave'
-export const autosave = (state: GameState) => saveGame(AUTOSAVE, state)
 export const loadAutosave = () => loadGame(AUTOSAVE)
 export const hasAutosave = () => localStorage.getItem(PREFIX + AUTOSAVE) !== null
+
+/**
+ * Which tab wrote the autosave last, and how far along it was.
+ *
+ * localStorage is shared by every tab on the origin, and this game has none of
+ * the card mode's revision handling — so two tabs open on the same career meant
+ * whichever one wrote last won, regardless of which had played further. A
+ * player left an old tab sitting at 2032, finished the career to 2036 in
+ * another, and the idle tab's next autosave put 2032 back. Four seasons and an
+ * ending, gone, with nothing on screen to explain it.
+ *
+ * The guard is deliberately small: an autosave is refused only when ANOTHER
+ * tab has written a state that is further along than the one being saved.
+ * Same tab, equal progress, or a career that has moved on — all write freely.
+ */
+const OWNER = `${PREFIX}${AUTOSAVE}:owner`
+const SESSION = Math.random().toString(36).slice(2, 10)
+
+interface Owner { by: string; year: number; day: number }
+
+const readOwner = (): Owner | null => {
+  try {
+    const raw = localStorage.getItem(OWNER)
+    return raw ? (JSON.parse(raw) as Owner) : null
+  } catch { return null }
+}
+
+const writeOwner = (state: GameState): void => {
+  try {
+    localStorage.setItem(OWNER, JSON.stringify(
+      { by: SESSION, year: state.year, day: state.day } satisfies Owner))
+  } catch { /* the save itself matters more than the marker */ }
+}
+
+/** Progress as one number, so two saves can be compared. */
+const progress = (year: number, day: number) => year * 400 + day
+
+/**
+ * Say that this tab's career is the one that counts.
+ *
+ * Called whenever a save is deliberately opened — continuing, importing, or
+ * loading a slot. Without it, opening an older manual save in a tab that some
+ * other tab has run past would leave it unable to autosave at all.
+ */
+export function claimAutosave(state: GameState): void {
+  writeOwner(state)
+}
+
+export type AutosaveResult = 'saved' | 'behind'
+
+export function autosave(state: GameState): AutosaveResult {
+  const owner = readOwner()
+  if (owner && owner.by !== SESSION
+      && progress(owner.year, owner.day) > progress(state.year, state.day)) {
+    return 'behind'
+  }
+  saveGame(AUTOSAVE, state)
+  writeOwner(state)
+  return 'saved'
+}
 
 /**
  * Importing a file must not silently eat a newer career.
