@@ -262,11 +262,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     // careers the best 30-year-old anybody had was 64, while the world's peak
     // was 95, so 「30 岁以上且 80 以上」 described a player who cannot exist.
     // What is real is choosing to keep one at all instead of churning.
+    // 32, not 30: the world ships exactly one player aged 32 and two aged 31,
+    // and FNC opens with a 30-year-old already in its five — which handed this
+    // out before the first turn. Nobody starts with a 32-year-old starter, and
+    // players age into it over a decade.
     key: 'veteran', scope: 'run', group: '养成', title: '老而弥坚',
-    brief: '让一名 30 岁以上的选手留在首发五人里',
+    brief: '让一名 32 岁以上的选手留在首发五人里',
     test: (s, f) => {
       const starters = new Set(s.teams[s.myTeam]?.starters ?? [])
-      return f.squad.some((p) => p.age >= 30 && starters.has(p.id))
+      return f.squad.some((p) => p.age >= 32 && starters.has(p.id))
     },
   },
   {
@@ -292,9 +296,12 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // =================================================================== 阵容
   {
+    // Not just "has no imports" — 45 of the 78 clubs open that way, so half
+    // the league was handed this before touching anything. It has to be a
+    // squad you actually built: five signings made, and still nobody imported.
     key: 'noImports', scope: 'run', group: '阵容', title: '全本土',
-    brief: '一套五人以上的阵容里没有一名外援',
-    test: (_s, f) => f.squad.length >= 5 && f.imports === 0,
+    brief: '签过五名选手之后，阵容里依然没有一名外援',
+    test: (s, f) => f.squad.length >= 5 && f.imports === 0 && tally(s).signed >= 5,
   },
   {
     key: 'rebuilt', scope: 'run', group: '阵容', title: '大换血',
@@ -333,11 +340,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (s) => (s.finances?.log ?? []).some((e) => e.amount >= 1_000_000),
   },
   {
+    // 600万. Clubs are dealt 2-4 sponsors at world creation and the richest
+    // opening book in the league is FUT's at 534万 — eighteen of the 78 start
+    // above 350万 — so anything lower is handed to whoever picked the right
+    // job. The audited ceiling is 685万.
     key: 'sponsorBook', scope: 'run', group: '经营', title: '商业版图',
-    brief: '赞助总收入达到每赛季 450 万',
+    brief: '赞助总收入达到每赛季 600 万',
     hard: true,
     test: (s) => (s.teams[s.myTeam]?.sponsors ?? [])
-      .reduce((n, sp) => n + sp.perSeason, 0) >= 4_500_000,
+      .reduce((n, sp) => n + sp.perSeason, 0) >= 6_000_000,
   },
   {
     key: 'commercial20', scope: 'run', group: '经营', title: '会做生意',
@@ -420,9 +431,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     lifeTest: (r) => r.worldTitles >= 10,
   },
   {
+    // 16, not 10. A single dominant ten-year career unlocks 14 of the 22 at
+    // once — endingsFor is a filter, not a pick-one — so ten was a milestone
+    // you passed without noticing on your first good save.
     key: 'endings10', scope: 'life', group: '收藏', title: '结局收藏家',
-    brief: '解锁十种不同的结局',
-    lifeTest: (_r, u) => u.endings.length >= 10,
+    brief: '解锁十六种不同的结局',
+    hard: true,
+    lifeTest: (_r, u) => u.endings.length >= 16,
   },
 ]
 

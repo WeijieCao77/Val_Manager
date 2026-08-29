@@ -257,6 +257,7 @@ export function createNewGame(
   // ten years' time — the record, not a flag set when somebody leaves
   state.startingSquad = [...teams[myTeamId].roster]
   state.startFacilities = teams[myTeamId].facilities
+  state.startTier = teams[myTeamId].tier
   // they are yours from today, so today is where their development is measured from
   for (const id of state.startingSquad) {
     const p = state.players[id]

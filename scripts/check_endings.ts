@@ -18,7 +18,7 @@
 // Champions its own way, matching a copy in endings.ts that the season never
 // awarded — so the test and the code agreed and both were wrong.
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
-import { setupSeason, advanceDay } from '../src/engine/season'
+import { setupSeason, advanceDay, moveToClub } from '../src/engine/season'
 import {
   DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf,
   CHAMPIONS, FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
@@ -219,6 +219,44 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
     `赛季末 ${before} 人，判定时 ${after.length} 人`)
   check('刚到期的外援仍然算数——「本土主义」不会白送',
     !has(g, 'homegrown'), `外援 ${factsOf(g).imports} 人`)
+}
+
+// ---- 换俱乐部之后，「接手时的阵容」指的是这家俱乐部
+{
+  // startingSquad was written once at world creation and moveToClub never
+  // touched it, so the moment you changed jobs nobody on the new team was on
+  // that list: 「推倒重来」 and the 大换血 badge fired for free, and
+  // 「一起走到最后」 became impossible.
+  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260828)
+  setupSeason(g)
+  const other = WORLD_TEAMS.find((t) => t.tier === 1 && t.id !== g.myTeam)!
+  moveToClub(g, other.id)
+  const here = new Set(squadOf(g, g.myTeam).map((p) => p.id))
+  check('换队后 startingSquad 指向新东家的阵容',
+    (g.startingSquad ?? []).length > 0 && (g.startingSquad ?? []).every((id) => here.has(id)),
+    `${(g.startingSquad ?? []).length} 人`)
+
+  g.year = FINAL_YEAR
+  g.finished = true
+  won(g, 2035, CHAMPIONS)
+  check('刚换队不会白送「推倒重来」', !has(g, 'rebuild'))
+  check('而「一起走到最后」仍然成立', has(g, 'loyal'))
+}
+
+// ---- 「草根」看的是你接手那天的级别，不是现在的
+{
+  // Ascension sets team.tier = 1, so reading the club's current tier erased
+  // the very thing the ending is about: a manager who took a second-division
+  // side up and then won the region read back as having started in the first.
+  const low = WORLD_TEAMS.find((t) => t.tier === 2)!
+  const g = createNewGame(low.id, '审计', 20260828)
+  setupSeason(g)
+  check('接手次级队时记下了级别', g.startTier === 2, String(g.startTier))
+  g.teams[g.myTeam]!.tier = 1                    // 晋级
+  g.year = FINAL_YEAR
+  g.finished = true
+  won(g, 2035, `VCT ${g.teams[g.myTeam]!.region} · Stage 1`)
+  check('升上去之后仍然算「从次级起步」', has(g, 'grassroots'))
 }
 
 // ---- 十年真的会结束，而不是无限跑下去

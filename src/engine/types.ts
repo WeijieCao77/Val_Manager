@@ -793,6 +793,15 @@ export interface GameState {
   /** the squad you inherited, so an ending can ask who is still here */
   startingSquad?: string[]
   /**
+   * The tier your current club was in the day you took it.
+   *
+   * Promotion rewrites `team.tier` to 1, so reading a club's CURRENT tier to
+   * ask "did you start in the second division" erases the evidence the moment
+   * you succeed — the 草根 ending describes taking a tier-2 side up and winning
+   * the region, and that exact story could not trigger it.
+   */
+  startTier?: number
+  /**
    * The training facility as you found it.
    *
    * Four of the 78 clubs already sit at 90, so a badge for "reach 90" is

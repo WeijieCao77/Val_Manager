@@ -564,6 +564,13 @@ export function moveToClub(state: GameState, teamId: string): string {
 
   state.myTeam = to.id
   state.startFacilities = to.facilities
+  state.startTier = to.tier
+  // The squad you inherited is the squad you inherited HERE. Left pointing at
+  // the old club's roster, every badge and ending built on it went wrong the
+  // moment you changed jobs: 「大换血」 and 「推倒重来」 fired for free because
+  // nobody on the new team was on that list, and 「一起走到最后」 became
+  // impossible for the same reason.
+  state.startingSquad = [...to.roster]
   // a new squad, and their development starts being yours from today — the
   // stars you walked in on are not something you built
   for (const id of to.roster) {

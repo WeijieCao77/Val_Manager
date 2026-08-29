@@ -162,10 +162,13 @@ export function factsOf(state: GameState): Facts {
     && state.year > streakEnd
     && !allYears.some((y) => y > streakEnd)
 
-  // Which tier the job was taken at. A career that never moved has no tenure
-  // row at all, so the fallback is the club we are still at.
+  // Which tier the job was taken at, stamped when it was taken. Reading the
+  // club's tier now would answer the wrong question: Ascension sets tier to 1,
+  // so a manager who actually went up with a second-division side reads back
+  // as having started in the first. Older saves have no stamp and fall back to
+  // the first club's current tier, which is what they always did.
   const firstClub = (state.tenures ?? [])[0]?.teamId ?? state.myTeam
-  const startedLow = (state.teams[firstClub]?.tier ?? 1) === 2
+  const startedLow = (state.startTier ?? state.teams[firstClub]?.tier ?? 1) === 2
 
   return {
     seasons: state.year - 2026 + 1,

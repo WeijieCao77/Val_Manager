@@ -174,6 +174,21 @@ const check = (name: string, ok: boolean, detail = '') => {
   const got = earnedNow(g)
   check('开局不会白送成就', got.length <= 2, got.join('、') || '一个都没有')
 
+  // ...and not for ANY club, which is the version that matters. Testing one
+  // team missed 「商业版图」: clubs are dealt 2-4 sponsors at world creation and
+  // eighteen of the 78 open above 350万, so the badge was handed to whoever
+  // picked the right job.
+  const freebies = new Map<string, string[]>()
+  for (const t of WORLD_TEAMS) {
+    const w = createNewGame(t.id, '审计', 20260828)
+    setupSeason(w)
+    const early = earnedNow(w)
+    if (early.length) freebies.set(t.tag, early)
+  }
+  check('78 支队里没有一支开局就白送成就',
+    freebies.size === 0,
+    [...freebies].map(([tag, ks]) => `${tag}:${ks.join('/')}`).join('  ') || '一支都没有')
+
   // and every single predicate survives a save with holes in it
   const holed = JSON.parse(JSON.stringify(g))
   delete holed.staff; delete holed.tenures; delete holed.startingSquad
