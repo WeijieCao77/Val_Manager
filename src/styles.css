@@ -467,10 +467,30 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .team-card.sel { border-color: var(--accent); background: var(--accent-wash); }
 .team-card .n { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
 
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+/* A segmented control, and it has to survive being wider than the phone.
+ *
+ * `overflow: hidden` is what clips the buttons' fill to the rounded corners —
+ * but on its own it also means a row too wide for the screen is simply cut
+ * off, with nothing to swipe. The 收藏 filter (全部/彩卡/金卡/银卡/铜卡/教练/
+ * 有重复) ran off the right edge of a phone and 有重复 was unreachable.
+ *
+ * `overflow-x: auto` re-opens that axis while the y stays hidden, and the
+ * buttons stop shrinking so the row scrolls instead of squeezing seven labels
+ * into 375px. The scrollbar is hidden because this reads as a row of chips,
+ * not as a scroller — the overflowing button peeking at the edge is the
+ * affordance. */
+.seg {
+  display: inline-flex; border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden;
+  max-width: 100%; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+.seg::-webkit-scrollbar { display: none; }
 .seg button {
   border: none; border-radius: 0; background: transparent;
   padding: 6px 13px; font-size: var(--t-body); color: var(--muted);
+  flex: none; white-space: nowrap;
 }
 .seg button:hover { background: var(--panel-2); }
 .seg button.on { background: var(--accent); color: #fff; font-weight: 650; }
