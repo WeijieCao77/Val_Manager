@@ -162,9 +162,22 @@ export function mergeProfile(a: Profile, b: Partial<Profile>): Profile {
  * player already had must not pop again every time the day ticks over, and the
  * daily check runs this with the full list of everything currently true.
  */
+/**
+ * Who to tell when something unlocks.
+ *
+ * A module-level subscriber rather than a prop threaded through the tree: the
+ * three places that record — the turn handler, the 成就 screen and the end of a
+ * career — are in different parts of the app, and none of them should have to
+ * know how the announcement is drawn.
+ */
+type Announcer = (fresh: { endings: string[]; achievements: string[] }) => void
+let announcer: Announcer | null = null
+export const whenUnlocked = (fn: Announcer | null): void => { announcer = fn }
+
 export function record(
   patch: { endings?: string[]; achievements?: string[]; record?: Partial<CareerRecord> },
   id: string | null = siteId(),
+  opts: { announce?: boolean } = {},
 ): { fresh: { endings: string[]; achievements: string[] }; profile: Profile } {
   const key = id ?? 'local'
   const before = readProfile(key)
@@ -194,6 +207,11 @@ export function record(
 
   writeLocal(next)
   push(next)
+  // The game-over screen is itself the announcement for the endings it just
+  // recorded, so it opts out rather than being told twice.
+  if (opts.announce !== false && (fresh.endings.length || fresh.achievements.length)) {
+    announcer?.(fresh)
+  }
   return { fresh, profile: next }
 }
 

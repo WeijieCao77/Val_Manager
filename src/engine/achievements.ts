@@ -229,30 +229,44 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // =================================================================== 养成
   {
+    // 88, not 90. Six ten-year careers played for development — signing the
+    // widest ceilings available and training every week — got a man who
+    // arrived at 85 or under as far as 89 and no further. A 90 asked for one
+    // point that the development curve does not have.
     key: 'ceiling', scope: 'run', group: '养成', title: '天花板',
-    brief: '把一名选手从 85 以下练到 90 以上',
+    brief: '把一名到你手上时不到 85 的选手练到 88 以上',
     hard: true,
     test: (_s, f) => f.squad.some(
-      (p) => p.overall >= 90 && (p.arrivedOverall ?? p.overall) <= 85),
+      (p) => p.overall >= 88 && (p.arrivedOverall ?? p.overall) <= 85),
   },
   {
+    // The bar is what YOU added, not what he arrived at. An arrival cap of 75
+    // meant the badge quietly excluded the ordinary path to it — sign a
+    // promising 17-year-old at 77, coach him to 85 — while a fixed cap says
+    // nothing about whether you did any coaching at all.
     key: 'teenStar', scope: 'run', group: '养成', title: '少年成名',
-    brief: '把一名 20 岁及以下的选手练到 80 以上',
+    brief: '把一名 20 岁及以下的选手练到 80 以上，且在你手下至少涨 8 点',
     hard: true,
     test: (_s, f) => f.squad.some(
-      (p) => p.age <= 20 && p.overall >= 80 && (p.arrivedOverall ?? p.overall) < 75),
+      (p) => p.age <= 20 && p.overall >= 80 && p.overall - (p.arrivedOverall ?? p.overall) >= 8),
   },
   {
+    // the best single development anyone managed across those six careers was
+    // +14, so 15 was one point outside the game
     key: 'grew15', scope: 'run', group: '养成', title: '脱胎换骨',
-    brief: '让一名选手在你手下涨 15 点能力',
-    test: (_s, f) => f.squad.some((p) => p.overall - (p.arrivedOverall ?? p.overall) >= 15),
+    brief: '让一名选手在你手下涨 12 点能力',
+    test: (_s, f) => f.squad.some((p) => p.overall - (p.arrivedOverall ?? p.overall) >= 12),
   },
   {
+    // No rating on this one. Ageing in this game is steep: across six full
+    // careers the best 30-year-old anybody had was 64, while the world's peak
+    // was 95, so 「30 岁以上且 80 以上」 described a player who cannot exist.
+    // What is real is choosing to keep one at all instead of churning.
     key: 'veteran', scope: 'run', group: '养成', title: '老而弥坚',
-    brief: '让一名 30 岁以上、能力 80 以上的选手仍然首发',
+    brief: '让一名 30 岁以上的选手留在首发五人里',
     test: (s, f) => {
       const starters = new Set(s.teams[s.myTeam]?.starters ?? [])
-      return f.squad.some((p) => p.age >= 30 && p.overall >= 80 && starters.has(p.id))
+      return f.squad.some((p) => p.age >= 30 && starters.has(p.id))
     },
   },
   {
@@ -332,9 +346,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     key: 'commercial60', scope: 'run', group: '经营', title: '商业帝国',
-    brief: '商务与赞助累计进账 6000 万',
+    // 3500万, which every audited career cleared. The figure swings with how
+    // big a club you are at — runs harvested anywhere from 3870万 to 5729万 —
+    // so the bar sits under the weakest of them rather than under the best.
+    brief: '商务与赞助累计进账 3500 万',
     hard: true,
-    test: (s) => tally(s).commercial >= 60_000_000,
+    test: (s) => tally(s).commercial >= 35_000_000,
   },
   {
     key: 'rich', scope: 'run', group: '经营', title: '家底',
@@ -347,10 +364,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (s) => tally(s).earned >= 2_000_000,
   },
   {
+    // managerSalaryFor tops out near $360K a season — the best club in the
+    // world paying a manager at maximum reputation — so eleven seasons is
+    // about $3.96M and 800万 was money the game cannot pay.
     key: 'savingsBig', scope: 'run', group: '经营', title: '不缺钱了',
-    brief: '自己的工资累计拿满 800 万',
+    brief: '自己的工资累计拿满 300 万',
     hard: true,
-    test: (s) => tally(s).earned >= 8_000_000,
+    test: (s) => tally(s).earned >= 3_000_000,
   },
 
   // =================================================================== 生涯

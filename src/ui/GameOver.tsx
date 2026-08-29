@@ -67,7 +67,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
         seasons: r.seasons + (game.year - 2026 + 1),
         clubs: [...r.clubs, ...(game.tenures ?? []).map((t) => t.teamId), game.myTeam],
       } : undefined,
-    }, id)
+    }, id, { announce: false })
     // only keys this build still knows about — see the note in Achievements.tsx
     const live = new Set(ENDINGS.map((e) => e.key))
     return {

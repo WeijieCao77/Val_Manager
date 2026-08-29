@@ -1736,3 +1736,39 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* the front-page chip is a button now, not a static readout */
 .home-id { cursor: pointer; }
 .home-id:hover { border-color: var(--accent-line); }
+
+/* ---------------------------------------------------------------- unlocked
+
+   The payoff card. Bottom-left so it never collides with the two FABs in the
+   opposite corner, and above the modal layer so it is still readable when a
+   match report is open. */
+.unlock {
+  position: fixed; left: 16px; bottom: 16px; z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--panel); border: 1px solid var(--warn);
+  border-left-width: 3px;
+  border-radius: var(--radius); padding: 13px 14px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .6);
+  animation: unlock-in .26s cubic-bezier(.2, .8, .3, 1);
+}
+.unlock.hard { border-color: var(--accent); }
+@keyframes unlock-in {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .unlock { animation: none; } }
+.unlock-mark { font-size: 22px; line-height: 1.2; flex: none; }
+.unlock-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.unlock-body .k {
+  color: var(--warn); font-size: 10.5px; letter-spacing: .12em;
+}
+.unlock.hard .unlock-body .k { color: var(--accent); }
+.unlock-body .k em { font-style: normal; opacity: .8; }
+.unlock-body b { font-size: 17px; line-height: 1.35; }
+.unlock-side { display: flex; flex-direction: column; gap: 5px; flex: none; }
+.unlock-side button { white-space: nowrap; }
+@media (max-width: 720px) {
+  .unlock { left: 10px; right: 10px; bottom: 10px; width: auto; }
+  .unlock-body b { font-size: 15px; }
+}

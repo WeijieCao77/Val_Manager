@@ -29,6 +29,10 @@ import Achievements from './ui/Achievements'
 import Credit from './ui/Credit'
 import Support from './ui/Support'
 import Changelog from './ui/Changelog'
+import Unlocked, { toItems } from './ui/Unlocked'
+import type { UnlockItem } from './ui/Unlocked'
+import { whenUnlocked } from './engine/profile'
+import { ENDINGS } from './engine/endings'
 import Dossier from './ui/Dossier'
 
 /**
@@ -115,11 +119,22 @@ export default function App() {
   const [playerRenew, setPlayerRenew] = useState(false)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
+  // Anything that unlocks anywhere in the career shows up here, whichever
+  // screen you were on when it happened.
+  const [unlocks, setUnlocks] = useState<UnlockItem[]>([])
   const [booted, setBooted] = useState(false)
   const warnedSaveRef = useRef(false)
 
   useEffect(() => {
     setBooted(true)
+  }, [])
+
+  useEffect(() => {
+    whenUnlocked((fresh) => {
+      const items = toItems(fresh.achievements, fresh.endings, ENDINGS)
+      if (items.length) setUnlocks((q) => [...q, ...items])
+    })
+    return () => whenUnlocked(null)
   }, [])
 
   const commit = useCallback(() => {
@@ -318,6 +333,11 @@ export default function App() {
           </main>
         </div>
 
+        <Unlocked
+          queue={unlocks}
+          onNext={() => setUnlocks((q) => q.slice(1))}
+          onClearAll={() => setUnlocks([])}
+        />
         <Changelog raised />
         <Support raised />
 
