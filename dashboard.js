@@ -127,22 +127,28 @@ function render(d) {
     '<tr><td>' + esc(r[k]) + '</td><td class="n">' + r[v] + '</td></tr>')
 
   // ---- the front page, which is the first choice anybody makes now
-  const h = d.home || {}
+  // Named hm, not h: headline already owns h at the top of this function.
+  // Worth knowing why that slipped through — this whole script sits inside a
+  // template literal, so node --check parses the module around it and never
+  // reads a line of it. A duplicate const is a SyntaxError that blanks the
+  // entire dashboard, and nothing in the suite looked. (Nor can a comment in
+  // here use backticks: they close the literal.)
+  const hm = d.home || {}
   const homeSteps = [
-    ['进了 VCT电竞经理', h.career], ['进了开瓦包', h.cards],
-    ['两个都玩过', h.both], ['两个都没点', h.neither],
+    ['进了 VCT电竞经理', hm.career], ['进了开瓦包', hm.cards],
+    ['两个都玩过', hm.both], ['两个都没点', hm.neither],
   ]
   const homeRows = homeSteps.map(([label, n]) =>
     '<tr><td>' + label + '</td><td class="n">' + (n ?? 0) + '</td>' +
-    '<td style="width:38%"><div class="bar" style="width:' + pct(n ?? 0, h.visitors || 1) + '%"></div></td>' +
-    '<td class="n muted">' + pct(n ?? 0, h.visitors || 1) + '%</td></tr>')
+    '<td style="width:38%"><div class="bar" style="width:' + pct(n ?? 0, hm.visitors || 1) + '%"></div></td>' +
+    '<td class="n muted">' + pct(n ?? 0, hm.visitors || 1) + '%</td></tr>')
 
   // ---- how careers end, which had no event at all before this release
-  const c = d.careers || {}
+  const car = d.careers || {}
   const acc = d.accounts || {}
   const careerRows = [
-    ['走完十年', c.finished ?? 0], ['中途下课', c.sacked ?? 0],
-    ['平均在任赛季', c.avg_seasons ?? 0], ['平均冠军数', c.avg_honours ?? 0],
+    ['走完十年', car.finished ?? 0], ['中途下课', car.sacked ?? 0],
+    ['平均在任赛季', car.avg_seasons ?? 0], ['平均冠军数', car.avg_honours ?? 0],
     ['创建了账号', acc.made ?? 0], ['用 ID 找回账号', acc.restored ?? 0],
   ].map(([label, n]) =>
     '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
