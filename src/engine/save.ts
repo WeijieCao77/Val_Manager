@@ -148,6 +148,26 @@ function migrate(state: GameState): GameState {
   state.lastResults ??= []
   state.training ??= {}
   state.boardConfidence ??= 60
+
+  // The three "as you found it" marks, for careers that began before they
+  // existed. Missing, they do not read as unknown — they read as zero, which
+  // is a different and wrong answer: an absent `startingSquad` means nobody on
+  // the roster was inherited, so 「大换血」 unlocked on day one of a save with
+  // its original five still on it, and 「一起走到最后」 became unreachable.
+  //
+  // Backfilling with today's squad cannot recover who was really inherited on
+  // a career already five years old. It is still the better answer: it says
+  // "these are the ones you have", which is true, instead of "you inherited
+  // nobody", which is not.
+  {
+    const mine = state.teams?.[state.myTeam]
+    if (mine) {
+      state.startingSquad ??= [...mine.roster]
+      state.startFacilities ??= mine.facilities
+      state.startTier ??= mine.tier
+    }
+  }
+
   for (const t of Object.values(state.teams)) {
     // A club's tag and name are the world file's to decide, not the save's.
     // They are display-only — nothing in a save is keyed on them — so a

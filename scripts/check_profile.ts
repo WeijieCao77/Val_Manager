@@ -15,8 +15,9 @@ import {
   ACHIEVEMENTS, ACHIEVEMENT_COUNT, LIFE_ACHIEVEMENTS, RUN_ACHIEVEMENTS, earnedNow,
 } from '../src/engine/achievements'
 import { ENDINGS } from '../src/engine/endings'
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { setupSeason } from '../src/engine/season'
+import { loadGame } from '../src/engine/save'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }).localStorage = {
@@ -148,6 +149,38 @@ const check = (name: string, ok: boolean, detail = '') => {
   const viaDefault = readProfile()
   check('UI 用的默认参数走的是同一个桶',
     viaDefault.endings.length === 2, `结局 ${viaDefault.endings.length}`)
+}
+
+// ---- 老存档没有「接手时的阵容」，不能因此白送成就
+{
+  // Reported from a live save on its first day: 「大换血」 already unlocked,
+  // with the original five still on the roster and no transfer window opened.
+  // The career predated `startingSquad`, so the field was undefined — which
+  // reads as "you inherited nobody", not as "unknown", and every player on the
+  // books counted as a signing.
+  const fresh = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260828)
+  setupSeason(fresh)
+
+  // exactly what an older save looks like on disk
+  const legacy = JSON.parse(JSON.stringify(fresh)) as typeof fresh
+  delete (legacy as { startingSquad?: string[] }).startingSquad
+  delete (legacy as { startFacilities?: number }).startFacilities
+  delete (legacy as { startTier?: number }).startTier
+  check('去掉标记之后，成就会误判', earnedNow(legacy).includes('rebuilt'),
+    earnedNow(legacy).join('、') || '没有误判')
+
+  // and what loadGame does to it on the way in
+  store.set('valmanager:save:legacy', JSON.stringify(legacy))
+  const loaded = loadGame('legacy')!
+  check('读取时补回了接手名单',
+    (loaded.startingSquad ?? []).length === squadOf(loaded, loaded.myTeam).length,
+    `${(loaded.startingSquad ?? []).length} 人`)
+  check('补回之后第一天不再白送「大换血」',
+    !earnedNow(loaded).includes('rebuilt'),
+    earnedNow(loaded).join('、') || '一个都没有')
+  check('设施与级别的基准也补上了',
+    loaded.startFacilities !== undefined && loaded.startTier !== undefined,
+    `设施 ${loaded.startFacilities}／级别 ${loaded.startTier}`)
 }
 
 // ---- damaged input cannot poison the record
