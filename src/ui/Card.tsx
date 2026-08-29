@@ -273,8 +273,8 @@ function CoachBody({ card, size, footer }: { card: CoachCard; size: string; foot
 export function CardBack() {
   return (
     <div className="cardback">
-      <div className="cb-mark">VAL</div>
-      <div className="cb-sub">CARDS</div>
+      <div className="cb-mark">开瓦包</div>
+      <div className="cb-sub">VAL CARDS</div>
     </div>
   )
 }

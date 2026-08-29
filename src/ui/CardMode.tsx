@@ -262,7 +262,10 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     <CardCtx.Provider value={ctx}>
       <div className="app cardmode">
         <header className="topbar">
-          <div className="brand">VAL<span>CARDS</span><em className="by">卡牌模式</em></div>
+          {/* 开 in the accent, 瓦包 in the gold this mode uses — the same
+              two-tone split the career's mark has. The English keeps the .by
+              line it inherited, which is where the career puts its credit. */}
+          <div className="brand">开<span>瓦包</span><em className="by">VAL CARDS</em></div>
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
           <StaminaChip g={g} onTick={() => setNow(serverNow())} />
           <div className="chip" title="段位">
@@ -398,7 +401,8 @@ function Gate({
 
   return (
     <div className="wrap newgame">
-      <h1 className="display">卡牌模式</h1>
+      <h1 className="display" style={{ marginBottom: 2 }}>开瓦包</h1>
+      <p className="tiny faint" style={{ letterSpacing: '.34em', margin: '0 0 16px' }}>VAL CARDS</p>
       <p className="muted" style={{ lineHeight: 1.9, maxWidth: 620 }}>
         抽真实的 VCT 选手做成的卡牌，金银铜三档，用抽到的人组一套五人阵容，
         去打真实的职业战队。<b>同队、同国籍、同赛区</b>的选手放在一起会有默契加成——

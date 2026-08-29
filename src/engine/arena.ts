@@ -143,7 +143,7 @@ export function buildArena(
     tag: squad.tag ?? 'MINE',
     region: 'Americas',
     tier: 1,
-    league: '卡牌模式',
+    league: '开瓦包',
     rating: 70,
     budget: 0,
     reputation: 60,
