@@ -98,6 +98,40 @@ const check = (name: string, ok: boolean, detail = '') => {
     other.achievements.join('、'))
 }
 
+// ---- 生涯成就要在「本回合没有新东西」时也重算
+{
+  // Found by unlocking all 43 in the browser: 生涯成就 stayed at 0/6 with a
+  // record that plainly satisfied them. record() short-circuited on
+  // "nothing new" BEFORE recomputing them, so an account that crossed fifty
+  // titles unlocked 五十冠 only later, whenever some unrelated badge happened
+  // to fire and drag the recount along.
+  store.clear()
+  const id = 'VM-LIFE'
+  // a record that earns 老江湖 (careers >= 5) and 五十冠, recorded quietly
+  record({ achievements: ['firstTitle'] }, id)
+  const quiet = record({
+    achievements: ['firstTitle'],           // nothing new here
+    record: undefined,
+  }, id)
+  check('没有新局内成就时也不会漏算生涯成就',
+    quiet.profile.achievements.includes('firstTitle'))
+
+  // now push the record over the line WITHOUT unlocking anything else
+  const before = readProfile(id)
+  store.set('valmanager:profile:' + id, JSON.stringify({
+    ...before,
+    record: { ...before.record, careers: 6, titles: 60 },
+  }))
+  const after = record({ achievements: ['firstTitle'] }, id)
+  check('账号数据跨过门槛的那一刻，生涯成就就解锁',
+    after.profile.achievements.includes('careers5')
+    && after.profile.achievements.includes('titles50'),
+    after.profile.achievements.join('、'))
+  check('并且被报告为新解锁，弹窗才会出现',
+    after.fresh.achievements.includes('careers5'),
+    after.fresh.achievements.join('、') || '没有报告任何新解锁')
+}
+
 // ---- damaged input cannot poison the record
 {
   store.set('valmanager:profile:X', JSON.stringify({

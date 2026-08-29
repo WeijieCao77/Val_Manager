@@ -185,9 +185,6 @@ export function record(
     endings: (patch.endings ?? []).filter((k) => !before.endings.includes(k)),
     achievements: (patch.achievements ?? []).filter((k) => !before.achievements.includes(k)),
   }
-  const nothingNew = !fresh.endings.length && !fresh.achievements.length && !patch.record
-  if (nothingNew) return { fresh, profile: before }
-
   const merged = mergeProfile(before, {
     endings: patch.endings,
     achievements: patch.achievements,
@@ -198,12 +195,24 @@ export function record(
   // so they are recomputed here rather than at every call site. Doing it after
   // the merge matters: 「解锁十种结局」 has to see the ending that was just
   // added, and 「走遍四大赛区」 the club that was just recorded.
+  //
+  // And BEFORE the nothing-new short-circuit, which is where they used to sit.
+  // A career that quietly pushes the account past fifty titles unlocks no run
+  // achievement on the way — so the turn had nothing fresh, returned early,
+  // and 五十冠 never fired. It would eventually appear, whenever some unrelated
+  // badge happened to unlock and drag the recount along with it, which is not
+  // a thing anyone could have explained.
   const life = earnedLifetime(merged.record, merged)
   const newLife = life.filter((k) => !merged.achievements.includes(k))
+  fresh.achievements = [...fresh.achievements, ...newLife]
+
+  if (!fresh.endings.length && !fresh.achievements.length && !patch.record) {
+    return { fresh, profile: before }
+  }
+
   const next = newLife.length
     ? mergeProfile(merged, { achievements: newLife })
     : merged
-  fresh.achievements = [...fresh.achievements, ...newLife]
 
   writeLocal(next)
   push(next)
