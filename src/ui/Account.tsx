@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react'
 import { createAccount, loadAccount, rememberId, rememberedId } from '../engine/account'
 import { claimLocal, readProfile, syncProfile } from '../engine/profile'
+import { track } from '../engine/telemetry'
 
 export const maskId = (id: string): string =>
   `${id.slice(0, 7)}-••••-${id.slice(-4)}`
@@ -56,6 +57,7 @@ export default function Account(
       const r = await createAccount(name)
       setMadeNow(true)
       setShown(true)          // you cannot write down what you cannot see
+      track('account', { act: 'new' })
       settle(r.state.id)
       if (!r.cloud) {
         setErr('服务器暂时连不上，账号先建在这台设备上了，联网后会自动同步。')
@@ -74,6 +76,7 @@ export default function Account(
     setBusy(false)
     if (r.ok) {
       rememberId(r.state.id)
+      track('account', { act: 'restore' })
       setMadeNow(false)
       settle(r.state.id)
       setTyped('')

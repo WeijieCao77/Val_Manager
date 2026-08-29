@@ -134,6 +134,19 @@ export default function App() {
   useEffect(() => {
     whenUnlocked((fresh) => {
       const items = toItems(fresh.achievements, fresh.endings, ENDINGS)
+      // Which of the 65 actually get earned. The reachability audit proved
+      // they all CAN be; this is the half it cannot answer.
+      //
+      // The title rides along with the key so the dashboard never has to keep
+      // its own copy of sixty-five names — a second list is a list that drifts,
+      // and this codebase has already shipped that bug twice.
+      for (const it of items) {
+        track('unlock', {
+          kind: it.kind === '结局' ? 'end' : 'ach',
+          key: it.key,
+          name: it.title,
+        })
+      }
       if (items.length) setUnlocks((q) => [...q, ...items])
     })
     return () => whenUnlocked(null)

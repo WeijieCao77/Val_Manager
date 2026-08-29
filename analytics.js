@@ -44,6 +44,18 @@ export const EVENTS = new Set([
   'card_pull',
   'card_match',
   'card_signin',
+  // The front page sits in front of both games now, so the first decision a
+  // visitor makes is which one — and until this existed, somebody who arrived,
+  // read the page and left looked identical to somebody who never arrived.
+  'home_go',
+  // Reaching 2036 is the thing the ten-year rewrite was for, and it was the
+  // one outcome with no event at all: `sacked` fired, finishing did not.
+  'game_over',
+  // Which endings and achievements actually get earned. The audit proved every
+  // one is reachable in principle; this is whether anyone reaches it.
+  'unlock',
+  // the site account, which is opt-in and therefore worth watching
+  'account',
   'error',
 ])
 

@@ -126,6 +126,34 @@ function render(d) {
   const simple = (rows, k, v) => rows.map((r) =>
     '<tr><td>' + esc(r[k]) + '</td><td class="n">' + r[v] + '</td></tr>')
 
+  // ---- the front page, which is the first choice anybody makes now
+  const h = d.home || {}
+  const homeSteps = [
+    ['进了 VCT电竞经理', h.career], ['进了开瓦包', h.cards],
+    ['两个都玩过', h.both], ['两个都没点', h.neither],
+  ]
+  const homeRows = homeSteps.map(([label, n]) =>
+    '<tr><td>' + label + '</td><td class="n">' + (n ?? 0) + '</td>' +
+    '<td style="width:38%"><div class="bar" style="width:' + pct(n ?? 0, h.visitors || 1) + '%"></div></td>' +
+    '<td class="n muted">' + pct(n ?? 0, h.visitors || 1) + '%</td></tr>')
+
+  // ---- how careers end, which had no event at all before this release
+  const c = d.careers || {}
+  const acc = d.accounts || {}
+  const careerRows = [
+    ['走完十年', c.finished ?? 0], ['中途下课', c.sacked ?? 0],
+    ['平均在任赛季', c.avg_seasons ?? 0], ['平均冠军数', c.avg_honours ?? 0],
+    ['创建了账号', acc.made ?? 0], ['用 ID 找回账号', acc.restored ?? 0],
+  ].map(([label, n]) =>
+    '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
+
+  // The game sends the title with the key, so this never keeps its own copy of
+  // sixty-five names — the key is only a fallback for events sent before that.
+  const unlockRows = (data, kind) => (data.unlocks || [])
+    .filter((r) => r.kind === kind)
+    .map((r) => '<tr><td>' + esc(r.name || r.key) + '</td>' +
+      '<td class="n">' + r.visitors + '</td></tr>')
+
   $('#app').innerHTML = '<div class="grid">' +
     panel('回访率 · 最关键的一个数',
       '<div class="big">' + (h.return_pct ?? 0) + '%<small>的人第二天还回来</small></div>' +
@@ -171,6 +199,21 @@ function render(d) {
       '大家想执教谁。冷门队没人选，可以考虑给点理由。') +
     panel('去过哪些页面', table(['页面', '次数'], simple(d.screens || [], 'screen', 'n')),
       '没人打开的页面，要么没做好，要么不该做。') +
+  '</div>' +
+
+  '<div class="grid" style="margin-top:12px">' +
+    panel('首页去了哪', table(['去向', '人数', '', '占比'], homeRows),
+      '首页现在挡在两个游戏前面，所以这是每个人做的第一个选择。'
+      + '「两个都没点」是最贵的一格——人已经到门口了。') +
+    panel('生涯怎么结束的', table(['结果', '数量'], careerRows),
+      '走完十年 vs 中途下课。十年改版就是为了前者，而它之前根本没有被记录。') +
+  '</div>' +
+
+  '<div class="grid" style="margin-top:12px">' +
+    panel('解锁排行 · 结局', table(['结局', '人数'], unlockRows(d, 'end')),
+      '没出现在这里的结局，就是还没有人见过的内容。') +
+    panel('解锁排行 · 成就', table(['成就', '人数'], unlockRows(d, 'ach')),
+      '排在最上面的如果太容易，说明门槛低了；一直不出现的说明要么太难要么没人找得到。') +
   '</div>' +
 
   ((d.errors || []).length ? '<div class="grid" style="margin-top:12px">' +

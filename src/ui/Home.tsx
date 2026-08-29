@@ -20,6 +20,7 @@ import type { Region } from '../engine/types'
 import { Crest } from './common'
 import Account, { maskId } from './Account'
 import Support from './Support'
+import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
 
 type Mode = 'home' | 'career' | 'cards'
@@ -146,7 +147,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               <li><b>{ENDING_COUNT}</b> 种结局 · <b>{ACHIEVEMENT_COUNT}</b> 项成就</li>
             </ul>
             <div className="home-go">
-              <button className="primary" onClick={() => onOpen('career')}>
+              <button className="primary" onClick={() => { track('home_go', { go: 'career' }); onOpen('career') }}>
                 {resume ? (resume.over ? '查看结果' : '继续上次存档') : '开始执教'}
               </button>
               {resume && (
@@ -188,7 +189,10 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               <li>天梯段位 · 杯赛</li>
             </ul>
             <div className="home-go">
-              <button className="primary" onClick={() => onOpen('cards')}>进入卡池</button>
+              <button
+                className="primary"
+                onClick={() => { track('home_go', { go: 'cards' }); onOpen('cards') }}
+              >进入卡池</button>
             </div>
           </div>
         </article>

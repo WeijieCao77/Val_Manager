@@ -58,6 +58,19 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v3', 's4', 5, 'session_ping', '0 days', { active_s: 1e308 }],
   ['v3', 's4', 6, 'session_ping', '0 days', { active_s: -900 }],
   ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError' }],
+  // ---- the front page and the things it now leads to
+  ['v1', 's2', 6, 'home_go', '-1 days', { go: 'career' }],
+  ['v1', 's2', 7, 'home_go', '-1 days', { go: 'cards' }],
+  ['v2', 's3', 3, 'home_go', '-1 days', { go: 'cards' }],
+  ['v1', 's2', 8, 'game_over', '-1 days',
+    { finished: 1, seasons: 11, honours: 20, dynasty: 'golden', story: 'homegrown' }],
+  ['v2', 's3', 4, 'game_over', '-1 days',
+    { finished: 0, seasons: 4, honours: 2, dynasty: 'nothing', story: 'shortStay' }],
+  ['v1', 's2', 9, 'unlock', '-1 days', { kind: 'end', key: 'golden', name: '黄金之路' }],
+  ['v1', 's2', 10, 'unlock', '-1 days', { kind: 'ach', key: 'firstTitle', name: '开张' }],
+  ['v2', 's3', 5, 'unlock', '-1 days', { kind: 'ach', key: 'firstTitle', name: '开张' }],
+  ['v1', 's2', 11, 'account', '-1 days', { act: 'new' }],
+  ['v2', 's3', 6, 'account', '-1 days', { act: 'restore' }],
 ]
 for (const [vid, sid, n, name, ago, props] of rows) {
   await db.query(
@@ -118,6 +131,26 @@ if (out) {
   check('cohorts come back', Array.isArray(out.retention), `${out.retention.length} cohorts`)
   check('errors surface', out.errors.length === 1, JSON.stringify(out.errors[0]?.msg))
   check('clubs are counted', out.clubs.length === 1, JSON.stringify(out.clubs))
+
+  // ---- the panels added for the two-game front page
+  check('首页去向按人算，不按点击算',
+    out.home.career === 1 && out.home.cards === 2 && out.home.both === 1,
+    JSON.stringify(out.home))
+  check('没点进任何一个游戏的人也被算进来',
+    out.home.neither === (out.home.visitors - 2), JSON.stringify(out.home))
+  check('走完十年和中途下课分得开',
+    out.careers.finished === 1 && out.careers.sacked === 1, JSON.stringify(out.careers))
+  check('生涯长度和冠军数是平均值，不是总和',
+    out.careers.avg_seasons === 8 && out.careers.avg_honours === 11,
+    JSON.stringify(out.careers))
+  check('解锁按人去重，同一条被两个人拿到算 2',
+    out.unlocks.find((r) => r.key === 'firstTitle')?.visitors === 2,
+    JSON.stringify(out.unlocks))
+  check('解锁带着游戏里的名字，面板不用自己维护一份',
+    out.unlocks.find((r) => r.key === 'golden')?.name === '黄金之路',
+    JSON.stringify(out.unlocks.find((r) => r.key === 'golden')))
+  check('账号的创建与找回分开统计',
+    out.accounts.made === 1 && out.accounts.restored === 1, JSON.stringify(out.accounts))
 }
 
 // every window the dashboard offers must work, not just the default

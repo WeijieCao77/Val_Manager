@@ -7,6 +7,7 @@ import {
 import { earnedNow } from '../engine/achievements'
 import { claimCareer, readProfile, record, siteId } from '../engine/profile'
 import { money } from './common'
+import { track } from '../engine/telemetry'
 import { ORIGINS } from '../engine/manager'
 
 /**
@@ -70,6 +71,15 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
     }, id, { announce: false })
     // only keys this build still knows about — see the note in Achievements.tsx
     const live = new Set(ENDINGS.map((e) => e.key))
+    // The one outcome that had no event: `sacked` fired from the engine, but
+    // reaching 2036 — the whole point of the ten-year rewrite — was invisible.
+    track('game_over', {
+      finished: game.finished ? 1 : 0,
+      seasons: game.year - 2026 + 1,
+      honours: game.honours.length,
+      dynasty: endingOf(game).dynasty?.key ?? '',
+      story: endingOf(game).story?.key ?? '',
+    })
     return {
       earned: list,
       fresh: got.endings,

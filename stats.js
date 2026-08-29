@@ -17,6 +17,7 @@ export async function overview(sql, days = 30) {
   const [
     headline, daily, retention, sessions, funnel, depth,
     devices, screens, clubs, referrers, errors,
+    home, careers, unlocks, accounts,
   ] = await Promise.all([
     // The number that goes at the top: people who came back on a later day.
     // One visit is a click on a link; two days is a game someone chose again.
@@ -190,6 +191,60 @@ export async function overview(sql, days = 30) {
       select props->>'msg' as msg, count(*)::int as n, max(ts) as last_seen
       from events where name = 'error' and ts > now() - ${since}::interval
       group by 1 order by n desc limit 10`,
+
+    // ---- the front page, which is now the first decision anybody makes.
+    // Counted per visitor rather than per click: somebody who opens the
+    // manager four times is one person who chose the manager.
+    sql`
+      with seen as (
+        select visitor_id,
+          bool_or(name = 'home_go' and props->>'go' = 'career') as went_career,
+          bool_or(name = 'home_go' and props->>'go' = 'cards')  as went_cards
+        from events
+        where ts > now() - ${since}::interval
+        group by visitor_id
+      )
+      select
+        count(*)::int                                                as visitors,
+        count(*) filter (where went_career)::int                     as career,
+        count(*) filter (where went_cards)::int                      as cards,
+        count(*) filter (where went_career and went_cards)::int      as both,
+        count(*) filter (where not went_career and not went_cards)::int as neither
+      from seen`,
+
+    // ---- how careers actually end. Being sacked was tracked from the start;
+    // reaching 2036 was not tracked at all until this release.
+    sql`
+      select
+        count(*) filter (where props->>'finished' = '1')::int as finished,
+        count(*) filter (where props->>'finished' = '0')::int as sacked,
+        coalesce(round(avg((props->>'seasons')::numeric)
+          filter (where (props->>'seasons') ~ '^[0-9]+$'))::int, 0) as avg_seasons,
+        coalesce(round(avg((props->>'honours')::numeric)
+          filter (where (props->>'honours') ~ '^[0-9]+$'))::int, 0) as avg_honours
+      from events
+      where name = 'game_over' and ts > now() - ${since}::interval`,
+
+    // ---- which of the 65 anybody actually earns. The reachability audit
+    // proves they all can be; this is the half it cannot answer, and a row
+    // that never appears is content nobody has ever seen.
+    sql`
+      select props->>'kind' as kind, props->>'key' as key,
+             -- the game sends its own name for the thing, so this panel never
+             -- keeps a second copy of sixty-five titles that could drift
+             max(props->>'name') as name,
+             count(distinct visitor_id)::int as visitors
+      from events
+      where name = 'unlock' and ts > now() - ${since}::interval and props ? 'key'
+      group by 1, 2 order by visitors desc limit 40`,
+
+    // ---- the account is opt-in, so its take-up is worth watching on its own
+    sql`
+      select
+        count(distinct visitor_id) filter (where props->>'act' = 'new')::int     as made,
+        count(distinct visitor_id) filter (where props->>'act' = 'restore')::int as restored
+      from events
+      where name = 'account' and ts > now() - ${since}::interval`,
   ])
 
   return {
@@ -198,6 +253,8 @@ export async function overview(sql, days = 30) {
     daily, retention, sessions: sessions[0] ?? {},
     funnel: funnel[0] ?? {}, depth: depth[0] ?? {},
     devices, screens, clubs, referrers, errors,
+    home: home[0] ?? {}, careers: careers[0] ?? {},
+    unlocks, accounts: accounts[0] ?? {},
   }
 }
 
