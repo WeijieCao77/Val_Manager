@@ -87,12 +87,57 @@ if (process.env.DATABASE_URL) {
 
 // ---------------------------------------------------------------- helpers
 
+/**
+ * A JSON reply, compressed when it is big enough to be worth it.
+ *
+ * The card mode posts and receives the WHOLE collection on every save, and a
+ * filled-out account is tens of kilobytes of very repetitive JSON — it gzips
+ * to about a tenth. On a phone in China that is the difference between a save
+ * that lands and one that is still in flight when the app is backgrounded.
+ *
+ * `res.acceptEncoding` is stashed by the request handler rather than changing
+ * this signature: `json` is called from 54 places and from both API modules,
+ * and threading `req` through all of them to reach one header is a worse
+ * trade than one annotated property.
+ *
+ * Quality is deliberately low. This runs per request, unlike the static
+ * assets which are compressed once and cached — brotli at 4 costs about what
+ * gzip does and still beats it, and anything higher would spend more time
+ * compressing than it saves in flight.
+ */
+const JSON_MIN = 1024
 const json = (res, code, body) => {
   const s = JSON.stringify(body)
-  res.writeHead(code, {
+  const head = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
-  })
+  }
+  const accept = String(res.acceptEncoding || '')
+  if (Buffer.byteLength(s) >= JSON_MIN) {
+    try {
+      if (/\bbr\b/.test(accept)) {
+        const out = brotliCompressSync(s, {
+          params: { [constants.BROTLI_PARAM_QUALITY]: 4 },
+        })
+        head['Content-Encoding'] = 'br'
+        head.Vary = 'Accept-Encoding'
+        res.writeHead(code, head)
+        res.end(out)
+        return
+      }
+      if (/\bgzip\b/.test(accept)) {
+        const out = gzipSync(s, { level: 6 })
+        head['Content-Encoding'] = 'gzip'
+        head.Vary = 'Accept-Encoding'
+        res.writeHead(code, head)
+        res.end(out)
+        return
+      }
+    } catch {
+      // fall through and send it plain rather than fail the request
+    }
+  }
+  res.writeHead(code, head)
   res.end(s)
 }
 
@@ -293,6 +338,9 @@ createServer((req, res) => {
     res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Bad request')
     return
   }
+
+  // what this client will accept, for `json` — see the note on it
+  res.acceptEncoding = req.headers['accept-encoding']
 
   if (path === '/api/e') {
     if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
