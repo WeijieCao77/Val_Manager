@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { Condition, fmtDay, money, OvrBadge, Panel, Stat } from './common'
 import {
   bookGig, cancelGig, declineSponsor, endStream, freeDays, openGigs, pitchSponsor, sponsorSlots,
-  signSponsor, signStream, startVenture, streamOffer, ventureInfo, gigWindow,
+  signSponsor, signStream, SPONSOR_SLOT_TIERS, startVenture, streamOffer, ventureInfo, gigWindow,
 } from '../engine/commercial'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
@@ -96,7 +96,7 @@ export default function Commercial() {
           <span className="tiny faint">
             {game.pitchCooldown != null && game.pitchCooldown > game.day
               ? `${(game.pitchCooldown ?? 0) - game.day} 天后可以再谈`
-              : `免费，每 10 天一轮，最多同时持有 ${sponsorSlots(game.teams[game.myTeam])} 家（现有 ${game.teams[game.myTeam]?.sponsors.length ?? 0} 家，声望 65/70/80 各解锁一个栏位）。3 天后对方给出具体条件，你再决定签不签`}
+              : `免费，每 10 天一轮，最多同时持有 ${sponsorSlots(game.teams[game.myTeam])} 家（现有 ${game.teams[game.myTeam]?.sponsors.length ?? 0} 家，俱乐部声望 ${SPONSOR_SLOT_TIERS.join('/')} 各解锁一个栏位，经理声望不算）。3 天后对方给出具体条件，你再决定签不签`}
           </span>
         </div>
 

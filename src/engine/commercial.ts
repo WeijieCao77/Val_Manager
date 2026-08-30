@@ -367,7 +367,9 @@ export function pitchSponsor(state: GameState): string {
   const team = state.teams[state.myTeam]
   if (!team) return '找不到俱乐部。'
   if (team.sponsors.length >= sponsorSlots(team)) {
-    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的，声望到 65、70、80 会各多一个栏位。`
+    // name which reputation and where it stands: a famous manager at a mid
+    // club read the bare "声望" as his own 82 and filed this as a bug
+    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的。俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 会各多一个栏位（现在 ${Math.round(team.reputation)}），看的是俱乐部声望，不是经理声望。`
   }
   // ten days between approaches: pitching is meant to be a habit, not a find
   state.pitchCooldown = state.day + 10
@@ -490,7 +492,7 @@ export function signSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
   const team = state.teams[state.myTeam]
   if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
-  if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家。`
+  if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家；俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 会各多一个栏位（现在 ${Math.round(team.reputation)}）。`
   if (team.sponsors.some((x) => x.name === t.name)) return `已经和 ${t.name} 有合作了。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
