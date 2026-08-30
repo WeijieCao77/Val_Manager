@@ -14,7 +14,7 @@
  *   npx tsx scripts/economy_check.ts
  */
 import {
-  DIVISIONS, PACKS, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS,
+  DIVISIONS, PACKS, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS, staminaEvery,
   CUP_ENTRY, cupOpponent, enterCup, ladderOpponent, newGacha, openPack, recordCup,
   recordLadder, autoSquad,
 } from '../src/engine/gacha'
@@ -94,7 +94,7 @@ for (const tens of [3, 10, 30]) {
 
 console.log('\n=== 一天能赚多少（按体力上限折算）===')
 const perDayStamina = (24 * HOUR) / STAMINA_REGEN_MS
-console.log(`  体力：每 ${STAMINA_REGEN_MS / HOUR} 小时 +1，上限 ${STAMINA_MAX}`
+console.log(`  体力：每 ${staminaEvery()} +1，上限 ${STAMINA_MAX}`
   + ` → 一天最多生成 ${perDayStamina} 点`)
 for (const div of [0, 2, 5]) {
   const coins = perDayStamina * (ladderPer[div] / STAMINA_COST.ladder)

@@ -141,8 +141,9 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * One an hour, cap 15: a ladder match every two hours sustained, seven in a row
- * from a full meter, and 24 points a day if you check in through the day.
+ * One every 50 minutes, cap 15: a ladder match every 100 minutes sustained,
+ * seven in a row from a full meter, 12.5 hours to fill it, and 28.8 points a
+ * day if you check in through the day.
  *
  * It was one every two hours, chosen to hold the daily ceiling at six matches.
  * That reasoning ignored that nobody is awake for 24 hours — eight of those
@@ -150,24 +151,44 @@ export type PlayKind = keyof typeof STAMINA_COST
  * only part full on waking. Two hours between matches is already a long wait
  * for a browser game. The pacing moved to where it belongs instead: the price
  * of a pack, which throttles without ever telling anyone they may not play.
+ *
+ * Then it was one an hour, which was tidy and slightly wrong: an hourly meter
+ * hands out exactly 24 points a day, so a player who visits at the same two
+ * times every day is forever one point short of the eighth match and the
+ * remainder is always zero. Fifty minutes breaks that alignment — 28.8 points
+ * a day — and the whole of the surplus lands on people who come back more
+ * than once, which is the behaviour worth paying for. The wait a player
+ * actually feels, one ladder match, goes from two hours to 1h40m.
  */
-export const STAMINA_REGEN_MS = 60 * 60 * 1000
+export const STAMINA_REGEN_MS = 50 * 60 * 1000
 
 /**
- * "每小时回 1 点" — written from the constant, never typed out.
+ * "50 分钟" / "1 小时" — the interval in the largest whole unit that fits it.
  *
- * The interval has been retuned twice and both times a hardcoded "每 2 小时"
- * survived in three separate strings, so the game told players something that
- * was no longer true.
+ * Exported with an argument because the balance scripts label their comparison
+ * rows with it too. The interval has been retuned three times now and the
+ * first two times a hardcoded "每 2 小时" survived in three separate strings,
+ * so the game told players something that was no longer true.
  */
-export const staminaRate = (): string => {
-  const h = STAMINA_REGEN_MS / 3600_000
-  return h === 1 ? '每小时回 1 点' : `每 ${h} 小时回 1 点`
+export const staminaEvery = (ms: number = STAMINA_REGEN_MS): string => {
+  const min = Math.round(ms / 60_000)
+  return min % 60 === 0 ? `${min / 60} 小时` : `${min} 分钟`
 }
 
-/** How long a full meter takes to build from empty, in hours. */
+/** "每 50 分钟回 1 点" — written from the constant, never typed out. */
+export const staminaRate = (): string => {
+  const every = staminaEvery()
+  return every === '1 小时' ? '每小时回 1 点' : `每 ${every}回 1 点`
+}
+
+/**
+ * How long a full meter takes to build from empty, in hours.
+ *
+ * One decimal, because the interval no longer divides an hour: rounding 12.5
+ * to 13 would put a number on screen that the meter itself contradicts.
+ */
 export const staminaFillHours = (): number =>
-  Math.round((STAMINA_MAX * STAMINA_REGEN_MS) / 3600_000)
+  Math.round((STAMINA_MAX * STAMINA_REGEN_MS) / 360_000) / 10
 
 /**
  * There is no daily purchase limit, deliberately.

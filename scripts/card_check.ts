@@ -18,7 +18,7 @@ import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
   collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, CUP_ENTRY, starsFor,
   MYTHIC_FLOOR, setSlot, refreshDaily, spendPlay, claimQuest, STAMINA_MAX,
-  STAMINA_COST, STAMINA_REGEN_MS,
+  STAMINA_COST, STAMINA_REGEN_MS, staminaEvery,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
@@ -192,23 +192,54 @@ console.log('\n=== 体力方案对比：一天上线 N 次能打几场 ===')
 {
   const HOUR = 3600_000
   const SCHEMES = [
-    { name: `每 ${STAMINA_REGEN_MS / HOUR} 小时 +1，上限 ${STAMINA_MAX}（现行）`,
+    { name: `每 ${staminaEvery()} +1，上限 ${STAMINA_MAX}（现行）`,
       regen: STAMINA_REGEN_MS, cap: STAMINA_MAX },
+    { name: '每 1 小时 +1，上限 15', regen: HOUR, cap: 15 },
     { name: '每 2 小时 +1，上限 10', regen: 2 * HOUR, cap: 10 },
     { name: '每天零点回满 12', regen: 0, cap: 12 },
   ]
+  /**
+   * Ladder matches a day, at steady state, for someone who spends the meter
+   * dry on every visit.
+   *
+   * This models `settle`/`spendPlay` rather than dividing the gap by the
+   * interval, because the two differ once the interval stops dividing an
+   * hour: the engine carries the part-tick forward (the anchor advances by
+   * whole ticks, not to `now`), and only discards it when the meter is full.
+   * The naive version reads 13 matches for three visits a day where the game
+   * actually gives 14. The first day is dropped so the free full meter
+   * everyone starts with does not count.
+   */
+  const perDay = (regen: number, cap: number, visits: number): number => {
+    if (regen === 0) return Math.floor(cap / STAMINA_COST.ladder)
+    const DAYS = 30
+    const gap = (24 / visits) * HOUR
+    let bank = cap, at = 0, played = 0
+    for (let v = 0; v < (DAYS + 1) * visits; v++) {
+      const now = v * gap
+      const ticks = Math.floor((now - at) / regen)
+      const next = Math.min(cap, bank + ticks)
+      at = next >= cap ? now : at + ticks * regen
+      bank = next
+      while (bank >= STAMINA_COST.ladder) {
+        if (bank >= cap) at = now
+        bank -= STAMINA_COST.ladder
+        if (v >= visits) played++
+      }
+    }
+    return played / DAYS
+  }
+  // padEnd counts UTF-16 units, and every one of these labels is mostly CJK
+  const pad = (s: string, w: number) =>
+    s + ' '.repeat(Math.max(1, w - [...s].reduce((n, c) => n + (c.charCodeAt(0) > 0x2e80 ? 2 : 1), 0)))
   const SESSIONS = [1, 2, 3, 6]
-  console.log('  上线次数 →        ' + SESSIONS.map((n) => `${n}次/天`.padStart(8)).join(''))
+  console.log('  ' + pad('上线次数 →', 30) + SESSIONS.map((n) => `${n}次/天`.padStart(8)).join(''))
   for (const sc of SCHEMES) {
     const row = SESSIONS.map((n) => {
-      const gapMs = (24 / n) * HOUR
-      // a visit can only bank what the clock made since the last one, capped
-      const perVisit = sc.regen === 0 ? (n === 1 ? sc.cap : 0)
-        : Math.min(sc.cap, Math.floor(gapMs / sc.regen))
-      const perDay = sc.regen === 0 ? sc.cap : perVisit * n
-      return `${Math.floor(perDay / STAMINA_COST.ladder)}场`.padStart(8)
+      const d = perDay(sc.regen, sc.cap, n)
+      return `${Number.isInteger(d) ? d : d.toFixed(1)}场`.padStart(8)
     })
-    console.log(`  ${sc.name.padEnd(22)}${row.join('')}`)
+    console.log(`  ${pad(sc.name, 30)}${row.join('')}`)
   }
   console.log(`  （天梯一场 ${STAMINA_COST.ladder} 点。零点回满的方案上线再多次也还是那一份，`
     + '这正是「一口气打完、剩下一整天没得玩」的形状。）')
