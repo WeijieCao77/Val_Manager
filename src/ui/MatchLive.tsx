@@ -274,7 +274,13 @@ export default function MatchLive({
               ))}
             </div>
             <div style={{ marginTop: 12 }}>
-              <button className="ghost sm" onClick={() => setPhase('watching')}>取消，继续比赛</button>
+              {/* 「取消」 read as "discard my slider changes" — it never did.
+                  The sliders commit on every drag, and the timeout is only
+                  spent by the three calls above, so leaving costs nothing. */}
+              <button className="ghost sm" onClick={() => setPhase('watching')}>直接继续比赛</button>
+              <p className="tiny faint" style={{ marginTop: 6, marginBottom: 0 }}>
+                滑杆的改动拖动时就已保存（下一张图生效）；只有选了强攻／稳守／围绕选手，才会用掉一次暂停。
+              </p>
             </div>
           </div>
         </div>
