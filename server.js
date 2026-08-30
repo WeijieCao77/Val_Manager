@@ -428,6 +428,9 @@ createServer((req, res) => {
   // before meant a photograph swapped by hand stayed invisible for a day, and
   // that is exactly what happened.
   const face = file.includes(`${sep}faces${sep}`) || file.includes(`${sep}logos${sep}`)
+    // agent portraits and map banners change about as often as the game does —
+    // a week of cache costs nothing and saves ~400KB of revalidation churn
+    || file.includes(`${sep}agents${sep}`) || file.includes(`${sep}maps${sep}`)
   const head = {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
     'Cache-Control': hashed ? 'public, max-age=31536000, immutable'

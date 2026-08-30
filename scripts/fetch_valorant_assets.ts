@@ -11,7 +11,7 @@
  * names: if the thirteen maps all agree, the same translator wrote both.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { ALL_AGENTS, MAPS, MAP_CN } from '../src/engine/content'
 
 const AGENT_DIR = 'public/agents'
@@ -27,11 +27,17 @@ const get = async (url: string) => (await (await fetch(url)).json()).data as {
 const fileSafe = (name: string) => name.replace(/[^A-Za-z]/g, '')
 
 async function download(url: string, path: string, maxPx: number) {
-  if (existsSync(path)) return false
+  // the shipped file is WebP — a quarter the size of the resized PNG, and
+  // faces/ and logos/ already committed this repo to the format years ago
+  const webp = path.replace(/\.png$/, '.webp')
+  if (existsSync(webp)) return false
   const buf = Buffer.from(await (await fetch(url)).arrayBuffer())
   writeFileSync(path, buf)
   // keep the bundle small: icons show at ≤40px, banners at ~280px
   execFileSync('sips', ['-Z', String(maxPx), path], { stdio: 'ignore' })
+  // -exact keeps fully-transparent pixels' RGB, so icon edges stay clean
+  execFileSync('cwebp', ['-quiet', '-q', '82', '-exact', path, '-o', webp])
+  unlinkSync(path)
   await new Promise((r) => setTimeout(r, 150))
   return true
 }

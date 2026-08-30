@@ -108,7 +108,7 @@ const assetBase = (): string =>
   typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
 
 /** The wide banner valorant-api ships for a map, sized for a BP card. */
-export const mapImg = (map: string): string => `${assetBase()}maps/${map}.png`
+export const mapImg = (map: string): string => `${assetBase()}maps/${map}.webp`
 
 /**
  * An agent's portrait icon, the way vlr.gg prints one in a scoreboard.
@@ -123,7 +123,7 @@ export function AgentIcon({
   return (
     <img
       className="agent-icon"
-      src={`${assetBase()}agents/${name.replace(/[^A-Za-z]/g, '')}.png`}
+      src={`${assetBase()}agents/${name.replace(/[^A-Za-z]/g, '')}.webp`}
       alt={agentCn(name)}
       title={title ?? `${agentCn(name)}${AGENT_ROLE[name] ? `（${AGENT_ROLE[name]}）` : ''}`}
       loading="lazy"
