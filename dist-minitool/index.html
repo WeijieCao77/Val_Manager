@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>猪之家游戏 — VCT电竞经理 · 开瓦包</title>
+    <meta name="description" content="两个免费的无畏契约（VALORANT）浏览器小游戏：VCT电竞经理，接手真实战队打十年；开瓦包，收集选手卡打天梯。共用一个账号 ID。" />
+    <link rel="stylesheet" href="./assets/style.css">
+    <style>
+  html { touch-action: manipulation; }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior-y: contain;
+  }
+  /* the account id is meant to be selected and copied by hand — there is no
+     clipboard API in here, so this is the only way it leaves the screen
+     other than a screenshot */
+  input, textarea, .acct-id, .mono { -webkit-user-select: text; user-select: text; }
+  /* home indicator / rounded corners: the container gives the simulator the
+     custom properties and the phone the real env() values */
+  .advance-bar { padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
+  .toast    { bottom: calc(20px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
+  .support-fab, .unlock { bottom: calc(16px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
+  .tut-card.side { bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
+  [class*="scroll"], .cm-body { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./assets/faces.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>

@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "scripts" / "cache" / "vlr_profiles.json"
 STAFF = ROOT / "scripts" / "cache" / "vlr_staff.json"
 LP_FACES = ROOT / "scripts" / "cache" / "lp_faces.json"
+HJ_FACES = ROOT / "scripts" / "cache" / "hj_faces.json"
 LEGEND_FACES = ROOT / "scripts" / "cache" / "legend_faces.json"
 TENURE = ROOT / "scripts" / "cache" / "liquipedia_tenure.json"
 WORLD = ROOT / "src" / "data" / "world.json"
@@ -62,6 +63,7 @@ def main() -> int:
     profiles = load(PROFILES, {})
     staff = load(STAFF, {"people": {}})
     lp = load(LP_FACES, {"players": {}, "coaches": {}})
+    hj_players = set(load(HJ_FACES, {"players": []}).get("players") or [])
     legend_faces = load(LEGEND_FACES, {"picks": {}}).get("picks") or {}
     tenure = load(TENURE, {})
 
@@ -87,6 +89,9 @@ def main() -> int:
             photos += 1
             if ign in lp["players"]:
                 rec["src"] = "lp"
+            # 号角 haojiao.cc covers the CN scene players nobody else has
+            elif pid in hj_players:
+                rec["src"] = "hj"
         nat = prof.get("nat") or p.get("nat")
         if nat:
             rec["nat"] = nat
@@ -190,6 +195,7 @@ def main() -> int:
             # Liquipedia's images are CC-BY-SA; the credits panel says so
             "lpPhotos": sum(1 for r in players.values() if r.get("src") == "lp")
             + sum(1 for r in coaches.values() if r.get("src") == "lp"),
+            "hjPhotos": sum(1 for r in players.values() if r.get("src") == "hj"),
             "players": len(players),
             "photos": photos,
             "coaches": len(coaches),

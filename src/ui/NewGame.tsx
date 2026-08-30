@@ -384,7 +384,7 @@ export default function NewGame({ onHome,
       <p className="tiny muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
         游戏内所有战队与选手均为真实人物。阵容、国籍、位置、照片、赛事名次与全部比赛数据取自
         <b> vlr.gg</b>；真名、生日、教练、指挥、生涯队伍履历与部分选手照片取自 <b>Liquipedia</b>
-        （图片依 CC BY-SA 3.0 使用）；英雄池取自真实出场记录。
+        （图片依 CC BY-SA 3.0 使用）；少量选手照片取自<b>号角 HOJO</b>（haojiao.cc）；英雄池取自真实出场记录。
         八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡所需的估算值。
       </p>
     </div>

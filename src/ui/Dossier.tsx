@@ -86,8 +86,9 @@ export default function Dossier({
     >
       <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
         {DOSSIER.meta.players} 名选手的照片、国籍、生涯队伍、荣誉与赛事记录。
-        名次、奖金与 {DOSSIER.meta.photos - (DOSSIER.meta.lpPhotos ?? 0)} 张照片取自 vlr.gg；
-        队伍履历与另外 {DOSSIER.meta.lpPhotos ?? 0} 张照片取自 Liquipedia（图片依 CC BY-SA 3.0 使用）。
+        名次、奖金与 {DOSSIER.meta.photos - (DOSSIER.meta.lpPhotos ?? 0) - (DOSSIER.meta.hjPhotos ?? 0)} 张照片取自 vlr.gg；
+        队伍履历与另外 {DOSSIER.meta.lpPhotos ?? 0} 张照片取自 Liquipedia（图片依 CC BY-SA 3.0 使用）；
+        {DOSSIER.meta.hjPhotos ?? 0} 张照片取自号角 HOJO（haojiao.cc）。
         共收录 {DOSSIER.meta.events} 项赛事。
       </p>
 

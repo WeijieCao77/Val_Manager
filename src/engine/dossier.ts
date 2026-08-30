@@ -40,6 +40,8 @@ interface DossierFile {
     photos: number
     /** how many of those photos came from Liquipedia, which needs a CC-BY-SA credit */
     lpPhotos?: number
+    /** and how many from 号角 haojiao.cc, credited on the same screens */
+    hjPhotos?: number
     coaches?: number
     coachPhotos?: number
     events: number
