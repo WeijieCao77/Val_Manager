@@ -18,6 +18,7 @@ import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import MidReview from './ui/MidReview'
+import RetireCard from './ui/RetireCard'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
@@ -397,6 +398,19 @@ export default function App() {
             }}
           />
         )}
+        {(() => {
+          // one farewell at a time: my own players and the sport's stars,
+          // shown once each, oldest first, never during a match or a verdict
+          if (live || game.gameOver || game.midReview) return null
+          const note = (game.retireFeed ?? []).find((n) => !n.seen && (n.clubId === game.myTeam || n.star))
+          if (!note) return null
+          return (
+            <RetireCard
+              note={note}
+              onClose={() => { note.seen = true; commit() }}
+            />
+          )
+        })()}
         {game.midReview && !game.gameOver && <MidReview />}
         {game.gameOver && (
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />

@@ -317,6 +317,7 @@ export default function Transfers() {
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                             <b>{p.ign}</b>
                             {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
+                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
                           </td>
                           <td className="small">
                             <span className="clickable" onClick={() => { setAskRole(''); setAskClub(p.teamId!) }}>
@@ -383,6 +384,7 @@ export default function Transfers() {
                             <b>{p.ign}</b>
                             {starter && <span className="tag" style={{ marginLeft: 5 }}>首发</span>}
                             {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
+                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
                           </td>
                           <td><Roles p={p} /></td>
                           <td className="num"><OvrBadge value={p.overall} /></td>

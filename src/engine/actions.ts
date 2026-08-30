@@ -33,11 +33,13 @@ export type ActionKind =
   | 'offer' | 'reply' | 'list' | 'release'
   | 'gig' | 'sponsor' | 'venture' | 'stream'
   | 'scrim' | 'staff' | 'facility'
+  | 'league' | 'persuade'
 
 export const ACTION_CN: Record<ActionKind, string> = {
   offer: '提交报价', reply: '答复报价', list: '挂牌/撤牌', release: '解约',
   gig: '安排商务活动', sponsor: '拜访赞助商', venture: '筹备俱乐部活动',
   stream: '直播合同', scrim: '约训练赛', staff: '教练组', facility: '设施升级',
+  league: '和联盟谈判', persuade: '挽留选手',
 }
 
 /**

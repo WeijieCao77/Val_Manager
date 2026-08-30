@@ -1,5 +1,6 @@
 import { squadOf, wageBill } from './world'
 import { skillMod } from './manager'
+import { weeklyStipend } from './leagueShare'
 import type { GameState, StageKey } from './types'
 
 /** Prize money by competition and placement (USD). */
@@ -84,7 +85,11 @@ export function weeklyFinance(state: GameState): void {
     // A Challengers org does not fly to Masters, does not carry a VCT support
     // staff, and does not run a VCT facility.
     const upkeep = weeklyUpkeep(state, team.id)
-    const net = sponsor - wages - upkeep
+    // The league's partnership stipend, paid to every club by tier. This is
+    // what real leagues do, and it is the floor that keeps a decade-old world
+    // solvent — sponsorship tops out, wages do not.
+    const stipend = weeklyStipend(team.tier)
+    const net = sponsor + stipend - wages - upkeep
     team.budget += net
 
     if (team.id === state.myTeam) {
@@ -99,6 +104,7 @@ export function weeklyFinance(state: GameState): void {
         state.boardConfidence = Math.max(0, state.boardConfidence - hit)
       }
       state.finances.log.push({ day: state.day, label: '赞助收入', amount: sponsor })
+      state.finances.log.push({ day: state.day, label: '联盟津贴', amount: stipend })
       state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
       state.tally.commercial += sponsor
       state.finances.log.push({ day: state.day, label: '选手薪资', amount: -wages })

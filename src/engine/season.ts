@@ -10,6 +10,7 @@ import {
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
+import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { mapCn } from './content'
 import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR } from './endings'
 import { applyMatchBonds } from './bonds'
@@ -22,7 +23,7 @@ import { autoStarters, ensureCaller } from './world'
 import { importBlock } from './imports'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
-import type { Competition, Fixture, GameState, Region, StageKey, Team, Tier } from './types'
+import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, Tier } from './types'
 import { track } from './telemetry'
 
 export const SEASON_DAYS = 336
@@ -850,7 +851,14 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     settleObjective(state, prevStage, notes)
     setObjective(state, notes)
     offerJobs(state, notes)
+    // some years the league floats a themed capsule as Stage 1 opens —
+    // deterministic per save+year, so a reload does not conjure a new one
+    if (state.stage === 'stage1'
+      && ((hashStr(`bundle:${state.seed}:${state.year}`) >>> 4) % 100) < 60) {
+      offerBundle(state, notes)
+    }
   }
+  tickLeagueOffer(state, notes)
 
   // ---- play today's matches
   let pendingMine: Fixture | undefined
@@ -932,6 +940,68 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
  * was dropped on the floor. Everything here that lands on the managed club
  * goes into the digest, so the season turns over in front of you.
  */
+/**
+ * The farewell itself: keep what is worth remembering, then let him go.
+ *
+ * The player object is deleted — that part has not changed — but a RetireNote
+ * survives him, holding the numbers his card will show. `star` marks the ones
+ * whose leaving is news to everybody, not just their own dressing room.
+ */
+function retirePlayer(state: GameState, p: Player, notes: string[]): void {
+  const t = p.teamId ? state.teams[p.teamId] : null
+  const mine = p.teamId === state.myTeam
+  const star = p.overall >= 80 || (p.career?.mvps ?? 0) >= 8
+  if (t) {
+    t.roster = t.roster.filter((id) => id !== p.id)
+    t.starters = t.starters.filter((id) => id !== p.id)
+  }
+  state.retireFeed ??= []
+  state.retireFeed.push({
+    id: p.id, ign: p.ign, age: p.age, year: state.year,
+    clubId: p.teamId, clubName: t?.name, overall: p.overall,
+    career: { ...p.career }, star,
+  })
+  if (state.retireFeed.length > 24) state.retireFeed.splice(0, state.retireFeed.length - 24)
+  if (mine || star) {
+    state.news.push({
+      day: state.day, kind: 'player', important: mine,
+      text: `👋 ${p.ign} 正式挂上鼠标，结束了他的职业生涯——${p.age} 岁${t ? `，最后一站 ${t.name}` : ''}。`,
+    })
+  }
+  if (mine) notes.push(`👋 ${p.ign} 正式退役，${p.age} 岁。他的告别卡已经备好。`)
+  delete state.players[p.id]
+}
+
+/**
+ * One conversation, eye to eye, about one more season.
+ *
+ * The odds ride on the dressing-room skill and on how the man feels about the
+ * place — and there is exactly one attempt, because asking twice is not
+ * persuasion, it is pressure.
+ */
+export function persuadeStay(state: GameState, playerId: string): string {
+  const p = state.players[playerId]
+  if (!p) return '找不到这名选手。'
+  if (p.teamId !== state.myTeam) return '他不是你队里的人，这话轮不到你说。'
+  if (!p.retiring) return `${p.ign} 没打算退役。`
+  if (p.persuaded) return '你已经劝过一次了——他的决定应该被尊重。'
+  p.persuaded = true
+
+  const locker = state.manager?.skills.locker ?? 50
+  const odds = clamp(0.3 + (locker - 50) * 0.008 + (p.morale - 60) * 0.004, 0.1, 0.8)
+  const roll = ((hashStr(`stay:${state.seed}:${state.year}:${p.id}`) >>> 6) % 1000) / 1000
+  if (roll < odds) {
+    p.retiring = false
+    p.morale = clamp(p.morale + 6, 0, 100)
+    state.news.push({
+      day: state.day, kind: 'player', important: true,
+      text: `🤝 ${p.ign} 被你说动了——退役计划搁置，再战一年。`,
+    })
+    return `${p.ign} 沉默了很久，然后点了头：再打一年。`
+  }
+  return `${p.ign} 听完摇了摇头——他心意已决，这个赛季打完就走。让他体面地离开吧。`
+}
+
 /**
  * Take the five-year verdict and go: the career ends here, graded, with the
  * squad that earned it still intact.
@@ -1129,29 +1199,49 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   })
   // clauses are judged on the season that just ended, before the counters reset
   notes.push(...settleSponsorDemands(state))
+  // and so is the league's bundle money — champ points reset with the rollover
+  settleLeagueSeason(state, notes)
   // and a new intake arrives, so a career that runs long still has somebody
   // to sign and somebody to develop
   state.seasonGigs = 0
   state.bestPlacing = undefined
   notes.push(...seasonRollover(state, rng))
 
-  // ---- retirements. With no invented prospects backfilling the pool these are
-  // kept conservative, so a career stays playable for many seasons.
+  // ---- retirements: a year's notice, then the farewell.
+  //
+  // Retiring used to be a deletion — the group chat's knight signed a
+  // four-year deal in the afternoon and was gone by New Year. Now a player
+  // ANNOUNCES a season ahead: the flag is public (squad tags, transfer
+  // screens), the manager gets one shot at talking his own man around
+  // (persuadeStay), and when the day actually comes there is a farewell
+  // record worth screenshotting instead of a one-line vanishing.
+  //
+  // First, those who said last winter this season would be their final one:
   for (const p of Object.values(state.players)) {
-    const retireP = p.age >= 34 ? 0.45 : p.age >= 32 ? 0.2 : p.age >= 30 ? 0.06 : 0
-    if (retireP && rng.chance(retireP)) {
-      if (p.teamId) {
-        const t = state.teams[p.teamId]
-        if (t) {
-          t.roster = t.roster.filter((id) => id !== p.id)
-          t.starters = t.starters.filter((id) => id !== p.id)
-        }
-        if (p.teamId === state.myTeam) {
-          state.news.push({ day: state.day, kind: 'player', important: true, text: `👋 ${p.ign} 宣布退役。` })
-          notes.push(`👋 ${p.ign} 宣布退役，${p.age} 岁。`)
-        }
+    if (p.retiring) retirePlayer(state, p, notes)
+  }
+  // Then the next wave gives its notice. The age curve is the old instant
+  // one shifted a year younger, so careers end at the same ages they always
+  // did — announced at 33, gone at 34. A man who just signed a long deal
+  // signed it because he intends to play it.
+  for (const p of Object.values(state.players)) {
+    if (p.retiring) continue
+    let announceP = p.age >= 33 ? 0.45 : p.age >= 31 ? 0.2 : p.age >= 29 ? 0.06 : 0
+    if (p.contractYears >= 3) announceP = 0
+    else if (p.contractYears === 2) announceP *= 0.5
+    if (announceP && rng.chance(announceP)) {
+      p.retiring = true
+      p.persuaded = false
+      const mine = p.teamId === state.myTeam
+      if (mine || p.overall >= 80) {
+        state.news.push({
+          day: state.day, kind: 'player', important: mine,
+          text: `📢 ${p.ign}（${p.age} 岁）宣布本赛季结束后退役。`,
+        })
       }
-      delete state.players[p.id]
+      if (mine) {
+        notes.push(`📢 ${p.ign} 告诉你，这将是他的最后一个赛季——想留他，去他的资料页当面谈。`)
+      }
     }
   }
   ensureMinimumRosters(state, rng)
@@ -1257,7 +1347,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
     if (team.id === state.myTeam) continue
     let guard = 0
     while (team.roster.length < 5 && guard++ < 10) {
-      const free = Object.values(state.players).filter((p) => p.teamId === null)
+      const free = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring)
       // under the import rule a club refills from its own region first;
       // fielding five still outranks the rule when the pool runs dry
       const legal = free.filter((p) => !importBlock(state, team.id, p))

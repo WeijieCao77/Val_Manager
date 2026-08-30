@@ -232,6 +232,7 @@ export default function Squad() {
                         </span>
                       )}
                       {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
+                      {p.retiring && <span className="tag warn" style={{ marginLeft: 6 }} title="已宣布本赛季结束后退役">退役</span>}
                       {(p.grievance ?? 0) > 45 && !p.listed && (
                         <span className="tag warn" style={{ marginLeft: 6 }}
                           title={`不满 ${Math.round(p.grievance ?? 0)}/100——出场承诺、薪资、被拒的转会都会积累。高不满的选手更容易接受别队报价。`}>

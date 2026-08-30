@@ -8,6 +8,8 @@ import type { Contract } from '../engine/types'
 import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
+import { persuadeStay } from '../engine/season'
+import { useAction } from './useAction'
 import { appointIgl } from '../engine/world'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
@@ -21,6 +23,7 @@ export default function PlayerModal(
   { playerId: string; onClose: () => void; startRenewing?: boolean },
 ) {
   const { game, commit, toast } = useGame()
+  const act = useAction()
   const p = game.players[playerId]
   if (!p) return null
   const team = p.teamId ? game.teams[p.teamId] : null
@@ -98,7 +101,34 @@ export default function PlayerModal(
               <span className="tag warn">⚕ {p.injuryNote}（{p.injuredUntil - game.day} 天）</span>
             )}
             {p.listed && <span className="tag warn">已挂牌</span>}
+            {p.retiring && <span className="tag warn">📢 本赛季后退役</span>}
           </div>
+          {p.retiring && (
+            <div className="panel own" style={{ marginBottom: 12 }}>
+              <div className="panel-body">
+                <p className="small" style={{ margin: 0 }}>
+                  {p.ign} 已宣布本赛季结束后退役。
+                  {p.teamId === game.myTeam && !p.persuaded
+                    ? '趁更衣室还热着，你可以当面劝他再打一年——只有一次机会。'
+                    : p.teamId === game.myTeam
+                      ? '你已经和他谈过了，他的决定应该被尊重。'
+                      : ''}
+                </p>
+                {p.teamId === game.myTeam && !p.persuaded && (
+                  <button
+                    className="sm primary"
+                    style={{ marginTop: 8 }}
+                    onClick={() => act('persuade', () => {
+                      toast(persuadeStay(game, p.id))
+                      logActivity(game, 'squad', `挽留 ${p.ign}`)
+                    })}
+                  >
+                    劝他再打一年
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {p.traits?.length ? (
             <div style={{ marginBottom: 12 }}>
               <Traits traits={p.traits} />

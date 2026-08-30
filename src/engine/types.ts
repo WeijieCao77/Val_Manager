@@ -30,6 +30,40 @@ export const ATTR_CN: Record<keyof Attrs, string> = {
 }
 
 /** Accumulated performance over a competition period. */
+/** How the club and the league split event revenue — see engine/leagueShare.ts. */
+export interface LeagueDeal {
+  /** the club's percentage of the bundle pot, 50–80 */
+  share: number
+  /** fixed = flat settlement; sales = scales with reputation and results */
+  mode: 'fixed' | 'sales'
+  /** one negotiation per year */
+  talkedYear?: number
+  /** the mode is set before the season starts, not gamed at the end of it */
+  modeYear?: number
+  /** this season's special bundle taken as a sales bet rather than a buyout */
+  bundleBet?: boolean
+}
+
+/**
+ * What is remembered of a player when he goes. The player object itself is
+ * deleted at retirement, so the farewell card keeps its own copy of the
+ * numbers; everything static (face, real name, pre-2026 record) is looked up
+ * from the dossier by id at render time.
+ */
+export interface RetireNote {
+  id: string
+  ign: string
+  age: number
+  year: number
+  clubId?: string | null
+  clubName?: string
+  overall: number
+  career: Stats
+  /** famous enough that the farewell shows for everyone, not just his club */
+  star: boolean
+  seen?: boolean
+}
+
 export interface Stats {
   maps: number
   rounds: number
@@ -262,6 +296,12 @@ export interface Player {
   rumourOn?: number
   /** whether his form was last reported as hot or cold, so it is said once */
   formFlag?: 'hot' | 'cold'
+  /** announced: this season is his last. A year's notice, not a vanishing. */
+  retiring?: boolean
+  /** the manager already made his case once; a man's mind is his own after that */
+  persuaded?: boolean
+  /** the season he joined his current club — a fresh signing is not shopped */
+  joinedYear?: number
 }
 
 export interface Coach {
@@ -819,6 +859,12 @@ export interface GameState {
   agentPicks?: Record<string, Record<string, string>>
   /** maps the manager banned/picked himself for the next match */
   vetoPlan?: { fixtureId: string; maps: string[]; log: string[] }
+  /** the club's revenue-share arrangement with the league — engine/leagueShare.ts */
+  leagueDeal?: LeagueDeal
+  /** a live league proposal (themed bundle), waiting on the manager's answer */
+  leagueOffer?: { year: number; expires: number }
+  /** farewell records for retired players, newest last — the send-off cards read these */
+  retireFeed?: RetireNote[]
   /** commercial appearances completed this season, for sponsorship clauses */
   seasonGigs?: number
   /** best regional stage finish this season, for sponsorship clauses */

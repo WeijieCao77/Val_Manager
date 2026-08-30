@@ -321,7 +321,7 @@ export function doTransfer(
     // Keep the promise here rather than at the next weekly tick — an AI club
     // that sold on a Monday played the week's fixture with four.
     if (from.id !== state.myTeam && from.roster.length < 5) {
-      const pool = Object.values(state.players).filter((x) => !x.teamId && x.id !== p.id)
+      const pool = Object.values(state.players).filter((x) => !x.teamId && x.id !== p.id && !x.retiring)
       // fielding five outranks the import rule, so an illegal cover is the
       // last resort rather than a forbidden one
       const cover = (pool.filter((x) => !importBlock(state, from.id, x)).length ? pool.filter((x) => !importBlock(state, from.id, x)) : pool)
@@ -376,9 +376,16 @@ export function doTransfer(
     }
   }
   p.morale = clamp(p.morale + 8, 0, 100)
+  p.joinedYear = state.year
   refreshValue(p)
 
-  if (to.starters.length < 5) to.starters = autoStarters(state, to.id)
+  // An AI club that pays for a player intends to field him: the five is
+  // recomputed on every signing. It used to update only when the lineup was
+  // short, so a full squad benched its own record signing — and the listing
+  // logic then read "surplus" off that bench and shopped him within the week.
+  // The manager's own five is the manager's own business.
+  if (to.id !== state.myTeam) to.starters = autoStarters(state, to.id)
+  else if (to.starters.length < 5) to.starters = autoStarters(state, to.id)
   // the club that just lost its caller promotes one within the week
   if (from) ensureCaller(state, from.id)
 
@@ -466,7 +473,8 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
   if (!windowOpen(state.day)) return
 
   const teams = Object.values(state.teams).filter((t) => t.id !== state.myTeam)
-  const agents = Object.values(state.players).filter((p) => p.teamId === null)
+  // a free agent on his farewell season is done job-hunting
+  const agents = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring)
 
   for (const team of teams) {
     if (!rng.chance(0.1)) continue
@@ -510,6 +518,9 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
           p.teamId && p.teamId !== team.id && p.teamId !== state.myTeam &&
           p.role === need.role &&
           p.overall > need.strength + 3 &&
+          // nobody pays a transfer fee for a man who has said this season is
+          // his last — his announcement is public
+          !p.retiring &&
           !importBlock(state, team.id, p) &&
           (p.listed || p.morale < 45 || rng.chance(0.05)),
       )
@@ -564,6 +575,10 @@ export function refreshListings(state: GameState, rng: Rng, notes?: string[]): v
       const unhappy = (p.grievance ?? 0) > 40
       const expiring = p.contractYears <= 1
       const aging = p.age >= 29 && benched
+      // a club does not shop the man it signed this season unless he is
+      // actively miserable — buying whyz and listing him by Thursday was
+      // market noise, not squad-building
+      if (p.joinedYear === state.year && !unhappy) continue
 
       let chance = 0
       if (surplus) chance += 0.22
@@ -652,6 +667,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     const targets = mine.filter(
       (p) =>
         p.overall > (need?.strength ?? 0) + 2 &&
+        !p.retiring &&
         (p.listed || (p.grievance ?? 0) > 30 || !!p.contract?.releaseClause || rng.chance(0.25)),
     )
     const target = targets.sort((a, b) => b.overall - a.overall)[0]

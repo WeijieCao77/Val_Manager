@@ -2,16 +2,26 @@ import { useGame } from './ctx'
 import { Bar, Panel, money, moneyFull } from './common'
 import { seasonUpkeep, sponsorIncome } from '../engine/finance'
 import { dropSponsor, sponsorSlots } from '../engine/commercial'
+import {
+  answerBundle, BUNDLE_BUYOUT, betPot, bundlePot, LEAGUE_STIPEND, leagueDealOf,
+  negotiateShare, setDealMode, SHARE_MAX,
+} from '../engine/leagueShare'
+import { useAction } from './useAction'
 import { squadOf, wageBill } from '../engine/world'
 
 export default function Finances() {
   const { game, commit, toast, openPlayer } = useGame()
+  const act = useAction()
   const me = game.teams[game.myTeam]
   const wages = wageBill(game, game.myTeam)
   const sponsors = sponsorIncome(game, game.myTeam)
   const squad = squadOf(game, game.myTeam).sort((a, b) => b.salary - a.salary)
   const upkeep = seasonUpkeep(game, game.myTeam)
-  const net = sponsors + me.seasonPrize - wages - upkeep
+  const deal = leagueDealOf(game)
+  const stipend = LEAGUE_STIPEND[me.tier] ?? 0
+  const bundleNow = Math.round(bundlePot(game) * deal.share / 100)
+  const league = stipend + bundleNow
+  const net = sponsors + league + me.seasonPrize - wages - upkeep
 
   const log = game.finances.log.slice(-60).reverse()
 
@@ -39,10 +49,11 @@ export default function Finances() {
 
       <div className="grid c2">
         <Panel title="年度收支结构">
-          <Line label="赞助收入" v={sponsors} max={Math.max(sponsors, wages + upkeep)} good />
-          <Line label="赛事奖金" v={me.seasonPrize} max={Math.max(sponsors, wages + upkeep)} good />
-          <Line label="选手薪资" v={wages} max={Math.max(sponsors, wages + upkeep)} />
-          <Line label="运营开支" v={upkeep} max={Math.max(sponsors, wages + upkeep)} />
+          <Line label="赞助收入" v={sponsors} max={Math.max(sponsors + league, wages + upkeep)} good />
+          <Line label="联盟分成（津贴+捆绑包）" v={league} max={Math.max(sponsors + league, wages + upkeep)} good />
+          <Line label="赛事奖金" v={me.seasonPrize} max={Math.max(sponsors + league, wages + upkeep)} good />
+          <Line label="选手薪资" v={wages} max={Math.max(sponsors + league, wages + upkeep)} />
+          <Line label="运营开支" v={upkeep} max={Math.max(sponsors + league, wages + upkeep)} />
           <p className="tiny muted" style={{ marginTop: 12, marginBottom: 0 }}>
             薪资与开支每 7 天按 1/48 赛季比例结算一次。资金为负会持续削弱董事会信任度。
           </p>
@@ -76,6 +87,72 @@ export default function Finances() {
           </div>
         </Panel>
       </div>
+
+      <Panel title={`联盟分成 · ${deal.share}% 捆绑包分成`}>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          联盟每赛季付给每支{me.tier === 1 ? ' VCT ' : ' Challengers '}俱乐部
+          <b> {money(stipend)} </b>津贴（随每周结算到账），另有一笔<b>年度捆绑包</b>在赛季结束时结算——
+          你拿其中 <b>{deal.share}%</b>，比例可以每年和联盟谈一次。
+        </p>
+        <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginBottom: 10 }}>
+          <span className="tag">结算方式</span>
+          <div className="seg">
+            <button
+              className={deal.mode === 'fixed' ? 'on' : ''}
+              onClick={() => { const m = setDealMode(game, 'fixed'); if (m) { toast(m); commit() } }}
+            >
+              固定
+            </button>
+            <button
+              className={deal.mode === 'sales' ? 'on' : ''}
+              onClick={() => { const m = setDealMode(game, 'sales'); if (m) { toast(m); commit() } }}
+            >
+              销量
+            </button>
+          </div>
+          <span className="tiny faint">
+            固定＝旱涝保收；销量＝跟声望和成绩走。只能在赛季初（Masters I 前）改，一年一次。
+          </span>
+        </div>
+        <div className="row wrap" style={{ gap: 10, alignItems: 'center' }}>
+          <button
+            className="sm primary"
+            disabled={deal.talkedYear === game.year || deal.share >= SHARE_MAX}
+            onClick={() => act('league', () => { toast(negotiateShare(game)) })}
+          >
+            和联盟谈分成
+          </button>
+          <span className="tiny faint">
+            {deal.share >= SHARE_MAX ? `已是最高档 ${SHARE_MAX}%`
+              : deal.talkedYear === game.year ? '今年已谈过，明年再来'
+              : '成功率取决于谈判技能、声望和最近的冠军。一年一次。'}
+          </span>
+          <div style={{ flex: 1 }} />
+          <span className="small mono">
+            按当前成绩估算，今年捆绑包 ≈ <b className="pos">{money(bundleNow)}</b>
+          </span>
+        </div>
+        {game.leagueOffer && game.leagueOffer.year === game.year && game.day <= game.leagueOffer.expires && (
+          <div className="panel own" style={{ marginTop: 12 }}>
+            <div className="panel-body">
+              <p className="small" style={{ marginTop: 0 }}>
+                📦 <b>联盟特别企划</b>：为你的俱乐部推出主题捆绑包。
+                现在买断拿 <b>{money(BUNDLE_BUYOUT)}</b>，或者按销量对赌——赛季结束时按声望和成绩结算
+                （照现在的水平约 {money(betPot(game))}，打得更好还会涨）。
+                还剩 {Math.max(0, game.leagueOffer.expires - game.day)} 天答复。
+              </p>
+              <div className="row" style={{ gap: 8 }}>
+                <button className="sm" onClick={() => { toast(answerBundle(game, 'cash')); commit() }}>
+                  买断 {money(BUNDLE_BUYOUT)}
+                </button>
+                <button className="sm primary" onClick={() => { toast(answerBundle(game, 'bet')); commit() }}>
+                  按销量对赌
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Panel>
 
       <Panel title="薪资明细" flush>
         <div className="table-wrap">
