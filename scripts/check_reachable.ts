@@ -23,7 +23,10 @@
  *     npx tsx scripts/check_reachable.ts [careers]
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
-import { setupSeason, advanceDay, SEASON_DAYS } from '../src/engine/season'
+import { createManager } from '../src/engine/manager'
+import {
+  setupSeason, advanceDay, continuePastFive, damped, SEASON_DAYS, TITLE_REP_WORTH,
+} from '../src/engine/season'
 import { askingPrice, doTransfer, windowOpen } from '../src/engine/transfer'
 import { upgradeFacility, staffMarket, analystMarket, offerToStaff, askingSalary } from '../src/engine/staff'
 import { pitchSponsor, signSponsor } from '../src/engine/commercial'
@@ -153,7 +156,13 @@ function harvest(): void {
   for (let s = 0; s < CAREERS; s++) {
     // the last two runs are taken at second-tier clubs
     const tag = s >= CAREERS - 2 ? LOWER[(CAREERS - 1 - s) % LOWER.length]! : TAGS[s % TAGS.length]!
-    const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === tag)!.id, `审计${s}`, 20260828 + s * 7919)
+    // Every real career has a manager — NewGame will not start without one —
+    // and without one here g.manager stayed undefined for the whole audit, so
+    // reputation was never even simulated and rep90 read as unreachable.
+    const g = createNewGame(
+      WORLD_TEAMS.find((t) => t.tag === tag)!.id, `审计${s}`,
+      20260828 + s * 7919, createManager(`审计${s}`, 24 + s * 3, 'expro'),
+    )
     setupSeason(g)
     const rng = new Rng(4242 + s)
     // alternate the two ways people actually play: win-now buys the best
@@ -171,6 +180,8 @@ function harvest(): void {
       g.onNotice = false
       g.missedStreak = 0
       try {
+        // a coverage run declines the 2030 settlement and plays the decade out
+        if (g.midReview) continuePastFive(g)
         manage(g, rng, forPotential)
         advanceDay(g, { auto: true })
       } catch (e) {
@@ -203,6 +214,7 @@ function harvest(): void {
       note('facilities', team?.facilities ?? 0)
       note('sponsorBook', (team?.sponsors ?? []).reduce((n, sp) => n + sp.perSeason, 0))
       note('confidence', g.boardConfidence)
+      note('managerRep', g.manager?.reputation ?? 0)
       note('clubs', new Set((g.tenures ?? []).map((t) => t.teamId)).size || 1)
       for (const p of squad) {
         note('overall', p.overall)
@@ -245,7 +257,10 @@ function vocabulary() {
 
 /** A state assembled only out of harvested material. */
 function scaffold(): GameState {
-  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '构造', 20260828)
+  const g = createNewGame(
+    WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '构造',
+    20260828, createManager('构造', 30, 'expro'),
+  )
   setupSeason(g)
   g.year = 2036
   g.finished = true
@@ -330,6 +345,21 @@ for (const a of RUN_ACHIEVEMENTS) {
   ]
   const book = Math.max(M('sponsorBook'), 0)
   if (team.sponsors.length) team.sponsors[0]!.perSeason = book
+  // Reputation compounds from winning, so it gets the same extrapolation the
+  // honours themselves get — replayed through the engine's OWN curve (damped ×
+  // TITLE_REP_WORTH, both imported), seeded from the best a played career
+  // reached. The caretaker wins ~3 titles a decade; a person wins dozens, and
+  // the badge has to be judged against what winning actually pays.
+  if (g.manager) {
+    let rep = Math.max(M('managerRep'), g.manager.reputation)
+    for (const h of g.honours) {
+      const worth = /Kickoff$|Stage \d$/.test(h.title) || /^Challengers/.test(h.title)
+        ? TITLE_REP_WORTH.regional
+        : /Masters|Champions/.test(h.title) ? TITLE_REP_WORTH.international : 0
+      if (worth) rep = Math.min(96, rep + damped(rep, worth))
+    }
+    g.manager.reputation = rep
+  }
 
   judge(a.key, a.title, earnedNow(g).includes(a.key) ? 'built' : 'UNREACHABLE')
 }

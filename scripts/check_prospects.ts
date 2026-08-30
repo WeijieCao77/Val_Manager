@@ -10,7 +10,7 @@
  *     npx tsx scripts/check_prospects.ts
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
-import { setupSeason, advanceDay } from '../src/engine/season'
+import { setupSeason, advanceDay, continuePastFive } from '../src/engine/season'
 import { ageIn, makeProspect, PROSPECTS } from '../src/engine/prospects'
 import type { GameState } from '../src/engine/types'
 
@@ -71,6 +71,7 @@ const mk = (tag = 'TYL'): GameState => {
   while (!g.gameOver && g.year < 2036 && guard++ < 4200) {
     g.boardConfidence = 80
     g.onNotice = false
+    if (g.midReview) continuePastFive(g)
     advanceDay(g)
   }
   const end = Object.values(g.players)

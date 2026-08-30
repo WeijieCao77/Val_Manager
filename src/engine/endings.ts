@@ -30,6 +30,14 @@ import { isImport } from './imports'
 
 export const FINAL_YEAR = 2036
 
+/**
+ * The five-year settlement: after the 2030 season is played, the career gets a
+ * verdict a player can accept — walk away graded, start fresh — or decline and
+ * play on to 2036, which stays the hard end of the story. Ten years was the
+ * whole story or nothing, and "nothing" is what most people chose.
+ */
+export const MID_YEAR = 2030
+
 export type EndingTrack = '王朝' | '故事'
 
 export interface Ending {

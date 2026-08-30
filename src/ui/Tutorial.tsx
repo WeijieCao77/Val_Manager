@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
 import type { GameState } from '../engine/types'
 import { TUTORIAL_SNAPSHOT } from '../engine/save'
-import { FINAL_YEAR } from '../engine/endings'
+import { FINAL_YEAR, MID_YEAR } from '../engine/endings'
 
 /**
  * A guided trial day, played in a sandbox.
@@ -52,9 +52,9 @@ const STEPS: Step[] = [
       + '🏛 董事会给你赛段目标，达不到会先警告、再下课。\n'
       // Worth saying on the first screen rather than discovering it in 2036:
       // this career has an end, and the end is graded. Interpolated from
-      // FINAL_YEAR so the sentence cannot drift away from the engine.
-      + `🏁 生涯到 ${FINAL_YEAR} 年为止——最后一届冠军赛打完，十年任期结束，`
-      + '届时会按你这十年做到的事给出结局。',
+      // MID_YEAR / FINAL_YEAR so the sentence cannot drift away from the engine.
+      + `🏁 打完 ${MID_YEAR} 赛季有一次「五年之约」——可以就此收官领取结局，`
+      + `也可以继续执教；生涯最长到 ${FINAL_YEAR} 年，走完十年有单独的成就。`,
   },
   {
     title: '下面用一天试一遍',

@@ -25,7 +25,7 @@
  * they are knowable: a squad shows who is here now, and finances.log keeps
  * only the last 200 lines.
  */
-import { CHAMPIONS, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
+import { CHAMPIONS, FINAL_YEAR, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
 import { isImport } from './imports'
 import { squadOf, WORLD_TEAMS } from './world'
 import type { GameState, Player } from './types'
@@ -191,6 +191,26 @@ export const ACHIEVEMENTS: Achievement[] = [
     brief: '同一年拿下两站大师赛和冠军赛',
     hard: true,
     test: (_s, f) => f.perfectYears > 0,
+  },
+  {
+    // Also one of the three keys that unlock free team choice on the account —
+    // see freeTeamChoice in profile.ts. Checked every turn, so a save holding
+    // the streak right now unlocks it without waiting for the career to end.
+    key: 'threepeat', scope: 'run', group: '冠军', title: '三连霸',
+    brief: '连续三年拿下 Champions',
+    hard: true,
+    test: (_s, f) => {
+      const years = [...new Set(f.honours.filter((h) => isChampions(h.title)).map((h) => h.year))]
+        .sort((a, b) => a - b)
+      let run = 0
+      let prev: number | null = null
+      for (const y of years) {
+        run = prev !== null && y === prev + 1 ? run + 1 : 1
+        if (run >= 3) return true
+        prev = y
+      }
+      return false
+    },
   },
   {
     key: 'tenTitles', scope: 'run', group: '冠军', title: '陈列柜',
@@ -396,9 +416,21 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (_s, f) => f.clubs >= 3,
   },
   {
+    // `finished` alone is no longer enough: the five-year settlement also ends
+    // a career finished rather than sacked, and this badge is for the people
+    // who declined it and went the distance.
     key: 'tenYears', scope: 'run', group: '生涯', title: '走完十年',
-    brief: '完整走完 2026 到 2036',
-    test: (s) => !!s.finished,
+    brief: '不在五年之约收官，完整走完 2026 到 2036',
+    hard: true,
+    test: (s) => !!s.finished && s.year >= FINAL_YEAR,
+  },
+  {
+    // The other run-scoped key freeTeamChoice reads — reputation is clamped at
+    // 96 in season.ts, so 90 is late-career air but reachable air.
+    key: 'rep90', scope: 'run', group: '生涯', title: '名满天下',
+    brief: '经理声望达到 90',
+    hard: true,
+    test: (s) => (s.manager?.reputation ?? 0) >= 90,
   },
 
   // =============================================================== 生涯累计

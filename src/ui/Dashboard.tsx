@@ -8,7 +8,7 @@ import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, recentResultsFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
-import { activePool } from '../engine/match'
+import { poolFor } from '../engine/match'
 import { sortStandings } from '../engine/league'
 import { agendaFor, activityOn, logActivity } from '../engine/agenda'
 import { SKILL_CN, SKILL_HINT } from '../engine/manager'
@@ -119,7 +119,7 @@ export default function Dashboard() {
     .filter((t) => t.id !== game.myTeam && t.region === me.region)
     .sort((a, b) => Math.abs(a.rating - me.rating) - Math.abs(b.rating - me.rating))
     .slice(0, 8)
-  const pool = activePool(game.seed + game.year)
+  const pool = poolFor(game)
 
   // whatever we are actually playing right now, preferring the current phase
   const myComps = Object.values(game.comps).filter(

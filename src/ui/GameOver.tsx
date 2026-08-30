@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import {
-  DYNASTY_ENDINGS, ENDINGS, ENDING_COUNT, INTL_TITLES, STORY_ENDINGS,
+  DYNASTY_ENDINGS, ENDINGS, ENDING_COUNT, FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
   endingOf, endingsFor, factsOf,
 } from '../engine/endings'
 import { earnedNow } from '../engine/achievements'
@@ -49,6 +49,9 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
     // sums, and adding the same career twice made an eleven-season run read as
     // twenty-two. So the sums are written only for a career not yet claimed.
     const first = claimCareer(game.seed, id)
+    // 「三个十年」 counts ten-year runs, and the five-year settlement now also
+    // ends a career `finished` — graded, not sacked, but not a decade either.
+    const fullRun = !!game.finished && game.year >= FINAL_YEAR
     const { fresh: got, profile } = record({
       endings: list.map((e) => e.key),
       // achievements are checked again here: a career can end on the very turn
@@ -60,7 +63,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
         // fifth career never moved it, and 「老江湖」（五段生涯）could not be
         // earned by anybody.
         careers: r.careers + 1,
-        finished: r.finished + (game.finished ? 1 : 0),
+        finished: r.finished + (fullRun ? 1 : 0),
         sacked: r.sacked + (game.finished ? 0 : 1),
         titles: r.titles + game.honours.length,
         worldTitles: r.worldTitles + worlds,

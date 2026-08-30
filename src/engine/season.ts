@@ -1,5 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
-import { applyMatchStats, pruneMatchDetail, simulateMatch, stripRoundLogs } from './match'
+import {
+  activePool, applyMatchStats, poolFor, poolPhaseOf, pruneMatchDetail, simulateMatch, stripRoundLogs,
+} from './match'
 import type { MatchResult } from './types'
 import {
   CHAMP_POINTS, advanceBracket, applyResultToStandings, makeFixture, newStandings,
@@ -9,7 +11,7 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { mapCn } from './content'
-import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2 } from './endings'
+import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -198,7 +200,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
     }
     // winning is what actually makes your name
     if (state.manager) {
-      const worth = comp.region ? 2.5 : 6   // an international title counts for more
+      const worth = comp.region ? TITLE_REP_WORTH.regional : TITLE_REP_WORTH.international
       state.manager.reputation = clamp(state.manager.reputation + damped(state.manager.reputation, worth), 5, 96)
     }
     notes.push(`🏆 我们夺得 ${comp.name} 冠军！`)
@@ -475,10 +477,18 @@ function judgeTenure(state: GameState, place: number, notes: string[]): void {
  *
  * Without this a manager who wins one season is already the biggest name in the
  * sport, and every remaining season has nothing left to climb toward.
+ *
+ * Exported (with TITLE_REP_WORTH) so check_reachable.ts can extrapolate a
+ * winning career's reputation through the engine's own curve instead of
+ * restating these numbers — restated constants are exactly how the
+ * 'Champions' spelling bug survived every test it had.
  */
-function damped(current: number, gain: number): number {
+export function damped(current: number, gain: number): number {
   return gain * clamp((96 - current) / 42, 0.12, 1)
 }
+
+/** What lifting a trophy is worth to the manager's own name. */
+export const TITLE_REP_WORTH = { regional: 2.5, international: 6 } as const
 
 /**
  * Clubs coming after the manager.
@@ -791,6 +801,16 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       playedMine: [], notes: [], seasonEnded: false,
     }
   }
+  // The five-year settlement is a question, and the clock waits for the
+  // answer. Without this, one more 推进 while the modal is up re-enters
+  // endSeason with the ask already marked done, and the off-season runs out
+  // from under the verdict being read.
+  if (state.midReview) {
+    return {
+      day: state.day, stage: state.stage, stageChanged: false,
+      playedMine: [], notes: [], seasonEnded: false,
+    }
+  }
   const rng = new Rng(hashStr(`day:${state.seed}:${state.year}:${state.day}`))
   const prevStage = state.stage
   state.day++
@@ -816,6 +836,17 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const stageChanged = state.stage !== prevStage
   if (stageChanged) {
     notes.push(`—— 进入 ${stageName(state.stage)} ——`)
+    // The pool rotates when a new window opens — say which maps moved, or a
+    // manager walks into a veto to find a map he trained all stage is gone.
+    const prevPool = activePool(state.seed + state.year, poolPhaseOf(prevStage))
+    const nowPool = poolFor(state)
+    const gone = prevPool.filter((m) => !nowPool.includes(m))
+    const fresh = nowPool.filter((m) => !prevPool.includes(m))
+    if (gone.length || fresh.length) {
+      const line = `🗺️ 图池轮换：${fresh.map(mapCn).join('、')} 加入，${gone.map(mapCn).join('、')} 移出。`
+      notes.push(line)
+      state.news.push({ day: state.day, kind: 'league', text: line })
+    }
     settleObjective(state, prevStage, notes)
     setObjective(state, notes)
     offerJobs(state, notes)
@@ -901,7 +932,51 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
  * was dropped on the floor. Everything here that lands on the managed club
  * goes into the digest, so the season turns over in front of you.
  */
+/**
+ * Take the five-year verdict and go: the career ends here, graded, with the
+ * squad that earned it still intact.
+ *
+ * The season was worked, so the year's salary is banked exactly as the finale
+ * path banks it — endSeason returned before its own tally line to get here.
+ */
+export function settleAtFive(state: GameState): void {
+  if (!state.midReview) return
+  state.midReview = false
+  state.midReviewDone = true
+  state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
+  state.tally.earned += state.managerContract?.salary ?? 0
+  const earned = endingsFor(state)
+  state.finished = true
+  state.gameOver = earned[0]
+    ? `五年之约到期，你选择功成身退——${earned[0].title}`
+    : '五年之约到期，你选择功成身退。'
+  state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
+}
+
+/** Decline the settlement and play on: 2036 stays the hard end of the story. */
+export function continuePastFive(state: GameState): void {
+  if (!state.midReview) return
+  state.midReview = false
+  state.midReviewDone = true
+  state.news.push({
+    day: state.day, kind: 'club', important: true,
+    text: '你谢绝了功成身退的机会——这份工作干到 2036 年为止。',
+  })
+}
+
 function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
+  // The five-year settlement. BEFORE anything else touches the state, for the
+  // same reason the finale check below runs first: the verdict must judge the
+  // squad that played the season, not the one the off-season is about to
+  // dissolve. Nothing is decided here — the state freezes (advanceDay holds
+  // while midReview is up) until settleAtFive or continuePastFive answers,
+  // and on 继续 this function runs again with the ask marked done.
+  if (state.year === MID_YEAR && !state.midReviewDone) {
+    state.midReview = true
+    notes.push('⏳ 五年之期已到——是就此收官拿一个结局，还是继续带到 2036？')
+    return
+  }
+
   // The manager's own pay, banked. It had no destination at all before this —
   // a number on the contract screen that nothing ever read — and it is the
   // one figure in the game that belongs to the person rather than the club.

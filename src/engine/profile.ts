@@ -63,6 +63,20 @@ export const emptyProfile = (id: string): Profile => ({
 /** The id everything hangs off. Null until the player has made one. */
 export const siteId = (): string | null => rememberedId()
 
+/**
+ * Has this account earned the right to start anywhere?
+ *
+ * Proving yourself once is enough: a three-peat of Champions in any save, a
+ * career played to an ending at the ten-year mark, or reputation 90 — after
+ * any of those, new careers ignore the reputation gate and the locked top
+ * clubs alike. The first two ride on achievement keys precisely so that an
+ * in-progress save counts the moment it qualifies, not when it ends.
+ */
+export const freeTeamChoice = (p: Profile): boolean =>
+  p.record.finished >= 1
+  || p.achievements.includes('threepeat')
+  || p.achievements.includes('rep90')
+
 // ---------------------------------------------------------------- local
 
 /** Bring anything read off disk or the wire up to the current shape. */

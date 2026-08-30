@@ -18,7 +18,7 @@
  *    manager had no way to see.
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, continuePastFive, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 import {
   enquireAbout, makeOffer, releasePlayer, answerIncoming, incomingOffers, windowOpen,
@@ -335,6 +335,12 @@ const EXPLAINS: Record<keyof Snap, RegExp> = {
   for (let s = 0; s < seasons; s++) {
     const startYear = g.year
     while (g.year === startYear) {
+      // A sacked (or settled) career freezes the clock: advanceDay returns
+      // without moving the year, and this loop spun on that at 100% CPU for
+      // as long as anyone let it. Which seed gets sacked inside the window
+      // shifts with every balance change, so the exit has to be here.
+      if (g.gameOver) break
+      if (g.midReview) continuePastFive(g)
       const before = snap(g)
       const logBefore = g.finances.log.at(-1)?.day ?? -1
       const r = advanceDay(g, { autoScrims: true })

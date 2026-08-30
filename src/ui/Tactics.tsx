@@ -1,14 +1,14 @@
 import { useGame } from './ctx'
 import { Bar, Panel, RoleTag } from './common'
 import { buildLineup, selectLineup } from '../engine/match'
-import { activePool } from '../engine/match'
+import { poolFor } from '../engine/match'
 import { MAPS, mapCn } from '../engine/content'
 import { SLIDERS } from './TacticSliders'
 
 export default function Tactics() {
   const { game } = useGame()
   const me = game.teams[game.myTeam]
-  const pool = activePool(game.seed + game.year)
+  const pool = poolFor(game)
 
   const lineup = selectLineup(game, game.myTeam)
   const preview = buildLineup(game, game.myTeam, pool[0])

@@ -4,7 +4,7 @@ import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { AgentIcon, Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
-import { ratingOf } from '../engine/match'
+import { mapMvp, ratingOf } from '../engine/match'
 import type { Fixture, MapLine, MapScore } from '../engine/types'
 
 export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onClose: () => void }) {
@@ -146,7 +146,12 @@ export default function MatchModal({ fixture, onClose }: { fixture: Fixture; onC
       {map && (
         <Scoreboard
           map={map} teamA={fixture.teamA} teamB={fixture.teamB}
-          onPlayer={openPlayer} mvp={r.mvp} lineups={r.lineups} agentsOf={agentsOf}
+          onPlayer={openPlayer} lineups={r.lineups} agentsOf={agentsOf}
+          // the match MVP belongs to the series: on the All Maps sheet, or in
+          // a BO1 where the map IS the series. A per-map sheet crowns its own
+          // best — vlr's Fracture page does not carry the series award either.
+          mvp={allMaps && perMap ? null : r.mvp}
+          mapBest={allMaps && perMap ? mapMvp(map, r.lineups) : null}
         />
       )}
 
@@ -318,10 +323,14 @@ function Performance({
 }
 
 function Scoreboard({
-  map, teamA, teamB, onPlayer, mvp, lineups, agentsOf,
+  map, teamA, teamB, onPlayer, mvp, mapBest, lineups, agentsOf,
 }: {
   map: MapScore; teamA: string; teamB: string
-  onPlayer: (id: string) => void; mvp: string | null
+  onPlayer: (id: string) => void
+  /** the series MVP — only handed in on the sheet that speaks for the series */
+  mvp: string | null
+  /** this map's own best, for per-map sheets of a multi-map match */
+  mapBest: string | null
   lineups?: { a: string[]; b: string[] }
   /** every agent this player was seen on — one on a map sheet, several on the
       All Maps sheet, exactly as vlr shows it */
@@ -367,6 +376,14 @@ function Scoreboard({
                     <td>
                       <b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
+                      {mapBest === p.id && (
+                        <span
+                          className="tag"
+                          style={{ marginLeft: 6, borderColor: 'var(--accent-line)', color: 'var(--accent)' }}
+                        >
+                          本图最佳
+                        </span>
+                      )}
                     </td>
                     <td>
                       {/* the icon row a vlr sheet prints: one portrait per map

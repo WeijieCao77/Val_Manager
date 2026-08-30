@@ -2,7 +2,8 @@ import type { Role } from './types'
 
 /**
  * Every map VALORANT has shipped to competitive, taken from vlr.gg's own map
- * filter. `activePool()` rotates seven of these per season, as Riot does.
+ * filter. `activePool()` deals seven of these per season and rotates one or
+ * two at the Stage 1 and Stage 2 boundaries, as Riot does.
  */
 export const MAPS = [
   'Ascent', 'Bind', 'Breeze', 'Corrode', 'Fracture', 'Haven', 'Icebox',

@@ -138,8 +138,9 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             <h2>VCT电竞经理</h2>
             <p className="lede">无畏契约电竞经理模拟</p>
             <p className="blurb">
-              接手一支真实存在的战队，从 2026 打到 2036。
-              签人、训练、排兵、BP、谈赞助，十年任期结束时按你留下的东西给一个结局。
+              接手一支真实存在的战队，从 2026 出发。
+              签人、训练、排兵、BP、谈赞助，打满五年可以收官领一个结局，
+              也可以一路带到 2036 的大结局。
               518 名选手和 64 名教练全部是真实存在的人，没有一个是程序生成的。
             </p>
             <ul className="home-facts">

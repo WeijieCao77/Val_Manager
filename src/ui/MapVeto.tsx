@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
-import { activePool, vetoChoice, vetoOrder } from '../engine/match'
+import { poolFor, vetoChoice, vetoOrder } from '../engine/match'
 import { mapCn } from '../engine/content'
 import { mapImg } from './common'
 import { Rng } from '../engine/rng'
@@ -38,7 +38,7 @@ export default function MapVeto({
   const weAreA = fixture.teamA === game.myTeam
   const order = useMemo(() => vetoOrder(fixture.bo), [fixture.bo])
   const pool = useMemo(
-    () => activePool(game.seed + game.year), [game.seed, game.year])
+    () => poolFor(game), [game.seed, game.year, game.stage])
   const rng = useMemo(
     () => new Rng(hashStr(`veto:${game.seed}:${fixture.id}`)), [game.seed, fixture.id])
 
@@ -86,7 +86,8 @@ export default function MapVeto({
   return (
     <>
       <p className="small muted" style={{ marginTop: 0 }}>
-        本赛季图池 7 张，{fixture.bo === 3 ? 'BO3：各 ban 一张，各选一张，再各 ban 一张，剩下的是决胜图'
+        当前图池 7 张（Stage 1 和 Stage 2 开打时会各轮换一两张），
+        {fixture.bo === 3 ? 'BO3：各 ban 一张，各选一张，再各 ban 一张，剩下的是决胜图'
           : fixture.bo === 5 ? 'BO5：各 ban 一张，然后轮流选图' : 'BO1：轮流 ban 到只剩一张'}。
         <b>ban 掉对手擅长的，留下自己擅长的。</b>
       </p>

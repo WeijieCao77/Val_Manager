@@ -17,6 +17,7 @@ import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
+import MidReview from './ui/MidReview'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
@@ -396,6 +397,7 @@ export default function App() {
             }}
           />
         )}
+        {game.midReview && !game.gameOver && <MidReview />}
         {game.gameOver && (
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}

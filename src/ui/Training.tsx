@@ -6,7 +6,7 @@ import { squadOf } from '../engine/world'
 import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
-import { activePool } from '../engine/match'
+import { poolFor } from '../engine/match'
 import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
 import { doPhysio, physioBlock, PHYSIO_COST } from '../engine/training'
@@ -154,7 +154,7 @@ export default function Training() {
     commit()
     toast(`本周训练已确定：${describe()}`)
   }
-  const pool = activePool(game.seed + game.year)
+  const pool = poolFor(game)
   const fit = squad.filter((p) => p.injuredUntil <= game.day)
 
   return (

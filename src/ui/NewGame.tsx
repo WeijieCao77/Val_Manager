@@ -11,6 +11,7 @@ import {
 import type { ManagerOrigin } from '../engine/manager'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { GameState, Region } from '../engine/types'
+import { freeTeamChoice, readProfile } from '../engine/profile'
 import { money, OvrBadge, Bar, Crest } from './common'
 import Credit from './Credit'
 
@@ -75,8 +76,13 @@ export default function NewGame({ onHome,
     }
   }, [region, squadStrength])
 
+  // Earned once, good forever: a three-peat, a ten-year run or reputation 90
+  // on THIS account opens every club — the reputation gate and the locked top
+  // three alike. Read at mount; nothing here changes it mid-screen.
+  const veteran = useMemo(() => freeTeamChoice(readProfile()), [])
+
   const available = (t: (typeof WORLD_TEAMS)[number]) =>
-    !!manager && canManage(manager.reputation, t.reputation, lockedTop.has(t.id))
+    !!manager && (veteran || canManage(manager.reputation, t.reputation, lockedTop.has(t.id)))
 
   const selected = teamId ? WORLD_TEAMS.find((t) => t.id === teamId) : null
 
@@ -285,10 +291,18 @@ export default function NewGame({ onHome,
                   </div>
                 </div>
               ))}
-              <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
-                声望决定哪些俱乐部愿意请你。每个赛区最强的三支球队开局永远锁定——
-                那是靠成绩换来的位置，不是开局能挑的。
-              </p>
+              {veteran ? (
+                <p className="tiny" style={{ marginTop: 12, marginBottom: 0, color: 'var(--win)' }}>
+                  🏅 殿堂经理——你的账号有拿得出手的履历（三连霸／走完十年／声望 90 任一），
+                  从这里开始，任何俱乐部都愿意请你。
+                </p>
+              ) : (
+                <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
+                  声望决定哪些俱乐部愿意请你，每个赛区最强的三支球队开局锁定。
+                  在任意存档里做到<b>三连霸</b>、<b>走完十年</b>或<b>声望 90</b>，
+                  之后的新生涯就能不受限制、任选球队开局。
+                </p>
+              )}
             </>
           )}
         </div>

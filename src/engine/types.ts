@@ -809,8 +809,12 @@ export interface GameState {
    * pay to raise it, and that is only visible against where it started.
    */
   startFacilities?: number
-  /** the career is over because ten seasons are up, not because you were sacked */
+  /** the career is over because its seasons are up, not because you were sacked */
   finished?: boolean
+  /** the five-year settlement is on screen; the clock holds until a choice is made */
+  midReview?: boolean
+  /** the five-year settlement has been answered — never ask twice */
+  midReviewDone?: boolean
   /** agents the manager has chosen for the next match, keyed by map */
   agentPicks?: Record<string, Record<string, string>>
   /** maps the manager banned/picked himself for the next match */

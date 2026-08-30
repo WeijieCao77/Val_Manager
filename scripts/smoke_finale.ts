@@ -13,7 +13,7 @@
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { Rng } from '../src/engine/rng'
-import { setupSeason, advanceDay, SEASON_DAYS } from '../src/engine/season'
+import { setupSeason, advanceDay, continuePastFive, SEASON_DAYS } from '../src/engine/season'
 import { endingOf, endingsFor, ENDING_COUNT, FINAL_YEAR } from '../src/engine/endings'
 import { RUN_ACHIEVEMENTS, earnedNow } from '../src/engine/achievements'
 import { PROSPECTS } from '../src/engine/prospects'
@@ -104,6 +104,8 @@ for (let s = 0; s < SEEDS; s++) {
   let lastYear = g.year
   while (!g.gameOver && days < cap) {
     try {
+      // the 2030 settlement pauses the clock; a finale smoke plays the back five
+      if (g.midReview) continuePastFive(g)
       advanceDay(g, { auto: true })
     } catch (e) {
       gripe(`${tag} 第 ${g.year} 年第 ${g.day} 天抛异常：${(e as Error).message}`)

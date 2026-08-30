@@ -18,7 +18,7 @@
 // Champions its own way, matching a copy in endings.ts that the season never
 // awarded — so the test and the code agreed and both were wrong.
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
-import { setupSeason, advanceDay, moveToClub } from '../src/engine/season'
+import { setupSeason, advanceDay, continuePastFive, moveToClub } from '../src/engine/season'
 import {
   DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf,
   CHAMPIONS, FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
@@ -264,11 +264,15 @@ const has = (g: GameState, key: string) => endingsFor(g).some((e) => e.key === k
   const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260828)
   setupSeason(g)
   let guard = 0
+  let asked = 0
   while (!g.gameOver && guard++ < 4200) {
     g.boardConfidence = 80          // 不让解雇提前结束，这里测的是十年到期
     g.onNotice = false
+    // 2030 年底会停下来问一次五年之约；这条测试演的是拒绝收官的人
+    if (g.midReview) { asked++; continuePastFive(g) }
     advanceDay(g)
   }
+  check('五年之约只问一次', asked === 1, `问了 ${asked} 次`)
   check('十个赛季之后生涯自动结束', !!g.finished, `${g.year} 年：${g.gameOver ?? '仍在进行'}`)
   check('结束于最后一个赛季', g.year === FINAL_YEAR, String(g.year))
   const two = endingOf(g)

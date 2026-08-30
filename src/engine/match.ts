@@ -6,7 +6,7 @@ import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'
 import type {
-  EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, Team,
+  EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, StageKey, Team,
 } from './types'
 
 /** How much each role tends to take kills / take deaths. */
@@ -235,11 +235,48 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
 
 // ---------------------------------------------------------------- map veto
 
-/** The 7 maps in the active competitive pool this season. */
-export function activePool(seed: number): string[] {
+/**
+ * The year has three pool windows, the way Riot actually runs it: the pool
+ * that opens the season, a rotation when Stage 1 begins, and another when
+ * Stage 2 begins. Challengers events follow the same calendar days, so one
+ * phase covers everybody.
+ */
+export type PoolPhase = 0 | 1 | 2
+
+export const poolPhaseOf = (stage: StageKey): PoolPhase =>
+  stage === 'stage1' || stage === 'masters2' ? 1
+    : stage === 'stage2' || stage === 'champions' || stage === 'offseason' ? 2
+    : 0
+
+/**
+ * The 7 maps in the active competitive pool, for a given window of the year.
+ *
+ * Phase 0 deals seven of the thirteen; each later phase swaps one or two of
+ * them for benched maps, cumulatively — the Stage 2 pool is the Stage 1 pool
+ * with its own swap on top, not a fresh deal. Deterministic in (seed, phase),
+ * so every screen and both veto paths agree on what is legal today.
+ */
+export function activePool(seed: number, phase: PoolPhase = 0): string[] {
   const rng = new Rng(seed ^ 0x5eed)
-  return rng.shuffle(MAPS.slice() as string[]).slice(0, 7).sort()
+  const order = rng.shuffle(MAPS.slice() as string[])
+  const pool = order.slice(0, 7)
+  const bench = order.slice(7)
+  for (let ph = 1; ph <= phase; ph++) {
+    const swaps = 1 + rng.int(0, 1)
+    for (let i = 0; i < swaps; i++) {
+      const out = rng.int(0, pool.length - 1)
+      const inn = rng.int(0, bench.length - 1)
+      const dropped = pool[out]
+      pool[out] = bench[inn]
+      bench[inn] = dropped
+    }
+  }
+  return pool.sort()
 }
+
+/** Today's pool for this save — the one every veto and every screen must use. */
+export const poolFor = (state: Pick<GameState, 'seed' | 'year' | 'stage'>): string[] =>
+  activePool(state.seed + state.year, poolPhaseOf(state.stage))
 
 export function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
   // 7-map pool
@@ -778,7 +815,7 @@ export class MatchSim {
       this.maps = state.vetoPlan.maps.slice()
       this.vetoLog = state.vetoPlan.log.slice()
     } else {
-      const pool = activePool(state.seed + state.year)
+      const pool = poolFor(state)
       const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
       this.maps = maps
       this.vetoLog = log
@@ -936,3 +973,25 @@ export function applyMatchStats(state: GameState, result: MatchResult): void {
 }
 
 export { ratingOf } from './player'
+
+/**
+ * The best performance on ONE map — the same scoring the match MVP uses (ACS
+ * plus a winner's nod), judged against that map's own winner. The match MVP
+ * tag used to sit on every per-map sheet, where a 1.56 on the map lost the
+ * label to whoever had averaged best across the series.
+ */
+export function mapMvp(
+  map: MapScore, lineups?: { a: string[]; b: string[] },
+): string | null {
+  const winners = new Set(map.scoreA > map.scoreB ? lineups?.a ?? [] : lineups?.b ?? [])
+  let best = -1
+  let mvp: string | null = null
+  for (const [pid, l] of Object.entries(map.lines)) {
+    const s = l.acs + (winners.has(pid) ? 18 : 0)
+    if (s > best) {
+      best = s
+      mvp = pid
+    }
+  }
+  return mvp
+}
