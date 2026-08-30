@@ -7,6 +7,7 @@
  * sits under the game rather than in front of it.
  */
 import { AFDIAN } from './Support'
+import { Ext } from './ext'
 
 export default function Credit() {
   return (
@@ -20,7 +21,7 @@ export default function Credit() {
       {/* the corner button can be dismissed for good; this stays, so someone
           who changes their mind later still has a way to find it */}
       <span>
-        <a href={AFDIAN} target="_blank" rel="noreferrer noopener">支持作者</a>
+        <Ext to={AFDIAN} offline={<>支持作者 {AFDIAN}</>}>支持作者</Ext>
       </span>
     </footer>
   )

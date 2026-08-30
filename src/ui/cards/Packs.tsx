@@ -61,7 +61,9 @@ export default function Packs() {
         <Panel title="每日签到" actions={<span className="tiny muted">连续 {g.daily.streak} 天</span>}>
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
             每天一次，送金币和卡包。连签 3 天多一个选拔包，连签 7 天送十连包。
-            日期以服务器为准（北京时间），改手机时间没有用。
+            {__MINITOOL__
+              ? '日期按本机时间的北京时区算。'
+              : '日期以服务器为准（北京时间），改手机时间没有用。'}
           </p>
           <div className="row" style={{ gap: 4, margin: '10px 0 12px' }}>
             {Array.from({ length: 7 }, (_, i) => {

@@ -102,7 +102,11 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         <button
           className="home-id"
           onClick={() => setAcct(true)}
-          title={id ? '账号设置——查看、复制或换一个 ID' : '创建一个 ID，成就和结局才能跨设备保存'}
+          title={id
+            ? '账号设置——查看、复制或换一个 ID'
+            : __MINITOOL__
+              ? '创建一个 ID，成就和结局都记在它上面'
+              : '创建一个 ID，成就和结局才能跨设备保存'}
         >
           <span className="k">ID</span>
           <b className="mono">{id ? maskId(id) : '创建账号'}</b>
@@ -219,7 +223,9 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         </div>
         <p className="tiny faint home-note">
           这些记在你的 ID 上，跨存档累计——被解雇不会清零。
-          换设备时把 ID 填进任意一个游戏就能找回；
+          {__MINITOOL__
+            ? '小工具离线运行，它们存在这台设备上；'
+            : '换设备时把 ID 填进任意一个游戏就能找回；'}
           <b>这串 ID 相当于账号密码，不要发给别人</b>。
         </p>
       </section>

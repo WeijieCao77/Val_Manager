@@ -12,8 +12,10 @@
  * checked against the link before shipping.
  */
 import { useEffect, useState } from 'react'
+import { Ext } from './ext'
 
-export const AFDIAN = 'https://ifdian.net/a/pighome'
+/** No scheme: see Ext. The 小工具 build prints this rather than linking it. */
+export const AFDIAN = 'ifdian.net/a/pighome'
 const DISMISSED = 'valmgr.support.hidden'
 
 function Qr() {
@@ -81,11 +83,15 @@ export default function Support({ raised = false }: { raised?: boolean }) {
             <div className="support-body">
               <Qr />
               <div className="support-side">
-                <a className="button primary sm" href={AFDIAN} target="_blank" rel="noreferrer noopener">
+                <Ext
+                  className={__MINITOOL__ ? 'small' : 'button primary sm'}
+                  to={AFDIAN}
+                  offline={<>爱发电：<b>{AFDIAN}</b></>}
+                >
                   打开爱发电 ↗
-                </a>
+                </Ext>
                 <p className="tiny faint" style={{ margin: 0 }}>
-                  手机扫码，或直接点上面的按钮。<br />
+                  {__MINITOOL__ ? '手机扫码，或在浏览器里打开上面的地址。' : '手机扫码，或直接点上面的按钮。'}<br />
                   ¥10/月 可以提前玩到新版本、进专属群；也可以自选金额，一次就好。
                 </p>
               </div>

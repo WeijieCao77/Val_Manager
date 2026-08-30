@@ -103,6 +103,9 @@ export default function NewGame({ onHome,
   }
 
   const onImport = (file: File) => {
+    // Unreachable in the 小工具 build: its file picker only offers images and
+    // videos no matter what `accept` asks for, so the control is not rendered.
+    if (__MINITOOL__) return
     const reader = new FileReader()
     reader.onload = () => {
       try {
@@ -150,11 +153,13 @@ export default function NewGame({ onHome,
 
       <div className="row wrap" style={{ marginBottom: 20 }}>
         {canContinue && <button className="primary" onClick={onContinue}>继续上次存档</button>}
-        <label>
-          <span className="tag" style={{ cursor: 'pointer', padding: '7px 14px' }}>导入存档文件</span>
-          <input type="file" accept=".json" style={{ display: 'none' }}
-            onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
-        </label>
+        {!__MINITOOL__ && (
+          <label>
+            <span className="tag" style={{ cursor: 'pointer', padding: '7px 14px' }}>导入存档文件</span>
+            <input type="file" accept=".json" style={{ display: 'none' }}
+              onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
+          </label>
+        )}
       </div>
 
       {/* ---------------------------------------------------------- 1 你是谁 */}

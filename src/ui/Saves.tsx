@@ -19,11 +19,17 @@ export default function Saves() {
       toast(`已保存到「${name}」。`)
     } catch {
       // a thrown write used to look identical to success minus the toast
-      toast('⚠ 保存失败——浏览器存储写不进去。先「导出为文件」保住进度。')
+      toast(__MINITOOL__
+        ? '⚠ 保存失败——存储写不进去。先去「已有存档」删掉几个旧存档再试。'
+        : '⚠ 保存失败——浏览器存储写不进去。先「导出为文件」保住进度。')
     }
   }
 
   const doExport = () => {
+    // The container blocks a[download] and blob downloads alike, and there is
+    // no other way to hand a file out of it. The button is not rendered in
+    // that build; this guard is what keeps the call out of the bundle.
+    if (__MINITOOL__) return
     const blob = new Blob([exportSave(game)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -58,10 +64,13 @@ export default function Saves() {
             style={{ maxWidth: 320 }}
           />
           <button className="primary" onClick={doSave}>保存</button>
-          <button onClick={doExport}>导出为文件</button>
+          {!__MINITOOL__ && <button onClick={doExport}>导出为文件</button>}
         </div>
         <p className="tiny muted" style={{ marginBottom: 0, marginTop: 10 }}>
-          每次操作都会写入自动存档，重新打开页面即可继续。导出的文件可以在开始界面导入。
+          每次操作都会写入自动存档，重新打开页面即可继续。
+          {__MINITOOL__
+            ? '小工具不能导出文件，存档都保存在这台设备上——清掉小工具的数据就没了。'
+            : '导出的文件可以在开始界面导入。'}
         </p>
       </Panel>
 

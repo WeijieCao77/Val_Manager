@@ -10,6 +10,7 @@ import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
 import { LEGEND_KIND_CN } from '../../engine/legends'
 import { legendPhoto } from '../../engine/dossier'
+import { Ext } from '../ext'
 
 type Filter = 'all' | Rarity | 'coach' | 'dupes'
 
@@ -142,13 +143,9 @@ export default function Collection() {
                               from; the tier is not claimed because it is derived
                               from a filename and undersells half of them */}
                           照片：
-                          <a
-                            href={legendPhoto(sel.legend.id)!.page}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
+                          <Ext to={legendPhoto(sel.legend.id)!.page!.replace(/^https?:\/\//, '')}>
                             Liquipedia
-                          </a>
+                          </Ext>
                           {' '}· CC BY-SA
                         </div>
                       )}

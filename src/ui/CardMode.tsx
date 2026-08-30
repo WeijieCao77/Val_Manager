@@ -277,7 +277,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
             📦 {Object.values(g.packs).reduce((s, n) => s + (n ?? 0), 0)}
           </div>
           <div className="spacer" />
-          {!cloud && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
+          {!cloud && !__MINITOOL__ && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
           <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
         </header>
 
@@ -393,7 +393,11 @@ function Gate({
           </button>
         </div>
         {err && <p className="small warn" style={{ marginTop: 10 }}>{err}</p>}
-        {!made.cloud && (
+        {__MINITOOL__ ? (
+          <p className="tiny muted" style={{ marginTop: 14 }}>
+            小工具离线运行，这个账号和它的收藏都存在这台设备上。
+          </p>
+        ) : !made.cloud && (
           <p className="tiny warn" style={{ marginTop: 14 }}>
             服务器暂时连不上，这个账号先存在本机。等能连上时会自动上传。
           </p>

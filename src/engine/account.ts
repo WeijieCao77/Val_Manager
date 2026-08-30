@@ -14,6 +14,7 @@
  */
 import type { GachaState } from './gacha'
 import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
+import { NET, netBeacon, netFetch } from './net'
 
 const ID_KEY = 'valmanager:card:id'
 const MIRROR = 'valmanager:card:state:'
@@ -192,7 +193,7 @@ const api = (path: string) => `${BASE}api/card/${path}`.replace(/([^:])\/\//g, '
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
   try {
-    const r = await fetch(api('day'), { cache: 'no-store' })
+    const r = await netFetch(api('day'), { cache: 'no-store' })
     const j = await r.json()
     noteNow(j?.now)
     if (j?.today) return { today: j.today, cloud: !!j.cloud }
@@ -228,7 +229,7 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
   if (!id) return { ok: false, reason: 'bad', today: localToday() }
   let today = localToday()
   try {
-    const r = await fetch(api('load'), {
+    const r = await netFetch(api('load'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -287,7 +288,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
     const id = newId()
     const state = newGacha(id, name.trim().slice(0, 20) || '经理', today)
     try {
-      const r = await fetch(api('claim'), {
+      const r = await netFetch(api('claim'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, name: state.name, state }),
@@ -336,12 +337,14 @@ let retries = 0
  */
 export function saveAccount(state: GachaState, immediate = false): void {
   writeMirror(state, true)
+  // Offline build: the mirror IS the save, and there is no server to retry into.
+  if (!NET) return
   if (pending) { clearTimeout(pending); pending = null }
   const send = async () => {
     if (inflight) { pending = window.setTimeout(send, 400); return }
     inflight = true
     try {
-      const r = await fetch(api('save'), {
+      const r = await netFetch(api('save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: state.id, name: state.name, state, baseRev: rev }),
@@ -382,14 +385,15 @@ export function saveAccount(state: GachaState, immediate = false): void {
 export function flushAccount(state: GachaState): void {
   if (pending) { clearTimeout(pending); pending = null }
   writeMirror(state, true)
+  if (!NET) return
   try {
     const body = JSON.stringify({ id: state.id, name: state.name, state, baseRev: rev })
     const blob = new Blob([body], { type: 'application/json' })
-    // sendBeacon survives the page going away; fetch does not. It also returns
+    // netBeacon survives the page going away; a request does not. It also returns
     // false when it will not queue — over quota, or a page already too far
     // gone — and ignoring that meant sending nothing and believing otherwise.
-    if (navigator.sendBeacon?.(api('save'), blob)) return
-    void fetch(api('save'), {
+    if (netBeacon(api('save'), blob)) return
+    void netFetch(api('save'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true,
     }).catch(() => { /* mirror is dirty; the next load picks it up */ })
   } catch { /* same */ }

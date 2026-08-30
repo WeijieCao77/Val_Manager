@@ -9,6 +9,7 @@ import { AgentIcon, Panel, Bar, moneyFull } from './common'
 import { agentCn } from '../engine/content'
 import { ATTR_CN, ATTR_KEYS, REGION_CN, REGIONS } from '../engine/types'
 import type { Region, Role } from '../engine/types'
+import { Ext } from './ext'
 
 const ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
 
@@ -241,15 +242,14 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
               {tenures.length > 0 && <span className="trait">{tenures.length} 段队伍经历</span>}
             </div>
             {d?.vlr && (
-              <a
+              <Ext
                 className="tiny"
                 style={{ display: 'inline-block', marginTop: 10 }}
-                href={`https://www.vlr.gg/player/${d.vlr}/`}
-                target="_blank"
-                rel="noreferrer noopener"
+                to={`www.vlr.gg/player/${d.vlr}/`}
+                offline={<>原始资料：vlr.gg/player/{d.vlr}</>}
               >
                 在 vlr.gg 上查看原始资料 ↗
-              </a>
+              </Ext>
             )}
           </div>
         </div>

@@ -6,6 +6,10 @@ import { DIVISIONS } from '../../engine/gacha'
 
 /** Copy that works on http:// and on the browsers without a clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
+  // The 小工具 container ships neither the clipboard API nor execCommand, and
+  // every caller already has a "select it yourself" path. Take it immediately
+  // rather than reaching for a banned call and reading the failure.
+  if (__MINITOOL__) return false
   try {
     await navigator.clipboard.writeText(text)
     return true
@@ -35,7 +39,9 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
           这个 ID 就是你的账号，没有密码，也没有找回方式。
           <b style={{ color: 'var(--warn)' }}>请立刻截图或复制保存</b>——丢了就再也进不来了。
-          换设备时用这串 ID 登录，收藏和段位都会跟着走。
+          {__MINITOOL__
+            ? '小工具是离线运行的，收藏和段位存在这台设备上，不会跟着 ID 跨设备走。'
+            : '换设备时用这串 ID 登录，收藏和段位都会跟着走。'}
         </p>
 
         <div className="acct-id" style={{ filter: reveal ? 'none' : 'blur(7px)' }}>
@@ -49,7 +55,11 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
             className="primary sm"
             onClick={async () => {
               setReveal(true)
-              toast(await copyText(g.id) ? 'ID 已复制，找个地方存好。' : '复制失败，请手动选中复制。')
+              toast(await copyText(g.id)
+                ? 'ID 已复制，找个地方存好。'
+                : __MINITOOL__
+                  ? '长按上面那串 ID 选中复制，或者直接截图。'
+                  : '复制失败，请手动选中复制。')
             }}
           >
             复制 ID
@@ -65,11 +75,20 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
             onChange={(e) => setName(e.target.value)}
             onBlur={() => { g.name = name.trim().slice(0, 20) || '经理'; commit(true) }}
           />
-          <span className={`tag ${cloud ? 't1' : 't2'}`} title={cloud ? '收藏已同步到服务器' : '服务器连不上，只存在这台设备里'}>
-            {cloud ? '云端同步中' : '仅本机'}
+          <span
+            className={`tag ${cloud ? 't1' : 't2'}`}
+            title={__MINITOOL__
+              ? '小工具离线运行，收藏存在这台设备上'
+              : cloud ? '收藏已同步到服务器' : '服务器连不上，只存在这台设备里'}
+          >
+            {__MINITOOL__ ? '本机存档' : cloud ? '云端同步中' : '仅本机'}
           </span>
         </div>
-        {!cloud && (
+        {__MINITOOL__ ? (
+          <p className="tiny muted" style={{ marginTop: 8 }}>
+            小工具离线运行，收藏、段位和签到都存在这台设备上，签到日期用的是本机时间。
+          </p>
+        ) : !cloud && (
           <p className="tiny warn" style={{ marginTop: 8 }}>
             现在连不上服务器，进度只写在这个浏览器里，签到日期也用的是本机时间。恢复连接后会自动上传。
           </p>

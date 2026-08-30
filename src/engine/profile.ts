@@ -20,6 +20,7 @@
  */
 import { rememberedId } from './account'
 import { earnedLifetime } from './achievements'
+import { NET, netFetch } from './net'
 
 const KEY = 'valmanager:profile:'
 
@@ -263,13 +264,13 @@ let retries = 0
  * ending on a phone and finds it missing on a laptop.
  */
 function push(p: Profile): void {
-  if (typeof fetch !== 'function' || p.id === 'local') return
+  if (!NET || p.id === 'local') return
   if (pending) { clearTimeout(pending); pending = null }
   const send = async () => {
     if (inflight) { pending = setTimeout(send, 400) as unknown as number; return }
     inflight = true
     try {
-      const r = await fetch(api('save'), {
+      const r = await netFetch(api('save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: p.id, profile: p }),
@@ -295,9 +296,9 @@ function push(p: Profile): void {
  */
 export async function syncProfile(id: string | null = siteId()): Promise<Profile> {
   const local = claimLocal(id)
-  if (!id || typeof fetch !== 'function') return local
+  if (!id || !NET) return local
   try {
-    const r = await fetch(api('load'), {
+    const r = await netFetch(api('load'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),

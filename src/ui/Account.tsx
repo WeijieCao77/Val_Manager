@@ -59,7 +59,7 @@ export default function Account(
       setShown(true)          // you cannot write down what you cannot see
       track('account', { act: 'new' })
       settle(r.state.id)
-      if (!r.cloud) {
+      if (!r.cloud && !__MINITOOL__) {
         setErr('服务器暂时连不上，账号先建在这台设备上了，联网后会自动同步。')
       }
     } catch {
@@ -85,13 +85,18 @@ export default function Account(
       setErr({
         bad: 'ID 格式不对——应该是 VM- 开头、后面五组四位。',
         missing: '没有这个 ID 的记录。检查一下有没有抄错。',
-        offline: '连不上服务器，而且这台设备上也没有这个账号的备份。',
+        offline: __MINITOOL__
+          ? '这台设备上没有这个账号的存档。小工具是离线运行的，进度不跨设备同步。'
+          : '连不上服务器，而且这台设备上也没有这个账号的备份。',
       }[r.reason])
     }
   }
 
   const copy = async () => {
     if (!id) return
+    // No clipboard API in the 小工具 container: show the id instead, which is
+    // what the failure path here has always done.
+    if (__MINITOOL__) { setShown(true); return }
     try {
       await navigator.clipboard.writeText(id)
       setCopied(true)
@@ -128,8 +133,9 @@ export default function Account(
               <button className="sm ghost" onClick={copy}>{copied ? '已复制' : '复制'}</button>
             </div>
             <p className="tiny faint" style={{ margin: 0, lineHeight: 1.8 }}>
-              VCT电竞经理和开瓦包共用这一个账号。成就、结局、生涯数据和卡牌收藏都记在它上面，
-              换手机时在这里填进去就能全部找回。<b>相当于账号密码，不要发给别人。</b>
+              VCT电竞经理和开瓦包共用这一个账号。成就、结局、生涯数据和卡牌收藏都记在它上面
+              {__MINITOOL__ ? '——小工具离线运行，这些都存在这台设备上。' : '，换手机时在这里填进去就能全部找回。'}
+              <b>相当于账号密码，不要发给别人。</b>
             </p>
 
             <div className="acct-mine">
@@ -142,7 +148,8 @@ export default function Account(
           <>
             <p className="small muted" style={{ margin: 0, lineHeight: 1.9 }}>
               不用邮箱，也不用密码。点一下就会给你一串 ID，
-              <b>它同时是开瓦包的账号</b>——成就、结局和卡牌收藏都记在上面，换设备靠它找回。
+              <b>它同时是开瓦包的账号</b>——成就、结局和卡牌收藏都记在上面
+              {__MINITOOL__ ? '，存在这台设备里。' : '，换设备靠它找回。'}
             </p>
             <div className="acct-row">
               <input

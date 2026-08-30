@@ -1,6 +1,8 @@
 node_modules
 dist
+dist-minitool
 dist-ssr
+val-manager-minitool.zip
 *.local
 .DS_Store
 .vite
