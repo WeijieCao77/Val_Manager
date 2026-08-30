@@ -972,34 +972,86 @@ function retirePlayer(state: GameState, p: Player, notes: string[]): void {
   delete state.players[p.id]
 }
 
+/** What the manager puts on the table when a player announces retirement. */
+export type StayApproach = 'heart' | 'raise' | 'bench' | 'transfer' | 'accept'
+
 /**
- * One conversation, eye to eye, about one more season.
+ * One conversation, eye to eye, about how his story ends.
  *
- * The odds ride on the dressing-room skill and on how the man feels about the
- * place — and there is exactly one attempt, because asking twice is not
+ * Five ways to have it: appeal to the heart (free, long odds), put money on
+ * the table (a 30% raise, the best odds), offer him the bench and the rookies
+ * (middle ground), agree to find him a last dance somewhere else (certain —
+ * he plays on, just not here), or accept it and give him the send-off he has
+ * earned. Whatever is chosen, it is chosen once: asking twice is not
  * persuasion, it is pressure.
  */
-export function persuadeStay(state: GameState, playerId: string): string {
+export function persuadeStay(
+  state: GameState, playerId: string, approach: StayApproach = 'heart',
+): string {
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
   if (p.teamId !== state.myTeam) return '他不是你队里的人，这话轮不到你说。'
   if (!p.retiring) return `${p.ign} 没打算退役。`
-  if (p.persuaded) return '你已经劝过一次了——他的决定应该被尊重。'
+  if (p.persuaded) return '你已经和他谈过了——他的决定应该被尊重。'
   p.persuaded = true
 
   const locker = state.manager?.skills.locker ?? 50
-  const odds = clamp(0.3 + (locker - 50) * 0.008 + (p.morale - 60) * 0.004, 0.1, 0.8)
-  const roll = ((hashStr(`stay:${state.seed}:${state.year}:${p.id}`) >>> 6) % 1000) / 1000
-  if (roll < odds) {
+  const nego = state.manager?.skills.negotiation ?? 50
+  const roll = ((hashStr(`stay:${state.seed}:${state.year}:${p.id}:${approach}`) >>> 6) % 1000) / 1000
+  const stays = (line: string) => {
     p.retiring = false
-    p.morale = clamp(p.morale + 6, 0, 100)
-    state.news.push({
-      day: state.day, kind: 'player', important: true,
-      text: `🤝 ${p.ign} 被你说动了——退役计划搁置，再战一年。`,
-    })
-    return `${p.ign} 沉默了很久，然后点了头：再打一年。`
+    state.news.push({ day: state.day, kind: 'player', important: true, text: `🤝 ${line}` })
+    return line
   }
-  return `${p.ign} 听完摇了摇头——他心意已决，这个赛季打完就走。让他体面地离开吧。`
+
+  switch (approach) {
+    case 'raise': {
+      const odds = clamp(0.5 + (nego - 50) * 0.006 + (p.morale - 60) * 0.003, 0.2, 0.9)
+      if (roll < odds) {
+        p.salary = Math.round(p.salary * 1.3)
+        if (p.contract) p.contract.salary = p.salary
+        p.contractYears = Math.max(1, p.contractYears)
+        p.morale = clamp(p.morale + 8, 0, 100)
+        return stays(`${p.ign} 收下了那份加薪合同——再战一年，年薪 $${p.salary.toLocaleString()}。`)
+      }
+      return `${p.ign} 把合同推了回来："不是钱的事。" 他心意已决，赛季打完就走。`
+    }
+    case 'bench': {
+      const odds = clamp(0.42 + (locker - 50) * 0.007, 0.15, 0.8)
+      if (roll < odds) {
+        const t = state.teams[state.myTeam]
+        if (t) {
+          t.starters = t.starters.filter((id) => id !== p.id)
+          if (t.starters.length < 5) t.starters = autoStarters(state, state.myTeam)
+        }
+        p.morale = clamp(p.morale + 3, 0, 100)
+        return stays(`${p.ign} 同意退居替补，把经验留给年轻人——他还在更衣室里，这就够了。`)
+      }
+      return `${p.ign} 苦笑了一下："让我坐着看别人打？那还不如回家。" 他决定退役。`
+    }
+    case 'transfer': {
+      p.listed = true
+      p.listedOn = state.day
+      p.morale = clamp(p.morale + 4, 0, 100)
+      return stays(`${p.ign} 没想到你会成全他——他想换个环境打最后一舞，已挂牌，转会费能收回一点是一点。`)
+    }
+    case 'accept': {
+      p.morale = clamp(p.morale + 6, 0, 100)
+      state.news.push({
+        day: state.day, kind: 'player', important: true,
+        text: `🫡 俱乐部官宣：将在赛季末为 ${p.ign} 举办退役仪式。`,
+      })
+      return `你握了握他的手。俱乐部会在赛季末为 ${p.ign} 办一场配得上他生涯的退役仪式。`
+    }
+    default: {
+      const odds = clamp(0.3 + (locker - 50) * 0.008 + (p.morale - 60) * 0.004, 0.1, 0.8)
+      if (roll < odds) {
+        p.morale = clamp(p.morale + 6, 0, 100)
+        return stays(`${p.ign} 被你说动了——退役计划搁置，再战一年。`)
+      }
+      return `${p.ign} 听完摇了摇头——他心意已决，这个赛季打完就走。让他体面地离开吧。`
+    }
+  }
 }
 
 /**

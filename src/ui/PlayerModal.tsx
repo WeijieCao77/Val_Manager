@@ -109,22 +109,34 @@ export default function PlayerModal(
                 <p className="small" style={{ margin: 0 }}>
                   {p.ign} 已宣布本赛季结束后退役。
                   {p.teamId === game.myTeam && !p.persuaded
-                    ? '趁更衣室还热着，你可以当面劝他再打一年——只有一次机会。'
+                    ? '这场谈话只有一次——想清楚你要摆在桌上的是什么。'
                     : p.teamId === game.myTeam
                       ? '你已经和他谈过了，他的决定应该被尊重。'
                       : ''}
                 </p>
                 {p.teamId === game.myTeam && !p.persuaded && (
-                  <button
-                    className="sm primary"
-                    style={{ marginTop: 8 }}
-                    onClick={() => act('persuade', () => {
-                      toast(persuadeStay(game, p.id))
-                      logActivity(game, 'squad', `挽留 ${p.ign}`)
-                    })}
-                  >
-                    劝他再打一年
-                  </button>
+                  <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
+                    {([
+                      ['heart', '动之以情', '不花钱，看交情和士气'],
+                      ['raise', `涨薪再战一年`, `年薪提到 ${money(Math.round(p.salary * 1.3))}，最容易点头`],
+                      ['bench', '转替补带新人', '退居二线传帮带，让出首发位'],
+                      ['transfer', '成全他，挂牌转会', '必成——他去别家打最后一舞，能收转会费'],
+                      ['accept', '同意退役', '必成——体面告别，赛季末办退役仪式'],
+                    ] as const).map(([key, label, hint]) => (
+                      <button
+                        key={key}
+                        className={`sm${key === 'accept' || key === 'transfer' ? ' ghost' : ''}`}
+                        title={hint}
+                        onClick={() => act('persuade', () => {
+                          toast(persuadeStay(game, p.id, key))
+                          logActivity(game, 'squad', `与 ${p.ign} 谈退役：${label}`)
+                        })}
+                      >
+                        {label}
+                        <span className="tiny faint" style={{ display: 'block' }}>{hint}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

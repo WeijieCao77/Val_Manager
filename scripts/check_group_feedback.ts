@@ -140,16 +140,38 @@ const mk = (): GameState => {
   if (committed.some((p) => g.players[p.id]?.retiring)) fail('刚签长约的老将不该宣布退役')
   console.log(`✅ 预告制：${announced.length}/24 名老将宣布下赛季退役，0 人凭空消失，签长约的都留下`)
 
-  // the announced man on MY team can be talked around exactly once
-  const mineId = squadOf(g, g.myTeam)[0]!.id
-  const mine = g.players[mineId]!
-  mine.retiring = true
-  mine.persuaded = false
-  const r1 = persuadeStay(g, mineId)
-  if (!mine.persuaded) fail('挽留后应记录已谈过')
-  const r2 = persuadeStay(g, mineId)
-  if (mine.retiring && !r2.includes('劝过')) fail('二次挽留应被拒绝')
-  console.log(`✅ 挽留：${r1.slice(0, 24)}…（${mine.retiring ? '未成' : '成功'}），再劝被拒`)
+  // the announced man on MY team gets ONE conversation, five ways to have it
+  const five = squadOf(g, g.myTeam)
+  const arm = (i: number) => {
+    const p = five[i]!
+    p.retiring = true
+    p.persuaded = false
+    return p
+  }
+  // 涨薪:成则留下且薪资 +30%,败则分文不动
+  const a = arm(0)
+  const aSalary = a.salary
+  const rA = persuadeStay(g, a.id, 'raise')
+  if (!a.retiring && a.salary !== Math.round(aSalary * 1.3)) fail('涨薪成功应加薪 30%')
+  if (a.retiring && a.salary !== aSalary) fail('涨薪被拒不应扣钱')
+  // 转替补:成则移出首发
+  const b = arm(1)
+  const rB = persuadeStay(g, b.id, 'bench')
+  if (!b.retiring && g.teams[g.myTeam]!.starters.includes(b.id)) fail('转替补成功应让出首发位')
+  // 同意转会:必成,挂牌且不再退役
+  const c = arm(2)
+  persuadeStay(g, c.id, 'transfer')
+  if (c.retiring || !c.listed) fail('同意转会应清除退役意向并挂牌')
+  // 同意退役:必成,保持退役、士气上升
+  const d = arm(3)
+  const dMorale = d.morale
+  persuadeStay(g, d.id, 'accept')
+  if (!d.retiring || d.morale < dMorale) fail('同意退役应保持退役且士气不降')
+  // 一次对话定终身
+  const r2 = persuadeStay(g, d.id, 'raise')
+  if (!r2.includes('谈过')) fail('二次谈话应被拒绝')
+  console.log(`✅ 退役谈判五选一：涨薪（${a.retiring ? '被拒' : '留下'}）、转替补（${b.retiring ? '被拒' : '留下'}）、转会必成、体面退役必成、二谈被拒`)
+  void rA; void rB
 
   // and when the season he announced ends, the farewell card exists
   const g6 = mk()
