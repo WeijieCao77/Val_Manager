@@ -28,6 +28,12 @@ const ALLOWED = new Set([
 
 const HARD_LIMIT = 10 * 1024 * 1024
 const ADVISED = 2 * 1024 * 1024
+/**
+ * The container rejects a package holding more than this many entries. The
+ * portraits are inlined rather than shipped as files precisely because of it —
+ * see embedFaces() in vite.config.minitool.ts.
+ */
+const MAX_ENTRIES = 200
 
 const problems: string[] = []
 const notes: string[] = []
@@ -194,9 +200,37 @@ if (/\bimport\s*\(/.test(js)) fail('app.js: dynamic import() — the container h
 for (const m of html.matchAll(/(?:src|href)="\.\/([^"]+)"/g)) {
   if (!files.includes(m[1])) fail(`index.html references ./${m[1]}, which is not in the package`)
 }
+// There is no server to interpret a query string, and nothing promises the
+// container will strip one before looking the path up inside the zip.
+for (const m of js.matchAll(/["'`]([A-Za-z0-9_./-]+\.(?:webp|png|jpg|jpeg|svg|gif|css|js|json))\?[^"'`]*/g)) {
+  fail(`app.js: local asset referenced with a query string — ${m[0].slice(0, 60)}`)
+}
 // The picture directories are built by path at runtime, so check they arrived
-// whole rather than trying to resolve every template literal.
-for (const dir of ['faces', 'logos', 'agents', 'maps', 'leagues']) {
+// whole rather than trying to resolve every template literal. faces/ is not
+// among them: it ships inlined, and is verified below by count instead.
+{
+  const faces = readFileSync(join(OUT, 'assets/faces.js'), 'utf8')
+  const inlined = (faces.match(/"data:image\/webp;base64,/g) ?? []).length
+  const onDisk = readdirSync(join('public', 'faces')).filter((f) => f.endsWith('.webp')).length
+  if (inlined !== onDisk) fail(`faces: ${inlined} inlined, ${onDisk} in public/faces`)
+  else notes.push(`faces 内嵌 ${inlined} 张（不占文件数）`)
+  // faceUrl falls back to ./faces/<file> when the table misses, and that
+  // directory is not in the package — so prove the miss cannot happen rather
+  // than shipping a path that would always break.
+  const dossier = JSON.parse(readFileSync(join('src', 'data', 'dossier.json'), 'utf8'))
+  const named = new Set<string>()
+  for (const group of ['players', 'coaches', 'legends'] as const) {
+    for (const e of Object.values(dossier[group] ?? {}) as { img?: string }[]) {
+      if (e?.img) named.add(e.img)
+    }
+  }
+  const missing = [...named].filter((f) => !faces.includes(`"${f}":"data:image/webp;base64,`))
+  if (missing.length) {
+    fail(`faces: the dossier names ${missing.length} not in the table (${missing.slice(0, 3).join(', ')})`)
+  } else notes.push(`dossier 引用的 ${named.size} 张头像全部在表内`)
+  if (files.some((f) => f.startsWith('faces/'))) fail('faces/ was shipped as files as well as inlined')
+}
+for (const dir of ['logos', 'agents', 'maps', 'leagues']) {
   const inPkg = files.filter((f) => f.startsWith(`${dir}/`)).length
   const inSrc = existsSync(join('public', dir))
     ? readdirSync(join('public', dir)).filter((f) => !f.startsWith('.')).length
@@ -210,7 +244,9 @@ if (problems.length === 0) {
   rmSync(ZIP, { force: true })
   // the zip holds the *contents* of dist-minitool, not the folder: index.html
   // has to be at the root or the container will not find an entry
-  execFileSync('zip', ['-r', '-q', '-X', join('..', ZIP), '.',
+  // -D drops directory entries, so what the container counts is exactly the
+  // files and there is no arguing about whether a folder is one
+  execFileSync('zip', ['-r', '-q', '-X', '-D', join('..', ZIP), '.',
     '-x', '*.DS_Store', '__MACOSX/*'], { cwd: OUT })
 
   const listing = execFileSync('unzip', ['-Z1', ZIP], { encoding: 'utf8' })
@@ -220,12 +256,17 @@ if (problems.length === 0) {
     if (/(^|\/)\.DS_Store$/.test(entry)) fail(`zip: .DS_Store survived — ${entry}`)
     if (entry.startsWith('__MACOSX/')) fail(`zip: __MACOSX survived — ${entry}`)
   }
+  if (listing.length > MAX_ENTRIES) {
+    fail(`zip: ${listing.length} entries exceeds the ${MAX_ENTRIES}-file limit`)
+  } else {
+    notes.push(`条目 ${listing.length}/${MAX_ENTRIES}`)
+  }
   const size = statSync(ZIP).size
   const mb = (n: number) => `${(n / 1024 / 1024).toFixed(2)} MB`
   if (size > HARD_LIMIT) fail(`zip: ${mb(size)} exceeds the 10 MB limit`)
   else if (size > ADVISED) notes.push(`体积 ${mb(size)}：在 10MB 上限内，超出 2MB 的建议值`)
   else notes.push(`体积 ${mb(size)}`)
-  notes.push(`${listing.length} 个条目`)
+
 }
 
 // ── 报告 ─────────────────────────────────────────────────────────────────

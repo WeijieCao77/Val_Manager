@@ -20,6 +20,8 @@
  * Build with:  npx vite build --config vite.config.minitool.ts
  * Package with: npx tsx scripts/pack_minitool.ts
  */
+import { readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -80,7 +82,7 @@ function minitoolHtml(): Plugin {
         const script = out.match(/\s*<script src="[^"]+"><\/script>/)
         if (!script) throw new Error('minitool: no entry script found in index.html')
         out = out.replace(script[0], '')
-          .replace('</body>', `  ${script[0].trim()}\n  </body>`)
+          .replace('</body>', `  <script src="./${FACES_JS}"></script>\n    ${script[0].trim()}\n  </body>`)
 
         return out.replace('</head>', `  ${STYLE}\n  </head>`)
       },
@@ -112,6 +114,47 @@ function offlineModules(swaps: Record<string, string>): Plugin {
   }
 }
 
+/** Where the portrait table lands, and what defines it. */
+const FACES_JS = 'assets/faces.js'
+
+/**
+ * Ship public/faces as one lookup table rather than 539 files.
+ *
+ * The container caps a package at 200 files. The portraits alone are 539, and
+ * cutting them is not on the table — every player in this game is a real
+ * person and the photograph is the point. They are all <img src> and the
+ * container allows data: for images, so the directory becomes a table of
+ * data: URIs that faceUrl() reads.
+ *
+ * This costs the zip nothing: base64 inflates by a third, and deflate takes
+ * essentially all of it back — one stream over the whole set compresses
+ * slightly better than 539 separately stored entries did (4.26 MB vs 4.29 MB
+ * measured). What it buys is 539 files becoming one.
+ *
+ * A classic script assigning a global, not a JSON import: the bundle is an
+ * IIFE with no module loader, and the table has to be there before the first
+ * render asks for a face.
+ */
+function embedFaces(): Plugin {
+  return {
+    name: 'minitool-embed-faces',
+    // after the public dir has been copied, so removing it sticks
+    closeBundle() {
+      const src = at('./public/faces')
+      const outDir = at('./dist-minitool')
+      const files = readdirSync(src).filter((f) => f.endsWith('.webp')).sort()
+      const rows = files.map((f) => {
+        const b64 = readFileSync(join(src, f)).toString('base64')
+        return `${JSON.stringify(f)}:"data:image/webp;base64,${b64}"`
+      })
+      mkdirSync(join(outDir, 'assets'), { recursive: true })
+      writeFileSync(join(outDir, FACES_JS), `window.__VM_FACES={${rows.join(',')}};\n`)
+      rmSync(join(outDir, 'faces'), { recursive: true, force: true })
+      this.info(`${files.length} portraits inlined into ${FACES_JS}`)
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -120,6 +163,7 @@ export default defineConfig({
       './src/engine/telemetry.ts': './src/engine/telemetry.offline.ts',
     }),
     minitoolHtml(),
+    embedFaces(),
   ],
   base: './',
   define: { __MINITOOL__: 'true' },

@@ -22,6 +22,7 @@ import Account, { maskId } from './Account'
 import Support from './Support'
 import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
+import { faceUrl } from '../engine/dossier'
 
 type Mode = 'home' | 'career' | 'cards'
 
@@ -173,7 +174,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             {REGION_FACES.map((r) => (
               <img
                 key={r.face}
-                src={`${import.meta.env.BASE_URL}faces/${r.face}.webp`}
+                src={faceUrl(`${r.face}.webp`)}
                 alt=""
                 loading="lazy"
               />

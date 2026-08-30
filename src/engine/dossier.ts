@@ -100,6 +100,22 @@ export const legendPhoto = (legendId: string): LegendPhoto | undefined =>
  */
 export const faceUrl = (file: string, v?: string): string => {
   const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
+  // `typeof` for the same reason import.meta.env is guarded above: the check
+  // scripts import this module through tsx, where no define has replaced it.
+  if (typeof __MINITOOL__ !== 'undefined' && __MINITOOL__) {
+    // The container caps a package at 200 files, and the portraits alone are
+    // 539. They are every one of them an <img src>, and data: is an allowed
+    // image source in there, so the whole directory ships as a lookup table in
+    // assets/faces.js instead — see vite.config.minitool.ts. Measured: base64
+    // costs the zip nothing, because one deflate stream over the lot beats 539
+    // separately compressed entries.
+    //
+    // No stamp on the fallback: there is no cache to bust offline, and nothing
+    // promises the container resolves a query string against a path inside the
+    // zip. The packer proves the fallback is unreachable anyway, by checking
+    // every face the dossier names is in the table.
+    return globalThis.__VM_FACES?.[file] ?? `${base}faces/${file}`
+  }
   // the stamp is the file's own content: same picture, same URL; different
   // picture, different URL, and nobody is left looking at the old one
   return `${base}faces/${file}${v ? `?v=${v}` : ''}`
@@ -110,6 +126,9 @@ export const crestUrl = (clubId: string | null | undefined): string | null => {
   const v = clubId ? DOSSIER.logos?.[clubId] : undefined
   if (!clubId || !v) return null
   const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
+  // Offline there is no cache to bust, and a query string on a path the
+  // container serves out of a zip is not something it promises to honour.
+  if (typeof __MINITOOL__ !== 'undefined' && __MINITOOL__) return `${base}logos/${clubId}.webp`
   return `${base}logos/${clubId}.webp?v=${v}`
 }
 

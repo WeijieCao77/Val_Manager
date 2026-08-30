@@ -8,3 +8,10 @@
  * and the offline bundle drops the branch entirely.
  */
 declare const __MINITOOL__: boolean
+
+/**
+ * Portraits, keyed by filename, as data: URIs — present only in the 小工具
+ * build, where assets/faces.js defines it before the app script runs. See
+ * faceUrl() in src/engine/dossier.ts for why they are not files.
+ */
+declare var __VM_FACES: Record<string, string> | undefined
