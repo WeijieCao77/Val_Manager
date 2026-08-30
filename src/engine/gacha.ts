@@ -129,7 +129,7 @@ export const MYTHIC_FLOOR = 1200
  * promotion, a cup title — are not capped, because those are already once-a-day
  * things and taking them away twice would just be mean.
  */
-export const STAMINA_MAX = 12
+export const STAMINA_MAX = 15
 export const STAMINA_COST = { ladder: 2, cup: 3 } as const
 export type PlayKind = keyof typeof STAMINA_COST
 
@@ -141,7 +141,7 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * One an hour, cap 12: a ladder match every two hours sustained, six in a row
+ * One an hour, cap 15: a ladder match every two hours sustained, seven in a row
  * from a full meter, and 24 points a day if you check in through the day.
  *
  * It was one every two hours, chosen to hold the daily ceiling at six matches.

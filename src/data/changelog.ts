@@ -22,6 +22,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-30',
+    title: '体力多攒三点',
+    changes: [
+      { kind: '调整', text: '卡牌模式的体力上限从 12 点提到 15 点：攒满能连打 7 场天梯（原来 6 场），一天只上线一次的号也不至于刚坐下就打完。每小时回 1 点、天梯一场 2 点、杯赛一轮 3 点都没变，多出来的三点纯粹是让久违上线那一次玩得久一些。' },
+    ],
+  },
+  {
+    date: '2026-08-30',
     title: '照片更全，加载更快',
     changes: [
       { kind: '新增', text: '从号角 HOJO（haojiao.cc）补上了 7 名此前没有照片的选手：splash、jowa、ZynX、Flicker、swagzor、Pa1nt、Apathy——都核对过国籍和队伍，确认是同一个人才收。资料页的来源说明也更新了。' },
