@@ -5,7 +5,8 @@
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { createManager } from '../src/engine/manager'
-import { advanceDay, persuadeStay, SEASON_DAYS, setupSeason } from '../src/engine/season'
+import { advanceDay, moveToClub, persuadeStay, SEASON_DAYS, setupSeason } from '../src/engine/season'
+import { earnedNow } from '../src/engine/achievements'
 import { weeklyFinance } from '../src/engine/finance'
 import {
   answerBundle, BUNDLE_BUYOUT, leagueDealOf, negotiateShare, setDealMode, weeklyStipend,
@@ -192,6 +193,21 @@ const mk = (): GameState => {
   if (!note!.clubName) fail('告别卡应记住最后一站')
   if (note!.seen) fail('新告别卡应等待展示')
   console.log(`✅ 告别卡：${note!.ign}，${note!.age} 岁，最后一站 ${note!.clubName}，生涯 ${note!.career.maps} 图 ${note!.career.mvps} 次 MVP`)
+}
+
+// --------------------------------------------- 三连霸:冠军记在人名下,跨队也算
+{
+  const g = mk()
+  g.honours = [
+    { year: 2027, title: 'VALORANT Champions' },   // 在第一家俱乐部
+    { year: 2028, title: 'VALORANT Champions' },   // 跳槽后
+  ]
+  const other = WORLD_TEAMS.find((t) => t.id !== g.myTeam && t.tier === 1)!
+  moveToClub(g, other.id)
+  g.honours.push({ year: 2029, title: 'VALORANT Champions' })   // 第三家
+  if (!earnedNow(g).includes('threepeat')) fail('跨队三连冠也该解锁「三连霸」——荣誉记在经理名下')
+  if (g.honours.length !== 3) fail('换队不该清空经理的荣誉记录')
+  console.log('✅ 三连霸跨队成立：2027 甲队 + 2028 乙队 + 2029 丙队 → 解锁')
 }
 
 console.log('\n全部通过')

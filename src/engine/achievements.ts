@@ -197,7 +197,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     // see freeTeamChoice in profile.ts. Checked every turn, so a save holding
     // the streak right now unlocks it without waiting for the career to end.
     key: 'threepeat', scope: 'run', group: '冠军', title: '三连霸',
-    brief: '连续三年拿下 Champions',
+    brief: '连续三年拿下 Champions——冠军记在你个人名下，中途换队也算',
     hard: true,
     test: (_s, f) => {
       const years = [...new Set(f.honours.filter((h) => isChampions(h.title)).map((h) => h.year))]
