@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
+import { AgentIcon, Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
 import { playerAcceptsTerms } from '../engine/transfer'
@@ -13,6 +13,7 @@ import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
 import { askingPrice } from '../engine/transfer'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../engine/types'
+import { agentCn } from '../engine/content'
 import type { Stats } from '../engine/types'
 
 export default function PlayerModal(
@@ -128,9 +129,16 @@ export default function PlayerModal(
             labels={ATTR_KEYS.map((k) => ATTR_CN[k])}
             size={236}
           />
-          <div className="row wrap tiny muted" style={{ gap: 10, justifyContent: 'center' }}>
-            {p.agentPool.length > 0 && <span>常用英雄：{p.agentPool.join(' · ')}</span>}
-          </div>
+          {p.agentPool.length > 0 && (
+            <div className="row wrap tiny muted" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+              <span>常用英雄：</span>
+              {p.agentPool.map((a) => (
+                <span key={a} className="row" style={{ gap: 3, alignItems: 'center' }}>
+                  <AgentIcon name={a} size={18} />{agentCn(a)}
+                </span>
+              ))}
+            </div>
+          )}
           {p.vlr?.rating != null && (
             <div className="tiny faint center" style={{ lineHeight: 1.7 }}>
               属性来源 · vlr.gg 2026 赛季真实数据<br />

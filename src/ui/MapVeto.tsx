@@ -1,21 +1,27 @@
 /**
- * The map veto, run by hand.
+ * The map veto, run by hand — now over a board of map cards.
  *
  * The engine has always done this automatically and printed the result — this
  * is the same board, handed back and forth. The manager bans and picks on his
  * turns; the AI uses exactly the judgement `runVeto` would have used, so a
  * veto you sit out and a veto you skip come to the same kind of decision.
  *
- * Comfort is shown for both sides, because that is the whole game here: you
- * ban what they are good at and you keep what you are.
+ * Every map in the pool stays on the board the whole way through, the way a
+ * broadcast BP screen does: a banned card goes dark under an ✕, a picked one
+ * lights up with its order, and the step strip on top says whose turn does
+ * what. Comfort is shown for both sides on the card, because that is the whole
+ * game here — you ban what they are good at and you keep what you are.
  */
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
 import { activePool, vetoChoice, vetoOrder } from '../engine/match'
 import { mapCn } from '../engine/content'
+import { mapImg } from './common'
 import { Rng } from '../engine/rng'
 import { hashStr } from '../engine/rng'
 import type { Fixture } from '../engine/types'
+
+type Mark = { act: 'ban' | 'pick' | 'decider'; who: string; mine: boolean; n: number }
 
 export default function MapVeto({
   fixture, onDone, onCancel,
@@ -38,6 +44,7 @@ export default function MapVeto({
 
   const [remaining, setRemaining] = useState<string[]>(pool)
   const [picked, setPicked] = useState<string[]>([])
+  const [marks, setMarks] = useState<Record<string, Mark>>({})
   const [log, setLog] = useState<string[]>([])
   const [step, setStep] = useState(0)
 
@@ -45,7 +52,7 @@ export default function MapVeto({
   const action = order[step]
   const done = step >= order.length || remaining.length <= 1
 
-  const finish = (maps: string[], rem: string[], lg: string[]) => {
+  const finish = (maps: string[], rem: string[], lg: string[], mk: Record<string, Mark>) => {
     const out = maps.slice()
     let left = rem.slice()
     while (out.length < fixture.bo && left.length) {
@@ -53,32 +60,28 @@ export default function MapVeto({
       out.push(d)
       left = left.filter((m) => m !== d)
       lg = [...lg, `决胜图：${mapCn(d)}`]
+      mk = { ...mk, [d]: { act: 'decider', who: '', mine: false, n: out.length } }
     }
+    setMarks(mk)
     onDone(out.slice(0, fixture.bo), lg)
   }
 
-  const apply = (map: string, who: string, act: 'ban' | 'pick') => {
+  const apply = (map: string, who: string, mine: boolean, act: 'ban' | 'pick') => {
     const lg = [...log, act === 'ban' ? `${who} ban 掉 ${mapCn(map)}` : `${who} 选下 ${mapCn(map)}`]
     const rem = remaining.filter((m) => m !== map)
     const pk = act === 'pick' ? [...picked, map] : picked
+    const mk = { ...marks, [map]: { act, who, mine, n: pk.length } }
     const next = step + 1
-    setLog(lg); setRemaining(rem); setPicked(pk); setStep(next)
-    if (next >= order.length || rem.length <= 1) finish(pk, rem, lg)
-    return { lg, rem, pk, next }
+    setLog(lg); setRemaining(rem); setPicked(pk); setMarks(mk); setStep(next)
+    if (next >= order.length || rem.length <= 1) finish(pk, rem, lg, mk)
   }
 
   // the AI takes its turn as soon as it is its turn
   const aiTurn = () => {
     const act = order[step]
     const map = vetoChoice(game, foeId, game.myTeam, act, remaining, rng)
-    apply(map, foe.name, act)
+    apply(map, foe.name, false, act)
   }
-
-  const rows = remaining.map((m) => ({
-    map: m,
-    mine: Math.round(me.mapPrefs[m] ?? 50),
-    theirs: Math.round(foe.mapPrefs[m] ?? 50),
-  })).sort((a, b) => b.mine - a.mine)
 
   return (
     <>
@@ -88,11 +91,25 @@ export default function MapVeto({
         <b>ban 掉对手擅长的，留下自己擅长的。</b>
       </p>
 
-      <div className="row" style={{ gap: 10, marginBottom: 10, alignItems: 'baseline' }}>
-        <span className="tag" style={{ borderColor: 'var(--accent-line)', color: 'var(--accent)' }}>
-          {me.tag} 熟练度
-        </span>
-        <span className="tag">{foe.tag} 熟练度</span>
+      {/* step strip: whose turn does what, current one lit */}
+      <div className="row wrap" style={{ gap: 6, marginBottom: 12, alignItems: 'center' }}>
+        {order.map((act, i) => {
+          const mineStep = weAreA ? i % 2 === 0 : i % 2 === 1
+          const state = i < step ? 'past' : i === step && !done ? 'now' : 'todo'
+          return (
+            <span
+              key={i}
+              className="tag"
+              style={{
+                borderColor: state === 'now' ? 'var(--accent-line)' : undefined,
+                color: state === 'now' ? 'var(--accent)' : state === 'past' ? 'var(--faint)' : undefined,
+                textDecoration: state === 'past' ? 'line-through' : undefined,
+              }}
+            >
+              {mineStep ? '我方' : '对方'} {act === 'ban' ? 'BAN' : 'PICK'}
+            </span>
+          )
+        })}
         <div style={{ flex: 1 }} />
         {!done && (
           <b style={{ color: myTurn ? 'var(--accent)' : 'var(--muted)' }}>
@@ -101,37 +118,90 @@ export default function MapVeto({
         )}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>地图</th>
-              <th className="num">我方</th>
-              <th className="num">对手</th>
-              <th className="sticky-act" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.map}>
-                <td><b>{mapCn(r.map)}</b> <span className="tiny faint">{r.map}</span></td>
-                <td className="num mono" style={{ color: r.mine >= r.theirs ? 'var(--win)' : undefined }}>
-                  {r.mine}
-                </td>
-                <td className="num mono muted">{r.theirs}</td>
-                <td className="sticky-act">
-                  <button
-                    className={`sm${action === 'pick' ? ' primary' : ''}`}
-                    disabled={!myTurn || done}
-                    onClick={() => apply(r.map, me.name, action)}
+      <div
+        style={{
+          display: 'grid', gap: 10,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+        }}
+      >
+        {pool.map((m) => {
+          const mark = marks[m]
+          const banned = mark?.act === 'ban'
+          const chosen = mark?.act === 'pick' || mark?.act === 'decider'
+          const clickable = !mark && myTurn && !done
+          return (
+            <button
+              key={m}
+              disabled={!clickable}
+              onClick={() => apply(m, me.name, true, action)}
+              title={clickable ? `${action === 'ban' ? 'ban 掉' : '选下'} ${mapCn(m)}` : undefined}
+              style={{
+                all: 'unset', cursor: clickable ? 'pointer' : 'default',
+                borderRadius: 8, overflow: 'hidden', position: 'relative',
+                border: chosen
+                  ? '2px solid var(--accent)'
+                  : '1px solid ' + (clickable ? 'var(--accent-line)' : '#2a3644'),
+                opacity: banned ? 0.55 : 1,
+                background: '#131c26',
+              }}
+            >
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={mapImg(m)} alt="" loading="lazy"
+                  style={{
+                    width: '100%', aspectRatio: '560 / 123', objectFit: 'cover', display: 'block',
+                    filter: banned ? 'grayscale(1) brightness(.55)' : undefined,
+                  }}
+                />
+                {banned && (
+                  <span
+                    aria-hidden
+                    style={{
+                      position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
+                      fontSize: 26, fontWeight: 700, color: 'rgba(255,255,255,.82)',
+                    }}
                   >
-                    {action === 'ban' ? 'ban' : '选'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    ✕
+                  </span>
+                )}
+                {chosen && (
+                  <span
+                    className="tag t1"
+                    style={{ position: 'absolute', top: 4, right: 4 }}
+                  >
+                    第 {mark.n} 图
+                  </span>
+                )}
+              </div>
+              <div className="row" style={{ padding: '6px 8px', gap: 6, alignItems: 'baseline' }}>
+                <b className="small">{mapCn(m)}</b>
+                <span className="tiny faint">{m}</span>
+                <div style={{ flex: 1 }} />
+                <span
+                  className="tiny mono"
+                  title={`${me.tag} 熟练度 / ${foe.tag} 熟练度`}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <b style={{
+                    color: (me.mapPrefs[m] ?? 50) >= (foe.mapPrefs[m] ?? 50)
+                      ? 'var(--win)' : 'var(--warn)',
+                  }}>
+                    {Math.round(me.mapPrefs[m] ?? 50)}
+                  </b>
+                  <span className="faint"> : </span>
+                  <span className="muted">{Math.round(foe.mapPrefs[m] ?? 50)}</span>
+                </span>
+              </div>
+              {mark && (
+                <div className="tiny faint" style={{ padding: '0 8px 6px' }}>
+                  {mark.act === 'ban' ? `${mark.mine ? '我方' : '对方'} ban`
+                    : mark.act === 'decider' ? '决胜图'
+                    : `${mark.mine ? '我方' : '对方'}选下`}
+                </div>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {log.length > 0 && (

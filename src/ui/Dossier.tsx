@@ -5,7 +5,8 @@ import type { Records } from '../engine/dossier'
 import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN } from '../engine/cards'
 import type { PlayerCard } from '../engine/cards'
 import CardFace, { Flag, natName } from './Card'
-import { Panel, Bar, moneyFull } from './common'
+import { AgentIcon, Panel, Bar, moneyFull } from './common'
+import { agentCn } from '../engine/content'
 import { ATTR_CN, ATTR_KEYS, REGION_CN, REGIONS } from '../engine/types'
 import type { Region, Role } from '../engine/types'
 
@@ -274,7 +275,11 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
             <div style={{ marginTop: 12 }}>
               <div className="tiny faint" style={{ marginBottom: 5 }}>真实英雄池</div>
               <div className="row wrap" style={{ gap: 4 }}>
-                {player.agentPool.map((a) => <span key={a} className="chiplet">{a}</span>)}
+                {player.agentPool.map((a) => (
+                  <span key={a} className="chiplet row" style={{ gap: 4, alignItems: 'center' }}>
+                    <AgentIcon name={a} size={16} />{agentCn(a)}
+                  </span>
+                ))}
               </div>
             </div>
           )}

@@ -3,6 +3,7 @@ import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
 import { analystEdge } from '../engine/staff'
 import { crestUrl } from '../engine/dossier'
+import { AGENT_ROLE, agentCn } from '../engine/content'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
@@ -99,6 +100,36 @@ export function Crest({
       width={size}
       height={size}
       style={{ width: size, height: size }}
+    />
+  )
+}
+
+const assetBase = (): string =>
+  typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
+
+/** The wide banner valorant-api ships for a map, sized for a BP card. */
+export const mapImg = (map: string): string => `${assetBase()}maps/${map}.png`
+
+/**
+ * An agent's portrait icon, the way vlr.gg prints one in a scoreboard.
+ *
+ * The filename strips everything non-alphabetic (KAY/O → KAYO.png), matching
+ * what scripts/fetch_valorant_assets.ts wrote. The title carries the Chinese
+ * name and the job, so hovering answers what the icon alone cannot.
+ */
+export function AgentIcon({
+  name, size = 24, title,
+}: { name: string; size?: number; title?: string }) {
+  return (
+    <img
+      className="agent-icon"
+      src={`${assetBase()}agents/${name.replace(/[^A-Za-z]/g, '')}.png`}
+      alt={agentCn(name)}
+      title={title ?? `${agentCn(name)}${AGENT_ROLE[name] ? `（${AGENT_ROLE[name]}）` : ''}`}
+      loading="lazy"
+      width={size}
+      height={size}
+      style={{ width: size, height: size, borderRadius: 4, background: '#1b2836', display: 'block' }}
     />
   )
 }

@@ -10,7 +10,7 @@
  * Being on an agent he has actually played, rather than merely one from his
  * own role, is worth a little on top.
  */
-import { AGENT_ROLE, AGENTS, MAP_META } from './content'
+import { AGENT_ROLE, AGENTS, MAP_META, agentCn } from './content'
 import type { GameState, Player, Role } from './types'
 
 /** How far off his job an agent puts a player: 1 = right at home, 0 = lost. */
@@ -56,8 +56,8 @@ export function agentWarn(p: Player, agent: string): string | null {
   const need = AGENT_ROLE[agent]
   const trained = Math.round(p.rolePro?.[need] ?? 0)
   return trained > 0
-    ? `${p.ign} 的${need}只练到 ${trained}%，上 ${agent} 大约 −${loss}%`
-    : `${p.ign} 不是${need}，上 ${agent} 大约 −${loss}%`
+    ? `${p.ign} 的${need}只练到 ${trained}%，上${agentCn(agent)}大约 −${loss}%`
+    : `${p.ign} 不是${need}，上${agentCn(agent)}大约 −${loss}%`
 }
 
 /**

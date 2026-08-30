@@ -11,8 +11,8 @@ import { useState } from 'react'
 import { useGame } from './ctx'
 import { selectLineup } from '../engine/match'
 import { agentMod, agentRoleGaps, agentWarn, autoAgents, normalizeAgents } from '../engine/agents'
-import { AGENT_ROLE, ALL_AGENTS, MAP_META, mapCn } from '../engine/content'
-import { OvrBadge } from './common'
+import { AGENT_ROLE, ALL_AGENTS, MAP_META, agentCn, mapCn } from '../engine/content'
+import { AgentIcon, OvrBadge } from './common'
 
 export default function AgentPick({ maps }: { maps: string[] }) {
   const { game, commit } = useGame()
@@ -83,23 +83,26 @@ export default function AgentPick({ maps }: { maps: string[] }) {
                   </td>
                   <td className="tiny muted">{mine.join(' / ')}</td>
                   <td>
-                    <select
-                      value={a ?? ''}
-                      onChange={(e) => set(open, p.id, e.target.value)}
-                      style={{ maxWidth: 160 }}
-                    >
-                      {/* the map's usual agents first, then everyone else */}
-                      <optgroup label={`${mapCn(open)} 常用`}>
-                        {(MAP_META[open] ?? []).map((x) => (
-                          <option key={x} value={x}>{x}（{AGENT_ROLE[x]}）</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="全部英雄">
-                        {ALL_AGENTS.filter((x) => !(MAP_META[open] ?? []).includes(x)).map((x) => (
-                          <option key={x} value={x}>{x}（{AGENT_ROLE[x] ?? '—'}）</option>
-                        ))}
-                      </optgroup>
-                    </select>
+                    <span className="row" style={{ gap: 6, alignItems: 'center' }}>
+                      {a && <AgentIcon name={a} size={26} />}
+                      <select
+                        value={a ?? ''}
+                        onChange={(e) => set(open, p.id, e.target.value)}
+                        style={{ maxWidth: 160 }}
+                      >
+                        {/* the map's usual agents first, then everyone else */}
+                        <optgroup label={`${mapCn(open)} 常用`}>
+                          {(MAP_META[open] ?? []).map((x) => (
+                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="全部英雄">
+                          {ALL_AGENTS.filter((x) => !(MAP_META[open] ?? []).includes(x)).map((x) => (
+                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x] ?? '—'}）</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </span>
                   </td>
                   <td className="num mono" style={{
                     color: mod >= 0.999 ? 'var(--win)' : 'var(--accent)',

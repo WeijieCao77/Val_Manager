@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import WhyPanel from './WhyPanel'
-import { mapCn, AGENT_ROLE } from '../engine/content'
+import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
-import { Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
+import { AgentIcon, Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import { ratingOf } from '../engine/match'
 import type { Fixture, MapLine, MapScore } from '../engine/types'
@@ -239,7 +239,7 @@ function Performance({
   return (
     <div style={{ marginBottom: 16 }}>
       <div className="row" style={{ gap: 10, marginBottom: 10 }}>
-        <div className="nav-group" style={{ padding: 0 }}>表现对比 · {map.map}</div>
+        <div className="nav-group" style={{ padding: 0 }}>表现对比 · {mapCn(map.map)}</div>
         <div className="spacer" style={{ flex: 1 }} />
         <div className="seg">
           <button className={mode === 'team' ? 'on' : ''} onClick={() => setMode('team')}>队伍</button>
@@ -368,12 +368,12 @@ function Scoreboard({
                       <b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
                     </td>
-                    <td className="small">
+                    <td>
+                      {/* the icon row a vlr sheet prints: one portrait per map
+                          the player appeared on, name and job on hover */}
                       {agentsOf(p.id).length
-                        ? <span className="row wrap" style={{ gap: 4 }}>
-                          {agentsOf(p.id).map((ag) => (
-                            <span key={ag} className="tag" title={AGENT_ROLE[ag] ?? ''}>{ag}</span>
-                          ))}
+                        ? <span className="row wrap" style={{ gap: 3 }}>
+                          {agentsOf(p.id).map((ag) => <AgentIcon key={ag} name={ag} size={24} />)}
                         </span>
                         : <span className="tiny faint">—</span>}
                     </td>
@@ -402,7 +402,7 @@ function Scoreboard({
 
   return (
     <>
-      <div className="nav-group" style={{ padding: '0 0 8px' }}>数据统计 · {map.map}</div>
+      <div className="nav-group" style={{ padding: '0 0 8px' }}>数据统计 · {mapCn(map.map)}</div>
       {block(teamA)}
       {block(teamB)}
     </>

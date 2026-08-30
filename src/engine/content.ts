@@ -40,6 +40,27 @@ export const MAP_CN: Record<string, string> = {
 export const mapCn = (m: string): string => MAP_CN[m] ?? m
 
 /**
+ * Official Chinese agent names, from the same translator as MAP_CN.
+ *
+ * Fetched by scripts/fetch_valorant_assets.ts from valorant-api.com's zh-CN
+ * data — the script cross-checks the thirteen map names against MAP_CN before
+ * trusting these, so 钛狐 really is what the national server calls Tejo. The
+ * English name stays the key everywhere, exactly as with maps.
+ */
+export const AGENT_CN: Record<string, string> = {
+  Astra: '星礈', Breach: '铁臂', Brimstone: '炼狱', Chamber: '尚勃勒',
+  Clove: '暮蝶', Cypher: '零', Deadlock: '钢锁', Fade: '黑梦',
+  Gekko: '盖可', Harbor: '海神', Iso: '壹决', Jett: '捷风',
+  'KAY/O': 'K/O', Killjoy: '奇乐', Neon: '霓虹', Omen: '幽影',
+  Phoenix: '不死鸟', Raze: '雷兹', Reyna: '芮娜', Sage: '贤者',
+  Skye: '斯凯', Sova: '猎枭', Tejo: '钛狐', Viper: '蝰蛇',
+  Vyse: '维斯', Waylay: '幻棱', Yoru: '夜露',
+}
+
+/** An agent as the manager reads it. */
+export const agentCn = (a: string): string => AGENT_CN[a] ?? a
+
+/**
  * Which job an agent is actually picked for.
  *
  * Derived from AGENTS rather than written twice, and 自由人 is skipped on

@@ -1,5 +1,5 @@
 import { Rng, clamp } from './rng'
-import { MAPS, HIGHLIGHT_TEMPLATES as HL } from './content'
+import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
 import { coachOr } from './world'
 import { NEUTRAL, squadHarmony } from './bonds'
@@ -639,7 +639,7 @@ export class MapSim {
     )
     const focus = (aWins ? this.calls.a : this.calls.b)
     allocateRound(
-      winners, losers, winnersLost, losersLost, this.ctx, rng, this.map,
+      winners, losers, winnersLost, losersLost, this.ctx, rng, mapCn(this.map),
       focus?.kind === 'focus' ? focus.playerId : undefined,
     )
 
@@ -813,7 +813,7 @@ export class MatchSim {
     const { score, highlights } = this.current.result()
     this.played.push(score)
     for (const h of highlights) {
-      if (this.highlights.length < 10) this.highlights.push(`[${score.map}] ${h}`)
+      if (this.highlights.length < 10) this.highlights.push(`[${mapCn(score.map)}] ${h}`)
     }
     // A 24-round scrim can finish 12-12. The else branch used to hand that to
     // side B: the news read "0-1", the whole squad lost form and morale for a
