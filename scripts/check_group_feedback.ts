@@ -174,7 +174,8 @@ const mk = (): GameState => {
   console.log(`✅ 退役谈判五选一：涨薪（${a.retiring ? '被拒' : '留下'}）、转替补（${b.retiring ? '被拒' : '留下'}）、转会必成、体面退役必成、二谈被拒`)
   void rA; void rB
 
-  // and when the season he announced ends, the farewell card exists
+  // and when the season he announced ends, the farewell card exists —
+  // built ONLY from what happened in this save
   const g6 = mk()
   const hero = squadOf(g6, g6.myTeam)[0]!
   hero.retiring = true
@@ -183,8 +184,17 @@ const mk = (): GameState => {
   hero.career.kills = 1900
   hero.career.deaths = 1500
   hero.career.mvps = 9
-  g6.day = SEASON_DAYS - 1
-  advanceDay(g6)
+  hero.titles = [{ year: 2026, title: 'China Kickoff' }]
+  // an unknown from another club retires the same winter — the league notices
+  const other = Object.values(g6.players).find((p) =>
+    p.teamId && p.teamId !== g6.myTeam && p.overall < 78 && (p.career?.mvps ?? 0) < 8)!
+  other.retiring = true
+  // day by day, so every competition actually settles and crowns someone
+  let g6guard = 0
+  while (g6.year === 2026 && g6guard++ < 400) {
+    g6.boardConfidence = 80; g6.onNotice = false; g6.missedStreak = 0
+    advanceDay(g6, { autoScrims: true })
+  }
   if (g6.players[hero.id]) fail('宣布过的赛季结束应真正退役')
   const note = (g6.retireFeed ?? []).find((n) => n.id === hero.id)
   if (!note) fail('退役后应留下告别记录')
@@ -192,7 +202,20 @@ const mk = (): GameState => {
   if (note!.career.maps < 120 || note!.career.mvps < 9) fail('告别卡数据未快照')
   if (!note!.clubName) fail('告别卡应记住最后一站')
   if (note!.seen) fail('新告别卡应等待展示')
-  console.log(`✅ 告别卡：${note!.ign}，${note!.age} 岁，最后一站 ${note!.clubName}，生涯 ${note!.career.maps} 图 ${note!.career.mvps} 次 MVP`)
+  // the CV on the card is the in-save one, resolved to club names
+  if (!note!.stints?.length) fail('告别卡应有本档效力履历')
+  if (note!.stints![0]!.team !== g6.teams[g6.myTeam]!.name) fail('履历应是本档俱乐部，且解析为队名')
+  if (note!.stints![0]!.from !== 2026) fail('开档所在俱乐部的履历应从 2026 起')
+  if (!note!.titles?.some((t) => t.title === 'China Kickoff')) fail('告别卡应带上本档冠军')
+  if (!g6.news.some((n) => n.text.startsWith('👋 正式退役：') && n.text.includes(other.ign))) {
+    fail('其他俱乐部的退役也应上新闻（批量行）')
+  }
+  console.log(`✅ 告别卡：${note!.ign} · 本档履历 ${note!.stints!.map((s) => s.team).join('→')} · 本档冠军 ${note!.titles!.length} 座；他队退役进新闻`)
+
+  // titles are credited to the champion roster as the season is played
+  const anyTitles = Object.values(g6.players).filter((p) => p.titles?.length).length
+  if (anyTitles === 0) fail('打完一个赛季应有选手把冠军记在自己名下')
+  console.log(`✅ 游戏内冠军追踪：${anyTitles} 名选手名下已有本档冠军`)
 }
 
 // --------------------------------------------- 三连霸:冠军记在人名下,跨队也算

@@ -47,8 +47,10 @@ export interface LeagueDeal {
 /**
  * What is remembered of a player when he goes. The player object itself is
  * deleted at retirement, so the farewell card keeps its own copy of the
- * numbers; everything static (face, real name, pre-2026 record) is looked up
- * from the dossier by id at render time.
+ * numbers. Everything on the card is what happened IN THIS SAVE — the clubs
+ * he served here, the titles he lifted here — because the card is a
+ * screenshot waiting to happen, and a screenshot must not read as real news
+ * about a real person. Only the face and the name come from the dossier.
  */
 export interface RetireNote {
   id: string
@@ -59,6 +61,10 @@ export interface RetireNote {
   clubName?: string
   overall: number
   career: Stats
+  /** clubs served in this save, resolved to display names at the moment he left */
+  stints?: { team: string; from: number; to: number }[]
+  /** titles lifted in this save */
+  titles?: { year: number; title: string }[]
   /** famous enough that the farewell shows for everyone, not just his club */
   star: boolean
   seen?: boolean
@@ -298,6 +304,10 @@ export interface Player {
   formFlag?: 'hot' | 'cold'
   /** announced: this season is his last. A year's notice, not a vanishing. */
   retiring?: boolean
+  /** clubs served IN THIS SAVE, year granularity — the farewell card's CV */
+  clubHist?: { team: string; from: number; to: number }[]
+  /** titles lifted IN THIS SAVE — credited to the champion's roster as they happen */
+  titles?: { year: number; title: string }[]
   /** the manager already made his case once; a man's mind is his own after that */
   persuaded?: boolean
   /** the season he joined his current club — a fresh signing is not shopped */

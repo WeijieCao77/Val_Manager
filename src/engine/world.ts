@@ -187,6 +187,9 @@ export function createNewGame(
       career: emptyStats(),
       injuredUntil: 0,
       xp: {},
+      // the in-save CV starts on day one — the farewell card reads this,
+      // never the real-world record
+      clubHist: rp.teamId ? [{ team: rp.teamId, from: 2026, to: 2026 }] : [],
     }
   }
 

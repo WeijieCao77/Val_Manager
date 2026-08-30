@@ -185,6 +185,15 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
     day: state.day, kind: 'league', important: true,
     text: `🏆 ${champ?.name} 夺得 ${comp.name} 冠军！`,
   })
+  // every man on the winning roster carries this title from now on — the
+  // farewell card reads it, and it is entirely a thing that happened here
+  for (const pid of champ?.roster ?? []) {
+    const winner = state.players[pid]
+    if (!winner) continue
+    winner.titles ??= []
+    winner.titles.push({ year: state.year, title: comp.name })
+    if (winner.titles.length > 40) winner.titles.splice(0, winner.titles.length - 40)
+  }
 
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })
@@ -944,10 +953,16 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
  * The farewell itself: keep what is worth remembering, then let him go.
  *
  * The player object is deleted — that part has not changed — but a RetireNote
- * survives him, holding the numbers his card will show. `star` marks the ones
- * whose leaving is news to everybody, not just their own dressing room.
+ * survives him, holding what happened IN THIS SAVE: the clubs he served here
+ * (clubHist, resolved to names now, while the teams can still be asked) and
+ * the titles he lifted here. Nothing from the real-world record goes into the
+ * note — the card is a screenshot waiting to happen, and it must read as the
+ * game's own story. `star` marks the ones whose leaving is news to everybody.
+ *
+ * Returns the one-line form for the league-wide news digest; his own club and
+ * the stars still get their own line.
  */
-function retirePlayer(state: GameState, p: Player, notes: string[]): void {
+function retirePlayer(state: GameState, p: Player, notes: string[]): string {
   const t = p.teamId ? state.teams[p.teamId] : null
   const mine = p.teamId === state.myTeam
   const star = p.overall >= 80 || (p.career?.mvps ?? 0) >= 8
@@ -960,6 +975,10 @@ function retirePlayer(state: GameState, p: Player, notes: string[]): void {
     id: p.id, ign: p.ign, age: p.age, year: state.year,
     clubId: p.teamId, clubName: t?.name, overall: p.overall,
     career: { ...p.career }, star,
+    stints: (p.clubHist ?? []).map((s) => ({
+      team: state.teams[s.team]?.name ?? s.team, from: s.from, to: s.to,
+    })),
+    titles: [...(p.titles ?? [])],
   })
   if (state.retireFeed.length > 24) state.retireFeed.splice(0, state.retireFeed.length - 24)
   if (mine || star) {
@@ -970,6 +989,7 @@ function retirePlayer(state: GameState, p: Player, notes: string[]): void {
   }
   if (mine) notes.push(`👋 ${p.ign} 正式退役，${p.age} 岁。他的告别卡已经备好。`)
   delete state.players[p.id]
+  return mine || star ? '' : `${p.ign}（${p.age} 岁${t ? `，${t.tag}` : ''}）`
 }
 
 /** What the manager puts on the table when a player announces retirement. */
@@ -1259,6 +1279,16 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   state.bestPlacing = undefined
   notes.push(...seasonRollover(state, rng))
 
+  // ---- the in-save CV: the season just played goes on every man's record
+  // before anyone leaves. Year granularity; doTransfer opens mid-season lines.
+  for (const p of Object.values(state.players)) {
+    if (!p.teamId) continue
+    p.clubHist ??= []
+    const last = p.clubHist[p.clubHist.length - 1]
+    if (last && last.team === p.teamId) last.to = state.year
+    else p.clubHist.push({ team: p.teamId, from: state.year, to: state.year })
+  }
+
   // ---- retirements: a year's notice, then the farewell.
   //
   // Retiring used to be a deletion — the group chat's knight signed a
@@ -1269,13 +1299,26 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // record worth screenshotting instead of a one-line vanishing.
   //
   // First, those who said last winter this season would be their final one:
+  const departed: string[] = []
   for (const p of Object.values(state.players)) {
-    if (p.retiring) retirePlayer(state, p, notes)
+    if (p.retiring) {
+      const line = retirePlayer(state, p, notes)
+      if (line) departed.push(line)
+    }
+  }
+  // the rest of the league's farewells make the news too, one line for all
+  if (departed.length) {
+    state.news.push({
+      day: state.day, kind: 'player',
+      text: `👋 正式退役：${departed.slice(0, 8).join('、')}`
+        + (departed.length > 8 ? ` 等 ${departed.length} 人` : '') + '。',
+    })
   }
   // Then the next wave gives its notice. The age curve is the old instant
   // one shifted a year younger, so careers end at the same ages they always
   // did — announced at 33, gone at 34. A man who just signed a long deal
   // signed it because he intends to play it.
+  const noticed: string[] = []
   for (const p of Object.values(state.players)) {
     if (p.retiring) continue
     let announceP = p.age >= 33 ? 0.45 : p.age >= 31 ? 0.2 : p.age >= 29 ? 0.06 : 0
@@ -1290,11 +1333,21 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
           day: state.day, kind: 'player', important: mine,
           text: `📢 ${p.ign}（${p.age} 岁）宣布本赛季结束后退役。`,
         })
+      } else if (p.teamId) {
+        const tag = state.teams[p.teamId]?.tag ?? ''
+        noticed.push(`${p.ign}（${tag}）`)
       }
       if (mine) {
         notes.push(`📢 ${p.ign} 告诉你，这将是他的最后一个赛季——想留他，去他的资料页当面谈。`)
       }
     }
+  }
+  if (noticed.length) {
+    state.news.push({
+      day: state.day, kind: 'player',
+      text: `📢 宣布本赛季结束后退役：${noticed.slice(0, 8).join('、')}`
+        + (noticed.length > 8 ? ` 等 ${noticed.length} 人` : '') + '。',
+    })
   }
   ensureMinimumRosters(state, rng)
 

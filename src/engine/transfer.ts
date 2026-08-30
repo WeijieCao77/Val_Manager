@@ -377,6 +377,13 @@ export function doTransfer(
   }
   p.morale = clamp(p.morale + 8, 0, 100)
   p.joinedYear = state.year
+  // the in-save CV: a new club opens a new line (year granularity — the
+  // season sweep in endSeason extends it while he stays)
+  p.clubHist ??= []
+  const lastStint = p.clubHist[p.clubHist.length - 1]
+  if (!lastStint || lastStint.team !== toTeamId) {
+    p.clubHist.push({ team: toTeamId, from: state.year, to: state.year })
+  }
   refreshValue(p)
 
   // An AI club that pays for a player intends to field him: the five is
