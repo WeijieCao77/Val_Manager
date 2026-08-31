@@ -16,8 +16,8 @@ import {
   saveAccount, serverNow, whenStale,
 } from '../engine/account'
 import {
-  DIVISIONS, STAMINA_COST, STAMINA_MAX, primeStamina, refreshDaily, staminaIn, staminaNow,
-  staminaRate, starsFor,
+  MASTER_DIV, STAMINA_COST, STAMINA_MAX, primeStamina, rankName, refreshDaily,
+  staminaIn, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
@@ -274,7 +274,11 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
           <StaminaChip g={g} onTick={() => setNow(serverNow())} />
           <div className="chip" title="段位">
-            {DIVISIONS[g.ladder.div]} <b>{g.ladder.stars}/{starsFor(g.ladder.div)}★</b>
+            {/* the rung, not the division — and past 大师 the score IS the rank */}
+            {rankName(g.ladder.div, g.ladder.stars, g.ladder.points ?? 0)}
+            {g.ladder.div < MASTER_DIV && (
+              <b>{' '}{starsOnTier(g.ladder.div, g.ladder.stars)}/{tierStars(g.ladder.div)}★</b>
+            )}
           </div>
           <div className="chip small muted" title="未开的卡包">
             📦 {Object.values(g.packs).reduce((s, n) => s + (n ?? 0), 0)}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import { collectionProgress } from '../../engine/gacha'
-import { DIVISIONS } from '../../engine/gacha'
+import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
 
 /** Copy that works on http:// and on the browsers without a clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
@@ -81,7 +81,9 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           <Stat label="收集" value={`${prog.owned}/${prog.total}`} />
           <Stat label="抽卡次数" value={String(g.pulls)} />
           <Stat label="天梯" value={`${g.ladder.wins}–${g.ladder.losses}`} />
-          <Stat label="最高段位" value={DIVISIONS[g.ladder.best]} />
+          <Stat label="最高段位" value={g.ladder.div >= MASTER_DIV || g.ladder.best >= MASTER_DIV
+            ? `${masterTitle(g.ladder.bestPoints ?? 0)} ${g.ladder.bestPoints ?? 0}`
+            : DIVISIONS[g.ladder.best]} />
         </div>
       </Panel>
 

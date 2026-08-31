@@ -195,9 +195,28 @@ export interface ArenaResult {
 /** Play one card-mode match against a real club and read the scoreboard back. */
 export function playArenaMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
-  bo: 1 | 3 | 5, seed: number,
+  bo: 1 | 3 | 5, seed: number, oppBump = 0,
 ): ArenaResult {
   const { state, cardOf } = buildArena(squad, level, seed)
+
+  // Past 大师 the ladder has no ceiling and the world's 78 clubs stop at 89,
+  // so the top sides are sharpened rather than replaced: every attribute up by
+  // the same amount, which keeps them recognisably themselves. A stopgap until
+  // the arena can put another player's saved five across the net.
+  if (oppBump > 0) {
+    const opp = state.teams[opponentId]
+    for (const pid of opp?.roster ?? []) {
+      const p = state.players[pid]
+      if (!p) continue
+      const attrs = { ...p.attrs }
+      for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
+        attrs[k] = clamp(attrs[k] + oppBump, 1, 99)
+      }
+      state.players[pid] = { ...p, attrs, overall: clamp(p.overall + oppBump, 1, 99) }
+    }
+    if (opp) opp.rating = clamp(opp.rating + oppBump, 1, 99)
+  }
+
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
 

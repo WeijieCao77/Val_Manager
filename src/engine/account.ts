@@ -423,6 +423,10 @@ function migrate(state: GachaState, id: string): GachaState {
   g.squad ??= { slots: [null, null, null, null, null], coach: null }
   g.squad.slots ??= [null, null, null, null, null]
   g.ladder ??= { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 }
+  // 大师 changed from a shelf into a score; accounts that were already there
+  // start the new ladder at zero, which is the only fair place to start it
+  g.ladder.points ??= 0
+  g.ladder.bestPoints ??= g.ladder.points
   g.daily ??= {
     claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
     stamina: STAMINA_MAX, staminaAt: 0,

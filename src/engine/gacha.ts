@@ -225,16 +225,69 @@ export interface OwnedCard {
 export const DIVISIONS = ['青铜', '白银', '黄金', '铂金', '钻石', '大师'] as const
 
 /**
- * How many stars each division is worth.
+ * The rungs inside a division, and what each is worth.
  *
- * Flat at five, a 56%-win account reached 大师 in about two months of daily
- * play and then had nowhere to go. The bottom rungs stay quick — nobody should
- * be stuck in 青铜 learning the game — and the top two are where the climb
- * actually is.
+ * Six divisions was too coarse to feel like progress — 「一直打那个星也不会
+ * 长」 — so each one is cut into numbered rungs the way every ladder in this
+ * genre does it: 青铜 III → 青铜 II → 青铜 I → 白银 III. 钻石 gets four,
+ * because the last stretch before 大师 should be the long one.
+ *
+ * Deliberately the SAME number of stars per division as before (3/3/6/6/8
+ * against the old 3/4/5/6/8, 26 either way): this is more frequent feedback on
+ * the same climb, not a longer climb. Nothing about an existing save changes
+ * except how it is drawn.
  */
-export const STARS_PER_DIV = [3, 4, 5, 6, 8, 8] as const
-export const starsFor = (div: number): number =>
-  STARS_PER_DIV[clamp(div, 0, STARS_PER_DIV.length - 1)]
+export const TIERS_PER_DIV = [3, 3, 3, 3, 4, 1] as const
+const STARS_PER_TIER = [1, 1, 2, 2, 2, 0] as const
+
+/** Roman numerals, biggest number at the bottom of the division. */
+const TIER_CN = ['I', 'II', 'III', 'IV'] as const
+
+export const starsFor = (div: number): number => {
+  const d = clamp(div, 0, DIVISIONS.length - 1)
+  return TIERS_PER_DIV[d] * STARS_PER_TIER[d]
+}
+
+/** Which rung of its division a star count sits on, counted from the bottom. */
+export const tierOf = (div: number, stars: number): number => {
+  const d = clamp(div, 0, DIVISIONS.length - 1)
+  const per = STARS_PER_TIER[d]
+  if (per <= 0) return 0
+  return clamp(Math.floor(stars / per), 0, TIERS_PER_DIV[d] - 1)
+}
+
+/** Stars showing on the rung currently being climbed. */
+export const starsOnTier = (div: number, stars: number): number => {
+  const d = clamp(div, 0, DIVISIONS.length - 1)
+  const per = STARS_PER_TIER[d]
+  return per <= 0 ? 0 : stars % per
+}
+
+export const tierStars = (div: number): number =>
+  STARS_PER_TIER[clamp(div, 0, DIVISIONS.length - 1)]
+
+/**
+ * 大师 and the two ranks past it.
+ *
+ * Above 大师 the ladder stops counting stars and starts counting points, with
+ * no ceiling — the whole complaint was that the climb ended. The names are
+ * VALORANT's own top ranks rather than invented ones.
+ */
+export const MASTER_DIV = DIVISIONS.length - 1
+export const MASTER_TITLES = [
+  { at: 2500, name: '辐能' },
+  { at: 1000, name: '不朽' },
+  { at: 0, name: '大师' },
+] as const
+
+export const masterTitle = (points: number): string =>
+  MASTER_TITLES.find((t) => points >= t.at)?.name ?? '大师'
+
+/** What the badge says, at any point on the ladder. */
+export function rankName(div: number, stars: number, points = 0): string {
+  if (div >= MASTER_DIV) return `${masterTitle(points)} ${points}`
+  return `${DIVISIONS[div]} ${TIER_CN[TIERS_PER_DIV[div] - 1 - tierOf(div, stars)]}`
+}
 
 export interface LadderState {
   div: number
@@ -243,6 +296,10 @@ export interface LadderState {
   wins: number
   losses: number
   streak: number
+  /** 大师 and above only: the uncapped score the leaderboard ranks on */
+  points?: number
+  /** the highest that score has ever been, which is what a career is judged on */
+  bestPoints?: number
 }
 
 export interface CupLeg {
@@ -586,7 +643,43 @@ export interface LadderOutcome {
   demoted: boolean
   coins: number
   pack?: PackKind
+  /** 大师 only: how the score moved, and what it is called now */
+  points?: number
+  pointsDelta?: number
+  title?: string
 }
+
+/**
+ * What a 大师 result is worth in points.
+ *
+ * Above 大师 there are no more stars to collect, so the ladder switches to a
+ * score with no ceiling — the complaint was that the climb simply ended, and
+ * 「大师」 with a number after it is a climb that cannot. Beating a stronger
+ * club pays more, a run pays a little more, and a loss costs a flat amount so
+ * that a bad night is a setback rather than a wipe.
+ *
+ * Positive at anything above a 43% win rate, which is deliberate: at this
+ * level the ladder is a leaderboard, and a leaderboard people fall off is a
+ * leaderboard nobody plays.
+ */
+export const MASTER_WIN = 20
+export const MASTER_LOSS = 15
+export function masterPoints(win: boolean, oppRating: number, streak: number): number {
+  if (!win) return -MASTER_LOSS
+  return MASTER_WIN + Math.max(0, Math.round(oppRating) - 84) * 3 + (streak >= 3 ? 8 : 0)
+}
+
+/**
+ * How much stronger the opposition gets past 大师.
+ *
+ * The 78 real clubs top out at 89, so a points ladder with no ceiling would
+ * run out of opponents about a week in. Until the arena can put another
+ * player's saved five in front of you, the top clubs are simply sharpened:
+ * +1 to every attribute per 250 points, capped, which keeps a 辐能 run
+ * genuinely hard without inventing a club that does not exist.
+ */
+export const oppBumpFor = (points: number): number =>
+  clamp(Math.floor(Math.max(0, points) / 250), 0, 10)
 
 /**
  * Apply a ladder result.
@@ -595,28 +688,36 @@ export interface LadderOutcome {
  * divisions have a floor — losing your way out of 青铜 teaches nothing — and
  * above that you can genuinely fall.
  */
-export function recordLadder(g: GachaState, win: boolean): LadderOutcome {
+export function recordLadder(g: GachaState, win: boolean, oppRating = 80): LadderOutcome {
   const L = g.ladder
+  // 大师 is where the stars run out and the score takes over
+  const master = L.div >= MASTER_DIV
+  const pointsBefore = L.points ?? 0
   const out: LadderOutcome = {
     win, starsBefore: L.stars, divBefore: L.div, promoted: false, demoted: false, coins: 0,
   }
   if (win) {
     L.wins++
     L.streak = Math.max(1, L.streak + 1)
-    // a streak is worth an extra star, but only while there is still a ladder
-    // above you to climb
-    L.stars += L.streak >= 3 && L.div < 4 ? 2 : 1
     // Lowered with the daily budget. The shop's two-a-day cap was binding on
     // 55 days out of 60, which means coins were never a decision — you always
     // had enough for both. Now a day's play buys two 试训包 or most of a
     // 选拔包, and which one is the question.
     out.coins = 110 + L.div * 45
-    while (L.stars >= starsFor(L.div) && L.div < DIVISIONS.length - 1) {
-      L.stars -= starsFor(L.div)
-      L.div++
-      out.promoted = true
+    if (master) {
+      L.points = Math.max(0, pointsBefore + masterPoints(true, oppRating, L.streak))
+    } else {
+      // a streak is worth an extra star, but only while there is still a
+      // ladder above you to climb
+      L.stars += L.streak >= 3 && L.div < MASTER_DIV - 1 ? 2 : 1
+      while (L.stars >= starsFor(L.div) && L.div < MASTER_DIV) {
+        L.stars -= starsFor(L.div)
+        L.div++
+        out.promoted = true
+        // arriving in 大师 is where stars stop and the score starts
+        if (L.div === MASTER_DIV) { L.stars = 0; L.points ??= 0 }
+      }
     }
-    if (L.div === DIVISIONS.length - 1) L.stars = Math.min(L.stars, starsFor(L.div))
     if (L.div > L.best) {
       L.best = L.div
       // a promotion is the moment to hand over something worth opening
@@ -627,22 +728,50 @@ export function recordLadder(g: GachaState, win: boolean): LadderOutcome {
   } else {
     L.losses++
     L.streak = Math.min(0, L.streak - 1)
-    L.stars -= 1
     out.coins = 30
-    if (L.stars < 0) {
-      if (L.div >= 3) {
-        L.div--
-        L.stars = Math.max(0, starsFor(L.div) - 2)
-        out.demoted = true
-      } else {
-        L.stars = 0
+    if (master) {
+      // A 大师 never falls out of it. Points can go all the way back to zero,
+      // which is punishment enough for a bad run — dropping somebody back to
+      // 钻石 after the climb they made to get here is how a ladder loses the
+      // people who play it most.
+      L.points = Math.max(0, pointsBefore + masterPoints(false, oppRating, 0))
+    } else {
+      L.stars -= 1
+      if (L.stars < 0) {
+        if (L.div >= 3) {
+          L.div--
+          L.stars = Math.max(0, starsFor(L.div) - 2)
+          out.demoted = true
+        } else {
+          L.stars = 0
+        }
       }
     }
   }
+
+  if (L.div >= MASTER_DIV) {
+    out.points = L.points ?? 0
+    out.pointsDelta = (L.points ?? 0) - pointsBefore
+    out.title = masterTitle(L.points ?? 0)
+    // A new title is the 大师 ladder's version of a promotion, and gets the
+    // same thing a promotion gets — once, the first time it is reached.
+    const wasTitle = masterTitle(L.bestPoints ?? 0)
+    L.bestPoints = Math.max(L.bestPoints ?? 0, L.points ?? 0)
+    if (out.title !== wasTitle && (L.points ?? 0) > (pointsBefore)) {
+      out.pack = 'ten'
+      g.packs.ten = (g.packs.ten ?? 0) + 1
+      out.promoted = true
+    }
+  }
+
   g.coins += out.coins
   bumpQuest(g, 'play3', 1)
-  note(g, `天梯 ${DIVISIONS[out.divBefore]}：${win ? '胜' : '负'}，${win ? '+' : ''}${out.coins} 金币`
-    + (out.promoted ? ` — 升到${DIVISIONS[L.div]}` : out.demoted ? ` — 掉到${DIVISIONS[L.div]}` : ''))
+  note(g, `天梯 ${rankName(out.divBefore, out.starsBefore, pointsBefore)}：`
+    + `${win ? '胜' : '负'}，${win ? '+' : ''}${out.coins} 金币`
+    + (out.pointsDelta != null
+      ? `，${out.pointsDelta >= 0 ? '+' : ''}${out.pointsDelta} 分（${out.title} ${out.points}）`
+      : out.promoted ? ` — 升到${rankName(L.div, L.stars, L.points ?? 0)}`
+        : out.demoted ? ` — 掉到${rankName(L.div, L.stars, 0)}` : ''))
   return out
 }
 
@@ -993,5 +1122,8 @@ export const clampState = (g: GachaState): GachaState => {
   g.coins = Math.max(0, Math.round(g.coins))
   g.ladder.div = clamp(Math.round(g.ladder.div), 0, DIVISIONS.length - 1)
   g.ladder.stars = clamp(Math.round(g.ladder.stars), 0, starsFor(g.ladder.div))
+  // no ceiling on purpose — this is the part of the ladder that never ends
+  g.ladder.points = Math.max(0, Math.round(g.ladder.points ?? 0))
+  g.ladder.bestPoints = Math.max(g.ladder.bestPoints ?? 0, g.ladder.points)
   return g
 }
