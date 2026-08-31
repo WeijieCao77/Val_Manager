@@ -477,12 +477,21 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
       }
     }
     const drift = ageDrift(p)
-    const headroom = p.potential - p.overall
+    // Captured before a single attribute moves. It used to sit further down,
+    // which was fine while recomputeOverall was called exactly once at the
+    // bottom — the moment the growth loop started recomputing as it went, a
+    // late reading made the winter's growth invisible in the digest, and
+    // audit_feedback.ts caught it as 「2 silent days」.
+    const before = p.overall
 
     for (const k of ATTR_KEYS) {
       if (drift > 0) {
-        if (headroom > 0 && rng.chance(0.55 * drift)) {
+        // Live headroom, re-read after every bump rather than measured once
+        // before the loop. Nine attributes each rolling up to +2 against a
+        // single stale reading walked a player straight past his own ceiling.
+        if (p.overall < p.potential && rng.chance(0.55 * drift)) {
           p.attrs[k] = clamp(p.attrs[k] + rng.int(0, 2), 20, 99)
+          recomputeOverall(p)
         }
       } else if (rng.chance(Math.abs(drift) * 0.5)) {
         // aim and reaction go first
@@ -490,13 +499,19 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
         p.attrs[k] = clamp(p.attrs[k] - rng.int(0, hit), 20, 99)
       }
     }
-    // experience keeps rising even as the mechanics fade
-    if (p.age >= 25) {
+    // Experience keeps rising even as the mechanics fade — but not past the
+    // ceiling either. This pair asked nothing about potential at all, so a
+    // veteran gained 意识 (and 指挥, if he called) every winter forever: one
+    // player a season finished above his own projection, which reads as
+    // 「成长空间 +-1」 on the training screen and quietly bricks him, because
+    // addXp refuses to work on anybody at his ceiling. Read after the decline
+    // above, so a fading veteran still trades aim for reading the game.
+    recomputeOverall(p)
+    if (p.age >= 25 && p.overall < p.potential) {
       p.attrs.awareness = clamp(p.attrs.awareness + (rng.chance(0.4) ? 1 : 0), 20, 99)
       if (p.isIgl) p.attrs.igl = clamp(p.attrs.igl + (rng.chance(0.5) ? 1 : 0), 20, 99)
     }
 
-    const before = p.overall
     recomputeOverall(p)
     refreshValue(p)
     p.season = {
