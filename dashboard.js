@@ -308,7 +308,10 @@ function render(d) {
       '<div class="big">' + (sz.p50 ?? 0) + '<small>KB（中位）</small></div>' +
       '<div class="muted" style="font-size:12px;margin-top:6px">' +
       (sz.careers ?? 0) + ' 份生涯 · 90% 分位 ' + (sz.p90 ?? 0) + ' KB · 最大 ' +
-      (sz.max_kb ?? 0) + ' KB · 其中超过 1500 KB 的 ' + (sz.over_1500 ?? 0) + ' 份</div>',
+      (sz.max_kb ?? 0) + ' KB · 其中超过 1500 KB 的 ' + (sz.over_1500 ?? 0) + ' 份</div>' +
+      '<div class="muted" style="font-size:12px;margin-top:4px">' +
+      '写不进去、被迫清掉旧比赛记录才存下的：<b>' + (sz.shrunk ?? 0) + '</b> 份' +
+      '（这是兜底生效，不是丢档）</div>',
       '存档写在 localStorage 里，iOS Safari 给每个站点 5MB，按 UTF-16 算就是 250 万个字符——'
       + '自动存档、手动存档、教程存的那一份和开瓦包都挤在这里面，而四分之三的人在手机上。'
       + '满了浏览器就拒绝写入，进度直接停在那一刻。这一列从这次更新才开始记。') +

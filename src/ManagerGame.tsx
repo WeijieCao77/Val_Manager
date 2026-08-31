@@ -129,10 +129,16 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           // it fitted on the second attempt, so the career is safe — but the
           // player is now missing scoreboards and deserves to know why
           setSaveWarn('shrunk')
-          track('error', {
-            msg: 'autosave: shrunk',
-            day: gameRef.current.day,
+          // Reported as a SIZE event, not an error. It was an error row at
+          // first and it read as one — 「autosave: shrunk」 sitting in 前端报错
+          // next to the failure it prevented. This is the rescue working: the
+          // write went in and the career is intact.
+          sizeSentRef.current = true
+          track('save_size', {
+            shrunk: 1,
             kb: Math.round(packState(gameRef.current).length / 1024),
+            day: gameRef.current.day,
+            year: gameRef.current.year,
           })
         } else {
           // a shrink stays on screen for the session: the write works again,

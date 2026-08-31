@@ -65,6 +65,10 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError', kb: 2100, day: 250 }],
   ['v1', 's2', 16, 'save_size', '-1 days', { kb: 900, day: 34, year: 2026 }],
   ['v2', 's3', 8, 'save_size', '-1 days', { kb: 1700, day: 220, year: 2026 }],
+  // the rescue: refused, stripped, written. A success, and it must not land
+  // in the error list — that is where it was first reported from, and a
+  // player who saw it there asked what had broken.
+  ['v2', 's3', 9, 'save_size', '-1 days', { kb: 1100, day: 240, year: 2026, shrunk: 1 }],
   // ---- the front page and the things it now leads to
   ['v1', 's2', 6, 'home_go', '-1 days', { go: 'career' }],
   ['v1', 's2', 7, 'home_go', '-1 days', { go: 'cards' }],
@@ -195,6 +199,9 @@ if (out) {
     out.saveSize.p50 === 1700 && out.saveSize.max_kb === 2100, JSON.stringify(out.saveSize))
   check('超标的份数被单独数出来',
     out.saveSize.over_1500 === 2, JSON.stringify(out.saveSize))
+  check('被迫精简过的存档单独数，而且不算报错',
+    out.saveSize.shrunk === 1 && !out.errors.some((e) => e.msg.includes('shrunk')),
+    JSON.stringify({ shrunk: out.saveSize.shrunk, errors: out.errors.map((e) => e.msg) }))
 
   check('账号的创建与找回分开统计',
     out.accounts.made === 1 && out.accounts.restored === 1, JSON.stringify(out.accounts))

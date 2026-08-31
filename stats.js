@@ -393,7 +393,11 @@ export async function overview(sql, days = 30) {
       with sizes as (
         select visitor_id,
                max((props->>'kb')::int) as kb,
-               max((props->>'day')::int) as day
+               max((props->>'day')::int) as day,
+               -- the rescue path: the browser refused the write, old match
+               -- paperwork was dropped and it went in. A success, counted
+               -- here rather than in the error list it used to sit in.
+               bool_or(props->>'shrunk' = '1') as shrunk
         from events
         where name in ('save_size', 'error')
           and ts > now() - ${since}::interval
@@ -408,7 +412,8 @@ export async function overview(sql, days = 30) {
           within group (order by kb))::int, 0)                     as p90,
         coalesce(max(kb), 0)                                       as max_kb,
         coalesce(round(avg(day))::int, 0)                          as avg_day,
-        count(*) filter (where kb > 1500)::int                     as over_1500
+        count(*) filter (where kb > 1500)::int                     as over_1500,
+        count(*) filter (where shrunk)::int                        as shrunk
       from sizes`,
   ])
 
