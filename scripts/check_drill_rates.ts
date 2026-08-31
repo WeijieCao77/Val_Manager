@@ -15,7 +15,7 @@
  */
 import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
 import { advanceDay, setupSeason } from '../src/engine/season'
-import { drillRates } from '../src/engine/training'
+import { drillRates, reviewIglXp } from '../src/engine/training'
 import type { GameState, Player } from '../src/engine/types'
 
 const store = new Map<string, string>()
@@ -50,6 +50,9 @@ function measure(tag: string, kind: 'review' | 'map', cycles: number) {
   for (const p of squadOf(g, g.myTeam)) g.training[p.id] = 'rest'
   const igl = squadOf(g, g.myTeam).find((p) => p.isIgl)!
   const rates = drillRates(g)
+  // 指挥 rides where the caller currently is, so the expectation has to be
+  // sampled as it moves rather than taken once at the start
+  const iglWant: number[] = []
 
   const before = {
     igl: banked(igl, 'igl'),
@@ -61,6 +64,7 @@ function measure(tag: string, kind: 'review' | 'map', cycles: number) {
   g.drillLock = g.day + 7
   let ran = 0
   for (let d = 0; d < 7 * cycles + 14 && ran < cycles; d++) {
+    if (g.drillLock === g.day + 7) iglWant.push(reviewIglXp(g, igl))
     advanceDay(g, { autoScrims: true })
     if (g.drillLock == null) {
       ran++
@@ -70,6 +74,7 @@ function measure(tag: string, kind: 'review' | 'map', cycles: number) {
   }
   return {
     rates, ran,
+    iglWant: iglWant.length ? iglWant.reduce((a, b) => a + b, 0) / iglWant.length : 0,
     igl: (banked(igl, 'igl') - before.igl) / ran,
     aware: (banked(igl, 'awareness') - before.aware) / ran,
     comm: (banked(igl, 'communication') - before.comm) / ran,
@@ -84,11 +89,11 @@ const near = (got: number, want: number, slack = 0.12) =>
 // ---- 教练复盘 · 卡片写的是 意识 +6、沟通 +3、指挥 +7
 {
   const m = measure('EDG', 'review', 40)
-  const wantIgl = 7 * m.rates.dev * m.rates.review
+  const wantIgl = m.iglWant
   const wantAware = 6 * m.rates.dev * m.rates.review
   const wantComm = 3 * m.rates.dev
   console.log(`\n复盘 40 轮 · dev ×${m.rates.dev.toFixed(2)} review ×${m.rates.review.toFixed(2)}`)
-  check('指挥 +7 是经验，且确实按 7×加成到账',
+  check('指挥到账的就是 reviewIglXp 给面板的那个数',
     near(m.igl, wantIgl), `实测 ${m.igl.toFixed(1)}，应约 ${wantIgl.toFixed(1)}`)
   check('意识 +6 同理', near(m.aware, wantAware),
     `实测 ${m.aware.toFixed(1)}，应约 ${wantAware.toFixed(1)}`)
@@ -96,8 +101,11 @@ const near = (got: number, want: number, slack = 0.12) =>
     `实测 ${m.comm.toFixed(1)}，应约 ${wantComm.toFixed(1)}`)
   // the whole point of the report: this is a slow burn, not seven points a week
   check('一轮换不到 1 点属性', m.igl < 100, `${m.igl.toFixed(1)}/100`)
-  check('面板给的「还需几轮」是真的', Math.ceil(100 / wantIgl) >= 4,
-    `满一格约 ${Math.ceil(100 / wantIgl)} 轮`)
+  // NOT asserted as an average over the run: the caller climbs while it runs
+  // and the curve decays as he does, which is the whole design. The claim
+  // 「指挥给得比意识多」 belongs at a fixed 指挥, and is made below.
+  check('40 轮之后指挥确实涨了不少', m.igl * m.ran > 400,
+    `累计 ${(m.igl * m.ran).toFixed(0)} 经验`)
 }
 
 // ---- 跑图 · 卡片写的是 协同 +9、意识 +5
@@ -109,6 +117,25 @@ const near = (got: number, want: number, slack = 0.12) =>
   check('意识 +5 按加成到账', near(m.aware, 5 * m.rates.dev),
     `实测 ${m.aware.toFixed(1)}，应约 ${(5 * m.rates.dev).toFixed(1)}`)
   check('跑图不给指挥经验', m.igl === 0, `${m.igl.toFixed(1)}`)
+}
+
+// ---- 越弱的指挥学得越快，顶尖的学得慢——不然一个赛季能把谁都练到 99
+{
+  const me = WORLD_TEAMS.find((t) => t.tag === 'EDG')!
+  const g = createNewGame(me.id, '审计', 20260831)
+  setupSeason(g)
+  const igl = squadOf(g, g.myTeam).find((p) => p.isIgl)!
+  const at = (v: number) => { igl.attrs.igl = v; return reviewIglXp(g, igl) }
+  const raw = at(55), mid = at(74), elite = at(88)
+  console.log(`\n学习曲线 · 指挥 55 → ${raw.toFixed(0)}/轮，74 → ${mid.toFixed(0)}，88 → ${elite.toFixed(0)}`)
+  check('指挥越低学得越快', raw > mid && mid > elite,
+    `${raw.toFixed(0)} > ${mid.toFixed(0)} > ${elite.toFixed(0)}`)
+  check('生手两轮涨一点', Math.ceil(100 / raw) <= 2, `${Math.ceil(100 / raw)} 轮`)
+  check('顶尖指挥练不动', Math.ceil(100 / elite) >= 5, `${Math.ceil(100 / elite)} 轮`)
+  const r = drillRates(g)
+  check('还没练到顶的指挥，比全队的意识给得多得多',
+    mid > 6 * r.dev * r.review * 2,
+    `指挥 ${mid.toFixed(0)} vs 意识 ${(6 * r.dev * r.review).toFixed(0)}`)
 }
 
 // ---- a club with no coach and poor facilities still gets a truthful figure,

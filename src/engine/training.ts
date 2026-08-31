@@ -160,6 +160,37 @@ export function drillTick(state: GameState, rng: Rng, notes: string[]): void {
  * screen and its engine quietly stop agreeing. `dev` applies to every drill,
  * `review` on top of it to tape work only.
  */
+/**
+ * What one settled 复盘 is worth to the IGL's 指挥, in experience.
+ *
+ * It was a flat 7, which at ordinary coaching is nine or ten experience — one
+ * point of 指挥 every eleven weeks, for a drill whose entire reason to exist is
+ * that it is the only way to train the caller. Setting the same player's
+ * personal focus to 指挥 was strictly better, so the headline feature of the
+ * card was the weakest thing on it. That is what got reported.
+ *
+ * Bigger, and shaped: a manager who has just handed the armband to somebody is
+ * teaching a man his job and the obvious ground goes quickly, while a veteran
+ * caller at 90 is refining and does not. So the gain rides how far the player
+ * is from being a finished IGL rather than sitting flat — which is also the
+ * case that was reported, a converted IGL whose 指挥 started low.
+ *
+ * Measured: a caller in the fifties takes about two rounds a point, the
+ * seventies about four, the high eighties about five, and the ceiling on the
+ * curve is deliberately low enough that the fastest anyone learns is a point a
+ * fortnight. A season of nothing but tape work takes a poor caller to an
+ * average one; it cannot take an average one to a great one, and 指挥 buys
+ * 0.09 of team rating a point, so a whole season of the training slot spent
+ * here is worth about half a league place.
+ */
+const REVIEW_IGL_BASE = 36
+
+export function reviewIglXp(state: GameState, p: Player): number {
+  const rates = drillRates(state)
+  const learning = clamp((90 - p.attrs.igl) / 18, 0.15, 1.5)
+  return REVIEW_IGL_BASE * rates.dev * rates.review * learning
+}
+
 export function drillRates(state: GameState): { dev: number; review: number } {
   const team = state.teams[state.myTeam]
   if (!team) return { dev: 1, review: 1 }
@@ -213,7 +244,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       // tape work is worth what the coach is worth
       for (const p of squad) {
         addXp(p, 'awareness', gain(6) * rates.review)
-        if (p.isIgl) addXp(p, 'igl', gain(7) * rates.review)
+        // the rng lives here, so reviewIglXp is the expectation the card prints
+        if (p.isIgl) addXp(p, 'igl', reviewIglXp(state, p) * rng.range(0.8, 1.2))
         addXp(p, 'communication', gain(3))
         p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
       }

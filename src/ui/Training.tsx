@@ -9,7 +9,7 @@ import type { Role } from '../engine/types'
 import { poolFor } from '../engine/match'
 import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
-import { doPhysio, drillRates, physioBlock, PHYSIO_COST } from '../engine/training'
+import { doPhysio, physioBlock, PHYSIO_COST, reviewIglXp } from '../engine/training'
 import { useAction } from './useAction'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
@@ -156,8 +156,6 @@ export default function Training() {
   }
   const pool = poolFor(game)
   const fit = squad.filter((p) => p.injuredUntil <= game.day)
-  // read from the engine, never restated here
-  const rates = drillRates(game)
 
   return (
     <>
@@ -202,8 +200,9 @@ export default function Training() {
           <div className="drill-card">
             <b>教练复盘</b>
             <p className="tiny muted">
-              全队意识 <b>+6</b>、沟通 <b>+3</b>、指挥（仅 IGL）<b>+7</b> 的<b>经验</b>——
-              满 100 经验才 +1 属性，数值再乘教练战术加成。
+              全队意识 <b>+6</b>、沟通 <b>+3</b> 的<b>经验</b>（满 100 才 +1 属性），
+              再乘教练战术加成。<b>指挥只有 IGL 拿，给得多得多</b>——
+              而且他现在的指挥越低学得越快，越接近顶尖越慢。
               <b>不掉体能，反而恢复 1~4</b>。
             </p>
             {/* Who is actually getting the 指挥 experience, and how far along
@@ -222,7 +221,7 @@ export default function Training() {
               }
               const xp = igl.xp.igl ?? 0
               const capped = igl.overall >= igl.potential
-              const per = 7 * rates.dev * rates.review
+              const per = reviewIglXp(game, igl)
               const rounds = Math.max(1, Math.ceil((100 - xp) / per))
               return (
                 <div className="tiny" style={{ margin: '0 0 8px' }}>
