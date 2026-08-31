@@ -12,7 +12,7 @@ import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } f
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { mapCn } from './content'
-import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR } from './endings'
+import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { resolveApproaches, resolveStaffOffers } from './staff'
@@ -1090,8 +1090,8 @@ export function settleAtFive(state: GameState): void {
   const earned = endingsFor(state)
   state.finished = true
   state.gameOver = earned[0]
-    ? `五年之约到期，你选择功成身退——${earned[0].title}`
-    : '五年之约到期，你选择功成身退。'
+    ? `${tenureCn(state.year)}年之约到期，你选择功成身退——${earned[0].title}`
+    : `${tenureCn(state.year)}年之约到期，你选择功成身退。`
   state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
 }
 
@@ -1113,9 +1113,15 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // dissolve. Nothing is decided here — the state freezes (advanceDay holds
   // while midReview is up) until settleAtFive or continuePastFive answers,
   // and on 继续 this function runs again with the ask marked done.
-  if (state.year === MID_YEAR && !state.midReviewDone) {
+  //
+  // `>=`, not `===`. The settlement shipped into a game people had already
+  // been playing for weeks, and a save that was in 2031 the day it landed
+  // would have matched 2030 exactly never — the one question the career is
+  // built around, silently unreachable for precisely the players who had
+  // played longest. Asked late is right; not asked at all is not.
+  if (state.year >= MID_YEAR && state.year < FINAL_YEAR && !state.midReviewDone) {
     state.midReview = true
-    notes.push('⏳ 五年之期已到——是就此收官拿一个结局，还是继续带到 2036？')
+    notes.push(`⏳ ${tenureCn(state.year)}年之期已到——是就此收官拿一个结局，还是继续带到 2036？`)
     return
   }
 

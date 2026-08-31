@@ -575,7 +575,11 @@ export default function Training() {
                   </>
                 )}
               </p>
-              {poach ? (
+              {poach ? (() => {
+                // the coaches whose clubs have already said yes, priced as head
+                // coaches — the rows below look themselves up in here
+                const cleared = clearedCoaches(game)
+                return (
                 <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
                   <table>
                     <thead>
@@ -603,9 +607,52 @@ export default function Training() {
                             <td className="num mono">{coach.motivation}</td>
                             <td className="num mono">{money(ask)}</td>
                             <td>
-                              {granted ? (
-                                <span className="tag t1">已获准，去下面谈合同</span>
-                              ) : pending ? (
+                              {granted ? (() => {
+                                // The club said yes — so the contract talk happens
+                                // right here, in the row you were already looking at.
+                                // It used to say 「去下面谈合同」 and put him in the
+                                // 「自由教练」 tab instead: another tab, another list,
+                                // and people wrote in to ask where coach contracts
+                                // are negotiated because the answer was nowhere on
+                                // this screen.
+                                const cand = cleared.find((c) => c.name === coach.name)
+                                const waiting = (game.staffOffers ?? [])
+                                  .find((o) => o.name === coach.name && !o.answer)
+                                if (waiting) {
+                                  return (
+                                    <span className="tiny faint">
+                                      已报价，等他本人答复（{Math.max(0, waiting.replyOn - game.day)} 天）
+                                    </span>
+                                  )
+                                }
+                                if (!cand) return <span className="tiny faint">他已经不在这支球队了</span>
+                                const wants = askingSalary(cand, 'head')
+                                return bidOn === coach.name ? (
+                                  <div className="row" style={{ gap: 5 }}>
+                                    <input
+                                      type="number" className="sm" style={{ width: 92 }}
+                                      value={bidPay} step={5000}
+                                      onChange={(e) => setBidPay(Number(e.target.value))}
+                                    />
+                                    <select className="sm" style={{ width: 62 }} value={bidYears}
+                                      onChange={(e) => setBidYears(Number(e.target.value))}>
+                                      <option value={1}>1年</option>
+                                      <option value={2}>2年</option>
+                                      <option value={3}>3年</option>
+                                    </select>
+                                    <button className="sm primary" onClick={() => act('staff', () => {
+                                      toast(offerToStaff(game, coach.name, 'head', bidPay, bidYears))
+                                      logActivity(game, 'squad', `向 ${coach.name} 发出主教练邀请`)
+                                      setBidOn(null)
+                                    })}>发出</button>
+                                  </div>
+                                ) : (
+                                  <button className="sm primary"
+                                    onClick={() => { setBidOn(coach.name); setBidPay(wants) }}>
+                                    ✅ 已获准 · 谈合同（要价 {money(wants)}）
+                                  </button>
+                                )
+                              })() : pending ? (
                                 <span className="tiny faint">等待答复（{Math.max(0, pending.replyOn - game.day)} 天）</span>
                               ) : refused ? (
                                 <span className="tiny faint">已拒绝：{refused.reason}</span>
@@ -627,7 +674,8 @@ export default function Training() {
                     </tbody>
                   </table>
                 </div>
-              ) : (
+                )
+              })() : (
               <div className="table-wrap" style={{ maxHeight: 250, overflowY: 'auto' }}>
                 <table>
                   <thead>
@@ -648,7 +696,12 @@ export default function Training() {
                           <td>
                             <b>{c.name}</b>
                             <div className="tiny faint">
-                              原 {c.from} {role === 'analyst' ? '分析师' : '助教'}
+                              {/* a coach cleared from another club is still their
+                                  head coach until he signs — calling him an 助教
+                                  in this list was the other half of the confusion */}
+                              原 {c.from} {role === 'analyst' ? '分析师'
+                                : Object.values(game.teams).some((t) => t.coach?.name === c.name)
+                                  ? '主教练' : '助教'}
                             </div>
                             {c.spec && (
                               <div className="tiny" style={{ color: 'var(--controller)' }}>
@@ -695,8 +748,8 @@ export default function Training() {
               )}
               {poach && (
                 <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-                  两步走：先给对方俱乐部一笔补偿金请求接触，获准后这名教练会出现在
-                  「自由教练」列表里，再和<b>教练本人</b>谈薪资——他也可能不想来。<br />
+                  两步走：先给对方俱乐部一笔补偿金请求接触，<b>获准后就在这一行里和教练本人谈薪资</b>
+                  （「自由教练」列表里也能找到他）——谈得拢他才会来，他也可能不想来。<br />
                   「参考补偿」只是这名教练的身价，<b>不是付了就一定放人</b>：你的声望越低、
                   对方俱乐部越大牌，就越要溢价。实测新人经理付足额基本不成，
                   <b>1.6 倍约五成、2.2 倍九成</b>；等你有名气了才谈得下来平价。

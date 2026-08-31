@@ -1,5 +1,5 @@
 import { useGame } from './ctx'
-import { endingOf, factsOf } from '../engine/endings'
+import { endingOf, factsOf, tenureCn } from '../engine/endings'
 import { continuePastFive, settleAtFive } from '../engine/season'
 import { track } from '../engine/telemetry'
 
@@ -16,6 +16,9 @@ export default function MidReview() {
   const { game, commit } = useGame()
   const { dynasty, story } = endingOf(game)
   const facts = factsOf(game)
+  // Careers that were already past 2030 when this shipped get the same
+  // question, dated honestly: 「七年之约 · 2026–2032」, not a hardcoded five.
+  const cn = tenureCn(game.year)
 
   const choose = (settle: boolean) => {
     track('mid_review', { settle: settle ? 1 : 0, honours: game.honours.length })
@@ -27,10 +30,10 @@ export default function MidReview() {
   return (
     <div className="modal-bg" style={{ alignItems: 'safe center' }}>
       <div className="modal" style={{ maxWidth: 560 }}>
-        <div className="modal-head"><h3>五年之约 · 2026–2030</h3></div>
+        <div className="modal-head"><h3>{cn}年之约 · 2026–{game.year}</h3></div>
         <div className="modal-body">
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
-            五个赛季打完了。现在收官，这段生涯就以下面的评价定格，记入你的账号；
+            {cn}个赛季打完了。现在收官，这段生涯就以下面的评价定格，记入你的账号；
             继续的话，合同一路签到 <b>2036</b>——那才是不能再往后的大结局，
             走完的人会有单独的成就。
           </p>

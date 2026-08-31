@@ -18,6 +18,7 @@ export async function overview(sql, days = 30) {
     headline, daily, retention, sessions, funnel, depth,
     devices, screens, clubs, referrers, errors,
     home, careers, unlocks, accounts,
+    hosts, midReview, cardFunnel, packs, cardMatches, cardAccounts,
   ] = await Promise.all([
     // The number that goes at the top: people who came back on a later day.
     // One visit is a click on a link; two days is a game someone chose again.
@@ -245,6 +246,133 @@ export async function overview(sql, days = 30) {
         count(distinct visitor_id) filter (where props->>'act' = 'restore')::int as restored
       from events
       where name = 'account' and ts > now() - ${since}::interval`,
+
+    // ---- which door people came in by.
+    //
+    // The game answers on more than one domain, all of them the same Railway
+    // service writing to this same table, so "is the new domain carrying any
+    // traffic" was a question the data could not answer: a referrer names
+    // somewhere else, and somewhere else is null for most of this audience.
+    // Only rows written after this shipped carry a host at all.
+    sql`
+      select coalesce(props->>'host', '(这次改动之前)') as host,
+             count(distinct visitor_id)::int as visitors
+      from events
+      where name = 'session_start' and ts > now() - ${since}::interval
+      group by 1 order by visitors desc limit 8`,
+
+    // ---- the五年之约: offered once a career, and the answer is the single
+    // clearest statement of whether people want more of this game or less.
+    sql`
+      select
+        count(distinct visitor_id) filter (where props->>'settle' = '0')::int as continued,
+        count(distinct visitor_id) filter (where props->>'settle' = '1')::int as settled
+      from events
+      where name = 'mid_review' and ts > now() - ${since}::interval`,
+
+    // ---- 开瓦包, which had no panel of its own at all: the front page said how
+    // many people tapped it and nothing said what happened next. Same rule as
+    // the career funnel — each step contains the ones after it, so this is
+    // "reached at least this far", never "fired this event".
+    sql`
+      with step as (
+        select visitor_id,
+          bool_or(name = 'home_go' and props->>'go' = 'cards') as tapped,
+          bool_or(name = 'card_start')  as entered,
+          bool_or(name = 'card_pull')   as pulled,
+          bool_or(name = 'card_match')  as fought,
+          bool_or(name = 'card_signin') as signed,
+          count(distinct date_trunc('day', ts)) filter (
+            where name in ('card_start', 'card_pull', 'card_match', 'card_signin')
+          ) as card_days
+        from events
+        where ts > now() - ${since}::interval
+        group by visitor_id
+      ), reached as (
+        select
+          (tapped or entered or pulled or fought or signed) as touched,
+          (entered or pulled or fought or signed)           as entered,
+          (pulled or fought or signed)                      as pulled,
+          (fought or signed)                                as fought,
+          signed                                            as signed,
+          card_days >= 2                                    as came_back
+        from step
+      )
+      select count(*) filter (where touched)::int   as touched,
+             count(*) filter (where entered)::int   as entered,
+             count(*) filter (where pulled)::int    as pulled,
+             count(*) filter (where fought)::int    as fought,
+             count(*) filter (where signed)::int    as signed,
+             count(*) filter (where came_back)::int as came_back
+      from reached`,
+
+    // Which packs get opened, and what comes out of them. The drop rates are
+    // published in the game, so this is the other half of that promise: what
+    // the published number actually looks like once a few thousand cards have
+    // been dealt. The regex guards are the house pattern — a prop is only cast
+    // when it is unmistakably a small whole number.
+    sql`
+      select props->>'kind' as kind,
+             count(*)::int                                        as opens,
+             count(distinct visitor_id)::int                      as visitors,
+             count(*) filter (where props->>'paid' = 'coins')::int as bought,
+             coalesce(sum(case when props->>'gold' ~ '^[0-9]{1,3}$'
+                               then (props->>'gold')::int else 0 end), 0)  as gold,
+             coalesce(sum(case when props->>'dupes' ~ '^[0-9]{1,3}$'
+                               then (props->>'dupes')::int else 0 end), 0) as dupes
+      from events
+      where name = 'card_pull' and ts > now() - ${since}::interval and props ? 'kind'
+      group by 1 order by opens desc limit 10`,
+
+    // 天梯 and 杯赛 are the reason to own the cards at all.
+    sql`
+      select props->>'mode' as mode,
+             count(*)::int                                     as played,
+             count(distinct visitor_id)::int                   as visitors,
+             count(*) filter (where props->>'won' = 'true')::int as wins
+      from events
+      where name = 'card_match' and ts > now() - ${since}::interval and props ? 'mode'
+      group by 1 order by played desc`,
+
+    // ---- the collections themselves.
+    //
+    // Not events: the card mode is the one part of this game with a real
+    // server-side save, so how big a collection gets and how far up the ladder
+    // people climb can be asked of the saves rather than inferred from what
+    // somebody's browser managed to report. `materialized` is load-bearing —
+    // it forces the shape filter to run before anything casts, and a cast that
+    // throws takes the whole dashboard down for as long as the row exists.
+    sql`
+      with acc as materialized (
+        select created, seen, saved, state
+        from card_accounts
+        where jsonb_typeof(state->'cards') = 'object'
+      )
+      select
+        count(*)::int                                                        as accounts,
+        count(*) filter (where created > now() - ${since}::interval)::int    as fresh,
+        count(*) filter (where seen    > now() - ${since}::interval)::int    as active,
+        count(*) filter (where coalesce(saved, seen)::date > created::date)::int as came_back,
+        coalesce(round(avg(k.owned))::int, 0)                                as avg_owned,
+        coalesce(max(k.owned), 0)                                            as max_owned,
+        coalesce(round(avg(v.pulls))::int, 0)                                as avg_pulls,
+        coalesce(max(v.pulls), 0)                                            as max_pulls,
+        coalesce(max(v.div), 0)                                              as max_div,
+        coalesce(max(v.streak), 0)                                           as max_streak
+      from acc a,
+        lateral (select count(*)::int as owned from jsonb_object_keys(a.state->'cards')) k,
+        lateral (select
+          case when a.state->>'pulls' ~ '^[0-9]{1,9}$' then (a.state->>'pulls')::int else 0 end as pulls,
+          case when a.state->'ladder'->>'div' ~ '^[0-9]{1,3}$'
+               then (a.state->'ladder'->>'div')::int else 0 end as div,
+          case when a.state->'daily'->>'streak' ~ '^[0-9]{1,5}$'
+               then (a.state->'daily'->>'streak')::int else 0 end as streak
+        ) v`
+      // The only query here that reads a table another module owns. Everything
+      // in this file is fetched in one Promise.all, so one rejection is the
+      // whole dashboard refusing to load — an empty card panel is the better
+      // failure.
+      .catch(() => []),
   ])
 
   return {
@@ -255,6 +383,13 @@ export async function overview(sql, days = 30) {
     devices, screens, clubs, referrers, errors,
     home: home[0] ?? {}, careers: careers[0] ?? {},
     unlocks, accounts: accounts[0] ?? {},
+    hosts, midReview: midReview[0] ?? {},
+    cards: {
+      funnel: cardFunnel[0] ?? {},
+      packs,
+      matches: cardMatches,
+      accounts: cardAccounts[0] ?? {},
+    },
   }
 }
 

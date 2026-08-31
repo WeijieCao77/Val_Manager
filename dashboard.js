@@ -28,7 +28,11 @@ export const dashboardHtml = () => `<!doctype html>
   h1 { font-size:15px; letter-spacing:.18em; text-transform:uppercase; margin:0 0 2px; }
   h1 span { color:var(--accent); }
   .sub { color:var(--faint); font-size:12px; margin-bottom:16px; }
-  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+  /* align-items:start, or every panel in a row is stretched to the tallest
+     one in it — a ten-row referrer list made the four panels beside it a
+     thousand pixels of empty. */
+  .grid { display:grid; gap:12px; align-items:start;
+          grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:13px; }
   .panel h2 {
     font-size:11px; letter-spacing:.14em; text-transform:uppercase;
@@ -38,15 +42,25 @@ export const dashboardHtml = () => `<!doctype html>
   .big { font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1; }
   .big small { font-size:13px; color:var(--muted); font-weight:400; margin-left:6px; }
   .hero { border-left:2px solid var(--accent); }
+  /* A panel is a glance, not a document. The long lists — referrers, clubs,
+     screens, unlocks — ran to fifteen rows and made the whole row of panels
+     as tall as the longest one in it. They scroll inside their own box now,
+     so nothing is dropped and no panel is taller than a screenful. */
+  .tw { max-height:300px; overflow-y:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th { text-align:left; color:var(--faint); font-size:10px; letter-spacing:.1em;
-       text-transform:uppercase; padding:5px 6px; border-bottom:1px solid var(--line); }
+       text-transform:uppercase; padding:5px 6px; border-bottom:1px solid var(--line);
+       position:sticky; top:0; background:var(--panel); z-index:1; }
   td { padding:5px 6px; border-bottom:1px solid rgba(255,255,255,.04); }
   td.n { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
   .bar { height:7px; background:var(--accent); border-radius:2px; min-width:2px; }
   .bar.g { background:var(--win); }
   .spark { display:flex; align-items:flex-end; gap:2px; height:56px; margin-top:4px; }
-  .spark i { flex:1; background:var(--panel-2); border-radius:1px 1px 0 0; position:relative; }
+  /* height:100% is load-bearing. align-items:flex-end stops the columns being
+     stretched, and their only child is absolutely positioned — so they were
+     zero pixels tall, the bar inside was a percentage OF zero, and the daily
+     chart had been rendering as an empty box. */
+  .spark i { flex:1; height:100%; background:var(--panel-2); border-radius:1px 1px 0 0; position:relative; }
   .spark i b { position:absolute; inset:auto 0 0 0; background:var(--accent); border-radius:1px 1px 0 0; display:block; }
   .muted { color:var(--muted); }
   .empty { color:var(--faint); padding:14px 0; text-align:center; }
@@ -95,10 +109,10 @@ function panel(title, inner, why) {
     (why ? '<div class="why">' + why + '</div>' : '') + '</div>'
 }
 
-function table(head, rows, why) {
+function table(head, rows) {
   if (!rows.length) return '<div class="empty">还没有数据</div>'
-  return '<table><thead><tr>' + head.map((h) => '<th>' + h + '</th>').join('') +
-    '</tr></thead><tbody>' + rows.join('') + '</tbody></table>'
+  return '<div class="tw"><table><thead><tr>' + head.map((h) => '<th>' + h + '</th>').join('') +
+    '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>'
 }
 
 function render(d) {
@@ -146,12 +160,59 @@ function render(d) {
   // ---- how careers end, which had no event at all before this release
   const car = d.careers || {}
   const acc = d.accounts || {}
+  const mid = d.midReview || {}
   const careerRows = [
     ['走完十年', car.finished ?? 0], ['中途下课', car.sacked ?? 0],
     ['平均在任赛季', car.avg_seasons ?? 0], ['平均冠军数', car.avg_honours ?? 0],
+    ['五年之约：继续带下去', mid.continued ?? 0],
+    ['五年之约：就此收官', mid.settled ?? 0],
     ['创建了账号', acc.made ?? 0], ['用 ID 找回账号', acc.restored ?? 0],
   ].map(([label, n]) =>
     '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
+
+  // ---- 开瓦包. Four names, not sixty-five: the pull event sends the pack it
+  // was, and a four-row lookup is cheaper than making the client send a label
+  // with every pull. Anything unrecognised prints its own key.
+  const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包' }
+  const MODE_CN = { ladder: '天梯', cup: '杯赛' }
+  const cm = d.cards || {}
+  const cf = cm.funnel || {}
+  const ca = cm.accounts || {}
+  const cardSteps = [
+    ['点进开瓦包', cf.touched], ['进了游戏', cf.entered], ['开过卡包', cf.pulled],
+    ['打过比赛', cf.fought], ['签过到', cf.signed],
+  ]
+  const cardRows = cardSteps.map(([label, n]) =>
+    '<tr><td>' + label + '</td><td class="n">' + (n ?? 0) + '</td>' +
+    '<td style="width:34%"><div class="bar" style="width:' + pct(n ?? 0, cf.touched || 1) + '%"></div></td>' +
+    '<td class="n muted">' + pct(n ?? 0, cf.touched || 1) + '%</td></tr>')
+
+  const packRows = (cm.packs || []).map((r) =>
+    '<tr><td>' + esc(PACK_CN[r.kind] || r.kind) + '</td>' +
+    '<td class="n">' + r.opens + '</td>' +
+    '<td class="n muted">' + r.visitors + '</td>' +
+    '<td class="n">' + r.gold + '</td>' +
+    // per pack, not per cent: a ten-pull deals ten cards, so 「重复率」 read
+    // 273% on the pack that is most worth watching
+    '<td class="n muted">' + (r.dupes / (r.opens || 1)).toFixed(1) + '</td></tr>')
+
+  const matchRows = (cm.matches || []).map((r) =>
+    '<tr><td>' + esc(MODE_CN[r.mode] || r.mode) + '</td>' +
+    '<td class="n">' + r.played + '</td>' +
+    '<td class="n muted">' + r.visitors + '</td>' +
+    '<td class="n">' + pct(r.wins, r.played || 1) + '%</td></tr>')
+
+  const collRows = [
+    ['卡牌账号总数', ca.accounts ?? 0],
+    ['这段时间新建', ca.fresh ?? 0],
+    ['这段时间来过', ca.active ?? 0],
+    ['建号之后又回来存过档', ca.came_back ?? 0],
+    ['人均收藏（张）', ca.avg_owned ?? 0],
+    ['最大收藏（张）', ca.max_owned ?? 0],
+    ['人均抽卡（次）', ca.avg_pulls ?? 0],
+    ['最高天梯段位（0 青铜起）', ca.max_div ?? 0],
+    ['最长连续签到（天）', ca.max_streak ?? 0],
+  ].map(([label, n]) => '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
 
   // The game sends the title with the key, so this never keeps its own copy of
   // sixty-five names — the key is only a fallback for events sent before that.
@@ -177,7 +238,9 @@ function render(d) {
       '<div class="big">' + (s.median_min ?? 0) + '<small>分钟（中位）</small></div>' +
       '<div class="muted" style="font-size:12px;margin-top:6px">' +
       (s.n ?? 0) + ' 次 · 平均 ' + (s.avg_min ?? 0) + ' 分 · ' +
-      '不到 1 分钟就走 ' + (s.under_1min ?? 0) + ' 次 · 超过 15 分钟 ' + (s.over_15min ?? 0) + ' 次',
+      // the </div> matters: without it this panel never closed, and the browser
+      // parked 「玩到多深」 inside 「单次时长」 as a box within a box
+      '不到 1 分钟就走 ' + (s.under_1min ?? 0) + ' 次 · 超过 15 分钟 ' + (s.over_15min ?? 0) + ' 次</div>',
       '中位数比平均值可靠——少数几个挂着页面不动的人会把平均值拉飞。') +
 
     panel('玩到多深',
@@ -198,7 +261,10 @@ function render(d) {
     panel('设备', table(['类型', '人数'], simple(d.devices || [], 'device', 'visitors')),
       '手机占比决定值不值得继续花时间在小屏上。') +
     panel('来源', table(['来自', '人数'], simple(d.referrers || [], 'ref', 'visitors')),
-      '哪个渠道真的带来了人。') +
+      '哪个渠道真的带来了人。微信和小红书的内置浏览器会把来源抹掉，所以「直接打开」里也有它们。') +
+    panel('域名', table(['打开的是哪个域名', '人数'], simple(d.hosts || [], 'host', 'visitors')),
+      '几个域名指向的是同一个服务、同一个数据库，所以数据一直都在，只是以前分不出是从哪个域名进来的。'
+      + '这一列从这次更新才开始记，之前的行都归到「(这次改动之前)」。') +
     panel('选了哪些队', table(['俱乐部', '次数'], (d.clubs || []).map((r) =>
       '<tr><td>' + esc(r.club) + ' <span class="muted">' + esc(r.tier || '') + '</span></td>' +
       '<td class="n">' + r.n + '</td></tr>')),
@@ -213,6 +279,20 @@ function render(d) {
       + '「两个都没点」是最贵的一格——人已经到门口了。') +
     panel('生涯怎么结束的', table(['结果', '数量'], careerRows),
       '走完十年 vs 中途下课。十年改版就是为了前者，而它之前根本没有被记录。') +
+  '</div>' +
+
+  '<div class="grid" style="margin-top:12px">' +
+    panel('开瓦包 · 从进门到开包', table(['步骤', '人数', '', '占比'], cardRows),
+      '首页只说了有多少人点进去，点进去之后发生了什么一直是空白。'
+      + '隔天还回来开包的有 <b>' + (cf.came_back ?? 0) + '</b> 人——抽卡游戏的命就是这个数。') +
+    panel('开瓦包 · 卡包', table(['卡包', '开出', '人数', '金卡', '重复/包'], packRows),
+      '金卡是概率公示的那一栏在真实样本上的样子。「重复/包」是平均每包开出几张已有的卡——'
+      + '它一路涨上去，说明卡池对这批人来说已经不够深了。') +
+    panel('开瓦包 · 天梯与杯赛', table(['模式', '场次', '人数', '胜率'], matchRows),
+      '开了包不打比赛，卡就只是图片。胜率长期该在五成上下，明显偏一边说明对手强度没配平。') +
+    panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),
+      '这一格读的是服务器上真正的存档，不是事件——手机没报上来的也在里面。'
+      + '「建号之后又回来存过档」是瓦包自己的留存。') +
   '</div>' +
 
   '<div class="grid" style="margin-top:12px">' +

@@ -44,6 +44,10 @@ export const EVENTS = new Set([
   'card_pull',
   'card_match',
   'card_signin',
+  // The five-year settlement asks the one question the career is built
+  // around. The modal has always reported the answer; the allowlist did not
+  // have the name, so every one of those answers was dropped at the door.
+  'mid_review',
   // The front page sits in front of both games now, so the first decision a
   // visitor makes is which one — and until this existed, somebody who arrived,
   // read the page and left looked identical to somebody who never arrived.
@@ -88,6 +92,17 @@ const NUMERIC_MAX = {
   w: 20_000,
   h: 20_000,
   left: 100_000,
+  // the card mode. Bounded like everything else, because the panels that read
+  // them cast in SQL: a pack deals at most ten cards, the ladder has six
+  // divisions, and a sign-in streak is counted in days.
+  gold: 50,
+  dupes: 50,
+  owned: 10_000,
+  pulls: 1_000_000,
+  streak: 3_650,
+  div: 50,
+  round: 50,
+  rating: 10_000,
 }
 const NUMERIC_PROPS = new Set(Object.keys(NUMERIC_MAX))
 

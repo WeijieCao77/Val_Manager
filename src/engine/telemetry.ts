@@ -215,6 +215,11 @@ export function startTelemetry(): void {
     // null for the audience that matters — kept because when it is there it
     // is the only thing that says where someone came from
     ref: document.referrer ? new URL(document.referrer).hostname : null,
+    // Which door they came in by. The game answers on more than one domain and
+    // they all reach the same server and the same table, so without this the
+    // owner cannot tell whether a domain is carrying any traffic at all — a
+    // referrer only ever names somewhere else.
+    host: location.hostname,
     w: window.innerWidth,
     h: window.innerHeight,
     // a first-ever id sitting next to an existing save means the id churned
@@ -231,7 +236,9 @@ export function startTelemetry(): void {
         activeMs = 0
         bumpSession()
         eventNo = 0
-        track('session_start', { ref: null, w: window.innerWidth, h: window.innerHeight })
+        track('session_start', {
+          ref: null, host: location.hostname, w: window.innerWidth, h: window.innerHeight,
+        })
       }
       lastActivity = now()
     } else {

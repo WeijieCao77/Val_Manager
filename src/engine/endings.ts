@@ -38,6 +38,18 @@ export const FINAL_YEAR = 2036
  */
 export const MID_YEAR = 2030
 
+/**
+ * The tenure, in years, spelled the way the game talks about it.
+ *
+ * 2026 is season one, so the year is also the number of seasons served — and
+ * the settlement is offered to careers that were already past 2030 when it
+ * shipped, where "五年之约" would be a lie. Those read 「七年之约」 instead.
+ */
+export const tenureCn = (year: number): string => {
+  const n = year - 2025
+  return ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][n] ?? String(n)
+}
+
 export type EndingTrack = '王朝' | '故事'
 
 export interface Ending {

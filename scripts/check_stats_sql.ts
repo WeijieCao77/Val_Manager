@@ -11,6 +11,7 @@
  */
 import { PGlite } from '@electric-sql/pglite'
 import { EVENTS, SCHEMA } from '../analytics.js'
+import { CARD_SCHEMA } from '../cards-api.js'
 import { overview, prune } from '../stats.js'
 
 const db = new PGlite()
@@ -32,6 +33,10 @@ const check = (name: string, ok: boolean, detail = '') => {
 }
 
 await db.exec(SCHEMA.replace(/^-- .*$/gm, ''))
+// The card panels read the card mode's own saves, which live in a table this
+// file used to know nothing about — a query against a table PGlite has never
+// heard of fails the same way a syntax error does.
+await db.exec(CARD_SCHEMA.replace(/^-- .*$/gm, ''))
 
 // a small but realistic population: two people over three days, one of whom
 // came back, plus the hostile row that used to poison every numeric cast
@@ -71,12 +76,42 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v2', 's3', 5, 'unlock', '-1 days', { kind: 'ach', key: 'firstTitle', name: '开张' }],
   ['v1', 's2', 11, 'account', '-1 days', { act: 'new' }],
   ['v2', 's3', 6, 'account', '-1 days', { act: 'restore' }],
+  // ---- the five-year settlement, whose answers were dropped at the door
+  // until 'mid_review' was added to the allowlist
+  ['v1', 's2', 12, 'mid_review', '-1 days', { settle: 0, honours: 12 }],
+  ['v2', 's3', 7, 'mid_review', '-1 days', { settle: 1, honours: 3 }],
+  // ---- 开瓦包. v1 goes all the way through and comes back the next day; v2
+  // taps it on the front page and never opens a thing, which is the whole
+  // point of counting the first step separately from the second.
+  ['v1', 's1', 6, 'card_start', '-2 days', { fresh: true, cloud: true, owned: 0 }],
+  ['v1', 's1', 7, 'card_pull', '-2 days', { kind: 'scout', paid: 'coins', gold: 1, dupes: 0 }],
+  ['v1', 's1', 8, 'card_pull', '-2 days', { kind: 'elite', paid: 'pack', gold: 0, dupes: 2 }],
+  ['v1', 's2', 13, 'card_match', '-1 days', { mode: 'ladder', won: true, div: 2, rating: 71 }],
+  ['v1', 's2', 14, 'card_match', '-1 days', { mode: 'cup', won: false, round: 1, rating: 71 }],
+  ['v1', 's2', 15, 'card_signin', '-1 days', { streak: 2 }],
+  // and the hostile shapes, for the casts the card panels now do
+  ['v3', 's4', 10, 'card_pull', '0 days', { kind: 'scout', paid: 'coins', gold: 'nope', dupes: 1e20 }],
 ]
 for (const [vid, sid, n, name, ago, props] of rows) {
   await db.query(
     `insert into events (ts, n, visitor_id, session_id, seq, device, name, props)
      values (now() + $1::interval, $2, $3, $4, 1, 'phone', $5, $6)`,
     [ago, n, vid, sid, name, JSON.stringify(props)],
+  )
+}
+
+// The card mode's saves, which the collection panel reads directly. The third
+// is deliberately malformed in every way a hand-edited or half-written row
+// could be: it must be skipped, not throw.
+for (const [idh, ago, state] of [
+  ['h1', '-60 days', { cards: { a: 1, b: 1, c: 1 }, pulls: 12, ladder: { div: 3 }, daily: { streak: 4 } }],
+  ['h2', '-1 days', { cards: { a: 1 }, pulls: 2, ladder: { div: 0 }, daily: { streak: 1 } }],
+  ['h3', '-1 days', { cards: 'nope', pulls: 'lots', ladder: 7, daily: null }],
+] as [string, string, unknown][]) {
+  await db.query(
+    `insert into card_accounts (id_hash, created, seen, saved, state)
+     values ($1, now() + $2::interval, now(), now(), $3)`,
+    [idh, ago, JSON.stringify(state)],
   )
 }
 
@@ -151,6 +186,38 @@ if (out) {
     JSON.stringify(out.unlocks.find((r) => r.key === 'golden')))
   check('账号的创建与找回分开统计',
     out.accounts.made === 1 && out.accounts.restored === 1, JSON.stringify(out.accounts))
+
+  // ---- 域名：只有这次改动之后写下的行才带 host
+  check('没有 host 的老行有自己的名字，不会消失',
+    out.hosts.some((r) => r.host === '(这次改动之前)'), JSON.stringify(out.hosts))
+
+  // ---- 五年之约
+  check('五年之约的两种答复分得开',
+    out.midReview.continued === 1 && out.midReview.settled === 1, JSON.stringify(out.midReview))
+
+  // ---- 开瓦包
+  const c = out.cards
+  check('开瓦包漏斗每一步都包含后面的步骤',
+    c.funnel.touched >= c.funnel.entered && c.funnel.entered >= c.funnel.pulled
+    && c.funnel.pulled >= c.funnel.fought, JSON.stringify(c.funnel))
+  check('点了首页但没进去的人算在第一步里',
+    c.funnel.touched === 3 && c.funnel.entered === 2, JSON.stringify(c.funnel))
+  check('隔天还开包的人被认出来', c.funnel.came_back === 1, JSON.stringify(c.funnel))
+  check('卡包按种类分开算', (c.packs.find((r) => r.kind === 'scout')?.opens ?? 0) === 2,
+    JSON.stringify(c.packs))
+  check('金卡数不会被一个坏值毁掉',
+    Number(c.packs.find((r) => r.kind === 'scout')?.gold) === 1, JSON.stringify(c.packs))
+  check('用金币买的和用卡包开的分得开',
+    Number(c.packs.find((r) => r.kind === 'elite')?.bought) === 0, JSON.stringify(c.packs))
+  check('天梯和杯赛分开，胜负分开',
+    (c.matches.find((r) => r.mode === 'ladder')?.wins ?? 0) === 1
+    && (c.matches.find((r) => r.mode === 'cup')?.wins ?? 0) === 0, JSON.stringify(c.matches))
+  check('收藏统计跳过坏掉的存档而不是崩掉',
+    c.accounts.accounts === 2 && c.accounts.avg_owned === 2, JSON.stringify(c.accounts))
+  check('最高段位和最长连签读的是存档本身',
+    c.accounts.max_div === 3 && c.accounts.max_streak === 4, JSON.stringify(c.accounts))
+  check('窗口外建的账号仍然计入总数，但不算新增',
+    c.accounts.accounts === 2 && c.accounts.fresh === 1, JSON.stringify(c.accounts))
 }
 
 // every window the dashboard offers must work, not just the default
