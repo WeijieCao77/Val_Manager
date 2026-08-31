@@ -19,9 +19,11 @@
  * exactly that reason — the game holds no weapon data, and a quiz that makes
  * its facts up is worse than no quiz.
  */
-import { AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
+import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
 import { hashStr } from './rng'
 import { WORLD_PLAYERS, WORLD_TEAMS } from './world'
+import { REGION_CN } from './types'
+import type { Region } from './types'
 // type-only, so this file has no runtime dependency on gacha.ts — the
 // dependency runs the other way, gacha.ts calls newChallenge() to migrate
 import type { GachaState, PackKind } from './gacha'
@@ -111,21 +113,39 @@ export interface Choice {
 
 const TIER1 = new Set(WORLD_TEAMS.filter((t) => t.tier === 1).map((t) => t.id))
 
+/**
+ * Everything is typed in Chinese OR English, whichever the player reaches for.
+ *
+ * The picker matches on the name and the hint together, so putting both
+ * spellings across the two fields is what makes 「铁臂」 and 「Breach」 both
+ * find the same agent. Reported the hard way: agents were English-only, so a
+ * Chinese player could not search for the thing this game is written in.
+ * Regions get the same treatment — 「美洲」 finds Leviatán.
+ */
+const regionCn = (r: string): string => REGION_CN[r as Region] ?? r
+
 const playerChoices = (): Choice[] =>
   WORLD_PLAYERS.map((p) => ({
     id: p.id,
     name: p.ign,
-    hint: `${WORLD_TEAMS.find((t) => t.id === p.teamId)?.tag ?? '自由'} · ${p.region}`,
+    hint: `${WORLD_TEAMS.find((t) => t.id === p.teamId)?.tag ?? '自由'} · ${regionCn(p.region)}`,
   }))
 
 const teamChoices = (): Choice[] =>
-  WORLD_TEAMS.map((t) => ({ id: t.id, name: t.name, hint: `${t.tag} · ${t.region}` }))
+  WORLD_TEAMS.map((t) => ({
+    id: t.id, name: t.name, hint: `${t.tag} · ${regionCn(t.region)}`,
+  }))
 
 const mapChoices = (): Choice[] =>
   MAPS.map((m) => ({ id: m, name: mapCn(m), hint: m }))
 
+// 铁臂 and Breach are the same agent, and both have to find him
 const agentChoices = (): Choice[] =>
-  ALL_AGENTS.map((a) => ({ id: a, name: a, hint: roleOfAgent(a) ?? '' }))
+  ALL_AGENTS.map((a) => ({
+    id: a,
+    name: agentCn(a),
+    hint: `${a}${roleOfAgent(a) ? ` · ${roleOfAgent(a)}` : ''}`,
+  }))
 
 /** The in-game role an agent is filed under, from the game's own table. */
 export function roleOfAgent(agent: string): string | null {
@@ -304,7 +324,7 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
   if (kind === 'agent') {
     const role = roleOfAgent(guessId)
     return {
-      id: guessId, name: guessId, img: imgOf('agent', guessId),
+      id: guessId, name: agentCn(guessId), img: imgOf('agent', guessId),
       cells: [typeCell, {
         label: '定位', value: role ?? '?',
         mark: same(role, roleOfAgent(answerId)),

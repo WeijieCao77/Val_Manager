@@ -101,19 +101,38 @@ export default function Challenge() {
           没猜中退一半。
         </p>
 
-        {/* The subject. Always a picture, always the same frame: a face, a
-            crest, a map and an agent are indistinguishable at this blur, which
-            is the point — a wide banner in a wide box would have announced
-            「地图」 before a guess was made. */}
+        {/* The subject.
+            Three of the four kinds are square — faces are 192², agents 128²,
+            crests 256² — and only a map is a 4.55:1 strip. A flat banner frame
+            with object-fit:cover therefore sliced a band out of the middle of
+            every portrait, and was the one shape a map filled naturally, which
+            gave the kind away from across the room.
+            So: the image whole, on a backdrop of itself blown up and blurred.
+            Nothing is cropped, the letterbox that would betray the aspect
+            ratio is filled in, and at the opening blur the whole box is one
+            smudge whatever is under it. */}
         <div style={{
-          position: 'relative', height: 190, borderRadius: 4, overflow: 'hidden',
+          position: 'relative', height: 210, borderRadius: 4, overflow: 'hidden',
           background: 'var(--panel-2)', marginBottom: 12,
         }}>
           <img
             src={`${assetBase()}${answerRow.img}`}
             alt=""
+            aria-hidden
             style={{
-              width: '100%', height: '100%', objectFit: 'cover',
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', opacity: 0.75,
+              filter: `blur(${blur + 16}px) saturate(1.2)`,
+              transform: `scale(${zoom + 0.4})`,
+              transition: 'filter .35s ease, transform .35s ease',
+            }}
+          />
+          <img
+            src={`${assetBase()}${answerRow.img}`}
+            alt=""
+            style={{
+              position: 'relative', display: 'block', margin: '0 auto',
+              width: '100%', height: '100%', objectFit: 'contain',
               filter: `blur(${blur}px)`, transform: `scale(${zoom})`,
               transition: 'filter .35s ease, transform .35s ease',
             }}
@@ -183,15 +202,23 @@ export default function Challenge() {
           <p className="tiny" style={{ color: 'var(--warn)', margin: '0 0 8px' }}>{block}</p>
         )}
 
-        {/* what has been tried */}
-        {rows.length > 0 && (
+        {/* What has been tried.
+            The header comes from the WIDEST row, not the first one: a guess of
+            the wrong kind returns a single 类型 cell, so a table headed off the
+            opening guess put 赛区 above 分级 and everything after it one column
+            to the left. Short rows are padded so each cell stays under its own
+            heading. */}
+        {rows.length > 0 && (() => {
+          const head = rows.reduce((best, r) => (r.cells.length > best.length ? r.cells : best),
+            [] as typeof rows[number]['cells'])
+          return (
           <div className="table-wrap" style={{ marginTop: 4 }}>
             <table>
-              {rows[0].cells.length > 0 && (
+              {head.length > 0 && (
                 <thead>
                   <tr>
                     <th>猜的</th>
-                    {rows[0].cells.map((c) => <th key={c.label} className="center">{c.label}</th>)}
+                    {head.map((c) => <th key={c.label} className="center">{c.label}</th>)}
                   </tr>
                 </thead>
               )}
@@ -210,7 +237,9 @@ export default function Challenge() {
                         {r.id === answer && <span className="tag t1">正解</span>}
                       </span>
                     </td>
-                    {r.cells.map((c) => {
+                    {head.map((h, ci) => {
+                      const c = r.cells[ci]
+                      if (!c) return <td key={h.label} className="center faint">—</td>
                       const st = MARK_STYLE[c.mark]
                       return (
                         <td key={c.label} className="center">
@@ -229,7 +258,8 @@ export default function Challenge() {
               </tbody>
             </table>
           </div>
-        )}
+          )
+        })()}
 
         {state.done && (
           <>
@@ -239,12 +269,26 @@ export default function Challenge() {
                 : '今天没猜出来，连胜清零了。'}
               答案是<b style={{ color: 'var(--text)' }}>{KIND_CN[kind]}「{answerRow.name}」</b>。明天换一道。
             </p>
-            {/* everybody on earth has today's puzzle; posting the answer takes
-                it away from them, and this is the moment they would do it */}
-            <p className="tiny" style={{ color: 'var(--warn)', margin: 0 }}>
-              🤐 <b>别把答案发出去</b>——今天全世界是同一道题，发出来别人就没得玩了。
-              想晒的话晒「第几次猜中」和连胜天数就好。
-            </p>
+            {/* Everybody on earth has today's puzzle, and this is the exact
+                moment somebody screenshots it. Loud enough to actually stop
+                them: a boxed callout, not a grey footnote. */}
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              margin: '12px 0 0', padding: '11px 13px', borderRadius: 3,
+              background: 'var(--warn-wash)',
+              border: '1px solid var(--warn)', borderLeftWidth: 3,
+            }}>
+              <span style={{ fontSize: 19, lineHeight: 1.2 }}>🤐</span>
+              <div>
+                <b style={{ color: 'var(--warn)', fontSize: 'var(--t-body)' }}>
+                  别把答案发出去
+                </b>
+                <div className="small muted" style={{ marginTop: 3, lineHeight: 1.7 }}>
+                  今天<b>全世界是同一道题</b>，发出来别人就没得玩了。
+                  想晒的话，晒「第几次猜中」和连胜天数就好。
+                </div>
+              </div>
+            </div>
           </>
         )}
       </Panel>

@@ -22,6 +22,7 @@ import {
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
 import { newGacha, PACKS } from '../src/engine/gacha'
+import { AGENT_CN } from '../src/engine/content'
 import type { GachaState } from '../src/engine/gacha'
 
 const store = new Map<string, string>()
@@ -183,6 +184,28 @@ const dateAt = (n: number): string =>
     `${allChoices().length} 个`)
   const ids = allChoices().map((c) => c.id)
   check('跨类别的 id 不重名', new Set(ids).size === ids.length)
+}
+
+// ---- 中文和英文都要能搜到
+{
+  const all = allChoices()
+  const agents = all.filter((c) => c.kind === 'agent')
+  // Not "has a Chinese character": KAY/O is officially K/O on the national
+  // server, which is a real translated name with no CJK in it.
+  const named = agents.filter((c) => c.name === AGENT_CN[c.id])
+  check('每个英雄都用官方译名显示', named.length === agents.length,
+    `${named.length}/${agents.length}，例：${agents.slice(0, 3).map((c) => `${c.name}(${c.hint})`).join(' ')}`)
+  check('英雄的英文名仍然能搜到（在 hint 里）',
+    agents.every((c) => c.hint.includes(c.id)))
+  // the reported case, exactly
+  const search = (q: string) => all.filter((c) =>
+    c.name.toLowerCase().includes(q.toLowerCase()) || c.hint.toLowerCase().includes(q.toLowerCase()))
+  check('搜「铁臂」能找到 Breach', search('铁臂').some((c) => c.id === 'Breach'))
+  check('搜「暮蝶」能找到 Clove', search('暮蝶').some((c) => c.id === 'Clove'))
+  check('搜「Breach」也还找得到', search('Breach').some((c) => c.id === 'Breach'))
+  check('地图中英文都能搜', search('微风').some((c) => c.id === 'Breeze')
+    && search('Breeze').some((c) => c.id === 'Breeze'))
+  check('赛区能用中文搜', search('太平洋').some((c) => c.kind === 'team'))
 }
 
 // ---- 买不起就不让进，而不是扣成负数
