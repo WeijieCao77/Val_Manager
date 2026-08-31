@@ -460,35 +460,72 @@ export async function overview(sql, days = 30) {
  * this year" is not a retention policy. Raw events older than half a year go;
  * nothing on the dashboard looks further back than that.
  */
-export async function prune(sql, days = 180, maxRows = 3_000_000, maxBytes = 1_200_000_000) {
+export async function prune(sql, days = 180, maxRows = 4_000_000) {
   const byAge = await sql`delete from events where ts < now() - ${`${days} days`}::interval`
-  // Age alone cannot recover from a flood: a million rows written this morning
-  // are all in date. Oldest-first by id gives the table a hard ceiling that a
-  // restart can climb back under.
+
+  // Oldest-first down to a row ceiling, addressed by POSITION rather than by
+  // id arithmetic. `id <= max(id) - maxRows` assumes the ids are dense and
+  // they are not: the dedupe index rejects a re-delivered batch after the
+  // sequence has already handed out its numbers, so the gaps grow with every
+  // flaky phone and the threshold drifts further into live data.
   const byCount = await sql`
     delete from events
-    where id <= (select max(id) - ${maxRows} from events)`
+    where id in (select id from events order by id desc offset ${maxRows})`
 
-  // ...and a row ceiling alone cannot recover from a FAT flood. Measured on a
-  // real engine the widest legal row is ~2.4kB, so the 1.5GB write-refusal
-  // budget is reached at roughly 640k rows — a fifth of the row ceiling. The
-  // table filled, ingestion switched itself off, and prune deleted nothing
-  // because both ceilings were still far away. Delete oldest-first in batches
-  // until the size is back under budget.
-  let bySize = 0
-  for (let pass = 0; pass < 20; pass++) {
-    let bytes = 0
-    try {
-      const r = await sql`select pg_total_relation_size('events') as b`
-      bytes = Number(r[0]?.b ?? 0)
-    } catch { break }
-    if (bytes <= maxBytes) break
-    const cut = await sql`
-      delete from events
-      where id in (select id from events order by id limit 200000)`
-    if (!cut.count) break
-    bySize += cut.count
-    try { await sql`vacuum (analyze) events` } catch { /* not fatal */ }
+  const total = (byAge.count ?? 0) + (byCount.count ?? 0)
+  if (total) {
+    console.warn(`analytics: pruned ${total} events`
+      + ` — over-age ${byAge.count ?? 0}, over-rows ${byCount.count ?? 0}`)
   }
-  return (byAge.count ?? 0) + (byCount.count ?? 0) + bySize
+  return total
+}
+
+
+/**
+ * Why there is no size-based deletion here any more.
+ *
+ * There was: a loop that compared pg_total_relation_size against a byte budget
+ * and deleted 200k rows a pass until it came under. It never came under, and
+ * it could not have. Plain VACUUM marks space reusable but does NOT return it
+ * to the operating system — only VACUUM FULL shrinks the file, and that takes
+ * an exclusive lock — so the size a DELETE leaves behind is the size it
+ * started with. Every boot therefore ran all twenty passes and deleted four
+ * million rows however little was actually over, and a day of eight deploys
+ * took thirty days of play data down to one.
+ *
+ * The deeper point is that the rule was never sound in either direction:
+ * deleting rows cannot free disk, so it cannot answer the problem it was
+ * written for. What bounds the table is the row ceiling, which is exact, and
+ * converges, and is trivially checked. Bloat is reported to the dashboard
+ * instead of being fought with a chainsaw — if the file is ever far larger
+ * than the rows in it, that is a VACUUM FULL to run deliberately, not
+ * something a boot should decide on its own.
+ */
+
+/**
+ * What the retention policy is doing to the history, for the dashboard.
+ *
+ * The thirty days that went missing went missing SILENTLY — nothing on the
+ * screen said the table had a ceiling, was near it, or had just cut a month
+ * off the back. So the numbers are on the wall now.
+ */
+export async function storage(sql, maxRows = 4_000_000) {
+  try {
+    const r = await sql`
+      select count(*)::bigint as rows,
+             min(ts) as oldest,
+             max(ts) as newest,
+             pg_total_relation_size('events')::bigint as bytes
+      from events`
+    const row = r[0] ?? {}
+    return {
+      rows: Number(row.rows ?? 0),
+      oldest: row.oldest ?? null,
+      newest: row.newest ?? null,
+      bytes: Number(row.bytes ?? 0),
+      maxRows,
+    }
+  } catch {
+    return { rows: 0, oldest: null, newest: null, bytes: 0, maxRows }
+  }
 }

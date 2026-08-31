@@ -12,7 +12,7 @@
 import { PGlite } from '@electric-sql/pglite'
 import { EVENTS, SCHEMA } from '../analytics.js'
 import { CARD_SCHEMA } from '../cards-api.js'
-import { overview, prune } from '../stats.js'
+import { overview, prune, storage } from '../stats.js'
 
 const db = new PGlite()
 
@@ -265,6 +265,58 @@ try {
   check('pruning runs', true)
 } catch (err) {
   check('pruning runs', false, (err as Error).message)
+}
+
+// ---- 清理必须会停，而且只删该删的
+//
+// 它没有停过。旧的循环拿 pg_total_relation_size 和预算比，而 DELETE 之后文件
+// 大小根本不变（只有 VACUUM FULL 会缩，那要锁表），所以一旦超预算，退出条件
+// 永远不成立：每次启动跑满 20 轮、删掉 400 万行，不管实际超了多少。一天八次
+// 部署就把三十天的历史删成了一天。按体积删行这条规则本身就不成立——删行根本
+// 释放不了磁盘，所以现在只按「过期」和「行数上限」删，两者都收敛。
+{
+  await db.exec('delete from events')
+  const rows = 5000
+  const values = Array.from({ length: rows }, (_, i) =>
+    `(now() - interval '${i} minutes', ${i}, 'v${i % 50}', 's${i % 50}', 1, 'phone', 'turn', '{"day":${i % 300}}')`)
+  for (let i = 0; i < values.length; i += 500) {
+    await db.exec(`insert into events (ts, n, visitor_id, session_id, seq, device, name, props)
+      values ${values.slice(i, i + 500).join(',')}`)
+  }
+  await db.exec('vacuum (analyze) events')
+  const count = async () => Number((await db.query('select count(*)::int as n from events'))
+    .rows[0]!.n)
+  check('先塞满 5000 行', await count() === rows, `${await count()}`)
+
+  // well inside every budget: a healthy table must lose nothing, however many
+  // times the process restarts
+  for (let boot = 0; boot < 5; boot++) await prune(sql as never, 180, 9_999_999)
+  check('没超上限时，重启五次也一行不删', await count() === rows, `剩 ${await count()}`)
+
+  // over the row ceiling: cut to exactly the ceiling, and no further
+  const first = await prune(sql as never, 180, 3000)
+  check('超了行数上限就删到上限为止', await count() === 3000, `删了 ${first}，剩 ${await count()}`)
+  const second = await prune(sql as never, 180, 3000)
+  check('再跑一次不会继续删（这就是当初丢数据的地方）', second === 0,
+    `第二次又删了 ${second} 行，剩 ${await count()}`)
+
+  // and the ceiling addresses by position, so id gaps cannot drag it in
+  await db.exec('update events set id = id * 3')
+  await prune(sql as never, 180, 100)
+  check('行数上限按位置算，id 有空洞也不会误删', await count() === 100, `剩 ${await count()}`)
+
+  // the newest rows are the ones kept
+  const kept = await db.query('select min(ts) as oldest, max(ts) as newest from events')
+  check('留下的是最新的那些', !!kept.rows[0],
+    `${String((kept.rows[0] as { oldest: unknown }).oldest).slice(4, 21)} 起`)
+}
+
+// ---- 存储状态要能被看见
+{
+  const st = await storage(sql as never)
+  check('存储面板知道有多少行、多久的历史',
+    st.rows > 0 && !!st.oldest && st.bytes > 0,
+    `${st.rows} 行，最早 ${String(st.oldest).slice(0, 10)}，${(st.bytes / 1e6).toFixed(1)} MB`)
 }
 
 await db.close()

@@ -314,6 +314,30 @@ function render(d) {
   '</div>' +
 
   '<div class="grid" style="margin-top:12px">' +
+    (() => {
+      const st = d.storage || {}
+      const gb = (n) => (n / 1e9).toFixed(2) + ' GB'
+      const days = st.oldest
+        ? Math.max(0, Math.round((Date.now() - new Date(st.oldest).getTime()) / 86400000))
+        : 0
+      const rowPct = pct(st.rows || 0, st.maxRows || 1)
+      const nearly = rowPct >= 80
+      return panel('数据库 · 这里存着多少历史',
+        '<div class="big">' + days + '<small>天的历史</small></div>' +
+        '<div class="muted" style="font-size:12px;margin-top:6px">' +
+        '最早一条 ' + (st.oldest ? esc(String(st.oldest).slice(0, 10)) : '—') +
+        ' · ' + (st.rows || 0).toLocaleString() + ' 行（上限 ' +
+        (st.maxRows || 0).toLocaleString() + '，' + rowPct + '%）' +
+        ' · 占盘 ' + gb(st.bytes || 0) + '</div>' +
+        (nearly
+          ? '<div style="font-size:12px;margin-top:6px;color:var(--warn)">'
+            + '⚠ 快到上限了，最旧的数据随时会被清掉。</div>'
+          : ''),
+        '2026-08-31 之前的三十天在这里丢过一次：旧的清理逻辑按文件体积删行，而 DELETE 根本'
+        + '不会让文件变小，于是它每次重启都删四百万行，一天八次部署就把历史删光了。现在只按'
+        + '「过期」和「行数上限」删，两者都会停。这一格是为了让同样的事不会再没人看见——'
+        + '「占盘」比行数大很多说明有膨胀，那是该手动跑一次 VACUUM FULL，不是该删数据。')
+    })() +
     panel('存档体积 · 对着浏览器的上限看',
       '<div class="big">' + (sz.p50 ?? 0) + '<small>KB（中位）</small></div>' +
       '<div class="muted" style="font-size:12px;margin-top:6px">' +

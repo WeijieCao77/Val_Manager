@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
 import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
 import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
-import { overview, prune } from './stats.js'
+import { overview, prune, storage } from './stats.js'
 import { dashboardHtml } from './dashboard.js'
 
 // Analytics is a side-car. Nothing in it is worth taking the game offline for,
@@ -261,7 +261,8 @@ async function stats(req, res, url) {
   if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 30))
   try {
-    json(res, 200, await overview(sql, days))
+    const [data, disk] = await Promise.all([overview(sql, days), storage(sql)])
+    json(res, 200, { ...data, storage: disk })
   } catch (err) {
     console.warn('analytics: query failed', err.message)
     json(res, 500, { ok: false, why: err.message })
