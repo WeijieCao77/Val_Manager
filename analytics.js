@@ -49,6 +49,9 @@ export const EVENTS = new Set([
   'card_pull',
   'card_match',
   'card_signin',
+  // 每日挑战 — the one thing in the card mode that asks the player to know
+  // something, and therefore the one whose solve rate is worth watching
+  'card_challenge',
   // The five-year settlement asks the one question the career is built
   // around. The modal has always reported the answer; the allowlist did not
   // have the name, so every one of those answers was dropped at the door.
@@ -105,6 +108,8 @@ const NUMERIC_MAX = {
   owned: 10_000,
   pulls: 1_000_000,
   streak: 3_650,
+  tries: 100,
+  solved: 10,
   div: 50,
   round: 50,
   rating: 10_000,

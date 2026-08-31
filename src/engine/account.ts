@@ -14,6 +14,7 @@
  */
 import type { GachaState } from './gacha'
 import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
+import { newChallenge } from './challenge'
 
 const ID_KEY = 'valmanager:card:id'
 const MIRROR = 'valmanager:card:state:'
@@ -432,5 +433,7 @@ function migrate(state: GachaState, id: string): GachaState {
   // accounts made before the daily budget existed start today with a full one
   g.daily.stamina ??= STAMINA_MAX
   g.daily.staminaAt ??= 0
+  // accounts made before the daily challenge existed have never played one
+  g.challenge ??= newChallenge()
   return clampState(g)
 }

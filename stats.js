@@ -18,7 +18,7 @@ export async function overview(sql, days = 30) {
     headline, daily, retention, sessions, funnel, depth,
     devices, screens, clubs, referrers, errors,
     home, careers, unlocks, accounts,
-    hosts, midReview, cardFunnel, packs, cardMatches, cardAccounts, saveSize,
+    hosts, midReview, cardFunnel, packs, challenge, cardMatches, cardAccounts, saveSize,
   ] = await Promise.all([
     // The number that goes at the top: people who came back on a later day.
     // One visit is a click on a link; two days is a game someone chose again.
@@ -329,6 +329,23 @@ export async function overview(sql, days = 30) {
       where name = 'card_pull' and ts > now() - ${since}::interval and props ? 'kind'
       group by 1 order by opens desc limit 10`,
 
+    // ---- 每日挑战: the one thing in the card mode that asks a player to know
+    // something. Whether it lands is a solve rate, not a play count — a puzzle
+    // nobody solves is a puzzle nobody comes back to.
+    sql`
+      select props->>'kind' as kind,
+             count(*)::int                                          as played,
+             count(distinct visitor_id)::int                        as visitors,
+             count(*) filter (where props->>'solved' = '1')::int    as solved,
+             coalesce(round(avg(case when props->>'tries' ~ '^[0-9]{1,2}$'
+               then (props->>'tries')::int end)
+               filter (where props->>'solved' = '1'), 1), 0)        as avg_tries,
+             coalesce(max(case when props->>'streak' ~ '^[0-9]{1,4}$'
+               then (props->>'streak')::int else 0 end), 0)         as best_streak
+      from events
+      where name = 'card_challenge' and ts > now() - ${since}::interval and props ? 'kind'
+      group by 1 order by played desc`,
+
     // 天梯 and 杯赛 are the reason to own the cards at all.
     sql`
       select props->>'mode' as mode,
@@ -429,6 +446,7 @@ export async function overview(sql, days = 30) {
     cards: {
       funnel: cardFunnel[0] ?? {},
       packs,
+      challenge,
       matches: cardMatches,
       accounts: cardAccounts[0] ?? {},
     },

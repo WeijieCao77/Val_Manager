@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { ComponentType } from 'react'
 import { CardCtx } from './cards/ctx'
 import Packs from './cards/Packs'
+import Challenge from './cards/Challenge'
 import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
 import Ladder from './cards/Ladder'
@@ -76,6 +77,7 @@ function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
 
 const TABS = [
   { key: 'packs', label: '抽卡' },
+  { key: 'challenge', label: '挑战' },
   { key: 'squad', label: '卡组' },
   { key: 'collection', label: '收藏' },
   { key: 'ladder', label: '天梯' },
@@ -247,6 +249,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   // away whatever the player had typed into it.
   const Screen = ({
     packs: Packs,
+    challenge: Challenge,
     squad: SquadScreen,
     collection: Collection,
     ladder: Ladder,

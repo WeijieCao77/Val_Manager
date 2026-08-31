@@ -95,6 +95,9 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v1', 's2', 13, 'card_match', '-1 days', { mode: 'ladder', won: true, div: 2, rating: 71 }],
   ['v1', 's2', 14, 'card_match', '-1 days', { mode: 'cup', won: false, round: 1, rating: 71 }],
   ['v1', 's2', 15, 'card_signin', '-1 days', { streak: 2 }],
+  ['v1', 's2', 17, 'card_challenge', '-1 days', { kind: 'player', solved: 1, tries: 3, streak: 2 }],
+  ['v2', 's3', 10, 'card_challenge', '-1 days', { kind: 'player', solved: 0, tries: 6, streak: 0 }],
+  ['v2', 's3', 11, 'card_challenge', '-1 days', { kind: 'map', solved: 1, tries: 1, streak: 1 }],
   // and the hostile shapes, for the casts the card panels now do
   ['v3', 's4', 10, 'card_pull', '0 days', { kind: 'scout', paid: 'coins', gold: 'nope', dupes: 1e20 }],
 ]
@@ -228,6 +231,14 @@ if (out) {
     Number(c.packs.find((r) => r.kind === 'scout')?.gold) === 1, JSON.stringify(c.packs))
   check('用金币买的和用卡包开的分得开',
     Number(c.packs.find((r) => r.kind === 'elite')?.bought) === 0, JSON.stringify(c.packs))
+  check('每日挑战按题型分开，解开率算得出来',
+    (c.challenge.find((r) => r.kind === 'player')?.solved ?? 0) === 1
+    && (c.challenge.find((r) => r.kind === 'player')?.played ?? 0) === 2,
+    JSON.stringify(c.challenge))
+  check('平均次数只算解开的那些',
+    Number(c.challenge.find((r) => r.kind === 'player')?.avg_tries) === 3,
+    JSON.stringify(c.challenge.find((r) => r.kind === 'player')))
+
   check('天梯和杯赛分开，胜负分开',
     (c.matches.find((r) => r.mode === 'ladder')?.wins ?? 0) === 1
     && (c.matches.find((r) => r.mode === 'cup')?.wins ?? 0) === 0, JSON.stringify(c.matches))

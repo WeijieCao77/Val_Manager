@@ -197,6 +197,13 @@ function render(d) {
     // 273% on the pack that is most worth watching
     '<td class="n muted">' + (r.dupes / (r.opens || 1)).toFixed(1) + '</td></tr>')
 
+  const CH_CN = { player: '猜选手', team: '猜战队', map: '猜地图', agent: '猜英雄' }
+  const chRows = (cm.challenge || []).map((r) =>
+    '<tr><td>' + esc(CH_CN[r.kind] || r.kind) + '</td>' +
+    '<td class="n">' + r.visitors + '</td>' +
+    '<td class="n">' + pct(r.solved, r.played || 1) + '%</td>' +
+    '<td class="n muted">' + r.avg_tries + '</td></tr>')
+
   const matchRows = (cm.matches || []).map((r) =>
     '<tr><td>' + esc(MODE_CN[r.mode] || r.mode) + '</td>' +
     '<td class="n">' + r.played + '</td>' +
@@ -289,6 +296,9 @@ function render(d) {
     panel('开瓦包 · 卡包', table(['卡包', '开出', '人数', '金卡', '重复/包'], packRows),
       '金卡是概率公示的那一栏在真实样本上的样子。「重复/包」是平均每包开出几张已有的卡——'
       + '它一路涨上去，说明卡池对这批人来说已经不够深了。') +
+    panel('开瓦包 · 每日挑战', table(['题型', '人数', '解开率', '平均次数'], chRows),
+      '一天一道，全服同题，入场 300 金币。解开率太低说明题出难了——没人解得开的谜题，'
+      + '第二天就没人回来了；太高说明奖励白送。平均次数看的是有没有在「猜」。') +
     panel('开瓦包 · 天梯与杯赛', table(['模式', '场次', '人数', '胜率'], matchRows),
       '开了包不打比赛，卡就只是图片。胜率长期该在五成上下，明显偏一边说明对手强度没配平。') +
     panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),

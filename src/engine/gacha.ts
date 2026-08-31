@@ -14,6 +14,8 @@ import {
   squadRating,
 } from './cards'
 import type { Card, CoachCard, Rarity, Squad } from './cards'
+import { newChallenge } from './challenge'
+import type { ChallengeState } from './challenge'
 
 export const GACHA_VERSION = 1
 
@@ -315,6 +317,8 @@ export interface GachaState {
   ladder: LadderState
   cup: CupState | null
   daily: DailyState
+  /** 每日挑战 — see engine/challenge.ts */
+  challenge?: ChallengeState
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
@@ -337,6 +341,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     mythicDry: 0,
     pulls: 0,
     ladder: { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 },
+    challenge: newChallenge(),
     cup: null,
     daily: {
       claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
