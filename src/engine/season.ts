@@ -425,7 +425,32 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
   notes.push(msg)
   state.news.push({ day: state.day, kind: 'club', important: true, text: msg })
 
-  judgeTenure(state, place, notes)
+  judgeTenure(state, place, obj.met, notes)
+}
+
+/**
+ * How much of the board's patience a manager has to win back.
+ *
+ * Deliberately above the 20% that issues a warning, and deliberately below the
+ * 45% the withdrawal used to want: a warning that cannot be worked off is not
+ * a warning, it is a permanent penalty on every contract talk and job offer.
+ * One good stage from the confidence floor gets close; two clears it.
+ */
+export const NOTICE_LIFT = 35
+
+/**
+ * What it will take to get the warning withdrawn, in the board's own terms.
+ *
+ * One sentence, shared by the news line, the agenda and the dashboard, because
+ * a warning that does not say how it comes off is the thing that was reported.
+ * It adapts: a manager warned for two missed briefs may already be well above
+ * the confidence bar, and telling him to climb back to 35% from 43% reads as
+ * nonsense.
+ */
+export function noticeHint(state: GameState): string {
+  return state.boardConfidence >= NOTICE_LIFT
+    ? '达成一个赛段目标就会撤回'
+    : `达成赛段目标、并把信任度拉回 ${NOTICE_LIFT}% 以上（现在 ${Math.round(state.boardConfidence)}%）就会撤回`
 }
 
 /**
@@ -434,14 +459,34 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
  * A career needs a way to end badly or its successes mean nothing. The board
  * warns first — it never fires without having said so — and only acts on a
  * stage boundary, where a verdict belongs.
+ *
+ * Everything here is judged against the brief the board actually set, which is
+ * the whole point of having one. It was not, and the group chat found both
+ * halves of that:
+ *
+ *   The warning was withdrawn only on a top-four finish. A mid-table club is
+ *   asked for top eight, so a manager could meet the brief four stages
+ *   running, watch confidence climb from 40% to 88%, and still be carrying a
+ *   warning that costs 45 points of odds on every renewal and job offer. It
+ *   never came off, and nothing on screen said what would take it off.
+ *
+ *   And the sack could fire on a stage that PASSED, because the confidence
+ *   floor did not ask. The manager was then told he had 「又交了一个不合格
+ *   的赛段」 about a stage he had just been congratulated for. The warning
+ *   says one more failed stage; only a failed stage may act on it.
+ *
+ * Exported so scripts/check_tenure.ts can put a board through every one of
+ * these paths without having to rig a season's standings to reach them.
  */
-function judgeTenure(state: GameState, place: number, notes: string[]): void {
+export function judgeTenure(
+  state: GameState, place: number, met: boolean, notes: string[],
+): void {
   const club = state.teams[state.myTeam]?.name ?? '俱乐部'
 
-  const doomed =
+  const doomed = !met && (
     state.boardConfidence <= 6 ||
     (state.onNotice && (state.missedStreak ?? 0) >= 2) ||
-    (state.onNotice && state.boardConfidence <= 18)
+    (state.onNotice && state.boardConfidence <= 18))
 
   if (doomed && state.onNotice) {
     // Say what actually ended it. There are three routes here and the message
@@ -467,18 +512,21 @@ function judgeTenure(state: GameState, place: number, notes: string[]): void {
 
   if (!state.onNotice && (state.boardConfidence <= 20 || (state.missedStreak ?? 0) >= 2)) {
     state.onNotice = true
-    const warn = `⚠ 董事会正式警告：再有一个赛段交不出成绩，就会换人。（当前信任度 ${Math.round(state.boardConfidence)}%）`
+    // say what takes it off, or 「已被警告」 reads as a permanent mark
+    const warn = `⚠ 董事会正式警告：再有一个赛段交不出成绩，就会换人。`
+      + `（当前信任度 ${Math.round(state.boardConfidence)}%——${noticeHint(state)}）`
     notes.push(warn)
     state.news.push({ day: state.day, kind: 'club', important: true, text: warn })
     return
   }
 
-  // a good stage buys back some patience
-  if (state.onNotice && state.boardConfidence >= 45 && place <= 4) {
+  // a good stage buys back some patience — measured against the brief, not
+  // against a placing the brief never asked for
+  if (state.onNotice && met && state.boardConfidence >= NOTICE_LIFT) {
     state.onNotice = false
-    const ok = '董事会撤回了此前的警告，你暂时坐稳了位置。'
+    const ok = `董事会撤回了此前的警告（第 ${place} 名，达成目标；信任度 ${Math.round(state.boardConfidence)}%），你坐稳了位置。`
     notes.push(ok)
-    state.news.push({ day: state.day, kind: 'club', text: ok })
+    state.news.push({ day: state.day, kind: 'club', important: true, text: ok })
   }
 }
 

@@ -1,6 +1,6 @@
 import { squadOf, wageBill } from './world'
 import { windowOpen, TRANSFER_WINDOWS } from './transfer'
-import { nextFixtureFor, stageName } from './season'
+import { nextFixtureFor, noticeHint, stageName } from './season'
 import { gigWindow } from './commercial'
 import type { Activity, GameState, StageKey } from './types'
 
@@ -95,9 +95,11 @@ export function agendaFor(state: GameState): AgendaItem[] {
   }
 
   if (state.onNotice) {
+    // and how it comes off. Without this half the warning reads as permanent,
+    // which is exactly how it was reported: 「为什么被警告一次之后就一直在」
     items.push({
       key: 'notice', tone: 'urgent', go: 'standings',
-      text: '董事会已经警告过你——这个赛段交不出成绩就会被解约。',
+      text: `董事会已经警告过你——这个赛段交不出成绩就会被解约。${noticeHint(state)}。`,
     })
   }
 

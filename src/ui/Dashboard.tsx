@@ -6,7 +6,7 @@ import { useGame } from './ctx'
 import { track } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, recentResultsFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
 import type { ScrimFormat } from '../engine/season'
 import { poolFor } from '../engine/match'
 import { sortStandings } from '../engine/league'
@@ -226,7 +226,11 @@ export default function Dashboard() {
                 目标：{game.objective.text}
               </span>
             ) : <span className="faint">本赛段暂无目标</span>}
-            {game.onNotice && <span className="neg"> · ⚠ 已被警告</span>}
+            {/* the way out has to be ON the screen, not in a tooltip — three
+                quarters of this audience is on a phone and never sees one */}
+            {game.onNotice && (
+              <span className="neg"> · ⚠ 已被警告，{noticeHint(game)}</span>
+            )}
           </div>
         </Panel>
         {game.manager && (
