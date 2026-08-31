@@ -152,6 +152,27 @@ export function drillTick(state: GameState, rng: Rng, notes: string[]): void {
   state.drillLock = undefined
 }
 
+/**
+ * What the numbers printed on the training cards get multiplied by.
+ *
+ * Exported because the panel has to be able to say how long something will
+ * actually take, and a second copy of these three lines in the UI is how a
+ * screen and its engine quietly stop agreeing. `dev` applies to every drill,
+ * `review` on top of it to tape work only.
+ */
+export function drillRates(state: GameState): { dev: number; review: number } {
+  const team = state.teams[state.myTeam]
+  if (!team) return { dev: 1, review: 1 }
+  const coachDev = (coachOr(team, 'development') - 55 + staffBonus(state, 'development')) / 100
+  const coachTac = (coachOr(team, 'tactics') - 55 + staffBonus(state, 'tactics')) / 100
+  const facility = (team.facilities - 55) / 130
+  return {
+    dev: 1 + coachDev + facility,
+    // 复盘专家: tape work is what an analyst is for
+    review: (1 + coachTac) * (1 + analystEdge(state, 'review')),
+  }
+}
+
 function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   const team = state.teams[state.myTeam]
   if (!team) return
@@ -163,10 +184,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
   )
   if (!squad.length) return
 
-  const coachDev = (coachOr(team, 'development') - 55 + staffBonus(state, 'development')) / 100
-  const coachTac = (coachOr(team, 'tactics') - 55 + staffBonus(state, 'tactics')) / 100
-  const facility = (team.facilities - 55) / 130
-  const gain = (base: number) => base * (1 + coachDev + facility) * rng.range(0.8, 1.2)
+  const rates = drillRates(state)
+  const gain = (base: number) => base * rates.dev * rng.range(0.8, 1.2)
 
   switch (drill.kind) {
     case 'map': {
@@ -193,10 +212,8 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
     case 'review': {
       // tape work is worth what the coach is worth
       for (const p of squad) {
-        // 复盘专家: tape work is what an analyst is for
-        const rev = 1 + analystEdge(state, 'review')
-        addXp(p, 'awareness', gain(6) * (1 + coachTac) * rev)
-        if (p.isIgl) addXp(p, 'igl', gain(7) * (1 + coachTac) * rev)
+        addXp(p, 'awareness', gain(6) * rates.review)
+        if (p.isIgl) addXp(p, 'igl', gain(7) * rates.review)
         addXp(p, 'communication', gain(3))
         p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
       }

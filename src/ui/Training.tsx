@@ -9,7 +9,7 @@ import type { Role } from '../engine/types'
 import { poolFor } from '../engine/match'
 import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
-import { doPhysio, physioBlock, PHYSIO_COST } from '../engine/training'
+import { doPhysio, drillRates, physioBlock, PHYSIO_COST } from '../engine/training'
 import { useAction } from './useAction'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
@@ -156,6 +156,8 @@ export default function Training() {
   }
   const pool = poolFor(game)
   const fit = squad.filter((p) => p.injuredUntil <= game.day)
+  // read from the engine, never restated here
+  const rates = drillRates(game)
 
   return (
     <>
@@ -169,6 +171,13 @@ export default function Training() {
           下面三项<b>争抢同一段训练时间，只能选一项</b>；<b>双排练</b>是两个人留下来加练，
           不占用其他人，可以和上面任意一项同时进行。团队训练与每位选手的个人专项也同时生效。
         </p>
+        {/* The unit, stated once and loudly. 「IGL 指挥 +7」 was read as seven
+            points of 指挥 — it is seven points of a hundred-point bar, and
+            nothing on this screen had ever said how big the bar is. */}
+        <p className="small" style={{ marginTop: -4, color: 'var(--warn)' }}>
+          下面所有的 <b>+N</b> 都是<b>经验</b>，不是属性点：<b>攒满 100 点经验，对应属性才 +1</b>。
+          实际到手还要乘教练和设施加成，一轮七天大致是标注值的 1.2~2 倍。
+        </p>
 
         <div className={`drill-group${locked ? ' locked' : ''}`}>
         <div className="tiny faint" style={{ marginBottom: 6 }}>主训练 · 三选一</div>
@@ -176,7 +185,8 @@ export default function Training() {
           <div className="drill-card">
             <b>跑图</b>
             <p className="tiny muted">
-              指定地图熟练度约 <b>+2/周</b>（教练与设施好会更快，上限 95），全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
+              指定地图熟练度约 <b>+2/周</b>（教练与设施好会更快，上限 95）；
+              全队协同 <b>+9</b>、意识 <b>+5</b> <b>经验</b>（满 100 经验才 +1 属性）。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => (
@@ -192,9 +202,48 @@ export default function Training() {
           <div className="drill-card">
             <b>教练复盘</b>
             <p className="tiny muted">
-              全队意识 <b>+6</b>、沟通 <b>+3</b> 经验，IGL 指挥 <b>+7</b>；
-              数值再乘教练战术加成。<b>不掉体能，反而恢复 1~4</b>。
+              全队意识 <b>+6</b>、沟通 <b>+3</b>、指挥（仅 IGL）<b>+7</b> 的<b>经验</b>——
+              满 100 经验才 +1 属性，数值再乘教练战术加成。
+              <b>不掉体能，反而恢复 1~4</b>。
             </p>
+            {/* Who is actually getting the 指挥 experience, and how far along
+                he is. The table below only ever showed the attribute a player
+                is PERSONALLY focused on, so a drill aimed at 指挥 filled a bar
+                nobody could see — which is what 「安排了两次复盘，只涨了 2
+                点」 was really asking about. */}
+            {(() => {
+              const igl = squad.find((p) => p.isIgl)
+              if (!igl) {
+                return (
+                  <p className="tiny" style={{ color: 'var(--warn)', margin: '0 0 8px' }}>
+                    队里还没有指定指挥，这一项的<b>指挥经验没人拿</b>——去「阵容」页指一个。
+                  </p>
+                )
+              }
+              const xp = igl.xp.igl ?? 0
+              const capped = igl.overall >= igl.potential
+              const per = 7 * rates.dev * rates.review
+              const rounds = Math.max(1, Math.ceil((100 - xp) / per))
+              return (
+                <div className="tiny" style={{ margin: '0 0 8px' }}>
+                  <div className="row" style={{ gap: 7 }}>
+                    <span className="faint">指挥 <b>{igl.ign}</b> {igl.attrs.igl}</span>
+                    <Bar value={xp} color="var(--violet)" />
+                    <span className="mono faint">{Math.round(xp)}%</span>
+                  </div>
+                  {capped ? (
+                    <div style={{ color: 'var(--warn)', marginTop: 3 }}>
+                      他的能力已经到潜力上限，<b>再练也不会涨</b>了。
+                    </div>
+                  ) : (
+                    <div className="faint" style={{ marginTop: 3 }}>
+                      按现在的教练与设施，一轮约 <b>+{Math.round(per)}</b> 经验，
+                      还需 <b>{rounds}</b> 轮（{rounds * 7} 天）指挥 +1。
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <button
               className={drill.kind === 'review' ? 'primary' : ''}
               onClick={() => setDrill({ kind: 'review' }, '教练复盘')}>
@@ -247,7 +296,7 @@ export default function Training() {
           <div className="drill-card">
             <b>双排练</b>
             <p className="tiny muted">
-              两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> 经验，
+              两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> <b>经验</b>（满 100 才 +1 属性），
               并让这两人的<b>关系 +3~6</b>——修复队内矛盾的主要手段。体能 −5~10。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
