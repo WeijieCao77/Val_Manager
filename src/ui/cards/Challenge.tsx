@@ -114,8 +114,13 @@ export default function Challenge() {
         <div style={{
           position: 'relative', height: 210, borderRadius: 4, overflow: 'hidden',
           background: 'var(--panel-2)', marginBottom: 12,
+          display: answerRow.img ? undefined : 'grid', placeItems: 'center',
         }}>
-          <img
+          {/* the answer always has a picture — answerPool sees to that — but a
+              data file can always lose one, and a broken image is a broken
+              puzzle for everybody on earth that day */}
+          {!answerRow.img && <span className="faint small">（这一题没有图）</span>}
+          {answerRow.img && <img
             src={`${assetBase()}${answerRow.img}`}
             alt=""
             aria-hidden
@@ -126,8 +131,8 @@ export default function Challenge() {
               transform: `scale(${zoom + 0.4})`,
               transition: 'filter .35s ease, transform .35s ease',
             }}
-          />
-          <img
+          />}
+          {answerRow.img && <img
             src={`${assetBase()}${answerRow.img}`}
             alt=""
             style={{
@@ -136,7 +141,7 @@ export default function Challenge() {
               filter: `blur(${blur}px)`, transform: `scale(${zoom})`,
               transition: 'filter .35s ease, transform .35s ease',
             }}
-          />
+          />}
           <div className="tiny" style={{
             position: 'absolute', right: 8, bottom: 8, padding: '2px 8px',
             borderRadius: 999, background: 'rgba(8,12,18,.72)', color: 'var(--muted)',

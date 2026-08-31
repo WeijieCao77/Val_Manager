@@ -198,8 +198,20 @@ export default function CardFace({
       <div className="cf-rate">
         <b>{rating}</b>
         {level > 0 && <i className="cf-plus">+{level}</i>}
-        <span className="cf-kind">
-          {isPlayerCard(card) ? card.role.slice(0, 2) : card.spec ? '分析' : '教练'}
+        {/* Every position he can actually play, not just the first one.
+            A card badged 哨卫 sitting in the 决斗者 slot reads as a mistake
+            even when the man covers both — 「UI 看起来就感觉是放错了一样」 —
+            and the roster is full of players who cover two. */}
+        <span
+          className="cf-kind"
+          title={isPlayerCard(card) ? card.roles.join(' / ') : undefined}
+        >
+          {isPlayerCard(card)
+            // two fit next to the rating at 9px on a 96px card; a third would
+            // run into the crest, so it becomes a 「+」 and the tooltip says
+            ? card.roles.slice(0, 2).map((r) => r.slice(0, 2)).join('·')
+              + (card.roles.length > 2 ? '+' : '')
+            : card.spec ? '分析' : '教练'}
         </span>
       </div>
       {dupes > 0 && <div className="cf-dupes" title={`重复 ${dupes} 张`}>×{dupes + 1}</div>}

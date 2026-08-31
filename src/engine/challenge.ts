@@ -22,6 +22,7 @@
 import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
 import { hashStr } from './rng'
 import { WORLD_PLAYERS, WORLD_TEAMS } from './world'
+import { DOSSIER } from './dossier'
 import { REGION_CN } from './types'
 import type { Region } from './types'
 // type-only, so this file has no runtime dependency on gacha.ts — the
@@ -198,7 +199,12 @@ export const kindOfId = (id: string): ChallengeKind | null =>
 /** The subset a day's answer is drawn from. */
 function answerPool(kind: ChallengeKind): string[] {
   if (kind === 'player') {
-    return WORLD_PLAYERS.filter((p) => TIER1.has(p.teamId ?? '')).map((p) => p.id)
+    // a tier-one roster AND a photograph on file: the picture IS the puzzle,
+    // so a player without one cannot be the answer. The comment above used to
+    // claim this and the code did not do it.
+    return WORLD_PLAYERS
+      .filter((p) => TIER1.has(p.teamId ?? '') && !!DOSSIER.players?.[p.id]?.img)
+      .map((p) => p.id)
   }
   if (kind === 'team') return WORLD_TEAMS.filter((t) => TIER1.has(t.id)).map((t) => t.id)
   if (kind === 'map') return MAPS.slice()
@@ -245,12 +251,23 @@ const num = (guess: number, answer: number, slack: number): HintMark =>
 
 const same = (a: unknown, b: unknown): HintMark => (a === b ? 'hit' : 'miss')
 
-/** The picture for anything guessable, in a frame that never says which. */
-export function imgOf(kind: ChallengeKind, id: string): string {
-  return kind === 'player' ? `faces/${id}.webp`
-    : kind === 'team' ? `logos/${id}.webp`
-      : kind === 'map' ? `maps/${id}.webp`
-        : `agents/${id.replace(/[^A-Za-z]/g, '')}.webp`
+/**
+ * The picture for anything guessable, in a frame that never says which.
+ *
+ * A player's is looked up rather than assumed: 52 of the 518 have no
+ * photograph, and one more lost his the day it turned out to be somebody else
+ * with the same name. `faces/${id}.webp` for all of them would have been a
+ * broken image in the guess list — and, on a day the answer was one of them, a
+ * broken puzzle for everybody on earth.
+ */
+export function imgOf(kind: ChallengeKind, id: string): string | undefined {
+  if (kind === 'player') {
+    const d = DOSSIER.players?.[id]
+    return d?.img ? `faces/${d.img}` : undefined
+  }
+  return kind === 'team' ? `logos/${id}.webp`
+    : kind === 'map' ? `maps/${id}.webp`
+      : `agents/${id.replace(/[^A-Za-z]/g, '')}.webp`
 }
 
 /**

@@ -17,7 +17,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   allChoices, answerFor, CHALLENGE_COST, CHALLENGE_REFUND, CHALLENGE_TRIES,
-  challengeBlock, challengeToday, choicesFor, guessChallenge, kindFor, kindOfId,
+  challengeBlock, challengeToday, choicesFor, evaluate, guessChallenge, kindFor, kindOfId,
   newChallenge, rewardFor,
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
@@ -54,6 +54,7 @@ const dateAt = (n: number): string =>
   const missingArt: string[] = []
   const unguessable: string[] = []
   let unwinnable = 0
+  let noArt = 0
 
   for (let i = 0; i < days; i++) {
     const day = dateAt(i)
@@ -72,7 +73,8 @@ const dateAt = (n: number): string =>
     const g = fresh()
     const turn = guessChallenge(g, day, answer)
     if (!turn.solved) unwinnable++
-    if (turn.row.img && !existsSync(PUBLIC + turn.row.img)) {
+    if (!turn.row.img) noArt++
+    else if (!existsSync(PUBLIC + turn.row.img)) {
       missingArt.push(`${day} ${kind} ${turn.row.img}`)
     }
   }
@@ -81,6 +83,7 @@ const dateAt = (n: number): string =>
     unguessable.slice(0, 3).join(' / '))
   check('猜中答案就算赢', unwinnable === 0, `${unwinnable} 天猜中了也不算赢`)
   check('每个答案都有图', missingArt.length === 0, missingArt.slice(0, 3).join(' / '))
+  check('答案永远不会是没照片的选手', noArt === 0, `${noArt} 天答案没有图`)
   check('四种题型都会出现',
     (['player', 'team', 'map', 'agent'] as ChallengeKind[]).every((k) => (seen.get(k) ?? 0) > 0),
     [...seen].map(([k, n]) => `${k} ${n}`).join(' · '))
@@ -172,6 +175,18 @@ const dateAt = (n: number): string =>
     row.cells.map((c) => c.label).join(' '))
   check('而且那一格是错的', row.cells[0]?.mark === 'miss')
   check('但仍然给了它自己的图（图才是谜面）', !!row.img, row.img ?? '没有')
+}
+
+// ---- 没有照片的选手：可以猜，但不会是答案，也不会渲染成裂图
+{
+  const faceless = allChoices().filter((c) => c.kind === 'player'
+    && !evaluate('player', c.id, c.id).img)
+  check('确实有一批选手没有照片', faceless.length > 0, `${faceless.length} 人`)
+  const day = dateAt(2)          // 选手题
+  const g = fresh()
+  const row = guessChallenge(g, day, faceless[0].id).row
+  check('没照片的选手照样能被猜', row.id === faceless[0].id)
+  check('没照片时不给一个会裂的图片地址', !row.img, row.img ?? '(无)')
 }
 
 // ---- 选手 · 战队 · 地图 · 英雄，都在同一个选择列表里

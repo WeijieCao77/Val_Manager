@@ -80,7 +80,13 @@ export default function SquadScreen() {
                 level={level(card.id)}
                 selected={chem.misfits.includes(i)}
                 onClick={() => setPicking(i)}
-                footer={chem.misfits.includes(i) ? `不熟悉${role}` : role}
+                footer={chem.misfits.includes(i) ? `不熟悉${role}`
+                  // he covers this position but it is not his first — say so
+                  // affirmatively, or a badge that disagrees with the column
+                  // reads as a misplacement
+                  : isPlayerCard(card) && card.role !== role && role !== '自由人'
+                    ? `${role} · 兼任`
+                    : role}
               />
             ) : (
               <CardSlot key={i} label={role} onClick={() => setPicking(i)} />
