@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
 import type { GameState } from '../engine/types'
-import { TUTORIAL_SNAPSHOT } from '../engine/save'
+import { packState, TUTORIAL_SNAPSHOT, unpackState } from '../engine/save'
 import { FINAL_YEAR, MID_YEAR } from '../engine/endings'
 
 /**
@@ -135,7 +135,9 @@ export default function Tutorial({
   const { game, commit } = useGame()
   const [i, setI] = useState(0)
   // the sandbox: everything done during the trial day is rolled back
-  const [snapshot] = useState(() => JSON.stringify(game))
+  // packed, because this is a second full copy of the career sitting in a
+  // storage budget the autosave has already nearly filled
+  const [snapshot] = useState(() => packState(game))
   // Rewind to 31 December for real. Labelling 1 January as the trial day while
   // the clock and the advance button both said otherwise was simply untrue.
   useEffect(() => {
@@ -200,7 +202,7 @@ export default function Tutorial({
 
   const finish = () => {
     // restore the save exactly as it was before the trial day
-    const before = JSON.parse(snapshot) as GameState
+    const before = unpackState(snapshot)
     delete (before as { tutorialDay?: boolean }).tutorialDay
     const live = game as unknown as Record<string, unknown>
     for (const k of Object.keys(live)) delete live[k]

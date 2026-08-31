@@ -62,7 +62,9 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v3', 's4', 4, 'turn', '0 days', { day: 1e20 }],
   ['v3', 's4', 5, 'session_ping', '0 days', { active_s: 1e308 }],
   ['v3', 's4', 6, 'session_ping', '0 days', { active_s: -900 }],
-  ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError' }],
+  ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError', kb: 2100, day: 250 }],
+  ['v1', 's2', 16, 'save_size', '-1 days', { kb: 900, day: 34, year: 2026 }],
+  ['v2', 's3', 8, 'save_size', '-1 days', { kb: 1700, day: 220, year: 2026 }],
   // ---- the front page and the things it now leads to
   ['v1', 's2', 6, 'home_go', '-1 days', { go: 'career' }],
   ['v1', 's2', 7, 'home_go', '-1 days', { go: 'cards' }],
@@ -165,6 +167,8 @@ if (out) {
   check('the daily series has a row per active day', out.daily.length >= 2, `${out.daily.length} days`)
   check('cohorts come back', Array.isArray(out.retention), `${out.retention.length} cohorts`)
   check('errors surface', out.errors.length === 1, JSON.stringify(out.errors[0]?.msg))
+  check('报错按人数排，一个人刷一万条不会看起来像一万个人',
+    out.errors[0]?.visitors === 1, JSON.stringify(out.errors[0]))
   check('clubs are counted', out.clubs.length === 1, JSON.stringify(out.clubs))
 
   // ---- the panels added for the two-game front page
@@ -184,6 +188,14 @@ if (out) {
   check('解锁带着游戏里的名字，面板不用自己维护一份',
     out.unlocks.find((r) => r.key === 'golden')?.name === '黄金之路',
     JSON.stringify(out.unlocks.find((r) => r.key === 'golden')))
+  // ---- 存档体积，包括写不进去的那些（它们也带着 kb）
+  check('存档体积按人取最大值，不是按事件',
+    out.saveSize.careers === 3, JSON.stringify(out.saveSize))
+  check('中位数和 90 分位分得开',
+    out.saveSize.p50 === 1700 && out.saveSize.max_kb === 2100, JSON.stringify(out.saveSize))
+  check('超标的份数被单独数出来',
+    out.saveSize.over_1500 === 2, JSON.stringify(out.saveSize))
+
   check('账号的创建与找回分开统计',
     out.accounts.made === 1 && out.accounts.restored === 1, JSON.stringify(out.accounts))
 

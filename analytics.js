@@ -38,6 +38,11 @@ export const EVENTS = new Set([
   'game_over',
   'save_export',
   'save_import',
+  // How big a career actually is on disk, once per session. Two rounds of
+  // QuotaExceededError were diagnosed from the sizes of saves that had already
+  // failed, which is the tail rather than the distribution — this is the
+  // number that says whether a fix worked.
+  'save_size',
   // the card mode — a separate game with a separate save, so it gets its own
   // names rather than muddying the career funnel
   'card_start',

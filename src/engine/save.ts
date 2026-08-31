@@ -1,10 +1,82 @@
-import { pruneMatchDetail } from './match'
+import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './world'
 import type { GameState } from './types'
 
 const PREFIX = 'valmanager:save:'
 const INDEX = 'valmanager:index'
 export const SAVE_VERSION = 1
+
+/**
+ * The scoreboard, written the short way.
+ *
+ * A MapLine is nine numbers under nine names, and the save holds one per
+ * player per map — by midseason that is tens of thousands of them, and about
+ * sixty per cent of every one is the word "firstDeaths". Written as a fixed
+ * array it is 30 bytes instead of 122, which on a measured career at day 224
+ * is a quarter of a megabyte back.
+ *
+ * This is a storage format, not a data model: nothing in the game ever sees
+ * the array. It is packed by the replacer on the way into localStorage and
+ * unpacked by the reviver on the way out, so `MapScore.lines` is a plain
+ * keyed object everywhere else, including in exported save files — those stay
+ * readable JSON, and load fine either way because the reviver only touches a
+ * value that is actually an array.
+ */
+const LINE_KEYS = [
+  'kills', 'deaths', 'assists', 'damage',
+  'firstKills', 'firstDeaths', 'clutches', 'rounds', 'acs',
+] as const
+
+type PackedLine = number[]
+
+/**
+ * Walk the fixtures, not every key in the document.
+ *
+ * The obvious way to do this is a replacer and a reviver on stringify/parse,
+ * and it works — but both are called once per key in a 1.3MB document, which
+ * measured 2x the cost to write and 7x to read. Scoreboards only ever live in
+ * one place, so going there directly costs a shallow copy of the fixture list
+ * and nothing else. Players, teams and news are never touched or copied.
+ */
+export function packState(state: GameState): string {
+  const fixtures = state.fixtures.map((f) => {
+    if (!f.result) return f
+    let packed = false
+    const maps = f.result.maps.map((m) => {
+      const entries = Object.entries(m.lines ?? {})
+      if (!entries.length) return m
+      packed = true
+      const lines: Record<string, PackedLine> = {}
+      for (const [pid, l] of entries) {
+        lines[pid] = LINE_KEYS.map((k) => (l as unknown as Record<string, number>)[k] ?? 0)
+      }
+      return { ...m, lines: lines as unknown as typeof m.lines }
+    })
+    return packed ? { ...f, result: { ...f.result, maps } } : f
+  })
+  return JSON.stringify({ ...state, fixtures })
+}
+
+/** ...and back, whichever of the two shapes it was written in. */
+export function unpackState(raw: string): GameState {
+  const state = JSON.parse(raw) as GameState
+  for (const f of state.fixtures ?? []) {
+    for (const m of f.result?.maps ?? []) {
+      const entries = Object.entries((m.lines ?? {}) as unknown as Record<string, unknown>)
+      // an export, or a save written before the packing existed, is already right
+      if (!entries.length || !Array.isArray(entries[0][1])) continue
+      const lines: Record<string, Record<string, number>> = {}
+      for (const [pid, arr] of entries) {
+        if (!Array.isArray(arr)) continue
+        const line: Record<string, number> = {}
+        LINE_KEYS.forEach((k, i) => { line[k] = Number(arr[i]) || 0 })
+        lines[pid] = line
+      }
+      m.lines = lines as unknown as typeof m.lines
+    }
+  }
+  return state
+}
 
 export interface SaveMeta {
   slot: string
@@ -40,7 +112,7 @@ export function saveGame(slot: string, state: GameState): SaveMeta {
     day: state.day,
     savedAt: new Date().toISOString(),
   }
-  localStorage.setItem(PREFIX + slot, JSON.stringify(state))
+  localStorage.setItem(PREFIX + slot, packState(state))
   // The data write is the one that can fail for size; if the small index write
   // fails after it, the save would exist but never be listed — a player wrote
   // exactly that riddle to the group chat. listSaves() self-heals the index,
@@ -62,16 +134,26 @@ export function saveGame(slot: string, state: GameState): SaveMeta {
  * adopts any orphan it finds.
  */
 function healIndex(): SaveMeta[] {
-  const idx = readIndex()
+  // The marker was adopted as a save once and written back into the index, so
+  // dropping it at adoption is not enough — it has to be swept out of indices
+  // that already have it.
+  const raw = readIndex()
+  const idx = raw.filter((m) => PREFIX + m.slot !== OWNER)
   const known = new Set(idx.map((m) => m.slot))
-  let changed = false
+  let changed = idx.length !== raw.length
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
     if (!key?.startsWith(PREFIX)) continue
     const slot = key.slice(PREFIX.length)
     if (known.has(slot)) continue
+    // The which-tab-is-ahead marker lives under the same prefix, so this
+    // adopted it as a save called 「autosave:owner」 — a phantom row on the
+    // front page of every career, offering to load three numbers.
+    if (key === OWNER) continue
     try {
       const st = JSON.parse(localStorage.getItem(key) ?? '') as GameState
+      // ...and anything else under this prefix that is not a career
+      if (!st?.teams || !st.players) continue
       idx.push({
         slot,
         team: st.teams?.[st.myTeam]?.name ?? '—',
@@ -107,7 +189,7 @@ function unwindTutorial(state: GameState): GameState {
   let parked: GameState | null = null
   try {
     const raw = localStorage.getItem(TUTORIAL_SNAPSHOT)
-    if (raw) parked = JSON.parse(raw) as GameState
+    if (raw) parked = unpackState(raw)
   } catch { /* fall through to the clamp below */ }
   try { localStorage.removeItem(TUTORIAL_SNAPSHOT) } catch { /* ignore */ }
   if (parked && parked.players && parked.teams) {
@@ -128,7 +210,7 @@ export function loadGame(slot: string): GameState | null {
   const raw = localStorage.getItem(PREFIX + slot)
   if (!raw) return null
   try {
-    const state = JSON.parse(raw) as GameState
+    const state = unpackState(raw)
     return migrate(unwindTutorial(state))
   } catch {
     return null
@@ -311,15 +393,40 @@ export function claimAutosave(state: GameState): void {
   writeOwner(state)
 }
 
-export type AutosaveResult = 'saved' | 'behind'
+export type AutosaveResult = 'saved' | 'behind' | 'shrunk'
 
+/**
+ * Write the career, and if the browser will not take it, make it smaller and
+ * write it again.
+ *
+ * localStorage is a fixed budget — 5MB on iOS Safari, counted in UTF-16, for
+ * everything this site keeps — and when it is full the write throws and the
+ * career simply stops being saved. That has been the worst failure this game
+ * has: the banner tells you, but the progress made after it is gone, and
+ * people played on for seasons past it.
+ *
+ * Refusing to save is never the better answer. Everything the save can lose
+ * and still be the same career is old match paperwork, so that goes and the
+ * write is retried once. What survives is the record the game asks questions
+ * of — honours, squad, contracts, the endings — so nothing that can be earned
+ * is put at risk to save a scoreboard from last month. If the second write
+ * fails too the caller still gets its exception, and the banner still appears.
+ */
 export function autosave(state: GameState): AutosaveResult {
   const owner = readOwner()
   if (owner && owner.by !== SESSION
       && progress(owner.year, owner.day) > progress(state.year, state.day)) {
     return 'behind'
   }
-  saveGame(AUTOSAVE, state)
+  try {
+    saveGame(AUTOSAVE, state)
+  } catch {
+    // in place, deliberately: the point is that the NEXT save is small too
+    stripToTheBone(state)
+    saveGame(AUTOSAVE, state)
+    writeOwner(state)
+    return 'shrunk'
+  }
   writeOwner(state)
   return 'saved'
 }

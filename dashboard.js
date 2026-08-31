@@ -161,6 +161,7 @@ function render(d) {
   const car = d.careers || {}
   const acc = d.accounts || {}
   const mid = d.midReview || {}
+  const sz = d.saveSize || {}
   const careerRows = [
     ['走完十年', car.finished ?? 0], ['中途下课', car.sacked ?? 0],
     ['平均在任赛季', car.avg_seasons ?? 0], ['平均冠军数', car.avg_honours ?? 0],
@@ -302,9 +303,23 @@ function render(d) {
       '排在最上面的如果太容易，说明门槛低了；一直不出现的说明要么太难要么没人找得到。') +
   '</div>' +
 
-  ((d.errors || []).length ? '<div class="grid" style="margin-top:12px">' +
-    panel('前端报错', table(['信息', '次数'], simple(d.errors, 'msg', 'n')),
-      '玩家不会来报的那些错。') + '</div>' : '')
+  '<div class="grid" style="margin-top:12px">' +
+    panel('存档体积 · 对着浏览器的上限看',
+      '<div class="big">' + (sz.p50 ?? 0) + '<small>KB（中位）</small></div>' +
+      '<div class="muted" style="font-size:12px;margin-top:6px">' +
+      (sz.careers ?? 0) + ' 份生涯 · 90% 分位 ' + (sz.p90 ?? 0) + ' KB · 最大 ' +
+      (sz.max_kb ?? 0) + ' KB · 其中超过 1500 KB 的 ' + (sz.over_1500 ?? 0) + ' 份</div>',
+      '存档写在 localStorage 里，iOS Safari 给每个站点 5MB，按 UTF-16 算就是 250 万个字符——'
+      + '自动存档、手动存档、教程存的那一份和开瓦包都挤在这里面，而四分之三的人在手机上。'
+      + '满了浏览器就拒绝写入，进度直接停在那一刻。这一列从这次更新才开始记。') +
+    ((d.errors || []).length
+      ? panel('前端报错', table(['信息', '人数', '次数'], (d.errors || []).map((r) =>
+        '<tr><td>' + esc(r.msg) + '</td><td class="n">' + r.visitors + '</td>' +
+        '<td class="n muted">' + r.n + '</td></tr>')),
+        '玩家不会来报的那些错。看「人数」而不是「次数」：存档写不进去这种错，'
+        + '一个人每点一下就报一次，一份倒霉的生涯能刷出上万条。')
+      : '') +
+  '</div>'
 }
 
 async function load(days) {

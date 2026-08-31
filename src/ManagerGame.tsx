@@ -19,7 +19,7 @@ import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import MidReview from './ui/MidReview'
 import RetireCard from './ui/RetireCard'
-import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame } from './engine/save'
+import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame, packState } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
@@ -85,8 +85,10 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   const [unlocks, setUnlocks] = useState<UnlockItem[]>([])
   const [booted, setBooted] = useState(false)
   const warnedSaveRef = useRef(false)
-  // 'behind' = another tab is ahead; 'failed' = the write itself threw
-  const [saveWarn, setSaveWarn] = useState<'behind' | 'failed' | null>(null)
+  const sizeSentRef = useRef(false)
+  // 'behind' = another tab is ahead; 'failed' = the write itself threw;
+  // 'shrunk' = it threw, old match detail was dropped, and the write went in
+  const [saveWarn, setSaveWarn] = useState<'behind' | 'failed' | 'shrunk' | null>(null)
 
   useEffect(() => {
     setBooted(true)
@@ -121,8 +123,34 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
         // one, and writing would put its progress back. Refusing is the whole
         // point, but the player has to be told — silently not saving is the
         // failure they cannot see coming.
-        if (autosave(gameRef.current) === 'behind') setSaveWarn('behind')
-        else setSaveWarn(null)
+        const how = autosave(gameRef.current)
+        if (how === 'behind') setSaveWarn('behind')
+        else if (how === 'shrunk') {
+          // it fitted on the second attempt, so the career is safe — but the
+          // player is now missing scoreboards and deserves to know why
+          setSaveWarn('shrunk')
+          track('error', {
+            msg: 'autosave: shrunk',
+            day: gameRef.current.day,
+            kb: Math.round(packState(gameRef.current).length / 1024),
+          })
+        } else {
+          // a shrink stays on screen for the session: the write works again,
+          // but they are still at the ceiling and the advice still applies
+          setSaveWarn((cur) => (cur === 'shrunk' ? cur : null))
+          // Once a session, how big this career actually is. Every previous
+          // round of this was diagnosed from the size of the saves that had
+          // already FAILED, which is the tail and not the distribution — and
+          // the number that says whether a fix worked is this one.
+          if (!sizeSentRef.current) {
+            sizeSentRef.current = true
+            track('save_size', {
+              kb: Math.round(packState(gameRef.current).length / 1024),
+              day: gameRef.current.day,
+              year: gameRef.current.year,
+            })
+          }
+        }
       } catch (err) {
         // The game keeps running in memory, but the player's progress is no
         // longer being written. A toast said this once and vanished; somebody
@@ -131,8 +159,9 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
         track('error', {
           msg: `autosave: ${err instanceof Error ? err.name : 'unknown'}`,
           day: gameRef.current.day,
+          // the packed length, because that is what localStorage was handed
           kb: warnedSaveRef.current ? undefined
-            : Math.round(JSON.stringify(gameRef.current).length / 1024),
+            : Math.round(packState(gameRef.current).length / 1024),
         })
         warnedSaveRef.current = true
         setSaveWarn('failed')
@@ -302,13 +331,17 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
 
         {saveWarn && (
           <div className="save-warn" role="alert">
-            <b>⚠ 进度没有被保存</b>
+            <b>{saveWarn === 'shrunk' ? '⚠ 存储空间满了，已精简存档' : '⚠ 进度没有被保存'}</b>
             <span>
               {saveWarn === 'behind'
                 ? '另一个标签页里有更靠后的存档，为了不覆盖它，这一页暂时不写入。'
                   + '请关掉其它的游戏标签页，然后刷新这一页。'
-                : '浏览器拒绝了写入（多半是存储空间满了）。'
-                  + '现在的进度只存在这个页面里——请去「存档」页导出成文件。'}
+                : saveWarn === 'shrunk'
+                  ? '浏览器的存储空间满了。为了继续保存，旧比赛的计分板和回合记录已经清掉——'
+                    + '生涯本身（阵容、合同、荣誉、成就）一点没少，之后的进度照常写入。'
+                    + '想彻底腾地方，可以去「存档」页删掉用不上的手动存档。'
+                  : '浏览器拒绝了写入（多半是存储空间满了）。'
+                    + '现在的进度只存在这个页面里——请去「存档」页导出成文件。'}
             </span>
           </div>
         )}

@@ -899,9 +899,20 @@ export class MatchSim {
   }
 }
 
-/** Round logs are only worth keeping for matches the manager actually watches. */
+/**
+ * Paperwork only the manager's own matches will ever show.
+ *
+ * The round log is one: nothing draws a ribbon for a match you did not play.
+ * So is the edge breakdown — MatchModal renders 「为什么是这个结果」 behind an
+ * `involved` check, so for every other club in the world those numbers were
+ * written, saved and never once looked at. Three maps of them is 1.4kB a
+ * match, and the league plays about seven hundred of them a season.
+ */
 export function stripRoundLogs(result: MatchResult): void {
-  for (const m of result.maps) delete m.rounds
+  for (const m of result.maps) {
+    delete m.rounds
+    delete m.edge
+  }
 }
 
 /**
@@ -911,23 +922,99 @@ export function stripRoundLogs(result: MatchResult): void {
  * highlights for the whole season — a thousand matches deep, the save grew to
  * 5.7MB of JSON (11MB as UTF-16 in storage) and localStorage refused every
  * autosave from about day 200 onward. Sixty thousand QuotaExceededErrors on
- * the dashboard were this. Our own matches keep full detail all season; other
- * clubs' matches older than a fortnight keep the result and the MVP, which is
- * all any screen shows for them by then.
+ * the dashboard were this.
+ *
+ * That first pass was not enough, and the dashboard said so: 134,000 more of
+ * them the week this was written. Measured rather than guessed, a career at
+ * day 224 was still writing 2.07MB of JSON — 4.1MB as UTF-16, against a 5MB
+ * origin budget that also has to hold a manual save, the tutorial snapshot and
+ * the card mode. Two things were still being kept that nothing reads:
+ *
+ *   Other clubs' matches kept `agents` and `lineups` after the prune, which is
+ *   most of what was left of them — 780 bytes each where 140 will do, times
+ *   seven hundred matches. Their scoreboard is already emptied here, so the
+ *   agent each of those players picked has nowhere to be shown.
+ *
+ *   Our own matches kept everything for the whole season, 9kB apiece. The
+ *   round-by-round ribbon and the edge breakdown are two thirds of that and
+ *   both belong to the post-match screen, which is a thing you read the day it
+ *   happens. After six weeks they go and the scoreboard stays, so the match
+ *   still opens and still shows who did what.
  */
 export function pruneMatchDetail(state: GameState): void {
-  const cutoff = state.day - 14
+  // ten days, which is exactly how far back the schedule screen looks by
+  // default — so every other club's match you can still see in the list still
+  // opens with its scoreboard, and the ones that lose it are the ones you
+  // would have to go looking for
+  const foreignCutoff = state.day - 10
+  // six weeks: long enough that the ribbon is still there for anything you
+  // might plausibly go back and re-read, short enough to bound the season
+  const mineCutoff = state.day - 45
   for (const f of state.fixtures) {
-    if (!f.played || !f.result || f.day >= cutoff) continue
-    if (f.teamA === state.myTeam || f.teamB === state.myTeam) continue
-    if (f.result.vetoLog.length === 0 && f.result.highlights.length === 0) continue
+    if (!f.played || !f.result) continue
+
+    if (f.teamA === state.myTeam || f.teamB === state.myTeam) {
+      if (f.day >= mineCutoff) continue
+      for (const m of f.result.maps) {
+        delete m.rounds
+        delete m.edge
+      }
+      continue
+    }
+
+    if (f.day >= foreignCutoff) continue
+    // already stripped: leave it alone rather than reallocating every day
+    if (!f.result.vetoLog.length && !f.result.highlights.length && !f.result.lineups
+      && !f.result.maps.some((m) => m.agents || m.edge || m.rounds || Object.keys(m.lines).length)) {
+      continue
+    }
     f.result.vetoLog = []
     f.result.highlights = []
+    delete f.result.lineups
     for (const m of f.result.maps) {
       m.lines = {}
       delete m.edge
       delete m.rounds
+      delete m.agents
     }
+  }
+}
+
+/**
+ * Everything the save can lose and still be the same career.
+ *
+ * The last resort, run in place when the browser has refused a write: every
+ * match in the world comes down to its scoreline and its MVP, ours included,
+ * and the feed and the ledger keep their most recent hundred lines. What
+ * survives is what the game asks questions of — honours, squads, contracts,
+ * the record — so nothing that decides an ending or an achievement is touched.
+ * A career missing last month's scoreboards is not a career lost, which is the
+ * only other option at this point.
+ */
+export function stripToTheBone(state: GameState): void {
+  for (const f of state.fixtures) {
+    if (!f.result) continue
+    f.result.vetoLog = []
+    f.result.highlights = []
+    delete f.result.lineups
+    // Other clubs' games come down to the series score. The table is built
+    // from mapsWon, so the standings are untouched; what goes is the list of
+    // map scores in a modal for a match you did not play. Ours keep their map
+    // scores, because the achievements are still asking them questions.
+    if (f.teamA !== state.myTeam && f.teamB !== state.myTeam) {
+      f.result.maps = []
+      continue
+    }
+    for (const m of f.result.maps) {
+      m.lines = {}
+      delete m.edge
+      delete m.rounds
+      delete m.agents
+    }
+  }
+  if (state.news.length > 100) state.news.splice(0, state.news.length - 100)
+  if (state.finances.log.length > 100) {
+    state.finances.log.splice(0, state.finances.log.length - 100)
   }
 }
 

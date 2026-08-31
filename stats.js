@@ -18,7 +18,7 @@ export async function overview(sql, days = 30) {
     headline, daily, retention, sessions, funnel, depth,
     devices, screens, clubs, referrers, errors,
     home, careers, unlocks, accounts,
-    hosts, midReview, cardFunnel, packs, cardMatches, cardAccounts,
+    hosts, midReview, cardFunnel, packs, cardMatches, cardAccounts, saveSize,
   ] = await Promise.all([
     // The number that goes at the top: people who came back on a later day.
     // One visit is a click on a link; two days is a game someone chose again.
@@ -188,10 +188,15 @@ export async function overview(sql, days = 30) {
       where name = 'session_start' and ts > now() - ${since}::interval
       group by 1 order by visitors desc limit 10`,
 
+    // Errors, with the number that says how bad it is. 134,000 occurrences is
+    // either everybody or one person clicking all week, and counting rows
+    // could not tell those apart — an autosave error repeats on every single
+    // commit, so one afflicted career produces thousands of them.
     sql`
-      select props->>'msg' as msg, count(*)::int as n, max(ts) as last_seen
+      select props->>'msg' as msg, count(*)::int as n,
+             count(distinct visitor_id)::int as visitors, max(ts) as last_seen
       from events where name = 'error' and ts > now() - ${since}::interval
-      group by 1 order by n desc limit 10`,
+      group by 1 order by visitors desc, n desc limit 10`,
 
     // ---- the front page, which is now the first decision anybody makes.
     // Counted per visitor rather than per click: somebody who opens the
@@ -373,6 +378,38 @@ export async function overview(sql, days = 30) {
       // whole dashboard refusing to load — an empty card panel is the better
       // failure.
       .catch(() => []),
+
+    // ---- how big careers get, against the budget the browser gives them.
+    //
+    // The save lives in localStorage: 5MB per origin on iOS Safari, counted in
+    // UTF-16, so about 2.5 million characters for the autosave, any manual
+    // saves, the tutorial's parked copy and the card mode together. Three
+    // quarters of this audience is on a phone. Twice now a season's worth of
+    // per-match paperwork has quietly filled it and every autosave started
+    // failing, and both times it was found by accident. It is a number on the
+    // wall now: the median career, the big ones, and how many of them were
+    // already too big to write.
+    sql`
+      with sizes as (
+        select visitor_id,
+               max((props->>'kb')::int) as kb,
+               max((props->>'day')::int) as day
+        from events
+        where name in ('save_size', 'error')
+          and ts > now() - ${since}::interval
+          and props->>'kb' ~ '^[0-9]{1,6}$'
+        group by visitor_id
+      )
+      select
+        count(*)::int                                              as careers,
+        coalesce(round(percentile_cont(0.5)
+          within group (order by kb))::int, 0)                     as p50,
+        coalesce(round(percentile_cont(0.9)
+          within group (order by kb))::int, 0)                     as p90,
+        coalesce(max(kb), 0)                                       as max_kb,
+        coalesce(round(avg(day))::int, 0)                          as avg_day,
+        count(*) filter (where kb > 1500)::int                     as over_1500
+      from sizes`,
   ])
 
   return {
@@ -383,7 +420,7 @@ export async function overview(sql, days = 30) {
     devices, screens, clubs, referrers, errors,
     home: home[0] ?? {}, careers: careers[0] ?? {},
     unlocks, accounts: accounts[0] ?? {},
-    hosts, midReview: midReview[0] ?? {},
+    hosts, midReview: midReview[0] ?? {}, saveSize: saveSize[0] ?? {},
     cards: {
       funnel: cardFunnel[0] ?? {},
       packs,
