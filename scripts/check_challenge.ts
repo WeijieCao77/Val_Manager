@@ -16,8 +16,9 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
-  answerFor, CHALLENGE_COST, CHALLENGE_REFUND, CHALLENGE_TRIES, challengeBlock,
-  challengeToday, choicesFor, guessChallenge, kindFor, newChallenge, rewardFor,
+  allChoices, answerFor, CHALLENGE_COST, CHALLENGE_REFUND, CHALLENGE_TRIES,
+  challengeBlock, challengeToday, choicesFor, guessChallenge, kindFor, kindOfId,
+  newChallenge, rewardFor,
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
 import { newGacha, PACKS } from '../src/engine/gacha'
@@ -60,8 +61,11 @@ const dateAt = (n: number): string =>
     seen.set(kind, (seen.get(kind) ?? 0) + 1)
     ;(answers.get(kind) ?? answers.set(kind, new Set()).get(kind)!).add(answer)
 
-    // it must be in the list the player is allowed to pick from
-    if (!choicesFor(kind).some((c) => c.id === answer)) unguessable.push(`${day} ${kind} ${answer}`)
+    // it must be in the ONE list the player picks from — all four kinds are
+    // in the same picker now, because the screen no longer says which kind
+    // today is
+    if (!allChoices().some((c) => c.id === answer)) unguessable.push(`${day} ${kind} ${answer}`)
+    if (kindOfId(answer) !== kind) unguessable.push(`${day} ${answer} 类型认错了`)
 
     // ...and it must have a picture, or the reveal is a grey box
     const g = fresh()
@@ -144,7 +148,7 @@ const dateAt = (n: number): string =>
   check('只是打开看看，不会白拿连胜', g2.challenge!.streak === 0, `${g2.challenge!.streak}`)
 }
 
-// ---- 提示：猜中的那一行必须每格都对
+// ---- 提示：猜中的那一行必须每格都对，而且第一格永远是「类型」
 {
   for (const offset of [0, 1, 2, 4]) {
     const day = dateAt(offset)
@@ -153,7 +157,32 @@ const dateAt = (n: number): string =>
     const allHit = row.cells.every((c) => c.mark === 'hit')
     check(`${kindFor(day)} 题猜中时每一格都是对的`, allHit,
       row.cells.map((c) => `${c.label}${c.mark}`).join(' '))
+    check(`${kindFor(day)} 题第一格是类型`, row.cells[0]?.label === '类型')
   }
+}
+
+// ---- 猜错类型时，只告诉你类型不对，不泄露别的
+{
+  const day = dateAt(0)          // 这天是地图题
+  const g = fresh()
+  const wrongKind = allChoices().find((c) => c.kind !== kindFor(day))!
+  const row = guessChallenge(g, day, wrongKind.id).row
+  check('猜了别的类型，只回一格「类型」', row.cells.length === 1,
+    row.cells.map((c) => c.label).join(' '))
+  check('而且那一格是错的', row.cells[0]?.mark === 'miss')
+  check('但仍然给了它自己的图（图才是谜面）', !!row.img, row.img ?? '没有')
+}
+
+// ---- 选手 · 战队 · 地图 · 英雄，都在同一个选择列表里
+{
+  const kinds = new Set(allChoices().map((c) => c.kind))
+  check('四种东西在同一个池子里', kinds.size === 4, [...kinds].join(' '))
+  check('池子大小是四类之和',
+    allChoices().length === (['player', 'team', 'map', 'agent'] as const)
+      .reduce((n, k) => n + choicesFor(k).length, 0),
+    `${allChoices().length} 个`)
+  const ids = allChoices().map((c) => c.id)
+  check('跨类别的 id 不重名', new Set(ids).size === ids.length)
 }
 
 // ---- 买不起就不让进，而不是扣成负数

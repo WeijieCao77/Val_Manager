@@ -105,6 +105,8 @@ export interface Choice {
   name: string
   /** the line under it in the picker, for telling two of them apart */
   hint: string
+  /** which pool it came from — never shown before it has been guessed */
+  kind?: ChallengeKind
 }
 
 const TIER1 = new Set(WORLD_TEAMS.filter((t) => t.tier === 1).map((t) => t.id))
@@ -133,12 +135,45 @@ export function roleOfAgent(agent: string): string | null {
   return null
 }
 
+export const KIND_CN: Record<ChallengeKind, string> = {
+  player: '选手', team: '战队', map: '地图', agent: '英雄',
+}
+
+/**
+ * Everything, in one list.
+ *
+ * The first cut printed 「猜地图」 at the top, which hands over half the answer
+ * before a guess is made — thirteen maps and six tries is not a puzzle. What
+ * kind of thing today is IS the puzzle now, so the picker holds all 636 of
+ * them and the first thing a guess tells you is whether you are even looking
+ * in the right place.
+ *
+ * The ids are unique across the four pools (P… for players, T… for clubs, and
+ * maps and agents are their own names), so a guess needs no prefix to say
+ * which list it came from.
+ */
 export function choicesFor(kind: ChallengeKind): Choice[] {
   return kind === 'player' ? playerChoices()
     : kind === 'team' ? teamChoices()
       : kind === 'map' ? mapChoices()
         : agentChoices()
 }
+
+let ALL: Choice[] | null = null
+
+export function allChoices(): Choice[] {
+  if (!ALL) {
+    ALL = ([
+      ['player', playerChoices()], ['team', teamChoices()],
+      ['map', mapChoices()], ['agent', agentChoices()],
+    ] as [ChallengeKind, Choice[]][]).flatMap(([kind, list]) =>
+      list.map((c) => ({ ...c, kind })))
+  }
+  return ALL
+}
+
+export const kindOfId = (id: string): ChallengeKind | null =>
+  allChoices().find((c) => c.id === id)?.kind ?? null
 
 /** The subset a day's answer is drawn from. */
 function answerPool(kind: ChallengeKind): string[] {
@@ -190,13 +225,36 @@ const num = (guess: number, answer: number, slack: number): HintMark =>
 
 const same = (a: unknown, b: unknown): HintMark => (a === b ? 'hit' : 'miss')
 
+/** The picture for anything guessable, in a frame that never says which. */
+export function imgOf(kind: ChallengeKind, id: string): string {
+  return kind === 'player' ? `faces/${id}.webp`
+    : kind === 'team' ? `logos/${id}.webp`
+      : kind === 'map' ? `maps/${id}.webp`
+        : `agents/${id.replace(/[^A-Za-z]/g, '')}.webp`
+}
+
 /**
  * One guess, marked against the answer.
+ *
+ * The first cell is always WHAT IT IS, because that is now the first half of
+ * the puzzle: the screen no longer says 「猜地图」 at the top, which handed
+ * over half the answer before a guess was made. Guess a player when the answer
+ * is a map and all you learn is that you are looking in the wrong place —
+ * which is worth learning, and is why the type is a cell rather than a label.
  *
  * `up` and `down` read from the guess's side: 「↑」 means the answer is higher
  * than what was just guessed, which is the direction a player needs to move.
  */
 export function evaluate(kind: ChallengeKind, answerId: string, guessId: string): GuessRow {
+  const guessKind = kindOfId(guessId) ?? kind
+  const typeCell: HintCell = {
+    label: '类型', value: KIND_CN[guessKind], mark: same(guessKind, kind),
+  }
+  if (guessKind !== kind) {
+    const name = allChoices().find((c) => c.id === guessId)?.name ?? guessId
+    return { id: guessId, name, img: imgOf(guessKind, guessId), cells: [typeCell] }
+  }
+
   if (kind === 'player') {
     const a = WORLD_PLAYERS.find((p) => p.id === answerId)
     const g = WORLD_PLAYERS.find((p) => p.id === guessId)
@@ -205,8 +263,9 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
     const aRoles = new Set(g.roles ?? [g.role])
     const shares = (a.roles ?? [a.role]).some((r) => aRoles.has(r))
     return {
-      id: g.id, name: g.ign, img: `faces/${g.id}.webp`,
+      id: g.id, name: g.ign, img: imgOf('player', g.id),
       cells: [
+        typeCell,
         { label: '赛区', value: String(g.region), mark: same(g.region, a.region) },
         { label: '战队', value: gTeam?.tag ?? '自由', mark: same(g.teamId, a.teamId) },
         {
@@ -226,8 +285,9 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
     const g = WORLD_TEAMS.find((t) => t.id === guessId)
     if (!a || !g) return { id: guessId, name: guessId, cells: [] }
     return {
-      id: g.id, name: g.name, img: `logos/${g.id}.webp`,
+      id: g.id, name: g.name, img: imgOf('team', g.id),
       cells: [
+        typeCell,
         { label: '赛区', value: String(g.region), mark: same(g.region, a.region) },
         {
           label: '分级',
@@ -244,8 +304,8 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
   if (kind === 'agent') {
     const role = roleOfAgent(guessId)
     return {
-      id: guessId, name: guessId, img: `agents/${guessId.replace(/[^A-Za-z]/g, '')}.webp`,
-      cells: [{
+      id: guessId, name: guessId, img: imgOf('agent', guessId),
+      cells: [typeCell, {
         label: '定位', value: role ?? '?',
         mark: same(role, roleOfAgent(answerId)),
       }],
@@ -253,15 +313,16 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
   }
 
   // maps carry no facts this game actually holds, so the picture is the puzzle
-  return { id: guessId, name: mapCn(guessId), img: `maps/${guessId}.webp`, cells: [] }
+  return { id: guessId, name: mapCn(guessId), img: imgOf('map', guessId), cells: [typeCell] }
 }
 
 /**
  * How much of the picture is showing.
  *
- * Only the two visual rounds use it: heavily blurred and zoomed at the start,
- * clear by the last guess. Returned as a fraction so the screen decides what
- * blur and what zoom that means.
+ * Every round is a visual round now — a face, a crest, a map or an agent, all
+ * in the same frame, all blurred past telling which is which. Working out WHAT
+ * you are looking at is the first half of the puzzle. Returned as a fraction so
+ * the screen decides what blur and what zoom that means.
  */
 export const revealed = (used: number): number =>
   Math.min(1, used / (CHALLENGE_TRIES - 1))

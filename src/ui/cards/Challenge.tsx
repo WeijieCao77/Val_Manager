@@ -3,17 +3,10 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
-  CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeToday, choicesFor,
-  evaluate, guessChallenge, revealed, triesLeft,
+  allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeToday,
+  evaluate, guessChallenge, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
-import type { ChallengeKind, GuessRow, HintMark } from '../../engine/challenge'
-
-const KIND_CN: Record<ChallengeKind, { title: string; blurb: string }> = {
-  player: { title: '猜选手', blurb: '今天的答案是一名 VCT 一级联赛在役选手。每猜一次，下面会告诉你猜的人和答案在哪些方面对得上。' },
-  team: { title: '猜战队', blurb: '今天的答案是一支 VCT 一级联赛的俱乐部。每猜一次，下面会告诉你差在哪。' },
-  map: { title: '猜地图', blurb: '只给一张糊到看不清的图，猜错一次就清楚一点。第一次就认出来的，奖励最好。' },
-  agent: { title: '猜英雄', blurb: '一张糊掉的立绘，加上他的定位。猜错一次清楚一点。' },
-}
+import type { GuessRow, HintMark } from '../../engine/challenge'
 
 const MARK_STYLE: Record<HintMark, { bg: string; fg: string; suffix?: string }> = {
   hit: { bg: 'var(--win-wash)', fg: 'var(--win)' },
@@ -39,11 +32,12 @@ export default function Challenge() {
   const [query, setQuery] = useState('')
 
   const { kind, answer, state, rows } = challengeToday(g, today)
-  const choices = useMemo(() => choicesFor(kind), [kind])
+  // One list, all four kinds. The screen deliberately does not say which sort
+  // of thing today is — working that out is the first half of the puzzle.
+  const choices = useMemo(() => allChoices(), [])
   const used = state.guesses.length
   const left = triesLeft(state)
   const block = challengeBlock(g, today)
-  const visual = kind === 'map' || kind === 'agent'
 
   const guessed = new Set(state.guesses)
   const matches = query.trim()
@@ -89,7 +83,7 @@ export default function Challenge() {
   return (
     <>
       <Panel
-        title={`每日挑战 · ${KIND_CN[kind].title}`}
+        title="每日挑战"
         actions={
           <span className="tiny muted">
             {state.streak > 0 && <b style={{ color: 'var(--warn)' }}>连续 {state.streak} 天 · </b>}
@@ -98,56 +92,41 @@ export default function Challenge() {
         }
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          {KIND_CN[kind].blurb}
+          今天要猜的可能是<b>一名选手、一支战队、一张地图或者一个英雄</b>——
+          题目不会告诉你是哪一类，<b>先猜出它是什么，再猜出它是哪个</b>。
+          图会糊到看不出是人是队；每猜错一次清楚一点。
           <br />
           全世界今天是<b>同一道题</b>，日期以服务器为准。一天一次，
           入场 <b>{CHALLENGE_COST} 金币</b>——猜中按用了几次给卡包（<b>一次猜中给十连包</b>），
           没猜中退一半。
         </p>
 
-        {/* the subject */}
-        {visual ? (
-          <div style={{
-            position: 'relative', height: 190, borderRadius: 4, overflow: 'hidden',
-            background: 'var(--panel-2)', marginBottom: 12,
+        {/* The subject. Always a picture, always the same frame: a face, a
+            crest, a map and an agent are indistinguishable at this blur, which
+            is the point — a wide banner in a wide box would have announced
+            「地图」 before a guess was made. */}
+        <div style={{
+          position: 'relative', height: 190, borderRadius: 4, overflow: 'hidden',
+          background: 'var(--panel-2)', marginBottom: 12,
+        }}>
+          <img
+            src={`${assetBase()}${answerRow.img}`}
+            alt=""
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover',
+              filter: `blur(${blur}px)`, transform: `scale(${zoom})`,
+              transition: 'filter .35s ease, transform .35s ease',
+            }}
+          />
+          <div className="tiny" style={{
+            position: 'absolute', right: 8, bottom: 8, padding: '2px 8px',
+            borderRadius: 999, background: 'rgba(8,12,18,.72)', color: 'var(--muted)',
           }}>
-            <img
-              src={`${assetBase()}${answerRow.img}`}
-              alt=""
-              style={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                filter: `blur(${blur}px)`, transform: `scale(${zoom})`,
-                transition: 'filter .35s ease, transform .35s ease',
-              }}
-            />
-            {!state.done && (
-              <div className="tiny" style={{
-                position: 'absolute', right: 8, bottom: 8, padding: '2px 8px',
-                borderRadius: 999, background: 'rgba(8,12,18,.72)', color: 'var(--muted)',
-              }}>
-                每猜错一次清楚一点
-              </div>
-            )}
+            {state.done
+              ? `${KIND_CN[kind]} · ${answerRow.name}`
+              : `还剩 ${left} 次 · 每猜错一次清楚一点`}
           </div>
-        ) : (
-          <div className="row" style={{ gap: 12, marginBottom: 12 }}>
-            <div style={{
-              width: 62, height: 62, borderRadius: 4, display: 'grid', placeItems: 'center',
-              background: 'var(--panel-2)', border: '1px solid var(--line)',
-              fontSize: 30, fontWeight: 800, color: 'var(--faint)',
-            }}>
-              {state.done ? (
-                <img src={`${assetBase()}${answerRow.img}`} alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
-              ) : '?'}
-            </div>
-            <div className="small muted">
-              {state.done
-                ? <>答案是 <b style={{ color: 'var(--text)' }}>{answerRow.name}</b></>
-                : <>还剩 <b style={{ color: 'var(--text)' }}>{left}</b> 次机会。绿色＝完全对上，黄色＝沾边，↑↓＝答案比你猜的高／低。</>}
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* The picker. A form, not a bare input with a keydown handler: this
             is how the phone keyboard's 「前往」 key submits, and three quarters
@@ -190,7 +169,9 @@ export default function Challenge() {
                     }}
                     onClick={() => submit(c.id)}
                   >
-                    <b>{c.name}</b> <span className="tiny faint">{c.hint}</span>
+                    <b>{c.name}</b>{' '}
+                    <span className="tag" style={{ marginLeft: 2 }}>{KIND_CN[c.kind!]}</span>{' '}
+                    <span className="tiny faint">{c.hint}</span>
                   </button>
                 ))}
               </div>
@@ -251,11 +232,20 @@ export default function Challenge() {
         )}
 
         {state.done && (
-          <p className="small" style={{ marginTop: 12, marginBottom: 0, color: state.solved ? 'var(--win)' : 'var(--muted)' }}>
-            {state.solved
-              ? `第 ${used} 次猜中，连续第 ${state.streak} 天。明天换一道，题型是轮着来的。`
-              : `今天没猜出来，连胜清零了。明天再来。`}
-          </p>
+          <>
+            <p className="small" style={{ marginTop: 12, marginBottom: 6, color: state.solved ? 'var(--win)' : 'var(--muted)' }}>
+              {state.solved
+                ? `第 ${used} 次猜中，连续第 ${state.streak} 天。`
+                : '今天没猜出来，连胜清零了。'}
+              答案是<b style={{ color: 'var(--text)' }}>{KIND_CN[kind]}「{answerRow.name}」</b>。明天换一道。
+            </p>
+            {/* everybody on earth has today's puzzle; posting the answer takes
+                it away from them, and this is the moment they would do it */}
+            <p className="tiny" style={{ color: 'var(--warn)', margin: 0 }}>
+              🤐 <b>别把答案发出去</b>——今天全世界是同一道题，发出来别人就没得玩了。
+              想晒的话晒「第几次猜中」和连胜天数就好。
+            </p>
+          </>
         )}
       </Panel>
 
