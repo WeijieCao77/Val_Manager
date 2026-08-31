@@ -917,6 +917,19 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
   tickLeagueOffer(state, notes)
 
+  // A club that lost a man yesterday must not walk out four-handed today.
+  //
+  // This backstop used to run in the weekly block, which is below the fixtures
+  // — so a side stripped by a transfer, a retirement or a release played every
+  // match until the next Sunday with whoever was left. Reproduced: take two
+  // players off a club on day 1 and it fields THREE for six days, and the
+  // group chat found it before this did — 「为什么四个人也能开比赛啊」, with a
+  // scoreboard showing three.
+  //
+  // Daily, and before a ball is kicked. It costs a length check per club on
+  // the days nothing is wrong, which is almost all of them.
+  ensureMinimumRosters(state, rng)
+
   // ---- play today's matches
   let pendingMine: Fixture | undefined
   // Anything still unplayed from an earlier day is played now, oldest first.
@@ -972,7 +985,6 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     weeklyFinance(state)
     aiTransferTick(state, rng, notes)
     refreshListings(state, rng, notes)   // runs all year so stale listings expire
-    ensureMinimumRosters(state, rng)
   }
 
   if (state.news.length > 400) state.news.splice(0, state.news.length - 400)
