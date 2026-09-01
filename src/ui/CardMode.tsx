@@ -10,8 +10,10 @@ import Friends from './cards/Friends'
 import Cup from './cards/Cup'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
-import Odds from './cards/Odds'
+import OddsFab from './cards/OddsFab'
 import Credit from './Credit'
+import Support from './Support'
+import Changelog from './Changelog'
 import {
   createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, retryPending,
   saveAccount, serverNow, whenStale,
@@ -85,7 +87,9 @@ const TABS = [
   { key: 'friends', label: '好友' },
   { key: 'cup', label: '杯赛' },
   { key: 'dossier', label: '资料库' },
-  { key: 'odds', label: '概率' },
+  // 概率 used to be here. It is the 🎲 button in the corner now: the tab was
+  // ten wide on a phone, and nobody leaves a pack they just opened to go and
+  // read a table on another screen.
   { key: 'account', label: '账号' },
 ]
 
@@ -229,6 +233,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const g = gRef.current
   if (!g) {
     return (
+      <>
       <Gate
         onExit={onExit}
         onReady={(state, isNew, isCloud, day) => {
@@ -243,6 +248,11 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           bump()
         }}
       />
+      {/* the door is a page like any other, and the person standing at it is
+          exactly the one who has not decided whether to come in */}
+      <Changelog />
+      <Support />
+      </>
     )
   }
 
@@ -318,13 +328,15 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
             </div>
           )}
           {tab === 'dossier' ? <Dossier playerId={dossierId} onOpen={setDossierId} />
-            : tab === 'odds' ? <Odds />
             : tab === 'account' ? <AccountScreen onSignOut={signOut} />
             : Screen ? <Screen /> : <Packs />}
           <Credit />
         </div>
 
         {toastMsg && <div className="toast">{toastMsg}</div>}
+        <OddsFab />
+        <Changelog />
+        <Support />
       </div>
     </CardCtx.Provider>
   )
