@@ -5,9 +5,11 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, QUESTS, HARD_PITY, SOFT_PITY,
   checkIn, claimQuest, collectionProgress, openPack, refreshDaily, salvage,
+  claimSeries, featuredSeries, packCost, seriesOfPack, seriesProgress,
 } from '../../engine/gacha'
 import type { PackKind, Pulled, QuestKey } from '../../engine/gacha'
 import { RARITY_CN, isPlayerCard } from '../../engine/cards'
+import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 
 export default function Packs() {
@@ -17,10 +19,12 @@ export default function Packs() {
 
   refreshDaily(g, today)
   const prog = collectionProgress(g)
+  const series = seriesProgress(g)
+  const featured = featuredSeries(today)
 
   const open = (kind: PackKind, payWith: 'pack' | 'coins') => {
     try {
-      const out = openPack(g, kind, payWith)
+      const out = openPack(g, kind, payWith, today)
       track('card_pull', {
         kind,
         paid: payWith,
@@ -51,6 +55,11 @@ export default function Packs() {
   const claim = (key: QuestKey) => {
     const n = claimQuest(g, key)
     if (n) { commit(true); toast(`任务完成，+${n} 金币。`) }
+  }
+
+  const takeSeries = (region: Parameters<typeof claimSeries>[1]) => {
+    const got = claimSeries(g, region)
+    if (got) { commit(true); toast(`系列奖励已领取：${got}`) }
   }
 
   const signedToday = g.daily.claimed === today
@@ -129,7 +138,7 @@ export default function Packs() {
           十连包不卖，只能靠升段、夺冠或连签七天拿。
         </p>
         <div className="pack-shelf">
-          {PACK_ORDER.map((kind) => {
+          {PACK_ORDER.filter((k) => !seriesOfPack(k)).map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
             return (
@@ -153,6 +162,79 @@ export default function Packs() {
                     >
                       花 {def.cost} 金币
                     </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </Panel>
+
+      <Panel
+        title="赛区系列"
+        actions={<span className="tiny muted">四个赛区，分开收集</span>}
+      >
+        <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
+          赛区包只会开出该赛区的选手，出金率和选拔包一样，贵 200 金币买的是「不会再出你不缺的卡」。
+          {'　'}每个赛区的选手卡收到 25% / 50% / 75% / 90% / 100% 各有一档奖励，收齐一个赛区送买不到的十连包。
+          {'　'}彩卡另算，不影响进度——不然一张三百抽才出一次的卡会把整条进度卡死。
+          {'　'}每周轮一个主打赛区，本周是{REGION_CN[featured]}，便宜两成；四个包一直都在，不会下架。
+        </p>
+        <div className="pack-shelf">
+          {series.map((s) => {
+            const def = PACKS[s.pack]
+            const own = g.packs[s.pack] ?? 0
+            const pct = s.total ? Math.round((s.owned / s.total) * 100) : 0
+            const hot = s.region === featured
+            const price = packCost(s.pack, today)
+            return (
+              <div
+                key={s.region}
+                className="pack-box"
+                style={hot ? { borderColor: 'var(--warn)' } : undefined}
+              >
+                <h4>
+                  {REGION_CN[s.region]}
+                  {hot && <span className="tag warn" style={{ marginLeft: 6 }}>本周主打</span>}
+                  {own > 0 && <span className="pack-own"> ×{own}</span>}
+                </h4>
+                <div className="tiny mono faint" style={{ margin: '2px 0 5px' }}>
+                  选手卡 {s.owned}/{s.total}（{pct}%）· 彩卡 {s.legends}/{s.legendsTotal}
+                </div>
+                <div
+                  style={{
+                    height: 5, borderRadius: 3, background: 'var(--panel-2)',
+                    border: '1px solid var(--line)', overflow: 'hidden', marginBottom: 9,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pct}%`, height: '100%',
+                      background: s.owned >= s.total ? 'var(--good)' : 'var(--accent)',
+                    }}
+                  />
+                </div>
+                <div className="tiny faint" style={{ marginBottom: 8, lineHeight: 1.6 }}>
+                  {s.ready.length
+                    ? `有 ${s.ready.length} 档奖励可以领`
+                    : s.next
+                      ? `再收 ${s.next.need} 张到 ${Math.round(s.next.at * 100)}%：${s.next.label}`
+                      : '全部收齐了'}
+                </div>
+                <div className="row" style={{ gap: 6 }}>
+                  <button className="primary sm" onClick={() => open(s.pack, 'pack')} disabled={own < 1}>
+                    打开（{own}）
+                  </button>
+                  <button
+                    className="sm"
+                    onClick={() => open(s.pack, 'coins')}
+                    disabled={g.coins < price}
+                  >
+                    花 {price} 金币
+                    {hot && <s className="faint" style={{ marginLeft: 4 }}>{def.cost}</s>}
+                  </button>
+                  {s.ready.length > 0 && (
+                    <button className="sm warn" onClick={() => takeSeries(s.region)}>领奖</button>
                   )}
                 </div>
               </div>

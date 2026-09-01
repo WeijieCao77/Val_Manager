@@ -508,5 +508,8 @@ function migrate(state: GachaState, id: string): GachaState {
   g.daily.staminaAt ??= 0
   // accounts made before the daily challenge existed have never played one
   g.challenge ??= newChallenge()
+  // an existing collection already sits somewhere on the series ladder; nothing
+  // is marked claimed, so whatever it has already earned is waiting on the shelf
+  g.series ??= {}
   return clampState(g)
 }

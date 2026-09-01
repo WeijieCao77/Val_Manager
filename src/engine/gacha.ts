@@ -8,6 +8,7 @@
  */
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './world'
+import { REGION_CN } from './types'
 import {
   ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, MAX_LEVEL, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
@@ -21,7 +22,25 @@ export const GACHA_VERSION = 1
 
 // ---------------------------------------------------------------- packs
 
-export type PackKind = 'scout' | 'elite' | 'ten' | 'coach'
+/**
+ * The four series, and the pack that only deals from one of them.
+ *
+ * A single 607-card pile is a number, not a collection: 「还差多少」 has no
+ * answer a person can hold, and no pull ever moves you visibly closer to
+ * anything. Cut by the thing this sport is actually organised by — the four
+ * regions — it becomes four collections you can finish, and a pack that deals
+ * only from one of them is a way to chase the half you are missing rather
+ * than the whole world at once.
+ *
+ * The regions come off the cards themselves; nothing here is invented.
+ */
+export const SERIES = ['China', 'Pacific', 'Americas', 'EMEA'] as const
+export type Series = (typeof SERIES)[number]
+
+export type PackKind =
+  | 'scout' | 'elite' | 'ten' | 'coach'
+  // one per series — same three cards, drawn only from that region
+  | 'cn' | 'pac' | 'ame' | 'emea'
 
 export interface PackDef {
   kind: PackKind
@@ -51,8 +70,8 @@ export interface PackDef {
    * one" never was.
    */
   shop?: boolean
-  /** coach packs deal from a different deck */
-  pool: 'player' | 'coach'
+  /** coach packs deal from a different deck; a series deals from one region */
+  pool: 'player' | 'coach' | Series
 }
 
 /**
@@ -80,6 +99,30 @@ export const PACKS: Record<PackKind, PackDef> = {
     blurb: '十张选手卡，必出金卡，彩卡出得最多。买不到——升段、夺冠、连签七天才有。',
     cost: 5000, draws: 10, mythic: 0.0012, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
   },
+  // The series packs: same three cards as a 选拔包 and the same odds, priced a
+  // little above it. What you are buying is not volume, it is aim — a 中国包
+  // cannot hand you an EMEA bronze you already own twice, which is the whole
+  // complaint about a 607-card pile answered in one line.
+  cn: {
+    kind: 'cn', name: '中国包', pool: 'China',
+    blurb: '只出中国赛区的选手卡。三张，至少一张银卡起——想补哪个赛区就开哪个。',
+    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+  },
+  pac: {
+    kind: 'pac', name: '太平洋包', pool: 'Pacific',
+    blurb: '只出太平洋赛区的选手卡。三张，至少一张银卡起。',
+    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+  },
+  ame: {
+    kind: 'ame', name: '美洲包', pool: 'Americas',
+    blurb: '只出美洲赛区的选手卡。三张，至少一张银卡起。',
+    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+  },
+  emea: {
+    kind: 'emea', name: 'EMEA 包', pool: 'EMEA',
+    blurb: '只出欧非中东赛区的选手卡。三张，至少一张银卡起。',
+    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+  },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
@@ -89,7 +132,18 @@ export const PACKS: Record<PackKind, PackDef> = {
   },
 }
 
-export const PACK_ORDER: PackKind[] = ['scout', 'elite', 'ten', 'coach']
+/**
+ * Which series a pack belongs to, for the collection screen.
+ */
+export const seriesOfPack = (kind: PackKind): Series | null =>
+  kind === 'cn' ? 'China'
+    : kind === 'pac' ? 'Pacific'
+      : kind === 'ame' ? 'Americas'
+        : kind === 'emea' ? 'EMEA' : null
+
+export const PACK_ORDER: PackKind[] = [
+  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea',
+]
 
 /**
  * How long a dry run is allowed to get.
@@ -376,6 +430,8 @@ export interface GachaState {
   daily: DailyState
   /** 每日挑战 — see engine/challenge.ts */
   challenge?: ChallengeState
+  /** how many series milestones have been collected, per region */
+  series?: Partial<Record<Series, number>>
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
@@ -428,6 +484,16 @@ export const owns = (g: GachaState, cardId: string): boolean => !!g.cards[cardId
 
 // ---------------------------------------------------------------- pulling
 
+const bySeries = <T extends { region?: string }>(list: readonly T[], region: Series) =>
+  list.filter((c) => c.region === region)
+
+const seriesPool = (region: Series) => ({
+  mythic: bySeries(LEGEND_CARDS, region),
+  gold: bySeries(PLAYER_CARDS.filter((c) => c.rarity === 'gold'), region),
+  silver: bySeries(PLAYER_CARDS.filter((c) => c.rarity === 'silver'), region),
+  bronze: bySeries(PLAYER_CARDS.filter((c) => c.rarity === 'bronze'), region),
+})
+
 const POOLS = {
   player: {
     mythic: LEGEND_CARDS,
@@ -435,6 +501,10 @@ const POOLS = {
     silver: PLAYER_CARDS.filter((c) => c.rarity === 'silver'),
     bronze: PLAYER_CARDS.filter((c) => c.rarity === 'bronze'),
   },
+  China: seriesPool('China'),
+  Pacific: seriesPool('Pacific'),
+  Americas: seriesPool('Americas'),
+  EMEA: seriesPool('EMEA'),
   coach: {
     mythic: [] as CoachCard[],
     gold: COACH_CARDS.filter((c) => c.rarity === 'gold'),
@@ -458,15 +528,18 @@ export interface Pulled {
  * files what came out. Returns the cards in the order they should be revealed
  * — worst first, so the flip that matters is the last one.
  */
-export function openPack(g: GachaState, kind: PackKind, payWith: 'pack' | 'coins'): Pulled[] {
+export function openPack(
+  g: GachaState, kind: PackKind, payWith: 'pack' | 'coins', today?: string,
+): Pulled[] {
   const def = PACKS[kind]
   if (payWith === 'pack') {
     if ((g.packs[kind] ?? 0) < 1) throw new Error('没有这种卡包')
     g.packs[kind] = (g.packs[kind] ?? 0) - 1
   } else {
     if (def.shop === false) throw new Error(`${def.name}买不到，只能靠升段、夺冠或连签拿`)
-    if (g.coins < def.cost) throw new Error('金币不够')
-    g.coins -= def.cost
+    const price = packCost(kind, today)
+    if (g.coins < price) throw new Error('金币不够')
+    g.coins -= price
   }
 
   const rng = roll(g)
@@ -612,6 +685,171 @@ export const collectionProgress = (g: GachaState) => ({
   owned: Object.keys(g.cards).length,
   total: ALL_CARDS.length,
 })
+
+/**
+ * The four series, and how far into each one you are.
+ *
+ * 「607 张里有 9 张」 is a number nobody can act on. 「中国 9/143」 is four
+ * collections that can each be finished, and it says which pack to open next.
+ * Counted off the cards, so a legend of a Chinese player counts toward China
+ * exactly as his ordinary card does.
+ */
+export interface SeriesProgress {
+  region: Series
+  owned: number
+  total: number
+  /** the pack that only deals from this series; 彩卡 counted apart */
+  pack: PackKind
+  legends: number
+  legendsTotal: number
+  /** milestones reached but not yet collected */
+  ready: SeriesReward[]
+  /** the next one, and how many more cards it wants */
+  next: (SeriesReward & { need: number }) | null
+}
+
+/**
+ * What a series pays out on the way through.
+ *
+ * A collection with no landmarks is a number that goes up, and a number that
+ * goes up is not a reason to open another pack. Four marks per region, the
+ * last one paying a 十连包 — the pack that cannot be bought — so finishing a
+ * region is worth something you cannot simply buy your way to.
+ */
+export interface SeriesReward {
+  /** share of the series, as a fraction */
+  at: number
+  coins: number
+  /** 'self' means the series' own pack */
+  pack?: PackKind | 'self'
+  count?: number
+  label: string
+}
+
+/**
+ * Measured, not guessed: 25% of a region costs about 15 packs, 50% about 45,
+ * 75% about 90, and the last card some three hundred more. The marks sit where
+ * the curve bends, and the 90% one pays in the region's own packs because that
+ * is the stretch where an ordinary pack has almost nothing left to give you.
+ *
+ * The whole ladder returns roughly 3% of what a region costs to finish. It is
+ * meant to be a landmark, not an income — a series that paid for itself would
+ * make every other pack on the shelf pointless.
+ */
+export const SERIES_REWARDS: SeriesReward[] = [
+  { at: 0.25, coins: 1500, label: '+1500 金币' },
+  { at: 0.5, coins: 1500, pack: 'elite', label: '选拔包 ×1，+1500 金币' },
+  { at: 0.75, coins: 5000, label: '+5000 金币' },
+  { at: 0.9, coins: 0, pack: 'self', count: 2, label: '本赛区包 ×2' },
+  { at: 1, coins: 15000, pack: 'ten', label: '十连包 ×1，+15000 金币' },
+]
+
+/**
+ * Built from the pack's own pool, not from every card that carries a region.
+ *
+ * Coaches have a region too, and a 中国包 cannot deal one — count them and the
+ * bar stops at 122/136 with no pack on the shelf that can finish it, which
+ * reads as a bug. The denominator is exactly what the pack can hand you.
+ *
+ * 彩卡 are the exception, and are counted separately below. Measured: a region
+ * has two to seven legends, they arrive about once in three hundred draws, and
+ * the last one of five takes some three thousand — so a 100% mark that needed
+ * them would be a milestone almost nobody could reach, advertising a十连包 that
+ * is never paid. The bar is the 选手卡; the legends are the trophy on top.
+ */
+const SERIES_CARDS = Object.fromEntries(SERIES.map((r) => {
+  const pool = POOLS[r]
+  return [r, new Set([...pool.gold, ...pool.silver, ...pool.bronze].map((c) => c.id))]
+})) as Record<Series, Set<string>>
+
+const SERIES_LEGENDS = Object.fromEntries(SERIES.map((r) =>
+  [r, new Set(POOLS[r].mythic.map((c) => c.id))],
+)) as Record<Series, Set<string>>
+
+const SERIES_PACK: Record<Series, PackKind> = {
+  China: 'cn', Pacific: 'pac', Americas: 'ame', EMEA: 'emea',
+}
+
+/**
+ * The week's featured region, and what it costs while it is featured.
+ *
+ * The 限定 half of 「分赛区限定包」. Nothing is ever taken away — all four packs
+ * are on the shelf all the time — but one of them is cheaper for seven days,
+ * which is a reason to come back on a Monday rather than a reason to hurry.
+ * Derived from the date, so it is the same for everybody and needs no state,
+ * and cycles through all four before repeating.
+ */
+export const FEATURE_OFF = 0.2
+
+export function featuredSeries(today: string): Series {
+  // whole days since a fixed Monday, floored to weeks; the epoch is a Monday
+  // so the discount turns over at the same moment the week does
+  const days = Math.floor(Date.parse(`${today}T00:00:00Z`) / 86_400_000)
+  const week = Math.floor((days - 4) / 7) // 1970-01-01 was a Thursday
+  return SERIES[((week % SERIES.length) + SERIES.length) % SERIES.length]
+}
+
+/** What a pack costs today — the featured series is off by a fifth. */
+export function packCost(kind: PackKind, today?: string): number {
+  const base = PACKS[kind].cost
+  if (!today) return base
+  const region = seriesOfPack(kind)
+  if (!region || region !== featuredSeries(today)) return base
+  return Math.round(base * (1 - FEATURE_OFF))
+}
+
+/** How many cards of a series a milestone asks for. */
+const milestoneAt = (reward: SeriesReward, total: number) => Math.ceil(reward.at * total)
+
+export function seriesProgress(g: GachaState): SeriesProgress[] {
+  const mine = Object.keys(g.cards)
+  return SERIES.map((region) => {
+    const total = SERIES_CARDS[region].size
+    const owned = mine.filter((id) => SERIES_CARDS[region].has(id)).length
+    const claimed = g.series?.[region] ?? 0
+    const ready = SERIES_REWARDS.filter((r, i) => i >= claimed && owned >= milestoneAt(r, total))
+    const nextIdx = SERIES_REWARDS.findIndex((r) => owned < milestoneAt(r, total))
+    const next = nextIdx < 0 ? null : {
+      ...SERIES_REWARDS[nextIdx],
+      need: milestoneAt(SERIES_REWARDS[nextIdx], total) - owned,
+    }
+    return {
+      region, owned, total, pack: SERIES_PACK[region], ready, next,
+      legends: mine.filter((id) => SERIES_LEGENDS[region].has(id)).length,
+      legendsTotal: SERIES_LEGENDS[region].size,
+    }
+  })
+}
+
+/**
+ * Collect everything a series owes.
+ *
+ * Pays every unclaimed milestone at once rather than one per press: a player
+ * who comes back after a long absence has no interest in pressing a button
+ * four times to be told four things.
+ */
+export function claimSeries(g: GachaState, region: Series): string | null {
+  const prog = seriesProgress(g).find((p) => p.region === region)
+  if (!prog || !prog.ready.length) return null
+  let coins = 0
+  const packs: string[] = []
+  for (const r of prog.ready) {
+    coins += r.coins
+    if (r.pack) {
+      const kind = r.pack === 'self' ? prog.pack : r.pack
+      const n = r.count ?? 1
+      g.packs[kind] = (g.packs[kind] ?? 0) + n
+      packs.push(`${PACKS[kind].name} ×${n}`)
+    }
+  }
+  g.coins += coins
+  g.series = { ...(g.series ?? {}) }
+  g.series[region] = (g.series[region] ?? 0) + prog.ready.length
+  const parts = [packs.join('、'), coins ? `+${coins} 金币` : '']
+    .filter(Boolean)
+  note(g, `${REGION_CN[region]}系列进度奖励：${parts.join('，')}`)
+  return parts.join('，')
+}
 
 // ---------------------------------------------------------------- ladder
 

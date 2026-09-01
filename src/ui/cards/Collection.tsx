@@ -8,6 +8,8 @@ import {
 } from '../../engine/cards'
 import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
+import { SERIES } from '../../engine/gacha'
+import type { Series } from '../../engine/gacha'
 import { LEGEND_KIND_CN } from '../../engine/legends'
 import { legendPhoto } from '../../engine/dossier'
 
@@ -29,6 +31,9 @@ export default function Collection() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
+  // 「中国」＋「看还缺什么」 is the list a series collector actually wants, and
+  // the reason the region packs exist at all
+  const [region, setRegion] = useState<Series | 'all'>('all')
 
   const mine = useMemo(() => collection(g), [g, g.pulls, g.coins])
 
@@ -39,9 +44,10 @@ export default function Collection() {
       const name = c.kind === 'player' ? `${c.ign} ${c.realName ?? ''} ${c.clubTag ?? ''}` : `${c.name} ${c.clubTag ?? ''}`
       return name.toLowerCase().includes(text)
     }
+    const inRegion = (c: Card) => region === 'all' || c.region === region
     if (missing) {
       const owned = new Set(Object.keys(g.cards))
-      return ALL_CARDS.filter((c) => !owned.has(c.id) && match(c))
+      return ALL_CARDS.filter((c) => !owned.has(c.id) && match(c) && inRegion(c))
         .filter((c) => filter === 'all' || (filter === 'coach' ? c.kind === 'coach' : filter === 'dupes' ? false : c.rarity === filter))
         .sort((a, b) => b.rating - a.rating)
         .map((card) => ({ card, owned: null, rating: card.rating }))
@@ -53,8 +59,8 @@ export default function Collection() {
         if (filter !== 'all' && card.rarity !== filter) return false
         return true
       })
-      .filter(({ card }) => match(card))
-  }, [mine, filter, q, missing, g.cards])
+      .filter(({ card }) => match(card) && inRegion(card))
+  }, [mine, filter, q, missing, region, g.cards])
 
   const sel = open ? cardById(open) : null
   const owned = open ? g.cards[open] : undefined
@@ -77,6 +83,14 @@ export default function Collection() {
             {FILTERS.filter((f) => !(missing && f.key === 'dupes')).map((f) => (
               <button key={f.key} className={filter === f.key ? 'on' : ''} onClick={() => setFilter(f.key)}>
                 {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="seg">
+            <button className={region === 'all' ? 'on' : ''} onClick={() => setRegion('all')}>全部赛区</button>
+            {SERIES.map((r) => (
+              <button key={r} className={region === r ? 'on' : ''} onClick={() => setRegion(r)}>
+                {REGION_CN[r]}
               </button>
             ))}
           </div>

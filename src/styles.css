@@ -119,6 +119,13 @@ button.primary {
 }
 button.primary:hover:not(:disabled) { background: var(--accent-hot); border-color: var(--accent-hot); }
 
+/* something is waiting to be collected — the one button on the shelf that
+   should pull the eye */
+button.warn {
+  background: var(--warn-wash); border-color: var(--warn); color: var(--warn);
+  font-weight: 650;
+}
+button.warn:hover:not(:disabled) { background: var(--warn); color: #1b1305; }
 button.ghost { background: transparent; }
 button.ghost:hover:not(:disabled) { background: var(--panel-2); }
 button.sm { padding: 4px 9px; font-size: var(--t-small); }
