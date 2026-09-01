@@ -222,6 +222,7 @@ export default function Friends() {
           result={shown.res}
           opponentId=""
           opponentName={`${shown.who.name} ${shown.who.tag}`}
+          mySquad={g.squad}
           level={level}
           onClose={() => setShown(null)}
           extra={

@@ -250,6 +250,7 @@ export default function Ladder() {
           result={shown.res}
           opponentId={shown.opp}
           opponentName={shown.who}
+          mySquad={g.squad}
           level={level}
           onClose={() => setShown(null)}
           extra={

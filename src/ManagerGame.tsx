@@ -26,7 +26,7 @@ import Tutorial, { tutorialSeen } from './ui/Tutorial'
 import { screenLocked } from './engine/agenda'
 import { money, Crest } from './ui/common'
 import type { Fixture, GameState } from './engine/types'
-import { track } from './engine/telemetry'
+import { countScreen, track } from './engine/telemetry'
 import Achievements from './ui/Achievements'
 import Credit from './ui/Credit'
 import Support from './ui/Support'
@@ -65,7 +65,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   // which screens people open, and which one they were on when they left
   const mainRef = useRef<HTMLElement>(null)
   const goScreen = (k: string) => {
-    track('screen', { to: k })
+    countScreen(k)
     if (k !== 'dossier') setDossierId(null)
     setScreen(k)
   }

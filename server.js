@@ -37,6 +37,19 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'dist')
 const PORT = Number(process.env.PORT) || 8080
 const TOKEN = process.env.ANALYTICS_TOKEN || ''
 
+/**
+ * How much history the events table is allowed to keep.
+ *
+ * Env vars because the answer is a disk size, and a disk size is bought rather
+ * than committed. At about 92 rows a visitor a day (see check_telemetry.ts),
+ * four million rows is roughly 18 days at 2400 daily visitors and 54 days at
+ * 800 — raise ANALYTICS_MAX_ROWS when there is room for more, without a deploy
+ * that touches anything else.
+ */
+const num = (v, dflt) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.trunc(Number(v)) : dflt)
+const MAX_ROWS = num(process.env.ANALYTICS_MAX_ROWS, 4_000_000)
+const PRUNE_DAYS = num(process.env.ANALYTICS_KEEP_DAYS, 180)
+
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -72,10 +85,12 @@ if (process.env.DATABASE_URL) {
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
     // retention policy would have been written down and never enforced.
-    prune(sql).then((n) => n && console.log(`analytics: pruned ${n} old events`))
+    prune(sql, PRUNE_DAYS, MAX_ROWS)
+      .then((n) => n && console.log(`analytics: pruned ${n} old events`))
       .catch((e) => console.warn('analytics: prune failed', e.message))
     setInterval(() => {
-      prune(sql).catch((e) => console.warn('analytics: prune failed', e.message))
+      prune(sql, PRUNE_DAYS, MAX_ROWS)
+        .catch((e) => console.warn('analytics: prune failed', e.message))
     }, 24 * 60 * 60 * 1000).unref?.()
   } catch (err) {
     console.warn('analytics: disabled —', err.message)
@@ -261,7 +276,7 @@ async function stats(req, res, url) {
   if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 30))
   try {
-    const [data, disk] = await Promise.all([overview(sql, days), storage(sql)])
+    const [data, disk] = await Promise.all([overview(sql, days), storage(sql, MAX_ROWS)])
     json(res, 200, { ...data, storage: disk })
   } catch (err) {
     console.warn('analytics: query failed', err.message)

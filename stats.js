@@ -18,7 +18,8 @@ export async function overview(sql, days = 30) {
     headline, daily, retention, sessions, funnel, depth,
     devices, screens, clubs, referrers, errors,
     home, careers, unlocks, accounts,
-    hosts, midReview, cardFunnel, packs, challenge, cardMatches, cardAccounts, saveSize,
+    hosts, midReview, cardFunnel, packs, challenge, cardMatches, cardAccounts,
+    overplayed, saveSize,
   ] = await Promise.all([
     // The number that goes at the top: people who came back on a later day.
     // One visit is a click on a link; two days is a game someone chose again.
@@ -114,7 +115,9 @@ export async function overview(sql, days = 30) {
       with step as (
         select visitor_id,
           bool_or(name = 'career_start' or name = 'career_resume') as c_start,
-          bool_or(name = 'turn')                                   as c_turn,
+          -- 'turns' is the rollup, 'turn' the row-per-turn it replaced; the
+          -- funnel only asks whether anyone ever advanced one
+          bool_or(name in ('turn', 'turns'))                        as c_turn,
           bool_or(name in ('match_watched', 'match_skipped'))      as c_match,
           bool_or(name = 'stage_done')                             as c_stage,
           bool_or(name = 'season_done')                            as c_season
@@ -138,29 +141,53 @@ export async function overview(sql, days = 30) {
              count(*) filter (where finished_season)::int     as finished_season
       from reached`,
 
-    // how deep the ones who do play get
+    /**
+     * How deep the ones who do play get.
+     *
+     * Reads two shapes and adds them up. The new one is a single row per
+     * session carrying running totals — `turns` and the deepest day reached —
+     * which is why it is a max per session and then a sum per visitor: a
+     * re-delivered beacon repeats a total, and repeating a total is harmless
+     * only if it is read as a max. The old one is a row per turn, counted, and
+     * stays in until those rows age out of the 180-day window.
+     *
+     * The numeric guards are not decoration: the type check alone is not
+     * enough, because 1.5 is a number and '1.5'::bigint throws, and 1e20 is a
+     * number and overflows. Going via numeric handles the fraction and the
+     * range handles the rest. A season is 336 days and a long career a few
+     * thousand; anything past 20000 is somebody poking the endpoint, and it is
+     * excluded rather than clamped — clamping would put the ceiling itself on
+     * the dashboard as 「最深的一档」.
+     */
     sql`
       select
         coalesce(round(avg(day))::int, 0)      as avg_game_day,
         coalesce(max(day), 0)                  as max_game_day,
         coalesce(round(avg(turns), 1), 0)      as avg_turns
       from (
-        select visitor_id,
-               max((props->>'day')::numeric)::bigint as day,
-               count(*)                             as turns
-        from events
-        where name = 'turn' and jsonb_typeof(props->'day') = 'number'
-          -- The type check is not enough on its own: 1.5 is a number and
-          -- '1.5'::bigint throws, 1e20 is a number and overflows. Going via
-          -- numeric handles the fraction, the range handles the rest, and both
-          -- are needed. This also heals rows already written, which a fix at
-          -- ingest cannot do.
-          -- A season is 336 days and a long career a few thousand. Anything
-          -- past that is not a deep save, it is someone testing the endpoint —
-          -- clamping it to the ceiling would put that ceiling on the dashboard
-          -- as "deepest run", so it is excluded rather than squashed.
-          and (props->>'day')::numeric between 0 and 20000
-          and ts > now() - ${since}::interval
+        select visitor_id, max(day)::bigint as day, sum(turns) as turns
+        from (
+          select visitor_id, session_id,
+                 max((props->>'day')::numeric)   as day,
+                 max((props->>'turns')::numeric) as turns
+          from events
+          where name = 'turns'
+            and jsonb_typeof(props->'day') = 'number'
+            and jsonb_typeof(props->'turns') = 'number'
+            and (props->>'day')::numeric between 0 and 20000
+            and (props->>'turns')::numeric between 0 and 100000
+            and ts > now() - ${since}::interval
+          group by 1, 2
+          union all
+          select visitor_id, session_id,
+                 max((props->>'day')::numeric) as day,
+                 count(*)::numeric             as turns
+          from events
+          where name = 'turn' and jsonb_typeof(props->'day') = 'number'
+            and (props->>'day')::numeric between 0 and 20000
+            and ts > now() - ${since}::interval
+          group by 1, 2
+        ) s
         group by visitor_id
       ) t(visitor_id, day, turns)`,
 
@@ -169,12 +196,31 @@ export async function overview(sql, days = 30) {
       from events where ts > now() - ${since}::interval
       group by device order by visitors desc`,
 
-    // the last screen of a session is where someone gave up
+    /**
+     * Which screens get opened, and how often.
+     *
+     * Same two shapes as the turn counts: 'screens' is one row per screen per
+     * session carrying a running count (max per session, then summed), 'screen'
+     * is the old row-per-visit (counted). Both are folded together so the
+     * number does not visibly halve on the day the rollup ships.
+     */
     sql`
-      select props->>'to' as screen, count(*)::int as n
-      from events
-      where name = 'screen' and ts > now() - ${since}::interval and props ? 'to'
-      group by 1 order by n desc limit 12`,
+      select screen, sum(n)::int as n
+      from (
+        select props->>'to' as screen, session_id,
+               max((props->>'hits')::numeric) as n
+        from events
+        where name = 'screens' and ts > now() - ${since}::interval
+          and props ? 'to' and jsonb_typeof(props->'hits') = 'number'
+          and (props->>'hits')::numeric between 0 and 100000
+        group by 1, 2
+        union all
+        select props->>'to', session_id, count(*)::numeric
+        from events
+        where name = 'screen' and ts > now() - ${since}::interval and props ? 'to'
+        group by 1, 2
+      ) t(screen, session_id, n)
+      group by screen order by n desc limit 12`,
 
     sql`
       select props->>'club' as club, props->>'tier' as tier, count(*)::int as n
@@ -389,7 +435,48 @@ export async function overview(sql, days = 30) {
                then (a.state->'ladder'->>'div')::int else 0 end as div,
           case when a.state->'daily'->>'streak' ~ '^[0-9]{1,5}$'
                then (a.state->'daily'->>'streak')::int else 0 end as streak
-        ) v`
+        ) v`,
+
+    /**
+     * Saves whose match count does not fit in the hours the account has existed.
+     *
+     * The card save lives in the browser and is written back wholesale — that
+     * is the design, and an anti-cheat pass on a browser game is theatre. But
+     * `created` is set by the server on insert and is the one number a player
+     * cannot touch, so it can be checked against one they can: 体力 refills a
+     * point every 50 minutes, caps at 15, and a ladder match costs 2. That
+     * fixes a ceiling of about 14 matches a day, and anything far past it did
+     * not come from playing.
+     *
+     * Reported, not enforced. There is one honest way to trip it — playing a
+     * long time offline in 仅本机 and only then connecting, which stamps a
+     * fresh `created` on an old save — so the answer to a flagged row is to
+     * look at it, not to delete it.
+     */
+    sql`
+      with acc as materialized (
+        select created, name, id_hash, state
+        from card_accounts
+        where jsonb_typeof(state->'ladder') = 'object'
+      )
+      select
+        a.name, a.id_hash, a.created,
+        v.wins, v.losses, (v.wins + v.losses) as played,
+        round(extract(epoch from now() - a.created) / 3600)::int as hours,
+        -- 15 banked at the start, then one point every 50 minutes, 2 a match
+        floor((15 + extract(epoch from now() - a.created) / 3000) / 2)::int as ceiling
+      from acc a,
+        lateral (select
+          case when a.state->'ladder'->>'wins' ~ '^[0-9]{1,9}$'
+               then (a.state->'ladder'->>'wins')::int else 0 end as wins,
+          case when a.state->'ladder'->>'losses' ~ '^[0-9]{1,9}$'
+               then (a.state->'ladder'->>'losses')::int else 0 end as losses
+        ) v
+      where v.wins + v.losses
+            > floor((15 + extract(epoch from now() - a.created) / 3000) / 2)
+      order by (v.wins + v.losses)
+             - floor((15 + extract(epoch from now() - a.created) / 3000) / 2) desc
+      limit 20`
       // The only query here that reads a table another module owns. Everything
       // in this file is fetched in one Promise.all, so one rejection is the
       // whole dashboard refusing to load — an empty card panel is the better
@@ -449,6 +536,7 @@ export async function overview(sql, days = 30) {
       challenge,
       matches: cardMatches,
       accounts: cardAccounts[0] ?? {},
+      overplayed,
     },
   }
 }

@@ -196,8 +196,14 @@ export default function CardFace({
       )}
       {legend && <span className="cf-star" aria-hidden="true">★</span>}
       <div className="cf-rate">
-        <b>{rating}</b>
-        {level > 0 && <i className="cf-plus">+{level}</i>}
+        {/* The level rides BESIDE the number, not under it. Stacked, it made
+            the corner three rows deep and pushed the position line down into
+            the portrait — which is exactly what 「93 / +1 / 先锋·控场」 looked
+            like it was doing, because it was. */}
+        <span className="cf-num">
+          <b>{rating}</b>
+          {level > 0 && <i className="cf-plus">+{level}</i>}
+        </span>
         {/* Every position he can actually play, not just the first one.
             A card badged 哨卫 sitting in the 决斗者 slot reads as a mistake
             even when the man covers both — 「UI 看起来就感觉是放错了一样」 —

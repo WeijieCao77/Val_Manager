@@ -51,6 +51,16 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v1', 's2', 3, 'match_watched', '-1 days', { day: 34, bo: 3, won: true }],
   ['v1', 's2', 4, 'stage_done', '-1 days', { place: 3 }],
   ['v1', 's2', 5, 'session_ping', '-1 days', { active_s: 900 }],
+  // The rollup shape, alongside the old row-per-turn shape above. Both are
+  // read, and a re-delivered beacon repeats the same running total — which is
+  // the case that has to stay harmless.
+  ['v1', 's2', 20, 'turns', '-1 days', { turns: 9, fast: 2, quiet: 3, day: 90, year: 2026, sim_ms: 410 }],
+  ['v1', 's2', 21, 'turns', '-1 days', { turns: 11, fast: 2, quiet: 4, day: 96, year: 2026, sim_ms: 410 }],
+  ['v1', 's2', 22, 'turns', '-1 days', { turns: 11, fast: 2, quiet: 4, day: 96, year: 2026, sim_ms: 410 }],
+  ['v1', 's2', 23, 'screens', '-1 days', { to: 'squad', hits: 4 }],
+  ['v1', 's2', 24, 'screens', '-1 days', { to: 'squad', hits: 7 }],
+  ['v1', 's2', 25, 'screens', '-1 days', { to: 'squad', hits: 7 }],
+  ['v1', 's2', 26, 'screens', '-1 days', { to: 'transfers', hits: 2 }],
   ['v2', 's3', 1, 'session_start', '-1 days', { new_id: true, had_save: false }],
   ['v2', 's3', 2, 'session_end', '-1 days', { active_s: 12, reason: 'hidden' }],
   // Every shape an anonymous POST can take that used to kill the dashboard.
@@ -60,6 +70,8 @@ const rows: [string, string, number, string, string, unknown][] = [
   ['v3', 's4', 2, 'turn', '0 days', { day: 'nope' }],
   ['v3', 's4', 3, 'turn', '0 days', { day: 1.5 }],
   ['v3', 's4', 4, 'turn', '0 days', { day: 1e20 }],
+  ['v3', 's4', 20, 'turns', '0 days', { day: 1.5, turns: 'lots' }],
+  ['v3', 's4', 21, 'screens', '0 days', { to: 'squad', hits: 'many' }],
   ['v3', 's4', 5, 'session_ping', '0 days', { active_s: 1e308 }],
   ['v3', 's4', 6, 'session_ping', '0 days', { active_s: -900 }],
   ['v3', 's4', 9, 'error', '0 days', { msg: 'autosave: QuotaExceededError', kb: 2100, day: 250 }],
@@ -112,15 +124,26 @@ for (const [vid, sid, n, name, ago, props] of rows) {
 // The card mode's saves, which the collection panel reads directly. The third
 // is deliberately malformed in every way a hand-edited or half-written row
 // could be: it must be skipped, not throw.
-for (const [idh, ago, state] of [
+for (const [idh, ago, state, name] of [
   ['h1', '-60 days', { cards: { a: 1, b: 1, c: 1 }, pulls: 12, ladder: { div: 3 }, daily: { streak: 4 } }],
   ['h2', '-1 days', { cards: { a: 1 }, pulls: 2, ladder: { div: 0 }, daily: { streak: 1 } }],
   ['h3', '-1 days', { cards: 'nope', pulls: 'lots', ladder: 7, daily: null }],
-] as [string, string, unknown][]) {
+  // a day-old account claiming 121 matches: 体力 allows about 14 a day, so
+  // this one cannot have played what it says it played
+  ['h4', '-1 days', {
+    cards: { a: 1 }, pulls: 3,
+    ladder: { div: 5, wins: 109, losses: 12 }, daily: { streak: 1 },
+  }, '牛逼王'],
+  // a year-old account with the same record, which is entirely possible
+  ['h5', '-300 days', {
+    cards: { a: 1 }, pulls: 3,
+    ladder: { div: 5, wins: 109, losses: 12 }, daily: { streak: 1 },
+  }],
+] as [string, string, unknown, string?][]) {
   await db.query(
-    `insert into card_accounts (id_hash, created, seen, saved, state)
-     values ($1, now() + $2::interval, now(), now(), $3)`,
-    [idh, ago, JSON.stringify(state)],
+    `insert into card_accounts (id_hash, created, seen, saved, state, name)
+     values ($1, now() + $2::interval, now(), now(), $3, $4)`,
+    [idh, ago, JSON.stringify(state), name ?? null],
   )
 }
 
@@ -129,7 +152,12 @@ for (const [idh, ago, state] of [
 // match_watched row that no call site emitted — the test was the only thing
 // keeping the column alive.
 {
-  const emitted = new Set(rows.map((r) => r[3]))
+  // The two rollups replaced three per-action events, and rows in those old
+  // shapes are still in the table and still queried — so the fixtures keep
+  // them on purpose, and this guard has to know that "no longer emitted" is
+  // not the same as "never existed".
+  const RETIRED = new Set(['screen', 'turn', 'turn_done'])
+  const emitted = new Set(rows.map((r) => r[3]).filter((n) => !RETIRED.has(n as string)))
   // Scan the source for every whitelisted name that appears in quotes. A regex
   // over `track('x')` misses the ternary in MatchLive — track(watched ?
   // 'match_watched' : 'match_skipped') — which is exactly the shape that hid
@@ -149,9 +177,9 @@ for (const [idh, ago, state] of [
 let out: Awaited<ReturnType<typeof overview>> | null = null
 try {
   out = await overview(sql as never, 30)
-  check('all eleven dashboard queries execute', true)
+  check('every dashboard query executes', true)
 } catch (err) {
-  check('all eleven dashboard queries execute', false, (err as Error).message)
+  check('every dashboard query executes', false, (err as Error).message)
 }
 
 if (out) {
@@ -169,8 +197,24 @@ if (out) {
     out.funnel.arrived >= out.funnel.started &&
     out.funnel.started >= out.funnel.advanced,
     JSON.stringify(out.funnel))
-  check('game depth ignores the non-numeric day',
-    out.depth.max_game_day === 34, `max=${out.depth.max_game_day}`)
+  // 96 comes from the rollup rows, 34 from the old row-per-turn ones, and the
+  // junk (1.5, 1e20, 'nope', 'lots') from neither
+  check('game depth reads both shapes and ignores the junk',
+    out.depth.max_game_day === 96, `max=${out.depth.max_game_day}`)
+  // v1 = 1 (old s1) + 1 (old s2) + 11 (s2's rollup) = 13, and v3 = 1 from the
+  // one junk row whose day was merely fractional rather than out of range.
+  // The number worth watching is the 11: the session reported 9, then 11, then
+  // 11 again, and a sum would have made it 31. A running total read as a max
+  // is what makes a re-delivered beacon cost nothing.
+  //
+  // A real session only ever carries one of the two shapes — a client is
+  // running one bundle or the other — so s2 having both is a fixture that
+  // exercises the union, not a case production produces.
+  check('一个会话重复上报的总数只算一次，不会累加',
+    Number(out.depth.avg_turns) === 7, `avg=${out.depth.avg_turns}（累加的话是 17）`)
+  const squad = out.screens.find((r) => r.screen === 'squad')
+  check('页面次数把两种格式加在一起',
+    squad?.n === 8, JSON.stringify(out.screens))
   check('the daily series has a row per active day', out.daily.length >= 2, `${out.daily.length} days`)
   check('cohorts come back', Array.isArray(out.retention), `${out.retention.length} cohorts`)
   check('errors surface', out.errors.length === 1, JSON.stringify(out.errors[0]?.msg))
@@ -243,11 +287,26 @@ if (out) {
     (c.matches.find((r) => r.mode === 'ladder')?.wins ?? 0) === 1
     && (c.matches.find((r) => r.mode === 'cup')?.wins ?? 0) === 0, JSON.stringify(c.matches))
   check('收藏统计跳过坏掉的存档而不是崩掉',
-    c.accounts.accounts === 2 && c.accounts.avg_owned === 2, JSON.stringify(c.accounts))
+    c.accounts.accounts === 4 && c.accounts.avg_owned === 2, JSON.stringify(c.accounts))
   check('最高段位和最长连签读的是存档本身',
-    c.accounts.max_div === 3 && c.accounts.max_streak === 4, JSON.stringify(c.accounts))
+    c.accounts.max_div === 5 && c.accounts.max_streak === 4, JSON.stringify(c.accounts))
   check('窗口外建的账号仍然计入总数，但不算新增',
-    c.accounts.accounts === 2 && c.accounts.fresh === 1, JSON.stringify(c.accounts))
+    c.accounts.accounts === 4 && c.accounts.fresh === 2, JSON.stringify(c.accounts))
+
+  // 「这个人能打这么多场是不是开挂了」 is arithmetic, and the arithmetic has
+  // to be right in both directions: the one-day-old account with 121 matches
+  // is flagged, the year-old one with the identical record is not.
+  const over = c.overplayed || []
+  check('一天建的号打了 121 场会被标出来',
+    over.some((r) => r.id_hash === 'h4'), JSON.stringify(over.map((r) => r.id_hash)))
+  check('同样战绩但号很老的不会被标',
+    !over.some((r) => r.id_hash === 'h5'), JSON.stringify(over.map((r) => r.id_hash)))
+  check('正常号不会被标',
+    !over.some((r) => r.id_hash === 'h1' || r.id_hash === 'h2'))
+  const flagged = over.find((r) => r.id_hash === 'h4')
+  check('算得出超出多少', !!flagged && flagged.played === 121 && flagged.ceiling < 40,
+    JSON.stringify(flagged))
+  check('名字也带出来，好认人', flagged?.name === '牛逼王', String(flagged?.name))
 }
 
 // every window the dashboard offers must work, not just the default

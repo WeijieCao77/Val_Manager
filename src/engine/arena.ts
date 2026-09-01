@@ -200,14 +200,43 @@ function seatSquad(
   }
 }
 
+export interface ArenaLine {
+  cardId: string
+  kills: number
+  deaths: number
+  assists: number
+  acs: number
+  maps: number
+}
+
+/**
+ * The other side, when the other side is somebody's cards.
+ *
+ * A club opponent has no cards to show — it has a roster, and the report names
+ * it. A real player's five does, and「既然天梯打的是真人对战，应该把对方卡组
+ * 和我的卡组都摆出来」is right: it is the only screen where you find out what
+ * the person who just beat you was actually holding.
+ */
+export interface ArenaOpponent {
+  name: string
+  tag: string
+  slots: (string | null)[]
+  coach: string | null
+  levels: Record<string, number>
+  lines: ArenaLine[]
+  mvpCard: string | null
+}
+
 export interface ArenaResult {
   win: boolean
   mapsWon: number
   mapsLost: number
   result: MatchResult
   /** per-card scoreboard, best first */
-  lines: { cardId: string; kills: number; deaths: number; assists: number; acs: number; maps: number }[]
+  lines: ArenaLine[]
   mvpCard: string | null
+  /** present only when the opponent was another player's five */
+  opp?: ArenaOpponent
 }
 
 /** Play one card-mode match against a real club and read the scoreboard back. */
@@ -247,10 +276,11 @@ export function playArenaMatch(
  * Only MY side's players are in `cardOf`, so the rival's rows fall out on
  * their own — the report screen is about the five you picked.
  */
-function readResult(
+/** One side's scoreboard, summed across the maps and averaged where it should be. */
+function linesFor(
   result: MatchResult, cardOf: Record<string, string>,
-): Omit<ArenaResult, 'result'> {
-  const totals: Record<string, { kills: number; deaths: number; assists: number; acs: number; maps: number }> = {}
+): { lines: ArenaLine[]; mvpCard: string | null } {
+  const totals: Record<string, Omit<ArenaLine, 'cardId'>> = {}
   for (const m of result.maps) {
     for (const [pid, l] of Object.entries(m.lines)) {
       const cardId = cardOf[pid]
@@ -263,16 +293,24 @@ function readResult(
       t.maps++
     }
   }
-  const lines = Object.entries(totals)
-    .map(([cardId, t]) => ({ cardId, ...t, acs: t.maps ? Math.round(t.acs / t.maps) : 0 }))
-    .sort((a, b) => b.acs - a.acs)
+  return {
+    lines: Object.entries(totals)
+      .map(([cardId, t]) => ({ cardId, ...t, acs: t.maps ? Math.round(t.acs / t.maps) : 0 }))
+      .sort((a, b) => b.acs - a.acs),
+    // the engine names one MVP for the whole match; it belongs to whichever
+    // side can resolve it, and the other side's block simply has none
+    mvpCard: result.mvp ? cardOf[result.mvp] ?? null : null,
+  }
+}
 
+function readResult(
+  result: MatchResult, cardOf: Record<string, string>,
+): Omit<ArenaResult, 'result' | 'opp'> {
   return {
     win: result.mapsWonA > result.mapsWonB,
     mapsWon: result.mapsWonA,
     mapsLost: result.mapsWonB,
-    lines,
-    mvpCard: result.mvp ? cardOf[result.mvp] ?? null : null,
+    ...linesFor(result, cardOf),
   }
 }
 
@@ -315,18 +353,29 @@ export function playRivalMatch(
 ): ArenaResult {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
   const cardOf: Record<string, string> = {}
+  // theirs is kept too — it used to be thrown away, which is why the report
+  // could only ever show one of the two sides
+  const theirs: Record<string, string> = {}
   seatSquad(state, mine, level, ARENA_TEAM, 'A', cardOf)
   seatSquad(
     state,
     { slots: rival.slots, coach: rival.coach, name: rival.name, tag: rival.tag },
     (id) => rival.levels[id] ?? 0,
-    ARENA_RIVAL, 'B', {},
+    ARENA_RIVAL, 'B', theirs,
   )
   state.myTeam = ARENA_TEAM
 
   const rng = new Rng(seed ^ 0x5b1d)
   const result = simulateMatch(state, ARENA_TEAM, ARENA_RIVAL, bo, rng)
-  return { ...readResult(result, cardOf), result }
+  return {
+    ...readResult(result, cardOf),
+    result,
+    opp: {
+      name: rival.name, tag: rival.tag,
+      slots: rival.slots, coach: rival.coach, levels: rival.levels,
+      ...linesFor(result, theirs),
+    },
+  }
 }
 
 /** The roles a squad is still missing, for the builder's nudge line. */

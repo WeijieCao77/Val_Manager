@@ -222,6 +222,18 @@ function render(d) {
     ['最长连续签到（天）', ca.max_streak ?? 0],
   ].map(([label, n]) => '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
 
+  // Saves whose match count does not fit in the hours the account has existed.
+  // The ceiling is arithmetic, not suspicion: 15 体力 banked, one point every
+  // 50 minutes, 2 a match. Reported so it can be looked at — the one honest
+  // way to trip it is a long stretch played offline and only then connected.
+  const overRows = (cm.overplayed || []).map((r) =>
+    '<tr><td>' + esc(r.name || '无名经理')
+    + ' <span class="muted">#' + esc(String(r.id_hash).slice(0, 4).toUpperCase()) + '</span></td>'
+    + '<td class="n">' + r.played + '</td>'
+    + '<td class="n muted">' + r.ceiling + '</td>'
+    + '<td class="n">' + (r.played - r.ceiling) + '</td>'
+    + '<td class="n muted">' + r.hours + ' 小时</td></tr>')
+
   // The game sends the title with the key, so this never keeps its own copy of
   // sixty-five names — the key is only a fallback for events sent before that.
   const unlockRows = (data, kind) => (data.unlocks || [])
@@ -304,6 +316,13 @@ function render(d) {
     panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),
       '这一格读的是服务器上真正的存档，不是事件——手机没报上来的也在里面。'
       + '「建号之后又回来存过档」是瓦包自己的留存。') +
+    panel('开瓦包 · 场次对不上账',
+      table(['玩家', '声称场次', '最多可能', '超出', '建号至今'], overRows),
+      '存档在浏览器里，是可以改的——这一格不是抓人，是算术：体力每 50 分钟回 1 点、'
+      + '最多存 15 点、天梯一场 2 点，所以一天最多打 14 场左右。建号时间是服务器写的，'
+      + '玩家改不了，拿它去对玩家能改的场次，超出多少一目了然。'
+      + '空的就是没人对不上。有一种情况会误伤：一直在「仅本机」模式下玩了很久、'
+      + '最近才联网，那样建号时间是新的而场次是旧的——所以这里只报，不做任何处理。') +
   '</div>' +
 
   '<div class="grid" style="margin-top:12px">' +

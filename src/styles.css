@@ -121,6 +121,22 @@ button.primary:hover:not(:disabled) { background: var(--accent-hot); border-colo
 
 /* something is waiting to be collected — the one button on the shelf that
    should pull the eye */
+/* One tick per round of a map, in the order they happened.
+ *
+ * A 13–9 that was 9–3 at the half is a different match from a 13–9 that was
+ * 3–9, and the score cannot tell them apart. The gap after the twelfth and
+ * twenty-fourth tick is the side swap; a brighter tick is a round won on an
+ * eco, which is the round that usually turns a map. */
+.rd-strip { display: flex; gap: 1px; margin-top: 4px; }
+.rd-strip i {
+  flex: 1 1 auto; min-width: 2px; height: 11px; border-radius: 1px;
+  background: var(--panel-3);
+}
+.rd-strip i.a { background: var(--win); opacity: .55; }
+.rd-strip i.b { background: var(--loss); opacity: .55; }
+.rd-strip i[data-buy="eco"] { opacity: 1; }
+.rd-strip i:nth-child(12), .rd-strip i:nth-child(24) { margin-right: 5px; }
+
 button.warn {
   background: var(--warn-wash); border-color: var(--warn); color: var(--warn);
   font-weight: 650;
@@ -828,25 +844,33 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .cardface.s-md { width: 132px; }
 .cardface.s-lg { width: 184px; padding: 12px 12px 11px; }
 
-/* rating block, top-left, the way every football card has done it */
+/* Rating block, top-left, the way every football card has done it.
+ *
+ * Two rows, never three, and left-aligned: centred, the number slid sideways
+ * depending on how long the position line under it happened to be, so no two
+ * cards in a row had their rating in the same place. */
 .cf-rate {
   position: absolute;
   top: 7px; left: 9px;
-  display: flex; flex-direction: column; align-items: center;
+  display: flex; flex-direction: column; align-items: flex-start;
   line-height: 1;
   z-index: 3;
 }
+.cf-num { display: flex; align-items: baseline; gap: 2px; }
 .cf-rate b { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
 .s-sm .cf-rate b { font-size: 17px; }
 .s-lg .cf-rate b { font-size: 29px; }
 .cf-kind {
   font-size: 9px; font-weight: 700; letter-spacing: .06em;
-  margin-top: 2px; opacity: .72;
+  margin-top: 3px; opacity: .72;
+  white-space: nowrap;
 }
+.s-lg .cf-kind { font-size: 11px; margin-top: 4px; }
 .cf-plus {
   font-size: 9.5px; font-weight: 800; font-style: normal;
-  color: #7a2018; margin-top: 1px;
+  color: #7a2018;
 }
+.s-lg .cf-plus { font-size: 12px; }
 
 .cf-dupes {
   position: absolute; top: 7px; right: 8px; z-index: 3;
@@ -855,17 +879,22 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   border-radius: 999px; padding: 1px 6px;
 }
 
+/* The top margin is clearance, not taste: the corner block reaches about 40px
+ * down and 55px across, and a circle centred in a 150px card is 37px of radius
+ * — start it any higher and the position line is drawn on top of somebody's
+ * face. Measured in the browser rather than guessed: with these numbers the
+ * closest approach between the two is 5px on a 150px card, 4px at 96px. */
 .cf-photo {
   width: 74px; height: 74px;
-  margin: 16px 0 2px;
+  margin: 31px 0 2px;
   object-fit: cover;
   object-position: top center;
   border-radius: 50%;
   background: rgba(255, 255, 255, .22);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
 }
-.s-sm .cf-photo { width: 52px; height: 52px; margin-top: 14px; }
-.s-lg .cf-photo { width: 104px; height: 104px; margin-top: 20px; }
+.s-sm .cf-photo { width: 52px; height: 52px; margin-top: 25px; }
+.s-lg .cf-photo { width: 104px; height: 104px; margin-top: 34px; }
 .cf-noface {
   display: grid; place-items: center;
   background: rgba(20, 18, 12, .58);

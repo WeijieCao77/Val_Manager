@@ -19,6 +19,14 @@ export const EVENTS = new Set([
   'session_start',
   'session_end',
   'session_ping',
+  // One row per screen per session carrying a running count, and one row per
+  // session carrying the turn totals. They replaced 'screen', 'turn' and
+  // 'turn_done', which were three quarters of the whole table and were only
+  // ever read as sums. The three old names stay accepted: rows already written
+  // are still queried alongside these, and a phone running yesterday's bundle
+  // should not have its session silently dropped.
+  'screens',
+  'turns',
   'screen',
   'career_start',
   'career_resume',
@@ -91,6 +99,10 @@ const NUMERIC_MAX = {
   year: 4_000,
   seasons: 500,
   turns: 100_000,
+  // how many times one screen was opened in one session
+  hits: 100_000,
+  fast: 100_000,
+  quiet: 100_000,
   conf: 100,
   confidence: 100,
   honours: 1_000,

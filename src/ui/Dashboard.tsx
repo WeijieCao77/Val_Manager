@@ -3,7 +3,7 @@ import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
 import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
-import { track } from '../engine/telemetry'
+import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
@@ -63,7 +63,7 @@ export default function Dashboard() {
     // The league simulates synchronously on the main thread. A turn that takes
     // three seconds is a frozen phone, and the code already knows whether the
     // turn produced anything at all — both are free to report.
-    track('turn_done', { quiet, sim_ms: Math.round(performance.now() - simStartRef.current), day: game.day })
+    countTurnDone(performance.now() - simStartRef.current, quiet)
     if (quiet) {
       const span = game.day - fromDay
       toast(span > 1 ? `${fmtDay(game.day, game.year)} · 平静的 ${span} 天` : `${fmtDay(game.day, game.year)} · 平静的一天`)
@@ -76,7 +76,7 @@ export default function Dashboard() {
     if (busy) return
     // the spine of the funnel: someone who never advances a turn never played
     simStartRef.current = performance.now()
-    track('turn', { day: game.day, year: game.year, stage: game.stage, fast })
+    countTurn(game.day, game.year, fast)
     setBusy(true)
     // let the button paint its disabled state before the sim blocks the thread
     window.setTimeout(() => {

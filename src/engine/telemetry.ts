@@ -146,7 +146,96 @@ export function track(name: string, props?: Props): void {
   }
 }
 
+/**
+ * The two counters that used to be one row each.
+ *
+ * Measured on a week of real traffic: 341 rows per visitor, of which `screen`
+ * was 52% and `turn` 23% — three quarters of the table spent on two events
+ * that nothing ever reads individually. The dashboard asks 「哪个页面被打开了
+ * 多少次」 and 「最深推到第几天、人均多少回合」, both of which are aggregates,
+ * and an aggregate does not need one row per click.
+ *
+ * So they are counted here and reported as running totals, the way the
+ * playtime ping already works: cumulative, sent when the tab goes away and
+ * occasionally during a long sitting, and read back as a max per session. That
+ * shape is what makes a re-delivered beacon harmless — a repeat of a total is
+ * the same total.
+ *
+ * Only what CHANGED since the last report goes out, which is what stops a long
+ * session from turning the saving back into a cost.
+ */
+const screenHits: Record<string, number> = {}
+const screenSent: Record<string, number> = {}
+let turnCount = 0
+let fastCount = 0
+let quietCount = 0
+let deepDay = 0
+let deepYear = 0
+let simMax = 0
+let turnsSent = -1
+
+/** How often a long sitting reports its totals anyway, in heartbeats. */
+const ROLLUP_EVERY = 15
+
+/** One screen opened. Counted, not sent. */
+export function countScreen(to: string): void {
+  if (disabled || !started || !to) return
+  lastActivity = now()
+  screenHits[to] = (screenHits[to] ?? 0) + 1
+}
+
+/** One turn taken, with how far into the career it was. */
+export function countTurn(day: number, year: number, fast: boolean): void {
+  if (disabled || !started) return
+  lastActivity = now()
+  turnCount++
+  if (fast) fastCount++
+  if (Number.isFinite(day) && day > deepDay) deepDay = day
+  if (Number.isFinite(year) && year > deepYear) deepYear = year
+}
+
+/**
+ * That turn finished, and how long the league took to simulate it.
+ *
+ * The worst one is the number that matters — a turn that takes three seconds
+ * is a frozen phone, and an average hides it behind a hundred fast ones. This
+ * used to be a row per turn carrying a figure nothing ever read.
+ */
+export function countTurnDone(simMs: number, quiet: boolean): void {
+  if (disabled || !started) return
+  if (quiet) quietCount++
+  if (Number.isFinite(simMs) && simMs > simMax) simMax = Math.round(simMs)
+}
+
+/**
+ * Queue whatever moved since last time.
+ *
+ * Deliberately NOT through track(): track() stamps lastActivity, and a report
+ * is not the player doing something — the same trap the playtime ping fell
+ * into once already.
+ */
+function queueRollups(): void {
+  for (const [to, hits] of Object.entries(screenHits)) {
+    if (screenSent[to] === hits) continue
+    screenSent[to] = hits
+    queue.push({ name: 'screens', t: now(), n: ++eventNo, props: { to, hits } })
+  }
+  if (turnCount && turnsSent !== turnCount) {
+    turnsSent = turnCount
+    queue.push({
+      name: 'turns',
+      t: now(),
+      n: ++eventNo,
+      props: {
+        turns: turnCount, fast: fastCount, quiet: quietCount,
+        day: deepDay, year: deepYear, sim_ms: simMax,
+      },
+    })
+  }
+}
+
 let sinceReport = 0
+let sinceRollup = 0
 
 /**
  * One confirmed minute.
@@ -162,6 +251,9 @@ function tick(): void {
   if (document.visibilityState !== 'visible' || idle > IDLE_MS) return
   activeMs += HEARTBEAT_MS
   sinceReport += HEARTBEAT_MS
+  sinceRollup += 1
+  // a sitting long enough to be worth insuring against a lost pagehide
+  if (sinceRollup >= ROLLUP_EVERY) { sinceRollup = 0; queueRollups() }
   if (sinceReport >= 3 * HEARTBEAT_MS) {
     sinceReport = 0
     // Deliberately NOT through track(): track() stamps lastActivity, so the
@@ -179,6 +271,7 @@ function tick(): void {
 
 function end(reason: string): void {
   if (!started) return
+  queueRollups()
   queue.push({
     name: 'session_end',
     t: now(),
@@ -236,12 +329,22 @@ export function startTelemetry(): void {
         activeMs = 0
         bumpSession()
         eventNo = 0
+        // the totals are per session and are read back as a max per session,
+        // so a new session has to start them over or the first report of the
+        // new one would carry the old one's numbers
+        for (const k of Object.keys(screenHits)) { delete screenHits[k]; delete screenSent[k] }
+        turnCount = 0; fastCount = 0; quietCount = 0
+        deepDay = 0; deepYear = 0; simMax = 0; turnsSent = -1
         track('session_start', {
           ref: null, host: location.hostname, w: window.innerWidth, h: window.innerHeight,
         })
       }
       lastActivity = now()
     } else {
+      // going away is the reliable moment on a phone — iOS drops pagehide
+      // often enough that a rollup which only left at session end would be
+      // lost for exactly the audience this game has most of
+      queueRollups()
       flush(true)
     }
   })
@@ -254,4 +357,9 @@ export function _stopTelemetry(): void {
   heartbeat = null
   started = false
   queue = []
+}
+
+/** Only for tests: what the rollups are holding right now. */
+export function _rollupState() {
+  return { screenHits: { ...screenHits }, turnCount, fastCount, quietCount, deepDay, deepYear, simMax }
 }
