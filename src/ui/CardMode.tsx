@@ -381,6 +381,8 @@ function Gate({
   const [err, setErr] = useState<string | null>(null)
   const [made, setMade] = useState<{ state: GachaState; cloud: boolean; today: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  // the second press, in the page — see the button below
+  const [sure, setSure] = useState(false)
 
   const create = async () => {
     setBusy(true)
@@ -428,18 +430,26 @@ function Gate({
             {copied ? '已复制 ✓' : '复制 ID'}
           </button>
           <button
-            // Never disabled. Clipboard access fails outright in a few
-            // in-app browsers, and a locked door on the only way into the
-            // game is worse than a confirm box.
+            // Never disabled, and never a confirm(). Clipboard access fails
+            // outright in a few in-app browsers, and those same webviews —
+            // WeChat and Xiaohongshu, which is most of this audience — can
+            // refuse a confirm() outright. When they do, the call returns
+            // false and the button silently does nothing: the only door into
+            // the game, dead, with no way to tell it is not simply broken.
+            // Asking again in the page always works.
             onClick={() => {
-              if (copied || confirm('还没复制 ID。丢了就找不回来了，确定直接进入？')) {
-                onReady(made.state, true, made.cloud, made.today)
-              }
+              if (copied || sure) onReady(made.state, true, made.cloud, made.today)
+              else setSure(true)
             }}
           >
-            存好了，进入游戏 →
+            {sure ? '确定，直接进入 →' : '存好了，进入游戏 →'}
           </button>
         </div>
+        {sure && !copied && (
+          <p className="small warn" style={{ marginTop: 10, marginBottom: 0 }}>
+            还没复制 ID。丢了就找不回来了——再点一次就直接进入。
+          </p>
+        )}
         {err && <p className="small warn" style={{ marginTop: 10 }}>{err}</p>}
         {!made.cloud && (
           <p className="tiny warn" style={{ marginTop: 14 }}>
