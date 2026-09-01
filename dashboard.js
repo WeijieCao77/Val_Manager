@@ -393,6 +393,28 @@ function render(d) {
     panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),
       '这一格读的是服务器上真正的存档，不是事件——手机没报上来的也在里面。'
       + '「建号之后又回来存过档」是瓦包自己的留存。') +
+    (function () {
+      const h = d.history || {}
+      const t = h.totals || {}
+      const rows = (h.days || []).slice(0, 30).map((r) =>
+        '<tr><td class="muted">' + String(r.day).slice(5, 10) + '</td>' +
+        '<td class="n">' + r.visitors + '</td>' +
+        '<td class="n">' + r.new_visitors + '</td>' +
+        '<td class="n muted">' + r.sessions + '</td>' +
+        '<td class="n muted">' + r.active_min + '</td>' +
+        '<td class="n muted">' + r.card_pulls + '</td></tr>')
+      return panel('永久留存 · 明细删了也还在',
+        '<div class="big">' + (t.players ?? 0).toLocaleString()
+        + '<small>个玩家，从开服到现在</small></div>'
+        + '<div class="muted" style="font-size:12px;margin:6px 0 10px">'
+        + '近 7 天活跃 ' + (t.active7 ?? 0).toLocaleString() + ' 人'
+        + (t.since ? ' · 最早一条 ' + String(t.since).slice(0, 10) : '') + '</div>'
+        + table(['日期', '人数', '新增', '会话', '分钟', '开包'], rows),
+        '事件明细是滚动窗口，四百万行到顶就从最老的开始删——按现在的量大约只装得下一天。'
+        + '<b>这一格的数字是在删之前算好、单独存起来的，删多少次都不会掉。</b>'
+        + '「累计玩家数」尤其只能这样来：人已经删了，就再也数不出有多少个不同的人了。'
+        + '8/31 丢掉的一个月就是这么没的，现在补上了。')
+    })() +
     panel('开瓦包 · 场次对不上账',
       table(['玩家', '声称场次', '最多可能', '超出', '建号至今'], overRows),
       '存档在浏览器里，是可以改的——这一格不是抓人，是算术：体力每 50 分钟回 1 点、'

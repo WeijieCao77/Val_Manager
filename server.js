@@ -29,6 +29,7 @@ import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
 import { SITE_SCHEMA, makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
 import { overview, prune, storage } from './stats.js'
+import { ROLLUP_SCHEMA, history, rollup } from './rollup.js'
 import { dashboardHtml } from './dashboard.js'
 
 // Analytics is a side-car. Nothing in it is worth taking the game offline for,
@@ -85,17 +86,31 @@ if (process.env.DATABASE_URL) {
     await sql.unsafe(CARD_SCHEMA)
     await sql.unsafe(PROFILE_SCHEMA)
     await sql.unsafe(SITE_SCHEMA)
+    await sql.unsafe(ROLLUP_SCHEMA)
     console.log('analytics: connected, schema ready')
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
     // retention policy would have been written down and never enforced.
-    prune(sql, PRUNE_DAYS, MAX_ROWS)
+    /**
+     * Roll up, THEN prune. Never the other way round.
+     *
+     * The row ceiling is what bites at this volume — 3.5 million rows is about
+     * a day of history — so anything not folded into the permanent tables
+     * before the deletion runs is simply gone. That is how a month of it
+     * disappeared on 8/31.
+     *
+     * Hourly rather than daily, and not only on boot: a redeploy is frequent
+     * but not dependable, and the gap between two of them is exactly where the
+     * ceiling does its work.
+     */
+    const keep = () => rollup(sql, 3)
+      .then((r) => r.days && console.log(`analytics: rolled up ${r.days} day(s), ${r.visitors} visitor row(s)`))
+      .catch((e) => console.warn('analytics: rollup failed', e.message))
+      .then(() => prune(sql, PRUNE_DAYS, MAX_ROWS))
       .then((n) => n && console.log(`analytics: pruned ${n} old events`))
       .catch((e) => console.warn('analytics: prune failed', e.message))
-    setInterval(() => {
-      prune(sql, PRUNE_DAYS, MAX_ROWS)
-        .catch((e) => console.warn('analytics: prune failed', e.message))
-    }, 24 * 60 * 60 * 1000).unref?.()
+    keep()
+    setInterval(keep, 60 * 60 * 1000).unref?.()
   } catch (err) {
     console.warn('analytics: disabled —', err.message)
     sql = null
@@ -280,8 +295,10 @@ async function stats(req, res, url) {
   if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 30))
   try {
-    const [data, disk] = await Promise.all([overview(sql, days), storage(sql, MAX_ROWS)])
-    json(res, 200, { ...data, storage: disk })
+    const [data, disk, hist] = await Promise.all([
+      overview(sql, days), storage(sql, MAX_ROWS), history(sql, 120),
+    ])
+    json(res, 200, { ...data, storage: disk, history: hist })
   } catch (err) {
     console.warn('analytics: query failed', err.message)
     json(res, 500, { ok: false, why: err.message })
