@@ -17,6 +17,7 @@ import type { RivalSquad } from './arena'
 import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
 import { rememberId, rememberedId } from './cardid'
 import { newChallenge } from './challenge'
+import { progressOf } from '../../progress.js'
 
 const MIRROR = 'valmanager:card:state:'
 
@@ -119,11 +120,19 @@ const newestAt = (s: GachaState | null | undefined): number => {
  *     anything the server holds. The server cannot be hiding something this
  *     mirror lacks: there is nothing after the mirror's own newest entry.
  *
- * Anything else and the server wins — in particular a dirty mirror whose base
- * revision has been passed, which means another device really did play, and
- * choosing between them needs a merge this game does not deserve.
+ *   - or it has simply PLAYED more than the copy the server is holding. Packs
+ *     opened, matches played and cards owned only ever go up, so a device that
+ *     has more of them did things the server never received. This is the one
+ *     that recovers an evening already lost: the server was overwritten by a
+ *     forgotten tab, but the device that played it still has it, and opening
+ *     that device pushes it back up.
+ *
+ * Anything else and the server wins.
  */
 function mirrorIsAhead(m: Mirror, server: GachaState, serverRev: number | null): boolean {
+  // Checked first and regardless of revisions, because it is a fact about play
+  // rather than about bookkeeping — and the bookkeeping is what went wrong.
+  if (progressOf(m.state) > progressOf(server)) return true
   if (m.rev !== null) return m.dirty && (serverRev === null || m.rev >= serverRev)
   return newestAt(m.state) > newestAt(server)
 }
@@ -452,6 +461,8 @@ let retries = 0
 export function saveAccount(state: GachaState, immediate = false): Promise<void> {
   writeMirror(state, true)
   if (pending) { clearTimeout(pending); pending = null }
+  // A rebase happens at most once per call — see the stale branch below
+  let reapplied = false
   const send = async () => {
     if (inflight) { pending = window.setTimeout(send, 400); return }
     inflight = true
@@ -465,11 +476,26 @@ export function saveAccount(state: GachaState, immediate = false): Promise<void>
       if (typeof j?.rev === 'number') rev = j.rev
       if (typeof j?.code === 'string') code = j.code
       if (j?.stale && j.state) {
-        // Another device wrote while this one was holding an older copy. It
-        // does not get to win: take the server's state and let the screens
-        // redraw from it, rather than overwriting an evening of somebody's
-        // play with whatever this tab happened to remember.
+        // Another device wrote while this one was holding a copy built on an
+        // older revision. Which of the two is the real "latest" is not decided
+        // by who wrote last — it is decided by which one has played more.
+        //
+        // Taking the server's copy unconditionally is what lost an evening:
+        // 大师 48 分 and three friendlies played on one domain, wiped by a tab
+        // left open on the other one that had done nothing but sit there. That
+        // tab wrote first, so it won, and the play went in the bin with a toast
+        // saying everything was fine.
         const fresh = migrate(j.state as GachaState, state.id)
+        if (!reapplied && progressOf(state) > progressOf(fresh)) {
+          // This device is the one that played. Rebase onto the revision the
+          // server just handed back and write again — once, so a genuine
+          // ping-pong cannot spin here.
+          reapplied = true
+          writeMirror(state, true)
+          inflight = false
+          await send()
+          return
+        }
         writeMirror(fresh, false)
         onStale?.(fresh)
       } else if (!r.ok) {

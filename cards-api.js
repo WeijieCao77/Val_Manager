@@ -15,6 +15,7 @@
  */
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
+import { progressOf } from './progress.js'
 
 export const CARD_SCHEMA = `
 create table if not exists card_accounts (
@@ -208,6 +209,23 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
     const baseRev = Number.isInteger(body?.baseRev) ? body.baseRev : null
     try {
+      // Progress never goes backwards.
+      //
+      // The revision check catches a client writing on top of a copy it has
+      // not seen; it cannot catch a client writing on top of a copy it HAS
+      // seen and then ignored — a tab told it was stale, adopting the truth
+      // into one object and then saving from another. This is the property
+      // that has to hold whatever any client does: packs opened, matches
+      // played and cards owned only ever increase, so a save that lowers them
+      // is a stale copy by definition and is refused the same way.
+      const held = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
+      if (held.length && progressOf(state) < progressOf(held[0].state)) {
+        json(res, 409, {
+          ok: false, stale: true, today, now: serverNow(),
+          rev: held[0].rev, state: held[0].state,
+        })
+        return
+      }
       const rows = await sql`
         insert into card_accounts (id_hash, name, state, rev, saved)
         values (${hash(id)}, ${name}, ${sql.json(state)}, 1, now())
@@ -217,12 +235,19 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
               rev   = card_accounts.rev + 1,
               seen  = now(),
               saved = now()
-          -- one static predicate rather than a spliced fragment: a nested
+          -- One static predicate rather than a spliced fragment: a nested
           -- tagged template here is not a boolean in every driver, and the
           -- check script caught it as "Invalid input for boolean type".
-          -- A null baseRev compares the row against itself, which is always
-          -- true, so a legacy client still writes.
-          where card_accounts.rev = coalesce(${baseRev}::int, card_accounts.rev)
+          --
+          -- A null baseRev used to compare the row against itself — always
+          -- true — so that a client too old to send one could still write.
+          -- That is a door with no lock on it, and it is how an evening
+          -- disappeared: any save that had never read the row overwrote it
+          -- whole. It is refused now. A client with no revision has, by
+          -- definition, not seen what it is about to destroy; the insert above
+          -- still covers the only case that needs no revision, which is an
+          -- account being created.
+          where card_accounts.rev = ${baseRev}::int
         returning rev`
       if (!rows.length) {
         // somebody else wrote since this client last read; hand back the truth

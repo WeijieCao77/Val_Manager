@@ -93,7 +93,10 @@ check('load returns what was claimed',
   r.body.ok === true && (r.body.state as { coins: number }).coins === 3000)
 check('load carries the server date', typeof r.body.today === 'string' && r.body.today === serverDay())
 
-r = await call('/api/card/save', { id: ID, state: { ...state, coins: 4200 } })
+// baseRev travels with every save: a client that has read the row says which
+// version it read. Omitting it used to mean "write anyway" — see the no-baseRev
+// case further down for why that is now a refusal.
+r = await call('/api/card/save', { id: ID, baseRev: 1, state: { ...state, coins: 4200 } })
 check('save bumps the revision', r.body.ok === true && r.body.rev === 2, `rev ${r.body.rev}`)
 
 r = await call('/api/card/load', { id: 'vm abcd efgh jkmn pqrs tvwx' })
@@ -127,7 +130,7 @@ check('an oversized save is refused',
   vetState({ blob: 'x'.repeat(600 * 1024) }, serverDay()) === null)
 check('a non-object save is refused', vetState([1, 2, 3], serverDay()) === null)
 
-r = await call('/api/card/save', { id: ID, state: { daily: { claimed: '2099-01-01' } } })
+r = await call('/api/card/save', { id: ID, baseRev: 2, state: { daily: { claimed: '2099-01-01' } } })
 check('the save route refuses it too', r.code === 400 && r.body.why === 'state')
 
 r = await call('/api/card/load', { id: ID })
@@ -174,8 +177,55 @@ const resync = await call('/api/card/save', {
 })
 check('after resyncing, the same client can save again', resync.body.ok === true)
 
-check('a save with no baseRev is still accepted (tabs open across the deploy)',
-  (await call('/api/card/save', { id: TWO, state: { coins: 1100, daily: { claimed: null } } })).body.ok === true)
+// A save with no baseRev has, by definition, not read what it is about to
+// destroy. It used to be let through so that a tab still running an older
+// bundle could write across a deploy; that allowance is how an evening
+// disappeared — 大师 48 分 and three friendlies wiped by a copy that had never
+// seen them. Every client this game has ever shipped sends a baseRev once it
+// has loaded, so the only thing refused here is a write that should be.
+{
+  const naked = await call('/api/card/save', {
+    id: TWO, state: { coins: 1100, daily: { claimed: null } },
+  })
+  check('a save with no baseRev cannot overwrite an existing account',
+    naked.code === 409 && naked.body.stale === true, `code ${naked.code}`)
+  const still = await call('/api/card/load', { id: TWO })
+  check('and the account it aimed at is untouched',
+    (still.body.state as { coins: number }).coins === 1000,
+    `coins ${(still.body.state as { coins: number }).coins}`)
+}
+
+// ---- progress never goes backwards -------------------------------------
+//
+// The revision check catches a client writing on top of a copy it has not
+// seen. It cannot catch one writing on top of a copy it HAS seen and then
+// ignored — a tab told it was stale, adopting the truth into one object and
+// saving from another. Packs opened, matches played and cards owned only ever
+// increase, so a save that lowers them is a stale copy whatever its revision.
+{
+  const P = 'VM-3333-3333-3333-3333-3333'
+  await call('/api/card/claim', {
+    id: P, name: '进度', state: { pulls: 10, cards: { a: 1, b: 1 }, ladder: { wins: 4, losses: 2 } },
+  })
+  const at = await call('/api/card/load', { id: P })
+  const rev = at.body.rev as number
+  const back = await call('/api/card/save', {
+    id: P, baseRev: rev, state: { pulls: 3, cards: { a: 1 }, ladder: { wins: 1, losses: 0 } },
+  })
+  check('版本号对得上，但进度倒退的存档照样拒绝',
+    back.code === 409 && back.body.stale === true, `code ${back.code}`)
+  check('并且把真正的进度还回去', (back.body.state as { pulls: number })?.pulls === 10)
+  const fwd = await call('/api/card/save', {
+    id: P, baseRev: rev, state: { pulls: 11, cards: { a: 1, b: 1, c: 1 }, ladder: { wins: 5, losses: 2 } },
+  })
+  check('往前走的存档正常写入', fwd.body.ok === true, JSON.stringify(fwd.body).slice(0, 60))
+  // coins are spent as well as earned, and must never read as a regression
+  const spent = await call('/api/card/save', {
+    id: P, baseRev: fwd.body.rev as number,
+    state: { pulls: 11, coins: 0, cards: { a: 1, b: 1, c: 1 }, ladder: { wins: 5, losses: 2 } },
+  })
+  check('花光金币不算倒退', spent.body.ok === true, JSON.stringify(spent.body).slice(0, 60))
+}
 
 // ---- brute force ------------------------------------------------------
 
