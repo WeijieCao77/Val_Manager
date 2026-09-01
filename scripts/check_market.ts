@@ -17,7 +17,9 @@ import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
 import { CARD_SCHEMA, normalizeId } from '../cards-api.js'
 import { displayName } from '../names.js'
-import { HAGGLE, IGNORE_LIMIT, OFFER_DAYS, SALVAGE_FLOOR, askFloor, makeMarketApi } from '../market-api.js'
+import {
+  HAGGLE, IGNORE_LIMIT, OFFER_DAYS, SALVAGE_FLOOR, TRADE_PULLS, askFloor, makeMarketApi,
+} from '../market-api.js'
 import { SALVAGE } from '../src/engine/cards'
 
 const db = new PGlite()
@@ -55,9 +57,12 @@ const SELLER = 'VM-SSSS-SSSS-SSSS-SSSS-SSSS'
 const BUYER = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'
 const OTHER = 'VM-CCCC-CCCC-CCCC-CCCC-CCCC'
 
-const account = (id: string, name: string, coins: number, cards: Record<string, unknown>) =>
+// Every account here has played enough to trade unless a test says otherwise —
+// the gate is checked on its own further down.
+const account = (id: string, name: string, coins: number, cards: Record<string, unknown>,
+  pulls = TRADE_PULLS) =>
   sql`insert into card_accounts (id_hash, name, state) values (${hashOf(id)}, ${name},
-    ${JSON.stringify({ coins, cards })})`
+    ${JSON.stringify({ coins, cards, pulls })})`
 
 await account(SELLER, '卖家', 100, { 'p:P1': { id: 'p:P1', level: 3, dupes: 0 } })
 await account(BUYER, '买家', 5000, {})
@@ -236,6 +241,37 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   check('铜卡的下限低得多，正常出货不受影响', x.ok === true, JSON.stringify(x))
   check('下限就是分解价', askFloor('gold') === SALVAGE.gold && askFloor('silver') === SALVAGE.silver,
     `${askFloor('gold')} / ${askFloor('silver')}`)
+}
+
+// ---- 新号进不来 ---------------------------------------------------------
+//
+// The price floor stopped cards moving between accounts for free, but not an
+// alt selling commons at salvage, which is still cheaper than pulling them.
+// What kills that is making the alt itself expensive: a throwaway has to be
+// played for the better part of a week before it can trade at all.
+{
+  const NEW = 'VM-NEWW-NEWW-NEWW-NEWW-NEWW'
+  await account(NEW, '新号', 9999, { 'p:N1': { id: 'p:N1', dupes: 0 } }, 11)  // a day-zero account
+  let x = await call('/api/market/list', { id: NEW, cardId: 'p:N1', ask: 700, rarity: 'gold' })
+  check('新号挂不了牌', x.newbie === true && x.need === TRADE_PULLS && x.have === 11,
+    JSON.stringify(x))
+
+  const shelfNow = await call('/api/market/browse', { id: NEW })
+  check('但货架照样能看', (shelfNow.listings as unknown[]).length > 0)
+  check('而且告诉他还差多少',
+    (shelfNow.gate as { need: number; have: number })?.have === 11, JSON.stringify(shelfNow.gate))
+
+  const anyOpen = (shelfNow.listings as { id: string }[])[0]
+  x = await call('/api/market/offer', { id: NEW, listing: anyOpen.id, price: 60 })
+  check('新号也出不了价', x.newbie === true, JSON.stringify(x))
+
+  // open enough packs and the door opens
+  await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${String(TRADE_PULLS)}::jsonb)
+            where id_hash = ${hashOf(NEW)}`
+  x = await call('/api/market/list', { id: NEW, cardId: 'p:N1', ask: 700, rarity: 'gold' })
+  check(`开够 ${TRADE_PULLS} 抽就能挂了`, x.ok === true, JSON.stringify(x))
+  const g2 = await call('/api/market/browse', { id: NEW })
+  check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))
 }
 
 // ---- 每一笔托管最后都有人收到 -------------------------------------------

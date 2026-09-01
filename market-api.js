@@ -31,6 +31,31 @@ export const OFFER_DAYS = 3
 export const IGNORE_LIMIT = 3
 /** Nobody needs more than this on the shelf at once. */
 export const MAX_LISTINGS = 8
+
+/**
+ * How much of the game an account has to have played before it can trade.
+ *
+ * The floor on the asking price stopped cards being handed between accounts
+ * for nothing, but not the rest of it: an alt could still sell commons at
+ * salvage, which is several times cheaper than pulling them. What kills that
+ * economy is making the alt itself expensive.
+ *
+ * Measured, not guessed. A brand-new account is worth exactly ten pulls: the
+ * starter packs are seven, and the 3000 opening coins buy one more 选拔包. From
+ * there a check-in is a 试训包 a day plus 300 coins, with a 选拔包 every third
+ * day and a 十连包 on the seventh — about thirty-five by the end of week one for
+ * somebody who only signs in, sooner for anybody actually playing the ladder.
+ *
+ * So fifty is roughly a week of showing up. That is far more effort than the
+ * handful of common cards a throwaway could then move, which is the whole
+ * point; and it is short enough that a real new player is inside it before he
+ * has anything worth selling anyway.
+ *
+ * Counted in pulls rather than days because pulls is the one number that only
+ * ever goes up and that the server already trusts for exactly this reason —
+ * see progress.js.
+ */
+export const TRADE_PULLS = 50
 export const MAX_ASK = 500_000
 
 /**
@@ -102,6 +127,19 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     }
   }
 
+  /**
+   * Has this account played enough to trade?
+   *
+   * Read from the saved state, which is the same place the ownership and coin
+   * checks read from. Browsing is deliberately not gated — a new player should
+   * be able to see what a card goes for long before he can buy one.
+   */
+  async function tooNew(h) {
+    const r = await sql`select state->>'pulls' as pulls from card_accounts where id_hash = ${h}`
+    const pulls = Number(r[0]?.pulls ?? 0)
+    return pulls >= TRADE_PULLS ? null : { need: TRADE_PULLS, have: Math.max(0, Math.floor(pulls)) }
+  }
+
   const nameOf = async (h) => {
     const r = await sql`select name from card_accounts where id_hash = ${h}`
     const shown = displayName(r[0]?.name, h)
@@ -132,9 +170,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       limit 120`
     const names = {}
     for (const r of rows) if (!(r.seller_h in names)) names[r.seller_h] = await nameOf(r.seller_h)
+    const young = mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0 }
     json(res, 200, {
       ok: true,
       haggle: HAGGLE,
+      gate: young,
       listings: rows.map((r) => ({
         id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
         seller: names[r.seller_h], mine: r.seller_h === mine,
@@ -161,6 +201,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       json(res, 200, { ok: false, bad: true, min: floor, max: MAX_ASK })
       return
     }
+    const young = await tooNew(me)
+    if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const open = await sql`
       select count(*)::int as n from card_listings where seller_h = ${me} and status = 'open'`
     if ((open[0]?.n ?? 0) >= MAX_LISTINGS) { json(res, 200, { ok: false, full: true, max: MAX_LISTINGS }); return }
@@ -226,6 +268,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       json(res, 200, { ok: false, range: true, lo, hi })
       return
     }
+    const young = await tooNew(me)
+    if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const mine = await sql`select state->>'coins' as coins from card_accounts where id_hash = ${me}`
     if (Number(mine[0]?.coins ?? 0) < price) { json(res, 200, { ok: false, broke: true }); return }
     const dup = await sql`

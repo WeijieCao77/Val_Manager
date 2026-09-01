@@ -18,7 +18,7 @@ import {
   answerOffer, askFloorOf, bidOn, browseMarket, escrowCard, listCardOnMarket,
   myOffers, unlistCard,
 } from '../../engine/market'
-import type { Listing, Offer } from '../../engine/market'
+import type { Gate, Listing, Offer } from '../../engine/market'
 
 const HAGGLE = 0.1
 const money = (n: number) => n.toLocaleString('en-US')
@@ -34,6 +34,8 @@ export default function Market() {
   const [inbound, setInbound] = useState<Offer[]>([])
   const [outbound, setOutbound] = useState<Offer[]>([])
   const [days, setDays] = useState(3)
+  // null once the account has played enough; until then it is how far off it is
+  const [gate, setGate] = useState<Gate | null>(null)
   const [busy, setBusy] = useState(false)
   const [sellCard, setSellCard] = useState('')
   const [ask, setAsk] = useState('')
@@ -42,7 +44,7 @@ export default function Market() {
 
   const refresh = useCallback(async () => {
     const [b, o] = await Promise.all([browseMarket(), myOffers()])
-    if (b?.ok) setShelf(b.listings)
+    if (b?.ok) { setShelf(b.listings); setGate(b.gate ?? null) }
     else setShelf([])
     if (o?.ok) { setInbound(o.inbound); setOutbound(o.outbound); setDays(o.days) }
   }, [])
@@ -64,7 +66,8 @@ export default function Market() {
     const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity)
     setBusy(false)
     if (!r?.ok) {
-      toast(r?.notOwned ? '服务器上还没看到这张卡，稍等一下再挂。'
+      toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
+        : r?.notOwned ? '服务器上还没看到这张卡，稍等一下再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? '挂牌数量到上限了，先撤一个。'
             : r?.bad ? `价格要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间（最低不能低于分解价）。`
@@ -87,7 +90,8 @@ export default function Market() {
     const r = await bidOn(bidOpen.id, price)
     setBusy(false)
     if (!r?.ok) {
-      toast(r?.range ? `只能在 ${r.lo} ~ ${r.hi} 之间还价（挂牌价 ±10%）。`
+      toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
+        : r?.range ? `只能在 ${r.lo} ~ ${r.hi} 之间还价（挂牌价 ±10%）。`
         : r?.broke ? '金币不够。'
           : r?.already ? '你已经对这张牌出过价了。'
             : r?.self ? '这是你自己的挂牌。' : '这张牌已经不在了。')
@@ -133,6 +137,23 @@ export default function Market() {
 
   return (
     <>
+      {gate && (
+        <Panel title="交易区还没对你开放">
+          <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
+            开够 <b>{gate.need} 抽</b>才能挂牌和出价，你现在 <b>{gate.have}</b> 抽，
+            还差 <b>{gate.need - gate.have}</b> 抽。签到送的包也算。
+          </p>
+          <div style={{ height: 5, borderRadius: 3, background: 'var(--panel-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.min(100, (gate.have / gate.need) * 100)}%`, height: '100%', background: 'var(--accent)' }} />
+          </div>
+          <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
+            这道门槛是防小号的：有人开一堆新号，把新手包和签到的卡搬给大号。
+            养一个号到能交易的成本，比它能搬走的那几张卡高得多，这条路就不划算了。
+            <b>货架随便看</b>——只是还不能买卖。
+          </p>
+        </Panel>
+      )}
+
       <Panel title="挂一张卡出去" actions={<span className="tiny muted">还价范围 ±10%</span>}>
         <div className="row wrap" style={{ gap: 6 }}>
           <select style={{ flex: '2 1 240px' }} value={sellCard} onChange={(e) => setSellCard(e.target.value)}>
@@ -151,7 +172,7 @@ export default function Market() {
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
           />
-          <button className="primary" onClick={() => void doList()} disabled={busy || !sellCard || !ask}>
+          <button className="primary" onClick={() => void doList()} disabled={busy || !sellCard || !ask || !!gate}>
             挂出
           </button>
         </div>
@@ -238,7 +259,8 @@ export default function Market() {
                         <button
                           className="sm"
                           style={{ marginTop: 5 }}
-                          disabled={busy}
+                          disabled={busy || !!gate}
+                          title={gate ? `开够 ${gate.need} 抽才能出价` : undefined}
                           onClick={() => { setBidOpen(l); setBidPrice(String(l.ask)) }}
                         >
                           出价

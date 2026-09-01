@@ -60,8 +60,11 @@ export interface MailItem {
   at: number
 }
 
+/** `gate` is null once the account has played enough to trade — see TRADE_PULLS. */
+export interface Gate { need: number; have: number }
+
 export const browseMarket = () =>
-  post<{ ok: boolean; listings: Listing[]; haggle: number }>('browse', {})
+  post<{ ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null }>('browse', {})
 
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})
