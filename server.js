@@ -23,9 +23,11 @@ import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
-import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
+import { CARD_SCHEMA, makeCardApi, normalizeId } from './cards-api.js'
+import { displayName } from './names.js'
 import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
 import { SITE_SCHEMA, makeSiteApi } from './site-api.js'
+import { makeMarketApi } from './market-api.js'
 import { overview, prune, storage } from './stats.js'
 import { dashboardHtml } from './dashboard.js'
 
@@ -292,6 +294,10 @@ const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, rea
 let _profileApi = null
 const siteApi = () => (_siteApi ??= makeSiteApi(sql, { readBody, json, token: TOKEN }))
 let _siteApi = null
+const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
+  readBody, json, normalizeId, displayName, rateLimited,
+}))
+let _marketApi = null
 
 /** Which formats are worth compressing — the rest are already compressed. */
 const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
@@ -373,6 +379,17 @@ createServer((req, res) => {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
       console.warn('cards: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
+    return
+  }
+  if (path.startsWith('/api/market/')) {
+    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    void marketApi().route(req, res, path, bucketOf(req)).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('market: route failed', err.message)
       if (!res.headersSent) json(res, 500, { ok: false })
     })
     return

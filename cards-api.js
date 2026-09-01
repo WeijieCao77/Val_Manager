@@ -49,6 +49,56 @@ create table if not exists card_gifts (
   claimed  timestamptz
 );
 create index if not exists gift_to_idx on card_gifts (to_h) where claimed is null;
+
+-- The trading post.
+--
+-- Both sides pay in when they act and collect afterwards, which is what stops
+-- either of them being left holding nothing. Listing escrows the CARD; making
+-- an offer escrows the COINS. Whatever the outcome — sold, declined, expired,
+-- withdrawn — every escrow ends up as a row in card_mail for somebody to
+-- collect, so a player who never comes back cannot strand the other one.
+create table if not exists card_listings (
+  id       bigserial primary key,
+  seller_h text not null,
+  card_id  text not null,
+  level    int not null default 0,
+  ask      int not null,
+  status   text not null default 'open',
+  created  timestamptz not null default now(),
+  closed   timestamptz,
+  -- consecutive offers the seller let expire; three and it comes off the shelf
+  ignored  int not null default 0
+);
+create index if not exists listing_open_idx on card_listings (created desc) where status = 'open';
+create index if not exists listing_seller_idx on card_listings (seller_h);
+
+create table if not exists card_offers (
+  id       bigserial primary key,
+  listing  bigint not null references card_listings(id),
+  buyer_h  text not null,
+  price    int not null,
+  status   text not null default 'open',
+  made     timestamptz not null default now(),
+  settled  timestamptz
+);
+create index if not exists offer_open_idx on card_offers (listing) where status = 'open';
+create index if not exists offer_buyer_idx on card_offers (buyer_h);
+
+-- Everything waiting to be collected, and everything worth telling somebody.
+-- A row with a card or coins on it is a delivery; a row with neither is a
+-- notification. One table, because the inbox shows them together anyway.
+create table if not exists card_mail (
+  id      bigserial primary key,
+  to_h    text not null,
+  kind    text not null,
+  card_id text,
+  level   int not null default 0,
+  coins   int not null default 0,
+  body    jsonb,
+  made    timestamptz not null default now(),
+  taken   timestamptz
+);
+create index if not exists mail_to_idx on card_mail (to_h) where taken is null;
 `
 
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */

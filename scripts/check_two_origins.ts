@@ -199,7 +199,14 @@ check('被告知落后之后，它再存一次也不会覆盖', (await serverWin
   check('多开一个包算进度', progressOf({ pulls: 2 }) > progressOf({ pulls: 1 }))
   check('多打一场天梯算进度',
     progressOf({ ladder: { wins: 1, losses: 1 } }) > progressOf({ ladder: { wins: 1, losses: 0 } }))
-  check('多一张卡算进度', progressOf({ cards: { a: 1, b: 1 } }) > progressOf({ cards: { a: 1 } }))
+  // Cards deliberately do NOT count any more: listing one on the trading post
+  // puts it in escrow and takes it off your side, and selling the 彩卡 you do
+  // not want in order to keep opening packs is the point of that market.
+  // Counting them would make every such sale look like a rollback.
+  check(progressOf({ cards: { a: 1, b: 1 } }) === progressOf({ cards: { a: 1 } }),
+    '卡的张数不算进度——挂牌卖卡会让它变少，那不是倒退')
+  check(progressOf({ pulls: 2, cards: {} }) > progressOf({ pulls: 1, cards: { a: 1, b: 1, c: 1 } }),
+    '抽卡次数才是主心骨：开得多的那份更新，哪怕卡更少')
   check('多一个好友战绩算进度',
     progressOf({ friends: [{}, {}] }) > progressOf({ friends: [{}] }))
   check('金币不算进度——花掉了不等于倒退',

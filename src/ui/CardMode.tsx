@@ -7,6 +7,7 @@ import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
 import Ladder from './cards/Ladder'
 import Friends from './cards/Friends'
+import Market from './cards/Market'
 import Cup from './cards/Cup'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
@@ -23,6 +24,7 @@ import {
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
 import { receiveCard } from '../engine/gacha'
+import { collectMail, mailLine } from '../engine/market'
 
 /** "12:34" or "1:02:34" — seconds included, because a clock that does not move
  *  reads as a clock that is not running. */
@@ -84,6 +86,7 @@ const TABS = [
   { key: 'collection', label: '收藏' },
   { key: 'ladder', label: '天梯' },
   { key: 'friends', label: '好友' },
+  { key: 'market', label: '交易' },
   { key: 'cup', label: '杯赛' },
   { key: 'dossier', label: '资料库' },
   // 概率 used to be here. It is the 🎲 button in the corner now: the tab was
@@ -213,6 +216,13 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         ? `收到 ${names[0]} 送的一张卡，已经放进收藏了。`
         : `收到 ${list.length} 张朋友送的卡，已经放进收藏了。`)
     })
+    // and everything the trading post owes: sales, refunds, cards that did not
+    // sell. Applied and saved in one step — mail is handed over exactly once.
+    void collectMail(gRef.current).then((mail) => {
+      if (!alive || !mail.length) return
+      commit(true)
+      toast(mail.length === 1 ? mailLine(mail[0]) : `交易区有 ${mail.length} 条新消息，已处理。`)
+    })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloud, gRef.current?.id])
@@ -292,6 +302,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     collection: Collection,
     ladder: Ladder,
     friends: Friends,
+    market: Market,
     cup: Cup,
   } as Record<string, ComponentType>)[tab]
 

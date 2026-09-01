@@ -1753,6 +1753,14 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* Career mode only: the card game has none of these systems. Always mounted
    `raised`, so the desktop rule is what the tablet and phone see too. */
 /* A saved five, as a small tile: name, what is in it, and the two buttons. */
+/* One card on the shelf: the face, the price, and the way to bid on it. */
+.market-box {
+  width: 116px; text-align: center;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel-2); padding: 8px;
+}
+.market-box input { width: 100%; font: inherit; padding: 2px 4px; }
+
 .preset-box {
   flex: 1 1 150px; min-width: 140px;
   border: 1px solid var(--line); border-radius: var(--radius);
