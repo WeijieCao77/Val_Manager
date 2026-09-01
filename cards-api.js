@@ -379,15 +379,19 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         ok: true,
         rivals: rows.map((r) => {
           const slots = Array.isArray(r.squad?.slots) ? r.squad.slots.slice(0, 5) : []
+          // the field is `level` — see OwnedCard in engine/gacha.ts. It was
+          // `lv` here for a day, and every rival five arrived un-upgraded
+          const lvOf = (id) => {
+            const lv = r.cards?.[id]?.level
+            return typeof lv === 'number' && lv > 0 ? Math.min(20, Math.trunc(lv)) : 0
+          }
           const levels = {}
           for (const id of slots) {
-            const lv = r.cards?.[id]?.lv
-            if (typeof lv === 'number' && lv > 0) levels[id] = Math.min(20, Math.trunc(lv))
+            const lv = lvOf(id)
+            if (lv) levels[id] = lv
           }
           const coach = typeof r.squad?.coach === 'string' ? r.squad.coach : null
-          if (coach && typeof r.cards?.[coach]?.lv === 'number') {
-            levels[coach] = Math.min(20, Math.trunc(r.cards[coach].lv))
-          }
+          if (coach && lvOf(coach)) levels[coach] = lvOf(coach)
           const shown = displayName(r.name, r.id_hash)
           return {
             name: shown.name, tag: `#${shown.tag}`,

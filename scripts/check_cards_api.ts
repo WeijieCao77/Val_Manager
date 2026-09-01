@@ -252,7 +252,10 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   await db.exec('delete from card_accounts')
   const squadOf = (ids: string[]) => ({ slots: ids, coach: 'C-bonkar' })
   const withCards = (ids: string[]) =>
-    Object.fromEntries(ids.map((id, i) => [id, { lv: i, dupes: 0, seen: 1, got: '2026-09-01' }]))
+    // the same shape the game actually saves — OwnedCard, with `level`. The
+    // first version of this fixture said `lv`, which is what the endpoint was
+    // reading, so the test agreed with the bug instead of catching it
+    Object.fromEntries(ids.map((id, i) => [id, { id, level: i, dupes: 0, seen: 1, got: '2026-09-01' }]))
   const mkRival = async (id: string, name: string, div: number, points: number, ids: string[]) => {
     await sql`insert into card_accounts (id_hash, name, state) values (
       ${hashOf(id)}, ${name},
