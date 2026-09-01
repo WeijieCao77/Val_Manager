@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardSlot } from '../Card'
 import { Panel } from '../common'
-import { autoSquad, collection, levelOf, personTaken, setSlot } from '../../engine/gacha'
+import {
+  SQUAD_PRESETS, autoSquad, clearPreset, collection, levelOf, loadPreset,
+  personTaken, presetsOf, renamePreset, savePreset, setSlot,
+} from '../../engine/gacha'
 import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
 
@@ -14,6 +17,8 @@ export default function SquadScreen() {
   const [q, setQ] = useState('')
 
   const level = (id: string) => levelOf(g, id)
+  const presets = presetsOf(g)
+  const [renaming, setRenaming] = useState<number | null>(null)
   // Not memoised on g.squad: the squad object is mutated in place, so a memo
   // keyed on it never recomputes and the chemistry panel goes stale the moment
   // a slot changes. Ten pairs of comparisons is not worth caching anyway.
@@ -56,6 +61,83 @@ export default function SquadScreen() {
 
   return (
     <>
+      {/* Three fives, because the people who asked for this keep two or three
+          on the go — an all-EMEA one, an all-Pacific one, and the one with
+          their favourites in it — and rebuilding a five card by card to try
+          the other one is what stops them trying it at all. */}
+      <Panel
+        title="卡组配置"
+        actions={<span className="tiny muted">存 {SQUAD_PRESETS} 套，随时切换</span>}
+      >
+        <div className="row wrap" style={{ gap: 8 }}>
+          {presets.map((rec, i) => {
+            const score = rec ? squadRating(rec.squad, level) : 0
+            const filledN = rec ? rec.squad.slots.filter(Boolean).length : 0
+            return (
+              <div key={i} className="preset-box">
+                {renaming === i ? (
+                  <input
+                    autoFocus
+                    defaultValue={rec?.name ?? `配置 ${i + 1}`}
+                    maxLength={12}
+                    onBlur={(e) => { renamePreset(g, i, e.target.value); setRenaming(null); commit(true) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                  />
+                ) : (
+                  <button
+                    className="preset-name"
+                    title="改名字"
+                    onClick={() => rec && setRenaming(i)}
+                  >
+                    {rec?.name ?? `配置 ${i + 1}`}
+                  </button>
+                )}
+                <div className="tiny faint mono">
+                  {rec ? `${filledN}/5 人 · 阵容分 ${score}` : '空'}
+                </div>
+                <div className="row" style={{ gap: 5, marginTop: 6 }}>
+                  <button
+                    className="sm"
+                    onClick={() => {
+                      const r = savePreset(g, i)
+                      commit(true)
+                      toast(`当前卡组已存进「${r.name}」。`)
+                    }}
+                  >
+                    存
+                  </button>
+                  <button
+                    className="sm primary"
+                    disabled={!rec}
+                    onClick={() => {
+                      const r = loadPreset(g, i)
+                      commit(true)
+                      toast(r.missing
+                        ? `已读取「${rec!.name}」，其中 ${r.missing} 张卡已经不在收藏里，位置空着。`
+                        : `已切换到「${rec!.name}」。`)
+                    }}
+                  >
+                    读
+                  </button>
+                  {rec && (
+                    <button
+                      className="sm ghost"
+                      title="清空这个位置"
+                      onClick={() => { clearPreset(g, i); commit(true) }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <p className="tiny faint" style={{ marginBottom: 0 }}>
+          存的是卡的编号，不是卡本身——分解掉的卡再读出来时那个位置会空着，不会凭空变出一张。
+        </p>
+      </Panel>
+
       <Panel
         title="我的卡组"
         actions={

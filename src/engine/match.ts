@@ -158,7 +158,11 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   // any; otherwise the map's usual composition, handed to whoever can play it.
   // Agents used to be decoration — this is where a pick starts to cost or pay.
   const picks = normalizeAgents(
-    state, teamId, players, map, state.agentPicks?.[map] ?? autoAgents(state, teamId, players, map))
+    state, teamId, players, map,
+    // this match's sheet, then the club's remembered default for this map,
+    // then the composition the map is usually played with
+    state.agentPicks?.[map] ?? (teamId === state.myTeam ? state.mapAgents?.[map] : undefined)
+    ?? autoAgents(state, teamId, players, map))
   const effs = players.map((x) => effectiveRating(x, state.day) * agentMod(x, picks[x.id]))
 
   // the top performers carry slightly more than a flat mean

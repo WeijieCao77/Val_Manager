@@ -1752,6 +1752,19 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .wechat-fab { bottom: 108px; }
 /* Career mode only: the card game has none of these systems. Always mounted
    `raised`, so the desktop rule is what the tablet and phone see too. */
+/* A saved five, as a small tile: name, what is in it, and the two buttons. */
+.preset-box {
+  flex: 1 1 150px; min-width: 140px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel-2); padding: 9px 10px;
+}
+.preset-box input { width: 100%; font: inherit; padding: 2px 5px; }
+.preset-name {
+  background: none; border: none; padding: 0; margin: 0;
+  font-size: var(--t-body); font-weight: 650; color: var(--text); cursor: text;
+}
+.preset-name:hover { color: var(--accent); }
+
 .rules-fab { bottom: 108px; }
 .rules-fab.raised { bottom: 150px; }
 .rules-card { width: min(620px, calc(100vw - 32px)); }

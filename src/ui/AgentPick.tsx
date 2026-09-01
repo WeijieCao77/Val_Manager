@@ -21,7 +21,9 @@ export default function AgentPick({ maps }: { maps: string[] }) {
 
   const picksFor = (map: string): Record<string, string> =>
     normalizeAgents(game, game.myTeam, five, map,
-      game.agentPicks?.[map] ?? autoAgents(game, game.myTeam, five, map))
+      // this match's sheet, then whatever we settled on for this map before
+      game.agentPicks?.[map] ?? game.mapAgents?.[map]
+      ?? autoAgents(game, game.myTeam, five, map))
 
   const set = (map: string, playerId: string, agent: string) => {
     const cur = { ...picksFor(map) }
@@ -32,6 +34,9 @@ export default function AgentPick({ maps }: { maps: string[] }) {
     if (holder) cur[holder] = cur[playerId]
     cur[playerId] = agent
     game.agentPicks = { ...(game.agentPicks ?? {}), [map]: cur }
+    // and it becomes this map's default. Setting the same five agents on
+    // Breeze every single week was busywork, not a decision.
+    game.mapAgents = { ...(game.mapAgents ?? {}), [map]: cur }
     commit()
   }
 
@@ -39,25 +44,32 @@ export default function AgentPick({ maps }: { maps: string[] }) {
     const next = { ...(game.agentPicks ?? {}) }
     delete next[map]
     game.agentPicks = Object.keys(next).length ? next : undefined
+    // forgetting the map means forgetting it, not just for today
+    const saved = { ...(game.mapAgents ?? {}) }
+    delete saved[map]
+    game.mapAgents = Object.keys(saved).length ? saved : undefined
     commit()
   }
 
   const picks = picksFor(open)
   const gaps = agentRoleGaps(five, picks)
   const touched = !!game.agentPicks?.[open]
+  // remembered from an earlier match on this map, and not touched since
+  const remembered = !touched && !!game.mapAgents?.[open]
 
   return (
     <div>
       <p className="tiny faint" style={{ marginTop: 0 }}>
         不改也没关系——默认就是这张图<b>最常见的英雄组合</b>，而且只会交给打得来这个位置的人。
-        改动只对这场比赛有效。
+        <b>改过一次就记住了</b>：以后再打这张图，直接用你这套，不用每次重选。
+        阵容换了人也不会乱——还在队里的照旧，缺的位置自动补。
       </p>
 
       {maps.length > 1 && (
         <div className="seg" style={{ marginBottom: 10 }}>
           {maps.map((m) => (
             <button key={m} className={open === m ? 'on' : ''} onClick={() => setOpen(m)}>
-              {mapCn(m)}{game.agentPicks?.[m] ? ' ·' : ''}
+              {mapCn(m)}{game.agentPicks?.[m] || game.mapAgents?.[m] ? ' ·' : ''}
             </button>
           ))}
         </div>
@@ -122,9 +134,14 @@ export default function AgentPick({ maps }: { maps: string[] }) {
             ⚠️ 这套阵容没有{gaps.join('、')}
           </span>
         )}
+        {remembered && (
+          <span className="tiny faint">用的是你上次给{mapCn(open)}定的阵容</span>
+        )}
         <div style={{ flex: 1 }} />
-        {touched && (
-          <button className="sm ghost" onClick={() => reset(open)}>恢复默认组合</button>
+        {(touched || remembered) && (
+          <button className="sm ghost" onClick={() => reset(open)}>
+            忘掉这张图，恢复默认组合
+          </button>
         )}
       </div>
     </div>

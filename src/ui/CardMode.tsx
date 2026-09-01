@@ -14,7 +14,7 @@ import OddsFab from './cards/OddsFab'
 import Credit from './Credit'
 import Support from './Support'
 import Changelog from './Changelog'
-import { createAccount, dayOf, flushAccount, fetchDay, loadAccount, retryPending, saveAccount, serverNow, whenStale } from '../engine/account'
+import { createAccount, dayOf, fetchGifts, flushAccount, fetchDay, loadAccount, retryPending, saveAccount, serverNow, whenStale } from '../engine/account'
 import { rememberId, rememberedId } from '../engine/cardid'
 import {
   MASTER_DIV, STAMINA_COST, STAMINA_MAX, primeStamina, rankName, refreshDaily,
@@ -22,6 +22,7 @@ import {
 } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
+import { receiveCard } from '../engine/gacha'
 
 /** "12:34" or "1:02:34" — seconds included, because a clock that does not move
  *  reads as a clock that is not running. */
@@ -190,6 +191,31 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     })
     return () => whenStale(null)
   }, [toast])
+
+  /**
+   * Cards friends have sent, taken exactly once.
+   *
+   * The server marks a gift claimed in the same statement that hands it over,
+   * so two tabs opening together cannot both be given it — which means this
+   * side has to actually keep what it is handed. Claim, add, save immediately:
+   * a claim that is fetched and then dropped is a card that no longer exists
+   * anywhere.
+   */
+  useEffect(() => {
+    if (!gRef.current || !cloud) return
+    let alive = true
+    void fetchGifts(true).then((list) => {
+      if (!alive || !list?.length || !gRef.current) return
+      for (const gift of list) receiveCard(gRef.current, gift.cardId, gift.from)
+      commit(true)
+      const names = list.map((x) => x.from)
+      toast(list.length === 1
+        ? `收到 ${names[0]} 送的一张卡，已经放进收藏了。`
+        : `收到 ${list.length} 张朋友送的卡，已经放进收藏了。`)
+    })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloud, gRef.current?.id])
 
   // A tab that goes away mid-pull should still land the pull — and a tab that
   // comes back should find out whether it did. Coming back to the front and

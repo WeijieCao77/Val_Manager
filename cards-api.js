@@ -36,6 +36,19 @@ update card_accounts set saved = seen where saved is null;
 -- the 好友对战码 is the first eight characters of id_hash, and looking one up
 -- is otherwise a sequential scan of every account in the table
 create index if not exists card_code_idx on card_accounts (left(id_hash, 8));
+-- Cards handed to a friend. A gift is a row rather than a direct write into
+-- somebody else's save: the receiver's client is the only thing that may edit
+-- his collection, so the gift waits here until he next opens the game.
+create table if not exists card_gifts (
+  id       bigserial primary key,
+  from_h   text not null,
+  to_h     text not null,
+  card_id  text not null,
+  note     text,
+  sent     timestamptz not null default now(),
+  claimed  timestamptz
+);
+create index if not exists gift_to_idx on card_gifts (to_h) where claimed is null;
 `
 
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */
@@ -514,12 +527,111 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }
   }
 
+  /**
+   * Hand a spare copy to a friend.
+   *
+   * Spares only, and that is not a limitation dressed up as a rule — it is
+   * what makes the feature safe. A collection's card count is one of the terms
+   * in progressOf(), so giving away your only copy of something would make
+   * your next save look like a rollback and be refused. Moving a DUPLICATE
+   * leaves the count untouched, so nothing downstream has to know this
+   * happened.
+   *
+   * The gift is a row, not a write into the receiver's save. His client is the
+   * only thing allowed to edit his collection — anything else is two writers
+   * on one save, which is the bug that ate somebody's evening last week.
+   */
+  async function gift(req, res, bucket) {
+    if (guard(req, res, `cg:${bucket}`, 30)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(body?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const code = String(body?.code ?? '').toLowerCase().replace(/[^0-9a-f]/g, '')
+    const cardId = String(body?.cardId ?? '').slice(0, 40)
+    const note = typeof body?.note === 'string' ? body.note.slice(0, 60) : null
+    if (code.length !== CODE_LEN || !cardId) { json(res, 200, { ok: false, bad: true }); return }
+    const from = hash(id)
+    if (from.slice(0, CODE_LEN) === code) { json(res, 200, { ok: false, self: true }); return }
+    try {
+      const to = await sql`
+        select id_hash, name, state->'cards' as cards from card_accounts
+        where left(id_hash, ${CODE_LEN}) = ${code} limit 2`
+      if (!to.length) { json(res, 200, { ok: false, missing: true }); return }
+      if (to.length > 1) { json(res, 200, { ok: false, clash: true }); return }
+      // The sender must actually hold a spare, checked against the save the
+      // server has rather than against what his client claims.
+      const mine = await sql`select state->'cards' as cards from card_accounts where id_hash = ${from}`
+      const owned = mine[0]?.cards?.[cardId]
+      if (!owned) { json(res, 200, { ok: false, notOwned: true }); return }
+      if (!(Number(owned.dupes) > 0)) { json(res, 200, { ok: false, noSpare: true }); return }
+      // one person cannot flood another
+      const pending = await sql`
+        select count(*)::int as n from card_gifts where to_h = ${to[0].id_hash} and claimed is null`
+      if ((pending[0]?.n ?? 0) >= 20) { json(res, 200, { ok: false, full: true }); return }
+      await sql`
+        insert into card_gifts (from_h, to_h, card_id, note)
+        values (${from}, ${to[0].id_hash}, ${cardId}, ${note})`
+      const who = displayName(to[0].name, to[0].id_hash)
+      json(res, 200, { ok: true, to: `${who.name} #${who.tag}` })
+    } catch (err) {
+      console.warn('cards: gift failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
+  /** What is waiting for me, and marking it taken. */
+  async function gifts(req, res, bucket) {
+    if (guard(req, res, `gi:${bucket}`, 60)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(body?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    try {
+      if (body?.claim) {
+        // Handed over exactly once: the update returns only the rows it moved,
+        // so two tabs claiming at the same moment cannot both be given the card.
+        const rows = await sql`
+          update card_gifts set claimed = now()
+          where to_h = ${me} and claimed is null
+          returning id, from_h, card_id, note`
+        // `= any($1)` with a plain array, NOT sql(list): a nested tagged
+        // template is a driver-specific helper, and the check harness — which
+        // is a real Postgres behind a plain template — cannot build one. The
+        // leaderboard was caught by exactly this once already.
+        const names = rows.length
+          ? await sql`select id_hash, name from card_accounts where id_hash = any(${rows.map((r) => r.from_h)})`
+          : []
+        const by = Object.fromEntries(names.map((n) => [n.id_hash, n]))
+        json(res, 200, {
+          ok: true,
+          gifts: rows.map((r) => {
+            const n = by[r.from_h]
+            const who = displayName(n?.name, r.from_h)
+            return { cardId: r.card_id, note: r.note, from: `${who.name} #${who.tag}` }
+          }),
+        })
+        return
+      }
+      const n = await sql`select count(*)::int as n from card_gifts where to_h = ${me} and claimed is null`
+      json(res, 200, { ok: true, waiting: n[0]?.n ?? 0 })
+    } catch (err) {
+      console.warn('cards: gifts failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
+      if (path === '/api/card/gift') { await gift(req, res, bucket); return true }
+      if (path === '/api/card/gifts') { await gifts(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })
         return true

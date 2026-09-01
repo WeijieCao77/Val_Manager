@@ -434,6 +434,8 @@ export interface GachaState {
   series?: Partial<Record<Series, number>>
   /** 好友对战房 — see FriendRec */
   friends?: FriendRec[]
+  /** saved squad presets — see SQUAD_PRESETS */
+  presets?: (SquadPreset | null)[]
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
@@ -484,6 +486,120 @@ export function recordFriend(
   }
   g.friends = [rec, ...list].slice(0, FRIEND_MAX)
   return rec
+}
+
+/**
+ * A squad you can come back to.
+ *
+ * Three slots, because the reason people asked for this is that they keep two
+ * or three fives on the go — an all-EMEA one, an all-Pacific one, and the one
+ * with their favourites in it — and rebuilding a five card by card to try the
+ * other one is the kind of chore that stops people trying it at all.
+ *
+ * A preset stores card ids, not cards. Sell or salvage a card and the slot it
+ * was in simply comes back empty when the preset is loaded, which is the
+ * honest outcome — the alternative is a five that silently plays short.
+ */
+export interface SquadPreset {
+  name: string
+  squad: Squad
+}
+
+export const SQUAD_PRESETS = 3
+
+/** Read the presets as a fixed-length list, whatever the save holds. */
+export const presetsOf = (g: GachaState): (SquadPreset | null)[] =>
+  Array.from({ length: SQUAD_PRESETS }, (_, i) => g.presets?.[i] ?? null)
+
+/** Copy the five on the table into a slot. */
+export function savePreset(g: GachaState, slot: number, name?: string): SquadPreset {
+  const list = presetsOf(g)
+  const rec: SquadPreset = {
+    name: (name ?? list[slot]?.name ?? `配置 ${slot + 1}`).slice(0, 12),
+    squad: { slots: [...g.squad.slots], coach: g.squad.coach },
+  }
+  list[slot] = rec
+  g.presets = list
+  note(g, `保存了卡组配置「${rec.name}」`)
+  return rec
+}
+
+/**
+ * Put a saved five back on the table.
+ *
+ * Anything no longer in the collection is dropped rather than restored, and
+ * the count of what was dropped is returned so the screen can say so. A preset
+ * quietly loading four men is worse than one that tells you it lost a card.
+ */
+export function loadPreset(g: GachaState, slot: number): { ok: boolean; missing: number } {
+  const rec = presetsOf(g)[slot]
+  if (!rec) return { ok: false, missing: 0 }
+  let missing = 0
+  const have = (id: string | null) => {
+    if (!id) return null
+    if (g.cards[id]) return id
+    missing++
+    return null
+  }
+  const slots = rec.squad.slots.slice(0, 5).map(have)
+  while (slots.length < 5) slots.push(null)
+  // the same person cannot occupy two seats — the ordinary card and his 彩卡
+  // are two ids and one man
+  const seen: string[] = []
+  for (let i = 0; i < slots.length; i++) {
+    const id = slots[i]
+    if (!id) continue
+    const who = (cid: string) => { const c = cardById(cid); return c ? personOf(c) : cid }
+    if (seen.some((x) => who(x) === who(id))) { slots[i] = null; missing++ }
+    else seen.push(id)
+  }
+  g.squad = { slots, coach: have(rec.squad.coach) }
+  return { ok: true, missing }
+}
+
+export function renamePreset(g: GachaState, slot: number, name: string): void {
+  const list = presetsOf(g)
+  if (!list[slot]) return
+  list[slot] = { ...list[slot]!, name: name.slice(0, 12) || `配置 ${slot + 1}` }
+  g.presets = list
+}
+
+export function clearPreset(g: GachaState, slot: number): void {
+  const list = presetsOf(g)
+  list[slot] = null
+  g.presets = list.some(Boolean) ? list : undefined
+}
+
+/**
+ * Hand a spare copy away.
+ *
+ * Only ever a duplicate. The collection's card count is a term in the server's
+ * 「progress never goes backwards」 check, so parting with your last copy of
+ * something would make the next save look like a rollback and be refused —
+ * and beyond that, a collection that can shrink is a collection somebody can
+ * be talked out of.
+ */
+export function giveCard(g: GachaState, cardId: string): boolean {
+  const owned = g.cards[cardId]
+  if (!owned || owned.dupes < 1) return false
+  owned.dupes -= 1
+  const card = cardById(cardId)
+  note(g, `把一张${card && isPlayerCard(card) ? card.ign : '卡'}送了出去`)
+  return true
+}
+
+/** Take a card somebody sent. A card you already have arrives as a spare. */
+export function receiveCard(g: GachaState, cardId: string, from: string): boolean {
+  const card = cardById(cardId)
+  if (!card) return false
+  const had = g.cards[cardId]
+  if (had) { had.dupes++; had.seen++ } else {
+    g.cards[cardId] = {
+      id: cardId, level: 0, dupes: 0, seen: 1, got: new Date().toISOString().slice(0, 10),
+    }
+  }
+  note(g, `收到 ${from} 送的${isPlayerCard(card) ? card.ign : card.name}`)
+  return true
 }
 
 export const STARTER_COINS = 3000

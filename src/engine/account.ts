@@ -311,6 +311,58 @@ export async function fetchFriend(
   }
 }
 
+export type GiftMiss = 'bad' | 'missing' | 'clash' | 'self' | 'notOwned' | 'noSpare' | 'full' | 'offline'
+
+/** Hand a spare copy to a friend. Spares only — see the note on the endpoint. */
+export async function sendGift(
+  code: string, cardId: string, note?: string,
+): Promise<{ ok: true; to: string } | { ok: false; why: GiftMiss }> {
+  const clean = code.trim().toLowerCase().replace(/[^0-9a-f]/g, '')
+  if (clean.length !== 8) return { ok: false, why: 'bad' }
+  try {
+    const r = await fetch(api('gift'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rememberedId(), code: clean, cardId, note }),
+    })
+    const j = await r.json() as Record<string, unknown>
+    if (j.ok) return { ok: true, to: String(j.to ?? '') }
+    for (const k of ['bad', 'missing', 'clash', 'self', 'notOwned', 'noSpare', 'full'] as const) {
+      if (j[k]) return { ok: false, why: k }
+    }
+    return { ok: false, why: 'offline' }
+  } catch {
+    return { ok: false, why: 'offline' }
+  }
+}
+
+export interface Gift { cardId: string; from: string; note: string | null }
+
+/**
+ * What is waiting, and taking it.
+ *
+ * `claim` hands each gift over exactly once — the server marks the rows in the
+ * same statement that returns them, so two tabs opening together cannot both
+ * be given the card. The caller must then actually add them to the collection
+ * and save; a claim that is fetched and dropped is a card lost, which is why
+ * the caller does both in one step.
+ */
+export async function fetchGifts(claim = false): Promise<Gift[] | null> {
+  try {
+    const r = await fetch(api('gifts'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rememberedId(), claim }),
+    })
+    const j = await r.json() as { ok?: boolean; gifts?: Gift[]; waiting?: number }
+    if (!j.ok) return null
+    if (!claim) return Array.from({ length: j.waiting ?? 0 }, () => ({ cardId: '', from: '', note: null }))
+    return j.gifts ?? []
+  } catch {
+    return null
+  }
+}
+
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
   try {
@@ -592,5 +644,6 @@ function migrate(state: GachaState, id: string): GachaState {
   // is marked claimed, so whatever it has already earned is waiting on the shelf
   g.series ??= {}
   g.friends ??= []
+  g.presets ??= undefined
   return clampState(g)
 }

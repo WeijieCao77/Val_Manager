@@ -410,6 +410,66 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
     && !JSON.stringify(f.body).includes('9DJ0'), JSON.stringify(f.body.friend))
 }
 
+// ---- 送卡给朋友 --------------------------------------------------------
+//
+// Spares only, and that is a safety property rather than a limitation: the
+// collection's card count is a term in progressOf(), so parting with a last
+// copy would make the sender's next save look like a rollback and be refused.
+// A gift is also a row rather than a write into somebody else's save — his
+// client is the only thing allowed to edit his collection.
+{
+  rateHits.clear()
+  await db.exec('delete from card_accounts')
+  await db.exec('delete from card_gifts')
+  const A = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
+  const B = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'
+  const codeOf = (id: string) => battleCode(hashOf(id)).toLowerCase()
+  await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(A)}, '送的人',
+    ${JSON.stringify({ cards: { 'p:P1': { id: 'p:P1', level: 0, dupes: 2, seen: 3 },
+                                'p:P2': { id: 'p:P2', level: 0, dupes: 0, seen: 1 } } })})`
+  await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(B)}, '收的人',
+    ${JSON.stringify({ cards: {} })})`
+
+  let r = await call('/api/card/gift', { id: A, code: codeOf(B), cardId: 'p:P1' }, 'gf')
+  check('有重复卡就能送', r.body.ok === true, JSON.stringify(r.body))
+  r = await call('/api/card/gift', { id: A, code: codeOf(B), cardId: 'p:P2' }, 'gf')
+  check('只有一张的卡送不出去', r.body.noSpare === true, JSON.stringify(r.body))
+  r = await call('/api/card/gift', { id: A, code: codeOf(B), cardId: 'p:P999' }, 'gf')
+  check('没有的卡送不出去', r.body.notOwned === true, JSON.stringify(r.body))
+  r = await call('/api/card/gift', { id: A, code: codeOf(A), cardId: 'p:P1' }, 'gf')
+  check('不能送给自己', r.body.self === true, JSON.stringify(r.body))
+  r = await call('/api/card/gift', { id: A, code: '00000000', cardId: 'p:P1' }, 'gf')
+  check('送给不存在的码会说清楚', r.body.missing === true, JSON.stringify(r.body))
+
+  r = await call('/api/card/gifts', { id: B }, 'gf')
+  check('收的人看得到有几张在等他', r.body.waiting === 1, JSON.stringify(r.body))
+  r = await call('/api/card/gifts', { id: A }, 'gf')
+  check('送的人自己那边没有待领', r.body.waiting === 0, JSON.stringify(r.body))
+
+  const claim = await call('/api/card/gifts', { id: B, claim: true }, 'gf')
+  const got = claim.body.gifts as { cardId: string; from: string }[]
+  check('领到了，而且知道是谁送的', got?.length === 1 && got[0].cardId === 'p:P1',
+    JSON.stringify(got))
+  check('送的人名字带出来了', /送的人/.test(got?.[0]?.from ?? ''), got?.[0]?.from)
+
+  // the whole point of marking claimed in the same statement that returns it
+  const again = await call('/api/card/gifts', { id: B, claim: true }, 'gf')
+  check('同一份礼物不会被领第二次',
+    (again.body.gifts as unknown[])?.length === 0, JSON.stringify(again.body.gifts))
+  check('领完之后待领数归零',
+    (await call('/api/card/gifts', { id: B }, 'gf')).body.waiting === 0)
+
+  // a name that should not be published is not published here either
+  await sql`insert into card_accounts (id_hash, name, state) values (${hashOf('VM-CCCC-CCCC-CCCC-CCCC-CCCC')},
+    'VM-9DJ0-X6C7-8EP0-1234-5678', ${JSON.stringify({ cards: { 'p:P3': { dupes: 1 } } })})`
+  await call('/api/card/gift',
+    { id: 'VM-CCCC-CCCC-CCCC-CCCC-CCCC', code: codeOf(B), cardId: 'p:P3' }, 'gf')
+  const c2 = await call('/api/card/gifts', { id: B, claim: true }, 'gf')
+  const from = (c2.body.gifts as { from: string }[])?.[0]?.from ?? ''
+  check('把 ID 当昵称的人，送卡时也是隐藏的',
+    from.includes('已隐藏') && !from.includes('9DJ0'), from)
+}
+
 // ---- no database ------------------------------------------------------
 
 const offlineApi = makeCardApi(null, { rateLimited, readBody, json } as never)

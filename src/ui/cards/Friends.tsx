@@ -3,15 +3,29 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import { levelOf, rankName, recordFriend } from '../../engine/gacha'
+import { squadRating } from '../../engine/cards'
 import type { FriendRec } from '../../engine/gacha'
 import { playRivalMatch } from '../../engine/arena'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
-import { squadRating } from '../../engine/cards'
-import { fetchFriend, myCode } from '../../engine/account'
-import type { FriendMiss } from '../../engine/account'
+
+import { fetchFriend, myCode, sendGift } from '../../engine/account'
+import type { FriendMiss, GiftMiss } from '../../engine/account'
+import { cardById, isPlayerCard } from '../../engine/cards'
+import { collection, giveCard } from '../../engine/gacha'
 import { track } from '../../engine/telemetry'
 
 type Found = RivalSquad & { code: string }
+
+const GIFT_MISS: Record<GiftMiss, string> = {
+  bad: '对战码是 8 位，只有数字和 A–F 这几个字母。',
+  missing: '没有这个对战码，让他自己复制一下。',
+  clash: '这个码对上了不止一个账号，跟他说一声换个方式找他。',
+  self: '不能送给自己。',
+  notOwned: '你没有这张卡。',
+  noSpare: '这张卡你只有一张——只能送重复的。',
+  full: '对方待领的礼物太多了，让他先去卡池收一下。',
+  offline: '连不上服务器，等会儿再试。',
+}
 
 const MISS: Record<FriendMiss, string> = {
   bad: '对战码是 8 位，只有数字和 A–F 这几个字母。再看一眼是不是抄漏了。',
@@ -42,6 +56,32 @@ export default function Friends() {
   const [found, setFound] = useState<Found | null>(null)
   const [why, setWhy] = useState<string | null>(null)
   const [shown, setShown] = useState<{ res: ArenaResult; who: Found; rec: FriendRec } | null>(null)
+  const [giftTo, setGiftTo] = useState('')
+  const [giftCard, setGiftCard] = useState('')
+  const [giftMsg, setGiftMsg] = useState<string | null>(null)
+  const [giving, setGiving] = useState(false)
+
+  // Only duplicates can be given: the collection's card count is a term in the
+  // server's 「progress never goes backwards」 check, so parting with a last
+  // copy would make the next save look like a rollback and be refused.
+  const spares = collection(g)
+    .filter((c) => c.owned.dupes > 0)
+    .sort((a, b) => b.rating - a.rating)
+
+  const give = async () => {
+    const card = cardById(giftCard)
+    if (!card) { setGiftMsg('先选一张要送的卡。'); return }
+    setGiving(true); setGiftMsg(null)
+    const r = await sendGift(giftTo || code, giftCard)
+    setGiving(false)
+    if (!r.ok) { setGiftMsg(GIFT_MISS[r.why]); return }
+    // taken off this side only once the server has the gift, so a failed
+    // request can never eat the card
+    giveCard(g, giftCard)
+    commit(true)
+    setGiftCard('')
+    toast(`已把${isPlayerCard(card) ? card.ign : card.name}送给 ${r.to}。`)
+  }
 
   const level = (id: string) => levelOf(g, id)
   const mine = myCode()
@@ -169,6 +209,50 @@ export default function Friends() {
           )}
         </Panel>
       </div>
+
+      <Panel
+        title="送卡给朋友"
+        actions={<span className="tiny muted">只能送重复的</span>}
+      >
+        {spares.length === 0 ? (
+          <p className="empty">
+            你还没有重复的卡。只有重复卡能送人——收藏里每个人至少留一张，
+            不然存档在服务器那边会被当成「进度倒退」退回来。
+          </p>
+        ) : (
+          <>
+            <div className="row wrap" style={{ gap: 6 }}>
+              <input
+                style={{ flex: '1 1 150px', fontFamily: 'var(--mono)', letterSpacing: 2, textTransform: 'uppercase' }}
+                placeholder="对方的 8 位对战码"
+                maxLength={12}
+                value={giftTo}
+                onChange={(e) => setGiftTo(e.target.value)}
+              />
+              <select
+                style={{ flex: '2 1 220px' }}
+                value={giftCard}
+                onChange={(e) => setGiftCard(e.target.value)}
+              >
+                <option value="">选一张重复的卡（共 {spares.length} 种）</option>
+                {spares.slice(0, 200).map(({ card, owned, rating }) => (
+                  <option key={card.id} value={card.id}>
+                    {isPlayerCard(card) ? card.ign : card.name} · {rating} · 多 {owned.dupes} 张
+                  </option>
+                ))}
+              </select>
+              <button className="primary" onClick={() => void give()} disabled={giving || !giftCard}>
+                {giving ? '送出中…' : '送出'}
+              </button>
+            </div>
+            {giftMsg && <p className="small" style={{ color: 'var(--warn)' }}>{giftMsg}</p>}
+            <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
+              送出去的是<b>多余的那张</b>，你自己那张还在，强化等级也不受影响。
+              对方不用在线，下次他打开卡池就会收到。送出之后不能撤回。
+            </p>
+          </>
+        )}
+      </Panel>
 
       <Panel
         title="对战记录"

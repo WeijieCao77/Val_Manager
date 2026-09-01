@@ -869,6 +869,17 @@ export interface GameState {
   midReviewDone?: boolean
   /** agents the manager has chosen for the next match, keyed by map */
   agentPicks?: Record<string, Record<string, string>>
+  /**
+   * The lineup this club runs on each map, remembered.
+   *
+   * `agentPicks` is the sheet for the match in front of you and is thrown away
+   * with it — that is deliberate, a plan belongs to the opponent it was made
+   * for. This is the other half: the first time you set a map by hand it
+   * becomes that map's default, and every later match on it starts there
+   * instead of from the generic composition. Keyed by player, so a five that
+   * has changed keeps whoever is still in it and auto-fills the rest.
+   */
+  mapAgents?: Record<string, Record<string, string>>
   /** maps the manager banned/picked himself for the next match */
   vetoPlan?: { fixtureId: string; maps: string[]; log: string[] }
   /** the club's revenue-share arrangement with the league — engine/leagueShare.ts */
