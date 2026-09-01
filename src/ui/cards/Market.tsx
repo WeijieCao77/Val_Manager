@@ -241,7 +241,7 @@ export default function Market() {
         {shelf === null ? <p className="empty">读取中…</p>
           : theirs.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>
             : (
-              <div className="row wrap" style={{ gap: 10 }}>
+              <div className="market-shelf">
                 {theirs.map((l) => {
                   const card = cardById(l.cardId)
                   if (!card) return null
@@ -251,8 +251,11 @@ export default function Market() {
                     <div key={l.id} className="market-box">
                       <CardFace card={card} level={l.level} size="sm" />
                       <div className="tiny mono" style={{ marginTop: 4 }}>{money(l.ask)} 金币</div>
-                      <div className="tiny faint">{l.seller}</div>
-                      {l.offers > 0 && <div className="tiny faint">{l.offers} 人出价</div>}
+                      <div className="tiny faint market-seller">{l.seller}</div>
+                      <div className="tiny faint" style={{ minHeight: '1.4em' }}>
+                        {l.offers > 0 ? `${l.offers} 人出价` : ''}
+                      </div>
+                      <div className="grow" />
                       {l.bid ? (
                         <span className="tag t1" style={{ marginTop: 5 }}>已出价</span>
                       ) : (

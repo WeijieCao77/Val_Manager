@@ -96,7 +96,7 @@ export default function Challenge() {
           题目不会告诉你是哪一类，<b>先猜出它是什么，再猜出它是哪个</b>。
           图会糊到看不出是人是队；每猜错一次清楚一点。
           <br />
-          全世界今天是<b>同一道题</b>，日期以服务器为准。一天一次，
+          <b>每个账号的题目都不一样</b>，日期以服务器为准。一天一次，
           入场 <b>{CHALLENGE_COST} 金币</b>——猜中按用了几次给卡包（<b>一次猜中给十连包</b>），
           没猜中退一半。
         </p>
@@ -289,7 +289,7 @@ export default function Challenge() {
                   别把答案发出去
                 </b>
                 <div className="small muted" style={{ marginTop: 3, lineHeight: 1.7 }}>
-                  今天<b>全世界是同一道题</b>，发出来别人就没得玩了。
+                  <b>别人的题目和你的不一样</b>，发出去也帮不上他，只会剧透你自己这一局。
                   想晒的话，晒「第几次猜中」和连胜天数就好。
                 </div>
               </div>

@@ -88,8 +88,20 @@ const CYCLE: ChallengeKind[] = ['player', 'agent', 'team', 'player', 'map', 'tea
 const dayNumber = (day: string): number =>
   Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
 
-export function kindFor(day: string): ChallengeKind {
-  const n = dayNumber(day)
+/**
+ * Which kind of thing today's puzzle is, for this account.
+ *
+ * It used to be the same for everybody, and so did the answer — which meant one
+ * person could solve it, post the answer, and every other account collected the
+ * reward for typing it in. With alt accounts that was not even sharing, it was
+ * a coin printer: solve once, cash in five times.
+ *
+ * So the account is mixed in. The id is hashed here and never leaves the
+ * device; two devices signed into the SAME account still get the same puzzle,
+ * which is the property that has to hold.
+ */
+export function kindFor(day: string, who = ''): ChallengeKind {
+  const n = dayNumber(day) + (who ? hashStr(`kind:${who}`) : 0)
   return CYCLE[((n % CYCLE.length) + CYCLE.length) % CYCLE.length]
 }
 
@@ -221,10 +233,10 @@ function answerPool(kind: ChallengeKind): string[] {
  * are all in the browser already, and somebody who reads the bundle to win a
  * word game has beaten only themselves.
  */
-export function answerFor(day: string): string {
-  const kind = kindFor(day)
+export function answerFor(day: string, who = ''): string {
+  const kind = kindFor(day, who)
   const pool = answerPool(kind)
-  return pool[hashStr(`challenge:${kind}:${day}`) % pool.length]
+  return pool[hashStr(`challenge:${kind}:${day}:${who}`) % pool.length]
 }
 
 // ------------------------------------------------------------------ hints
@@ -440,8 +452,8 @@ export interface ChallengeTurn {
 export function guessChallenge(g: GachaState, today: string, guessId: string): ChallengeTurn {
   const c = (g.challenge ??= newChallenge())
   openChallenge(c, today)
-  const answer = answerFor(today)
-  const kind = kindFor(today)
+  const answer = answerFor(today, g.id)
+  const kind = kindFor(today, g.id)
 
   if (!c.paid) {
     g.coins -= CHALLENGE_COST
@@ -485,8 +497,8 @@ export function challengeToday(g: GachaState, today: string): {
 } {
   const c = (g.challenge ??= newChallenge())
   openChallenge(c, today)
-  const answer = answerFor(today)
-  const kind = kindFor(today)
+  const answer = answerFor(today, g.id)
+  const kind = kindFor(today, g.id)
   return {
     kind, answer, state: c,
     rows: c.guesses.map((id: string) => evaluate(kind, answer, id)),

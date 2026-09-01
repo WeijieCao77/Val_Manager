@@ -42,7 +42,8 @@ const check = (name: string, ok: boolean, detail = '') => {
 }
 
 const PUBLIC = fileURLToPath(new URL('../public/', import.meta.url))
-const fresh = (): GachaState => newGacha('VM-TEST', '审计', '2026-09-01')
+const ID = 'VM-TEST'
+const fresh = (): GachaState => newGacha(ID, '审计', '2026-09-01')
 const dateAt = (n: number): string =>
   new Date(Date.UTC(2026, 8, 1) + n * 86_400_000).toISOString().slice(0, 10)
 
@@ -58,8 +59,8 @@ const dateAt = (n: number): string =>
 
   for (let i = 0; i < days; i++) {
     const day = dateAt(i)
-    const kind = kindFor(day)
-    const answer = answerFor(day)
+    const kind = kindFor(day, ID)
+    const answer = answerFor(day, ID)
     seen.set(kind, (seen.get(kind) ?? 0) + 1)
     ;(answers.get(kind) ?? answers.set(kind, new Set()).get(kind)!).add(answer)
 
@@ -96,8 +97,8 @@ const dateAt = (n: number): string =>
 {
   const day = dateAt(3)
   const g = fresh()
-  const answer = answerFor(day)
-  const wrong = choicesFor(kindFor(day)).filter((c) => c.id !== answer).slice(0, CHALLENGE_TRIES)
+  const answer = answerFor(day, ID)
+  const wrong = choicesFor(kindFor(day, ID)).filter((c) => c.id !== answer).slice(0, CHALLENGE_TRIES)
   const before = g.coins
 
   const first = guessChallenge(g, day, wrong[0].id)
@@ -132,21 +133,21 @@ const dateAt = (n: number): string =>
   const g = fresh()
   for (let i = 0; i < 3; i++) {
     const day = dateAt(10 + i)
-    guessChallenge(g, day, answerFor(day))
+    guessChallenge(g, day, answerFor(day, ID))
   }
   check('连着解开三天，连胜是 3', g.challenge!.streak === 3, `${g.challenge!.streak}`)
   check('累计解开数也在涨', g.challenge!.total === 3, `${g.challenge!.total}`)
 
   // skip a day, then solve again
   const later = dateAt(15)
-  guessChallenge(g, later, answerFor(later))
+  guessChallenge(g, later, answerFor(later, ID))
   check('中间断了一天，连胜从头算', g.challenge!.streak === 1, `${g.challenge!.streak}`)
   check('最好成绩记住了', g.challenge!.best === 3, `${g.challenge!.best}`)
 
   // opening a new day's puzzle without playing it must not credit a streak
   const g2 = fresh()
   const d1 = dateAt(20)
-  guessChallenge(g2, d1, answerFor(d1))
+  guessChallenge(g2, d1, answerFor(d1, ID))
   challengeToday(g2, dateAt(21))
   challengeToday(g2, dateAt(22))
   check('只是打开看看，不会白拿连胜', g2.challenge!.streak === 0, `${g2.challenge!.streak}`)
@@ -157,11 +158,11 @@ const dateAt = (n: number): string =>
   for (const offset of [0, 1, 2, 4]) {
     const day = dateAt(offset)
     const g = fresh()
-    const row = guessChallenge(g, day, answerFor(day)).row
+    const row = guessChallenge(g, day, answerFor(day, ID)).row
     const allHit = row.cells.every((c) => c.mark === 'hit')
-    check(`${kindFor(day)} 题猜中时每一格都是对的`, allHit,
+    check(`${kindFor(day, ID)} 题猜中时每一格都是对的`, allHit,
       row.cells.map((c) => `${c.label}${c.mark}`).join(' '))
-    check(`${kindFor(day)} 题第一格是类型`, row.cells[0]?.label === '类型')
+    check(`${kindFor(day, ID)} 题第一格是类型`, row.cells[0]?.label === '类型')
   }
 }
 
@@ -169,7 +170,7 @@ const dateAt = (n: number): string =>
 {
   const day = dateAt(0)          // 这天是地图题
   const g = fresh()
-  const wrongKind = allChoices().find((c) => c.kind !== kindFor(day))!
+  const wrongKind = allChoices().find((c) => c.kind !== kindFor(day, ID))!
   const row = guessChallenge(g, day, wrongKind.id).row
   check('猜了别的类型，只回一格「类型」', row.cells.length === 1,
     row.cells.map((c) => c.label).join(' '))
@@ -238,8 +239,45 @@ const dateAt = (n: number): string =>
   const g = fresh()
   delete (g as { challenge?: unknown }).challenge
   const day = dateAt(40)
-  const turn = guessChallenge(g, day, answerFor(day))
+  const turn = guessChallenge(g, day, answerFor(day, ID))
   check('没有 challenge 字段的老存档照样能玩', turn.solved && !!g.challenge)
+}
+
+// ---- 每个账号一道题 -----------------------------------------------------
+//
+// It used to be the same puzzle for everybody, so one person could solve it,
+// post the answer, and every other account collected the reward for typing it
+// in — which with alt accounts is not sharing, it is a coin printer.
+{
+  const day = '2026-09-04'
+  const ids = ['VM-AAAA', 'VM-BBBB', 'VM-CCCC', 'VM-DDDD', 'VM-EEEE', 'VM-FFFF']
+  const answers = ids.map((id) => answerFor(day, id))
+  const kinds = ids.map((id) => kindFor(day, id))
+  console.log('\n同一天，六个账号：')
+  for (let i = 0; i < ids.length; i++) console.log(`  ${ids[i]}  ${kinds[i]}  ${answers[i]}`)
+
+  check('不是所有账号都同一个答案', new Set(answers).size > 1, `${new Set(answers).size} 种答案`)
+  check('题目类型也会不一样', new Set(kinds).size > 1, `${new Set(kinds).size} 种类型`)
+
+  // the property that must NOT break: the same account asked twice gets the
+  // same puzzle, or a reload would reroll it
+  for (const id of ids) {
+    check(`${id} 刷新之后还是同一道题`,
+      answerFor(day, id) === answerFor(day, id) && kindFor(day, id) === kindFor(day, id))
+  }
+  check('同一个账号，换一天就换一道题',
+    answerFor('2026-09-05', ids[0]) !== answerFor(day, ids[0])
+    || kindFor('2026-09-05', ids[0]) !== kindFor(day, ids[0]))
+
+  let same = 0
+  let total = 0
+  for (let d = 1; d <= 14; d++) {
+    const dd = `2026-09-${String(d).padStart(2, '0')}`
+    const a = answerFor(dd, ids[0])
+    for (const id of ids.slice(1)) { total++; if (answerFor(dd, id) === a) same++ }
+  }
+  console.log(`  两周里，把答案抄给别的账号还能用的比例：${(same / total * 100).toFixed(1)}%`)
+  check('抄答案基本上没用了', same / total < 0.15, `${same}/${total}`)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

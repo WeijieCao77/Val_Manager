@@ -1753,11 +1753,32 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* Career mode only: the card game has none of these systems. Always mounted
    `raised`, so the desktop rule is what the tablet and phone see too. */
 /* A saved five, as a small tile: name, what is in it, and the two buttons. */
-/* One card on the shelf: the face, the price, and the way to bid on it. */
+/* One card on the shelf: the face, the price, and the way to bid on it.
+ *
+ * A column, not a block, because the rows underneath are not the same height on
+ * every tile — a seller's name wraps to two lines, some have 「N 人出价」 and
+ * some do not — and left to itself that made a shelf of cards at a dozen
+ * different heights. The card sits at the top, the button is pushed to the
+ * bottom by the spacer, and every tile in a row is stretched to the tallest. */
+.market-shelf { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
 .market-box {
-  width: 116px; text-align: center;
+  width: 122px; text-align: center;
+  display: flex; flex-direction: column;
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel-2); padding: 8px;
+}
+.market-box .cardface { margin: 0 auto; }
+/* the seller's name is the line that wraps; two lines is the ceiling */
+.market-seller {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.35; min-height: 2.7em;
+}
+.market-box .grow { flex: 1 }
+/* the bottom row is a button on most tiles and a 「已出价」 tag on the rest;
+   matched so the whole shelf lines up on the last pixel as well as the first */
+.market-box > button, .market-box > .tag {
+  min-height: 26px; display: inline-flex;
+  align-items: center; justify-content: center;
 }
 .market-box input { width: 100%; font: inherit; padding: 2px 4px; }
 

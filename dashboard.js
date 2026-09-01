@@ -386,7 +386,8 @@ function render(d) {
       '金卡是概率公示的那一栏在真实样本上的样子。「重复/包」是平均每包开出几张已有的卡——'
       + '它一路涨上去，说明卡池对这批人来说已经不够深了。') +
     panel('开瓦包 · 每日挑战', table(['题型', '人数', '解开率', '平均次数'], chRows),
-      '一天一道，全服同题，入场 300 金币。解开率太低说明题出难了——没人解得开的谜题，'
+      '一天一道，每个账号的题不一样（以前是全服同题，被人拿一个答案去小号刷奖励），入场 300 金币。'
+      + '解开率太低说明题出难了——没人解得开的谜题，'
       + '第二天就没人回来了；太高说明奖励白送。平均次数看的是有没有在「猜」。') +
     panel('开瓦包 · 天梯与杯赛', table(['模式', '场次', '人数', '胜率'], matchRows),
       '开了包不打比赛，卡就只是图片。胜率长期该在五成上下，明显偏一边说明对手强度没配平。') +
@@ -508,8 +509,14 @@ $('#gSend').onclick = async () => {
         note: $('#gNote').value || null,
       }),
     })
-    const j = await r.json().catch(() => null)
-    if (!j || !j.ok) throw new Error((j && j.why) || ('HTTP ' + r.status))
+    const text = await r.text()
+    let j = null
+    try { j = JSON.parse(text) } catch { j = null }
+    // A 200 of HTML means the route did not exist and the static handler
+    // answered instead — which is what /api/admin/grant did on the day it
+    // shipped, and 「HTTP 200」 was a useless thing to be told about it.
+    if (!j) throw new Error(/^\s*</.test(text) ? '这个接口没接上（服务器返回的是页面，不是数据）' : ('HTTP ' + r.status))
+    if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
     $('#gMsg').textContent = '已发给 ' + j.to + ' · ' + new Date().toLocaleTimeString('zh-CN')
     $('#gCoins').value = ''; $('#gNote').value = ''
   } catch (e) {
