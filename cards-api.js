@@ -14,6 +14,7 @@
  * it does not let anyone log in as anybody.
  */
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { displayName } from './names.js'
 
 export const CARD_SCHEMA = `
 create table if not exists card_accounts (
@@ -254,9 +255,79 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }
   }
 
+  /**
+   * The public ladder, top hundred plus whoever is asking.
+   *
+   * Read straight off the accounts table — the card mode is the one part of
+   * this game with a real server-side save, so a leaderboard costs a query
+   * rather than a new system. Ranked the way the ladder itself ranks: the
+   * division first, then the 大师 score, which has no ceiling and is the whole
+   * point of the thing.
+   *
+   * The caller's own row comes back even when it is nowhere near the top,
+   * because 「你在第几」 is the number that makes a leaderboard worth opening.
+   * Sending an id is optional and the id is never echoed — only the four
+   * characters of its hash that tell two players of the same name apart.
+   */
+  async function top(req, res, bucket) {
+    if (guard(req, res, `ct:${bucket}`, 30)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let mine = null
+    try {
+      const body = JSON.parse(await readBody(req, 4096))
+      const id = normalizeId(body?.id)
+      if (id) mine = hash(id)
+    } catch { /* an anonymous look at the board is fine */ }
+    try {
+      const rows = await sql`
+        with ranked as (
+          select
+            id_hash, name,
+            case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
+                 then (state->'ladder'->>'div')::int else 0 end as div,
+            case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
+                 then (state->'ladder'->>'points')::int else 0 end as points,
+            case when state->'ladder'->>'stars' ~ '^[0-9]{1,3}$'
+                 then (state->'ladder'->>'stars')::int else 0 end as stars,
+            case when state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
+                 then (state->'ladder'->>'wins')::int else 0 end as wins,
+            case when state->'ladder'->>'losses' ~ '^[0-9]{1,7}$'
+                 then (state->'ladder'->>'losses')::int else 0 end as losses
+          from card_accounts
+          where jsonb_typeof(state->'ladder') = 'object'
+        ), placed as (
+          select *, rank() over (
+            order by div desc, points desc, stars desc, wins desc, id_hash
+          )::int as rk
+          from ranked
+        )
+        select rk, id_hash, name, div, points, stars, wins, losses
+        from placed
+        -- one query either way: an empty string never matches a sha256, so
+        -- the caller's own row joins the top hundred without a second shape
+        where rk <= 100 or id_hash = ${mine ?? ''}
+        order by rk
+        limit 101`
+      json(res, 200, {
+        ok: true,
+        rows: rows.map((r) => ({
+          rank: r.rk,
+          ...displayName(r.name, r.id_hash),
+          div: r.div, points: r.points, stars: r.stars,
+          wins: r.wins, losses: r.losses,
+          me: !!mine && r.id_hash === mine,
+        })),
+      })
+    } catch (err) {
+      console.warn('cards: top failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
+      if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })
         return true

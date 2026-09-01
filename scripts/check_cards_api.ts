@@ -185,6 +185,52 @@ for (let i = 0; i < 60; i++) {
 }
 check('guessing gets rate limited', limited >= 15, `${limited}/60 refused`)
 
+// ---- 排行榜 -----------------------------------------------------------
+const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
+
+//
+// A public read off the accounts table. Three things it must get right: the
+// order, the caller's own row when they are nowhere near the top, and never
+// echoing an id — the id is the password, so only four characters of its hash
+// may appear.
+{
+  rateHits.clear()
+  await db.exec('delete from card_accounts')
+  const mk = async (id: string, name: string, div: number, points: number, wins: number) => {
+    await sql`insert into card_accounts (id_hash, name, state)
+      values (${hashOf(id)}, ${name},
+        ${JSON.stringify({ ladder: { div, points, stars: 0, wins, losses: 0 } })})`
+  }
+  await mk('VM-1111-1111-1111-1111-1111', '阿伟', 5, 1800, 90)
+  await mk('VM-2222-2222-2222-2222-2222', '傻逼', 5, 900, 40)
+  await mk('VM-3333-3333-3333-3333-3333', '阿伟', 3, 0, 12)
+  await mk('VM-4444-4444-4444-4444-4444', '', 0, 0, 1)
+
+  const r = await call('/api/card/top', {}, 'board')
+  const rows = r.body.rows as { rank: number; name: string; tag: string; hidden: boolean; me: boolean; points: number }[]
+  check('排行榜读得出来', r.code === 200 && Array.isArray(rows), JSON.stringify(r.body).slice(0, 120))
+  check('按段位和大师分排', rows[0].name === '阿伟' && rows[0].points === 1800,
+    rows.map((x) => `${x.rank}.${x.name}(${x.points})`).join(' '))
+  check('名字里有脏字的显示「已隐藏」，但还在榜上',
+    rows[1].hidden && rows[1].name === '已隐藏', JSON.stringify(rows[1]))
+  check('没起名字的有默认名', rows.some((x) => x.name === '无名经理'))
+  const weis = rows.filter((x) => x.name === '阿伟')
+  check('同名的两个人靠识别码分开', weis.length === 2 && weis[0].tag !== weis[1].tag,
+    weis.map((x) => `#${x.tag}`).join(' '))
+  const tagOf = (id: string) => hashOf(id).slice(0, 4).toUpperCase()
+  check('识别码就是各自哈希的前四位，和 ID 本身无关',
+    weis[0].tag === tagOf('VM-1111-1111-1111-1111-1111')
+    && weis[1].tag === tagOf('VM-3333-3333-3333-3333-3333'),
+    `${weis.map((x) => x.tag).join(' ')} vs ${tagOf('VM-1111-1111-1111-1111-1111')} ${tagOf('VM-3333-3333-3333-3333-3333')}`)
+
+  const mine = await call('/api/card/top', { id: 'VM-4444-4444-4444-4444-4444' }, 'board2')
+  const mineRows = mine.body.rows as { me: boolean; name: string }[]
+  check('带上自己的 ID 就能看到自己那一行', mineRows.some((x) => x.me),
+    mineRows.filter((x) => x.me).map((x) => x.name).join(''))
+  check('不带 ID 时没有任何一行标成「我」', !rows.some((x) => x.me))
+  check('返回里不含任何 ID', !JSON.stringify(r.body).includes('VM-'))
+}
+
 // ---- no database ------------------------------------------------------
 
 const offlineApi = makeCardApi(null, { rateLimited, readBody, json } as never)

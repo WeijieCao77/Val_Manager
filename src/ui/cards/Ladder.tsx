@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
@@ -14,6 +14,8 @@ import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/world'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
+import { fetchTop } from '../../engine/account'
+import type { TopRow } from '../../engine/account'
 
 export default function Ladder() {
   const { g, now, commit, toast, go } = useCards()
@@ -27,6 +29,9 @@ export default function Ladder() {
   const opp = WORLD_TEAMS.find((t) => t.id === oppId)
   const L = g.ladder
   const master = L.div >= MASTER_DIV
+  const [top, setTop] = useState<TopRow[] | null | 'loading'>('loading')
+  // refetched after a match, so a climb shows up on the board you just moved on
+  useEffect(() => { void fetchTop().then(setTop) }, [L.wins, L.losses])
   // past 大师 the world's clubs are not strong enough on their own
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
@@ -132,6 +137,49 @@ export default function Ladder() {
           )}
         </Panel>
       </div>
+
+      <Panel
+        title="排行榜"
+        actions={<span className="tiny muted">按段位和大师分排</span>}
+      >
+        {top === 'loading' ? <p className="empty">读取中…</p>
+          : !top ? <p className="empty">暂时读不到排行榜（离线或服务器忙）。</p>
+            : top.length === 0 ? <p className="empty">还没有人上榜。</p>
+              : (
+                <>
+                  <div className="table-wrap" style={{ maxHeight: 420, overflowY: 'auto' }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th className="num">#</th><th>玩家</th><th>段位</th>
+                          <th className="num">战绩</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top.map((r) => (
+                          <tr key={`${r.rank}-${r.tag}`} className={r.me ? 'me' : ''}>
+                            <td className="num mono">{r.rank}</td>
+                            <td>
+                              <b style={{ color: r.hidden ? 'var(--faint)' : undefined }}>{r.name}</b>
+                              <span className="tiny faint mono"> #{r.tag}</span>
+                              {r.me && <span className="tag t1" style={{ marginLeft: 5 }}>我</span>}
+                            </td>
+                            <td className="small">{rankName(r.div, r.stars, r.points)}</td>
+                            <td className="num mono tiny">{r.wins}–{r.losses}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
+                    前 100 名，加上你自己那一行——排在外面也看得到自己第几。
+                    名字后面的 <b>#四位</b> 是账号的识别码，用来区分同名的人，
+                    它来自 ID 的哈希，<b>不是 ID 本身</b>，看到也没法登录你的号。
+                    显示成「已隐藏」的是名字里有不该上榜的词——去「账号」页改个名字就会恢复。
+                  </p>
+                </>
+              )}
+      </Panel>
 
       {shown && (
         <MatchReport

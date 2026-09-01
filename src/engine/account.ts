@@ -190,6 +190,44 @@ function anchorFrom(state: GachaState, saved: number | undefined): void {
 const BASE = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : '/'
 const api = (path: string) => `${BASE}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
 
+export interface TopRow {
+  rank: number
+  name: string
+  /** four characters off the account's id HASH, so two 「阿伟」 are telling apart */
+  tag: string
+  /** the name was kept off the board; its owner can rename and reappear */
+  hidden: boolean
+  div: number
+  points: number
+  stars: number
+  wins: number
+  losses: number
+  me: boolean
+}
+
+/**
+ * The public ladder.
+ *
+ * The id is sent so the server can hand back the caller's own row even when it
+ * is nowhere near the top — 「我在第几」 is the number worth opening a
+ * leaderboard for. It is never echoed: what comes back is four characters of
+ * its hash.
+ */
+export async function fetchTop(): Promise<TopRow[] | null> {
+  try {
+    const r = await fetch(api('top'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rememberedId() }),
+    })
+    if (!r.ok) return null
+    const j = await r.json() as { ok?: boolean; rows?: TopRow[] }
+    return j.ok && Array.isArray(j.rows) ? j.rows : null
+  } catch {
+    return null
+  }
+}
+
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
   try {
