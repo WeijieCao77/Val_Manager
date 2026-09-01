@@ -15,6 +15,7 @@ import { mapCn } from './content'
 import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
+import { titleLoyalty } from './loyalty'
 import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
@@ -194,6 +195,11 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
     winner.titles.push({ year: state.year, title: comp.name })
     if (winner.titles.length > 40) winner.titles.splice(0, winner.titles.length - 40)
   }
+
+  // Everyone who was in the room when it was won, at whichever club won it —
+  // a trophy is the shared history that loyalty is made of, and the AI's
+  // champions get to keep their core for the same reason ours do.
+  if (comp.champion) titleLoyalty(state, comp.champion, !comp.region)
 
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })

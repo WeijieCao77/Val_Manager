@@ -312,6 +312,8 @@ export interface Player {
   persuaded?: boolean
   /** the season he joined his current club — a fresh signing is not shopped */
   joinedYear?: number
+  /** the season his loyalty was last docked for being listed — see loyalty.ts */
+  loyaltyHitYear?: number
 }
 
 export interface Coach {

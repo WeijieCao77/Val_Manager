@@ -5,6 +5,7 @@ import { coachOr, squadOf } from './roster'
 import { duoBonded, weeklyBonds } from './bonds'
 import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
+import { growLoyalty } from './loyalty'
 import { skillMod } from './manager'
 import { AGENTS } from './content'
 import { ATTR_KEYS } from './types'
@@ -463,6 +464,10 @@ export function applyMatchFatigue(
 export function seasonRollover(state: GameState, rng: Rng): string[] {
   const notes: string[] = []
   const small: string[] = []
+  // Another season served, at every club in the world. League-wide on purpose:
+  // ours alone would slowly become unpoachable while everybody else's stayed
+  // as easy to raid as on day one.
+  growLoyalty(state)
   for (const p of Object.values(state.players)) {
     p.age += 1
     // Scouts re-rate the young every winter. A prospect who has nearly caught

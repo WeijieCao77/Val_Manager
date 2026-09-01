@@ -18,6 +18,7 @@ import { NEUTRAL } from '../src/engine/bonds'
 import { TRUST_START } from '../src/engine/trust'
 import { SPONSOR_MAX, SPONSOR_SLOT_TIERS } from '../src/engine/commercial'
 import { TITLE_REP_WORTH } from '../src/engine/season'
+import { KEPT_GAIN, LISTED_COST, LOYALTY_NEW, RENEWAL_GAIN, TITLE_LOYALTY } from '../src/engine/loyalty'
 
 const panel = readFileSync(new URL('../src/ui/Rules.tsx', import.meta.url), 'utf8')
 
@@ -41,6 +42,16 @@ says(`朝 ${TRUST_START} 回归`, '信任的回归目标')
 says(`${SPONSOR_MAX} 个起`, '赞助栏位起始数')
 says(SPONSOR_SLOT_TIERS.join('、'), '开新栏位的声望档位')
 says(`最多 ${SPONSOR_MAX + SPONSOR_SLOT_TIERS.length} 个`, '赞助栏位上限')
+
+// loyalty.ts: the one the group asked how to farm, back when the answer was
+// that you could not
+says(`从 ${LOYALTY_NEW} 起步`, '新签球员的归属感起点')
+says(`重置成 ${LOYALTY_NEW}`, '换队之后归属感重置')
+says(`−${LISTED_COST}`, '挂牌扣的归属感')
+says(`赛区冠军 +${TITLE_LOYALTY.regional}`, '赛区冠军的归属感')
+says(`国际冠军 +${TITLE_LOYALTY.international}`, '国际冠军的归属感')
+says(`'续约', d: '+${RENEWAL_GAIN}`, '续约给的归属感')
+says(`+${KEPT_GAIN}。前提是他自己没想走`, '挡掉报价给的归属感')
 
 // season.ts: what a trophy is worth to your own name
 says(`赛区冠军 +${TITLE_REP_WORTH.regional}`, '赛区冠军的声望')

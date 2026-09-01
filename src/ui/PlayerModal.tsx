@@ -3,6 +3,7 @@ import { AgentIcon, Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
 import { playerAcceptsTerms } from '../engine/transfer'
+import { loyaltyOnListed } from '../engine/loyalty'
 import { SQUAD_ROLE_CN, defaultContract } from '../engine/types'
 import type { Contract } from '../engine/types'
 import { useGame } from './ctx'
@@ -63,9 +64,16 @@ export default function PlayerModal(
   const toggleList = () => {
     if (!spendAction(game, 'list')) { toast(NO_ACTIONS_LEFT); return }
     p.listed = !p.listed
+    // Being put up for sale is the club telling him what he is worth to it,
+    // and taking him off the list afterwards does not unsay it.
+    // read before the charge, which is what sets the flag
+    const firstThisYear = p.loyaltyHitYear !== game.year
+    if (p.listed) loyaltyOnListed(game, p)
     commit()
     logActivity(game, 'transfer', p.listed ? `将 ${p.ign} 挂牌出售` : `取消 ${p.ign} 的挂牌`)
-    toast(p.listed ? `${p.ign} 已挂牌，其他俱乐部会来问价。` : `已取消 ${p.ign} 的挂牌。`)
+    toast(p.listed
+      ? `${p.ign} 已挂牌，其他俱乐部会来问价。${firstThisYear ? '他对这里的归属感也掉了一截。' : ''}`
+      : `已取消 ${p.ign} 的挂牌。`)
   }
 
   return (

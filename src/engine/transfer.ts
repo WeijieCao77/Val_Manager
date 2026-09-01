@@ -6,6 +6,7 @@ import { SQUAD_ROLE_CN, defaultContract } from './types'
 import { importBlock } from './imports'
 import { skillMod } from './manager'
 import { trustOf, trustOnDeparture, TRUST_START } from './trust'
+import { KEPT_GAIN, RENEWAL_GAIN, loyaltyOnJoin, loyaltyOnListed, shiftLoyalty } from './loyalty'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 
 /**
@@ -160,9 +161,16 @@ export function scoreOffer(
       key: 'loyal',
       // attachment keeps him here; it is only an obstacle to leaving
       v: from ? (p.loyalty - 50) * 0.35 * (renewal ? 1 : -1) : 0,
-      // and the sentence has to follow the direction: the same number is
-      // "he loves it here" to a rival and "he never settled here" to us
-      why: renewal ? '对这支球队没有太深的归属感' : '对现在的俱乐部感情很深',
+      // The sentence has to follow the direction: the same number is "he loves
+      // it here" to a rival and "he never settled here" to us.
+      //
+      // And the renewal side has to say what to do about it. It used to end at
+      // 「没有太深的归属感」 on a number that could not move, which sent the
+      // group looking for a way to farm something that did not exist — 「忠诚度
+      // 怎么刷呀」. It grows a season at a time now, so the line says so.
+      why: renewal
+        ? '对这支球队没有太深的归属感（归属感靠年头和荣誉慢慢长，挂牌会掉一大截）'
+        : '对现在的俱乐部感情很深',
     },
     { key: 'lock', v: noPoach ? -13 : 0, why: '不愿接受转会限制条款' },
   ]
@@ -353,6 +361,10 @@ export function doTransfer(
     state.training[p.id] = 'rest'
   }
 
+  // Attachment is to a place: a club legend bought in January arrives with
+  // nothing here yet, and someone coming home keeps a good part of what he had.
+  // Read BEFORE clubHist is extended below, or every move looks like a return.
+  if (from?.id !== toTeamId) loyaltyOnJoin(p, toTeamId)
   p.teamId = toTeamId
   // stamp the rating he arrives on, but only for our own signings — the badge
   // that reads it is about what the manager did with him
@@ -368,6 +380,9 @@ export function doTransfer(
   p.grievance = 0
   p.listed = false
   p.listedOn = undefined
+  // signing again where he already is IS the commitment; a first contract at a
+  // new club is not, and loyaltyOnJoin has just set that one
+  if (from?.id === toTeamId) shiftLoyalty(p, RENEWAL_GAIN)
   // the signing fee is paid on the day, by the buying club
   if (terms.signingBonus > 0) {
     to.budget -= terms.signingBonus
@@ -601,6 +616,7 @@ export function refreshListings(state: GameState, rng: Rng, notes?: string[]): v
       }
       if (!p.listed && canList && chance > 0 && rng.chance(chance)) {
         p.listed = true
+        loyaltyOnListed(state, p)
         p.listedOn = state.day
         if (p.overall >= bar) fresh.push(`${p.ign}（${team.tag} · ${p.overall}）`)
         continue
@@ -774,6 +790,10 @@ export function answerIncoming(state: GameState, offerId: string, accept: boolea
   }
   if (!accept) {
     o.status = 'rejected'
+    // Turning down real money for a man is the club saying what he is worth to
+    // it, and he hears that — unless he wanted the move, in which case he hears
+    // something else entirely.
+    if ((p.grievance ?? 0) <= 30 && !p.listed) shiftLoyalty(p, KEPT_GAIN)
     // turning down a move a player wanted does not go unnoticed
     if ((p.grievance ?? 0) > 30 || p.listed) {
       p.grievance = clamp((p.grievance ?? 0) + 12, 0, 100)
