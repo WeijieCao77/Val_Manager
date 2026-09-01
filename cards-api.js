@@ -32,6 +32,9 @@ create index if not exists card_seen_idx on card_accounts (seen desc);
 -- is a template literal and one would end it.)
 alter table card_accounts add column if not exists saved timestamptz;
 update card_accounts set saved = seen where saved is null;
+-- the 好友对战码 is the first eight characters of id_hash, and looking one up
+-- is otherwise a sequential scan of every account in the table
+create index if not exists card_code_idx on card_accounts (left(id_hash, 8));
 `
 
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */
