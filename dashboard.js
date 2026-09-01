@@ -40,6 +40,7 @@ export const dashboardHtml = () => `<!doctype html>
   .wx-preview img { width:200px; height:200px; object-fit:contain;
                     background:#fff; border-radius:4px; }
   .wx-toggle { display:flex; align-items:center; gap:7px; cursor:pointer; }
+  #grant input[type=text], #grant input[type=number], #grant select,
   #wechat input[type=text], #wechat input[type=file] {
     width:100%; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); border-radius:3px; padding:7px 9px; font:inherit;
@@ -121,6 +122,42 @@ export const dashboardHtml = () => `<!doctype html>
       <div class="why" style="margin-bottom:6px">预览</div>
       <img id="wxImg" alt="" style="display:none">
       <div id="wxNone" class="empty" style="padding:30px 10px">还没有二维码</div>
+    </div>
+  </div>
+</div>
+<div class="panel" id="grant" style="margin-bottom:14px">
+  <h2>给玩家发东西</h2>
+  <div class="wx-row">
+    <div class="wx-side">
+      <input type="text" id="gWho" placeholder="8 位对战码，或者完整的账号 ID">
+      <p class="why" style="margin:6px 0 10px">
+        <b>优先用对战码</b>（玩家在「好友」页能复制）。账号 ID 也认，但那串是他登录用的，
+        能不经手就不经手。
+      </p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <select id="gPack">
+          <option value="">不发卡包</option>
+          <option value="scout">试训包</option>
+          <option value="elite" selected>选拔包</option>
+          <option value="ten">十连包</option>
+          <option value="coach">教练包</option>
+          <option value="cn">中国包</option>
+          <option value="pac">太平洋包</option>
+          <option value="ame">美洲包</option>
+          <option value="emea">EMEA 包</option>
+        </select>
+        <input type="number" id="gCount" value="1" min="1" max="50" style="width:80px" title="几个">
+        <input type="number" id="gCoins" placeholder="金币（可空）" style="width:130px">
+      </div>
+      <input type="text" id="gNote" maxlength="80" placeholder="附言，玩家会看到（可空）" style="margin-top:8px">
+      <div class="row" style="margin-top:10px">
+        <button id="gSend" class="on">发放</button>
+        <span id="gMsg" class="muted" style="font-size:12px"></span>
+      </div>
+      <p class="why" style="margin-top:10px">
+        发放会进玩家的<b>信箱</b>，他下次打开卡池自动收下并看到提示。
+        不会直接改他的存档——那是他客户端的事，这条规矩是上次存档被覆盖之后定下的。
+      </p>
     </div>
   </div>
 </div>
@@ -429,6 +466,32 @@ async function load(days) {
   } catch (e) {
     $('#app').innerHTML = '<div class="panel"><div class="empty">读不到数据：' + esc(e.message) + '</div></div>'
     $('#status').textContent = ''
+  }
+}
+
+// ---- 给玩家发东西 -------------------------------------------------------
+$('#gSend').onclick = async () => {
+  const who = $('#gWho').value.trim()
+  if (!who) { $('#gMsg').textContent = '先填对战码或账号 ID'; return }
+  $('#gMsg').textContent = '发送中…'
+  try {
+    const r = await fetch('/api/admin/grant?token=' + encodeURIComponent(token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        who,
+        pack: $('#gPack').value || null,
+        count: Number($('#gCount').value) || 1,
+        coins: Number($('#gCoins').value) || 0,
+        note: $('#gNote').value || null,
+      }),
+    })
+    const j = await r.json().catch(() => null)
+    if (!j || !j.ok) throw new Error((j && j.why) || ('HTTP ' + r.status))
+    $('#gMsg').textContent = '已发给 ' + j.to + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    $('#gCoins').value = ''; $('#gNote').value = ''
+  } catch (e) {
+    $('#gMsg').textContent = '没发出去：' + e.message
   }
 }
 

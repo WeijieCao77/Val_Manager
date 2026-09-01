@@ -16,6 +16,9 @@
  */
 import { PGlite } from '@electric-sql/pglite'
 import { SITE_SCHEMA, makeSiteApi, readDataUrl } from '../site-api.js'
+import { CARD_SCHEMA, normalizeId } from '../cards-api.js'
+import { displayName } from '../names.js'
+import { createHash } from 'node:crypto'
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -27,6 +30,7 @@ const sql = Object.assign(
   { unsafe: async (q: string) => (await db.exec(q), []), json: (v: unknown) => JSON.stringify(v) },
 )
 await db.exec(SITE_SCHEMA)
+await db.exec(CARD_SCHEMA)
 
 let bad = 0
 const check = (ok: boolean, what: string, detail = '') => {
@@ -43,7 +47,9 @@ const readBody = (req: { body: string }, limit: number) =>
     resolve(req.body)
   })
 
-const api = makeSiteApi(sql, { readBody, json, token: TOKEN } as never)
+const api = makeSiteApi(sql, {
+  readBody, json, token: TOKEN, normalizeId, displayName,
+} as never)
 
 /**
  * One object plays the response.
@@ -157,6 +163,48 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
 {
   const r = await call('/api/site/nope')
   check(r.handled === false, '不认识的路径交回给服务器，不是自己回一个 200')
+}
+
+// ---- 给玩家发东西 -------------------------------------------------------
+//
+// The owner needs this for the ordinary reasons — an apology after a bug, a
+// giveaway — and it must write to the inbox rather than into the player's save.
+// His client is the only thing allowed to edit his collection; that rule came
+// out of the week somebody's evening was overwritten.
+{
+  const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
+  const P = 'VM-KNWQ-24Y1-6AH5-WF9H-CH9X'
+  await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(P)}, '收礼的',
+    ${JSON.stringify({ coins: 0, cards: {}, packs: {} })})`
+  const code = hashOf(P).slice(0, 8)
+
+  const admin = (body: unknown, token: string | undefined = TOKEN) =>
+    call('/api/admin/grant', { method: 'POST', body, token })
+
+  let r = await admin({ who: code, pack: 'elite' })
+  check(r.body.ok === true, '带 token 能给玩家发一个选拔包', JSON.stringify(r.body))
+  check(/收礼的 #/.test(String(r.body.to)), '回执写清楚发给了谁', String(r.body.to))
+
+  const mail = await sql`select kind, pack, count, coins from card_mail where to_h = ${hashOf(P)}`
+  check(mail.length === 1 && mail[0].kind === 'grant' && mail[0].pack === 'elite' && mail[0].count === 1, '信箱里躺着一个选拔包',
+    JSON.stringify(mail[0]))
+  const acct = await sql`select state from card_accounts where id_hash = ${hashOf(P)}`
+  check(JSON.stringify(acct[0].state.packs) === '{}', '没有直接改玩家的存档——那是他客户端的事', JSON.stringify(acct[0].state))
+
+  r = await admin({ who: P, coins: 5000, note: '补偿' })
+  check(r.body.ok === true, '完整账号 ID 也认', JSON.stringify(r.body))
+  r = await admin({ who: code, pack: 'nope' })
+  check(r.body.ok === false && /没有这种卡包/.test(String(r.body.why)), '不存在的卡包会被拒绝',
+    JSON.stringify(r.body))
+  r = await admin({ who: code })
+  check(r.body.ok === false, '什么都不填也会被拒绝', JSON.stringify(r.body))
+  r = await admin({ who: '00000000', pack: 'elite' })
+  check(/找不到/.test(String(r.body.why)), '找不到的账号会说清楚', JSON.stringify(r.body))
+
+  const noTok = await admin({ who: code, pack: 'ten' }, 'wrong')
+  check(noTok.code === 404, 'token 不对时这个接口是 404', `code ${noTok.code}`)
+  const n = await sql`select count(*)::int as n from card_mail where to_h = ${hashOf(P)}`
+  check(n[0].n === 2, '而且没有多发出去任何东西', String(n[0].n))
 }
 
 console.log(bad ? `\n${bad} FAILED` : '\nall good')

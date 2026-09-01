@@ -10,7 +10,8 @@
  */
 import { cardById, isPlayerCard } from './cards'
 import { rememberedId } from './cardid'
-import type { GachaState } from './gacha'
+import { PACKS } from './gacha'
+import type { GachaState, PackKind } from './gacha'
 
 const api = (p: string) => `/api/market/${p}`
 
@@ -56,6 +57,9 @@ export interface MailItem {
   cardId: string | null
   level: number
   coins: number
+  /** an unopened pack, for a grant from the owner */
+  pack: string | null
+  count: number
   body: Record<string, unknown>
   at: number
 }
@@ -138,6 +142,14 @@ export function mailLine(m: MailItem): string {
     case 'offer_made': return `${who} 对你的 ${nameOf(String(m.body?.cardId ?? ''))} 出价 ${m.body?.price}（挂 ${m.body?.ask}）`
     case 'listing_pulled': return `${nameOf(m.cardId ?? '')} 已撤回`
     case 'listing_expired': return `${nameOf(m.cardId ?? '')} 连续三次没回复报价，已自动下架并退回`
+    case 'grant': {
+      const bits = []
+      if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)
+      if (m.coins) bits.push(`${m.coins} 金币`)
+      if (m.cardId) bits.push(nameOf(m.cardId))
+      const note = String(m.body?.note ?? '')
+      return `收到官方发放：${bits.join('，')}${note ? `（${note}）` : ''}`
+    }
     default: return '有一条新消息'
   }
 }
@@ -155,6 +167,10 @@ export async function collectMail(g: GachaState): Promise<MailItem[]> {
   for (const m of r.mail) {
     if (m.coins) g.coins += m.coins
     if (m.cardId) restoreCard(g, m.cardId, m.level)
+    if (m.pack && m.pack in PACKS) {
+      const k = m.pack as PackKind
+      g.packs[k] = (g.packs[k] ?? 0) + Math.max(1, m.count)
+    }
   }
   return r.mail
 }

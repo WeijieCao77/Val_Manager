@@ -89,9 +89,10 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
   }
 
   const post = (to, kind, extra = {}) => sql`
-    insert into card_mail (to_h, kind, card_id, level, coins, body)
+    insert into card_mail (to_h, kind, card_id, level, coins, pack, count, body)
     values (${to}, ${kind}, ${extra.cardId ?? null}, ${extra.level ?? 0},
-            ${extra.coins ?? 0}, ${sql.json(extra.body ?? {})})`
+            ${extra.coins ?? 0}, ${extra.pack ?? null}, ${extra.count ?? 1},
+            ${sql.json(extra.body ?? {})})`
 
   /**
    * Settle everything the clock has decided, before anyone reads the market.
@@ -406,11 +407,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     }
     const rows = await sql`
       update card_mail set taken = now() where to_h = ${me} and taken is null
-      returning kind, card_id, level, coins, body, made`
+      returning kind, card_id, level, coins, pack, count, body, made`
     json(res, 200, {
       ok: true,
       mail: rows.map((r) => ({
         kind: r.kind, cardId: r.card_id, level: r.level, coins: r.coins,
+        pack: r.pack ?? null, count: r.count ?? 1,
         body: r.body ?? {}, at: new Date(r.made).getTime(),
       })),
     })

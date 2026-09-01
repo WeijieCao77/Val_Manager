@@ -94,11 +94,17 @@ create table if not exists card_mail (
   card_id text,
   level   int not null default 0,
   coins   int not null default 0,
+  -- an unopened pack, which is what a compensation or a giveaway usually is
+  pack    text,
+  count   int not null default 1,
   body    jsonb,
   made    timestamptz not null default now(),
   taken   timestamptz
 );
 create index if not exists mail_to_idx on card_mail (to_h) where taken is null;
+-- added after the table existed; harmless on a fresh database
+alter table card_mail add column if not exists pack text;
+alter table card_mail add column if not exists count int not null default 1;
 `
 
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */

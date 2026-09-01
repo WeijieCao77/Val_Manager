@@ -292,7 +292,9 @@ const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, js
 let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
-const siteApi = () => (_siteApi ??= makeSiteApi(sql, { readBody, json, token: TOKEN }))
+const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
+  readBody, json, token: TOKEN, normalizeId, displayName,
+}))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited,

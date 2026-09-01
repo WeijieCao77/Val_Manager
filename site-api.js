@@ -10,7 +10,14 @@
  * ephemeral: a file written by the running container is gone on the next
  * deploy, which is exactly when nobody would notice it had vanished.
  */
-import { timingSafeEqual } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
+
+/**
+ * Every pack the game has. A grant naming anything else is refused rather than
+ * written — a row holding a pack kind that does not exist would sit in
+ * somebody's inbox forever, collected and then silently dropped.
+ */
+export const PACK_KINDS = ['scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea']
 
 export const SITE_SCHEMA = `
 create table if not exists site_config (
@@ -51,7 +58,9 @@ const same = (a, b) => {
   return x.length > 0 && x.length === y.length && timingSafeEqual(x, y)
 }
 
-export function makeSiteApi(sql, { readBody, json, token }) {
+const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
+
+export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName }) {
   /** Cached in the process: the front page asks for this on every visit. */
   let cache = null
   let cachedAt = 0
@@ -132,11 +141,82 @@ export function makeSiteApi(sql, { readBody, json, token }) {
     json(res, 200, { ok: true, config: { ...value, updated: Date.now() } })
   }
 
+  /**
+   * Send a player something: a pack, some coins, or a card.
+   *
+   * The owner needs this for the ordinary reasons — an apology after a bug ate
+   * somebody's evening, a giveaway in the group — and doing it by hand in the
+   * database is both awkward and the sort of thing that goes wrong at 2am.
+   *
+   * It writes a row in card_mail rather than into the player's save, for the
+   * same reason everything else does: his client is the only thing allowed to
+   * edit his collection, and it collects the mail next time he opens the game.
+   *
+   * Addressed by 对战码 for preference. The full account id works too, because
+   * a player asking for help will usually paste that — but the id is the whole
+   * of his login, and the eight-character code is enough to find him.
+   */
+  async function grant(req, res) {
+    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 8192)) } catch { json(res, 400, { ok: false }); return }
+
+    const who = String(body?.who ?? '').trim()
+    const bare = who.toUpperCase().replace(/[^0-9A-Z]/g, '')
+    let target = null
+    if (/^[0-9A-Fa-f]{8}$/.test(who)) {
+      const r = await sql`
+        select id_hash, name from card_accounts where left(id_hash, 8) = ${who.toLowerCase()} limit 2`
+      if (r.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
+      target = r[0] ?? null
+    } else if (bare.length >= 20) {
+      const id = normalizeId(who)
+      if (!id) { json(res, 200, { ok: false, why: '账号 ID 格式不对' }); return }
+      const r = await sql`select id_hash, name from card_accounts where id_hash = ${hash(id)}`
+      target = r[0] ?? null
+    } else {
+      json(res, 200, { ok: false, why: '填 8 位对战码，或者完整的账号 ID' })
+      return
+    }
+    if (!target) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
+
+    const pack = body?.pack ? String(body.pack) : null
+    const count = Math.max(1, Math.min(50, Math.round(Number(body?.count) || 1)))
+    const coins = Math.max(0, Math.min(1_000_000, Math.round(Number(body?.coins) || 0)))
+    const cardId = body?.cardId ? String(body.cardId).slice(0, 40) : null
+    const note = typeof body?.note === 'string' ? body.note.slice(0, 80) : null
+    if (pack && !PACK_KINDS.includes(pack)) {
+      json(res, 200, { ok: false, why: `没有这种卡包（${PACK_KINDS.join(' / ')}）` })
+      return
+    }
+    if (!pack && !coins && !cardId) { json(res, 200, { ok: false, why: '什么都没填' }); return }
+
+    await sql`
+      insert into card_mail (to_h, kind, card_id, coins, pack, count, body)
+      values (${target.id_hash}, 'grant', ${cardId}, ${coins}, ${pack}, ${count},
+              ${sql.json({ note })})`
+    const shown = displayName(target.name, target.id_hash)
+    json(res, 200, {
+      ok: true,
+      to: `${shown.name} #${shown.tag}`,
+      sent: { pack, count: pack ? count : undefined, coins: coins || undefined, cardId },
+    })
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, url) {
       if (path === '/api/site/wechat') { await status(res); return true }
       if (path === '/api/site/wechat.img') { await image(res); return true }
+      if (path === '/api/admin/grant') {
+        if (!same(url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'POST') { json(res, 405, { ok: false }); return true }
+        await grant(req, res)
+        return true
+      }
       if (path === '/api/admin/wechat') {
         // 404 rather than 401, like every other admin route here: an endpoint
         // that admits it exists is an endpoint somebody comes back to
