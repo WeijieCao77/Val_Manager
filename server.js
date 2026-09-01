@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
 import { CARD_SCHEMA, makeCardApi } from './cards-api.js'
 import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
+import { SITE_SCHEMA, makeSiteApi } from './site-api.js'
 import { overview, prune, storage } from './stats.js'
 import { dashboardHtml } from './dashboard.js'
 
@@ -81,6 +82,7 @@ if (process.env.DATABASE_URL) {
     await sql.unsafe(SCHEMA)
     await sql.unsafe(CARD_SCHEMA)
     await sql.unsafe(PROFILE_SCHEMA)
+    await sql.unsafe(SITE_SCHEMA)
     console.log('analytics: connected, schema ready')
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
@@ -288,6 +290,8 @@ const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, js
 let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
+const siteApi = () => (_siteApi ??= makeSiteApi(sql, { readBody, json, token: TOKEN }))
+let _siteApi = null
 
 /** Which formats are worth compressing — the rest are already compressed. */
 const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
@@ -379,6 +383,15 @@ createServer((req, res) => {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
       console.warn('profile: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
+    return
+  }
+  if (path === '/api/site/' || path.startsWith('/api/site/') || path === '/api/admin/wechat') {
+    void siteApi().route(req, res, path, url).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('site: route failed', err.message)
       if (!res.headersSent) json(res, 500, { ok: false })
     })
     return

@@ -1735,6 +1735,14 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* Third in the stack, above 更新日志. Only the card mode mounts it — the
    career mode has no packs and no rates to publish. */
 .odds-fab { bottom: 108px; }
+/* Third in the front page's stack, above 更新日志. Not mounted anywhere else:
+   the two games have their own corners already, and a fourth button in them
+   would be furniture. */
+.wechat-fab { bottom: 108px; }
+.wechat-qr {
+  display: block; width: 100%; max-width: 300px; margin: 2px auto;
+  border-radius: 6px; background: #fff;
+}
 .odds-card { width: min(600px, calc(100vw - 32px)); }
 .odds-card .odds-pack { margin-top: 0; }
 .log-list { display: flex; flex-direction: column; gap: 16px; }
@@ -1760,6 +1768,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .log-fab { bottom: 58px; }
   .log-fab.raised { bottom: 100px; }
   .odds-fab { bottom: 106px; }
+  .wechat-fab { bottom: 106px; }
 }
 
 /* ---------------------------------------------------------------- account

@@ -22,6 +22,7 @@ import { maskId } from '../engine/cardid'
 import Support from './Support'
 import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
+import WeChat from './WeChat'
 
 /**
  * The account panel is loaded when it is opened, not when the page is.
@@ -248,6 +249,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           />
         </Suspense>
       )}
+      <WeChat />
       <Changelog />
       <Support />
     </div>

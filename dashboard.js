@@ -34,6 +34,16 @@ export const dashboardHtml = () => `<!doctype html>
   .grid { display:grid; gap:12px; align-items:start;
           grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:13px; }
+  .wx-row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .wx-side { flex:1 1 300px; min-width:260px; }
+  .wx-preview { flex:0 0 200px; text-align:center; }
+  .wx-preview img { width:200px; height:200px; object-fit:contain;
+                    background:#fff; border-radius:4px; }
+  .wx-toggle { display:flex; align-items:center; gap:7px; cursor:pointer; }
+  #wechat input[type=text], #wechat input[type=file] {
+    width:100%; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); border-radius:3px; padding:7px 9px; font:inherit;
+  }
   .panel h2 {
     font-size:11px; letter-spacing:.14em; text-transform:uppercase;
     color:var(--muted); margin:0 0 10px; font-weight:700;
@@ -83,6 +93,36 @@ export const dashboardHtml = () => `<!doctype html>
   <button data-d="30" class="on">30 天</button>
   <button data-d="90">90 天</button>
   <span id="status" class="muted" style="font-size:12px;margin-left:auto"></span>
+</div>
+<div class="panel" id="wechat" style="margin-bottom:14px">
+  <h2>微信群二维码 · 首页那个浮窗</h2>
+  <div class="wx-row">
+    <div class="wx-side">
+      <label class="wx-toggle">
+        <input type="checkbox" id="wxOn"> <span>在首页显示「微信群」按钮</span>
+      </label>
+      <p class="why" style="margin:6px 0 10px">
+        关掉之后首页就没有这个按钮了。没传二维码时也不会显示——
+        与其给一个打不开的空框，不如干脆没有。
+      </p>
+      <input type="file" id="wxFile" accept="image/png,image/jpeg,image/webp">
+      <p class="why" style="margin:6px 0 10px">
+        微信群二维码<b>七天过期</b>，过期了在这里换一张就行，不用重新部署。
+        PNG / JPG / WebP，不超过 600KB。
+      </p>
+      <input type="text" id="wxNote" maxlength="60" placeholder="二维码下面那行小字（可留空）">
+      <div class="row" style="margin-top:10px">
+        <button id="wxSave" class="on">保存</button>
+        <button id="wxDrop">删掉二维码</button>
+        <span id="wxMsg" class="muted" style="font-size:12px"></span>
+      </div>
+    </div>
+    <div class="wx-preview">
+      <div class="why" style="margin-bottom:6px">预览</div>
+      <img id="wxImg" alt="" style="display:none">
+      <div id="wxNone" class="empty" style="padding:30px 10px">还没有二维码</div>
+    </div>
+  </div>
 </div>
 <div id="app"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
@@ -391,6 +431,68 @@ async function load(days) {
     $('#status').textContent = ''
   }
 }
+
+// ---- 微信群二维码 -------------------------------------------------------
+//
+// Everything here is one row in site_config. The image travels as a data URL
+// because this server has no multipart parser, and adding one for a single
+// upload would be more code than the whole feature.
+const wx = { on: false, img: null, note: null }
+
+function wxDraw() {
+  $('#wxOn').checked = !!wx.on
+  $('#wxNote').value = wx.note || ''
+  const img = $('#wxImg')
+  if (wx.img) { img.src = wx.img; img.style.display = ''; $('#wxNone').style.display = 'none' }
+  else { img.removeAttribute('src'); img.style.display = 'none'; $('#wxNone').style.display = '' }
+}
+
+async function wxLoad() {
+  try {
+    const r = await fetch('/api/admin/wechat?token=' + encodeURIComponent(token))
+    if (!r.ok) throw new Error('HTTP ' + r.status)
+    const j = await r.json()
+    Object.assign(wx, j.config || {})
+    wxDraw()
+  } catch (e) {
+    $('#wxMsg').textContent = '读不到设置：' + e.message
+  }
+}
+
+async function wxSave(body) {
+  $('#wxMsg').textContent = '保存中…'
+  try {
+    const r = await fetch('/api/admin/wechat?token=' + encodeURIComponent(token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const j = await r.json().catch(() => null)
+    if (!r.ok || !j || !j.ok) throw new Error((j && j.why) || ('HTTP ' + r.status))
+    Object.assign(wx, j.config || {})
+    wxDraw()
+    $('#wxMsg').textContent = '已保存 · ' + new Date().toLocaleTimeString('zh-CN')
+  } catch (e) {
+    $('#wxMsg').textContent = '没保存成功：' + e.message
+  }
+}
+
+$('#wxFile').onchange = () => {
+  const f = $('#wxFile').files && $('#wxFile').files[0]
+  if (!f) return
+  if (f.size > 600 * 1024) { $('#wxMsg').textContent = '这张图 ' + Math.round(f.size / 1024) + 'KB，超过 600KB 了'; return }
+  const fr = new FileReader()
+  fr.onload = () => {
+    // shown before it is saved, so a wrong file is obvious without a round trip
+    wx.img = String(fr.result)
+    wxDraw()
+    $('#wxMsg').textContent = '预览中，点「保存」才会生效'
+  }
+  fr.readAsDataURL(f)
+}
+$('#wxSave').onclick = () => wxSave({ on: $('#wxOn').checked, note: $('#wxNote').value, img: wx.img })
+$('#wxDrop').onclick = () => { if (confirm('删掉二维码？首页的按钮会一起消失。')) wxSave({ img: null }) }
+wxLoad()
 
 document.querySelectorAll('button[data-d]').forEach((b) => {
   b.onclick = () => {
