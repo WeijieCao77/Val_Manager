@@ -165,6 +165,30 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   check(r.handled === false, '不认识的路径交回给服务器，不是自己回一个 200')
 }
 
+// ---- every admin route this module owns has to be reachable ------------
+//
+// /api/admin/grant shipped unreachable once: the route existed, the module
+// handled it, and server.js forwarded only the ONE admin path it knew about by
+// name — so it fell through to the static handler and answered 200 with
+// index.html, which reads exactly like an ungated endpoint until you look at
+// the body. The dispatcher forwards the whole /api/admin/ prefix now, and this
+// is the assertion that says so.
+{
+  const { readFileSync } = await import('node:fs')
+  const server = readFileSync(new URL('../server.js', import.meta.url), 'utf8')
+  const forwards = /path\.startsWith\('\/api\/admin\/'\)/.test(server)
+  check(forwards, 'server.js 把整个 /api/admin/ 前缀转给这个模块，而不是逐个点名')
+
+  const src = readFileSync(new URL('../site-api.js', import.meta.url), 'utf8')
+  const owned = [...src.matchAll(/path === '(\/api\/admin\/[a-z]+)'/g)].map((m) => m[1])
+  check(owned.length >= 2, '这个模块确实有多个 admin 路由', owned.join(' '))
+  for (const p of owned) {
+    const r = await call(p, { method: 'POST', body: {} })
+    check(r.handled === true && r.code === 404,
+      `${p} 没 token 时是 404，而且确实被这个模块接住了`, `handled=${r.handled} code=${r.code}`)
+  }
+}
+
 // ---- 给玩家发东西 -------------------------------------------------------
 //
 // The owner needs this for the ordinary reasons — an apology after a bug, a

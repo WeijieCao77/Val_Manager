@@ -406,7 +406,12 @@ createServer((req, res) => {
     })
     return
   }
-  if (path === '/api/site/' || path.startsWith('/api/site/') || path === '/api/admin/wechat') {
+  // Every admin route the site module owns, not a list of one. Naming them
+  // individually is how /api/admin/grant shipped unreachable: the route existed,
+  // the module handled it, and the dispatcher above never sent it there — so it
+  // fell through to the static handler and answered 200 with index.html, which
+  // reads exactly like an ungated endpoint until you look at the body.
+  if (path === '/api/site/' || path.startsWith('/api/site/') || path.startsWith('/api/admin/')) {
     void siteApi().route(req, res, path, url).then((handled) => {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
