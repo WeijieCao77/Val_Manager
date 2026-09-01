@@ -610,24 +610,6 @@ export function clearPreset(g: GachaState, slot: number): void {
   g.presets = list.some(Boolean) ? list : undefined
 }
 
-/**
- * Hand a spare copy away.
- *
- * Only ever a duplicate. The collection's card count is a term in the server's
- * 「progress never goes backwards」 check, so parting with your last copy of
- * something would make the next save look like a rollback and be refused —
- * and beyond that, a collection that can shrink is a collection somebody can
- * be talked out of.
- */
-export function giveCard(g: GachaState, cardId: string): boolean {
-  const owned = g.cards[cardId]
-  if (!owned || owned.dupes < 1) return false
-  owned.dupes -= 1
-  const card = cardById(cardId)
-  note(g, `把一张${card && isPlayerCard(card) ? card.ign : '卡'}送了出去`)
-  return true
-}
-
 /** Take a card somebody sent. A card you already have arrives as a spare. */
 export function receiveCard(g: GachaState, cardId: string, from: string): boolean {
   const card = cardById(cardId)

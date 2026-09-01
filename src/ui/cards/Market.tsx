@@ -15,7 +15,8 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  answerOffer, bidOn, browseMarket, escrowCard, listCardOnMarket, myOffers, unlistCard,
+  answerOffer, askFloorOf, bidOn, browseMarket, escrowCard, listCardOnMarket,
+  myOffers, unlistCard,
 } from '../../engine/market'
 import type { Listing, Offer } from '../../engine/market'
 
@@ -60,13 +61,14 @@ export default function Market() {
     setBusy(true)
     // taken off this side only after the server has the listing, so a failed
     // request can never eat the card
-    const r = await listCardOnMarket(sellCard, price, level(sellCard))
+    const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity)
     setBusy(false)
     if (!r?.ok) {
       toast(r?.notOwned ? '服务器上还没看到这张卡，稍等一下再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? '挂牌数量到上限了，先撤一个。'
-            : r?.bad ? '价格超出范围（50 ~ 500,000）。' : '挂不上去，等会儿再试。')
+            : r?.bad ? `价格要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间（最低不能低于分解价）。`
+              : '挂不上去，等会儿再试。')
       return
     }
     escrowCard(g, sellCard)
@@ -145,7 +147,7 @@ export default function Market() {
           <input
             style={{ flex: '1 1 110px' }}
             type="number"
-            placeholder="标价"
+            placeholder={sellCard ? `最低 ${askFloorOf(cardById(sellCard)?.rarity ?? '')}` : '标价'}
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
           />

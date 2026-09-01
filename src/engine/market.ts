@@ -68,8 +68,17 @@ export const myOffers = () =>
 
 export const countMail = () => post<{ ok: boolean; waiting: number }>('mail', {})
 
-export const listCardOnMarket = (cardId: string, ask: number, level: number) =>
-  post<Record<string, unknown>>('list', { cardId, ask, level })
+/**
+ * `rarity` travels with the listing so the server can floor the price at what
+ * the game itself would pay for the card — nobody sane sells below salvage, so
+ * the floor costs a real seller nothing and closes the alt-account funnel.
+ */
+export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string) =>
+  post<Record<string, unknown>>('list', { cardId, ask, level, rarity })
+
+/** The least a card may be listed for — SALVAGE, mirrored from the server. */
+export const askFloorOf = (rarity: string): number =>
+  ({ mythic: 4000, gold: 700, silver: 200, bronze: 60 } as Record<string, number>)[rarity] ?? 50
 
 export const unlistCard = (listing: string) => post<Record<string, unknown>>('unlist', { listing })
 export const bidOn = (listing: string, price: number) =>

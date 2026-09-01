@@ -578,58 +578,17 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   }
 
   /**
-   * Hand a spare copy to a friend.
+   * Gifting is gone. Claiming is not.
    *
-   * Spares only, and that is not a limitation dressed up as a rule — it is
-   * what makes the feature safe. A collection's card count is one of the terms
-   * in progressOf(), so giving away your only copy of something would make
-   * your next save look like a rollback and be refused. Moving a DUPLICATE
-   * leaves the count untouched, so nothing downstream has to know this
-   * happened.
+   * A free card transfer with no cost at all is an alt-account funnel: make
+   * throwaway accounts, take the starter packs and the daily check-ins, and
+   * hand everything to the one you actually play. Removed at the owner's call.
    *
-   * The gift is a row, not a write into the receiver's save. His client is the
-   * only thing allowed to edit his collection — anything else is two writers
-   * on one save, which is the bug that ate somebody's evening last week.
+   * The claim path below stays, deliberately and indefinitely. There may be
+   * gifts already sent and not yet collected at the moment this ships, and
+   * deleting the door they arrive through would quietly eat somebody's card.
+   * The table drains on its own.
    */
-  async function gift(req, res, bucket) {
-    if (guard(req, res, `cg:${bucket}`, 30)) return
-    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    let body
-    try { body = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
-    const id = normalizeId(body?.id)
-    if (!id) { json(res, 400, { ok: false, bad: true }); return }
-    const code = String(body?.code ?? '').toLowerCase().replace(/[^0-9a-f]/g, '')
-    const cardId = String(body?.cardId ?? '').slice(0, 40)
-    const note = typeof body?.note === 'string' ? body.note.slice(0, 60) : null
-    if (code.length !== CODE_LEN || !cardId) { json(res, 200, { ok: false, bad: true }); return }
-    const from = hash(id)
-    if (from.slice(0, CODE_LEN) === code) { json(res, 200, { ok: false, self: true }); return }
-    try {
-      const to = await sql`
-        select id_hash, name, state->'cards' as cards from card_accounts
-        where left(id_hash, ${CODE_LEN}) = ${code} limit 2`
-      if (!to.length) { json(res, 200, { ok: false, missing: true }); return }
-      if (to.length > 1) { json(res, 200, { ok: false, clash: true }); return }
-      // The sender must actually hold a spare, checked against the save the
-      // server has rather than against what his client claims.
-      const mine = await sql`select state->'cards' as cards from card_accounts where id_hash = ${from}`
-      const owned = mine[0]?.cards?.[cardId]
-      if (!owned) { json(res, 200, { ok: false, notOwned: true }); return }
-      if (!(Number(owned.dupes) > 0)) { json(res, 200, { ok: false, noSpare: true }); return }
-      // one person cannot flood another
-      const pending = await sql`
-        select count(*)::int as n from card_gifts where to_h = ${to[0].id_hash} and claimed is null`
-      if ((pending[0]?.n ?? 0) >= 20) { json(res, 200, { ok: false, full: true }); return }
-      await sql`
-        insert into card_gifts (from_h, to_h, card_id, note)
-        values (${from}, ${to[0].id_hash}, ${cardId}, ${note})`
-      const who = displayName(to[0].name, to[0].id_hash)
-      json(res, 200, { ok: true, to: `${who.name} #${who.tag}` })
-    } catch (err) {
-      console.warn('cards: gift failed', err.message)
-      json(res, 500, { ok: false })
-    }
-  }
 
   /** What is waiting for me, and marking it taken. */
   async function gifts(req, res, bucket) {
@@ -680,7 +639,6 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
-      if (path === '/api/card/gift') { await gift(req, res, bucket); return true }
       if (path === '/api/card/gifts') { await gifts(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })

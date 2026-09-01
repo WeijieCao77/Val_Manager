@@ -17,7 +17,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
 import { CARD_SCHEMA, normalizeId } from '../cards-api.js'
 import { displayName } from '../names.js'
-import { HAGGLE, IGNORE_LIMIT, OFFER_DAYS, makeMarketApi } from '../market-api.js'
+import { HAGGLE, IGNORE_LIMIT, OFFER_DAYS, SALVAGE_FLOOR, askFloor, makeMarketApi } from '../market-api.js'
+import { SALVAGE } from '../src/engine/cards'
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -210,6 +211,31 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   const l5 = String((await call('/api/market/list', { id: S5, cardId: 'p:P5', ask: 100000 })).id)
   const poor = await call('/api/market/offer', { id: BUYER, listing: l5, price: 100000 })
   check('金币不够就出不了价', poor.broke === true, JSON.stringify(poor))
+}
+
+// ---- 挂牌价不能低于分解价 ------------------------------------------------
+//
+// A flat floor made the market a better alt-account funnel than the gifting it
+// replaced: list for 50, buy it from your own throwaway account, done. The
+// floor is what the game itself would pay, so it costs a real seller nothing —
+// below salvage you would simply salvage it and take the same coins now.
+{
+  check('服务器的分解价表和游戏里的一致',
+    JSON.stringify(SALVAGE_FLOOR) === JSON.stringify(SALVAGE),
+    `${JSON.stringify(SALVAGE_FLOOR)} vs ${JSON.stringify(SALVAGE)}`)
+  await account('VM-HHHH-HHHH-HHHH-HHHH-HHHH', '小号', 0, {
+    'p:M1': { id: 'p:M1', dupes: 0 }, 'p:M2': { id: 'p:M2', dupes: 0 },
+  })
+  const ALT = 'VM-HHHH-HHHH-HHHH-HHHH-HHHH'
+  let x = await call('/api/market/list', { id: ALT, cardId: 'p:M1', ask: 50, rarity: 'mythic' })
+  check('彩卡不能挂 50 金币甩给大号', x.bad === true && x.min === SALVAGE.mythic,
+    JSON.stringify(x))
+  x = await call('/api/market/list', { id: ALT, cardId: 'p:M1', ask: SALVAGE.mythic, rarity: 'mythic' })
+  check('挂到分解价就可以', x.ok === true, JSON.stringify(x))
+  x = await call('/api/market/list', { id: ALT, cardId: 'p:M2', ask: 60, rarity: 'bronze' })
+  check('铜卡的下限低得多，正常出货不受影响', x.ok === true, JSON.stringify(x))
+  check('下限就是分解价', askFloor('gold') === SALVAGE.gold && askFloor('silver') === SALVAGE.silver,
+    `${askFloor('gold')} / ${askFloor('silver')}`)
 }
 
 // ---- 每一笔托管最后都有人收到 -------------------------------------------

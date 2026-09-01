@@ -31,8 +31,29 @@ export const OFFER_DAYS = 3
 export const IGNORE_LIMIT = 3
 /** Nobody needs more than this on the shelf at once. */
 export const MAX_LISTINGS = 8
-export const MIN_ASK = 50
 export const MAX_ASK = 500_000
+
+/**
+ * The least a card may be listed for: what the game itself would pay you.
+ *
+ * A flat floor of 50 made the market a better alt-account funnel than the
+ * gifting it replaced — list a card for 50, buy it from your own throwaway
+ * account, done. Anchoring the floor to SALVAGE closes that without costing a
+ * real seller anything, because nobody sane sells below salvage: you would
+ * simply salvage it and take the same coins with no waiting.
+ *
+ * The rarity is declared by the client, and that is worth stating rather than
+ * dressing up: the server has no card table to check it against. What the floor
+ * stops is the ordinary funnel — somebody making throwaway accounts with the
+ * real game and moving cards out of them — which is the thing that was actually
+ * happening. Someone editing the request to under-declare a rarity is already
+ * someone who can fabricate the card outright, which the module header says is
+ * possible and is not made worse by this.
+ */
+export const SALVAGE_FLOOR = { mythic: 4000, gold: 700, silver: 200, bronze: 60 }
+export const MIN_ASK = 50
+
+export const askFloor = (rarity) => Math.max(MIN_ASK, SALVAGE_FLOOR[rarity] ?? MIN_ASK)
 
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
@@ -134,8 +155,10 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const cardId = String(b?.cardId ?? '').slice(0, 40)
     const ask = Math.round(Number(b?.ask))
     const level = Math.max(0, Math.min(20, Math.round(Number(b?.level) || 0)))
-    if (!cardId || !Number.isFinite(ask) || ask < MIN_ASK || ask > MAX_ASK) {
-      json(res, 200, { ok: false, bad: true, min: MIN_ASK, max: MAX_ASK })
+    const rarity = String(b?.rarity ?? '')
+    const floor = askFloor(rarity)
+    if (!cardId || !Number.isFinite(ask) || ask < floor || ask > MAX_ASK) {
+      json(res, 200, { ok: false, bad: true, min: floor, max: MAX_ASK })
       return
     }
     const open = await sql`

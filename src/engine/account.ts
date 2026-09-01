@@ -311,31 +311,10 @@ export async function fetchFriend(
   }
 }
 
-export type GiftMiss = 'bad' | 'missing' | 'clash' | 'self' | 'notOwned' | 'noSpare' | 'full' | 'offline'
-
-/** Hand a spare copy to a friend. Spares only — see the note on the endpoint. */
-export async function sendGift(
-  code: string, cardId: string, note?: string,
-): Promise<{ ok: true; to: string } | { ok: false; why: GiftMiss }> {
-  const clean = code.trim().toLowerCase().replace(/[^0-9a-f]/g, '')
-  if (clean.length !== 8) return { ok: false, why: 'bad' }
-  try {
-    const r = await fetch(api('gift'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: rememberedId(), code: clean, cardId, note }),
-    })
-    const j = await r.json() as Record<string, unknown>
-    if (j.ok) return { ok: true, to: String(j.to ?? '') }
-    for (const k of ['bad', 'missing', 'clash', 'self', 'notOwned', 'noSpare', 'full'] as const) {
-      if (j[k]) return { ok: false, why: k }
-    }
-    return { ok: false, why: 'offline' }
-  } catch {
-    return { ok: false, why: 'offline' }
-  }
-}
-
+/**
+ * Gifting was removed — see the note in cards-api.js. Collecting what was
+ * already sent is not: a card in flight when that shipped still has to arrive.
+ */
 export interface Gift { cardId: string; from: string; note: string | null }
 
 /**
