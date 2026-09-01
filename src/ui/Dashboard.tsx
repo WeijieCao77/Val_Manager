@@ -130,6 +130,14 @@ export default function Dashboard() {
   const table = myComp ? sortStandings(myComp) : []
   const myRank = table.indexOf(game.myTeam)
 
+  // Where this squad's strength sits among the clubs it actually plays. Read
+  // off the same field the engine reads, so the two can never disagree.
+  const myTeam = game.teams[game.myTeam]
+  const leagueRatings = Object.values(game.teams)
+    .filter((t) => t.region === myTeam?.region && t.tier === myTeam?.tier)
+    .sort((a, b) => b.rating - a.rating)
+  const ratingRank = leagueRatings.findIndex((t) => t.id === game.myTeam)
+
   const recentNews = game.news.slice(-9).reverse()
   const injured = squad.filter((p) => p.injuredUntil > game.day)
   const bill = wageBill(game, game.myTeam)
@@ -215,6 +223,23 @@ export default function Dashboard() {
 
       <div className="grid c4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         <Panel><Stat k="联赛排名" v={myRank >= 0 ? `${myRank + 1} / ${table.length}` : '—'} /></Panel>
+        {/* The one number the manager is judged on and could not see anywhere.
+            It is not a stored figure: a club's rating IS the mean of its best
+            five, so it moves the moment you sign, sell or train somebody. The
+            line underneath says where that sits in the league, because 78 on
+            its own means nothing without the twelve clubs around it. */}
+        <Panel>
+          <Stat k="战队综合评分" v={`${Math.round(myTeam?.rating ?? 0)}`} />
+          <div className="tiny" style={{ marginTop: 2 }}>
+            {ratingRank >= 0 ? (
+              <span className={ratingRank < 4 ? 'pos'
+                : ratingRank >= leagueRatings.length - 3 ? 'neg' : 'faint'}>
+                赛区第 {ratingRank + 1} / {leagueRatings.length} 强
+              </span>
+            ) : <span className="faint">阵容强度</span>}
+            <span className="faint"> · 首发五人的平均能力</span>
+          </div>
+        </Panel>
         <Panel><Stat k="资金" v={money(game.finances.balance)} /></Panel>
         <Panel><Stat k="赛季薪资" v={money(bill)} /></Panel>
         <Panel>
