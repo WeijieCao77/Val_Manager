@@ -92,8 +92,29 @@ export function buildArena(
   squad: ArenaSquad, level: (cardId: string) => number, seed: number,
 ): Arena {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
-  const chem = chemistry(squad)
   const cardOf: Record<string, string> = {}
+  seatSquad(state, squad, level, ARENA_TEAM, 'A', cardOf)
+  state.myTeam = ARENA_TEAM
+  return { state, cardOf }
+}
+
+/** The other side of a player-versus-player tie. */
+export const ARENA_RIVAL = 'ARENAB'
+
+/**
+ * Put a squad on the board as a club.
+ *
+ * Pulled out of buildArena so a second one can be seated beside the first.
+ * The player ids it writes are synthetic and prefixed — A0…A4 for one side,
+ * B0…B4 for the other — which is what lets the SAME professional appear on
+ * both sides of a tie: two people can own the same card, and a shared Player
+ * object would have had t3xture fragging himself.
+ */
+function seatSquad(
+  state: GameState, squad: ArenaSquad, level: (cardId: string) => number,
+  teamId: string, prefix: string, cardOf: Record<string, string>,
+): void {
+  const chem = chemistry(squad)
   const roster: string[] = []
   // The squad builder will not let you seat a man twice, but a save written
   // before that rule — or edited by hand — can still hold the ordinary Derke
@@ -109,7 +130,7 @@ export function buildArena(
     seated.add(personOf(card))
     const src = state.players[card.playerId]
     if (!src) return
-    const id = `A${i}`
+    const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
     const clone = levelled(src, card, level(cardId), misfit)
     // Chemistry lands in two places, and it has to land hard.
@@ -128,7 +149,7 @@ export function buildArena(
       communication: clamp(clone.attrs.communication + lift, 1, 99),
     }
     clone.overall = clamp(Math.round(clone.overall + (chem.score - 50) * CHEM_RATING), 1, 99)
-    state.players[id] = { ...clone, id, teamId: ARENA_TEAM }
+    state.players[id] = { ...clone, id, teamId }
     cardOf[id] = cardId
     roster.push(id)
   })
@@ -137,8 +158,8 @@ export function buildArena(
   const mapPrefs: Record<string, number> = {}
   for (const m of Object.keys(state.teams[WORLD_TEAMS[0].id].mapPrefs)) mapPrefs[m] = 50
 
-  state.teams[ARENA_TEAM] = {
-    id: ARENA_TEAM,
+  state.teams[teamId] = {
+    id: teamId,
     name: squad.name ?? '我的卡组',
     tag: squad.tag ?? 'MINE',
     region: 'Americas',
@@ -164,7 +185,6 @@ export function buildArena(
     seasonPrize: 0,
     champPoints: 0,
   }
-  state.myTeam = ARENA_TEAM
 
   // The bonds table is what squadHarmony averages. Seeding it from chemistry
   // is what makes a same-club five feel like a team that has practised
@@ -178,8 +198,6 @@ export function buildArena(
       state.bonds[a < b ? `${a}|${b}` : `${b}|${a}`] = clamp(bond, -60, 70)
     }
   }
-
-  return { state, cardOf }
 }
 
 export interface ArenaResult {
@@ -220,6 +238,18 @@ export function playArenaMatch(
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
 
+  return { ...readResult(result, cardOf), result }
+}
+
+/**
+ * The scoreboard, from the engine's per-player lines back to cards.
+ *
+ * Only MY side's players are in `cardOf`, so the rival's rows fall out on
+ * their own — the report screen is about the five you picked.
+ */
+function readResult(
+  result: MatchResult, cardOf: Record<string, string>,
+): Omit<ArenaResult, 'result'> {
   const totals: Record<string, { kills: number; deaths: number; assists: number; acs: number; maps: number }> = {}
   for (const m of result.maps) {
     for (const [pid, l] of Object.entries(m.lines)) {
@@ -241,10 +271,62 @@ export function playArenaMatch(
     win: result.mapsWonA > result.mapsWonB,
     mapsWon: result.mapsWonA,
     mapsLost: result.mapsWonB,
-    result,
     lines,
     mvpCard: result.mvp ? cardOf[result.mvp] ?? null : null,
   }
+}
+
+/**
+ * A real player's five, as the ladder puts it in front of you.
+ *
+ * Everything needed to rebuild their side and nothing that identifies them:
+ * card ids, which every client can resolve on its own, and the upgrade level
+ * each of those cards is at. No account id, no state, no way back to a
+ * password.
+ */
+export interface RivalSquad {
+  name: string
+  tag: string
+  slots: (string | null)[]
+  coach: string | null
+  /** upgrade level per card id, absent meaning zero */
+  levels: Record<string, number>
+  div: number
+  points: number
+}
+
+/**
+ * Two squads, one tie.
+ *
+ * The 78 real clubs stop at 89, so a ladder with no ceiling runs out of
+ * opposition in about a week — and sharpening the world's clubs to cover for
+ * it was always a stopgap. Other people's saved fives do not run out and do
+ * not need inventing: they are already on the server, they get better as the
+ * people who own them get better, and beating one is worth more than beating
+ * a club that was handed +7 to every attribute.
+ *
+ * Asynchronous by design. Nothing is live, nobody has to be online, and the
+ * result is a simulation of a snapshot — the same engine that plays every
+ * other match in this game.
+ */
+export function playRivalMatch(
+  mine: ArenaSquad, level: (cardId: string) => number,
+  rival: RivalSquad, bo: 1 | 3 | 5, seed: number,
+): ArenaResult {
+  const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
+  const cardOf: Record<string, string> = {}
+  seatSquad(state, mine, level, ARENA_TEAM, 'A', cardOf)
+  seatSquad(
+    state,
+    { slots: rival.slots, coach: rival.coach, name: rival.name, tag: rival.tag },
+    (id) => rival.levels[id] ?? 0,
+    ARENA_RIVAL, 'B', {},
+  )
+  state.myTeam = ARENA_TEAM
+
+  const rng = new Rng(seed ^ 0x5b1d)
+  const result = simulateMatch(state, ARENA_TEAM, ARENA_RIVAL, bo, rng)
+  return { ...readResult(result, cardOf), result }
 }
 
 /** The roles a squad is still missing, for the builder's nudge line. */

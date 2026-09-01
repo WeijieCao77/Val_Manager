@@ -324,10 +324,88 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }
   }
 
+  /**
+   * Other people's fives, to play against.
+   *
+   * The world's 78 clubs stop at 89, so a ladder with no ceiling runs out of
+   * opposition in about a week — and sharpening those clubs to cover for it
+   * was always a stopgap. Real squads do not run out: they are already here,
+   * they get better as their owners do, and beating one means something.
+   *
+   * Nothing live and nobody has to be online. What goes out is the five card
+   * ids, the upgrade level of each, a display name and where they sit on the
+   * ladder. No account id, no state, no way back to anybody's password — and
+   * the name goes through the same filter the leaderboard uses, since it lands
+   * on somebody else's screen either way.
+   *
+   * Picked from the division asked for, widening outward when that division is
+   * thin, so a 大师 player is not handed a 青铜 five just because there are
+   * more of them.
+   */
+  async function rivals(req, res, bucket) {
+    if (guard(req, res, `cr:${bucket}`, 60)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let div = 5
+    let mine = ''
+    try {
+      const body = JSON.parse(await readBody(req, 4096))
+      const n = Number(body?.div)
+      if (Number.isFinite(n)) div = Math.max(0, Math.min(5, Math.trunc(n)))
+      const id = normalizeId(body?.id)
+      if (id) mine = hash(id)
+    } catch { /* defaults are fine */ }
+    try {
+      const rows = await sql`
+        with pool as (
+          select
+            id_hash, name, state->'squad' as squad, state->'cards' as cards,
+            case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
+                 then (state->'ladder'->>'div')::int else 0 end as div,
+            case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
+                 then (state->'ladder'->>'points')::int else 0 end as points
+          from card_accounts
+          where jsonb_typeof(state->'squad'->'slots') = 'array'
+            and jsonb_array_length(state->'squad'->'slots') = 5
+            -- a five with an empty seat is not an opponent
+            and (select count(*) from jsonb_array_elements(state->'squad'->'slots') e
+                 where jsonb_typeof(e) = 'string') = 5
+            and id_hash <> ${mine}
+        )
+        select id_hash, name, squad, cards, div, points
+        from pool
+        order by abs(div - ${div}), random()
+        limit 12`
+      json(res, 200, {
+        ok: true,
+        rivals: rows.map((r) => {
+          const slots = Array.isArray(r.squad?.slots) ? r.squad.slots.slice(0, 5) : []
+          const levels = {}
+          for (const id of slots) {
+            const lv = r.cards?.[id]?.lv
+            if (typeof lv === 'number' && lv > 0) levels[id] = Math.min(20, Math.trunc(lv))
+          }
+          const coach = typeof r.squad?.coach === 'string' ? r.squad.coach : null
+          if (coach && typeof r.cards?.[coach]?.lv === 'number') {
+            levels[coach] = Math.min(20, Math.trunc(r.cards[coach].lv))
+          }
+          const shown = displayName(r.name, r.id_hash)
+          return {
+            name: shown.name, tag: `#${shown.tag}`,
+            slots, coach, levels, div: r.div, points: r.points,
+          }
+        }),
+      })
+    } catch (err) {
+      console.warn('cards: rivals failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
+      if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })
         return true

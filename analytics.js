@@ -110,6 +110,7 @@ const NUMERIC_MAX = {
   streak: 3_650,
   tries: 100,
   solved: 10,
+  rival: 1,
   div: 50,
   round: 50,
   rating: 10_000,

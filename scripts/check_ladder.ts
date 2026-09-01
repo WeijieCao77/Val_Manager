@@ -13,10 +13,13 @@
  * directions: the total per division, and the number of rungs.
  */
 import {
-  DIVISIONS, MASTER_DIV, MASTER_WIN, MASTER_LOSS, TIERS_PER_DIV, masterPoints,
-  masterTitle, newGacha, oppBumpFor, rankName, recordLadder, starsFor,
-  starsOnTier, tierOf, tierStars,
+  autoSquad, DIVISIONS, MASTER_DIV, MASTER_WIN, MASTER_LOSS, TIERS_PER_DIV,
+  levelOf, masterPoints, masterTitle, newGacha, openPack, oppBumpFor, rankName,
+  recordLadder, starsFor, starsOnTier, tierOf, tierStars,
 } from '../src/engine/gacha'
+import type { PackKind } from '../src/engine/gacha'
+import { playRivalMatch } from '../src/engine/arena'
+import type { RivalSquad } from '../src/engine/arena'
 import type { GachaState } from '../src/engine/gacha'
 
 const store = new Map<string, string>()
@@ -139,6 +142,51 @@ const fresh = (): GachaState => newGacha('VM-TEST', '审计', '2026-09-01')
   check('老的大师存档直接从 0 分开始记', out.points === masterPoints(true, 85, 1),
     `${out.points} 分`)
   check('不会因为缺字段崩掉', Number.isFinite(g.ladder.points ?? NaN))
+}
+
+// ---- 真人卡组当对手：两套五人同场，同一个人可以在两边
+{
+  const mk = (id: string) => {
+    const g = newGacha(id, '审计', '2026-09-01')
+    for (const [k, n] of Object.entries(g.packs)) {
+      for (let i = 0; i < (n ?? 0); i++) openPack(g, k as PackKind, 'pack')
+    }
+    g.squad = autoSquad(g)
+    return g
+  }
+  const mine = mk('VM-AAAA-AAAA-AAAA-AAAA-AAAA')
+  const theirs = mk('VM-BBBB-BBBB-BBBB-BBBB-BBBB')
+  check('两套阵容都凑满了五个人',
+    mine.squad.slots.filter(Boolean).length === 5
+    && theirs.squad.slots.filter(Boolean).length === 5)
+
+  const rival: RivalSquad = {
+    name: '对面', tag: '#TEST',
+    slots: theirs.squad.slots, coach: theirs.squad.coach,
+    levels: {}, div: 5, points: 1200,
+  }
+  const res = playRivalMatch(mine.squad, (id) => levelOf(mine, id), rival, 3, 12345)
+  check('真人对局打得出结果', res.mapsWon + res.mapsLost >= 2,
+    `${res.mapsWon}-${res.mapsLost}`)
+  check('赢的那边和比分对得上', res.win === (res.mapsWon > res.mapsLost))
+  check('记分板只有我这边的卡',
+    res.lines.every((l) => mine.squad.slots.includes(l.cardId)),
+    res.lines.map((l) => l.cardId).join(' '))
+  check('MVP 要么是我的卡，要么是对面的（就留空）',
+    res.mvpCard === null || mine.squad.slots.includes(res.mvpCard))
+
+  // the same professional owned by both sides must not share one Player
+  const shared = mine.squad.slots.filter((c) => c && theirs.squad.slots.includes(c))
+  const both: RivalSquad = { ...rival, slots: mine.squad.slots }
+  const mirror = playRivalMatch(mine.squad, (id) => levelOf(mine, id), both, 3, 999)
+  check('两边用同一套阵容也能打完，不会自己打自己',
+    mirror.mapsWon + mirror.mapsLost >= 2,
+    `${mirror.mapsWon}-${mirror.mapsLost}，重叠 ${shared.length} 张`)
+
+  // and the same tie played twice is the same tie
+  const again = playRivalMatch(mine.squad, (id) => levelOf(mine, id), rival, 3, 12345)
+  check('同一个种子出同一个结果', again.win === res.win
+    && again.mapsWon === res.mapsWon, `${again.mapsWon}-${again.mapsLost}`)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

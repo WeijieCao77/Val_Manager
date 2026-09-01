@@ -13,6 +13,7 @@
  * localStorage — and still falls back to it when the server is unreachable.
  */
 import type { GachaState } from './gacha'
+import type { RivalSquad } from './arena'
 import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
 import { newChallenge } from './challenge'
 
@@ -225,6 +226,34 @@ export async function fetchTop(): Promise<TopRow[] | null> {
     if (!r.ok) return null
     const j = await r.json() as { ok?: boolean; rows?: TopRow[] }
     return j.ok && Array.isArray(j.rows) ? j.rows : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A handful of other people's fives, near your own division.
+ *
+ * Fetched in a batch and used one at a time, so the ladder is not making a
+ * request per match. Returns null when the server cannot be reached — the
+ * caller falls back to the world's clubs, which is what every match was
+ * before this existed.
+ */
+export async function fetchRivals(div: number): Promise<RivalSquad[] | null> {
+  try {
+    const r = await fetch(api('rivals'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rememberedId(), div }),
+    })
+    if (!r.ok) return null
+    const j = await r.json() as { ok?: boolean; rivals?: RivalSquad[] }
+    if (!j.ok || !Array.isArray(j.rivals)) return null
+    // a five with a hole in it is not an opponent; the server filters for this
+    // too, but a client that trusts a server it did not write is a client that
+    // crashes on the day that server changes
+    return j.rivals.filter((x) => Array.isArray(x.slots)
+      && x.slots.filter(Boolean).length === 5)
   } catch {
     return null
   }

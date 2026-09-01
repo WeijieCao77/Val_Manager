@@ -242,6 +242,50 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   check('整个返回里还是找不到 ID 的影子', !JSON.stringify(after.body).includes('9DJ0'))
 }
 
+// ---- 真人卡组当对手 ---------------------------------------------------
+//
+// The 78 real clubs stop at 89, so a ladder with no ceiling runs out of
+// opposition. Other people's saved fives do not — and handing one out must
+// never hand out anything that identifies its owner.
+{
+  rateHits.clear()
+  await db.exec('delete from card_accounts')
+  const squadOf = (ids: string[]) => ({ slots: ids, coach: 'C-bonkar' })
+  const withCards = (ids: string[]) =>
+    Object.fromEntries(ids.map((id, i) => [id, { lv: i, dupes: 0, seen: 1, got: '2026-09-01' }]))
+  const mkRival = async (id: string, name: string, div: number, points: number, ids: string[]) => {
+    await sql`insert into card_accounts (id_hash, name, state) values (
+      ${hashOf(id)}, ${name},
+      ${JSON.stringify({
+        ladder: { div, points, stars: 0, wins: 1, losses: 0 },
+        squad: squadOf(ids), cards: withCards([...ids, 'C-bonkar']),
+      })})`
+  }
+  const five = (n: string) => [`${n}a`, `${n}b`, `${n}c`, `${n}d`, `${n}e`]
+  await mkRival('VM-1111-1111-1111-1111-1111', '阿伟', 5, 1800, five('x'))
+  await mkRival('VM-2222-2222-2222-2222-2222', '傻逼', 5, 400, five('y'))
+  await mkRival('VM-3333-3333-3333-3333-3333', '新手', 0, 0, five('z'))
+  // a five with an empty seat is not an opponent
+  await sql`insert into card_accounts (id_hash, name, state) values (
+    ${hashOf('VM-4444-4444-4444-4444-4444')}, '缺人',
+    ${JSON.stringify({ ladder: { div: 5, points: 999 }, squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
+
+  const r = await call('/api/card/rivals', { div: 5, id: 'VM-1111-1111-1111-1111-1111' }, 'riv')
+  const list = r.body.rivals as { name: string; slots: string[]; levels: Record<string, number>; div: number; coach: string | null }[]
+  check('对手列表读得出来', r.code === 200 && Array.isArray(list), JSON.stringify(r.body).slice(0, 120))
+  check('不会把自己发给自己', !list.some((x) => x.name === '阿伟'), list.map((x) => x.name).join(' '))
+  check('缺人的阵容不算对手', !list.some((x) => x.name === '缺人'))
+  check('五个位置都是满的', list.every((x) => x.slots.filter(Boolean).length === 5))
+  check('带着每张卡的强化等级', list.some((x) => Object.keys(x.levels).length > 0),
+    JSON.stringify(list[0]?.levels))
+  check('教练也一起给', list.every((x) => x.coach === 'C-bonkar'))
+  check('名字同样过滤，脏字不会跑到别人屏幕上',
+    !list.some((x) => x.name === '傻逼'), list.map((x) => x.name).join(' '))
+  check('返回里没有任何账号信息',
+    !JSON.stringify(r.body).includes('VM-') && !JSON.stringify(r.body).includes('id_hash'))
+  check('优先给同段位的', list[0].div === 5, `第一个是 ${list[0].div} 段`)
+}
+
 // ---- no database ------------------------------------------------------
 
 const offlineApi = makeCardApi(null, { rateLimited, readBody, json } as never)

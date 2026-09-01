@@ -8,13 +8,13 @@ import {
   spendPlay, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../../engine/gacha'
 import type { LadderOutcome } from '../../engine/gacha'
-import { playArenaMatch } from '../../engine/arena'
-import type { ArenaResult } from '../../engine/arena'
+import { playArenaMatch, playRivalMatch } from '../../engine/arena'
+import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/world'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
-import { fetchTop } from '../../engine/account'
+import { fetchRivals, fetchTop } from '../../engine/account'
 import type { TopRow } from '../../engine/account'
 
 export default function Ladder() {
@@ -35,6 +35,25 @@ export default function Ladder() {
   // past 大师 the world's clubs are not strong enough on their own
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
+  // Other people's fives, fetched a dozen at a time and used one per match, so
+  // climbing does not cost a request a match. An empty list is the honest
+  // answer when the server cannot be reached — the world's clubs are still
+  // there, which is what every match was before this existed.
+  const [rivals, setRivals] = useState<RivalSquad[]>([])
+  useEffect(() => {
+    let alive = true
+    void fetchRivals(L.div).then((r) => { if (alive && r) setRivals(r) })
+    return () => { alive = false }
+  }, [L.div])
+  // From 钻石 up the ladder puts a real player's five in front of you when it
+  // has one. Below that the world's clubs are the better teacher: they are
+  // recognisable, they are graded by division, and somebody learning the game
+  // should meet Challengers sides rather than whoever happens to have an
+  // account.
+  const rival = L.div >= 4 && rivals.length
+    ? rivals[(L.wins + L.losses) % rivals.length]
+    : null
+
   const play = () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
     if (!spendPlay(g, 'ladder', now)) {
@@ -45,11 +64,17 @@ export default function Ladder() {
     // one frame so the button can show it is working before the sim blocks
     window.setTimeout(() => {
       const seed = (Date.now() ^ (L.wins * 7919) ^ (L.losses * 104729)) >>> 0
-      const res = playArenaMatch(g.squad, level, oppId, 3, seed, bump)
-      const out = recordLadder(g, res.win, (opp?.rating ?? 80) + bump)
+      const res = rival
+        ? playRivalMatch(g.squad, level, rival, 3, seed)
+        : playArenaMatch(g.squad, level, oppId, 3, seed, bump)
+      // a real five is worth what its own ladder position says it is worth
+      const strength = rival
+        ? 84 + Math.min(10, Math.floor(rival.points / 250))
+        : (opp?.rating ?? 80) + bump
+      const out = recordLadder(g, res.win, strength)
       track('card_match', {
         mode: 'ladder', won: res.win, div: g.ladder.div, rating,
-        points: g.ladder.points ?? 0,
+        points: g.ladder.points ?? 0, rival: rival ? 1 : 0,
       })
       commit(true)
       setBusy(false)
@@ -101,14 +126,26 @@ export default function Ladder() {
             <>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
-                  <div style={{ fontSize: 19, fontWeight: 700 }}>{opp.name}</div>
+                  <div style={{ fontSize: 19, fontWeight: 700 }}>
+                    {rival ? rival.name : opp.name}
+                    {rival && <span className="tiny faint mono"> {rival.tag}</span>}
+                  </div>
                   <div className="tiny muted">
-                    {REGION_CN[opp.region as keyof typeof REGION_CN]} · {opp.league} · 评分{' '}
-                    {opp.rating + bump}
-                    {bump > 0 && (
-                      <span className="tag warn" style={{ marginLeft: 5 }}>
-                        大师加强 +{bump}
-                      </span>
+                    {rival ? (
+                      <>
+                        <span className="tag t1">真人卡组</span>{' '}
+                        {rankName(rival.div, 0, rival.points)} · 别的玩家存下来的五人
+                      </>
+                    ) : (
+                      <>
+                        {REGION_CN[opp.region as keyof typeof REGION_CN]} · {opp.league} · 评分{' '}
+                        {opp.rating + bump}
+                        {bump > 0 && (
+                          <span className="tag warn" style={{ marginLeft: 5 }}>
+                            大师加强 +{bump}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -119,6 +156,9 @@ export default function Ladder() {
               </div>
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
                 三局两胜，走完整的 BAN/PICK 和回合经济——和生涯模式是同一套比赛引擎。
+                {rival
+                  ? '　对面是别的玩家存下来的阵容快照，不需要他在线，你的任何信息也不会给到他。'
+                  : L.div >= 4 ? '　（这会儿没找到合适的真人卡组，先打真实俱乐部。）' : ''}
               </p>
               <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
