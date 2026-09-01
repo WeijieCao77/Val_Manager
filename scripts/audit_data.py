@@ -333,6 +333,16 @@ def main() -> int:
             lost_igl.append((tag, want, caller))
     check("every hand-verified IGL is the one who calls", not lost_igl, str(lost_igl[:4]))
 
+    lost_roles = []
+    for ign, want in (ov.get("roles") or {}).items():
+        p2 = next((x for x in players if x["ign"] == ign), None)
+        if not p2:
+            continue
+        if list(p2.get("roles") or []) != list(want):
+            lost_roles.append((ign, want, p2.get("roles")))
+    check("every hand-verified role set survives into the world",
+          not lost_roles, str(lost_roles[:4]))
+
     misplaced = []
     for ign, rec in hj.items():
         p2 = next((x for x in players if x["ign"] == ign), None)

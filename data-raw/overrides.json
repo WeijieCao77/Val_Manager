@@ -35,7 +35,8 @@
   "reports only a player's most-played role, and Liquipedia's infobox has no",
   "per-player role field. Entries below are hand-verified stand-ins until the",
   "per-role round distribution can be scraped from vlr",
-  "(role=duelist|initiator|controller|sentinel), which is the real fix."
+  "(role=duelist|initiator|controller|sentinel), which is the real fix.",
+  "Setrod: plays sentinel as well as duelist. vlr's filter reports only his most-played role, so the build had him as a duelist and nothing else — which left FPX fielding three duelists and no sentinel after the KovaQ/zhubibi swap."
  ],
  "roles": {
   "f0rsakeN": [
@@ -44,6 +45,10 @@
    "哨卫",
    "决斗者",
    "先锋"
+  ],
+  "Setrod": [
+   "决斗者",
+   "哨卫"
   ]
  }
 }
