@@ -510,6 +510,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   overscroll-behavior-x: contain;
 }
 .seg::-webkit-scrollbar { display: none; }
+/* Eight labelled sections do not fit on one line, and a row that scrolls
+   sideways hides most of them — on a phone nobody finds tab six. Wraps into a
+   block of chips instead, which is the only shape that shows all of them. */
+.seg.wrap {
+  display: flex; flex-wrap: wrap; overflow: visible;
+  border: none; gap: 5px;
+}
+.seg.wrap button {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 5px 10px; font-size: var(--t-small);
+}
 .seg button {
   border: none; border-radius: 0; background: transparent;
   padding: 6px 13px; font-size: var(--t-body); color: var(--muted);
@@ -1739,6 +1750,30 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
    the two games have their own corners already, and a fourth button in them
    would be furniture. */
 .wechat-fab { bottom: 108px; }
+/* Career mode only: the card game has none of these systems. Always mounted
+   `raised`, so the desktop rule is what the tablet and phone see too. */
+.rules-fab { bottom: 108px; }
+.rules-fab.raised { bottom: 150px; }
+.rules-card { width: min(620px, calc(100vw - 32px)); }
+.rules-body { display: flex; flex-direction: column; gap: 4px; }
+.rules-h {
+  margin: 12px 0 2px; font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; color: var(--faint);
+}
+.rules-h.up { color: var(--win); }
+.rules-h.down { color: var(--loss); }
+.rules-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.rules-list li {
+  font-size: var(--t-small); line-height: 1.75; color: var(--muted);
+  padding-left: 10px; border-left: 2px solid var(--line);
+}
+/* The direct child is the line's title and gets its own row; the bold runs
+   INSIDE the sentence are Rich's, one level deeper, and must stay inline —
+   `li b` caught both and put 「合同当场终止」 on a line of its own. */
+.rules-list li > b { display: block; color: var(--text); font-weight: 650; }
+.rules-list li span b { color: var(--text); }
+.rules-list.plain li { border-left: none; padding-left: 0; }
+.rules-list.plain li::before { content: '· '; color: var(--faint); }
 .wechat-qr {
   display: block; width: 100%; max-width: 300px; margin: 2px auto;
   border-radius: 6px; background: #fff;
@@ -1769,6 +1804,8 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .log-fab.raised { bottom: 100px; }
   .odds-fab { bottom: 106px; }
   .wechat-fab { bottom: 106px; }
+  .rules-fab { bottom: 106px; }
+  .rules-fab.raised { bottom: 148px; }
 }
 
 /* ---------------------------------------------------------------- account

@@ -11,28 +11,7 @@
  */
 import { useEffect, useState } from 'react'
 import { CHANGELOG, LATEST } from '../data/changelog'
-
-/**
- * The <b> in an entry, actually bold.
- *
- * The entries have been written with <b> around the part that matters since
- * the day this shipped, and React escapes a string child — so every one of
- * them has been printing the angle brackets on screen instead. Not
- * dangerouslySetInnerHTML: the text is ours and safe today, but a changelog is
- * exactly the sort of file that one day gets a line pasted into it from
- * somewhere else. One tag, parsed, and anything else stays literal.
- */
-function Rich({ text }: { text: string }) {
-  const parts = text.split(/<b>|<\/b>/)
-  return (
-    <span>
-      {parts.map((part, i) => (
-        // split on a pair of delimiters puts the bold runs on the odd indices
-        i % 2 ? <b key={i}>{part}</b> : <span key={i}>{part}</span>
-      ))}
-    </span>
-  )
-}
+import Rich from './rich'
 
 const SEEN = 'valmgr.changelog.seen'
 

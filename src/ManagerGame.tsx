@@ -31,6 +31,7 @@ import Achievements from './ui/Achievements'
 import Credit from './ui/Credit'
 import Support from './ui/Support'
 import Changelog from './ui/Changelog'
+import Rules from './ui/Rules'
 import Unlocked, { toItems } from './ui/Unlocked'
 import type { UnlockItem } from './ui/Unlocked'
 import { whenUnlocked } from './engine/profile'
@@ -356,6 +357,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           onNext={() => setUnlocks((q) => q.slice(1))}
           onClearAll={() => setUnlocks([])}
         />
+        <Rules raised />
         <Changelog raised />
         <Support raised />
 
