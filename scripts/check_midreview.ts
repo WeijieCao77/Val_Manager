@@ -17,7 +17,8 @@
  * about results. The clock is wound to the last day of a season instead and
  * advanced one turn, which is the state endSeason is entered from.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, continuePastFive, settleAtFive, setupSeason } from '../src/engine/season'
 import { FINAL_YEAR, MID_YEAR, tenureCn } from '../src/engine/endings'
 import type { GameState } from '../src/engine/types'

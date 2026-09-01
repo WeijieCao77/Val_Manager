@@ -1,7 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
 import type { AnalystSpec, Coach, GameState, StaffCandidate, StaffRole, Team } from './types'
-import { wageBill } from './world'
-import { WORLD_ANALYSTS, WORLD_TEAMS } from './world'
+import { wageBill } from './roster'
+import { WORLD_ANALYSTS, WORLD_TEAMS } from './teams'
 
 /**
  * Building the club rather than only the roster.

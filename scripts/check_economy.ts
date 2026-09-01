@@ -7,7 +7,9 @@
  * fluctuates and spikes when the team wins, and prize money that moves a
  * balance sheet.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import {
   dropSponsor, pitchSponsor, resolveSponsorTalks, signSponsor, SPONSOR_MAX, streamWeek,

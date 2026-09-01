@@ -11,7 +11,8 @@
  * Contract lengths drift with squad churn, so this asks for a league that
  * stays roughly flat rather than a guarantee no club ever stacks four.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 

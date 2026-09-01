@@ -8,7 +8,9 @@
  * raises `rivalry` so every other club trains harder and recruits for
  * potential, and rivalry also puts real bids on the champion's own starters.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, settleCompetition } from '../src/engine/season'
 import { weeklyTick, seasonRollover } from '../src/engine/training'
 import { Rng } from '../src/engine/rng'

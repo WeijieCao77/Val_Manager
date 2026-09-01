@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng'
 import { expectedSalary } from './player'
-import { squadOf } from './world'
+import { squadOf } from './roster'
 import type { GameState, Player } from './types'
 
 /**

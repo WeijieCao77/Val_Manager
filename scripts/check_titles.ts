@@ -16,7 +16,8 @@
  *
  *   npx tsx scripts/check_titles.ts
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason, advanceDay } from '../src/engine/season'
 import { INTL_TITLES, CHAMPIONS, factsOf, endingOf } from '../src/engine/endings'
 import { earnedNow } from '../src/engine/achievements'

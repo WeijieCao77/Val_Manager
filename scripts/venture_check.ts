@@ -1,5 +1,7 @@
 /** Proactive commercial must be a gamble, not free money. */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { pitchSponsor, signStream, startVenture, streamOffer, ventureInfo } from '../src/engine/commercial'

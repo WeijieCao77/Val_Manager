@@ -11,7 +11,9 @@
  *
  *     npx tsx scripts/smoke_finale.ts [seeds]
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { Rng } from '../src/engine/rng'
 import { setupSeason, advanceDay, continuePastFive, SEASON_DAYS } from '../src/engine/season'
 import { endingOf, endingsFor, ENDING_COUNT, FINAL_YEAR } from '../src/engine/endings'

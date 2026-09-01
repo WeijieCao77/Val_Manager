@@ -9,7 +9,9 @@
  *
  *     npx tsx scripts/check_prospects.ts
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason, advanceDay, continuePastFive } from '../src/engine/season'
 import { ageIn, makeProspect, PROSPECTS } from '../src/engine/prospects'
 import type { GameState } from '../src/engine/types'

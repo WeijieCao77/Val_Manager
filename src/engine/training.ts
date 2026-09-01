@@ -1,7 +1,7 @@
 import { Rng, clamp } from './rng'
 import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift } from './player'
-import { coachOr, squadOf } from './world'
+import { coachOr, squadOf } from './roster'
 import { duoBonded, weeklyBonds } from './bonds'
 import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'

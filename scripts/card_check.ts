@@ -22,7 +22,7 @@ import {
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
-import { WORLD_TEAMS } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 
 const pct = (n: number, d: number) => `${((100 * n) / Math.max(1, d)).toFixed(1)}%`
 

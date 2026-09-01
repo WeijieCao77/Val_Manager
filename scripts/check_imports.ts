@@ -7,7 +7,9 @@
  * Origin is nationality; a player with none recorded counts as native, because
  * a rule should punish squad-building, never missing data.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { doTransfer, resolveMyOffer } from '../src/engine/transfer'
 import { IMPORT_MAX, importBlock, importCount, isImport } from '../src/engine/imports'

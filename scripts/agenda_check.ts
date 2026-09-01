@@ -1,5 +1,6 @@
 /** Verify stage objectives are set, judged, and move board confidence. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason, stageName } from '../src/engine/season'
 import { agendaFor, screenLocked } from '../src/engine/agenda'

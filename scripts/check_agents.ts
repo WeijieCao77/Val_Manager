@@ -5,7 +5,8 @@
  * engine only ever looked at a player's role list. A pick can now cost up to
  * 12% of what a man is worth, which is also what the 练新英雄 drill buys back.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { buildLineup, selectLineup, MatchSim, vetoOrder } from '../src/engine/match'
 import { agentFit, agentMod, agentRoleGaps, autoAgents, normalizeAgents, OFF_ROLE } from '../src/engine/agents'

@@ -1,6 +1,6 @@
 import CardFace from '../Card'
 import { cardById } from '../../engine/cards'
-import { WORLD_TEAMS } from '../../engine/world'
+import { WORLD_TEAMS } from '../../engine/teams'
 import type { ArenaLine, ArenaResult } from '../../engine/arena'
 import type { Squad } from '../../engine/cards'
 

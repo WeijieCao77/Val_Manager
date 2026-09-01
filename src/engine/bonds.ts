@@ -1,6 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import { ratingOf } from './player'
-import { squadOf } from './world'
+import { squadOf } from './roster'
 import { skillMod } from './manager'
 import type { GameState, MatchResult, Player } from './types'
 

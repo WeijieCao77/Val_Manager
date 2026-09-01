@@ -6,7 +6,8 @@
  * were silent before — a title decided in forty minutes, a shopping list gone
  * stale without a word.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 

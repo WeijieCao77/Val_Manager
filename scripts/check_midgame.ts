@@ -2,7 +2,8 @@
  * The 2030 settlement, the rotating pool, the account unlock and the map MVP —
  * everything this batch changed, asked of the engine directly.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import {
   advanceDay, continuePastFive, SEASON_DAYS, settleAtFive, setupSeason,

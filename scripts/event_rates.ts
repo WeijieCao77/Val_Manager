@@ -13,7 +13,9 @@
  * Six independent careers, five seasons each, counted. Re-run after touching
  * any of it, so a rate can be argued about with a number rather than a feeling.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 
 const SEASONS = 5

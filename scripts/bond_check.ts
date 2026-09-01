@@ -1,5 +1,7 @@
 /** Losses with an uneven scoreboard must create real friction, and pair work must fix it. */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { notableBonds, squadHarmony, bondBetween } from '../src/engine/bonds'

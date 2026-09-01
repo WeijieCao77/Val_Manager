@@ -17,7 +17,9 @@
 // Titles come from the constant, never a literal: this file used to spell
 // Champions its own way, matching a copy in endings.ts that the season never
 // awarded — so the test and the code agreed and both were wrong.
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason, advanceDay, continuePastFive, moveToClub } from '../src/engine/season'
 import {
   DYNASTY_ENDINGS, ENDING_COUNT, ENDINGS, endingOf, endingsFor, factsOf,

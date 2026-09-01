@@ -7,7 +7,8 @@
  * last turn answers after it shuts, the manager silently loses a third of the
  * only real squad-building window in the season.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, STAGES } from '../src/engine/season'
 import {
   windowOpen, TRANSFER_WINDOWS, makeOffer, enquireAbout, askingPrice,

@@ -27,7 +27,8 @@
  */
 import { CHAMPIONS, FINAL_YEAR, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
 import { isImport } from './imports'
-import { squadOf, WORLD_TEAMS } from './world'
+import { squadOf } from './roster'
+import { WORLD_TEAMS } from './teams'
 import type { GameState, Player } from './types'
 import type { CareerRecord } from './profile'
 

@@ -12,7 +12,8 @@
  * auto-lineup filled slots by main role only, benching the one man who could
  * hold a site because sentinel was his second job.
  */
-import { createNewGame, WORLD_TEAMS, autoStarters } from '../src/engine/world'
+import { createNewGame, autoStarters } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { buildLineup, selectLineup } from '../src/engine/match'
 import type { Role } from '../src/engine/types'

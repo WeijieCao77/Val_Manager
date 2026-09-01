@@ -8,7 +8,7 @@ import {
   applyForJob, defaultContract, managerSalaryFor, openness, renegotiate, takeAcceptedJob,
 } from '../engine/career'
 import { acceptJob } from '../engine/season'
-import { WORLD_TEAMS } from '../engine/world'
+import { WORLD_TEAMS } from '../engine/teams'
 import type { Team } from '../engine/types'
 
 /**

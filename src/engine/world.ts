@@ -7,13 +7,9 @@ import type { Attrs, GameState, Player, Role, Sponsor, Team } from './types'
 import { ORIGINS } from './manager'
 import type { Manager } from './manager'
 import { freeAgentPool } from './prospects'
+import { WORLD_TEAMS, type RawTeam } from './teams'
+import { squadOf } from './roster'
 
-interface RawTeam {
-  id: string; name: string; tag: string; region: string; tier: number; league: string
-  rating: number; budget: number; reputation: number; roster: string[]
-  coach: { name: string; tactics: number; development: number; motivation: number; assistants?: string[] } | null
-  facilities: number
-}
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
   roles?: string[]; flex?: boolean; agentPool?: string[]; roleSource?: string
@@ -28,11 +24,7 @@ interface RawPlayer {
   contractYears: number; loyalty: number; ambition: number
 }
 
-const RAW = raw as unknown as {
-  teams: RawTeam[]
-  players: RawPlayer[]
-  meta?: { analysts?: { name: string; from: string; spec: string; tactics: number; development: number; motivation: number }[] }
-}
+const RAW = raw as unknown as { players: RawPlayer[] }
 
 /**
  * Every real analyst in the world, and there are very few.
@@ -41,14 +33,10 @@ const RAW = raw as unknown as {
  * does not invent people — so an analyst is a genuinely scarce hire rather than
  * another row in the same list as the assistant coaches.
  */
-export const WORLD_ANALYSTS = RAW.meta?.analysts ?? []
 
-export const WORLD_TEAMS = RAW.teams
 export const WORLD_PLAYERS = RAW.players
 
 /** Coaching quality when a club has no real head coach on record. */
-export const coachOr = (t: Team, k: 'tactics' | 'development' | 'motivation'): number =>
-  t.coach ? t.coach[k] : Math.max(30, t.rating - 12)
 
 function makeSponsors(team: RawTeam, rng: Rng): Sponsor[] {
   const count = team.tier === 1 ? rng.int(2, 4) : rng.int(1, 2)
@@ -202,7 +190,7 @@ export function createNewGame(
   }
 
   const teams: Record<string, Team> = {}
-  for (const rt of RAW.teams) {
+  for (const rt of WORLD_TEAMS) {
     const trng = new Rng(hashStr(rt.id + 'team') ^ s)
     const mapPrefs: Record<string, number> = {}
     for (const m of MAPS) {
@@ -337,20 +325,11 @@ export function ensureCaller(state: GameState, teamId: string): void {
   next.isIgl = true
 }
 
-export const squadOf = (state: GameState, teamId: string): Player[] =>
-  (state.teams[teamId]?.roster ?? [])
-    .map((id) => state.players[id])
-    .filter((p): p is Player => !!p)
-
-export const freeAgents = (state: GameState): Player[] =>
-  Object.values(state.players).filter((p) => p.teamId === null)
+// squadOf / freeAgents / coachOr / wageBill live in roster.ts and WORLD_TEAMS
+// in teams.ts, and they are NOT re-exported from here on purpose: a re-export
+// looks free and is not — importing one through this module drags all 518
+// players in behind it, which is exactly how the front page ended up
+// downloading the game to print two integers.
 
 /** Wage bill per season for a club. */
-export const wageBill = (state: GameState, teamId: string): number =>
-  squadOf(state, teamId).reduce((s, p) => s + p.salary, 0) +
-  // a coach the manager hired is paid like everyone else
-  (state.teams[teamId]?.coach?.salary ?? 0) +
-  // assistants and analysts are on the payroll too, for our club only
-  (teamId === state.myTeam
-    ? (state.staff ?? []).reduce((s, m) => s + m.salary, 0)
-    : 0)
+

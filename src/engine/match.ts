@@ -1,7 +1,7 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
-import { coachOr } from './world'
+import { coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { createNewGame, WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
+import { createNewGame, WORLD_PLAYERS } from '../engine/world'
+import { WORLD_TEAMS } from '../engine/teams'
 import { setupSeason } from '../engine/season'
 import { importSave, listSaves, loadGame, protectAutosaveFrom } from '../engine/save'
 import { track } from '../engine/telemetry'

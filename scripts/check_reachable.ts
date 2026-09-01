@@ -22,7 +22,9 @@
  *
  *     npx tsx scripts/check_reachable.ts [careers]
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import {
   setupSeason, advanceDay, continuePastFive, damped, SEASON_DAYS, TITLE_REP_WORTH,

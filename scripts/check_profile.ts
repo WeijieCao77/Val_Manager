@@ -15,7 +15,9 @@ import {
   ACHIEVEMENTS, ACHIEVEMENT_COUNT, LIFE_ACHIEVEMENTS, RUN_ACHIEVEMENTS, earnedNow,
 } from '../src/engine/achievements'
 import { ENDINGS } from '../src/engine/endings'
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { loadGame } from '../src/engine/save'
 

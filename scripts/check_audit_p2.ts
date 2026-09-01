@@ -2,7 +2,9 @@
  * The middle band of the audit: nothing here broke a save, and all of it
  * either quietly did the wrong thing or told the manager something untrue.
  */
-import { createNewGame, WORLD_TEAMS, squadOf, autoStarters } from '../src/engine/world'
+import { createNewGame, autoStarters } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, commitFixture, setupSeason, moveToClub } from '../src/engine/season'
 import { aiTransferTick, bidForOurPlayers, doTransfer, rosterBlock, windowEnd } from '../src/engine/transfer'
 import { gigWindow, openGigs, settleSponsorDemands, dropSponsor } from '../src/engine/commercial'

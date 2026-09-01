@@ -22,7 +22,8 @@
  * objective by simulation takes a rigged league to arrange and says nothing
  * clearer when it gets there.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { judgeTenure, moveToClub, setupSeason } from '../src/engine/season'
 import type { GameState } from '../src/engine/types'
 

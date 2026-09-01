@@ -11,7 +11,7 @@ import type { LadderOutcome } from '../../engine/gacha'
 import { playArenaMatch, playRivalMatch } from '../../engine/arena'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
-import { WORLD_TEAMS } from '../../engine/world'
+import { WORLD_TEAMS } from '../../engine/teams'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 import { fetchRivals, fetchTop } from '../../engine/account'
@@ -32,8 +32,40 @@ export default function Ladder() {
   const L = g.ladder
   const master = L.div >= MASTER_DIV
   const [top, setTop] = useState<TopRow[] | null | 'loading'>('loading')
-  // refetched after a match, so a climb shows up on the board you just moved on
-  useEffect(() => { void fetchTop().then(setTop) }, [L.wins, L.losses])
+  /**
+   * The board, refetched whenever this account's record moves.
+   *
+   * It reads the accounts table, and this account only reaches that table when
+   * its save lands — so the fetch has to wait for the save. It did not, and
+   * the result was a leaderboard that was always exactly one match behind:
+   * 段位 said 大师 48 and 37–10 while your own row on the board underneath
+   * still said 大师 20 and 36–10. Nothing was stale on the server; the client
+   * was simply asking before it had told it.
+   *
+   * `saved` is bumped by the match handler once its write has had its turn,
+   * and it is what this depends on rather than the record itself.
+   */
+  const [saved, setSaved] = useState(0)
+  const [topAt, setTopAt] = useState(0)
+  useEffect(() => {
+    let alive = true
+    const pull = () => {
+      void fetchTop().then((r) => { if (alive) { setTop(r); setTopAt(Date.now()) } })
+    }
+    pull()
+    // A board that only moves when YOU move is not a leaderboard. Everybody
+    // else is playing asynchronously, so it refreshes on a slow clock and
+    // whenever the tab comes back — never while it is hidden, which is where a
+    // poll turns into a phone burning battery in a pocket.
+    const wake = () => { if (document.visibilityState === 'visible') pull() }
+    const t = setInterval(wake, 60_000)
+    document.addEventListener('visibilitychange', wake)
+    return () => {
+      alive = false
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', wake)
+    }
+  }, [saved])
   // past 大师 the world's clubs are not strong enough on their own
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
@@ -78,7 +110,8 @@ export default function Ladder() {
         mode: 'ladder', won: res.win, div: g.ladder.div, rating,
         points: g.ladder.points ?? 0, rival: rival ? 1 : 0,
       })
-      commit(true)
+      // the board is read back only after this write has had its turn
+      void commit(true).then(() => setSaved((n) => n + 1))
       setBusy(false)
       // the report used to name the world club it would have played even when
       // the match was against a person's five
@@ -184,7 +217,12 @@ export default function Ladder() {
 
       <Panel
         title="排行榜"
-        actions={<span className="tiny muted">按段位和大师分排</span>}
+        actions={
+          <span className="tiny muted">
+            按段位和大师分排
+            {topAt > 0 && <FreshAt at={topAt} />}
+          </span>
+        }
       >
         {top === 'loading' ? <p className="empty">读取中…</p>
           : !top ? <p className="empty">暂时读不到排行榜（离线或服务器忙）。</p>
@@ -269,5 +307,27 @@ export default function Ladder() {
         />
       )}
     </>
+  )
+}
+
+/**
+ * How long ago the board was read.
+ *
+ * Small, but it is the difference between 「排行榜不会实时更新」 and knowing
+ * that it does — a number that refreshes on its own with nothing next to it
+ * looks exactly like a number that never refreshes at all.
+ */
+function FreshAt({ at }: { at: number }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 10_000)
+    return () => clearInterval(t)
+  }, [])
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000))
+  return (
+    <span className="faint">
+      {' · '}
+      {s < 15 ? '刚刚更新' : s < 60 ? `${s} 秒前更新` : `${Math.round(s / 60)} 分钟前更新`}
+    </span>
   )
 }

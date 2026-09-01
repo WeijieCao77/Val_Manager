@@ -4,7 +4,9 @@
  * A 138-agent audit found them; each is a path where the player loses a
  * player, a contract or a whole career without a message they could act on.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { aiTransferTick } from '../src/engine/transfer'
 import { dropSponsor, pitchSponsor, signSponsor, SPONSOR_MAX } from '../src/engine/commercial'

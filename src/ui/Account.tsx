@@ -17,12 +17,13 @@
  * screenshot of an account.
  */
 import { useEffect, useState } from 'react'
-import { createAccount, loadAccount, rememberId, rememberedId } from '../engine/account'
+import { createAccount, loadAccount } from '../engine/account'
+import { maskId, rememberId, rememberedId } from '../engine/cardid'
 import { claimLocal, readProfile, syncProfile } from '../engine/profile'
 import { track } from '../engine/telemetry'
 
-export const maskId = (id: string): string =>
-  `${id.slice(0, 7)}-••••-${id.slice(-4)}`
+// re-exported for the screens that already import it from here
+export { maskId }
 
 export default function Account(
   { onClose, onChange }: { onClose: () => void; onChange?: (id: string | null) => void },

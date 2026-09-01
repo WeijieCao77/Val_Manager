@@ -1,4 +1,4 @@
-import { squadOf, wageBill } from './world'
+import { squadOf, wageBill } from './roster'
 import { skillMod } from './manager'
 import { weeklyStipend } from './leagueShare'
 import type { GameState, StageKey } from './types'

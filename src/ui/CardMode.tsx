@@ -14,10 +14,8 @@ import OddsFab from './cards/OddsFab'
 import Credit from './Credit'
 import Support from './Support'
 import Changelog from './Changelog'
-import {
-  createAccount, dayOf, flushAccount, fetchDay, loadAccount, rememberId, rememberedId, retryPending,
-  saveAccount, serverNow, whenStale,
-} from '../engine/account'
+import { createAccount, dayOf, flushAccount, fetchDay, loadAccount, retryPending, saveAccount, serverNow, whenStale } from '../engine/account'
+import { rememberId, rememberedId } from '../engine/cardid'
 import {
   MASTER_DIV, STAMINA_COST, STAMINA_MAX, primeStamina, rankName, refreshDaily,
   staminaIn, staminaNow, staminaRate, starsOnTier, tierStars,
@@ -131,9 +129,11 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     window.setTimeout(() => setToastMsg((cur) => (cur === msg ? null : cur)), 3200)
   }, [])
 
-  const commit = useCallback((immediate = false) => {
+  // Returns the save, so a screen that reads the server back — the leaderboard
+  // — can wait for its own write instead of racing it.
+  const commit = useCallback((immediate = false): Promise<void> => {
     bump()
-    if (gRef.current) saveAccount(gRef.current, immediate)
+    return gRef.current ? saveAccount(gRef.current, immediate) : Promise.resolve()
   }, [])
 
   // pick up the account this browser last used, if it has one

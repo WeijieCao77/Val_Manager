@@ -1,5 +1,7 @@
 /** Hiring a coach must be a negotiation, not a purchase. */
-import { createNewGame, WORLD_TEAMS, wageBill } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { wageBill } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { askingSalary, offerToStaff, staffMarket, ROLE_CN } from '../src/engine/staff'

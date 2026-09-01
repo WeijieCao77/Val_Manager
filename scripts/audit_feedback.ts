@@ -17,7 +17,9 @@
  *    something material moved and no note mentioned it, that is a change the
  *    manager had no way to see.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, continuePastFive, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 import {

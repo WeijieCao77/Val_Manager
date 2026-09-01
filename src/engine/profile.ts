@@ -18,7 +18,7 @@
  * player to another device; every read falls back to localStorage and every
  * write lands there first, so the whole thing works with no network at all.
  */
-import { rememberedId } from './account'
+import { rememberedId } from './cardid'
 import { earnedLifetime } from './achievements'
 
 const KEY = 'valmanager:profile:'

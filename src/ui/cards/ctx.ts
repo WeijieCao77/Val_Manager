@@ -15,8 +15,14 @@ export interface CardCtxValue {
   now: number
   /** false when the collection is only in this browser */
   cloud: boolean
-  /** re-render and write the collection back; pass true to skip the debounce */
-  commit: (immediate?: boolean) => void
+  /**
+   * Re-render and write the collection back; pass true to skip the debounce.
+   *
+   * Resolves once the write has had its turn, which is what the leaderboard
+   * needs before it reads the server back — otherwise it refetches faster than
+   * its own save and shows the row from before the match.
+   */
+  commit: (immediate?: boolean) => Promise<void>
   toast: (msg: string) => void
   /** open the reference page for a real player */
   openDossier: (playerId: string) => void

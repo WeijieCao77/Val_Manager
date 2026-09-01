@@ -6,7 +6,9 @@
  * confirmed picks were placebo, and only whatever was confirmed last before
  * the boundary counted. A player laid the whole sequence out in screenshots.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { saveGame, loadGame } from '../src/engine/save'
 
 // save.ts talks to localStorage; give node one

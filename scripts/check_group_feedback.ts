@@ -3,7 +3,9 @@
  * mid-career money (league share), AI clubs benching their own signings,
  * and retirements that arrive with no warning and leave no trace.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, moveToClub, persuadeStay, SEASON_DAYS, setupSeason } from '../src/engine/season'
 import { earnedNow } from '../src/engine/achievements'

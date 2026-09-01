@@ -6,7 +6,9 @@
  * never caught: an IGL named in the five but injured plays as no IGL at all
  * on match day, so the screen's warning condition must treat him as absent.
  */
-import { createNewGame, WORLD_TEAMS, appointIgl, squadOf } from '../src/engine/world'
+import { createNewGame, appointIgl } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 

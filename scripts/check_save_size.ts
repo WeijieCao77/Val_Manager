@@ -20,7 +20,8 @@
  * this must not cross; the breakdown prints either way, so a regression says
  * what grew as well as that something did.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { autosave, loadAutosave, packState, unpackState } from '../src/engine/save'
 import { stripToTheBone } from '../src/engine/match'

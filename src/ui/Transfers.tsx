@@ -10,7 +10,7 @@ import {
 } from '../engine/transfer'
 import { expectedSalary } from '../engine/player'
 import { IMPORT_MAX, importCount, isImport } from '../engine/imports'
-import { squadOf, wageBill } from '../engine/world'
+import { squadOf, wageBill } from '../engine/roster'
 import { defaultContract, REGION_CN, ROLES } from '../engine/types'
 import { REGIONS } from '../engine/types'
 import type { Contract, Player, Role, Region } from '../engine/types'

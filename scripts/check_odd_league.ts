@@ -3,7 +3,8 @@
  * An odd league has to schedule through a bye, so this checks that every club
  * still plays the same number of games and nobody sits out a whole stage.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 
 const wbg = WORLD_TEAMS.find(t => t.tag === 'WBG')!

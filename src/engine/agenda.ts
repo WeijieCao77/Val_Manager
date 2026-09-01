@@ -1,4 +1,4 @@
-import { squadOf, wageBill } from './world'
+import { squadOf, wageBill } from './roster'
 import { windowOpen, TRANSFER_WINDOWS } from './transfer'
 import { nextFixtureFor, noticeHint, stageName } from './season'
 import { gigWindow } from './commercial'

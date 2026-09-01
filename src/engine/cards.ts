@@ -8,7 +8,8 @@
  * and the reason the pack opening is worth watching. See engine/gacha.ts for
  * what happens once you own one.
  */
-import { WORLD_PLAYERS, WORLD_TEAMS, WORLD_ANALYSTS } from './world'
+import { WORLD_PLAYERS } from './world'
+import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
 import { DOSSIER, coachDossier, faceUrl, legendPhoto } from './dossier'
 import { LEGENDS } from './legends'
 import type { Legend } from './legends'

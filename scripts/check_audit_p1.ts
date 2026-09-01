@@ -6,7 +6,9 @@
  * training while claiming to train, and stranded a competition on a match that
  * could never be played.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, settleCompetition } from '../src/engine/season'
 import { doTransfer, releasePlayer } from '../src/engine/transfer'
 import { resolveSponsorTalks } from '../src/engine/commercial'

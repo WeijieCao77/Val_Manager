@@ -25,7 +25,7 @@
  * edited by hand, answers exactly as one played straight through.
  */
 import type { GameState, Player } from './types'
-import { squadOf } from './world'
+import { squadOf } from './roster'
 import { isImport } from './imports'
 
 export const FINAL_YEAR = 2036

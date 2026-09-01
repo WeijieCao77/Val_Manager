@@ -8,7 +8,9 @@
  * written as day + 7..10. This plays a career across the boundary and checks
  * every timer the state carries.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { makeOffer, enquireAbout } from '../src/engine/transfer'
 import { pitchSponsor } from '../src/engine/commercial'

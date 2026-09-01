@@ -21,7 +21,8 @@
  */
 import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
 import { hashStr } from './rng'
-import { WORLD_PLAYERS, WORLD_TEAMS } from './world'
+import { WORLD_PLAYERS } from './world'
+import { WORLD_TEAMS } from './teams'
 import { DOSSIER } from './dossier'
 import { REGION_CN } from './types'
 import type { Region } from './types'

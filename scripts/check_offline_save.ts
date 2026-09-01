@@ -198,5 +198,32 @@ retryPending(r2.state)
 await settle()
 check('once the limit lifts, the retry lands', (await serverState(ID))?.coins === 7777)
 
+// ---- the save is awaitable, which is what the leaderboard needs ---------
+//
+// 「排行榜不会实时更新」: the board reads the accounts table, and this account
+// only reaches that table when its save lands. The ladder refetched the moment
+// a match ended, raced its own write, and printed the row from before the
+// match — 段位 said 大师 48 while your own row said 大师 20. Nothing was stale
+// on the server. So saveAccount returns a promise, and the fix is only real if
+// the server has actually been written by the time it settles.
+{
+  use(desktop)
+  const r3 = await loadAccount(ID)
+  ;(r3.state as unknown as Record<string, unknown>).coins = 31337
+  const p = saveAccount(r3.state, true)
+  check('saveAccount hands back something to wait on', typeof p?.then === 'function')
+  await p
+  check('and by the time it settles the server has the new state',
+    (await serverState(ID))?.coins === 31337, JSON.stringify((await serverState(ID))?.coins))
+
+  // the debounced form resolves immediately and does NOT promise a write —
+  // only the immediate form is what a read-back may wait on
+  ;(r3.state as unknown as Record<string, unknown>).coins = 4141
+  await saveAccount(r3.state)
+  check('the debounced form does not pretend the write has happened',
+    (await serverState(ID))?.coins === 31337)
+  await settle()
+}
+
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
 process.exit(bad ? 1 : 0)

@@ -1,6 +1,7 @@
 import { Rng, clamp, hashStr } from './rng'
 import { expectedSalary, marketValue, refreshValue } from './player'
-import { autoStarters, ensureCaller, squadOf, wageBill } from './world'
+import { autoStarters, ensureCaller } from './world'
+import { squadOf, wageBill } from './roster'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
 import { importBlock } from './imports'
 import { skillMod } from './manager'

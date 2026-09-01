@@ -1,5 +1,6 @@
 /** Success must open doors: better clubs should come after a winning manager. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, acceptJob, setupSeason } from '../src/engine/season'
 

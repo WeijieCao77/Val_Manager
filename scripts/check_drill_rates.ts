@@ -13,7 +13,9 @@
  * that a settled drill really does deliver base × those rates. If someone
  * retunes the drill and forgets the card, or the other way round, this fails.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { drillRates, reviewIglXp } from '../src/engine/training'
 import type { GameState, Player } from '../src/engine/types'

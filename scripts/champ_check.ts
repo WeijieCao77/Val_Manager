@@ -1,5 +1,6 @@
 /** The champion must be whoever won the final, and finish first in the table. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, commitFixture, fixtureRng } from '../src/engine/season'
 import { simulateMatch } from '../src/engine/match'
 

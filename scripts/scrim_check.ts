@@ -1,5 +1,6 @@
 /** Verify scrims fill gaps without polluting standings or season stats. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, makeScrim, scrimReply, commitFixture, fixtureRng, nextFixtureFor } from '../src/engine/season'
 import { activePool } from '../src/engine/match'
 import { simulateMatch } from '../src/engine/match'

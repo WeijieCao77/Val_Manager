@@ -18,7 +18,8 @@
  * behind his back would be the engine playing the game for him; the agenda
  * shouts about it instead. That is asserted too, so nobody "fixes" it later.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 import type { GameState } from '../src/engine/types'

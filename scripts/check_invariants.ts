@@ -18,7 +18,8 @@
  * value: a slow repair job shows up as a run of broken days ending at a
  * multiple of seven.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 import type { GameState } from '../src/engine/types'

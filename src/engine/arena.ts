@@ -8,7 +8,8 @@
  * calling and cohesion are read by the same code that reads them in a VCT
  * season.
  */
-import { createNewGame, WORLD_TEAMS } from './world'
+import { createNewGame } from './world'
+import { WORLD_TEAMS } from './teams'
 import { simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'

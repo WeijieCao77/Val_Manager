@@ -4,7 +4,8 @@
  * reputation cleared 65/70/80 read it as a bug. Verify the gate, then verify
  * the message now names the club and its current number.
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { pitchSponsor, sponsorSlots, SPONSOR_MAX } from '../src/engine/commercial'
 

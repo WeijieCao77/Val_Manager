@@ -10,7 +10,8 @@
  *
  *     npx tsx scripts/check_autosave.ts
  */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { autosave, claimAutosave, loadAutosave } from '../src/engine/save'
 import type { GameState } from '../src/engine/types'

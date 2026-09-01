@@ -8,7 +8,9 @@
  * game let him play the rest of the season short-handed — profitably, because
  * strength was a mean of who was present and a short side rated HIGHER.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { buildLineup, selectLineup, simulateMatch } from '../src/engine/match'
 import { releasePlayer, resolveMyOffer, canSell, doTransfer } from '../src/engine/transfer'

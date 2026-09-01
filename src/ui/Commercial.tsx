@@ -8,7 +8,7 @@ import {
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import { canAct, NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
-import { squadOf } from '../engine/world'
+import { squadOf } from '../engine/roster'
 import type { Gig, VentureKind } from '../engine/types'
 
 const ICON: Record<string, string> = {

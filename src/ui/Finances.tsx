@@ -7,7 +7,7 @@ import {
   negotiateShare, setDealMode, SHARE_MAX,
 } from '../engine/leagueShare'
 import { useAction } from './useAction'
-import { squadOf, wageBill } from '../engine/world'
+import { squadOf, wageBill } from '../engine/roster'
 
 export default function Finances() {
   const { game, commit, toast, openPlayer } = useGame()

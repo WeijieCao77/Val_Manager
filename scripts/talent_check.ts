@@ -1,5 +1,7 @@
 /** Every talent point must show up in the simulation, not just on the sheet. */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager, SKILL_CN, scoutedPotential, spendPoint } from '../src/engine/manager'
 import type { ManagerSkill } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'

@@ -1,5 +1,6 @@
 /** A transfer list must reach an equilibrium, not grow without bound. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { windowOpen } from '../src/engine/transfer'

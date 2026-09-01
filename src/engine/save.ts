@@ -1,5 +1,5 @@
 import { pruneMatchDetail, stripToTheBone } from './match'
-import { WORLD_TEAMS } from './world'
+import { WORLD_TEAMS } from './teams'
 import type { GameState } from './types'
 
 const PREFIX = 'valmanager:save:'

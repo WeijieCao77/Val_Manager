@@ -9,7 +9,9 @@
  * out at 18 days, a paid physio session restores condition and shortens
  * recovery, and no club may sign past seven players.
  */
-import { createNewGame, WORLD_TEAMS, squadOf } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { weeklyTick, doPhysio, physioBlock, PHYSIO_COST } from '../src/engine/training'
 import { doTransfer, makeOffer, rosterBlock, ROSTER_MAX, enquireAbout, windowOpen } from '../src/engine/transfer'

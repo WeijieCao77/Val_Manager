@@ -10,7 +10,7 @@ import type { CupOutcome } from '../../engine/gacha'
 import { playArenaMatch } from '../../engine/arena'
 import type { ArenaResult } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
-import { WORLD_TEAMS } from '../../engine/world'
+import { WORLD_TEAMS } from '../../engine/teams'
 import { track } from '../../engine/telemetry'
 
 const ROUND_CN = ['八强', '四强', '决赛']

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { WORLD_PLAYERS, WORLD_TEAMS } from '../engine/world'
+import { WORLD_PLAYERS } from '../engine/world'
+import { WORLD_TEAMS } from '../engine/teams'
 import { DOSSIER, dossierOf, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
 import type { Records } from '../engine/dossier'
 import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN } from '../engine/cards'

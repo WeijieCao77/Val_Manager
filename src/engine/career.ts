@@ -1,6 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import { OPEN_TO_ALL, skillMod } from './manager'
-import { squadOf } from './world'
+import { squadOf } from './roster'
 import { moveToClub } from './season'
 import type { GameState, ManagerContract, Team } from './types'
 

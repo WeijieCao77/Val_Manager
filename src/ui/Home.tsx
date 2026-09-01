@@ -10,7 +10,7 @@
  * club it belongs to: a returning player should recognise their own game from
  * the front page, not wonder where it went.
  */
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { hasAutosave, loadAutosave } from '../engine/save'
 import { ENDING_COUNT } from '../engine/endings'
 import { ACHIEVEMENT_COUNT } from '../engine/achievements'
@@ -18,10 +18,21 @@ import { readProfile, siteId, syncProfile, type Profile } from '../engine/profil
 import { REGION_CN } from '../engine/types'
 import type { Region } from '../engine/types'
 import { Crest } from './common'
-import Account, { maskId } from './Account'
+import { maskId } from '../engine/cardid'
 import Support from './Support'
 import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
+
+/**
+ * The account panel is loaded when it is opened, not when the page is.
+ *
+ * It is the front page's one link into the card game's account module, which
+ * reaches gacha, the arena and the daily challenge, and through the challenge
+ * the world's 518 players — 370 KB of rosters downloaded before anybody has
+ * chosen a game, in order to draw a chip that says 「创建账号」. Lazy, it costs
+ * nothing until somebody taps it.
+ */
+const Account = lazy(() => import('./Account'))
 
 type Mode = 'home' | 'career' | 'cards'
 
@@ -230,10 +241,12 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
       </footer>
 
       {acct && (
-        <Account
-          onClose={() => setAcct(false)}
-          onChange={(next) => { setId(next); setProfile(readProfile(next)) }}
-        />
+        <Suspense fallback={null}>
+          <Account
+            onClose={() => setAcct(false)}
+            onChange={(next) => { setId(next); setProfile(readProfile(next)) }}
+          />
+        </Suspense>
       )}
       <Changelog />
       <Support />

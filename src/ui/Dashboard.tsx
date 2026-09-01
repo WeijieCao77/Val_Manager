@@ -15,7 +15,7 @@ import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { useAction } from './useAction'
 import { cycleDays } from '../engine/actions'
 import Digest from './Digest'
-import { squadOf, wageBill } from '../engine/world'
+import { squadOf, wageBill } from '../engine/roster'
 import { ATTR_CN } from '../engine/types'
 
 const ACT_CN: Record<string, string> = {

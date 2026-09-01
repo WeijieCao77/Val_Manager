@@ -2,7 +2,9 @@
  * Headless sanity run: play a full season and assert the world stays coherent.
  *   npx tsx scripts/smoke.ts [seasons]
  */
-import { createNewGame, squadOf, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { squadOf } from '../src/engine/roster'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, SEASON_DAYS, stageName } from '../src/engine/season'
 import { statLine } from '../src/engine/player'
 import { ratingOf } from '../src/engine/match'

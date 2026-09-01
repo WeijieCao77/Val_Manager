@@ -1,5 +1,6 @@
 /** A starting place must never be the reason a player refuses. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { playerAcceptsTerms, deservedRole } from '../src/engine/transfer'
 import { expectedSalary } from '../src/engine/player'

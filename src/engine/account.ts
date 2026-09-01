@@ -15,9 +15,9 @@
 import type { GachaState } from './gacha'
 import type { RivalSquad } from './arena'
 import { GACHA_VERSION, STAMINA_MAX, clampState, newGacha } from './gacha'
+import { rememberId, rememberedId } from './cardid'
 import { newChallenge } from './challenge'
 
-const ID_KEY = 'valmanager:card:id'
 const MIRROR = 'valmanager:card:state:'
 
 /** Crockford base32: no I, L, O or U, so nothing can be misread off a screenshot. */
@@ -50,16 +50,8 @@ export function normalizeId(raw: string): string | null {
 
 // ---------------------------------------------------------------- local
 
-export const rememberedId = (): string | null => {
-  try { return localStorage.getItem(ID_KEY) } catch { return null }
-}
-
-export const rememberId = (id: string | null): void => {
-  try {
-    if (id) localStorage.setItem(ID_KEY, id)
-    else localStorage.removeItem(ID_KEY)
-  } catch { /* private mode; the id is still in memory for this session */ }
-}
+// NOT re-exported: importing them through this module pulls the whole card
+// game in behind two lines of localStorage — see cardid.ts.
 
 /**
  * The mirror is the journal; the server is a copy of it.
@@ -457,7 +449,7 @@ let retries = 0
  * does not carry, a failure schedules its own retry, and the mirror stays
  * marked dirty until the server has actually said yes.
  */
-export function saveAccount(state: GachaState, immediate = false): void {
+export function saveAccount(state: GachaState, immediate = false): Promise<void> {
   writeMirror(state, true)
   if (pending) { clearTimeout(pending); pending = null }
   const send = async () => {
@@ -498,8 +490,16 @@ export function saveAccount(state: GachaState, immediate = false): void {
       inflight = false
     }
   }
-  if (immediate) void send()
-  else pending = window.setTimeout(send, 1200)
+  // The returned promise settles when the FIRST attempt has been made — landed
+  // or failed. It is not a guarantee that the write is on the server; it is
+  // what a caller needs in order not to read the server back before its own
+  // write has had its turn. The leaderboard did exactly that: it refetched the
+  // moment a match ended, raced its own save, and printed the row from before
+  // the match — 「排行榜不会实时更新」, and the board was right, it was simply
+  // reading a second too early.
+  if (immediate) return send()
+  pending = window.setTimeout(send, 1200)
+  return Promise.resolve()
 }
 
 /** Push whatever is pending right now — for page-hide, where a timer will not fire. */

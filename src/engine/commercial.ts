@@ -1,5 +1,5 @@
 import { Rng, clamp, hashStr } from './rng'
-import { squadOf } from './world'
+import { squadOf } from './roster'
 import { skillMod } from './manager'
 import { duoBonded } from './bonds'
 import type { GameState, Gig, GigKind, Player, Sponsor, SponsorTalk, StreamDeal, Team, VentureKind } from './types'

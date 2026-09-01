@@ -1,5 +1,6 @@
 /** A career must be able to end: warn first, then sack. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 

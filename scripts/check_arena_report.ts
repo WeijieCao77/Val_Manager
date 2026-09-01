@@ -17,7 +17,7 @@
 import { playArenaMatch, playRivalMatch } from '../src/engine/arena'
 import type { RivalSquad } from '../src/engine/arena'
 import { PLAYER_CARDS, COACH_CARDS } from '../src/engine/cards'
-import { WORLD_TEAMS } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }) = {

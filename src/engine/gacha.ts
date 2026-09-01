@@ -7,7 +7,7 @@
  * share state, and nothing here writes into a career.
  */
 import { Rng, clamp, hashStr } from './rng'
-import { WORLD_TEAMS } from './world'
+import { WORLD_TEAMS } from './teams'
 import { REGION_CN } from './types'
 import {
   ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, MAX_LEVEL, PLAYER_CARDS,

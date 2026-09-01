@@ -1,5 +1,6 @@
 /** Applying for a job must be possible, refusable, and rewarded by results. */
-import { createNewGame, WORLD_TEAMS } from '../src/engine/world'
+import { createNewGame } from '../src/engine/world'
+import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
 import { advanceDay, setupSeason } from '../src/engine/season'
 import { applyForJob, managerSalaryFor, openness, renegotiate } from '../src/engine/career'
