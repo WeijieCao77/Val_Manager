@@ -40,6 +40,17 @@ export const MAX_STATE = 512 * 1024
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
 /**
+ * How much of the hash a battle code is.
+ *
+ * Eight hex characters: short enough to read out loud or type off a phone,
+ * long enough that four billion of them makes walking the space pointless.
+ * The leaderboard's #tag is the first four of the same hash, so a code and a
+ * tag agree with each other, which is what makes 「#1C14 是你吗」 work.
+ */
+export const CODE_LEN = 8
+export const battleCode = (idHash) => String(idHash ?? '').slice(0, CODE_LEN).toUpperCase()
+
+/**
  * The id the client is told to keep.
  *
  * Crockford base32 without I, L, O and U, so nothing in it can be misread off
@@ -147,6 +158,10 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       json(res, 200, {
         ok: true, today, now: serverNow(), saved: Number(rows[0].saved) || null,
         rev: rows[0].rev, state: rows[0].state,
+        // the client cannot work its own code out — it has the id, not the
+        // hash, and hashing in the browser to learn something the server
+        // already knows would be work for nothing
+        code: battleCode(hash(id)),
       })
     } catch (err) {
       console.warn('cards: load failed', err.message)
@@ -248,7 +263,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         on conflict (id_hash) do nothing
         returning rev`
       if (!rows.length) { json(res, 409, { ok: false, taken: true, today }); return }
-      json(res, 200, { ok: true, today, now: serverNow(), rev: rows[0].rev })
+      json(res, 200, {
+        ok: true, today, now: serverNow(), rev: rows[0].rev, code: battleCode(hash(id)),
+      })
     } catch (err) {
       console.warn('cards: claim failed', err.message)
       json(res, 500, { ok: false, today })
@@ -342,6 +359,36 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
    * thin, so a 大师 player is not handed a 青铜 five just because there are
    * more of them.
    */
+  /**
+   * One account's five, as it is allowed to appear on somebody else's screen.
+   *
+   * Five card ids, each one's upgrade level, a coach, a display name and a
+   * ladder position. Nothing else — no account id, no state, no save. Shared
+   * by the ladder's opponent pool and the friend room, because the two send
+   * exactly the same thing and should never drift apart.
+   */
+  function squadOf(r) {
+    const slots = Array.isArray(r.squad?.slots) ? r.squad.slots.slice(0, 5) : []
+    // the field is `level` — see OwnedCard in engine/gacha.ts. It was `lv`
+    // here for a day, and every rival five arrived un-upgraded
+    const lvOf = (id) => {
+      const lv = r.cards?.[id]?.level
+      return typeof lv === 'number' && lv > 0 ? Math.min(20, Math.trunc(lv)) : 0
+    }
+    const levels = {}
+    for (const id of slots) {
+      const lv = lvOf(id)
+      if (lv) levels[id] = lv
+    }
+    const coach = typeof r.squad?.coach === 'string' ? r.squad.coach : null
+    if (coach && lvOf(coach)) levels[coach] = lvOf(coach)
+    const shown = displayName(r.name, r.id_hash)
+    return {
+      name: shown.name, tag: `#${shown.tag}`,
+      slots, coach, levels, div: r.div, points: r.points,
+    }
+  }
+
   async function rivals(req, res, bucket) {
     if (guard(req, res, `cr:${bucket}`, 60)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
@@ -377,30 +424,64 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         limit 12`
       json(res, 200, {
         ok: true,
-        rivals: rows.map((r) => {
-          const slots = Array.isArray(r.squad?.slots) ? r.squad.slots.slice(0, 5) : []
-          // the field is `level` — see OwnedCard in engine/gacha.ts. It was
-          // `lv` here for a day, and every rival five arrived un-upgraded
-          const lvOf = (id) => {
-            const lv = r.cards?.[id]?.level
-            return typeof lv === 'number' && lv > 0 ? Math.min(20, Math.trunc(lv)) : 0
-          }
-          const levels = {}
-          for (const id of slots) {
-            const lv = lvOf(id)
-            if (lv) levels[id] = lv
-          }
-          const coach = typeof r.squad?.coach === 'string' ? r.squad.coach : null
-          if (coach && lvOf(coach)) levels[coach] = lvOf(coach)
-          const shown = displayName(r.name, r.id_hash)
-          return {
-            name: shown.name, tag: `#${shown.tag}`,
-            slots, coach, levels, div: r.div, points: r.points,
-          }
-        }),
+        rivals: rows.map(squadOf),
       })
     } catch (err) {
       console.warn('cards: rivals failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
+  /**
+   * One friend's five, by battle code.
+   *
+   * The battle code is the first eight characters of the account's SHA-256 —
+   * the same hash the leaderboard's #tag comes from, four characters longer.
+   * It is deliberately NOT the account id: the id is the whole of the login
+   * here, somebody已经 pasted theirs into a public name box once, and a code
+   * meant to be posted in a group chat cannot be the same string. A hash
+   * cannot be turned back into an id, so posting it costs nothing.
+   *
+   * Eight hex characters is four billion, which is far too many to walk, and
+   * finding somebody's code buys you the right to play their squad anyway —
+   * which is the entire point of the feature.
+   *
+   * Asynchronous like the ladder: the friend does not have to be online, and
+   * what comes back is the snapshot they last saved.
+   */
+  async function friend(req, res, bucket) {
+    if (guard(req, res, `cf:${bucket}`, 60)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let code = ''
+    try {
+      const body = JSON.parse(await readBody(req, 4096))
+      code = String(body?.code ?? '').toLowerCase().replace(/[^0-9a-f]/g, '')
+    } catch { /* handled below */ }
+    if (code.length !== CODE_LEN) { json(res, 200, { ok: false, bad: true }); return }
+    try {
+      const rows = await sql`
+        select
+          id_hash, name, state->'squad' as squad, state->'cards' as cards,
+          case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
+               then (state->'ladder'->>'div')::int else 0 end as div,
+          case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
+               then (state->'ladder'->>'points')::int else 0 end as points
+        from card_accounts
+        where left(id_hash, ${CODE_LEN}) = ${code}
+        limit 2`
+      if (!rows.length) { json(res, 200, { ok: false, missing: true }); return }
+      // eight characters of a hash could in principle be shared; refusing is
+      // the only honest answer, since guessing which one was meant is worse
+      if (rows.length > 1) { json(res, 200, { ok: false, clash: true }); return }
+      const r = rows[0]
+      const slots = Array.isArray(r.squad?.slots) ? r.squad.slots : []
+      if (slots.filter((x) => typeof x === 'string').length !== 5) {
+        json(res, 200, { ok: false, empty: true })
+        return
+      }
+      json(res, 200, { ok: true, friend: { ...squadOf(r), code } })
+    } catch (err) {
+      console.warn('cards: friend failed', err.message)
       json(res, 500, { ok: false })
     }
   }
@@ -410,6 +491,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
+      if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })
         return true

@@ -432,9 +432,58 @@ export interface GachaState {
   challenge?: ChallengeState
   /** how many series milestones have been collected, per region */
   series?: Partial<Record<Series, number>>
+  /** 好友对战房 — see FriendRec */
+  friends?: FriendRec[]
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
+}
+
+/**
+ * Somebody you have played, and the running score between you.
+ *
+ * Kept on your own save rather than the server, and that is the honest shape
+ * of it: a friendly costs nothing, pays nothing, and moves no ladder, so there
+ * is nothing here worth defending against a determined liar. Two accounts
+ * trading wins would be farming a number that buys nothing, which is exactly
+ * why the friendlies pay nothing.
+ *
+ * It also means the two sides keep their own tallies. They will agree as long
+ * as both people play their matches; they are not one shared record, and the
+ * screen says so.
+ */
+export interface FriendRec {
+  /** eight characters of their id's hash — never their id */
+  code: string
+  name: string
+  tag: string
+  wins: number
+  losses: number
+  /** last played, as a date */
+  at: string
+}
+
+export const FRIEND_MAX = 24
+
+/** File the result of a friendly, newest friend first. */
+export function recordFriend(
+  g: GachaState,
+  who: { code: string; name: string; tag: string },
+  win: boolean,
+  today: string,
+): FriendRec {
+  const list = (g.friends ?? []).filter((f) => f.code !== who.code)
+  const old = (g.friends ?? []).find((f) => f.code === who.code)
+  const rec: FriendRec = {
+    code: who.code,
+    // the name is theirs and can change; keep the latest one they saved
+    name: who.name, tag: who.tag,
+    wins: (old?.wins ?? 0) + (win ? 1 : 0),
+    losses: (old?.losses ?? 0) + (win ? 0 : 1),
+    at: today,
+  }
+  g.friends = [rec, ...list].slice(0, FRIEND_MAX)
+  return rec
 }
 
 export const STARTER_COINS = 3000

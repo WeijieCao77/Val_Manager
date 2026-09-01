@@ -5,10 +5,12 @@ import type { ArenaResult } from '../../engine/arena'
 
 /** The scoreboard after a card match: maps, then who actually did the work. */
 export default function MatchReport({
-  result, opponentId, level, onClose, extra,
+  result, opponentId, opponentName, level, onClose, extra,
 }: {
   result: ArenaResult
   opponentId: string
+  /** when the opponent is a person rather than a club — 真人卡组 and 好友房 */
+  opponentName?: string
   level: (id: string) => number
   onClose: () => void
   extra?: React.ReactNode
@@ -18,7 +20,10 @@ export default function MatchReport({
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>{result.win ? '赢了' : '输了'} · {result.mapsWon}–{result.mapsLost} vs {opp?.tag ?? '?'}</h2>
+          <h2>
+            {result.win ? '赢了' : '输了'} · {result.mapsWon}–{result.mapsLost} vs{' '}
+            {opponentName ?? opp?.tag ?? '?'}
+          </h2>
           <div className="spacer" />
           <button className="ghost sm" onClick={onClose}>关闭</button>
         </div>

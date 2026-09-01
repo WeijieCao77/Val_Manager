@@ -13,7 +13,9 @@
 import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
 import { Readable } from 'node:stream'
-import { CARD_SCHEMA, makeCardApi, normalizeId, serverDay, vetState } from '../cards-api.js'
+import {
+  CARD_SCHEMA, battleCode, makeCardApi, normalizeId, serverDay, vetState,
+} from '../cards-api.js'
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -287,6 +289,75 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   check('返回里没有任何账号信息',
     !JSON.stringify(r.body).includes('VM-') && !JSON.stringify(r.body).includes('id_hash'))
   check('优先给同段位的', list[0].div === 5, `第一个是 ${list[0].div} 段`)
+}
+
+// ---- 好友对战房 -------------------------------------------------------
+//
+// The battle code is eight characters of the account's hash. Two things have
+// to hold and neither is negotiable: the code must not be the id (the id is
+// the whole login, and somebody已经 published theirs once), and looking one up
+// must hand back a five and nothing else.
+{
+  rateHits.clear()
+  await db.exec('delete from card_accounts')
+  const FRIEND = 'VM-5555-5555-5555-5555-5555'
+  const hisHash = hashOf(FRIEND)
+  const hisCode = battleCode(hisHash)
+  await sql`insert into card_accounts (id_hash, name, state) values (
+    ${hisHash}, '老王',
+    ${JSON.stringify({
+      ladder: { div: 4, points: 0, stars: 2, wins: 9, losses: 3 },
+      squad: { slots: ['fa', 'fb', 'fc', 'fd', 'fe'], coach: 'C-bonkar' },
+      cards: Object.fromEntries(['fa', 'fb', 'fc', 'fd', 'fe', 'C-bonkar']
+        .map((id, i) => [id, { id, level: i, dupes: 0, seen: 1, got: '2026-09-01' }])),
+    })})`
+
+  check('对战码是 8 位十六进制', /^[0-9A-F]{8}$/.test(hisCode), hisCode)
+  check('对战码不是账号 ID，也推不回去',
+    !hisCode.includes('5555') && !FRIEND.includes(hisCode), `${hisCode} vs ${FRIEND}`)
+  check('对战码和排行榜的 #四位是同一串', hisHash.slice(0, 4).toUpperCase() === hisCode.slice(0, 4))
+
+  let f = await call('/api/card/friend', { code: hisCode }, 'fr')
+  const who = f.body.friend as {
+    name: string; tag: string; slots: string[]; coach: string | null
+    levels: Record<string, number>; div: number; code: string
+  }
+  check('按对战码找得到人', f.code === 200 && f.body.ok === true, JSON.stringify(f.body).slice(0, 120))
+  check('拿到的是他存下来的五个人', who?.slots?.filter(Boolean).length === 5, JSON.stringify(who?.slots))
+  check('强化等级一起给', Object.keys(who.levels).length > 0, JSON.stringify(who.levels))
+  check('教练也给', who.coach === 'C-bonkar')
+  check('段位也给', who.div === 4)
+  check('返回里没有账号 ID，也没有存档',
+    !JSON.stringify(f.body).includes('VM-') && !JSON.stringify(f.body).includes('coins')
+    && !JSON.stringify(f.body).includes('id_hash'))
+
+  check('大小写和空格都认',
+    ((await call('/api/card/friend', { code: ` ${hisCode.toLowerCase()} ` }, 'fr')).body.ok) === true)
+  check('码不对就说不对',
+    ((await call('/api/card/friend', { code: 'ZZZZ' }, 'fr')).body.bad) === true)
+  check('没人用过的码是 missing，不是报错',
+    ((await call('/api/card/friend', { code: '00000000' }, 'fr')).body.missing) === true)
+  check('空 body 不会炸', (await call('/api/card/friend', null, 'fr')).body.ok !== true)
+
+  // a five with a hole in it cannot be played, and saying so beats a crash
+  await sql`insert into card_accounts (id_hash, name, state) values (
+    ${hashOf('VM-6666-6666-6666-6666-6666')}, '缺人',
+    ${JSON.stringify({ squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
+  f = await call('/api/card/friend', { code: battleCode(hashOf('VM-6666-6666-6666-6666-6666')) }, 'fr')
+  check('对方阵容缺人时说清楚，而不是发一个打不了的队', f.body.empty === true, JSON.stringify(f.body))
+
+  // the name goes through the same filter as everywhere else it lands on
+  // somebody else's screen
+  await sql`insert into card_accounts (id_hash, name, state) values (
+    ${hashOf('VM-7777-7777-7777-7777-7777')}, 'VM-9DJ0-X6C7-8EP0-1234-5678',
+    ${JSON.stringify({
+      squad: { slots: ['a', 'b', 'c', 'd', 'e'], coach: null },
+      cards: {},
+    })})`
+  f = await call('/api/card/friend', { code: battleCode(hashOf('VM-7777-7777-7777-7777-7777')) }, 'fr')
+  check('把 ID 当昵称的人，在好友房里也是隐藏的',
+    (f.body.friend as { name: string }).name === '已隐藏'
+    && !JSON.stringify(f.body).includes('9DJ0'), JSON.stringify(f.body.friend))
 }
 
 // ---- no database ------------------------------------------------------

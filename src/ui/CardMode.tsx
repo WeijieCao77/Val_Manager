@@ -6,6 +6,7 @@ import Challenge from './cards/Challenge'
 import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
 import Ladder from './cards/Ladder'
+import Friends from './cards/Friends'
 import Cup from './cards/Cup'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
@@ -81,6 +82,7 @@ const TABS = [
   { key: 'squad', label: '卡组' },
   { key: 'collection', label: '收藏' },
   { key: 'ladder', label: '天梯' },
+  { key: 'friends', label: '好友' },
   { key: 'cup', label: '杯赛' },
   { key: 'dossier', label: '资料库' },
   { key: 'odds', label: '概率' },
@@ -253,6 +255,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     squad: SquadScreen,
     collection: Collection,
     ladder: Ladder,
+    friends: Friends,
     cup: Cup,
   } as Record<string, ComponentType>)[tab]
 

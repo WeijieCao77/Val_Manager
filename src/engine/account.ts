@@ -170,6 +170,17 @@ export const serverNow = (): number => Date.now() + skew
 let rev: number | null = null
 export const knownRev = (): number | null => rev
 
+/**
+ * This account's 对战码, straight from the server.
+ *
+ * Eight characters of the id's hash. Safe to post anywhere — it cannot be
+ * turned back into the id, which is the whole of the login here. Null until a
+ * cloud load has happened, so the friend room asks people to come back online
+ * rather than showing them a code that is not theirs.
+ */
+let code: string | null = null
+export const myCode = (): string | null => code
+
 /** Called when a foreign, newer state arrives and the local one must yield. */
 type StaleHandler = (state: GachaState) => void
 let onStale: StaleHandler | null = null
@@ -259,6 +270,46 @@ export async function fetchRivals(div: number): Promise<RivalSquad[] | null> {
   }
 }
 
+export type FriendMiss = 'bad' | 'missing' | 'empty' | 'clash' | 'offline'
+
+/**
+ * One friend's five, by 对战码.
+ *
+ * Same snapshot the ladder's opponents come from, asked for by name instead of
+ * dealt out by division. Returns a reason rather than null when it fails, so
+ * the room can say 「这个码没人用过」 instead of 「出错了」 — a code typed one
+ * character wrong is the common case and deserves a sentence, not a shrug.
+ */
+export async function fetchFriend(
+  code: string,
+): Promise<{ ok: true; friend: RivalSquad & { code: string } } | { ok: false; why: FriendMiss }> {
+  const clean = code.trim().toLowerCase().replace(/[^0-9a-f]/g, '')
+  if (clean.length !== 8) return { ok: false, why: 'bad' }
+  try {
+    const r = await fetch(api('friend'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: clean }),
+    })
+    if (!r.ok) return { ok: false, why: 'offline' }
+    const j = await r.json() as {
+      ok?: boolean; friend?: RivalSquad & { code: string }
+      bad?: boolean; missing?: boolean; empty?: boolean; clash?: boolean
+    }
+    if (j.ok && j.friend && Array.isArray(j.friend.slots)
+      && j.friend.slots.filter(Boolean).length === 5) {
+      return { ok: true, friend: j.friend }
+    }
+    return {
+      ok: false,
+      why: j.bad ? 'bad' : j.empty ? 'empty' : j.clash ? 'clash'
+        : j.missing ? 'missing' : 'offline',
+    }
+  } catch {
+    return { ok: false, why: 'offline' }
+  }
+}
+
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
   try {
@@ -306,6 +357,7 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
     const j = await r.json()
     noteNow(j?.now)
     if (typeof j?.rev === 'number') rev = j.rev
+    if (typeof j?.code === 'string') code = j.code
     if (j?.today) today = j.today
     if (j?.ok && j.state) {
       const state = migrate(j.state as GachaState, id)
@@ -365,6 +417,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
       const j = await r.json()
       noteNow(j?.now)
       if (typeof j?.rev === 'number') rev = j.rev
+      if (typeof j?.code === 'string') code = j.code
       // 100 bits does not collide; the retry is here so that if it ever did,
       // the newcomer gets a fresh id instead of a stranger's collection
       if (j?.taken) continue
@@ -418,6 +471,7 @@ export function saveAccount(state: GachaState, immediate = false): void {
       })
       const j = await r.json().catch(() => null)
       if (typeof j?.rev === 'number') rev = j.rev
+      if (typeof j?.code === 'string') code = j.code
       if (j?.stale && j.state) {
         // Another device wrote while this one was holding an older copy. It
         // does not get to win: take the server's state and let the screens
@@ -511,5 +565,6 @@ function migrate(state: GachaState, id: string): GachaState {
   // an existing collection already sits somewhere on the series ladder; nothing
   // is marked claimed, so whatever it has already earned is waiting on the shelf
   g.series ??= {}
+  g.friends ??= []
   return clampState(g)
 }

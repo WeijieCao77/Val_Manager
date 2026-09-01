@@ -20,7 +20,9 @@ import type { TopRow } from '../../engine/account'
 export default function Ladder() {
   const { g, now, commit, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
-  const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: LadderOutcome } | null>(null)
+  const [shown, setShown] = useState<
+    { res: ArenaResult; opp: string; who?: string; out: LadderOutcome } | null
+  >(null)
 
   const level = (id: string) => levelOf(g, id)
   const filled = g.squad.slots.filter(Boolean).length
@@ -78,7 +80,9 @@ export default function Ladder() {
       })
       commit(true)
       setBusy(false)
-      setShown({ res, opp: oppId, out })
+      // the report used to name the world club it would have played even when
+      // the match was against a person's five
+      setShown({ res, opp: oppId, who: rival ? `${rival.name} ${rival.tag}` : undefined, out })
     }, 30)
   }
 
@@ -245,6 +249,7 @@ export default function Ladder() {
         <MatchReport
           result={shown.res}
           opponentId={shown.opp}
+          opponentName={shown.who}
           level={level}
           onClose={() => setShown(null)}
           extra={
