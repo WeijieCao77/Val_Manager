@@ -171,11 +171,31 @@ export default function Ladder() {
                       </tbody>
                     </table>
                   </div>
+                  {/* the one person this matters to most is the one whose own
+                      row is hidden, and they are the only one who can fix it */}
+                  {top.some((r) => r.me && r.hidden) && (
+                    <div style={{
+                      marginTop: 10, padding: '10px 12px', borderRadius: 3,
+                      background: 'var(--warn-wash)', border: '1px solid var(--warn)',
+                      borderLeftWidth: 3,
+                    }}>
+                      <b style={{ color: 'var(--warn)' }}>你的名字没有显示在榜上</b>
+                      <div className="small muted" style={{ marginTop: 3, lineHeight: 1.7 }}>
+                        {top.find((r) => r.me)?.why === 'id'
+                          ? <>你把<b>账号 ID 当成昵称</b>了——那串东西是你的密码，
+                            公开出去别人就能登录你的号。请<b>马上去「账号」页改个昵称</b>，
+                            排名和战绩都不会丢。</>
+                          : <>名字里有不适合公开显示的词。去「账号」页改一个就会恢复显示，
+                            排名和战绩不受影响。</>}
+                      </div>
+                    </div>
+                  )}
                   <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                     前 100 名，加上你自己那一行——排在外面也看得到自己第几。
                     名字后面的 <b>#四位</b> 是账号的识别码，用来区分同名的人，
                     它来自 ID 的哈希，<b>不是 ID 本身</b>，看到也没法登录你的号。
-                    显示成「已隐藏」的是名字里有不该上榜的词——去「账号」页改个名字就会恢复。
+                    显示成「已隐藏」的，要么名字里有不该上榜的词，要么<b>把账号 ID 填成了昵称</b>
+                    （那是你的密码，绝不能公开）——去「账号」页改个名字就会恢复。
                   </p>
                 </>
               )}

@@ -86,10 +86,31 @@ export function isBlocked(name) {
   return parts.some((p) => exact.has(p))
 }
 
+/**
+ * Somebody typed their account id into the name box.
+ *
+ * Found the hour the leaderboard went up: rank 24 was called
+ * 「VM-9DJ0-X6C7-8EP」. The id is the whole of authentication in this game —
+ * there is no password and no email — and the account screen shows the id and
+ * the name field on the same page, so pasting one into the other is an easy
+ * mistake to make once. Publishing it on a board anybody can open is not a
+ * mistake this can make twice.
+ *
+ * Checked against the RAW name, before any truncation: sixteen characters of a
+ * twenty-six character id is still most of a credential.
+ */
+export function looksLikeId(name) {
+  const bare = String(name ?? '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+  return /^VM[0-9ABCDEFGHJKMNPQRSTVWXYZ]{6,}$/.test(bare)
+}
+
 export function displayName(name, idHash) {
   const tag = String(idHash ?? '').slice(0, 4).toUpperCase() || '????'
-  const clean = String(name ?? '').trim().replace(/\s+/g, ' ').slice(0, 16)
-  if (!clean) return { name: '无名经理', tag, hidden: false }
-  if (isBlocked(clean)) return { name: '已隐藏', tag, hidden: true }
+  const raw = String(name ?? '').trim().replace(/\s+/g, ' ')
+  if (!raw) return { name: '无名经理', tag, hidden: false }
+  // before the slice: half an id is still half a password
+  if (looksLikeId(raw)) return { name: '已隐藏', tag, hidden: true, why: 'id' }
+  const clean = raw.slice(0, 16)
+  if (isBlocked(clean)) return { name: '已隐藏', tag, hidden: true, why: 'word' }
   return { name: clean, tag, hidden: false }
 }

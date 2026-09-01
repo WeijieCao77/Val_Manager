@@ -197,6 +197,8 @@ export interface TopRow {
   tag: string
   /** the name was kept off the board; its owner can rename and reappear */
   hidden: boolean
+  /** 'id' = they typed their account id in the name box; 'word' = a blocked word */
+  why?: 'id' | 'word'
   div: number
   points: number
   stars: number

@@ -229,6 +229,17 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
     mineRows.filter((x) => x.me).map((x) => x.name).join(''))
   check('不带 ID 时没有任何一行标成「我」', !rows.some((x) => x.me))
   check('返回里不含任何 ID', !JSON.stringify(r.body).includes('VM-'))
+
+  // found live, an hour after the board went up: rank 24 had pasted their
+  // account id into the name box, and the board was publishing their password
+  await mk('VM-5555-5555-5555-5555-5555', 'VM-9DJ0-X6C7-8EP', 5, 1500, 50)
+  const after = await call('/api/card/top', {}, 'board3')
+  const rows2 = after.body.rows as { name: string; hidden: boolean; why?: string; points: number }[]
+  const leaked = rows2.find((x) => x.points === 1500)!
+  check('把账号 ID 当昵称的人，ID 不会被公开', leaked.hidden && leaked.name === '已隐藏',
+    JSON.stringify(leaked))
+  check('而且知道是哪一种隐藏，好告诉他去改', leaked.why === 'id')
+  check('整个返回里还是找不到 ID 的影子', !JSON.stringify(after.body).includes('9DJ0'))
 }
 
 // ---- no database ------------------------------------------------------
