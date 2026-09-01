@@ -4,8 +4,9 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   DIVISIONS, MASTER_DIV, MASTER_TITLES, PACKS, STAMINA_COST, STAMINA_MAX, canPlay,
-  ladderOpponent, levelOf, masterTitle, oppBumpFor, rankName, recordLadder,
-  spendPlay, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
+  drawOpponent, ladderOpponent, levelOf, masterTitle, oppBumpFor, pendingOpponent,
+  rankName, recordLadder, spendPlay, staminaFillHours, staminaNow, staminaRate,
+  starsOnTier, tierStars,
 } from '../../engine/gacha'
 import type { LadderOutcome } from '../../engine/gacha'
 import { playArenaMatch, playRivalMatch } from '../../engine/arena'
@@ -27,8 +28,7 @@ export default function Ladder() {
   const level = (id: string) => levelOf(g, id)
   const filled = g.squad.slots.filter(Boolean).length
   const rating = squadRating(g.squad, level)
-  const oppId = ladderOpponent(g)
-  const opp = WORLD_TEAMS.find((t) => t.id === oppId)
+  const opp0 = ladderOpponent(g)
   const L = g.ladder
   const master = L.div >= MASTER_DIV
   const [top, setTop] = useState<TopRow[] | null | 'loading'>('loading')
@@ -69,24 +69,47 @@ export default function Ladder() {
   // past 大师 the world's clubs are not strong enough on their own
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
-  // Other people's fives, fetched a dozen at a time and used one per match, so
-  // climbing does not cost a request a match. An empty list is the honest
-  // answer when the server cannot be reached — the world's clubs are still
-  // there, which is what every match was before this existed.
-  const [rivals, setRivals] = useState<RivalSquad[]>([])
+  /**
+   * Who you are playing, drawn once and then pinned.
+   *
+   * The server hands back a random dozen, so re-fetching deals a different
+   * opponent — and that made the ladder re-rollable: leave the tab, come back,
+   * and if the last one looked strong you got somebody else. Flick away and
+   * back until the ladder offers somebody weak.
+   *
+   * So the draw is stamped with the match number and kept in the save. Coming
+   * back to this screen shows the same opponent; the only way to a new one is
+   * to play the one you have.
+   *
+   * From 钻石 up the ladder puts a real player's five in front of you when it
+   * has one. Below that the world's clubs are the better teacher: they are
+   * recognisable, graded by division, and somebody learning the game should
+   * meet Challengers sides rather than whoever happens to have an account.
+   */
+  const pinned = pendingOpponent(g)
+  const [drawing, setDrawing] = useState(false)
   useEffect(() => {
+    if (pinned || drawing) return
+    if (L.div < 4) { drawOpponent(g); commit(); return }
     let alive = true
-    void fetchRivals(L.div).then((r) => { if (alive && r) setRivals(r) })
+    setDrawing(true)
+    void fetchRivals(L.div).then((r) => {
+      if (!alive) return
+      setDrawing(false)
+      // a failed request must not pin "nobody" — a blip would quietly put this
+      // match back on the world's clubs
+      if (!r) return
+      drawOpponent(g, r.length ? r[Math.floor(Math.random() * r.length)] : undefined)
+      commit()
+    })
     return () => { alive = false }
-  }, [L.div])
-  // From 钻石 up the ladder puts a real player's five in front of you when it
-  // has one. Below that the world's clubs are the better teacher: they are
-  // recognisable, they are graded by division, and somebody learning the game
-  // should meet Challengers sides rather than whoever happens to have an
-  // account.
-  const rival = L.div >= 4 && rivals.length
-    ? rivals[(L.wins + L.losses) % rivals.length]
-    : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinned, L.div, L.wins, L.losses])
+
+  const rival = (pinned?.rival ?? null) as RivalSquad | null
+  // the club is pinned alongside the five, so opening a pack cannot re-deal it
+  const oppId = pinned?.club ?? opp0
+  const opp = WORLD_TEAMS.find((t) => t.id === oppId)
 
   const play = () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }

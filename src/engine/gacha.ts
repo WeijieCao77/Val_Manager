@@ -354,6 +354,46 @@ export interface LadderState {
   points?: number
   /** the highest that score has ever been, which is what a career is judged on */
   bestPoints?: number
+  /**
+   * The opponent already drawn for the match you have not played yet.
+   *
+   * Without this the ladder re-drew every time the screen mounted, so leaving
+   * the tab and coming back dealt a different opponent — and a player who saw
+   * somebody strong could simply flick away and back until the ladder offered
+   * somebody weak. The draw belongs to the MATCH, not to the visit: it is
+   * stamped with the match number and only replaced once that match is played.
+   */
+  pending?: PendingOpponent
+}
+
+/**
+ * Structurally a RivalSquad, declared here rather than imported.
+ *
+ * gacha.ts is upstream of arena.ts and importing the type back would close a
+ * cycle; the shapes are identical, so assignment works in both directions and
+ * the compiler still checks it.
+ */
+export interface PendingOpponent {
+  /** wins + losses at the moment it was drawn */
+  at: number
+  /**
+   * The world club drawn for this match.
+   *
+   * Pinned for the same reason the real five is. ladderOpponent() is seeded
+   * from the account's rng, and that seed moves every time a pack is opened —
+   * so without this, opening a pack re-dealt the club too.
+   */
+  club?: string
+  /** a real player's five, when the ladder had one to offer */
+  rival?: {
+    name: string
+    tag: string
+    slots: (string | null)[]
+    coach: string | null
+    levels: Record<string, number>
+    div: number
+    points: number
+  }
 }
 
 export interface CupLeg {
@@ -1046,6 +1086,26 @@ export function ladderPool(div: number): string[] {
   const lo = Math.floor(div * span)
   const hi = Math.min(sorted.length, Math.ceil((div + 1) * span) + 4)
   return sorted.slice(lo, hi).map((t) => t.id)
+}
+
+/** The match this opponent was drawn for; a new one means a new draw. */
+export const matchNo = (g: GachaState): number => g.ladder.wins + g.ladder.losses
+
+/** The opponent already drawn for the match in front of you, if it still applies. */
+export const pendingOpponent = (g: GachaState): PendingOpponent | null =>
+  g.ladder.pending && g.ladder.pending.at === matchNo(g) ? g.ladder.pending : null
+
+/**
+ * Pin an opponent to this match.
+ *
+ * Called once, after the ladder has actually heard back about who is available
+ * — a network failure must not pin 「nobody」, or a blip would quietly put you
+ * back on the world's clubs for that match.
+ */
+export function drawOpponent(g: GachaState, rival?: PendingOpponent['rival']): PendingOpponent {
+  const rec: PendingOpponent = { at: matchNo(g), rival, club: ladderOpponent(g) }
+  g.ladder.pending = rec
+  return rec
 }
 
 export function ladderOpponent(g: GachaState): string {
