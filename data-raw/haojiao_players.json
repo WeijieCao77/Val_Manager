@@ -1,0 +1,54 @@
+{
+  "_README": [
+    "Players entered by hand from 号角 (web.haojiao.cc), for people vlr.gg and",
+    "Liquipedia do not carry yet.",
+    "",
+    "Roster moves land here days or weeks before the English-language sites pick",
+    "them up, and a Chinese domestic player who has only ever played CN ES and",
+    "VCNT may never appear on them at all. Refusing to model such a player is",
+    "not neutrality — it leaves the club a man short and the game wrong.",
+    "",
+    "Same rule as everywhere else: nothing is invented. Every field below is",
+    "read off the cited page. What that page does not publish is null, and the",
+    "world builder treats a null the way it treats any missing stat — as the",
+    "population median — rather than filling in a plausible number.",
+    "",
+    "`stats` are 号角's 近三月统计. ADR, KAST, HS%, first-blood rates and a",
+    "composite rating are simply not published there, hence the nulls."
+  ],
+  "players": {
+    "zhubibi": {
+      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/rLBz2PkyIQ6DkvuA",
+      "checked": "2026-09-01",
+      "realName": "张熙墨",
+      "nat": "cn",
+      "birth": "2006-03-01",
+      "team": "FPX",
+      "teamNote": "临时替补",
+      "joined": "2026-09",
+      "status": "现役",
+      "stats": {
+        "rounds": 284,
+        "acs": 214.2,
+        "kd": 0.91,
+        "kills": 207,
+        "deaths": 227,
+        "assists": 49,
+        "rating": null,
+        "kast": null,
+        "adr": null,
+        "hs": null,
+        "fkpr": null,
+        "fdpr": null
+      },
+      "agents": [
+        { "cn": "捷风", "en": "Jett", "rounds": 115, "acs": 205.2, "kd": 0.88 },
+        { "cn": "霓虹", "en": "Neon", "rounds": 76, "acs": 247.8, "kd": 1.00 },
+        { "cn": "幻棱", "en": "Iso", "rounds": 72, "acs": 198.7, "kd": 0.89 },
+        { "cn": "雷兹", "en": "Raze", "rounds": 21, "acs": 196.0, "kd": 0.82 }
+      ],
+      "roleNote": "All four agents are duelists, so 决斗者 is measured rather than guessed — 号角's own 位置 field is blank.",
+      "photo": "https://files.haojiao.cc/cms/20260520/1779265195147.png"
+    }
+  }
+}

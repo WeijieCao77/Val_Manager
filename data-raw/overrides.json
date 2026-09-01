@@ -21,12 +21,14 @@
   "IGLs now come from Liquipedia's team infobox `igl=` field (47/53 teams),",
   "which is a real source — so nothing is pinned here. Only add an entry if a",
   "club's infobox is wrong or missing AND you can verify the caller.",
-  "JDG: the infobox named coconut, who plays for another club — a stale roster entry, so the build fell back to guessing and picked jkuro. BerLIN is the caller; recorded here rather than relying on a wiki edit, which is cached anyway and can be reverted."
+  "JDG: the infobox named coconut, who plays for another club — a stale roster entry, so the build fell back to guessing and picked jkuro. BerLIN is the caller; recorded here rather than relying on a wiki edit, which is cached anyway and can be reverted.",
+  "FPX: KovaQ left on 2026-09-01 and took the armband with him. coconut calls now; zhubibi came in as 临时替补 (see haojiao_players.json) and is a duelist, not a caller."
  ],
  "igl": {
   "TYL": "SiuFatBB",
   "WOL": "aluba",
-  "JDG": "BerLIN"
+  "JDG": "BerLIN",
+  "FPX": "coconut"
  },
  "_roles_note": [
   "Role breadth is the one thing neither source gives directly: vlr's filter",

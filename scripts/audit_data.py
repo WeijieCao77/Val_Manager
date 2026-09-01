@@ -268,6 +268,14 @@ def main() -> int:
         scraped.update(p["ign"] for p in t.get("roster", []))
     src = ROOT / "data-raw" / "vlr_vct2026_players.txt"
     raw_txt = src.read_text("utf-8") if src.exists() else ""
+    # 号角 (web.haojiao.cc) carries Chinese domestic players that vlr.gg and
+    # Liquipedia do not — a CN ES / VCNT regular can be on a VCT China roster
+    # for weeks before either picks him up, and may never appear on them. Those
+    # people are entered by hand from a cited page, which is a source, not a
+    # guess. The file is what makes them traceable; being absent from it is
+    # still a failure.
+    hj = load(ROOT / "data-raw" / "haojiao_players.json").get("players") or {}
+    scraped.update(hj)
     low = {s.lower() for s in scraped}
     unknown = [p["ign"] for p in players
                if p["ign"].lower() not in low and p["ign"] not in raw_txt]
@@ -298,6 +306,10 @@ def main() -> int:
     wrong_birth, unflagged = [], []
     for p in players:
         lp = births.get(p["ign"]) or births_ci.get(p["ign"].lower()) or {}
+        # a birthdate read off 号角 is checked against 号角, not against a
+        # Liquipedia page that does not exist
+        if not lp and p["ign"] in hj:
+            lp = {"birth": hj[p["ign"]].get("birth")}
         if p.get("birth"):
             if lp.get("birth") != p["birth"]:
                 wrong_birth.append((p["ign"], p["birth"], lp.get("birth")))
@@ -305,7 +317,35 @@ def main() -> int:
                 unflagged.append(p["ign"])
         elif not p.get("ageEstimated"):
             unflagged.append(p["ign"])
-    check("real birthdates match Liquipedia", not wrong_birth, str(wrong_birth[:4]))
+    # Hand-verified information has to actually reach the world, or the file it
+    # lives in is decoration. Both of these are general rules; they exist
+    # because the world builder no longer reproduces world.json (241 of 518
+    # players differ), so a rebuild would silently drop any hand-applied fact.
+    ov = load(ROOT / "data-raw" / "overrides.json")
+    by_tag = {t["tag"]: t for t in teams}
+    lost_igl = []
+    for tag, want in (ov.get("igl") or {}).items():
+        t = by_tag.get(tag)
+        if not t:
+            continue
+        caller = next((P[r]["ign"] for r in t["roster"] if r in P and P[r].get("isIgl")), None)
+        if caller != want:
+            lost_igl.append((tag, want, caller))
+    check("every hand-verified IGL is the one who calls", not lost_igl, str(lost_igl[:4]))
+
+    misplaced = []
+    for ign, rec in hj.items():
+        p2 = next((x for x in players if x["ign"] == ign), None)
+        if not p2:
+            misplaced.append((ign, rec.get("team"), "not in the world"))
+            continue
+        tag = (by_tag_of_id := {t["id"]: t["tag"] for t in teams}).get(p2.get("teamId"))
+        if rec.get("team") and tag != rec["team"]:
+            misplaced.append((ign, rec["team"], tag))
+    check("hand-entered players are at the club their source names",
+          not misplaced, str(misplaced[:4]))
+
+    check("real birthdates match their source", not wrong_birth, str(wrong_birth[:4]))
 
     # Handles collide. The Liquipedia page called "Neon" is a Filipino player;
     # the Neon in VCT Americas is Bruno Rodríguez, Argentine, born 2008. We
