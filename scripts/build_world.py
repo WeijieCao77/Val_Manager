@@ -346,6 +346,7 @@ CAREER_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_career.json")
 SEASONS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_seasons.json")
 VLR_STATS_2026 = os.path.join(ROOT, "scripts", "cache", "vlr_stats2026.json")
 VLR_STATS_ALL = os.path.join(ROOT, "scripts", "cache", "vlr_stats_all.json")
+RIB_CLUTCH = os.path.join(ROOT, "scripts", "cache", "rib_clutch.json")
 
 # Recent form says more about a player than three-year-old form, but not so much
 # more that one split erases a career. 2026 counts three times what 2024 does.
@@ -898,6 +899,20 @@ def main():
         for ign, r in (load_json(path).get("players") or {}).items():
             if r.get("clt") and ign not in cl_src:
                 cl_src[ign] = (r["clw"], r["clt"])
+    # rib.gg, for the events vlr has no round data for (VCT China 2026): the
+    # same two numbers, won and faced, added on top of what vlr has. The
+    # event list is chosen so the two never cover the same match — see
+    # scripts/fetch_rib_clutch.py — so adding is the right operation.
+    rib = load_json(RIB_CLUTCH).get("players") or {}
+    rib_ci = {k.lower(): v for k, v in rib.items()}
+    rib_added = 0
+    for ign in list(cl_src) + [k for k in rib if k.lower() not in {x.lower() for x in cl_src}]:
+        r = rib_ci.get(ign.lower())
+        if not r or not r.get("clt"):
+            continue
+        w0, t0 = cl_src.get(ign, (0, 0))
+        cl_src[ign] = (w0 + r["clw"], t0 + r["clt"])
+        rib_added += 1
     if cl_src:
         tot_w = sum(w for w, _ in cl_src.values())
         tot_t = sum(t for _, t in cl_src.values())
@@ -917,7 +932,7 @@ def main():
         except ValueError:
             continue
     P["clutch_pct"] = CiDict(pctiles(cl_rows, "clutch_pct")) if cl_rows else {}
-    print(f"clutch: real rates for {len(cl_src)} players from vlr, "
+    print(f"clutch: real rates for {len(cl_src)} players ({rib_added} with rib.gg rounds added), "
           f"{len(cl_rows) - len(cl_src)} from the parse.bot snapshot")
 
     ROLE_UTIL = {"控场": 1.0, "先锋": 0.95, "哨卫": 0.7, "自由人": 0.55, "决斗者": 0.25}

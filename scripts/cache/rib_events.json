@@ -1,0 +1,4 @@
+{
+ "_README": "rib.gg events whose stats table is read for clutch records — only events vlr.gg has no round data for, so the two sources never count one clutch twice. See scripts/fetch_rib_clutch.py.",
+ "104": {"slug": "vct-2026-china-stage-2", "vlr": "2978", "year": 2026, "region": "China", "why": "vlr has no round data for VCT China 2026"}
+}
