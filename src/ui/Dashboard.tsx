@@ -505,15 +505,13 @@ export default function Dashboard() {
         {gapDays >= 2 && (
         <Panel title={next ? `空档期 · 距下一场还有 ${gapDays} 天` : '空档期 · 本赛段没有比赛'}>
           <p className="small muted" style={{ marginTop: 0 }}>
-            约一场训练赛：<b>不计积分、不进个人数据</b>。训练赛没有 BP，双方提前商定地图。
+            约一场训练赛：<b>不计积分、不进个人数据</b>，没有 BP，地图提前商定。
+            <b>按「战术」页给这张图定的英雄阵容打</b>，练的也是那套阵容。
           </p>
           <div className="tiny faint" style={{ margin: '0 0 12px', lineHeight: 1.85 }}>
-            打完一场（每人每张图）实际影响：
-            <b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2、士气 +0~2</b>；
-            <b style={{ color: 'var(--accent)' }}>输 状态 −0.4~2.2、士气 −0~1.5</b>；
-            <b>体能 −3.5~6.5</b>（疲劳越高越容易受伤）；同时会累积<b>队内默契</b>。<br />
-            <b style={{ color: 'var(--win)' }}>约在哪张图就练哪张图</b>：熟练度每场 +0.6~1.0，
-            但越熟悉涨得越慢，<b>练到 80 左右就到头了</b>——再往上要靠训练页的「跑图」和正式比赛。
+            每人每张图：<b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2</b>／
+            <b style={{ color: 'var(--accent)' }}>输 −0.4~2.2</b>，<b>体能 −3.5~6.5</b>，队内默契累积。
+            <b style={{ color: 'var(--win)' }}>约在哪张图就练哪张图</b>：地图熟练度 +0.6~1.0（<b>到 80 就到头</b>），阵容熟练度 +6。
           </div>
           <div className="grid c3" style={{ gap: 12, alignItems: 'end' }}>
             <div className="field">

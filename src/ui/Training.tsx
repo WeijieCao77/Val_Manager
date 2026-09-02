@@ -132,7 +132,7 @@ export default function Training() {
   const describe = () => {
     const d = game.drill
     const main = !d || d.kind === 'none' ? '不安排团队训练'
-      : d.kind === 'map' ? `跑图 ${d.map}`
+      : d.kind === 'map' ? `跑图 ${[d.map, d.map2].filter((m): m is string => !!m).map(mapCn).join('＋')}`
         : d.kind === 'review' ? '教练复盘'
           : `${game.players[d.playerId]?.ign} 练${d.role}`
     const duo = game.duo
@@ -165,16 +165,13 @@ export default function Training() {
           : '确定后连续训练 7 天，期满结算'}`}
         className={locked ? '' : 'own'}
       >
-        <p className="small muted" style={{ marginTop: 0 }}>
-          下面三项<b>争抢同一段训练时间，只能选一项</b>；<b>双排练</b>是两个人留下来加练，
-          不占用其他人，可以和上面任意一项同时进行。团队训练与每位选手的个人专项也同时生效。
-        </p>
         {/* The unit, stated once and loudly. 「IGL 指挥 +7」 was read as seven
             points of 指挥 — it is seven points of a hundred-point bar, and
             nothing on this screen had ever said how big the bar is. */}
-        <p className="small" style={{ marginTop: -4, color: 'var(--warn)' }}>
-          下面所有的 <b>+N</b> 都是<b>经验</b>，不是属性点：<b>攒满 100 点经验，对应属性才 +1</b>。
-          实际到手还要乘教练和设施加成，一轮七天大致是标注值的 1.2~2 倍。
+        <p className="small muted" style={{ marginTop: 0 }}>
+          主训练<b>三选一</b>，双排练可以并行。
+          <span style={{ color: 'var(--warn)' }}>所有 <b>+N</b> 都是<b>经验</b>：<b>攒满 100 才 +1 属性</b></span>，
+          实际到手乘教练和设施加成（约 1.2~2 倍）。
         </p>
 
         <div className={`drill-group${locked ? ' locked' : ''}`}>
@@ -183,17 +180,34 @@ export default function Training() {
           <div className="drill-card">
             <b>跑图</b>
             <p className="tiny muted">
-              指定地图熟练度约 <b>+2/周</b>（教练与设施好会更快，上限 95）；
-              全队协同 <b>+9</b>、意识 <b>+5</b> <b>经验</b>（满 100 经验才 +1 属性）。
+              <b>一周最多两张图</b>，每张熟练度约 <b>+2</b>（上限 95），并把这张图的<b>预案阵容练熟</b>（阵容熟练度 +12）；
+              全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
-              {pool.map((m) => (
-                <button key={m}
-                  className={`sm${drill.kind === 'map' && drill.map === m ? ' primary' : ''}`}
-                  onClick={() => setDrill({ kind: 'map', map: m }, `跑图 ${m}`)}>
-                  {mapCn(m)} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
-                </button>
-              ))}
+              {pool.map((m) => {
+                const picked = drill.kind === 'map'
+                  ? [drill.map, drill.map2].filter((x): x is string => !!x) : []
+                const on = picked.includes(m)
+                return (
+                  <button key={m}
+                    className={`sm${on ? ' primary' : ''}`}
+                    onClick={() => {
+                      // up to two maps a week: click to add, click again to
+                      // drop; with two already chosen, a click swaps the second
+                      const next = on ? picked.filter((x) => x !== m)
+                        : picked.length < 2 ? [...picked, m] : [picked[0], m]
+                      setDrill(
+                        next.length ? { kind: 'map', map: next[0], map2: next[1] } : { kind: 'none' },
+                        `跑图 ${next.map(mapCn).join('＋')}`,
+                      )
+                    }}>
+                    {mapCn(m)} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
+                  </button>
+                )
+              })}
+              <span className="tiny faint">
+                {drill.kind !== 'map' ? '选一到两张' : drill.map2 ? '两张一起练' : '还能再选一张'}
+              </span>
             </div>
           </div>
 
@@ -437,8 +451,8 @@ export default function Training() {
 
       <Panel title={`理疗室 · 每次 ${money(PHYSIO_COST)}`}>
         <p className="small muted" style={{ marginTop: 0 }}>
-          花钱不花行动力：一次理疗<b>大幅恢复体能</b>；如果人正在伤停，还会<b>缩短复出时间</b>。
-          每名选手每 7 天最多一次。体能是伤病的根源——<b>体能 55 以上几乎不会受伤</b>，低于 55 风险随体能下降快速上升。
+          花钱不花行动力：一次<b>大幅恢复体能</b>，伤停中还能<b>提前复出</b>。每人每 7 天一次。
+          <b>体能 55 以上几乎不会受伤</b>。
         </p>
         <div className="row wrap" style={{ gap: 8 }}>
           {squad.map((p) => {
@@ -809,10 +823,8 @@ export default function Training() {
       </div>
 
       <p className="tiny muted">
-        每位选手的<b>个人专项</b>设一次就一直生效，不需要每天来管，系统每 7 天结算一次收益；
-        上面的<b>团队训练</b>不一样——它是一轮七天，<b>期满结算后就停下来等你重新安排</b>。
-        疲劳超过 70 会大幅拖慢成长，年轻选手（≤20 岁）的成长速度约为 27 岁以上选手的三倍。
-        能力值达到潜力上限后，继续训练只能维持状态。
+        <b>个人专项</b>设一次一直生效，每 7 天结算；<b>团队训练</b>一轮七天，<b>期满后等你重新安排</b>。
+        疲劳超过 70 成长大减；≤20 岁的成长约是 27 岁以上的三倍；到潜力上限后只能维持。
       </p>
     </>
   )

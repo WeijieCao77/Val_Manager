@@ -114,8 +114,11 @@ export interface Trait {
  */
 export type TeamDrill =
   | { kind: 'none' }
-  /** run the map until everyone knows it: map comfort plus cohesion */
-  | { kind: 'map'; map: string }
+  /**
+   * run the map until everyone knows it: map comfort plus cohesion. A week
+   * has room for two maps; `map2` is the second, absent on older plans.
+   */
+  | { kind: 'map'; map: string; map2?: string }
   /** the coach takes them through the tape: reading the game, and calling it */
   | { kind: 'review' }
   /** learning an agent from a role they do not yet cover */
@@ -608,6 +611,15 @@ export interface EdgeBreakdown {
   /** what the four tactical sliders were worth on each side */
   tacticsAtk: number
   tacticsDef: number
+  /**
+   * the shape of the five — 双决斗 / 双哨卫 / 双控场 — before any dial;
+   * absent on maps played before compositions were read
+   */
+  style?: number
+  /** what our dials did against THEIR shape */
+  matchup?: number
+  /** how well the club knew the five agents it took onto this map */
+  familiarity?: number
   atk: number
   def: number
 }
@@ -880,6 +892,21 @@ export interface GameState {
    * has changed keeps whoever is still in it and auto-fills the rest.
    */
   mapAgents?: Record<string, Record<string, string>>
+  /**
+   * The dials for each map, where the manager has set them apart.
+   *
+   * One set of sliders for three different maps was the complaint: the agent
+   * sheet was already per map, the plan that goes with it was not. A map with
+   * no entry here plays on `team.tactics`, which is what the timeout sliders
+   * and the 战术 screen's general setting still edit.
+   */
+  mapTactics?: Record<string, Tactics>
+  /**
+   * How well the club knows the five agents it runs on each map — see
+   * engine/comp.ts. Keyed by map; `key` is the sorted agent list it was
+   * earned with, so a changed sheet keeps only what still overlaps.
+   */
+  compPro?: Record<string, { key: string; value: number }>
   /** maps the manager banned/picked himself for the next match */
   vetoPlan?: { fixtureId: string; maps: string[]; log: string[] }
   /** the club's revenue-share arrangement with the league — engine/leagueShare.ts */

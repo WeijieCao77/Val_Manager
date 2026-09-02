@@ -20,8 +20,10 @@
   --line-soft: #1d2836;
 
   --text:      #ece8e1;
-  --muted:     #7d93ab;
-  --faint:     #55697f;
+  --muted:     #8299b1;
+  /* was #55697f — the hints that matter most were set in it, and on a desktop
+     monitor it read as disabled text */
+  --faint:     #6a7f96;
 
   /* brand accent — reserved for identity, primary actions, own club */
   --accent:      #ff4655;
@@ -52,15 +54,26 @@
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
 
-  /* type scale */
+  /* type scale — a step up from the 13.5/12.5/11 it shipped with, which on a
+     desktop browser was the single most-reported thing about the game */
   --t-display: 40px;
   --t-h1: 21px;
   --t-h2: 17px;
-  --t-body: 13.5px;
-  --t-small: 12.5px;
-  --t-tiny: 11px;
-  --t-label: 10px;
+  --t-body: 14.5px;
+  --t-small: 13.5px;
+  --t-tiny: 12px;
+  --t-label: 10.5px;
 }
+/* a real monitor has the room */
+@media (min-width: 1100px) {
+  :root { --t-body: 15px; --t-small: 14px; --t-tiny: 12.5px; --t-label: 11px; }
+}
+/* a phone does not, and its tables already scroll sideways */
+@media (max-width: 720px) {
+  :root { --t-body: 13.5px; --t-small: 12.5px; --t-tiny: 11px; --t-label: 10px; }
+}
+/* emphasis inside an explanation is the part that matters — light it up */
+.muted b, .faint b, p.small b, p.tiny b { color: var(--text); font-weight: 650; }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }

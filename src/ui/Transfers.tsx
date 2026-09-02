@@ -135,6 +135,81 @@ export default function Transfers() {
         </p>
       )}
 
+      {/* An answered enquiry used to live only in the row it was asked from —
+          inside a club's roster list, three clicks back — and the group chat
+          asked where the next step was. It is here, at the top, with the bid
+          button on it. */}
+      {(() => {
+        const answered = (game.enquiries ?? [])
+          .filter((e) => e.answer === 'open')
+          .map((e) => ({ e, p: game.players[e.playerId] }))
+          .filter((x) => x.p && x.p.teamId && x.p.teamId !== game.myTeam)
+          .sort((a, b) => b.e.replyOn - a.e.replyOn)
+        const refused = (game.enquiries ?? [])
+          .filter((e) => e.answer === 'closed')
+          .map((e) => ({ e, p: game.players[e.playerId] }))
+          .filter((x) => x.p)
+        if (!answered.length && !refused.length) return null
+        return (
+          <Panel
+            title={answered.length ? `问价有结果 · ${answered.length} 人可以报价` : '问价有结果 · 都不愿意来'}
+            className={answered.length ? 'good' : ''} flush
+          >
+            {answered.length > 0 && (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="sticky-name at-left">选手</th><th>俱乐部</th><th>位置</th>
+                      <th className="num">能力</th><th className="num">俱乐部要价</th><th>本人意向</th>
+                      <th className="sticky-act" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {answered.map(({ e, p }) => {
+                      const bid = game.offers.find((o) =>
+                        o.playerId === p.id && o.status === 'pending' && o.toTeam === game.myTeam)
+                      return (
+                        <tr key={e.id}>
+                          <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
+                            <b>{p.ign}</b>
+                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }}>退役</span>}
+                          </td>
+                          <td className="small"><Club id={p.teamId} game={game} crest /></td>
+                          <td><Roles p={p} /></td>
+                          <td className="num"><OvrBadge value={p.overall} /></td>
+                          <td className="num mono" style={{ color: 'var(--warn)', fontWeight: 700 }}>
+                            {money(e.askingFee ?? askingPrice(p))}
+                          </td>
+                          <td className="small">
+                            {e.interest ? <span className="tag">{INTEREST_CN[e.interest]}</span> : '—'}
+                            {e.reason && <span className="tiny faint" style={{ marginLeft: 6 }}>{e.reason}</span>}
+                          </td>
+                          <td className="sticky-act">
+                            {bid ? (
+                              <span className="tiny faint">
+                                已报价 · {Math.max(0, (bid.respondOn ?? game.day) - game.day)} 天后答复
+                              </span>
+                            ) : (
+                              <button className="primary sm" disabled={!open} onClick={() => setTarget(p)}>报价</button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {refused.length > 0 && (
+              <p className="tiny faint" style={{ padding: '8px 13px', margin: 0 }}>
+                本人不想来：{refused.map((x) => `${x.p.ign}（${x.e.reason ?? '不想转会'}）`).join('、')}
+              </p>
+            )}
+          </Panel>
+        )
+      })()}
+
       {incoming.length > 0 && (
         <Panel title={`收到报价 · ${incoming.length} 份`} className="alert" flush>
           <div className="table-wrap">
@@ -244,9 +319,8 @@ export default function Transfers() {
 
       <Panel tut="enquire" title="问价 · 找不在市场上的人">
         <p className="small muted" style={{ marginTop: 0 }}>
-          真正想要的人多半既没挂牌也不是自由人。<b>先选一支俱乐部，再挑他们的选手问价</b>——
-          花 1 点行动力、不花钱，2~5 天后同时得到<b>对方俱乐部的真实要价</b>和<b>选手本人的意向</b>。
-          核心球员的要价可能是估值的一倍以上。
+          想要的人多半不在市场上。问价花 1 点行动力、不花钱，2~5 天后得到<b>俱乐部要价</b>和<b>本人意向</b>，
+          <b>有结果会显示在本页最上面</b>，直接在那里报价。
         </p>
 
         <div className="row wrap" style={{ gap: 8, marginBottom: 10, alignItems: 'center' }}>

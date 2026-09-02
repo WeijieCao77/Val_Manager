@@ -7,7 +7,9 @@ import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
 import { growLoyalty } from './loyalty'
 import { skillMod } from './manager'
-import { AGENTS } from './content'
+import { AGENTS, mapCn } from './content'
+import { FAM_DRILL, learnComp } from './comp'
+import { sheetFor } from './match'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Team } from './types'
 
@@ -221,23 +223,30 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
 
   switch (drill.kind) {
     case 'map': {
-      // running one map raises comfort on it and pulls the side together
-      const before = team.mapPrefs[drill.map] ?? 50
-      // comfort climbs, but not to mastery in a single split
+      // Running a map raises comfort on it and pulls the side together. A
+      // week has room for two maps, each at the full rate: the 7-map pool
+      // turns over twice a season, and one map a week could not keep up.
       // 图池分析: a map specialist makes running the map worth far more
       const mapEdge = 1 + analystEdge(state, 'maps') * 0.6
-      // kept as a float: rounding every week swallowed the whole bonus, since
-      // +2.0 and +2.4 both land on +2 and the remainder never carried forward
-      team.mapPrefs[drill.map] = clamp(before + gain(2.35) * mapEdge, 0, 95)
+      const maps = Array.from(new Set([drill.map, drill.map2].filter((m): m is string => !!m)))
+      for (const map of maps) {
+        const before = team.mapPrefs[map] ?? 50
+        // kept as a float: rounding every week swallowed the whole bonus, since
+        // +2.0 and +2.4 both land on +2 and the remainder never carried forward
+        team.mapPrefs[map] = clamp(before + gain(2.35) * mapEdge, 0, 95)
+        // and the sheet planned for this map is what the week rehearses —
+        // the five agents, not just the map. See engine/comp.ts.
+        const fam = learnComp(state, map, sheetFor(state, state.myTeam, map).agents, FAM_DRILL)
+        if (Math.round(team.mapPrefs[map]) > Math.round(before)) {
+          notes.push(`🗺 ${mapCn(map)} 熟练度提升到 ${Math.round(team.mapPrefs[map])}，这套阵容熟练度 ${Math.round(fam)}。`)
+        } else if (before >= 94.5) {
+          notes.push(`🗺 ${mapCn(map)} 熟练度已到上限 95，继续跑图只能保持手感——换张图练吧。`)
+        }
+      }
       for (const p of squad) {
         addXp(p, 'teamwork', gain(9))
         addXp(p, 'awareness', gain(5))
         p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
-      }
-      if (Math.round(team.mapPrefs[drill.map]) > Math.round(before)) {
-        notes.push(`🗺 ${drill.map} 熟练度提升到 ${Math.round(team.mapPrefs[drill.map])}。`)
-      } else if (before >= 94.5) {
-        notes.push(`🗺 ${drill.map} 熟练度已到上限 95，继续跑图只能保持手感——换张图练吧。`)
       }
       break
     }

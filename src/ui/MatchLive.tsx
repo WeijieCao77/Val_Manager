@@ -4,7 +4,7 @@ import { Crest, Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import TacticSliders from './TacticSliders'
 import MapVeto from './MapVeto'
-import AgentPick from './AgentPick'
+import MapPlan from './MapPlan'
 import { MatchSim } from '../engine/match'
 import { mapCn } from '../engine/content'
 import type { Side } from '../engine/match'
@@ -170,22 +170,20 @@ export default function MatchLive({
           </div>
         )}
 
-        {!fixture.scrim && (
-          <div className="panel" style={{ marginTop: 12 }}>
-            <div className="panel-head"><h2>英雄选择</h2></div>
-            <div className="panel-body">
-              <AgentPick maps={simRef.current!.maps} />
-            </div>
+        {/* one plan per map: the five agents and the four dials together,
+            with the opponent's likely shape beside them. Anything changed
+            here is tonight's sheet and the map's new default. */}
+        <div className="panel own" style={{ marginTop: 12 }}>
+          <div className="panel-head">
+            <h2>各图预案 · 英雄与战术</h2>
+            <div className="spacer" style={{ flex: 1 }} />
+            <span className="tiny faint">改了就记住，下次这张图直接用</span>
           </div>
-        )}
-
-        <div className="panel" style={{ marginTop: 12 }}>
-          <div className="panel-head"><h2>赛前战术</h2></div>
           <div className="panel-body">
-            <p className="tiny faint" style={{ marginTop: 0 }}>
-              针对这个对手定好打法——<b>现在改的会用在这场的每一张图上</b>。观战中叫暂停可以用强攻／稳守临场应变，滑杆的改动则从下一张图起生效。
-            </p>
-            <TacticSliders game={game} commit={commit} compact />
+            <MapPlan
+              maps={simRef.current!.maps} mode="match"
+              opp={fixture.teamA === game.myTeam ? fixture.teamB : fixture.teamA}
+            />
           </div>
         </div>
 
@@ -196,8 +194,7 @@ export default function MatchLive({
           <button onClick={skip}>快进到结果</button>
         </div>
         <p className="tiny faint center" style={{ marginTop: 14, marginBottom: 0 }}>
-          两种方式使用同一套模拟逻辑，结果不会因为你是否观战而不同。<br />
-          观战时每张图有 2 次暂停，进入加时后双方各加 1 次。
+          观战与快进结果相同；观战每张图 2 次暂停，加时各加 1 次。
         </p>
       </Modal>
     )
@@ -258,12 +255,27 @@ export default function MatchLive({
                 稳守 <span className="tiny faint">减少伤亡与波动，适合领先或缺钱</span>
               </button>
             </div>
-            <div className="small muted" style={{ marginBottom: 6 }}>
-              调整战术（<b>从下一张图开始生效</b>，本图请用上面的强攻／稳守）：
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <TacticSliders game={game} commit={commit} compact />
-            </div>
+            {(() => {
+              // The dials for THIS map were read when it started and cannot
+              // change under a round in progress; what a timeout can still set
+              // is the next map's. Per map now, so it is that map's own
+              // setting being edited, not a general one.
+              const nextMap = sim.maps[sim.mapIndex + 1]
+              return nextMap ? (
+                <>
+                  <div className="small muted" style={{ marginBottom: 6 }}>
+                    下一张图 <b>{mapCn(nextMap)}</b> 的战术（本图的已经定了，改不了）：
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <TacticSliders game={game} commit={commit} compact map={nextMap} />
+                  </div>
+                </>
+              ) : (
+                <p className="tiny faint" style={{ marginTop: 0 }}>
+                  这是最后一张图，滑杆改不了本图——用上面的强攻／稳守。
+                </p>
+              )
+            })()}
 
             <div className="small muted" style={{ marginBottom: 6 }}>或者围绕一名选手打：</div>
             <div className="row wrap" style={{ gap: 6 }}>
@@ -279,7 +291,7 @@ export default function MatchLive({
                   spent by the three calls above, so leaving costs nothing. */}
               <button className="ghost sm" onClick={() => setPhase('watching')}>直接继续比赛</button>
               <p className="tiny faint" style={{ marginTop: 6, marginBottom: 0 }}>
-                滑杆的改动拖动时就已保存（下一张图生效）；只有选了强攻／稳守／围绕选手，才会用掉一次暂停。
+                滑杆拖动即保存；只有选了强攻／稳守／围绕选手，才会用掉一次暂停。
               </p>
             </div>
           </div>

@@ -12,6 +12,7 @@ import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } f
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { mapCn } from './content'
+import { FAM_MATCH, FAM_SCRIM, learnComp } from './comp'
 import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
@@ -766,6 +767,15 @@ export function commitFixture(
     for (const p of hurt) {
       notes.push(`⚕️ 人手不够，带伤的 ${p.ign} 还是上了场（${p.injuryNote ?? '伤病'}）。`)
     }
+    // Every map played on a sheet is a rehearsal of that sheet. A scrim
+    // teaches a little less than a fixture; both teach less than a week of
+    // 跑图 on the map. See engine/comp.ts.
+    const ours = new Set(played)
+    for (const m of result.maps) {
+      if (!m.agents) continue
+      const sheet = Object.fromEntries(Object.entries(m.agents).filter(([id]) => ours.has(id)))
+      if (Object.keys(sheet).length === 5) learnComp(state, m.map, sheet, isScrim(f) ? FAM_SCRIM : FAM_MATCH)
+    }
   }
   // scrims build form and cost condition but never enter the record books
   if (isScrim(f)) {
@@ -813,6 +823,11 @@ export function commitFixture(
       day: state.day, kind: 'club',
       text: `训练赛｜${state.teams[f.teamA]?.tag} ${result.mapsWonA}-${result.mapsWonB} ${state.teams[f.teamB]?.tag}`,
     })
+    // The pre-match sheet is now shown for scrims too, so a scrim can leave
+    // one behind — and a leftover sheet outranks the plan on the 战术 screen
+    // for the next real match on that map. It belongs to the game it was
+    // made for, scrim or not.
+    state.agentPicks = undefined
     return
   }
   applyMatchStats(state, result)

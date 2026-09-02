@@ -43,9 +43,12 @@ const FACTORS: {
     fix: '首发凑不齐五人，每缺一人都是压倒性的劣势——先把阵容补到五人',
   },
   { key: 'coach', label: '教练与战术素养', fix: '换个战术更好的主教练，或点满「战术」天赋' },
-  { key: 'utility', label: '道具运用', fix: '战术里的「道具」滑杆，以及选手的道具属性' },
-  { key: 'tacticsAtk', label: '战术设置（进攻端）', fix: '赛前的节奏与侵略性滑杆' },
-  { key: 'tacticsDef', label: '战术设置（防守端）', fix: '节奏与侵略性调高会削弱防守' },
+  { key: 'utility', label: '道具运用', fix: '战术里的「道具」滑杆，以及选手的道具属性；双控场阵容从这一项拿得最多' },
+  { key: 'tacticsAtk', label: '战术设置（进攻端）', fix: '这张图的节奏与侵略性滑杆——双决斗阵容往右拉才吃得到' },
+  { key: 'tacticsDef', label: '战术设置（防守端）', fix: '节奏与侵略性调高会削弱防守；双哨卫阵容往左拉才厚' },
+  { key: 'style', label: '阵容风格', fix: '双决斗偏攻、双哨卫偏守、双控场两头都吃——在预案里换一套五个英雄' },
+  { key: 'matchup', label: '针对对手', fix: '对双哨卫放慢节奏、对双决斗别把侵略性拉满、对双控场道具拉高——赛前预案里能看到对手的阵容' },
+  { key: 'familiarity', label: '阵容熟练度', fix: '同一套五个英雄多打几场、跑图时练它；临时换阵容会从零开始' },
 ]
 
 const CORE_ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫']
@@ -72,12 +75,15 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
     ? `首发缺 ${gaps.join('、')}——把能打这些位置的人放进首发`
     : '四个位置已覆盖齐，这一项没有可补的；第五人是谁都不扣分，能兼位还会小幅加分'
 
+  // the newer rows are absent on maps played before they existed; absent is
+  // zero, not a hole in the table
+  const at = (side: EdgeBreakdown, k: keyof EdgeBreakdown): number => (side[k] as number | undefined) ?? 0
   const rows = FACTORS
     .map((f) => ({
       ...f,
-      diff: (mine[f.key] as number) - (foe[f.key] as number),
+      diff: at(mine, f.key) - at(foe, f.key),
       fix: f.key === 'comp' ? compFix
-        : typeof f.fix === 'function' ? f.fix(mine[f.key] as number) : f.fix,
+        : typeof f.fix === 'function' ? f.fix(at(mine, f.key)) : f.fix,
     }))
     .filter((r) => Math.abs(r.diff) >= 0.15)
     .sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff))
@@ -139,8 +145,8 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
             {rows.map((r) => (
               <tr key={r.key}>
                 <td className="sticky-name at-left"><b>{r.label}</b></td>
-                <td className="num mono">{(mine[r.key] as number).toFixed(1)}</td>
-                <td className="num mono muted">{(foe[r.key] as number).toFixed(1)}</td>
+                <td className="num mono">{at(mine, r.key).toFixed(1)}</td>
+                <td className="num mono muted">{at(foe, r.key).toFixed(1)}</td>
                 <td className="num mono" style={{
                   color: r.diff >= 0 ? 'var(--win)' : 'var(--accent)', fontWeight: 600,
                 }}>

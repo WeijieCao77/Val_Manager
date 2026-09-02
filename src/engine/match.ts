@@ -1,6 +1,8 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
+import { callBoost, compStyle, famBonus, familiarity, tacticEdge } from './comp'
+import type { CompStyle } from './comp'
 import { coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
@@ -25,6 +27,8 @@ export interface Lineup {
   players: Player[]
   /** who played which agent on this map, keyed by player id */
   agents: Record<string, string>
+  /** the shape those agents make — see engine/comp.ts */
+  style: CompStyle
   atk: number
   def: number
   chem: number
@@ -151,18 +155,41 @@ function compositionScore(players: Player[]): number {
   return score
 }
 
-export function buildLineup(state: GameState, teamId: string, map: string): Lineup {
+/**
+ * The agents a side takes onto a map, and the shape they make.
+ *
+ * Split out of buildLineup because the OTHER side's shape is an input to
+ * ours: what your dials run into depends on whether they brought two
+ * sentinels or two duelists. Cheap, and deterministic in the state.
+ */
+export function sheetFor(
+  state: GameState, teamId: string, map: string, players = selectLineup(state, teamId),
+): { agents: Record<string, string>; style: CompStyle } {
+  const agents = normalizeAgents(
+    state, teamId, players, map,
+    // this match's sheet, then the club's remembered default for this map,
+    // then the composition the map is usually played with
+    (teamId === state.myTeam ? state.agentPicks?.[map] ?? state.mapAgents?.[map] : undefined)
+    ?? autoAgents(state, teamId, players, map))
+  return { agents, style: compStyle(Object.values(agents)) }
+}
+
+/** The dials a club plays a map on: its own for that map if set, else the general ones. */
+export const tacticsFor = (state: GameState, teamId: string, map: string) =>
+  (teamId === state.myTeam ? state.mapTactics?.[map] : undefined) ?? state.teams[teamId].tactics
+
+export function buildLineup(
+  state: GameState, teamId: string, map: string,
+  /** who we are up against on this map, for the matchup term; absent = a neutral five */
+  oppId?: string,
+): Lineup {
   const team = state.teams[teamId]
   const players = selectLineup(state, teamId)
   // Who is on which agent. The manager's own picks for this map if he made
   // any; otherwise the map's usual composition, handed to whoever can play it.
   // Agents used to be decoration — this is where a pick starts to cost or pay.
-  const picks = normalizeAgents(
-    state, teamId, players, map,
-    // this match's sheet, then the club's remembered default for this map,
-    // then the composition the map is usually played with
-    state.agentPicks?.[map] ?? (teamId === state.myTeam ? state.mapAgents?.[map] : undefined)
-    ?? autoAgents(state, teamId, players, map))
+  const { agents: picks, style } = sheetFor(state, teamId, map, players)
+  const oppStyle: CompStyle = oppId && state.teams[oppId] ? sheetFor(state, oppId, map).style : 'standard'
   const effs = players.map((x) => effectiveRating(x, state.day) * agentMod(x, picks[x.id]))
 
   // the top performers carry slightly more than a flat mean
@@ -199,15 +226,20 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const comp = compositionScore(players)
   const mapPref = ((team.mapPrefs[map] ?? 50) - 50) * 0.07
 
-  const t = team.tactics
-  // pace helps attack, hurts defence discipline; utility discipline helps both sides
-  const paceAtk = (t.pace - 50) * 0.035
-  const paceDef = -(t.pace - 50) * 0.022
+  // The dials, read through the shape of the five and the shape of theirs —
+  // see engine/comp.ts for why the same slider is worth different things to
+  // a double-duelist five and a double-sentinel one.
+  const t = tacticsFor(state, teamId, map)
+  const te = tacticEdge(t, style, oppStyle, avg('utility'))
   // 经济分析: better buys and better utility timing, all game
-  const utilBonus = (t.utility - 50) * 0.02 + (avg('utility') - 65) * 0.05 +
+  const utilBonus = te.utility + (avg('utility') - 65) * 0.05 +
     (mine ? analystEdge(state, 'economy') * 1.8 : 0)
-  const aggroAtk = (t.aggression - 50) * 0.028
-  const aggroDef = -(t.aggression - 50) * 0.015
+  // how well the club knows these five agents on this map — a drilled sheet
+  // plays above neutral, a sheet built last night plays below it
+  const fam = familiarity(state, teamId, map, picks)
+  const famEdge = famBonus(fam)
+  const styleAtk = te.styleAtk + te.matchupAtk
+  const styleDef = te.styleDef + te.matchupDef
 
   // Playing short-handed had no cost at all. Strength is a weighted mean of who
   // is on the server, so losing your weakest man RAISED it: a two-man side
@@ -221,20 +253,27 @@ export function buildLineup(state: GameState, teamId: string, map: string): Line
   const missing = Math.max(0, 5 - players.length)
   const shortHanded = -missing * 18
 
-  const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus + shortHanded
-  const atk = common + paceAtk + aggroAtk + (avg('aim') - 65) * 0.05
-  const def = common + paceDef + aggroDef + (avg('awareness') - 65) * 0.05 + 1.6
+  const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus + shortHanded +
+    famEdge
+  const atk = common + te.tacticsAtk + styleAtk + (avg('aim') - 65) * 0.05
+  const def = common + te.tacticsDef + styleDef + (avg('awareness') - 65) * 0.05 + 1.6
 
   const midRound =
-    (t.adaptability - 50) * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05
+    (t.adaptability - 50) * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05 +
+    te.styleMid + te.matchupMid
 
   const edge: EdgeBreakdown = {
     base, igl: iglBonus, chem: chemBonus, coach: coachBonus, comp, shortHanded,
     map: mapPref, utility: utilBonus,
-    tacticsAtk: paceAtk + aggroAtk, tacticsDef: paceDef + aggroDef,
+    tacticsAtk: te.tacticsAtk, tacticsDef: te.tacticsDef,
+    // the shape is one number across both sides for the report, which is how
+    // a manager reads it: "double duelist was worth +0.2 here"
+    style: (te.styleAtk + te.styleDef) / 2,
+    matchup: (te.matchupAtk + te.matchupDef) / 2,
+    familiarity: famEdge,
     atk, def,
   }
-  return { team, players, agents: picks, atk, def, chem, midRound, edge }
+  return { team, players, agents: picks, style, atk, def, chem, midRound, edge }
 }
 
 // ---------------------------------------------------------------- map veto
@@ -590,11 +629,16 @@ export class MapSim {
     return true
   }
 
-  /** Strength adjustment from an active tactical call. */
-  private callMod(call: TacticalCall | null, attacking: boolean): number {
+  /**
+   * Strength adjustment from an active tactical call.
+   *
+   * Scaled by the shape of the five it is called on: 强攻 with two duelists
+   * is the comp doing its job, 强攻 with two sentinels is not.
+   */
+  private callMod(call: TacticalCall | null, attacking: boolean, style: CompStyle): number {
     if (!call) return 0
-    if (call.kind === 'rush') return attacking ? 2.4 : -1.6
-    if (call.kind === 'steady') return attacking ? -1.2 : 2.0
+    if (call.kind === 'rush') return (attacking ? 2.4 : -1.6) * callBoost('rush', style)
+    if (call.kind === 'steady') return (attacking ? -1.2 : 2.0) * callBoost('steady', style)
     return 0.6 // focus: a small lift from playing to a known strength
   }
 
@@ -630,9 +674,9 @@ export class MapSim {
     }
 
     const strA = (aAttack ? this.A.atk : this.A.def) + (pistol ? 0 : BUY_MOD[buyA]) +
-      this.callMod(this.calls.a, aAttack)
+      this.callMod(this.calls.a, aAttack, this.A.style)
     const strB = (aAttack ? this.B.def : this.B.atk) + (pistol ? 0 : BUY_MOD[buyB]) +
-      this.callMod(this.calls.b, !aAttack)
+      this.callMod(this.calls.b, !aAttack, this.B.style)
 
     // trailing side leans on mid-round calling to steady the ship
     const swingA = this.a < this.b ? this.A.midRound * 0.35 : 0
@@ -840,8 +884,8 @@ export class MatchSim {
     if (this.decided || this.mapIndex + 1 >= this.maps.length) return false
     this.mapIndex++
     const m = this.maps[this.mapIndex]
-    const A = buildLineup(this.state, this.aId, m)
-    const B = buildLineup(this.state, this.bId, m)
+    const A = buildLineup(this.state, this.aId, m, this.bId)
+    const B = buildLineup(this.state, this.bId, m, this.aId)
     for (const p of A.players) this.seenA.add(p.id)
     for (const p of B.players) this.seenB.add(p.id)
     this.current = new MapSim(m, A, B, this.rng, this.format)
