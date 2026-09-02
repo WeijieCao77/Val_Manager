@@ -6,36 +6,27 @@ import { collection, upgradeCost } from '../../engine/gacha'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
 } from '../../engine/cards'
-import type { Card, Rarity } from '../../engine/cards'
+import type { Card } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
-import { SERIES } from '../../engine/gacha'
-import type { Series } from '../../engine/gacha'
 import { LEGEND_KIND_CN } from '../../engine/legends'
 import { legendPhoto } from '../../engine/dossier'
-
-type Filter = 'all' | Rarity | 'coach' | 'dupes'
-
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'mythic', label: '彩卡' },
-  { key: 'gold', label: '金卡' },
-  { key: 'silver', label: '银卡' },
-  { key: 'bronze', label: '铜卡' },
-  { key: 'coach', label: '教练' },
-  { key: 'dupes', label: '有重复' },
-]
+import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
+import type { CardFilter } from './Filters'
 
 export default function Collection() {
   const { g, act, toast, openDossier } = useCards()
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
+  const [dupesOnly, setDupesOnly] = useState(false)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
-  // 「中国」＋「看还缺什么」 is the list a series collector actually wants, and
-  // the reason the region packs exist at all
-  const [region, setRegion] = useState<Series | 'all'>('all')
 
   const mine = useMemo(() => collection(g), [g, g.pulls, g.coins])
+  // the club menu is built from whatever pile is on screen: what you own, or
+  // what you are still missing
+  const pool = useMemo(() => (missing
+    ? ALL_CARDS.filter((c) => !g.cards[c.id])
+    : mine.map((x) => x.card)), [missing, mine, g.cards])
 
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase()
@@ -44,23 +35,14 @@ export default function Collection() {
       const name = c.kind === 'player' ? `${c.ign} ${c.realName ?? ''} ${c.clubTag ?? ''}` : `${c.name} ${c.clubTag ?? ''}`
       return name.toLowerCase().includes(text)
     }
-    const inRegion = (c: Card) => region === 'all' || c.region === region
     if (missing) {
-      const owned = new Set(Object.keys(g.cards))
-      return ALL_CARDS.filter((c) => !owned.has(c.id) && match(c) && inRegion(c))
-        .filter((c) => filter === 'all' || (filter === 'coach' ? c.kind === 'coach' : filter === 'dupes' ? false : c.rarity === filter))
+      return pool.filter((c) => match(c) && matchesFilter(c, filter))
         .sort((a, b) => b.rating - a.rating)
         .map((card) => ({ card, owned: null, rating: card.rating }))
     }
     return mine
-      .filter(({ card, owned }) => {
-        if (filter === 'coach') return card.kind === 'coach'
-        if (filter === 'dupes') return owned.dupes > 0
-        if (filter !== 'all' && card.rarity !== filter) return false
-        return true
-      })
-      .filter(({ card }) => match(card) && inRegion(card))
-  }, [mine, filter, q, missing, region, g.cards])
+      .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && match(card) && matchesFilter(card, filter))
+  }, [mine, pool, filter, dupesOnly, q, missing])
 
   const sel = open ? cardById(open) : null
   const owned = open ? g.cards[open] : undefined
@@ -78,29 +60,26 @@ export default function Collection() {
           </div>
         }
       >
-        <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
-          <div className="seg">
-            {FILTERS.filter((f) => !(missing && f.key === 'dupes')).map((f) => (
-              <button key={f.key} className={filter === f.key ? 'on' : ''} onClick={() => setFilter(f.key)}>
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div className="seg">
-            <button className={region === 'all' ? 'on' : ''} onClick={() => setRegion('all')}>全部赛区</button>
-            {SERIES.map((r) => (
-              <button key={r} className={region === r ? 'on' : ''} onClick={() => setRegion(r)}>
-                {REGION_CN[r]}
-              </button>
-            ))}
-          </div>
-          <input
-            style={{ width: 180 }}
-            placeholder="搜 ID / 真名 / 战队"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
+        <CardFilters
+          value={filter}
+          onChange={setFilter}
+          pool={pool}
+          extra={
+            <>
+              {!missing && (
+                <button className={`sm${dupesOnly ? ' primary' : ''}`} onClick={() => setDupesOnly((v) => !v)}>
+                  有重复
+                </button>
+              )}
+              <input
+                style={{ width: 180 }}
+                placeholder="搜 ID / 真名 / 战队"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </>
+          }
+        />
 
         {rows.length === 0 ? (
           <p className="empty">没有符合条件的卡。</p>

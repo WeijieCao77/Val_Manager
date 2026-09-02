@@ -19,6 +19,8 @@ import {
 } from '../../engine/market'
 import type { Gate, Listing, Offer } from '../../engine/market'
 import { takeServer } from '../../engine/account'
+import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
+import type { CardFilter } from './Filters'
 
 const HAGGLE = 0.1
 const money = (n: number) => n.toLocaleString('en-US')
@@ -41,6 +43,9 @@ export default function Market() {
   const [ask, setAsk] = useState('')
   const [bidOpen, setBidOpen] = useState<Listing | null>(null)
   const [bidPrice, setBidPrice] = useState('')
+  // one filter for the shelf and for the sell menu — 「我要一个中国赛区的控场」
+  // is the same question on either side of the counter
+  const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
 
   const refresh = useCallback(async () => {
     const [b, o] = await Promise.all([browseMarket(), myOffers()])
@@ -135,7 +140,10 @@ export default function Market() {
   }
 
   const mineOnShelf = (shelf ?? []).filter((l) => l.mine)
-  const theirs = (shelf ?? []).filter((l) => !l.mine)
+  const theirsAll = (shelf ?? []).filter((l) => !l.mine)
+  const shelfCards = theirsAll.map((l) => cardById(l.cardId)).filter((c): c is NonNullable<typeof c> => !!c)
+  const theirs = theirsAll.filter((l) => { const c = cardById(l.cardId); return !!c && matchesFilter(c, filter) })
+  const sellRows = sellable.filter(({ card }) => matchesFilter(card, filter))
 
   return (
     <>
@@ -156,11 +164,15 @@ export default function Market() {
         </Panel>
       )}
 
+      <Panel title="筛选" actions={<span className="tiny muted">货架和挂牌菜单一起筛</span>}>
+        <CardFilters value={filter} onChange={setFilter} pool={[...shelfCards, ...sellable.map((x) => x.card)]} />
+      </Panel>
+
       <Panel title="挂一张卡出去" actions={<span className="tiny muted">还价范围 ±10%</span>}>
         <div className="row wrap" style={{ gap: 6 }}>
           <select style={{ flex: '2 1 240px' }} value={sellCard} onChange={(e) => setSellCard(e.target.value)}>
-            <option value="">选一张卡（{sellable.length} 种）</option>
-            {sellable.slice(0, 300).map(({ card, owned, rating }) => (
+            <option value="">选一张卡（{sellRows.length} 种{sellRows.length !== sellable.length ? '，已筛选' : ''}）</option>
+            {sellRows.slice(0, 300).map(({ card, owned, rating }) => (
               <option key={card.id} value={card.id}>
                 {isPlayerCard(card) ? card.ign : card.name} · {rating}
                 {owned.dupes > 0 ? ` · 多 ${owned.dupes} 张` : owned.level > 0 ? ` · +${owned.level}` : ' · 仅此一张'}
@@ -238,10 +250,11 @@ export default function Market() {
 
       <Panel
         title="货架"
-        actions={<span className="tiny muted">{theirs.length} 张在卖</span>}
+        actions={<span className="tiny muted">{theirs.length} 张在卖{theirs.length !== theirsAll.length ? `（共 ${theirsAll.length}）` : ''}</span>}
       >
         {shelf === null ? <p className="empty">读取中…</p>
-          : theirs.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>
+          : theirsAll.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>
+            : theirs.length === 0 ? <p className="empty">货架上没有符合筛选的卡。</p>
             : (
               <div className="market-shelf">
                 {theirs.map((l) => {

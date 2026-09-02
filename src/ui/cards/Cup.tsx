@@ -3,7 +3,8 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import {
-  CUP_ENTRY, CUP_PRIZE, CUP_WIN, PACKS, STAMINA_COST, canPlay, cupOpponent, levelOf,
+  CUP_MAX_ROUNDS, CUP_MIN_ROUNDS, PACKS, STAMINA_COST, canPlay, cupBo, cupExitPrize, cupOpponent,
+  cupRoundName, cupTitlePrize, levelOf, staminaNow,
 } from '../../engine/gacha'
 import type { CupOutcome } from '../../engine/gacha'
 import type { ArenaResult } from '../../engine/arena'
@@ -11,8 +12,13 @@ import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { track } from '../../engine/telemetry'
 
-const ROUND_CN = ['八强', '四强', '决赛']
-
+/**
+ * The cup: one ticket, then play until you lose or lift it.
+ *
+ * Drawn and played on the server — the bracket depth, the clubs in it, the
+ * seed of every map. What this screen does is show the draw and hand the
+ * scoreboards back.
+ */
 export default function Cup() {
   const { g, now, act, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
@@ -23,13 +29,17 @@ export default function Cup() {
   const rating = squadRating(g.squad, level)
   const cup = g.cup
   const live = cup && !cup.done
+  const rounds = cup?.path.length ?? 0
+  const can = canPlay(g, 'cup', now)
 
   const enter = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
     setBusy(true)
     const r = await act('cup_enter')
     setBusy(false)
-    toast(r.ok ? '抽签完成，八强对手已经出来了。' : r.why)
+    if (!r.ok) { toast(r.why); return }
+    const drawn = (r.result as { cup?: { path: string[] } } | undefined)?.cup?.path.length ?? 0
+    toast(`抽签完成：${drawn} 轮的签表，${cupRoundName(drawn, 0)}对手已经出来了。`)
   }
 
   // the bracket is played on the server, against the club it drew, with the
@@ -56,18 +66,21 @@ export default function Cup() {
     <>
       <Panel
         title="杯赛"
-        actions={<span className="tiny muted">报名费 {CUP_ENTRY} 金币</span>}
+        actions={<span className="tiny muted">入场 {STAMINA_COST.cup} 点体力 · 之后每轮免费</span>}
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
-          三轮单败淘汰，每轮 BO3，输一场就结束。对手按你的阵容分抽签，一轮比一轮硬。
-          每轮花 {STAMINA_COST.cup} 点体力——打不完不用急，对阵表会留着。
-          八强出局 {CUP_PRIZE[0]}、四强 {CUP_PRIZE[1]}、亚军 {CUP_PRIZE[2]}，
-          冠军 <b>{CUP_WIN} 金币 + 一个{PACKS.elite.name}</b>。
+          <b>{STAMINA_COST.cup} 点体力买一张门票</b>，签表 {CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，
+          <b>之后每一轮都不再收钱也不再扣体力</b>——能打到哪看阵容硬不硬。
+          对手按你的阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
+          出局按赢过的轮数给钱（{cupExitPrize(0)} 起，每赢一轮多 150）；
+          冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + 一个{PACKS.elite.name}</b>，签表越长给得越多。
         </p>
 
         {!cup && (
-          <button className="primary" onClick={() => void enter()} disabled={busy || g.coins < CUP_ENTRY}>
-            {g.coins < CUP_ENTRY ? `金币不够（还差 ${CUP_ENTRY - g.coins}）` : `报名（−${CUP_ENTRY} 金币）`}
+          <button className="primary" onClick={() => void enter()} disabled={busy || !can}>
+            {!can
+              ? `体力不够（${staminaNow(g, now)}/${STAMINA_COST.cup}）`
+              : filled < 5 ? '先去组队' : `报名（−${STAMINA_COST.cup} 体力）`}
           </button>
         )}
 
@@ -77,20 +90,22 @@ export default function Cup() {
               {cup.path.map((oppId, i) => {
                 const t = WORLD_TEAMS.find((x) => x.id === oppId)
                 const leg = cup.legs[i]
-                const now = live && cup.round === i
-                const cls = leg ? (leg.win ? 'won' : 'lost') : now ? 'now' : ''
+                const isNow = live && cup.round === i
+                const cls = leg ? (leg.win ? 'won' : 'lost') : isNow ? 'now' : ''
+                const final = i === rounds - 1
                 return (
                   <div key={i} className={`bracket-leg ${cls}`}>
-                    <b style={{ width: 40 }}>{ROUND_CN[i]}</b>
+                    <b style={{ width: 48 }}>{cupRoundName(rounds, i)}</b>
                     <span style={{ flex: 1 }}>
                       {t?.name ?? '?'}
                       <span className="tiny faint"> · 评分 {t?.rating}</span>
+                      {final && <span className="tag t1" style={{ marginLeft: 6 }}>BO5</span>}
                     </span>
                     {leg ? (
                       <span className="mono" style={{ color: leg.win ? 'var(--win)' : 'var(--loss)' }}>
                         {leg.mapsWon}–{leg.mapsLost}
                       </span>
-                    ) : now ? (
+                    ) : isNow ? (
                       <span className="tiny" style={{ color: 'var(--accent)' }}>下一场</span>
                     ) : (
                       <span className="tiny faint">未开始</span>
@@ -102,20 +117,18 @@ export default function Cup() {
 
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
               {live ? (
-                <button className="primary" onClick={() => void play()} disabled={busy || !canPlay(g, 'cup', now)}>
-                  {busy ? '比赛中…'
-                    : !canPlay(g, 'cup', now) ? '体力不够'
-                      : `打${ROUND_CN[cup.round]}（${STAMINA_COST.cup} 体力）`}
+                <button className="primary" onClick={() => void play()} disabled={busy}>
+                  {busy ? '比赛中…' : `打${cupRoundName(rounds, cup.round)}（BO${cupBo(cup)} · 不扣体力）`}
                 </button>
               ) : (
                 <>
                   <div className="small" style={{ marginRight: 'auto' }}>
                     {cup.won
-                      ? <b style={{ color: 'var(--warn)' }}>🏆 冠军</b>
-                      : <span className="muted">止步{ROUND_CN[Math.max(0, cup.legs.length - 1)]}</span>}
+                      ? <b style={{ color: 'var(--warn)' }}>🏆 冠军（{rounds} 轮）</b>
+                      : <span className="muted">止步{cupRoundName(rounds, Math.max(0, cup.legs.length - 1))}</span>}
                   </div>
-                  <button className="primary" disabled={busy} onClick={async () => { if (await clear()) void enter() }}>
-                    再来一届（−{CUP_ENTRY}）
+                  <button className="primary" disabled={busy || !can} onClick={async () => { if (await clear()) void enter() }}>
+                    再来一届（−{STAMINA_COST.cup} 体力）
                   </button>
                   <button disabled={busy} onClick={() => void clear()}>收工</button>
                 </>
@@ -136,7 +149,7 @@ export default function Cup() {
               {shown.out.won && <span className="chiplet" style={{ color: 'var(--warn)' }}>🏆 杯赛冠军</span>}
               {shown.out.coins > 0 && <span className="chiplet">+{shown.out.coins} 金币</span>}
               {shown.out.pack && <span className="chiplet" style={{ color: 'var(--warn)' }}>{PACKS[shown.out.pack].name} ×1</span>}
-              {!shown.out.done && <span className="chiplet">晋级下一轮</span>}
+              {!shown.out.done && <span className="chiplet">晋级下一轮 · 不扣体力</span>}
             </div>
           }
         />

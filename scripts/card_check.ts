@@ -16,7 +16,7 @@ import {
 import type { Squad } from '../src/engine/cards'
 import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
-  collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, CUP_ENTRY, starsFor,
+  collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, cupBo, starsFor,
   MYTHIC_FLOOR, setSlot, refreshDaily, spendPlay, claimQuest, STAMINA_MAX,
   STAMINA_COST, STAMINA_REGEN_MS, staminaEvery,
 } from '../src/engine/gacha'
@@ -320,32 +320,41 @@ console.log(`\n=== 杯赛 100 次 · ${label} ===`)
   const level = (id: string) => g.cards[id]?.level ?? 0
   const rating = squadRating(g.squad, level)
   let titles = 0
-  const exits = [0, 0, 0, 0]
+  const outAfter = [0, 0, 0, 0, 0, 0]   // rounds won before going out
+  const depths = [0, 0, 0, 0, 0, 0]
   const before = g.coins
-  let spent = 0
+  let legs = 0
+  let tickets = 0
   for (let i = 0; i < 100; i++) {
-    enterCup(g, rating)
-    spent += CUP_ENTRY
+    // a ticket costs 体力; the meter is refilled by hand so the run measures
+    // the purse, not the clock
+    g.daily.stamina = STAMINA_MAX; g.daily.staminaAt = 1
+    enterCup(g, rating, 1)
+    tickets += STAMINA_COST.cup
+    depths[g.cup!.path.length]++
     let round = 0
     while (g.cup && !g.cup.done) {
       const opp = cupOpponent(g)!
-      const r = playArenaMatch(g.squad, level, opp, 3, (i * 31 + round) >>> 0)
+      const r = playArenaMatch(g.squad, level, opp, cupBo(g.cup), (i * 31 + round) >>> 0)
       recordCup(g, { opponent: opp, win: r.win, mapsWon: r.mapsWon, mapsLost: r.mapsLost })
+      legs++
       if (!r.win) break
       round++
     }
-    if (g.cup?.won) { titles++; exits[3]++ } else exits[g.cup?.legs.length ? g.cup.legs.length - 1 : 0]++
+    if (g.cup?.won) titles++
+    else outAfter[g.cup?.round ?? 0]++
     g.cup = null
   }
-  console.log(`  阵容分 ${rating}  夺冠 ${titles}/100`)
-  console.log(`  八强出局 ${exits[0]} · 四强出局 ${exits[1]} · 决赛负 ${exits[2]} · 冠军 ${exits[3]}`)
-  const legs = 100 * (1 + (exits[1] + exits[2] + exits[3]) / 100 + (exits[2] + exits[3]) / 100)
+  console.log(`  阵容分 ${rating}  夺冠 ${titles}/100  签表深度 3/4/5 轮：${depths[3]}/${depths[4]}/${depths[5]}`)
+  console.log(`  出局时已赢 0/1/2/3/4 轮：${outAfter.slice(0, 5).join('/')}  · 平均每张门票打 ${(legs / 100).toFixed(1)} 场`)
   // the ladder yardstick, computed rather than remembered: it moved when the
   // daily budget landed and a stale number in a check is worse than no number
   const topWin = 110 + (DIVISIONS.length - 1) * 45
   const ladderPer = Math.round(0.57 * topWin + 0.43 * 30)
-  console.log(`  报名费共 ${spent}，余额变化 ${g.coins - before > 0 ? '+' : ''}${g.coins - before}`
-    + `  → 每场约 ${Math.round((g.coins - before) / legs)} 金币（天梯大师约 ${ladderPer}，但杯赛每轮多花 1 点体力）`)
+  const net = g.coins - before
+  console.log(`  门票共 ${tickets} 点体力，余额变化 ${net > 0 ? '+' : ''}${net}`
+    + `  → 每点体力 ${Math.round(net / tickets)} 金币（天梯大师每点约 ${Math.round(ladderPer / STAMINA_COST.ladder)}）`)
+  if (legs < 100 || legs > 500) throw new Error(`一张门票至少打一场，最多打满签表：${legs} 场`)
 }
 }
 

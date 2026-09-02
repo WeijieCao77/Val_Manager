@@ -28,7 +28,7 @@
 process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
-import { STARTER_COINS, STAMINA_MAX, STAMINA_COST, CUP_ENTRY } from '../src/engine/gacha'
+import { STARTER_COINS, STAMINA_MAX, STAMINA_COST } from '../src/engine/gacha'
 import { CHALLENGE_COST } from '../src/engine/challenge'
 import { cardById, isPlayerCard, personOf } from '../src/engine/cards'
 import type { GachaState } from '../src/engine/gacha'
@@ -225,23 +225,29 @@ console.log('\n天梯：')
 // ---- the cup and the puzzle ------------------------------------------
 console.log('\n杯赛与挑战：')
 {
-  const s0 = await stored(A)
-  if (s0.coins < CUP_ENTRY) {
-    await sql`update card_accounts set state = jsonb_set(state, '{coins}', '3000') where id_hash = ${hashOf(A)}`
-  }
-  const c0 = (await stored(A)).coins
+  // the ladder above ran the meter down to one point; the ticket is five
   let r = await act(A, 'cup_enter')
-  check('报名扣 800', r.ok && (await stored(A)).coins === c0 - CUP_ENTRY, r.why)
-  check('抽出了三个对手', (await stored(A)).cup?.path.length === 3)
+  check('体力不够买不了门票', !r.ok && /体力/.test(r.why ?? ''), r.why)
+  // give the meter back the way time would: an anchor two days ago
+  await sql`update card_accounts set state = jsonb_set(state, '{daily,staminaAt}', ${String(Date.now() - 2 * 86_400_000)}::jsonb) where id_hash = ${hashOf(A)}`
+  const c0 = (await stored(A)).coins
+  r = await act(A, 'cup_enter')
+  const cup = (await stored(A)).cup
+  check('门票扣 5 点体力，不扣金币', r.ok && (await stored(A)).daily.stamina === STAMINA_MAX - STAMINA_COST.cup && (await stored(A)).coins === c0, r.why)
+  check('签表 3～5 轮', !!cup && cup.path.length >= 3 && cup.path.length <= 5, `${cup?.path.length}`)
   r = await act(A, 'cup_clear')
   check('没打完的杯赛不能作废', !r.ok)
   r = await act(A, 'cup_play')
-  check('没体力打不了杯赛', !r.ok && /体力/.test(r.why ?? ''), r.why)
-  // give the meter back the way time would: an anchor two days ago
-  await sql`update card_accounts set state = jsonb_set(state, '{daily,staminaAt}', ${String(Date.now() - 2 * 86_400_000)}::jsonb) where id_hash = ${hashOf(A)}`
-  r = await act(A, 'cup_play')
-  check('两天之后体力回来了，杯赛能打', r.ok, r.why)
+  check('之后每一轮不扣体力', r.ok && (await stored(A)).daily.stamina === STAMINA_MAX - STAMINA_COST.cup, r.why)
   check('一轮记进了对阵表', ((await stored(A)).cup?.legs.length ?? 0) === 1)
+  // play it out: nothing is charged, and the purse arrives at the end
+  let legs = 1
+  while (!(await stored(A)).cup?.done && legs < 6) { r = await act(A, 'cup_play'); if (!r.ok) break; legs++ }
+  const done = await stored(A)
+  check('打到出局或夺冠为止，体力一直没动', !!done.cup?.done && done.daily.stamina === STAMINA_MAX - STAMINA_COST.cup, `${legs} 轮，体力 ${done.daily.stamina}`)
+  check('出局或夺冠都有奖金', done.coins > c0, `${c0} → ${done.coins}`)
+  r = await act(A, 'cup_enter')
+  check('再报一届又是 5 点体力', r.ok && (await stored(A)).daily.stamina === STAMINA_MAX - 2 * STAMINA_COST.cup, r.why)
 
   const c1 = (await stored(A)).coins
   r = await act(A, 'challenge', { guessId: 'nope' })

@@ -24,9 +24,9 @@
  * lets scripts/check_authority.ts drive every action without a database.
  */
 import {
-  canPlay, checkIn, claimQuest, claimSeries, clampState, cupOpponent, drawOpponent, enterCup,
+  canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
-  refreshDaily, salvage, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES,
+  refreshDaily, salvage, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES, STAMINA_COST,
 } from './gacha'
 import type { GachaState, PackKind, QuestKey, Series } from './gacha'
 import { playArenaMatch, playRivalMatch } from './arena'
@@ -198,8 +198,10 @@ function dispatch(
     case 'cup_enter': {
       const five = squadForPlay(g)
       if (!five.ok) return five
+      if (g.cup && !g.cup.done) return { ok: true, result: { cup: g.cup } }
+      if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够——入场要 ${STAMINA_COST.cup} 点。` }
       try {
-        enterCup(g, squadRating(five.squad, (id) => levelOf(g, id)))
+        enterCup(g, squadRating(five.squad, (id) => levelOf(g, id)), env.now)
         return { ok: true, result: { cup: g.cup } }
       } catch (e) {
         return { ok: false, why: e instanceof Error ? e.message : '报不了名' }
@@ -211,10 +213,9 @@ function dispatch(
       const cup = g.cup
       const oppId = cupOpponent(g)
       if (!cup || !oppId) return { ok: false, why: '没有进行中的杯赛' }
-      if (!canPlay(g, 'cup', env.now)) return { ok: false, why: '体力不够了。杯赛进度会留着，回头接着打。' }
-      if (!spendPlay(g, 'cup', env.now)) return { ok: false, why: '体力不够了。' }
+      // the ticket was the whole price: nothing is charged per round
       const level = (id: string) => levelOf(g, id)
-      const res = playArenaMatch(five.squad, level, oppId, 3, env.seed)
+      const res = playArenaMatch(five.squad, level, oppId, cupBo(cup), env.seed)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })

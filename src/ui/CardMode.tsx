@@ -71,7 +71,7 @@ function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
   return (
     <div
       className={`chip${have === 0 ? ' spent' : ''}`}
-      title={`每场天梯 ${STAMINA_COST.ladder} 点、每轮杯赛 ${STAMINA_COST.cup} 点。`
+      title={`每场天梯 ${STAMINA_COST.ladder} 点、杯赛入场 ${STAMINA_COST.cup} 点（之后每轮免费）。`
         + `${staminaRate()}，最多存 ${STAMINA_MAX} 点。`}
     >
       ⚡ <b>{have}/{STAMINA_MAX}</b>

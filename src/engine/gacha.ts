@@ -186,7 +186,8 @@ export const MYTHIC_FLOOR = 1200
  * things and taking them away twice would just be mean.
  */
 export const STAMINA_MAX = 15
-export const STAMINA_COST = { ladder: 2, cup: 3 } as const
+/** a ladder match, and the cup's ticket — one payment for the whole bracket */
+export const STAMINA_COST = { ladder: 2, cup: 5 } as const
 export type PlayKind = keyof typeof STAMINA_COST
 
 /**
@@ -1261,46 +1262,78 @@ export function recordLadder(g: GachaState, win: boolean, oppRating = 80): Ladde
 // ---------------------------------------------------------------- cup
 
 /**
- * What a cup run is worth.
+ * What a cup is, and what it is worth.
  *
- * The first pass paid 9000 for a title and charged 600 to enter, which a
- * finished collection converted into 550,000 coins across a hundred runs.
- * Cutting that left it still paying 231 coins per point of 体力 against the
- * ladder's 94 — two and a half times the rate, which makes the ladder
- * pointless for anyone counting. Halved again, so a cup leg is worth a little
- * more than a ladder match and no more; the reason to enter is the trophy and
- * the pack it comes with.
+ * A ticket, not a tab. It used to cost 800 coins to enter and three 体力 a
+ * round, which made every round a separate purchase and the bracket a thing
+ * you could stop halfway through to save the meter. Now the ticket is five
+ * 体力 at the door — two and a half ladder matches — and after that nothing
+ * is charged: you play until you lose or lift it, and how far that is depends
+ * on the five you brought. The bracket is three, four or five rounds deep,
+ * drawn with the opponents; every round is a step up from where YOU are, so
+ * the final is always the hardest club the draw could find, and the final is
+ * a best of five.
+ *
+ * The purse is shaped for that: a little for going out early, more for
+ * every round survived, and a title worth more the longer the road was. Per
+ * point of 体力 it lands near the ladder for a five that goes out in the
+ * first round and above it for one that goes deep, which is the point — the
+ * cup is where a strong five gets paid for being strong.
  */
-export const CUP_ENTRY = 800
-export const CUP_PRIZE = [150, 400, 900] // out in QF / SF / lost the final
-export const CUP_WIN = 1800
+export const CUP_ENTRY = 0
+export const CUP_MIN_ROUNDS = 3
+export const CUP_MAX_ROUNDS = 5
+/** a bracket's depth, drawn with it: most cups are four rounds */
+const CUP_ROUND_ODDS: [number, number][] = [[3, 0.35], [4, 0.4], [5, 0.25]]
+
+/** What going out after `won` rounds pays. */
+export const cupExitPrize = (won: number): number => 100 + 150 * won
+/** What the title pays, for a bracket `rounds` deep — plus a 选拔包. */
+export const cupTitlePrize = (rounds: number): number => 600 + 300 * rounds
+/** 「32强」…「决赛」, for round `i` of a bracket `rounds` deep. */
+export const cupRoundName = (rounds: number, i: number): string =>
+  i >= rounds - 1 ? '决赛' : `${2 ** (rounds - i)}强`
+/** The final is a best of five; everything before it a best of three. */
+export const cupBo = (cup: CupState): 3 | 5 => (cup.round >= cup.path.length - 1 ? 5 : 3)
+
+/** kept for saves written when a cup was priced in coins; nothing reads it */
+export const CUP_PRIZE = [100, 250, 400]
+export const CUP_WIN = cupTitlePrize(3)
 
 /**
- * Draw a cup: three clubs, each harder than the last.
+ * Draw a cup: three to five clubs, each harder than the last.
  *
  * Seeded off the account and the number of cups already played, so refreshing
- * the page cannot re-draw an easier bracket.
+ * the page cannot re-draw an easier bracket. The ticket is paid here.
  */
-export function enterCup(g: GachaState, squadRating: number): CupState {
+export function enterCup(g: GachaState, squadRating: number, now: number): CupState {
   if (g.cup && !g.cup.done) return g.cup
-  if (g.coins < CUP_ENTRY) throw new Error('金币不够')
-  g.coins -= CUP_ENTRY
+  if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够——入场要 ${STAMINA_COST.cup} 点。`)
   const { rng, done } = roll(g)
   const sorted = WORLD_TEAMS.slice().sort((a, b) => a.rating - b.rating)
+  let rounds = CUP_MIN_ROUNDS
+  let dice = rng.next()
+  for (const [n, p] of CUP_ROUND_ODDS) {
+    rounds = n
+    if (dice < p) break
+    dice -= p
+  }
   const path: string[] = []
-  for (let round = 0; round < 3; round++) {
+  for (let round = 0; round < rounds; round++) {
     // Each round is a step up from where YOU are, not a step up the world
     // rankings. Pinned to the absolute table instead, the final was the best
     // club on earth whoever entered, so a new account went 0 for 100 and the
-    // cup was a tax on not having a finished collection.
-    const target = squadRating - 8 + round * 4
+    // cup was a tax on not having a finished collection. The climb runs from
+    // eight below the five to eight above it whatever the depth, so a longer
+    // bracket is more matches, not a harder final.
+    const target = squadRating - 8 + (16 / (rounds - 1)) * round
     const band = sorted.filter((t) => Math.abs(t.rating - target) <= 5)
     const pick = rng.pick(band.length ? band : sorted)
     path.push(pick.id)
   }
   g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY }
   done()
-  note(g, '报名了一场杯赛')
+  note(g, `报名了一场 ${rounds} 轮的杯赛（−${STAMINA_COST.cup} 体力）`)
   return g.cup
 }
 
@@ -1318,19 +1351,20 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
   bumpQuest(g, 'cup1', 1)
   if (!leg.win) {
     cup.done = true
-    const coins = CUP_PRIZE[cup.round] ?? 0
+    const coins = cupExitPrize(cup.round)
     g.coins += coins
-    note(g, `杯赛止步${['八强', '四强', '决赛'][cup.round] ?? ''}，奖金 ${coins}`)
+    note(g, `杯赛止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}`)
     return { coins, done: true, won: false }
   }
   cup.round++
   if (cup.round >= cup.path.length) {
     cup.done = true
     cup.won = true
-    g.coins += CUP_WIN
+    const coins = cupTitlePrize(cup.path.length)
+    g.coins += coins
     g.packs.elite = (g.packs.elite ?? 0) + 1
-    note(g, `杯赛冠军！奖金 ${CUP_WIN} + 一个选拔包`)
-    return { coins: CUP_WIN, pack: 'elite', done: true, won: true }
+    note(g, `杯赛冠军（${cup.path.length} 轮）！奖金 ${coins} + 一个选拔包`)
+    return { coins, pack: 'elite', done: true, won: true }
   }
   return { coins: 0, done: false, won: false }
 }
