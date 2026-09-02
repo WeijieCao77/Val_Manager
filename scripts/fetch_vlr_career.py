@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import http.cookiejar
 import json
 import re
 import sys
@@ -45,6 +46,13 @@ SOURCES = [
 ]
 
 
+# vlr.gg now answers a bare request for some pages (rankings, stats) with a
+# redirect that sets a cookie and expects it back; without a jar that is a
+# redirect loop that reads as an empty page
+_jar = http.cookiejar.CookieJar()
+_opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_jar))
+
+
 class RateLimited(RuntimeError):
     pass
 
@@ -58,7 +66,7 @@ def _get(url: str) -> str:
     req = urllib.request.Request(
         url, headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
     try:
-        with urllib.request.urlopen(req, timeout=40) as r:
+        with _opener.open(req, timeout=40) as r:
             raw = r.read()
             if r.headers.get("Content-Encoding") == "gzip":
                 raw = gzip.decompress(raw)
@@ -143,6 +151,22 @@ def player_ids(cache: dict) -> dict[str, str]:
             for r in lines:
                 out.setdefault(r["ign"], r["vlrId"])
 
+    # ids already paid for elsewhere: the profile scrape searched every
+    # modelled player by name, and the season table carries an id per line
+    prof = ROOT / "scripts" / "cache" / "vlr_profiles.json"
+    if prof.exists():
+        pj = json.loads(prof.read_text("utf-8"))
+        for k, v in pj.items():
+            if k.startswith("_") or not isinstance(v, dict):
+                continue
+            if v.get("vlrId") and v.get("ign"):
+                out.setdefault(v["ign"], str(v["vlrId"]))
+    season = ROOT / "scripts" / "cache" / "vlr_stats2026.json"
+    if season.exists():
+        for ign, r in (json.loads(season.read_text("utf-8")).get("players") or {}).items():
+            if r.get("vlrId"):
+                out.setdefault(ign, str(r["vlrId"]))
+
     # Only clubs the game actually models. The ranking pages list every team in
     # the region — walking all of them was ~200 wasted page loads and most of a
     # scrape budget spent on clubs that do not exist in this world.
@@ -186,6 +210,8 @@ def player_ids(cache: dict) -> dict[str, str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--refresh", action="store_true",
+                    help="refetch the players the game models, even if cached")
     args = ap.parse_args()
 
     cache = json.loads(CACHE.read_text("utf-8")) if CACHE.exists() else {}
@@ -197,8 +223,15 @@ def main() -> int:
         print(f"!! {e}", file=sys.stderr)
         return 2
 
+    # --refresh: the modelled players again, so a season that has moved on
+    # since the last pass moves their career line too. Everyone else stays.
+    modelled: set[str] = set()
+    if args.refresh:
+        world = json.loads((ROOT / "src" / "data" / "world.json").read_text("utf-8"))
+        modelled = {p["ign"].lower() for p in world["players"]}
     todo = [(n, i) for n, i in ids.items()
-            if i and n not in cache and not n.startswith("_")]
+            if i and not n.startswith("_")
+            and (n not in cache or n.lower() in modelled)]
     if args.limit:
         todo = todo[: args.limit]
     print(f"{len(ids)} players known, {len(todo)} to fetch "

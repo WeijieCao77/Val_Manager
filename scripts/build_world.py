@@ -31,6 +31,11 @@ COACHES = os.path.join(RAW, "liquipedia_coaches.json")
 VLRAPI = os.path.join(RAW, "vlrapi_teams.json")
 AGENTS_F = os.path.join(RAW, "parsebot_agents.json")
 OVERRIDES = os.path.join(RAW, "overrides.json")
+HAND = os.path.join(RAW, "haojiao_players.json")
+# so a hand-entered player's passport agrees with the identity check below
+NAT_NAME = {"cn": "China", "tw": "Taiwan", "hk": "Hong Kong", "kr": "South Korea",
+            "jp": "Japan", "sg": "Singapore", "my": "Malaysia", "th": "Thailand",
+            "id": "Indonesia", "ph": "Philippines", "vn": "Vietnam", "ru": "Russia"}
 
 # which role each agent belongs to, so a real agent pool yields a real role set
 AGENT_ROLE = {}
@@ -701,7 +706,40 @@ def main():
     vcl_rows = [r for r in vcl_rows if r["ign"] not in known]
     rows += vcl_rows
     print(f"challengers: +{len(vcl_rows)} real players from vlr.gg event stats")
-    births = ci_alias(load_json(BIRTHS))
+    # People entered by hand from 号角 (data-raw/haojiao_players.json): a CN
+    # roster move can land there weeks before vlr.gg or Liquipedia carry the
+    # player, and a domestic player may never appear on either. Each becomes
+    # a stat row like any other; what 号角 does not publish stays None and
+    # falls to the population median like any other missing stat.
+    hand = load_json(HAND).get("players") or {}
+    hand_births = {}
+    known_now = {r["ign"].lower() for r in rows}
+    added = 0
+    for ign, rec in hand.items():
+        if ign.lower() in known_now:
+            continue                     # vlr has him now; that line wins
+        st = rec.get("stats") or {}
+        rnd = float(st.get("rounds") or 0)
+        agents = sorted(rec.get("agents") or [], key=lambda a: -(a.get("rounds") or 0))
+        role = AGENT_ROLE.get(agents[0]["en"].lower(), "自由人") if agents else "自由人"
+        rows.append({
+            "ign": ign, "tag": rec.get("team") or "", "nat": rec.get("nat") or "",
+            "role": role, "rnd": rnd, "R": st.get("rating"), "acs": st.get("acs"),
+            "kd": st.get("kd"), "kast": st.get("kast"), "adr": st.get("adr"),
+            "kpr": (st["kills"] / rnd) if rnd and st.get("kills") is not None else None,
+            "apr": (st["assists"] / rnd) if rnd and st.get("assists") is not None else None,
+            "fkpr": st.get("fkpr"), "fdpr": st.get("fdpr"), "hs": st.get("hs"),
+            "hand_agents": [a["en"] for a in agents],
+        })
+        if rec.get("realName") or rec.get("birth"):
+            hand_births[ign] = {"real": rec.get("realName"), "birth": rec.get("birth"),
+                                "country": NAT_NAME.get((rec.get("nat") or "").lower())}
+        added += 1
+    if added:
+        print(f"号角: +{added} players entered by hand ({', '.join(hand)})")
+    raw_births = load_json(BIRTHS)
+    raw_births.update(hand_births)
+    births = ci_alias(raw_births)
     wrong_person = []
     vlr_names = challengers_real_names()
     coaches = load_json(COACHES)
@@ -960,13 +998,40 @@ def main():
     # every alias already given a club, lowercased: the same person must not
     # appear twice because two sources spelled them Juicy and juicy
     placed = set()
-    pid = tid = 0
     used_tags = set()
 
+    # Ids survive a rebuild. Card collections are keyed p:P<n>, career saves
+    # hold teamIds, and the market escrows by card id — renumbering on every
+    # build would turn every one of those into a different person. So a
+    # player keeps the id the last world gave him (by handle), a club keeps
+    # its id (by tag and name), and only someone new gets a fresh number
+    # above everything ever issued.
+    prev = load_json(OUT) if os.path.exists(OUT) else {}
+    prev_pid = {p["ign"].lower(): p["id"] for p in prev.get("players") or []}
+    prev_tid = {(t["tag"], t["name"]): t["id"] for t in prev.get("teams") or []}
+    prev_tid_tag = {}
+    for t in prev.get("teams") or []:
+        prev_tid_tag.setdefault(t["tag"], t["id"])
+
+    def _next(prefix, taken):
+        n = max([int(x[1:]) for x in taken if x[1:].isdigit()] + [-1]) + 1
+        while f"{prefix}{n}" in taken:
+            n += 1
+        return f"{prefix}{n}"
+    issued_p = set(prev_pid.values())
+    issued_t = set(prev_tid.values())
+    kept_ids = 0
+
     def emit(p, team_id, tier, region):
-        nonlocal pid
+        nonlocal kept_ids
+        pid = prev_pid.get(p["ign"].lower())
+        if pid and pid in issued_p and pid not in {r["id"] for r in out_players}:
+            kept_ids += 1
+        else:
+            pid = _next("P", issued_p | {r["id"] for r in out_players})
+        issued_p.add(pid)
         rec = {
-            "id": f"P{pid}", "ign": p["ign"], "teamId": team_id, "region": region,
+            "id": pid, "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"],
             "joined": p.get("joined"),
             "rounds": p.get("rounds") or 0,
@@ -982,12 +1047,10 @@ def main():
             "contractYears": 0,   # dealt across the squad in deal_contract_years
             "loyalty": p["loyalty"], "ambition": p["ambition"], "vlr": p["vlr"],
         }
-        pid += 1
         out_players.append(rec)
         return rec
 
     def add_team(tag, display, region, tier):
-        nonlocal tid
         # A tag is not unique across tiers — Eternal Fire and Eintracht Frankfurt
         # are both "EF" — so indexing squads by tag alone put one roster on two
         # clubs. Anyone already placed is skipped.
@@ -1001,8 +1064,10 @@ def main():
         squad_src.sort(key=lambda x: -(x["vlr"]["rating"] or 0))
         if len(squad_src) < 5:
             return False
-        team_id = f"T{tid}"
-        tid += 1
+        team_id = prev_tid.get((tag, display)) or prev_tid_tag.get(tag)
+        if not team_id or team_id in {t["id"] for t in out_teams}:
+            team_id = _next("T", issued_t | {t["id"] for t in out_teams})
+        issued_t.add(team_id)
         used_tags.add(tag)
         for p in squad_src[:7]:
             placed.add(p["ign"].lower())
@@ -1216,7 +1281,8 @@ def main():
 
     t1 = [t for t in out_teams if t["tier"] == 1]
     print(f"teams {len(out_teams)} (T1 {len(t1)}, T2 {len(out_teams) - len(t1)})")
-    print(f"players {len(out_players)} — all real, {fa} free agents")
+    print(f"players {len(out_players)} — all real, {fa} free agents, "
+          f"{kept_ids} ids kept from the previous world")
     print(f"real birthdates {ages_known}/{len(rows)}   real coaches {coached}/{len(out_teams)}")
     if wrong_person:
         print(f"identity: dropped {len(wrong_person)} Liquipedia pages whose "

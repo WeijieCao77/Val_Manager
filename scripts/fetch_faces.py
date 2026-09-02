@@ -154,7 +154,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--only", default="",
+                    help="comma-separated igns; with --refresh, replace just these")
+    ap.add_argument("--prefer-haojiao", action="store_true",
+                    help="try 号角's picture first — the official CN portraits, kept current")
     args = ap.parse_args()
+    only = {s.strip().lower() for s in args.only.split(",") if s.strip()}
 
     OUT.mkdir(parents=True, exist_ok=True)
     profiles = load(PROFILES, {})
@@ -170,14 +175,19 @@ def main() -> int:
     jobs: list[tuple[str, str, list[str]]] = []
     for p in world["players"]:
         ign = p["ign"]
+        if only and ign.lower() not in only:
+            continue
+        hj_url = (hj["players"].get(ign) or {}).get("url")
         urls = [u for u in [(profiles.get(ign.lower()) or {}).get("img"),
                             (lp["players"].get(ign) or {}).get("url"),
-                            (hj["players"].get(ign) or {}).get("url")] if u]
+                            hj_url] if u]
+        if args.prefer_haojiao and hj_url:
+            urls = [hj_url] + [u for u in urls if u != hj_url]
         if urls:
             jobs.append((ign, f"{p['id']}.webp", urls))
 
     names = set()
-    for t in world["teams"]:
+    for t in ([] if only else world["teams"]):
         c = t.get("coach") or {}
         if c.get("name"):
             names.add(c["name"])
@@ -191,7 +201,7 @@ def main() -> int:
 
     manual = load(CACHE / "manual_faces.json", {})
     crops: dict[str, dict] = {}
-    for lid, pick in (load(LEGEND, {}).get("picks") or {}).items():
+    for lid, pick in ({} if only else (load(LEGEND, {}).get("picks") or {})).items():
         if lid in manual:
             continue              # imported by hand; leave it alone
         if pick.get("url"):

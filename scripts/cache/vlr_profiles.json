@@ -3,15 +3,15 @@
   "img": "https://owcdn.net/img/69234b3d0a58d.png",
   "real": "Bruno Rodríguez",
   "nat": "ar",
-  "winnings": 85702,
+  "winnings": 87702,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "LEVIATÁN",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 LEVIATÁN",
     "year": 2026
    },
    {
@@ -175,15 +175,15 @@
   "img": "https://owcdn.net/img/676ba04aee5f9.png",
   "real": "Kim Na-ra (김나라)",
   "nat": "kr",
-  "winnings": 174413,
+  "winnings": 176413,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Gen.G",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Gen.G",
     "year": 2026
    },
    {
@@ -1586,21 +1586,22 @@
   "beng": "38857",
   "tenten": "29839",
   "sturnn": "12226",
-  "governor": "3980"
+  "governor": "3980",
+  "zhubibi": "58013"
  },
  "sato": {
   "img": "https://owcdn.net/img/69234b72ce3db.png",
   "real": "Eduardo Kenzo Nagahama Sato",
   "nat": "br",
-  "winnings": 90191,
+  "winnings": 92191,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "LEVIATÁN",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 LEVIATÁN",
     "year": 2026
    },
    {
@@ -1681,7 +1682,7 @@
     "event": "Challengers 2025: North America ACE Stage 2",
     "stage": "Swiss Stage",
     "place": "2nd–3rd",
-    "team": "Ambrosia",
+    "team": "M80",
     "year": 2025
    },
    {
@@ -1809,15 +1810,15 @@
   "img": "https://owcdn.net/img/69234aef86f4b.png",
   "real": "Guilherme Oliviera",
   "nat": "br",
-  "winnings": 85845,
+  "winnings": 87845,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "LEVIATÁN",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 LEVIATÁN",
     "year": 2026
    },
    {
@@ -1936,15 +1937,15 @@
   "img": "https://owcdn.net/img/69234b213a609.png",
   "real": "Francisco Aravena",
   "nat": "cl",
-  "winnings": 198308,
+  "winnings": 200308,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "LEVIATÁN",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 LEVIATÁN",
     "year": 2026
    },
    {
@@ -2079,7 +2080,7 @@
     "event": "Champions Tour 2024: Masters Shanghai",
     "stage": "Swiss Stage",
     "place": "9th–10th",
-    "team": "$5,000 LEVIATÁN",
+    "team": "$5,000 FunPlus Phoenix",
     "year": 2024
    },
    {
@@ -2270,15 +2271,15 @@
   "img": "https://owcdn.net/img/69234b7d30781.png",
   "real": "Rodrigo Lombardi",
   "nat": "br",
-  "winnings": 87079,
+  "winnings": 89079,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "LEVIATÁN",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 LEVIATÁN",
     "year": 2026
    },
    {
@@ -3226,7 +3227,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Swiss Stage",
     "place": "9th–10th",
-    "team": "$5,000 NRG",
+    "team": "$5,000 Global Esports",
     "year": 2026
    },
    {
@@ -6412,15 +6413,15 @@
   "img": "https://owcdn.net/img/69742b3c25b7c.png",
   "real": "Andrew Maust",
   "nat": "us",
-  "winnings": 59325,
+  "winnings": 61325,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "MIBR",
+    "team": "$2,000 MIBR",
     "year": 2026
    },
    {
@@ -6899,15 +6900,15 @@
   "img": "https://owcdn.net/img/6977f8cf0996f.png",
   "real": "Erick Santos",
   "nat": "br",
-  "winnings": 306282,
+  "winnings": 308282,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "MIBR",
+    "team": "$2,000 MIBR",
     "year": 2026
    },
    {
@@ -7242,15 +7243,15 @@
   "img": "https://owcdn.net/img/69742b2cdd6c3.png",
   "real": "Zachary Patrone",
   "nat": "us",
-  "winnings": 185253,
+  "winnings": 187253,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "MIBR",
+    "team": "$2,000 MIBR",
     "year": 2026
    },
    {
@@ -7810,15 +7811,15 @@
   "img": "https://owcdn.net/img/69742ba0b7d17.png",
   "real": "Roberto Rivas",
   "nat": "cl",
-  "winnings": 163270,
+  "winnings": 165270,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "MIBR",
+    "team": "$2,000 MIBR",
     "year": 2026
    },
    {
@@ -7935,7 +7936,7 @@
     "event": "Champions Tour 2024: Masters Shanghai",
     "stage": "Swiss Stage",
     "place": "9th–10th",
-    "team": "$5,000 LEVIATÁN",
+    "team": "$5,000 FunPlus Phoenix",
     "year": 2024
    },
    {
@@ -8162,15 +8163,15 @@
   "img": "https://owcdn.net/img/69742b4f94c53.png",
   "real": "Ian Botsch",
   "nat": "de",
-  "winnings": 134475,
+  "winnings": 136475,
   "events": [
    {
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "MIBR",
+    "team": "$2,000 MIBR",
     "year": 2026
    },
    {
@@ -9801,8 +9802,8 @@
     "slug": "nerd-street-gamers-summer-championship-open-10",
     "event": "Nerd Street Gamers Summer Championship - Open 10",
     "stage": "Playoffs",
-    "place": "5th–8th",
-    "team": "Brimstone Gaming",
+    "place": "3rd–4th",
+    "team": "$50 Resonate",
     "year": 2021
    },
    {
@@ -10037,7 +10038,7 @@
     "event": "Champions Tour North America Stage 2: Challengers",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "$1,200 Cloud9",
+    "team": "$1,200 The Guard",
     "year": 2022
    },
    {
@@ -10316,7 +10317,7 @@
     "slug": "funhavergg-back-to-basics-4",
     "event": "FunhaverGG: Back to Basics 4",
     "stage": "Playoffs",
-    "place": "9th–16th",
+    "place": "5th–8th",
     "team": "SaD Esports",
     "year": 2025
    },
@@ -10712,8 +10713,8 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "FURIA",
     "year": 2026
    },
@@ -11164,8 +11165,8 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "FURIA",
     "year": 2026
    },
@@ -11354,8 +11355,8 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "FURIA",
     "year": 2026
    },
@@ -11607,8 +11608,8 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "FURIA",
     "year": 2026
    },
@@ -12103,8 +12104,8 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "FURIA",
     "year": 2026
    },
@@ -14087,9 +14088,9 @@
     "id": "2345",
     "slug": "spike-drop-4-momentum-series",
     "event": "Spike Drop 4: Momentum Series",
-    "stage": "Consolation Bracket",
-    "place": "1st",
-    "team": "$240 QoR",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "QoR",
     "year": 2025
    },
    {
@@ -19056,7 +19057,7 @@
     "event": "FunhaverGG x HyperX Momentum Series: Last Chance Qualifier",
     "stage": "Playoffs",
     "place": "3rd–4th",
-    "team": "$100 Overtake",
+    "team": "$50 Prosperity Esports",
     "year": 2025
    },
    {
@@ -19632,7 +19633,7 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "7th–8th",
     "team": "Evil Geniuses",
     "year": 2026
@@ -19885,7 +19886,7 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "7th–8th",
     "team": "Evil Geniuses",
     "year": 2026
@@ -20156,7 +20157,7 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "7th–8th",
     "team": "Evil Geniuses",
     "year": 2026
@@ -20436,7 +20437,7 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "7th–8th",
     "team": "Evil Geniuses",
     "year": 2026
@@ -20968,7 +20969,7 @@
     "id": "2977",
     "slug": "vct-2026-americas-stage-2",
     "event": "VCT 2026: Americas Stage 2",
-    "stage": "Group Stage",
+    "stage": "Playoffs",
     "place": "7th–8th",
     "team": "Evil Geniuses",
     "year": 2026
@@ -21024,7 +21025,7 @@
     "event": "Challengers 2025: North America ACE Stage 3",
     "stage": "Swiss Stage",
     "place": "12th–13th",
-    "team": "SaD Esports",
+    "team": "Shopify Rebellion Black",
     "year": 2025
    },
    {
@@ -24163,8 +24164,8 @@
     "slug": "emea-clash-2026",
     "event": "EMEA Clash 2026",
     "stage": "Main Event",
-    "place": "1st–2nd",
-    "team": "$1,777 Enterprise Esports",
+    "place": "3rd–4th",
+    "team": "$592 UCAM Esports Club",
     "year": 2026
    },
    {
@@ -25138,8 +25139,8 @@
     "slug": "emea-clash-2026",
     "event": "EMEA Clash 2026",
     "stage": "Main Event",
-    "place": "3rd–4th",
-    "team": "$592 UCAM Esports Club",
+    "place": "1st–2nd",
+    "team": "$1,777 Team Vitality",
     "year": 2026
    },
    {
@@ -25463,8 +25464,8 @@
     "slug": "emea-clash-2026",
     "event": "EMEA Clash 2026",
     "stage": "Main Event",
-    "place": "3rd–4th",
-    "team": "$592 UCAM Esports Club",
+    "place": "1st–2nd",
+    "team": "$1,777 Team Vitality",
     "year": 2026
    },
    {
@@ -25780,7 +25781,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Playoffs",
     "place": "7th–8th",
-    "team": "$7,000 Team Heretics",
+    "team": "$7,000 G2 Esports",
     "year": 2026
    },
    {
@@ -26096,7 +26097,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Playoffs",
     "place": "7th–8th",
-    "team": "$7,000 G2 Esports",
+    "team": "$7,000 Team Heretics",
     "year": 2026
    },
    {
@@ -26122,8 +26123,8 @@
     "slug": "ten-global-invitational-2025",
     "event": "TEN Global Invitational 2025",
     "stage": "Main Event",
-    "place": "3rd",
-    "team": "$845 Team Heretics",
+    "place": "4th",
+    "team": "$563 Wolves Esports",
     "year": 2025
    },
    {
@@ -27017,7 +27018,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Playoffs",
     "place": "7th–8th",
-    "team": "$7,000 G2 Esports",
+    "team": "$7,000 Team Heretics",
     "year": 2026
    },
    {
@@ -27585,8 +27586,8 @@
     "slug": "challengers-league-2024-france-revolution-split-2",
     "event": "Challengers League 2024 France: Revolution Split 2",
     "stage": "Playoffs",
-    "place": "4th",
-    "team": "$200 Mandatory",
+    "place": "3rd",
+    "team": "$300 Zerance",
     "year": 2024
    },
    {
@@ -28289,8 +28290,8 @@
     "slug": "valorant-east-united-season-2-stage-3-league",
     "event": "VALORANT East: United: Season 2: Stage 3 - League",
     "stage": "Group Stage",
-    "place": "6th",
-    "team": "$40 Incognito",
+    "place": "4th",
+    "team": "$40 Zero Tenacity",
     "year": 2023
    },
    {
@@ -28525,7 +28526,7 @@
     "event": "VCT 2026: EMEA Stage 1",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "GIANTX",
+    "team": "Natus Vincere",
     "year": 2026
    },
    {
@@ -29302,15 +29303,15 @@
   "img": "https://owcdn.net/img/697ab948ca75e.png",
   "real": "Eray Budak",
   "nat": "tr",
-  "winnings": 43918,
+  "winnings": 51918,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "5th–6th",
-    "team": "FUT Esports",
+    "stage": "Playoffs",
+    "place": "3rd",
+    "team": "$8,000 FUT Esports",
     "year": 2026
    },
    {
@@ -29591,15 +29592,15 @@
   "img": null,
   "real": "Efe Tur",
   "nat": "tr",
-  "winnings": 19527,
+  "winnings": 27527,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "5th–6th",
-    "team": "FUT Esports",
+    "stage": "Playoffs",
+    "place": "3rd",
+    "team": "$8,000 FUT Esports",
     "year": 2026
    },
    {
@@ -29745,15 +29746,15 @@
   "img": "https://owcdn.net/img/680a926893d7b.png",
   "real": "Volkan Yonal",
   "nat": "tr",
-  "winnings": 40420,
+  "winnings": 48420,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "5th–6th",
-    "team": "FUT Esports",
+    "stage": "Playoffs",
+    "place": "3rd",
+    "team": "$8,000 FUT Esports",
     "year": 2026
    },
    {
@@ -30097,15 +30098,15 @@
   "img": "https://owcdn.net/img/697ab97a4855f.png",
   "real": "Doğan Gözgen",
   "nat": "tr",
-  "winnings": 19596,
+  "winnings": 27596,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "5th–6th",
-    "team": "FUT Esports",
+    "stage": "Playoffs",
+    "place": "3rd",
+    "team": "$8,000 FUT Esports",
     "year": 2026
    },
    {
@@ -30332,15 +30333,15 @@
   "img": "https://owcdn.net/img/697aba0af3cd9.png",
   "real": "Okan Alaçam",
   "nat": "tr",
-  "winnings": 16028,
+  "winnings": 24028,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "5th–6th",
-    "team": "FUT Esports",
+    "stage": "Playoffs",
+    "place": "3rd",
+    "team": "$8,000 FUT Esports",
     "year": 2026
    },
    {
@@ -30665,7 +30666,7 @@
     "event": "VCT 2026: EMEA Stage 1",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "Natus Vincere",
+    "team": "GIANTX",
     "year": 2026
    },
    {
@@ -30880,8 +30881,8 @@
     "slug": "project-v-stage-1-division-1",
     "event": "Project V: Stage 1 Division 1",
     "stage": "Tour",
-    "place": "2nd",
-    "team": "Sissi State Punks",
+    "place": "3rd",
+    "team": "eSports Cologne",
     "year": 2023
    },
    {
@@ -31008,7 +31009,7 @@
     "event": "VCT 2026: EMEA Stage 1",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "GIANTX",
+    "team": "Natus Vincere",
     "year": 2026
    },
    {
@@ -33574,15 +33575,15 @@
   "img": "https://owcdn.net/img/67ab62d450b3c.png",
   "real": "Nikita Cherednichenko",
   "nat": "ru",
-  "winnings": 71026,
+  "winnings": 84026,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Team Liquid",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$13,000 Team Liquid",
     "year": 2026
    },
    {
@@ -33818,15 +33819,15 @@
   "img": "https://owcdn.net/img/697355a36ffa7.png",
   "real": "Kamil Frąckowiak",
   "nat": "pl",
-  "winnings": 49998,
+  "winnings": 62998,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Team Liquid",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$13,000 Team Liquid",
     "year": 2026
    },
    {
@@ -34288,15 +34289,15 @@
   "img": "https://owcdn.net/img/69735612b9b30.png",
   "real": "Ayaz Akhmetshin",
   "nat": "ru",
-  "winnings": 194463,
+  "winnings": 207463,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Team Liquid",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$13,000 Team Liquid",
     "year": 2026
    },
    {
@@ -34422,7 +34423,7 @@
     "event": "Champions Tour 2024: EMEA Stage 1",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "Natus Vincere",
+    "team": "Team Liquid",
     "year": 2024
    },
    {
@@ -34431,7 +34432,7 @@
     "event": "Champions Tour 2024: EMEA Kickoff",
     "stage": "Group Stage",
     "place": "7th–9th",
-    "team": "FUT Esports",
+    "team": "Team Liquid",
     "year": 2024
    },
    {
@@ -34893,15 +34894,15 @@
   "img": "https://owcdn.net/img/6973563baf5bc.png",
   "real": "Semyon Borchev",
   "nat": "ru",
-  "winnings": 18155,
+  "winnings": 31155,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Team Liquid",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$13,000 Team Liquid",
     "year": 2026
    },
    {
@@ -35173,15 +35174,15 @@
   "img": "https://owcdn.net/img/677d6506baa65.png",
   "real": "Kimmie Laasner",
   "nat": "ee",
-  "winnings": 33336,
+  "winnings": 46336,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Team Liquid",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$13,000 Team Liquid",
     "year": 2026
    },
    {
@@ -37846,7 +37847,7 @@
     "event": "Champions Tour North America Stage 2: Challengers",
     "stage": "Group Stage",
     "place": "11th–12th",
-    "team": "$1,200 Sentinels",
+    "team": "$1,200 TSM",
     "year": 2022
    },
    {
@@ -38838,8 +38839,8 @@
     "slug": "valorant-east-united-stage-3-weekly-cup-5",
     "event": "Valorant East: United - Stage 3 - Weekly Cup #5",
     "stage": "Playoffs",
-    "place": "5th–8th",
-    "team": "Enterprise Esports",
+    "place": "1st",
+    "team": "$80 Enterprise Esports",
     "year": 2022
    },
    {
@@ -42037,15 +42038,15 @@
   "img": "https://owcdn.net/img/69e903fd4c11a.png",
   "real": "Zhumagali Dastan",
   "nat": "kz",
-  "winnings": 19173,
+  "winnings": 39173,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Karmine Corp",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$20,000 Karmine Corp",
     "year": 2026
    },
    {
@@ -42245,15 +42246,15 @@
   "img": "https://owcdn.net/img/680a9297edd81.png",
   "real": "Burak Alkan",
   "nat": "tr",
-  "winnings": 37684,
+  "winnings": 57684,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Karmine Corp",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$20,000 Karmine Corp",
     "year": 2026
    },
    {
@@ -42534,15 +42535,15 @@
   "img": "https://owcdn.net/img/6974146682328.png",
   "real": "Marshall Massey",
   "nat": "us",
-  "winnings": 52950,
+  "winnings": 72950,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Karmine Corp",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$20,000 Karmine Corp",
     "year": 2026
    },
    {
@@ -42751,15 +42752,15 @@
   "img": "https://owcdn.net/img/642eabfbd9478.png",
   "real": "Dmitry Ilyushin",
   "nat": "un",
-  "winnings": 129944,
+  "winnings": 149944,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Karmine Corp",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$20,000 Karmine Corp",
     "year": 2026
    },
    {
@@ -43175,15 +43176,15 @@
   "img": "https://owcdn.net/img/63e4aecb51963.png",
   "real": "Hazem Khaled",
   "nat": "eg",
-  "winnings": 38226,
+  "winnings": 58226,
   "events": [
    {
     "id": "2976",
     "slug": "vct-2026-emea-stage-2",
     "event": "VCT 2026: EMEA Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Karmine Corp",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$20,000 Karmine Corp",
     "year": 2026
    },
    {
@@ -43888,15 +43889,15 @@
   "img": "https://owcdn.net/img/69735f396861f.png",
   "real": "Ilya Petrov",
   "nat": "ru",
-  "winnings": 359694,
+  "winnings": 361694,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Paper Rex",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Paper Rex",
     "year": 2026
    },
    {
@@ -44177,15 +44178,15 @@
   "img": "https://owcdn.net/img/69735f4a21e3b.png",
   "real": "Adrian Jiggs Reyes",
   "nat": "ph",
-  "winnings": 109119,
+  "winnings": 111119,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Paper Rex",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Paper Rex",
     "year": 2026
    },
    {
@@ -44529,15 +44530,15 @@
   "img": "https://owcdn.net/img/69735f0889a6b.png",
   "real": "Wang Jing Jie",
   "nat": "sg",
-  "winnings": 444058,
+  "winnings": 446058,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Paper Rex",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Paper Rex",
     "year": 2026
    },
    {
@@ -44953,15 +44954,15 @@
   "img": "https://owcdn.net/img/69735f207c9bf.png",
   "real": "Khalish Rusyaidee",
   "nat": "my",
-  "winnings": 459661,
+  "winnings": 461661,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Paper Rex",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Paper Rex",
     "year": 2026
    },
    {
@@ -45404,15 +45405,15 @@
   "img": "https://owcdn.net/img/69735f135cf21.png",
   "real": "Jason Susanto",
   "nat": "id",
-  "winnings": 464311,
+  "winnings": 466311,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "3rd–4th",
-    "team": "Paper Rex",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Paper Rex",
     "year": 2026
    },
    {
@@ -47581,21 +47582,21 @@
     "year": 2020
    },
    {
-    "id": "138",
-    "slug": "douyu-bie-zhuang-cup-season-1",
-    "event": "Douyu Bie Zhuang Cup Season 1",
-    "stage": "Playoffs",
-    "place": "1st",
-    "team": "$1,181 Vision Strikers",
-    "year": 2020
-   },
-   {
     "id": "131",
     "slug": "epulze-royal-sea-cup",
     "event": "EPULZE Royal SEA Cup",
     "stage": "Tournament",
     "place": "1st",
     "team": "$2,600 Vision Strikers",
+    "year": 2020
+   },
+   {
+    "id": "138",
+    "slug": "douyu-bie-zhuang-cup-season-1",
+    "event": "Douyu Bie Zhuang Cup Season 1",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,181 Vision Strikers",
     "year": 2020
    },
    {
@@ -48692,15 +48693,15 @@
   "img": "https://owcdn.net/img/676ba061b7251.png",
   "real": "Kim Won-tae (김원태)",
   "nat": "kr",
-  "winnings": 163416,
+  "winnings": 165416,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Gen.G",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Gen.G",
     "year": 2026
    },
    {
@@ -48918,15 +48919,15 @@
   "img": "https://owcdn.net/img/688488102c9bb.png",
   "real": "Kim Min-seok (김민석)",
   "nat": "kr",
-  "winnings": 2263,
+  "winnings": 4263,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Gen.G",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Gen.G",
     "year": 2026
    },
    {
@@ -48982,15 +48983,15 @@
   "img": null,
   "real": "Ha Hyun-cheol (하현철)",
   "nat": "kr",
-  "winnings": 42848,
+  "winnings": 44848,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Gen.G",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Gen.G",
     "year": 2026
    },
    {
@@ -49236,15 +49237,15 @@
   "img": "https://owcdn.net/img/670020c9da004.png",
   "real": "Kim Nak-yeon (김낙연)",
   "nat": "kr",
-  "winnings": 21537,
+  "winnings": 23537,
   "events": [
    {
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "1st–2nd",
-    "team": "Gen.G",
+    "stage": "Playoffs",
+    "place": "5th–6th",
+    "team": "$2,000 Gen.G",
     "year": 2026
    },
    {
@@ -49378,8 +49379,8 @@
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "KIWOOM DRX",
     "year": 2026
    },
@@ -49559,8 +49560,8 @@
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "KIWOOM DRX",
     "year": 2026
    },
@@ -49920,8 +49921,8 @@
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "KIWOOM DRX",
     "year": 2026
    },
@@ -50137,8 +50138,8 @@
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "KIWOOM DRX",
     "year": 2026
    },
@@ -50372,8 +50373,8 @@
     "id": "2776",
     "slug": "vct-2026-pacific-stage-2",
     "event": "VCT 2026: Pacific Stage 2",
-    "stage": "Group Stage",
-    "place": "11th–12th",
+    "stage": "Playoffs",
+    "place": "7th–8th",
     "team": "KIWOOM DRX",
     "year": 2026
    },
@@ -53856,7 +53857,7 @@
     "event": "Champions Tour 2024: Pacific Stage 1",
     "stage": "Regular Season",
     "place": "7th–8th",
-    "team": "Rex Regum Qeon",
+    "team": "Global Esports",
     "year": 2024
    },
    {
@@ -57885,7 +57886,7 @@
     "event": "Esports World Cup 2026",
     "stage": "Group Stage",
     "place": "13th–16th",
-    "team": "$6,000 Global Esports",
+    "team": "$6,000 Xi Lai Gaming",
     "year": 2026
    },
    {
@@ -57993,7 +57994,7 @@
     "event": "Champions Tour 2023 China: Ascension",
     "stage": "Group Stage",
     "place": "5th–6th",
-    "team": "Night Wings Gaming",
+    "team": "Four Angry Men",
     "year": 2023
    },
    {
@@ -58355,7 +58356,7 @@
     "event": "Esports World Cup 2026",
     "stage": "Group Stage",
     "place": "13th–16th",
-    "team": "$6,000 Global Esports",
+    "team": "$6,000 Xi Lai Gaming",
     "year": 2026
    },
    {
@@ -59703,7 +59704,7 @@
     "event": "Shanghai Esports Masters 2024",
     "stage": "Main Event",
     "place": "3rd–4th",
-    "team": "EDward Gaming",
+    "team": "Paper Rex",
     "year": 2024
    },
    {
@@ -60109,7 +60110,7 @@
     "event": "Shanghai Esports Masters 2024",
     "stage": "Main Event",
     "place": "3rd–4th",
-    "team": "EDward Gaming",
+    "team": "Paper Rex",
     "year": 2024
    },
    {
@@ -60820,8 +60821,8 @@
     "slug": "huya-panghu-cup-spring",
     "event": "Huya PangHu Cup: Spring",
     "stage": "Playoffs",
-    "place": "7th–8th",
-    "team": "Attacking Soul Esports",
+    "place": "4th",
+    "team": "Weibo Gaming",
     "year": 2021
    }
   ],
@@ -60984,7 +60985,7 @@
     "event": "Shanghai Esports Masters 2024",
     "stage": "Main Event",
     "place": "3rd–4th",
-    "team": "Paper Rex",
+    "team": "EDward Gaming",
     "year": 2024
    },
    {
@@ -62159,7 +62160,7 @@
     "event": "Champions Tour 2023 China: Ascension",
     "stage": "Group Stage",
     "place": "5th–6th",
-    "team": "Night Wings Gaming",
+    "team": "Four Angry Men",
     "year": 2023
    },
    {
@@ -62983,8 +62984,8 @@
     "slug": "champions-tour-2024-china-stage-2",
     "event": "Champions Tour 2024: China Stage 2",
     "stage": "Regular Season",
-    "place": "8th",
-    "team": "TYLOO",
+    "place": "9th",
+    "team": "Wolves Esports",
     "year": 2024
    },
    {
@@ -64113,8 +64114,8 @@
     "slug": "champions-tour-2024-china-stage-2",
     "event": "Champions Tour 2024: China Stage 2",
     "stage": "Regular Season",
-    "place": "9th",
-    "team": "Wolves Esports",
+    "place": "10th",
+    "team": "Dragon Ranger Gaming",
     "year": 2024
    },
    {
@@ -64222,7 +64223,7 @@
     "event": "FGC VALORANT Invitational 2022: Act 3",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "Shenzhen NTER",
+    "team": "Weibo Gaming",
     "year": 2022
    },
    {
@@ -64673,8 +64674,8 @@
     "slug": "champions-tour-2024-china-stage-2",
     "event": "Champions Tour 2024: China Stage 2",
     "stage": "Regular Season",
-    "place": "9th",
-    "team": "Wolves Esports",
+    "place": "10th",
+    "team": "Dragon Ranger Gaming",
     "year": 2024
    },
    {
@@ -64801,7 +64802,7 @@
     "event": "China Evolution Series 2026: Act 2",
     "stage": "Playoffs",
     "place": "9th–16th",
-    "team": "Unsettled Resentment",
+    "team": "Wolves Esports",
     "year": 2026
    },
    {
@@ -70065,8 +70066,8 @@
     "slug": "huya-panghu-cup-spring",
     "event": "Huya PangHu Cup: Spring",
     "stage": "Playoffs",
-    "place": "7th–8th",
-    "team": "Attacking Soul Esports",
+    "place": "4th",
+    "team": "Weibo Gaming",
     "year": 2021
    }
   ],
@@ -71793,8 +71794,8 @@
     "slug": "champions-tour-2024-china-stage-2",
     "event": "Champions Tour 2024: China Stage 2",
     "stage": "Regular Season",
-    "place": "8th",
-    "team": "TYLOO",
+    "place": "10th",
+    "team": "Dragon Ranger Gaming",
     "year": 2024
    },
    {
@@ -72110,7 +72111,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Swiss Stage",
     "place": "11th–12th",
-    "team": "$3,000 Dragon Ranger Gaming",
+    "team": "$3,000 FULL SENSE",
     "year": 2026
    },
    {
@@ -72806,7 +72807,7 @@
     "event": "China Evolution Series: Act 3",
     "stage": "Main Event",
     "place": "9th–12th",
-    "team": "Dragon Ranger Gaming",
+    "team": "EDward Gaming",
     "year": 2025
    }
   ],
@@ -72834,7 +72835,7 @@
     "event": "Valorant Masters London 2026",
     "stage": "Swiss Stage",
     "place": "11th–12th",
-    "team": "$3,000 Dragon Ranger Gaming",
+    "team": "$3,000 FULL SENSE",
     "year": 2026
    },
    {
@@ -72978,7 +72979,7 @@
     "event": "Champions Tour 2024: Masters Shanghai",
     "stage": "Swiss Stage",
     "place": "9th–10th",
-    "team": "$5,000 FunPlus Phoenix",
+    "team": "$5,000 LEVIATÁN",
     "year": 2024
    },
    {
@@ -75030,7 +75031,7 @@
   "img": null,
   "real": null,
   "nat": "ph",
-  "winnings": 13330,
+  "winnings": 13470,
   "events": [
    {
     "id": "2977",
@@ -75039,6 +75040,15 @@
     "stage": "Play-Ins",
     "place": "9th–12th",
     "team": "M80",
+    "year": 2026
+   },
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$140 5 Jobless Bums",
     "year": 2026
    },
    {
@@ -75661,7 +75671,7 @@
   "img": null,
   "real": "Alvin Hong",
   "nat": "cn",
-  "winnings": 23798,
+  "winnings": 23938,
   "events": [
    {
     "id": "2977",
@@ -75670,6 +75680,15 @@
     "stage": "Play-Ins",
     "place": "9th–12th",
     "team": "M80",
+    "year": 2026
+   },
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$140 5 Jobless Bums",
     "year": 2026
    },
    {
@@ -78934,9 +78953,18 @@
  "satellite": {
   "img": "https://owcdn.net/img/69b49f491979d.png",
   "real": null,
-  "nat": "ca",
+  "nat": "cn",
   "winnings": 15734,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "aaa",
+    "year": 2026
+   },
    {
     "id": "3093",
     "slug": "funhavergg-free-4-all",
@@ -79578,6 +79606,15 @@
   "winnings": 4075,
   "events": [
    {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "aaa",
+    "year": 2026
+   },
+   {
     "id": "3093",
     "slug": "funhavergg-free-4-all",
     "event": "FunhaverGG: Free 4 All",
@@ -79945,15 +79982,15 @@
   "img": null,
   "real": null,
   "nat": "us",
-  "winnings": 4102,
+  "winnings": 4314,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "1st",
-    "team": "Abc123",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 Abc123",
     "year": 2026
    },
    {
@@ -80007,7 +80044,7 @@
     "event": "Challengers 2026: North America ACE Stage 2",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "$350 Evil Geniuses Academy",
+    "team": "$350 YFP",
     "year": 2026
    },
    {
@@ -80443,6 +80480,15 @@
   "nat": "us",
   "winnings": 9383,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "9th–16th",
+    "team": "Peak Performers",
+    "year": 2026
+   },
    {
     "id": "3087",
     "slug": "funhavergg-back-to-basics-2-0-1",
@@ -81205,7 +81251,7 @@
     "slug": "funhavergg-back-to-basics-4",
     "event": "FunhaverGG: Back to Basics 4",
     "stage": "Playoffs",
-    "place": "5th–8th",
+    "place": "9th–16th",
     "team": "SaD Esports",
     "year": 2025
    },
@@ -81224,7 +81270,7 @@
     "event": "Challengers 2025: North America ACE Stage 3",
     "stage": "Swiss Stage",
     "place": "12th–13th",
-    "team": "SaD Esports",
+    "team": "Shopify Rebellion Black",
     "year": 2025
    },
    {
@@ -82533,15 +82579,15 @@
   "img": "https://owcdn.net/img/63dac1bf3c77f.png",
   "real": "Adam Milian",
   "nat": "ca",
-  "winnings": 14615,
+  "winnings": 14827,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "1st",
-    "team": "Abc123",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 Abc123",
     "year": 2026
    },
    {
@@ -83308,8 +83354,17 @@
   "img": null,
   "real": "Yahya Amani",
   "nat": "tr",
-  "winnings": 7945,
+  "winnings": 8085,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$140 5 Jobless Bums",
+    "year": 2026
+   },
    {
     "id": "3091",
     "slug": "funhavergg-back-to-basics-2-0-2",
@@ -83423,7 +83478,7 @@
     "slug": "funhavergg-back-to-basics-4",
     "event": "FunhaverGG: Back to Basics 4",
     "stage": "Playoffs",
-    "place": "5th–8th",
+    "place": "9th–16th",
     "team": "SaD Esports",
     "year": 2025
    },
@@ -83442,7 +83497,7 @@
     "event": "Challengers 2025: North America ACE Stage 3",
     "stage": "Swiss Stage",
     "place": "12th–13th",
-    "team": "Shopify Rebellion Black",
+    "team": "SaD Esports",
     "year": 2025
    },
    {
@@ -83869,6 +83924,15 @@
   "nat": "de",
   "winnings": 13079,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "9th–16th",
+    "team": "Peak Performers",
+    "year": 2026
+   },
    {
     "id": "3087",
     "slug": "funhavergg-back-to-basics-2-0-1",
@@ -85489,8 +85553,17 @@
   "img": "https://owcdn.net/img/67b555baa3969.png",
   "real": "Derrek Ha",
   "nat": "us",
-  "winnings": 32245,
+  "winnings": 32385,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$140 5 Jobless Bums",
+    "year": 2026
+   },
    {
     "id": "3093",
     "slug": "funhavergg-free-4-all",
@@ -85886,15 +85959,15 @@
   "img": "https://owcdn.net/img/66193fcfde2a8.png",
   "real": "Kaleb Jayne",
   "nat": "ca",
-  "winnings": 33967,
+  "winnings": 34179,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "1st",
-    "team": "Abc123",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 Abc123",
     "year": 2026
    },
    {
@@ -87698,15 +87771,15 @@
   "img": null,
   "real": "Xavier Carlson",
   "nat": "us",
-  "winnings": 24483,
+  "winnings": 24694,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "1st",
-    "team": "Abc123",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 Abc123",
     "year": 2026
    },
    {
@@ -88320,15 +88393,15 @@
   "img": null,
   "real": null,
   "nat": "us",
-  "winnings": 6778,
+  "winnings": 6990,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "2nd",
-    "team": "SeanGares' Kittens",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 SeanGares' Kittens",
     "year": 2026
    },
    {
@@ -90305,21 +90378,21 @@
     "year": 2021
    },
    {
-    "id": "607",
-    "slug": "pax-arena-almost-pro-2021-open",
-    "event": "PAX Arena \"Almost Pro\" 2021 Open",
-    "stage": "Phase 2",
-    "place": "1st–8th",
-    "team": "Big Frames",
-    "year": 2021
-   },
-   {
     "id": "562",
     "slug": "glg-radiant-arena-series",
     "event": "GLG Radiant Arena Series",
     "stage": "Series I",
     "place": "5th–8th",
     "team": "OOKERS",
+    "year": 2021
+   },
+   {
+    "id": "607",
+    "slug": "pax-arena-almost-pro-2021-open",
+    "event": "PAX Arena \"Almost Pro\" 2021 Open",
+    "stage": "Phase 2",
+    "place": "1st–8th",
+    "team": "Big Frames",
     "year": 2021
    },
    {
@@ -91078,15 +91151,15 @@
   "img": null,
   "real": "Burair Ali",
   "nat": "ca",
-  "winnings": 6050,
+  "winnings": 6262,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #2",
-    "place": "2nd",
-    "team": "SeanGares' Kittens",
+    "stage": "Finals at Fan Expo",
+    "place": "3rd–4th",
+    "team": "$212 SeanGares' Kittens",
     "year": 2026
    },
    {
@@ -91864,6 +91937,15 @@
   "nat": "la",
   "winnings": 1905,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "17th–32nd",
+    "team": "FIGHTING",
+    "year": 2026
+   },
    {
     "id": "3091",
     "slug": "funhavergg-back-to-basics-2-0-2",
@@ -93260,15 +93342,15 @@
   "img": null,
   "real": "Ali Kadhim",
   "nat": "ca",
-  "winnings": 1867,
+  "winnings": 2714,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #1",
+    "stage": "Finals at Fan Expo",
     "place": "1st",
-    "team": "Thieving Pigeons",
+    "team": "$847 Thieving Pigeons",
     "year": 2026
    },
    {
@@ -93322,7 +93404,7 @@
     "event": "Challengers 2026: North America ACE Stage 2",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "$350 Evil Geniuses Academy",
+    "team": "$350 YFP",
     "year": 2026
    },
    {
@@ -93549,15 +93631,15 @@
   "img": null,
   "real": "Jaiden Mantz",
   "nat": "us",
-  "winnings": 600,
+  "winnings": 1447,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #1",
+    "stage": "Finals at Fan Expo",
     "place": "1st",
-    "team": "Thieving Pigeons",
+    "team": "$847 Thieving Pigeons",
     "year": 2026
    },
    {
@@ -94045,7 +94127,7 @@
     "event": "Challengers 2026: Brazil Gamers Club Stage 1",
     "stage": "Play-In",
     "place": "5th–6th",
-    "team": "$331 LA MASIA",
+    "team": "$331 Equipe Caos",
     "year": 2026
    },
    {
@@ -94506,7 +94588,7 @@
     "event": "Challengers 2026: Brazil Gamers Club Stage 1",
     "stage": "Play-In",
     "place": "5th–6th",
-    "team": "$331 LA MASIA",
+    "team": "$331 Equipe Caos",
     "year": 2026
    },
    {
@@ -94614,7 +94696,7 @@
     "event": "Champions Tour Brazil Stage 2: Challengers",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "$1,271 MIBR",
+    "team": "$1,271 FURIA",
     "year": 2022
    },
    {
@@ -94687,7 +94769,7 @@
     "event": "Challengers 2026: Brazil Gamers Club Stage 1",
     "stage": "Play-In",
     "place": "5th–6th",
-    "team": "$331 LA MASIA",
+    "team": "$331 Equipe Caos",
     "year": 2026
    },
    {
@@ -95392,8 +95474,8 @@
     "slug": "yeni-ufuklar-project-blender-t-rkiye-qualifier",
     "event": "Yeni Ufuklar: Project Blender Türkiye Qualifier",
     "stage": "Playoffs",
-    "place": "5th–8th",
-    "team": "$17 lev ve arkadaşları",
+    "place": "3rd–4th",
+    "team": "$34 STARz-",
     "year": 2025
    },
    {
@@ -97442,8 +97524,8 @@
     "slug": "challengers-league-2024-france-revolution-split-1",
     "event": "Challengers League 2024 France: Revolution Split 1",
     "stage": "Regular Season",
-    "place": "6th",
-    "team": "$195 Solary",
+    "place": "7th",
+    "team": "Zerance",
     "year": 2024
    },
    {
@@ -97949,7 +98031,7 @@
     "event": "Champions Tour 2024: EMEA Kickoff",
     "stage": "Group Stage",
     "place": "7th–9th",
-    "team": "Gentle Mates",
+    "team": "FUT Esports",
     "year": 2024
    },
    {
@@ -98157,7 +98239,7 @@
     "event": "Champions Tour 2024: EMEA Kickoff",
     "stage": "Group Stage",
     "place": "7th–9th",
-    "team": "FUT Esports",
+    "team": "Gentle Mates",
     "year": 2024
    },
    {
@@ -98637,8 +98719,17 @@
   "img": "https://owcdn.net/img/69bea0ef6d14c.png",
   "real": "Samet Arıcı",
   "nat": "tr",
-  "winnings": 994,
+  "winnings": 5994,
   "events": [
+   {
+    "id": "2976",
+    "slug": "vct-2026-emea-stage-2",
+    "event": "VCT 2026: EMEA Stage 2",
+    "stage": "Playoffs",
+    "place": "4th",
+    "team": "$5,000 Fire Flux Esports",
+    "year": 2026
+   },
    {
     "id": "3016",
     "slug": "challengers-2026-emea-stage-3",
@@ -98746,8 +98837,17 @@
   "img": "https://owcdn.net/img/69bea0e7ea395.png",
   "real": "Berkay Doğar",
   "nat": "tr",
-  "winnings": 794,
+  "winnings": 5794,
   "events": [
+   {
+    "id": "2976",
+    "slug": "vct-2026-emea-stage-2",
+    "event": "VCT 2026: EMEA Stage 2",
+    "stage": "Playoffs",
+    "place": "4th",
+    "team": "$5,000 Fire Flux Esports",
+    "year": 2026
+   },
    {
     "id": "3016",
     "slug": "challengers-2026-emea-stage-3",
@@ -98892,8 +98992,17 @@
   "img": "https://owcdn.net/img/69bea0feb8e04.png",
   "real": "Kaan Ürpek",
   "nat": "tr",
-  "winnings": 6341,
+  "winnings": 11341,
   "events": [
+   {
+    "id": "2976",
+    "slug": "vct-2026-emea-stage-2",
+    "event": "VCT 2026: EMEA Stage 2",
+    "stage": "Playoffs",
+    "place": "4th",
+    "team": "$5,000 Fire Flux Esports",
+    "year": 2026
+   },
    {
     "id": "3016",
     "slug": "challengers-2026-emea-stage-3",
@@ -99217,8 +99326,17 @@
   "img": "https://owcdn.net/img/69bea0e1db36b.png",
   "real": "Utku Onur Aydin",
   "nat": "tr",
-  "winnings": 4753,
+  "winnings": 9753,
   "events": [
+   {
+    "id": "2976",
+    "slug": "vct-2026-emea-stage-2",
+    "event": "VCT 2026: EMEA Stage 2",
+    "stage": "Playoffs",
+    "place": "4th",
+    "team": "$5,000 Fire Flux Esports",
+    "year": 2026
+   },
    {
     "id": "3016",
     "slug": "challengers-2026-emea-stage-3",
@@ -99524,8 +99642,17 @@
   "img": "https://owcdn.net/img/69c433f2239b4.png",
   "real": "Mehmet Batu Özaslan",
   "nat": "tr",
-  "winnings": 900,
+  "winnings": 5900,
   "events": [
+   {
+    "id": "2976",
+    "slug": "vct-2026-emea-stage-2",
+    "event": "VCT 2026: EMEA Stage 2",
+    "stage": "Playoffs",
+    "place": "4th",
+    "team": "$5,000 Fire Flux Esports",
+    "year": 2026
+   },
    {
     "id": "3016",
     "slug": "challengers-2026-emea-stage-3",
@@ -99669,7 +99796,7 @@
   "img": "https://owcdn.net/img/6972167d98c26.png",
   "real": "Albert Makushev",
   "nat": "ua",
-  "winnings": 3650,
+  "winnings": 3652,
   "events": [
    {
     "id": "3083",
@@ -99677,7 +99804,7 @@
     "event": "Spike Series: Pulse #4",
     "stage": "Playoffs",
     "place": "1st",
-    "team": "$415 Cat Lovers",
+    "team": "$417 Cat Lovers",
     "year": 2026
    },
    {
@@ -100211,15 +100338,24 @@
   "img": "https://owcdn.net/img/6972163a75513.png",
   "real": "Michail Kostylew",
   "nat": "gb",
-  "winnings": 3990,
+  "winnings": 4263,
   "events": [
+   {
+    "id": "3111",
+    "slug": "val-halla-2026-season-1",
+    "event": "VAL//HALLA 2026: Season 1",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$271 Lost Puppies",
+    "year": 2026
+   },
    {
     "id": "3083",
     "slug": "spike-series-pulse-4",
     "event": "Spike Series: Pulse #4",
     "stage": "Playoffs",
     "place": "1st",
-    "team": "$415 Cat Lovers",
+    "team": "$417 Cat Lovers",
     "year": 2026
    },
    {
@@ -101329,8 +101465,8 @@
     "slug": "ten-global-invitational-2025",
     "event": "TEN Global Invitational 2025",
     "stage": "Main Event",
-    "place": "4th",
-    "team": "$563 Wolves Esports",
+    "place": "3rd",
+    "team": "$845 Team Heretics",
     "year": 2025
    },
    {
@@ -106324,7 +106460,7 @@
     "event": "Champions Tour 2024: Pacific Stage 1",
     "stage": "Regular Season",
     "place": "9th–10th",
-    "team": "BLEED",
+    "team": "ZETA DIVISION",
     "year": 2024
    },
    {
@@ -108960,7 +109096,7 @@
     "event": "Challengers 2025: Japan Stage 1",
     "stage": "Main Stage",
     "place": "9th–12th",
-    "team": "BC SWELL",
+    "team": "$67 IGZIST",
     "year": 2025
    },
    {
@@ -111781,8 +111917,8 @@
     "slug": "huya-panghu-cup-spring",
     "event": "Huya PangHu Cup: Spring",
     "stage": "Playoffs",
-    "place": "7th–8th",
-    "team": "Attacking Soul Esports",
+    "place": "5th–6th",
+    "team": "Suning Gaming",
     "year": 2021
    }
   ],
@@ -113792,7 +113928,7 @@
     "event": "China Evolution Series 2026: Act 2",
     "stage": "Playoffs",
     "place": "9th–16th",
-    "team": "Unsettled Resentment",
+    "team": "Wolves Esports",
     "year": 2026
    },
    {
@@ -113961,8 +114097,8 @@
     "id": "2345",
     "slug": "spike-drop-4-momentum-series",
     "event": "Spike Drop 4: Momentum Series",
-    "stage": "Consolation Bracket",
-    "place": "2nd",
+    "stage": "Playoffs",
+    "place": "9th–16th",
     "team": "YDZ Infinity",
     "year": 2025
    },
@@ -115777,7 +115913,7 @@
     "event": "Champions Tour North America Stage 2: Challengers",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "$1,200 The Guard",
+    "team": "$1,200 Cloud9",
     "year": 2022
    },
    {
@@ -116860,8 +116996,8 @@
     "slug": "ten-global-invitational-2025",
     "event": "TEN Global Invitational 2025",
     "stage": "Main Event",
-    "place": "3rd",
-    "team": "$845 Team Heretics",
+    "place": "4th",
+    "team": "$563 Wolves Esports",
     "year": 2025
    },
    {
@@ -117421,7 +117557,7 @@
     "event": "VCT 2026: EMEA Stage 1",
     "stage": "Group Stage",
     "place": "9th–10th",
-    "team": "Natus Vincere",
+    "team": "GIANTX",
     "year": 2026
    },
    {
@@ -118089,7 +118225,7 @@
     "event": "Champions Tour 2024: Pacific Stage 1",
     "stage": "Regular Season",
     "place": "9th–10th",
-    "team": "ZETA DIVISION",
+    "team": "BLEED",
     "year": 2024
    },
    {
@@ -119372,7 +119508,7 @@
     "event": "Champions Tour 2024: EMEA Kickoff",
     "stage": "Group Stage",
     "place": "7th–9th",
-    "team": "FUT Esports",
+    "team": "Team Liquid",
     "year": 2024
    },
    {
@@ -119800,6 +119936,15 @@
   "nat": "do",
   "winnings": 19865,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "9th–16th",
+    "team": "Peak Performers",
+    "year": 2026
+   },
    {
     "id": "3009",
     "slug": "esports-nations-cup-2026-north-america-qualifier",
@@ -120684,7 +120829,7 @@
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
     "stage": "Play-In",
-    "place": "8th",
+    "place": "4th",
     "team": "$331 INTZ",
     "year": 2026
    },
@@ -120852,6 +120997,15 @@
   "winnings": 17286,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "3rd–4th",
+    "team": "FLOW TIM CHEESE",
+    "year": 2026
+   },
+   {
     "id": "2780",
     "slug": "challengers-2026-latam-south-ace-stage-2",
     "event": "Challengers 2026: LATAM South ACE Stage 2",
@@ -120969,6 +121123,15 @@
   "nat": "us",
   "winnings": 16883,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "aaa",
+    "year": 2026
+   },
    {
     "id": "3093",
     "slug": "funhavergg-free-4-all",
@@ -121100,7 +121263,7 @@
     "slug": "funhavergg-back-to-basics-4",
     "event": "FunhaverGG: Back to Basics 4",
     "stage": "Playoffs",
-    "place": "9th–16th",
+    "place": "5th–8th",
     "team": "SaD Esports",
     "year": 2025
    },
@@ -122238,8 +122401,17 @@
   "img": "https://owcdn.net/img/696ef74e20c0e.png",
   "real": "Anthony Nguyen",
   "nat": "vn",
-  "winnings": 11423,
+  "winnings": 11453,
   "events": [
+   {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "2nd",
+    "team": "$30 sleeping",
+    "year": 2026
+   },
    {
     "id": "3071",
     "slug": "funhavergg-wild-west-lan",
@@ -122291,7 +122463,7 @@
     "event": "Challengers 2025: North America ACE Stage 2",
     "stage": "Swiss Stage",
     "place": "2nd–3rd",
-    "team": "M80",
+    "team": "Ambrosia",
     "year": 2025
    },
    {
@@ -122872,6 +123044,15 @@
   "nat": "kr",
   "winnings": 14333,
   "events": [
+   {
+    "id": "2776",
+    "slug": "vct-2026-pacific-stage-2",
+    "event": "VCT 2026: Pacific Stage 2",
+    "stage": "Playoffs",
+    "place": "7th–8th",
+    "team": "ONSIDE GAMING",
+    "year": 2026
+   },
    {
     "id": "2683",
     "slug": "vct-2026-pacific-kickoff",
@@ -124291,6 +124472,15 @@
   "winnings": 14994,
   "events": [
    {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Meesh's Minions",
+    "year": 2026
+   },
+   {
     "id": "2858",
     "slug": "challengers-2026-north-america-ace-stage-3",
     "event": "Challengers 2026: North America ACE Stage 3",
@@ -124332,7 +124522,7 @@
     "event": "Challengers 2026: North America ACE Stage 2",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "$350 Evil Geniuses Academy",
+    "team": "$350 YFP",
     "year": 2026
    },
    {
@@ -125027,15 +125217,15 @@
   "img": null,
   "real": null,
   "nat": "us",
-  "winnings": 22619,
+  "winnings": 23465,
   "events": [
    {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
-    "stage": "Online Qualifier #1",
+    "stage": "Finals at Fan Expo",
     "place": "1st",
-    "team": "Thieving Pigeons",
+    "team": "$847 Thieving Pigeons",
     "year": 2026
    },
    {
@@ -126354,6 +126544,15 @@
   "winnings": 18900,
   "events": [
    {
+    "id": "3100",
+    "slug": "funhavergg-back-to-basics-2-0-3",
+    "event": "FunhaverGG: Back to Basics 2.0 #3",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Meesh's Minions",
+    "year": 2026
+   },
+   {
     "id": "3060",
     "slug": "bell-esports-challenge-2026",
     "event": "Bell Esports Challenge 2026",
@@ -126413,7 +126612,7 @@
     "event": "Challengers 2026: North America ACE Stage 2",
     "stage": "Playoffs",
     "place": "5th–6th",
-    "team": "$350 YFP",
+    "team": "$350 Evil Geniuses Academy",
     "year": 2026
    },
    {
@@ -126751,6 +126950,15 @@
   "winnings": 2164,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "MIBR Academy",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -126887,6 +127095,15 @@
   "winnings": 2753,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "MIBR Academy",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -126968,6 +127185,15 @@
   "nat": "br",
   "winnings": 3946,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "MIBR Academy",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -127195,6 +127421,15 @@
   "nat": "br",
   "winnings": 2976,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "MIBR Academy",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -127861,7 +128096,7 @@
     "event": "Challengers 2026: Brazil Gamers Club Stage 1",
     "stage": "Play-In",
     "place": "5th–6th",
-    "team": "$331 LA MASIA",
+    "team": "$331 Equipe Caos",
     "year": 2026
    },
    {
@@ -128444,6 +128679,15 @@
     "year": 2026
    },
    {
+    "id": "2787",
+    "slug": "challengers-2026-brazil-gamers-club-stage-1",
+    "event": "Challengers 2026: Brazil Gamers Club Stage 1",
+    "stage": "Access Series",
+    "place": "2nd",
+    "team": "Paysandu Esports",
+    "year": 2026
+   },
+   {
     "id": "2605",
     "slug": "exitlag-champz",
     "event": "ExitLag: Champz",
@@ -128543,6 +128787,15 @@
   "nat": "br",
   "winnings": 6963,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "LEONCIO",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -128653,6 +128906,15 @@
   "winnings": 2584,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "LEONCIO",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -128752,6 +129014,15 @@
   "nat": "br",
   "winnings": 3589,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "LEONCIO",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -128898,6 +129169,15 @@
   "winnings": 2441,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "LEONCIO",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -129040,8 +129320,17 @@
   "img": "https://owcdn.net/img/689e186fb11bd.png",
   "real": "Ilan Eloy",
   "nat": "br",
-  "winnings": 20765,
+  "winnings": 22265,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,500 Team Solid",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -129257,8 +129546,17 @@
   "img": "https://owcdn.net/img/697c5e990ec9d.png",
   "real": "Felipe Galiazzi",
   "nat": "br",
-  "winnings": 22455,
+  "winnings": 23955,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,500 Team Solid",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -129492,8 +129790,17 @@
   "img": "https://owcdn.net/img/697c5e6a4c92e.png",
   "real": "Gustavo Ferreira",
   "nat": "br",
-  "winnings": 29156,
+  "winnings": 30656,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,500 Team Solid",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -129745,8 +130052,17 @@
   "img": "https://owcdn.net/img/697c5eaf17a30.png",
   "real": null,
   "nat": "br",
-  "winnings": 5272,
+  "winnings": 6772,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,500 Team Solid",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -129789,7 +130105,7 @@
     "event": "JSpotter: The Ninjutso Chronicles",
     "stage": "Playoffs",
     "place": "1st",
-    "team": "$269 Paysandu",
+    "team": "$269 Paysandu Esports",
     "year": 2025
    }
   ],
@@ -129800,8 +130116,17 @@
   "img": "https://owcdn.net/img/697c5e7ebe077.png",
   "real": "Rafael Lima",
   "nat": "br",
-  "winnings": 30484,
+  "winnings": 31984,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "1st",
+    "team": "$1,500 Team Solid",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -129956,6 +130281,15 @@
   "nat": "br",
   "winnings": 15173,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Next",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -130174,6 +130508,15 @@
   "winnings": 11562,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Next",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -130391,6 +130734,15 @@
   "winnings": 5428,
   "events": [
    {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Next",
+    "year": 2026
+   },
+   {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
     "event": "Challengers 2026: Brazil Gamers Club Stage 2",
@@ -130535,6 +130887,15 @@
   "nat": "br",
   "winnings": 12832,
   "events": [
+   {
+    "id": "3090",
+    "slug": "fgc-latam-2026",
+    "event": "FGC LATAM 2026",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "Next",
+    "year": 2026
+   },
    {
     "id": "2962",
     "slug": "challengers-2026-brazil-gamers-club-stage-2",
@@ -132090,6 +132451,15 @@
   "winnings": 4096,
   "events": [
    {
+    "id": "2776",
+    "slug": "vct-2026-pacific-stage-2",
+    "event": "VCT 2026: Pacific Stage 2",
+    "stage": "Playoffs",
+    "place": "7th–8th",
+    "team": "ONSIDE GAMING",
+    "year": 2026
+   },
+   {
     "id": "2973",
     "slug": "challengers-2026-korea-wdg-split-2",
     "event": "Challengers 2026: Korea WDG Split 2",
@@ -132117,6 +132487,15 @@
   "nat": "kr",
   "winnings": 4781,
   "events": [
+   {
+    "id": "2776",
+    "slug": "vct-2026-pacific-stage-2",
+    "event": "VCT 2026: Pacific Stage 2",
+    "stage": "Playoffs",
+    "place": "7th–8th",
+    "team": "ONSIDE GAMING",
+    "year": 2026
+   },
    {
     "id": "2973",
     "slug": "challengers-2026-korea-wdg-split-2",
@@ -132154,6 +132533,15 @@
   "nat": "kr",
   "winnings": 11328,
   "events": [
+   {
+    "id": "2776",
+    "slug": "vct-2026-pacific-stage-2",
+    "event": "VCT 2026: Pacific Stage 2",
+    "stage": "Playoffs",
+    "place": "7th–8th",
+    "team": "ONSIDE GAMING",
+    "year": 2026
+   },
    {
     "id": "2973",
     "slug": "challengers-2026-korea-wdg-split-2",
@@ -132272,6 +132660,15 @@
   "nat": "kr",
   "winnings": 7873,
   "events": [
+   {
+    "id": "2776",
+    "slug": "vct-2026-pacific-stage-2",
+    "event": "VCT 2026: Pacific Stage 2",
+    "stage": "Playoffs",
+    "place": "7th–8th",
+    "team": "ONSIDE GAMING",
+    "year": 2026
+   },
    {
     "id": "2973",
     "slug": "challengers-2026-korea-wdg-split-2",
@@ -133247,8 +133644,8 @@
     "slug": "champions-tour-2024-china-stage-2",
     "event": "Champions Tour 2024: China Stage 2",
     "stage": "Regular Season",
-    "place": "8th",
-    "team": "TYLOO",
+    "place": "9th",
+    "team": "Wolves Esports",
     "year": 2024
    },
    {
@@ -134016,8 +134413,8 @@
     "slug": "champions-tour-hong-kong-and-taiwan-stage-1-challengers-3",
     "event": "Champions Tour Hong Kong and Taiwan Stage 1: Challengers 3",
     "stage": "Main Event",
-    "place": "4th",
-    "team": "$200",
+    "place": "1st",
+    "team": "$800 Looking For Sponsor",
     "year": 2021
    },
    {
@@ -134059,5 +134456,42 @@
   ],
   "vlrId": "7861",
   "ign": "W1nner"
+ },
+ "zhubibi": {
+  "img": null,
+  "real": null,
+  "nat": "cn",
+  "winnings": 0,
+  "events": [
+   {
+    "id": "2988",
+    "slug": "china-evolution-series-2026-act-2",
+    "event": "China Evolution Series 2026: Act 2",
+    "stage": "Playoffs",
+    "place": "5th–8th",
+    "team": "FunPlus Phoenix",
+    "year": 2026
+   },
+   {
+    "id": "2956",
+    "slug": "esports-world-cup-2026-china-qualifier",
+    "event": "Esports World Cup 2026: China Qualifier",
+    "stage": "Stage 1",
+    "place": "1st",
+    "team": "FunPlus Phoenix",
+    "year": 2026
+   },
+   {
+    "id": "2590",
+    "slug": "china-evolution-series-act-3",
+    "event": "China Evolution Series: Act 3",
+    "stage": "Main Event",
+    "place": "5th–8th",
+    "team": "All Gamers",
+    "year": 2025
+   }
+  ],
+  "vlrId": "58013",
+  "ign": "zhubibi"
  }
 }

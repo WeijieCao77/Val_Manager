@@ -107,14 +107,17 @@ const fresh = (): GameState => {
 {
   const g = fresh()
   const mine = g.teams[g.myTeam]
+  // relative to whatever the club starts with — a real roster is five to
+  // seven, and a signing in the data must not read as the engine refilling
+  const before = mine.roster.length
   for (const pid of mine.roster.slice(0, 2)) {
     g.players[pid].teamId = null
     mine.roster = mine.roster.filter((x) => x !== pid)
     mine.starters = mine.starters.filter((x) => x !== pid)
   }
   advanceDay(g, { autoScrims: true })
-  check('自己的队不会被引擎偷偷补人', mine.roster.length === 3,
-    `${mine.roster.length} 人——这是有意的，补阵容是经理自己的事`)
+  check('自己的队不会被引擎偷偷补人', mine.roster.length === before - 2,
+    `${before} → ${mine.roster.length} 人——这是有意的，补阵容是经理自己的事`)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

@@ -29,7 +29,7 @@ import WeChat from './WeChat'
  *
  * It is the front page's one link into the card game's account module, which
  * reaches gacha, the arena and the daily challenge, and through the challenge
- * the world's 518 players — 370 KB of rosters downloaded before anybody has
+ * the world's 524 players — 370 KB of rosters downloaded before anybody has
  * chosen a game, in order to draw a chip that says 「创建账号」. Lazy, it costs
  * nothing until somebody taps it.
  */
@@ -153,7 +153,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               接手一支真实存在的战队，从 2026 出发。
               签人、训练、排兵、BP、谈赞助，打满五年可以收官领一个结局，
               也可以一路带到 2036 的大结局。
-              518 名选手和 64 名教练全部是真实存在的人，没有一个是程序生成的。
+              524 名选手和 64 名教练全部是真实存在的人，没有一个是程序生成的。
             </p>
             <ul className="home-facts">
               <li><b>78</b> 支战队 · 四大赛区与次级联赛</li>

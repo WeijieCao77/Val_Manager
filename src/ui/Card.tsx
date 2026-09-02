@@ -81,7 +81,7 @@ export function Flag({ nat }: { nat: string | null | undefined }) {
 /**
  * The stand-in when there is no photograph.
  *
- * vlr.gg has no picture for 119 of the 518 — mostly tier-two and mostly
+ * vlr.gg has no picture for 194 of the 524 (号角 and Liquipedia cover most of them) — mostly tier-two and mostly
  * Chinese and Pacific rosters. Initials were tried first and read as a
  * placeholder for a name rather than a placeholder for a person; a plain bust
  * is what every card game does and what the eye skips over. Drawn rather than

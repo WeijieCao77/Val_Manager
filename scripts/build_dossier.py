@@ -87,11 +87,14 @@ def main() -> int:
             rec["img"] = f"{pid}.webp"
             rec["v"] = stamp(face)
             photos += 1
-            if ign in lp["players"]:
-                rec["src"] = "lp"
-            # 号角 haojiao.cc covers the CN scene players nobody else has
-            elif pid in hj_players:
+            # 号角 haojiao.cc covers the CN scene players nobody else has, and
+            # its official CN portraits replace vlr's and Liquipedia's for the
+            # whole CN region — so its list is checked first: an id on it is a
+            # 号角 picture on disk, whatever else was once available
+            if pid in hj_players:
                 rec["src"] = "hj"
+            elif ign in lp["players"]:
+                rec["src"] = "lp"
         nat = prof.get("nat") or p.get("nat")
         if nat:
             rec["nat"] = nat
