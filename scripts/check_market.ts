@@ -13,14 +13,19 @@
  * asked for: ±10% haggling, three days before an unanswered offer is withdrawn,
  * three ignored offers before the listing comes down.
  */
+process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
-import { CARD_SCHEMA, normalizeId } from '../cards-api.js'
-import { displayName } from '../names.js'
-import {
+import { ALL_CARDS, SALVAGE } from '../src/engine/cards'
+// real cards of each metal: the server reads the metal off the card table now
+const idOf = (rarity: string) => ALL_CARDS.find((c) => c.rarity === rarity && c.kind === 'player')!.id
+const MYTHIC = idOf('mythic'), BRONZE = idOf('bronze'), GOLD = idOf('gold')
+const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
+const { displayName } = await import('../names.js')
+const {
   HAGGLE, IGNORE_LIMIT, OFFER_DAYS, SALVAGE_FLOOR, TRADE_PULLS, askFloor, makeMarketApi,
-} from '../market-api.js'
-import { SALVAGE } from '../src/engine/cards'
+} = await import('../market-api.js')
+const engine = await import('../src/engine/server.ts')
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -43,12 +48,19 @@ interface Res { code: number; body: Record<string, unknown> }
 const api = makeMarketApi(sql, {
   readBody: (req: { body: string }) => Promise.resolve(req.body),
   json: (res: Res, code: number, body: Record<string, unknown>) => { res.code = code; res.body = body },
-  normalizeId, displayName, rateLimited: () => false,
+  normalizeId, displayName, rateLimited: () => false, engine,
+} as never)
+// the inbox is collected through the card api now — the server applies it
+const cardsApi = makeCardApi(sql, {
+  readBody: (req: { body: string }) => Promise.resolve(req.body),
+  json: (res: Res, code: number, body: Record<string, unknown>) => { res.code = code; res.body = body },
+  rateLimited: () => false,
 } as never)
 
 const call = async (path: string, body: unknown) => {
   const res: Res = { code: 0, body: {} }
-  await api.route({ body: JSON.stringify(body), method: 'POST' } as never, res as never, path, 't')
+  const which = path.startsWith('/api/card/') ? cardsApi : api
+  await which.route({ body: JSON.stringify(body), method: 'POST' } as never, res as never, path, 't')
   return res.body
 }
 
@@ -69,8 +81,8 @@ await account(BUYER, '买家', 5000, {})
 await account(OTHER, '路人', 5000, {})
 
 const inbox = async (id: string) =>
-  (await call('/api/market/mail', { id, take: true })).mail as
-    { kind: string; cardId: string | null; coins: number; level: number }[]
+  ((await call('/api/card/act', { id, action: 'mail_take', args: {}, client: {} })).result as
+    { mail: { kind: string; cardId: string | null; coins: number; level: number }[] }).mail
 
 // ---- listing ------------------------------------------------------------
 let r = await call('/api/market/list', { id: SELLER, cardId: 'p:P1', ask: 1000, level: 3 })
@@ -80,7 +92,9 @@ const LID = String(r.id)
 r = await call('/api/market/list', { id: SELLER, cardId: 'p:P9', ask: 1000 })
 check('没有的卡挂不上去', r.notOwned === true, JSON.stringify(r))
 r = await call('/api/market/list', { id: SELLER, cardId: 'p:P1', ask: 1000 })
-check('同一张卡不能挂两次', r.alreadyListed === true, JSON.stringify(r))
+check('同一张卡不能挂两次——它已经离开了账号', r.notOwned === true, JSON.stringify(r))
+check('挂出的一刻，卡就不在服务器的账号里了',
+  !((await sql`select state->'cards' as cards from card_accounts where id_hash = ${hashOf(SELLER)}` as unknown as { cards: Record<string, unknown> }[])[0].cards['p:P1']))
 r = await call('/api/market/list', { id: SELLER, cardId: 'p:P1', ask: 5 })
 check('价格有下限', r.bad === true, JSON.stringify(r))
 
@@ -99,6 +113,8 @@ r = await call('/api/market/offer', { id: SELLER, listing: LID, price: 1000 })
 check('不能给自己的挂牌出价', r.self === true, JSON.stringify(r))
 r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 900 })
 check('刚好 −10% 可以', r.ok === true, JSON.stringify(r))
+check('出价的一刻，金币就从服务器的账号里扣走了',
+  Number((await sql`select state->>'coins' as coins from card_accounts where id_hash = ${hashOf(BUYER)}` as unknown as { coins: string }[])[0].coins) === 5000 - 900)
 r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 950 })
 check('同一个人不能在一张牌上挂两个报价', r.already === true, JSON.stringify(r))
 
@@ -229,16 +245,19 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
     JSON.stringify(SALVAGE_FLOOR) === JSON.stringify(SALVAGE),
     `${JSON.stringify(SALVAGE_FLOOR)} vs ${JSON.stringify(SALVAGE)}`)
   await account('VM-HHHH-HHHH-HHHH-HHHH-HHHH', '小号', 0, {
-    'p:M1': { id: 'p:M1', dupes: 0 }, 'p:M2': { id: 'p:M2', dupes: 0 },
+    [MYTHIC]: { id: MYTHIC, dupes: 0 }, [BRONZE]: { id: BRONZE, dupes: 0 },
   })
   const ALT = 'VM-HHHH-HHHH-HHHH-HHHH-HHHH'
-  let x = await call('/api/market/list', { id: ALT, cardId: 'p:M1', ask: 50, rarity: 'mythic' })
-  check('彩卡不能挂 50 金币甩给大号', x.bad === true && x.min === SALVAGE.mythic,
+  // the request says bronze; the card table says 彩卡, and the table wins
+  let x = await call('/api/market/list', { id: ALT, cardId: MYTHIC, ask: 50, rarity: 'bronze' })
+  check('彩卡不能挂 50 金币甩给大号——金属看卡表，不看请求', x.bad === true && x.min === SALVAGE.mythic,
     JSON.stringify(x))
-  x = await call('/api/market/list', { id: ALT, cardId: 'p:M1', ask: SALVAGE.mythic, rarity: 'mythic' })
+  x = await call('/api/market/list', { id: ALT, cardId: MYTHIC, ask: SALVAGE.mythic, rarity: 'mythic' })
   check('挂到分解价就可以', x.ok === true, JSON.stringify(x))
-  x = await call('/api/market/list', { id: ALT, cardId: 'p:M2', ask: 60, rarity: 'bronze' })
+  x = await call('/api/market/list', { id: ALT, cardId: BRONZE, ask: 60, rarity: 'bronze' })
   check('铜卡的下限低得多，正常出货不受影响', x.ok === true, JSON.stringify(x))
+  x = await call('/api/market/list', { id: ALT, cardId: 'p:M9', ask: 60, rarity: 'bronze' })
+  check('卡表里没有的编号挂不了', x.notOwned === true, JSON.stringify(x))
   check('下限就是分解价', askFloor('gold') === SALVAGE.gold && askFloor('silver') === SALVAGE.silver,
     `${askFloor('gold')} / ${askFloor('silver')}`)
 }
@@ -251,8 +270,8 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
 // played for the better part of a week before it can trade at all.
 {
   const NEW = 'VM-NEWW-NEWW-NEWW-NEWW-NEWW'
-  await account(NEW, '新号', 9999, { 'p:N1': { id: 'p:N1', dupes: 0 } }, 11)  // a day-zero account
-  let x = await call('/api/market/list', { id: NEW, cardId: 'p:N1', ask: 700, rarity: 'gold' })
+  await account(NEW, '新号', 9999, { [GOLD]: { id: GOLD, dupes: 0 } }, 11)  // a day-zero account
+  let x = await call('/api/market/list', { id: NEW, cardId: GOLD, ask: 700, rarity: 'gold' })
   check('新号挂不了牌', x.newbie === true && x.need === TRADE_PULLS && x.have === 11,
     JSON.stringify(x))
 
@@ -268,7 +287,7 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   // open enough packs and the door opens
   await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${String(TRADE_PULLS)}::jsonb)
             where id_hash = ${hashOf(NEW)}`
-  x = await call('/api/market/list', { id: NEW, cardId: 'p:N1', ask: 700, rarity: 'gold' })
+  x = await call('/api/market/list', { id: NEW, cardId: GOLD, ask: 700, rarity: 'gold' })
   check(`开够 ${TRADE_PULLS} 抽就能挂了`, x.ok === true, JSON.stringify(x))
   const g2 = await call('/api/market/browse', { id: NEW })
   check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))

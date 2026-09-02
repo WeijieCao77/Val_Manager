@@ -14,7 +14,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { createHash } from 'node:crypto'
 import { Readable } from 'node:stream'
 import {
-  CARD_SCHEMA, battleCode, makeCardApi, normalizeId, serverDay, vetState,
+  CARD_SCHEMA, MAX_CLIENT, battleCode, makeCardApi, normalizeId, serverDay, vetClient,
 } from '../cards-api.js'
 
 const db = new PGlite()
@@ -79,29 +79,33 @@ check('junk refused', normalizeId('') === null)
 
 // ---- claim / load / save ---------------------------------------------
 
-const state = { version: 1, id: ID, coins: 3000, cards: {}, daily: { claimed: null } }
+// the state a client sends with a claim is not read: the server builds the account
+const state = { version: 1, id: ID, coins: 999_999, cards: {}, daily: { claimed: null } }
 
 let r = await call('/api/card/claim', { id: ID, name: '点点', state })
 check('claim creates the account', r.code === 200 && r.body.ok === true, `code ${r.code}`)
+check('...built by the server, not from what was sent',
+  (r.body.state as { coins: number }).coins === 3000, `coins ${(r.body.state as { coins: number })?.coins}`)
 
 r = await call('/api/card/claim', { id: ID, name: 'someone else', state: { ...state, coins: 9 } })
 check('a second claim on the same id is refused, not an overwrite',
   r.code === 409 && r.body.taken === true, `code ${r.code}`)
 
 r = await call('/api/card/load', { id: ID })
-check('load returns what was claimed',
-  r.body.ok === true && (r.body.state as { coins: number }).coins === 3000)
+check('load returns the account', r.body.ok === true && (r.body.state as { coins: number }).coins === 3000)
 check('load carries the server date', typeof r.body.today === 'string' && r.body.today === serverDay())
 
 // baseRev travels with every save: a client that has read the row says which
-// version it read. Omitting it used to mean "write anyway" — see the no-baseRev
-// case further down for why that is now a refusal.
-r = await call('/api/card/save', { id: ID, baseRev: 1, state: { ...state, coins: 4200 } })
+// version it read. A save carries the cosmetic fields; `coins` in it is not read.
+r = await call('/api/card/save', { id: ID, baseRev: 1, name: '点点改', state: { ...state, coins: 4200 } })
 check('save bumps the revision', r.body.ok === true && r.body.rev === 2, `rev ${r.body.rev}`)
+check('...and the reply carries the account as the server holds it',
+  (r.body.state as { coins: number; name: string })?.coins === 3000 && (r.body.state as { name: string })?.name === '点点改')
 
 r = await call('/api/card/load', { id: 'vm abcd efgh jkmn pqrs tvwx' })
 check('a sloppily typed id still finds the account',
-  r.body.ok === true && (r.body.state as { coins: number }).coins === 4200)
+  r.body.ok === true && (r.body.state as { name: string }).name === '点点改')
+check('the coins the save claimed never landed', (r.body.state as { coins: number }).coins === 3000)
 
 r = await call('/api/card/load', { id: 'VM-1111-1111-1111-1111-1111' })
 check('an unknown id is a miss, not an error', r.code === 200 && r.body.missing === true)
@@ -118,24 +122,21 @@ check('the id itself is never stored, only its hash',
 const dump = JSON.stringify(await sql`select * from card_accounts`)
 check('the raw id appears nowhere in the table', !dump.includes(ID))
 
-// ---- the two things that would break the server ------------------------
+// ---- what a client may write ------------------------------------------
 
-const future = new Date()
-future.setFullYear(future.getFullYear() + 1)
-check('a check-in dated in the future is refused',
-  vetState({ daily: { claimed: future.toISOString().slice(0, 10) } }, serverDay()) === null)
-check('a past check-in is fine',
-  vetState({ daily: { claimed: '2020-01-01' } }, serverDay()) !== null)
-check('an oversized save is refused',
-  vetState({ blob: 'x'.repeat(600 * 1024) }, serverDay()) === null)
-check('a non-object save is refused', vetState([1, 2, 3], serverDay()) === null)
+check('only the cosmetic fields come out of a save',
+  JSON.stringify(Object.keys(vetClient({ coins: 1, name: 'a', squad: {}, pulls: 9 })).sort()) === '["name","squad"]')
+check('an oversized set of them is refused',
+  vetClient({ name: 'x'.repeat(MAX_CLIENT + 10) }) === null)
+check('a non-object is nothing', JSON.stringify(vetClient([1, 2, 3])) === '{}')
 
+// a check-in dated in the future used to have to be refused, or it froze the
+// streak; now the date is simply not the client's to write
 r = await call('/api/card/save', { id: ID, baseRev: 2, state: { daily: { claimed: '2099-01-01' } } })
-check('the save route refuses it too', r.code === 400 && r.body.why === 'state')
-
+check('a future check-in is accepted as a save', r.body.ok === true, `code ${r.code}`)
 r = await call('/api/card/load', { id: ID })
-check('the refused save did not land',
-  (r.body.state as { coins: number }).coins === 4200)
+check('...and did not land', (r.body.state as { daily: { claimed: string | null } }).daily.claimed === null)
+check('the coins are still the server\'s', (r.body.state as { coins: number }).coins === 3000)
 
 // ---- two devices ------------------------------------------------------
 //
@@ -144,36 +145,36 @@ check('the refused save did not land',
 // evening played on the desktop. Without a version check the server took it.
 
 const TWO = 'VM-2222-3333-4444-5555-6666'
-await call('/api/card/claim', { id: TWO, name: 'two', state: { coins: 100, daily: { claimed: null } } })
+await call('/api/card/claim', { id: TWO, name: 'two' })
 let phone = await call('/api/card/load', { id: TWO })
 const phoneRev = phone.body.rev as number
 
-// the desktop loads the same state, plays, and saves twice
+// the desktop loads the same account, renames and rearranges, and saves twice
 let desk = await call('/api/card/load', { id: TWO })
 let deskRev = desk.body.rev as number
-for (const coins of [500, 900]) {
-  const w = await call('/api/card/save', { id: TWO, baseRev: deskRev, state: { coins, daily: { claimed: null } } })
+for (const name of ['桌一', '桌二']) {
+  const w = await call('/api/card/save', { id: TWO, baseRev: deskRev, client: { name } })
   deskRev = w.body.rev as number
 }
 check('the desktop\'s saves land', deskRev === phoneRev + 2, `rev ${deskRev}`)
 
 // now the phone wakes up and beacons what it remembers
 const beacon = await call('/api/card/save', {
-  id: TWO, baseRev: phoneRev, state: { coins: 100, daily: { claimed: null } },
+  id: TWO, baseRev: phoneRev, client: { name: 'two' },
 })
 check('a save built on a stale revision is refused',
   beacon.code === 409 && beacon.body.stale === true, `code ${beacon.code}`)
 check('the refusal hands back the newer state',
-  (beacon.body.state as { coins: number })?.coins === 900)
+  (beacon.body.state as { name: string })?.name === '桌二')
 
 const after = await call('/api/card/load', { id: TWO })
 check('the evening on the desktop survives',
-  (after.body.state as { coins: number }).coins === 900,
-  `coins ${(after.body.state as { coins: number }).coins}`)
+  (after.body.state as { name: string }).name === '桌二',
+  `name ${(after.body.state as { name: string }).name}`)
 
 // and a client that resyncs can then write
 const resync = await call('/api/card/save', {
-  id: TWO, baseRev: after.body.rev as number, state: { coins: 1000, daily: { claimed: null } },
+  id: TWO, baseRev: after.body.rev as number, client: { name: '桌三' },
 })
 check('after resyncing, the same client can save again', resync.body.ok === true)
 
@@ -185,46 +186,34 @@ check('after resyncing, the same client can save again', resync.body.ok === true
 // has loaded, so the only thing refused here is a write that should be.
 {
   const naked = await call('/api/card/save', {
-    id: TWO, state: { coins: 1100, daily: { claimed: null } },
+    id: TWO, client: { name: '裸存' },
   })
   check('a save with no baseRev cannot overwrite an existing account',
     naked.code === 409 && naked.body.stale === true, `code ${naked.code}`)
   const still = await call('/api/card/load', { id: TWO })
   check('and the account it aimed at is untouched',
-    (still.body.state as { coins: number }).coins === 1000,
-    `coins ${(still.body.state as { coins: number }).coins}`)
+    (still.body.state as { name: string }).name === '桌三',
+    `name ${(still.body.state as { name: string }).name}`)
 }
 
-// ---- progress never goes backwards -------------------------------------
+// ---- value never comes from the client ---------------------------------
 //
-// The revision check catches a client writing on top of a copy it has not
-// seen. It cannot catch one writing on top of a copy it HAS seen and then
-// ignored — a tab told it was stale, adopting the truth into one object and
-// saving from another. Packs opened, matches played and cards owned only ever
-// increase, so a save that lowers them is a stale copy whatever its revision.
+// The revision check catches a client writing over a copy it has not seen.
+// Everything with value is not written by a client at all: whatever the save
+// says about pulls, cards or the record, the row keeps its own.
 {
   const P = 'VM-3333-3333-3333-3333-3333'
-  await call('/api/card/claim', {
-    id: P, name: '进度', state: { pulls: 10, cards: { a: 1, b: 1 }, ladder: { wins: 4, losses: 2 } },
-  })
+  await call('/api/card/claim', { id: P, name: '进度' })
   const at = await call('/api/card/load', { id: P })
   const rev = at.body.rev as number
   const back = await call('/api/card/save', {
-    id: P, baseRev: rev, state: { pulls: 3, cards: { a: 1 }, ladder: { wins: 1, losses: 0 } },
+    id: P, baseRev: rev, state: { pulls: 300, cards: { a: 1 }, ladder: { wins: 100, losses: 0 }, coins: 0 },
   })
-  check('版本号对得上，但进度倒退的存档照样拒绝',
-    back.code === 409 && back.body.stale === true, `code ${back.code}`)
-  check('并且把真正的进度还回去', (back.body.state as { pulls: number })?.pulls === 10)
-  const fwd = await call('/api/card/save', {
-    id: P, baseRev: rev, state: { pulls: 11, cards: { a: 1, b: 1, c: 1 }, ladder: { wins: 5, losses: 2 } },
-  })
-  check('往前走的存档正常写入', fwd.body.ok === true, JSON.stringify(fwd.body).slice(0, 60))
-  // coins are spent as well as earned, and must never read as a regression
-  const spent = await call('/api/card/save', {
-    id: P, baseRev: fwd.body.rev as number,
-    state: { pulls: 11, coins: 0, cards: { a: 1, b: 1, c: 1 }, ladder: { wins: 5, losses: 2 } },
-  })
-  check('花光金币不算倒退', spent.body.ok === true, JSON.stringify(spent.body).slice(0, 60))
+  check('存档正常接受', back.body.ok === true, `code ${back.code}`)
+  const now = (await call('/api/card/load', { id: P })).body.state as { pulls: number; coins: number; cards: object; ladder: { wins: number } }
+  check('抽数、卡、战绩、金币全都还是服务器的',
+    now.pulls === 0 && Object.keys(now.cards).length === 0 && now.ladder.wins === 0 && now.coins === 3000,
+    JSON.stringify({ pulls: now.pulls, coins: now.coins, wins: now.ladder.wins }))
 }
 
 // ---- brute force ------------------------------------------------------

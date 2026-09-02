@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
-import { collection, salvage, upgrade, upgradeCost } from '../../engine/gacha'
+import { collection, upgradeCost } from '../../engine/gacha'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
 } from '../../engine/cards'
@@ -26,7 +26,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 export default function Collection() {
-  const { g, commit, toast, openDossier } = useCards()
+  const { g, act, toast, openDossier } = useCards()
   const [filter, setFilter] = useState<Filter>('all')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -209,18 +209,15 @@ export default function Collection() {
                     <div className="tiny faint">重复卡 {owned.dupes} 张 · 累计抽到 {owned.seen} 次</div>
                   </div>
                 </div>
-                <Upgrade
-                  cardId={sel.id}
-                  onDone={(msg) => { commit(true); toast(msg) }}
-                />
+                <Upgrade cardId={sel.id} />
                 {owned.dupes > 0 && (
                   <button
                     className="sm"
                     style={{ marginLeft: 8 }}
-                    onClick={() => {
-                      const coins = salvage(g, sel.id, owned.dupes)
-                      commit(true)
-                      toast(`分解 ${owned.dupes} 张，+${coins} 金币。`)
+                    onClick={async () => {
+                      const n = owned.dupes
+                      const r = await act('salvage', { cardId: sel.id, count: n })
+                      toast(r.ok ? `分解 ${n} 张，+${(r.result as { coins: number }).coins} 金币。` : r.why)
                     }}
                   >
                     全部分解（+{SALVAGE[sel.rarity] * owned.dupes} 金币）
@@ -235,8 +232,8 @@ export default function Collection() {
   )
 }
 
-function Upgrade({ cardId, onDone }: { cardId: string; onDone: (msg: string) => void }) {
-  const { g } = useCards()
+function Upgrade({ cardId }: { cardId: string }) {
+  const { g, act, toast } = useCards()
   const cost = upgradeCost(g, cardId)
   if (cost.to == null) return <span className="tiny faint">{cost.why}</span>
   return (
@@ -244,8 +241,9 @@ function Upgrade({ cardId, onDone }: { cardId: string; onDone: (msg: string) => 
       className="primary sm"
       disabled={!cost.can}
       title={cost.why}
-      onClick={() => {
-        if (upgrade(g, cardId)) onDone(`升级成功，现在是 +${g.cards[cardId].level}。`)
+      onClick={async () => {
+        const r = await act('upgrade', { cardId })
+        toast(r.ok ? `升级成功，现在是 +${(r.result as { level: number }).level}。` : r.why)
       }}
     >
       升到 +{cost.to}（{cost.dupes} 张重复 + {cost.coins} 金币）

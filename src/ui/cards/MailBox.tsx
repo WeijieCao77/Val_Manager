@@ -14,7 +14,8 @@
  */
 import { useEffect, useState } from 'react'
 import { useCards } from './ctx'
-import { collectMail, markMailSeen, unreadMail } from '../../engine/market'
+import { mailLine, unreadMail } from '../../engine/market'
+import type { MailItem } from '../../engine/market'
 
 const when = (ms: number): string => {
   const d = new Date(ms)
@@ -23,27 +24,29 @@ const when = (ms: number): string => {
 }
 
 export default function MailBox() {
-  const { g, cloud, commit, toast } = useCards()
+  const { g, cloud, act, toast } = useCards()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const unread = unreadMail(g)
   const list = g.mail ?? []
 
+  // the server applies a delivery to the account and hands the account back
   const collect = async () => {
     if (!cloud || busy) return
     setBusy(true)
-    const got = await collectMail(g)
+    const r = await act('mail_take')
     setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const got = ((r.result as { mail?: MailItem[] } | undefined)?.mail ?? [])
     if (got.length) {
-      void commit(true)
-      toast(got.length === 1 ? '信箱收到 1 条，已收下。' : `信箱收到 ${got.length} 条，已收下。`)
+      toast(got.length === 1 ? `${mailLine(got[0])}。已收下。` : `信箱收到 ${got.length} 条，已收下。`)
     }
   }
 
   useEffect(() => {
     if (!open) return
     // reading is what marks it read — not the arrival, and not the toast
-    if (markMailSeen(g)) void commit()
+    if (unreadMail(g) > 0 && cloud) void act('mail_seen')
     void collect()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', onKey)

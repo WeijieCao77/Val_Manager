@@ -15,10 +15,10 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  answerOffer, askFloorOf, bidOn, browseMarket, escrowCard, listCardOnMarket,
-  myOffers, unlistCard,
+  answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, myOffers, unlistCard,
 } from '../../engine/market'
 import type { Gate, Listing, Offer } from '../../engine/market'
+import { takeServer } from '../../engine/account'
 
 const HAGGLE = 0.1
 const money = (n: number) => n.toLocaleString('en-US')
@@ -74,8 +74,9 @@ export default function Market() {
               : '挂不上去，等会儿再试。')
       return
     }
-    escrowCard(g, sellCard)
-    commit(true)
+    // the card left the server's copy of the account when it took the listing
+    if (r.state) takeServer(g, r.state, r.rev)
+    void commit()
     setSellCard(''); setAsk('')
     toast(`${nameOf(sellCard)} 已挂出，标价 ${money(price)}。卖不掉会原样退回来。`)
     void refresh()
@@ -98,8 +99,9 @@ export default function Market() {
       void refresh()
       return
     }
-    g.coins -= price
-    commit(true)
+    // and the coins left it when it took the bid
+    if (r.state) takeServer(g, r.state, r.rev)
+    void commit()
     setBidOpen(null); setBidPrice('')
     toast(`已出价 ${money(price)}。金币先托管着，${days} 天没回应会自动退回。`)
     void refresh()

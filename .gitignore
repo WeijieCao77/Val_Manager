@@ -20,3 +20,6 @@ scripts/cache/
 # local experiments, not the game's build
 dist-minitool/
 val-manager-minitool.zip
+
+# the server-side engine bundle, built by `npm run build:server`
+dist-server

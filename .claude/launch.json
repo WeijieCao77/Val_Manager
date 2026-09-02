@@ -10,6 +10,15 @@
       ],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "val-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:server"
+      ],
+      "port": 8080
     }
   ]
 }

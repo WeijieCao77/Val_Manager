@@ -23,7 +23,7 @@ import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
-import { CARD_SCHEMA, makeCardApi, normalizeId } from './cards-api.js'
+import { CARD_SCHEMA, engine, makeCardApi, normalizeId } from './cards-api.js'
 import { displayName } from './names.js'
 import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
 import { SITE_SCHEMA, makeSiteApi } from './site-api.js'
@@ -70,7 +70,30 @@ const TYPES = {
 // ---------------------------------------------------------------- database
 
 let sql = null
-if (process.env.DATABASE_URL) {
+if (process.env.DATABASE_URL?.startsWith('pglite')) {
+  // A database in the process, for a local checkout: `npm run dev:server`.
+  // The same shim the check scripts use, so a browser can be pointed at the
+  // whole card mode — accounts, packs, the ladder, the trading post — with
+  // nothing installed. Gone when the process exits, which is the point.
+  const { PGlite } = await import('@electric-sql/pglite')
+  const db = new PGlite()
+  sql = Object.assign(
+    async (strings, ...vals) => {
+      const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
+      const r = await db.query(text, vals)
+      return Object.assign(r.rows, { count: r.affectedRows ?? 0 })
+    },
+    { unsafe: async (q) => (await db.exec(q), []), json: (v) => JSON.stringify(v) },
+  )
+  try {
+    await sql.unsafe(CARD_SCHEMA)
+    await sql.unsafe(SITE_SCHEMA)
+    console.log('cards: in-process database (pglite), nothing persists')
+  } catch (err) {
+    console.warn('pglite: schema failed —', err.message)
+    sql = null
+  }
+} else if (process.env.DATABASE_URL) {
   try {
     const { default: postgres } = await import('postgres')
     sql = postgres(process.env.DATABASE_URL, {
@@ -314,7 +337,7 @@ const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
 }))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
-  readBody, json, normalizeId, displayName, rateLimited,
+  readBody, json, normalizeId, displayName, rateLimited, engine,
 }))
 let _marketApi = null
 

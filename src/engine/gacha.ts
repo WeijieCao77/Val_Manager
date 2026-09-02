@@ -1611,3 +1611,140 @@ export const clampState = (g: GachaState): GachaState => {
   g.ladder.bestPoints = Math.max(g.ladder.bestPoints ?? 0, g.ladder.points)
   return g
 }
+
+/**
+ * Bring an older save up to the current shape.
+ *
+ * In the engine rather than beside the fetch code, because the server runs it
+ * too now: every account it loads goes through here before an action touches
+ * it, so a row written by a client from any earlier week has every field the
+ * rules expect.
+ */
+export function migrateGacha(state: GachaState, id: string): GachaState {
+  const g = state as GachaState & { version?: number }
+  g.version = GACHA_VERSION
+  g.id = id
+  g.name = typeof g.name === 'string' ? g.name : '经理'
+  g.createdAt = typeof g.createdAt === 'string' ? g.createdAt : new Date().toISOString().slice(0, 10)
+  g.coins = typeof g.coins === 'number' && Number.isFinite(g.coins) ? g.coins : 0
+  g.cards = g.cards && typeof g.cards === 'object' ? g.cards : {}
+  g.packs = g.packs && typeof g.packs === 'object' ? g.packs : {}
+  g.pity = typeof g.pity === 'number' ? g.pity : 0
+  g.mythicDry ??= 0
+  g.pulls = typeof g.pulls === 'number' && Number.isFinite(g.pulls) ? g.pulls : 0
+  g.log = Array.isArray(g.log) ? g.log : []
+  g.squad ??= { slots: [null, null, null, null, null], coach: null }
+  g.squad.slots = Array.isArray(g.squad.slots) ? g.squad.slots.slice(0, 5) : []
+  while (g.squad.slots.length < 5) g.squad.slots.push(null)
+  g.squad.coach = typeof g.squad.coach === 'string' ? g.squad.coach : null
+  g.ladder ??= { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 }
+  g.ladder.wins = Math.max(0, Math.trunc(Number(g.ladder.wins) || 0))
+  g.ladder.losses = Math.max(0, Math.trunc(Number(g.ladder.losses) || 0))
+  g.ladder.streak = Math.trunc(Number(g.ladder.streak) || 0)
+  g.ladder.best = Math.max(0, Math.trunc(Number(g.ladder.best) || 0))
+  // 大师 changed from a shelf into a score; accounts that were already there
+  // start the new ladder at zero, which is the only fair place to start it
+  g.ladder.points ??= 0
+  g.ladder.bestPoints ??= g.ladder.points
+  g.daily ??= {
+    claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
+    stamina: STAMINA_MAX, staminaAt: 0,
+  }
+  g.daily.picked ??= []
+  g.daily.progress ??= {}
+  g.daily.taken ??= []
+  // accounts made before the daily budget existed start today with a full one
+  g.daily.stamina ??= STAMINA_MAX
+  g.daily.staminaAt ??= 0
+  // accounts made before the daily challenge existed have never played one
+  g.challenge ??= newChallenge()
+  // an existing collection already sits somewhere on the series ladder; nothing
+  // is marked claimed, so whatever it has already earned is waiting on the shelf
+  g.series ??= {}
+  g.friends ??= []
+  g.presets ??= undefined
+  g.seed = typeof g.seed === 'number' && Number.isFinite(g.seed) ? g.seed >>> 0 : hashStr(id + g.createdAt) >>> 0
+  return clampState(g)
+}
+
+/**
+ * The fields the server owns, and the fields the client may still write.
+ *
+ * Everything with value is on the first list. The second is what a client
+ * save is allowed to carry into the row: the player's name, which five he
+ * runs and the fives he keeps on the shelf, and the friendlies he has played
+ * — none of which is worth anything to anybody, which is the test for being
+ * on it. A client save arriving with a different `coins` is not refused, it
+ * is simply not read.
+ */
+export const SERVER_KEYS = [
+  'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
+  'cup', 'daily', 'challenge', 'series', 'mail', 'log', 'seed',
+] as const
+export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
+
+/**
+ * The client's cosmetic fields laid over the server's copy.
+ *
+ * The squad is checked against the collection the SERVER holds: a seat naming
+ * a card this account does not own is emptied, and so is a second seat for
+ * the same person. Presets are lists of ids and are left as typed — they are
+ * checked again the moment they are loaded onto the table.
+ */
+export function mergeClientFields(server: GachaState, client: Partial<GachaState>): GachaState {
+  if (typeof client.name === 'string') server.name = client.name.slice(0, 40)
+  if (client.squad && typeof client.squad === 'object') {
+    const raw = Array.isArray(client.squad.slots) ? client.squad.slots.slice(0, 5) : []
+    const seen = new Set<string>()
+    const slots = raw.map((id) => {
+      if (typeof id !== 'string' || !server.cards[id]) return null
+      const c = cardById(id)
+      if (!c || !isPlayerCard(c)) return null
+      const who = personOf(c)
+      if (seen.has(who)) return null
+      seen.add(who)
+      return id
+    })
+    while (slots.length < 5) slots.push(null)
+    const coach = typeof client.squad.coach === 'string' && server.cards[client.squad.coach]
+      && cardById(client.squad.coach)?.kind === 'coach' ? client.squad.coach : null
+    server.squad = { slots, coach }
+  }
+  if (Array.isArray(client.presets)) {
+    server.presets = client.presets.slice(0, SQUAD_PRESETS).map((p) => {
+      if (!p || typeof p !== 'object' || !p.squad) return null
+      const slots = (Array.isArray(p.squad.slots) ? p.squad.slots.slice(0, 5) : [])
+        .map((x) => (typeof x === 'string' ? x.slice(0, 40) : null))
+      while (slots.length < 5) slots.push(null)
+      return {
+        name: String(p.name ?? '').slice(0, 12) || '配置',
+        squad: { slots, coach: typeof p.squad.coach === 'string' ? p.squad.coach.slice(0, 40) : null },
+      }
+    })
+    if (!server.presets.some(Boolean)) server.presets = undefined
+  }
+  if (Array.isArray(client.friends)) {
+    server.friends = client.friends.slice(0, FRIEND_MAX).filter((f) => f && typeof f === 'object').map((f) => ({
+      code: String(f.code ?? '').slice(0, 8), name: String(f.name ?? '').slice(0, 40),
+      tag: String(f.tag ?? '').slice(0, 8),
+      wins: Math.max(0, Math.trunc(Number(f.wins) || 0)),
+      losses: Math.max(0, Math.trunc(Number(f.losses) || 0)),
+      at: String(f.at ?? '').slice(0, 10),
+    }))
+  }
+  return server
+}
+
+/**
+ * Take the server's copy of everything it owns, keeping what this client is
+ * still allowed to hold locally. The other direction of mergeClientFields:
+ * this is what a client does with the state the server hands back.
+ */
+export function takeServerFields(mine: GachaState, server: GachaState): GachaState {
+  for (const k of SERVER_KEYS) {
+    (mine as unknown as Record<string, unknown>)[k] = (server as unknown as Record<string, unknown>)[k]
+  }
+  // the server's view of the five is the one that has been checked
+  if (server.squad) mine.squad = server.squad
+  return mine
+}

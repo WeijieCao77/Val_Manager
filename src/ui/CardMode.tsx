@@ -16,16 +16,20 @@ import MailBox from './cards/MailBox'
 import Credit from './Credit'
 import Support from './Support'
 import Changelog from './Changelog'
-import { createAccount, dayOf, fetchGifts, flushAccount, fetchDay, loadAccount, retryPending, saveAccount, serverNow, whenStale } from '../engine/account'
+import {
+  act as actOnServer, createAccount, dayOf, flushAccount, fetchDay, loadAccount, retryPending,
+  saveAccount, serverNow, whenStale,
+} from '../engine/account'
+import type { ActOutcome } from '../engine/account'
 import { rememberId, rememberedId } from '../engine/cardid'
 import {
-  MASTER_DIV, STAMINA_COST, STAMINA_MAX, primeStamina, rankName, refreshDaily,
+  MASTER_DIV, STAMINA_COST, STAMINA_MAX, rankName, refreshDaily,
   staminaIn, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
 import { track } from '../engine/telemetry'
-import { receiveCard } from '../engine/gacha'
-import { collectMail, mailLine } from '../engine/market'
+import { mailLine } from '../engine/market'
+import type { MailItem } from '../engine/market'
 
 /** "12:34" or "1:02:34" — seconds included, because a clock that does not move
  *  reads as a clock that is not running. */
@@ -162,13 +166,10 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
       if (r.ok) {
         gRef.current = r.state
         setCloud(r.cloud)
+        // the quest board for today, for display; the server rolls the day
+        // over itself the moment anything is actually done
         refreshDaily(r.state, r.today)
-        // loadAccount anchors from the server's `seen` where the save has no
-        // anchor of its own; this only covers the offline path, where there is
-        // nothing better to date it from than this moment
-        if (primeStamina(r.state, serverNow())) saveAccount(r.state, true)
-        // this device was holding play that never reached the server
-        if (r.recovered) toast('上次有一段进度没能存上，已经从本机恢复。')
+        if (!r.cloud) toast('连不上服务器。收藏可以看，但开包、签到、比赛都要等联网。')
         track('card_start', {
           fresh: false, cloud: r.cloud,
           owned: Object.keys(r.state.cards).length,
@@ -197,58 +198,56 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   }, [toast])
 
   /**
-   * Cards friends have sent, taken exactly once.
+   * Something that counts, done on the server.
    *
-   * The server marks a gift claimed in the same statement that hands it over,
-   * so two tabs opening together cannot both be given it — which means this
-   * side has to actually keep what it is handed. Claim, add, save immediately:
-   * a claim that is fetched and then dropped is a card that no longer exists
-   * anywhere.
+   * Every pack, check-in, match and upgrade goes through here. The account
+   * comes back with the reply and replaces everything the server owns in the
+   * local copy — see engine/actions.ts for why nothing of value is ever
+   * changed on this side any more.
    */
-  useEffect(() => {
-    if (!gRef.current || !cloud) return
-    let alive = true
-    void fetchGifts(true).then((list) => {
-      if (!alive || !list?.length || !gRef.current) return
-      for (const gift of list) receiveCard(gRef.current, gift.cardId, gift.from)
-      commit(true)
-      const names = list.map((x) => x.from)
-      toast(list.length === 1
-        ? `收到 ${names[0]} 送的一张卡，已经放进收藏了。`
-        : `收到 ${list.length} 张朋友送的卡，已经放进收藏了。`)
-    })
-    // and everything the trading post owes: sales, refunds, cards that did not
-    // sell. Applied and saved in one step — mail is handed over exactly once.
-    void collectMail(gRef.current).then((mail) => {
-      if (!alive || !mail.length) return
-      commit(true)
+  const act = useCallback(async (action: string, args: Record<string, unknown> = {}): Promise<ActOutcome> => {
+    const g = gRef.current
+    if (!g) return { ok: false, why: '还没登录' }
+    if (!cloud) return { ok: false, why: '连不上服务器——这一步需要联网。', offline: true }
+    const r = await actOnServer(g, action, args)
+    bump()
+    return r
+  }, [cloud])
+
+  /**
+   * Everything the inbox owes — sales, refunds, cards that did not sell, a
+   * grant from the owner, a gift sent before gifting was removed — collected
+   * into the account by the server and handed back with it.
+   */
+  const collect = useCallback(async (): Promise<number> => {
+    const r = await act('mail_take')
+    if (!r.ok) return 0
+    const mail = ((r.result as { mail?: MailItem[] } | undefined)?.mail ?? [])
+    if (mail.length) {
       // the toast is the knock; the 信箱 button at the top is the letter
       toast(mail.length === 1
         ? `${mailLine(mail[0])}。已收下，顶上信箱里能再看。`
         : `信箱收到 ${mail.length} 条，都已收下——点顶上的信箱看。`)
-    })
-    return () => { alive = false }
+    }
+    return mail.length
+  }, [act, toast])
+
+  useEffect(() => {
+    if (!gRef.current || !cloud) return
+    void collect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloud, gRef.current?.id])
 
-  // A tab that goes away mid-pull should still land the pull — and a tab that
-  // comes back should find out whether it did. Coming back to the front and
-  // getting the network back are the only two moments a save that died in the
-  // background can succeed, so both are worth a retry; retryPending is a no-op
-  // unless the mirror is actually still holding something.
+  // A tab that goes away with a five half-arranged should still land it —
+  // and a tab that comes back should see what arrived while it was in the
+  // background: a sale used to wait for a reload before it reached the
+  // person it paid.
   useEffect(() => {
     const onVis = () => {
       if (!gRef.current) return
       if (document.visibilityState === 'hidden') { flushAccount(gRef.current); return }
       retryPending(gRef.current)
-      // and see what arrived while this tab was in the background — a sale
-      // used to wait for a reload before it reached the person it paid
-      const g = gRef.current
-      void collectMail(g).then((mail) => {
-        if (!mail.length || gRef.current !== g) return
-        commit(true)
-        toast(`信箱收到 ${mail.length} 条，都已收下——点顶上的信箱看。`)
-      })
+      if (cloud) void collect()
     }
     const onOnline = () => { if (gRef.current) retryPending(gRef.current) }
     document.addEventListener('visibilitychange', onVis)
@@ -257,7 +256,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('online', onOnline)
     }
-  }, [])
+  }, [cloud, collect])
 
   useEffect(() => { mainRef.current?.scrollTo(0, 0) }, [tab])
 
@@ -267,12 +266,13 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     now,
     cloud,
     commit,
+    act,
     toast,
     openDossier: (id: string) => { setDossierId(id); setTab('dossier') },
     go: setTab,
   // gRef is stable; bump() drives the re-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [commit, toast, today, now, cloud, gRef.current, tab])
+  }), [commit, act, toast, today, now, cloud, gRef.current, tab])
 
   if (booting) {
     return <div className="wrap" style={{ padding: 40 }}><p className="muted">正在读取卡牌账号…</p></div>
@@ -288,8 +288,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           gRef.current = state
           setCloud(isCloud)
           setNow(serverNow())
-            refreshDaily(state, day)
-          primeStamina(state, serverNow())
+          refreshDaily(state, day)
           track('card_start', { fresh: isNew, cloud: isCloud, owned: Object.keys(state.cards).length })
           setFresh(isNew)
           setTab(isNew ? 'account' : 'packs')
@@ -413,7 +412,9 @@ function Gate({
     setErr(null)
     const r = await createAccount(name)
     setBusy(false)
-    setMade({ state: r.state, cloud: r.cloud, today: r.today })
+    // the account is built on the server — there is no account without it
+    if (!r.ok) { setErr(r.why); return }
+    setMade({ state: r.state, cloud: true, today: r.today })
   }
 
   const signIn = async () => {
@@ -475,11 +476,7 @@ function Gate({
           </p>
         )}
         {err && <p className="small warn" style={{ marginTop: 10 }}>{err}</p>}
-        {!made.cloud && (
-          <p className="tiny warn" style={{ marginTop: 14 }}>
-            服务器暂时连不上，这个账号先存在本机。等能连上时会自动上传。
-          </p>
-        )}
+
       </div>
     )
   }

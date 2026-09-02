@@ -4,22 +4,28 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   DIVISIONS, MASTER_DIV, MASTER_TITLES, PACKS, STAMINA_COST, STAMINA_MAX, canPlay,
-  drawOpponent, ladderOpponent, levelOf, masterTitle, oppBumpFor, pendingOpponent,
-  rankName, recordLadder, spendPlay, staminaFillHours, staminaNow, staminaRate,
-  starsOnTier, tierStars,
+  ladderOpponent, levelOf, masterTitle, oppBumpFor, pendingOpponent,
+  rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../../engine/gacha'
 import type { LadderOutcome } from '../../engine/gacha'
-import { playArenaMatch, playRivalMatch } from '../../engine/arena'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
-import { fetchRivals, fetchTop } from '../../engine/account'
+import { fetchTop } from '../../engine/account'
 import type { TopRow } from '../../engine/account'
 
+/**
+ * The ladder, played on the server.
+ *
+ * The opponent is drawn there and pinned to the match, the five that walks
+ * out is the five the server knows this account owns, the seed is one the
+ * client never held, and the record moves only when the server says it did.
+ * What this screen does is ask, and show the scoreboard it is handed.
+ */
 export default function Ladder() {
-  const { g, now, commit, toast, go } = useCards()
+  const { g, now, cloud, act, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<
     { res: ArenaResult; opp: string; who?: string; out: LadderOutcome } | null
@@ -35,15 +41,8 @@ export default function Ladder() {
   /**
    * The board, refetched whenever this account's record moves.
    *
-   * It reads the accounts table, and this account only reaches that table when
-   * its save lands — so the fetch has to wait for the save. It did not, and
-   * the result was a leaderboard that was always exactly one match behind:
-   * 段位 said 大师 48 and 37–10 while your own row on the board underneath
-   * still said 大师 20 and 36–10. Nothing was stale on the server; the client
-   * was simply asking before it had told it.
-   *
-   * `saved` is bumped by the match handler once its write has had its turn,
-   * and it is what this depends on rather than the record itself.
+   * The match is settled on the server before its reply arrives, so by the
+   * time `saved` bumps the row is already on the table.
    */
   const [saved, setSaved] = useState(0)
   const [topAt, setTopAt] = useState(0)
@@ -55,8 +54,7 @@ export default function Ladder() {
     pull()
     // A board that only moves when YOU move is not a leaderboard. Everybody
     // else is playing asynchronously, so it refreshes on a slow clock and
-    // whenever the tab comes back — never while it is hidden, which is where a
-    // poll turns into a phone burning battery in a pocket.
+    // whenever the tab comes back — never while it is hidden.
     const wake = () => { if (document.visibilityState === 'visible') pull() }
     const t = setInterval(wake, 60_000)
     document.addEventListener('visibilitychange', wake)
@@ -70,76 +68,42 @@ export default function Ladder() {
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
   /**
-   * Who you are playing, drawn once and then pinned.
+   * Who you are playing, drawn once and then pinned — on the server.
    *
-   * The server hands back a random dozen, so re-fetching deals a different
-   * opponent — and that made the ladder re-rollable: leave the tab, come back,
-   * and if the last one looked strong you got somebody else. Flick away and
-   * back until the ladder offers somebody weak.
-   *
-   * So the draw is stamped with the match number and kept in the save. Coming
-   * back to this screen shows the same opponent; the only way to a new one is
-   * to play the one you have.
-   *
-   * From 钻石 up the ladder puts a real player's five in front of you when it
-   * has one. Below that the world's clubs are the better teacher: they are
-   * recognisable, graded by division, and somebody learning the game should
-   * meet Challengers sides rather than whoever happens to have an account.
+   * The draw is stamped with the match number and kept in the account, so
+   * coming back to this screen shows the same opponent and the only way to a
+   * new one is to play the one you have. From 钻石 up the server puts a real
+   * player's five in front of you when it has one.
    */
   const pinned = pendingOpponent(g)
   const [drawing, setDrawing] = useState(false)
   useEffect(() => {
-    if (pinned || drawing) return
-    if (L.div < 4) { drawOpponent(g); commit(); return }
+    if (pinned || drawing || !cloud) return
     let alive = true
     setDrawing(true)
-    void fetchRivals(L.div).then((r) => {
-      if (!alive) return
-      setDrawing(false)
-      // a failed request must not pin "nobody" — a blip would quietly put this
-      // match back on the world's clubs
-      if (!r) return
-      drawOpponent(g, r.length ? r[Math.floor(Math.random() * r.length)] : undefined)
-      commit()
-    })
+    void act('ladder_draw').finally(() => { if (alive) setDrawing(false) })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinned, L.div, L.wins, L.losses])
+  }, [pinned, cloud, L.wins, L.losses])
 
   const rival = (pinned?.rival ?? null) as RivalSquad | null
-  // the club is pinned alongside the five, so opening a pack cannot re-deal it
   const oppId = pinned?.club ?? opp0
   const opp = WORLD_TEAMS.find((t) => t.id === oppId)
 
-  const play = () => {
+  const play = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
-    if (!spendPlay(g, 'ladder', now)) {
-      toast(`体力不够了——${staminaRate()}。`)
-      return
-    }
+    if (!canPlay(g, 'ladder', now)) { toast(`体力不够了——${staminaRate()}。`); return }
     setBusy(true)
-    // one frame so the button can show it is working before the sim blocks
-    window.setTimeout(() => {
-      const seed = (Date.now() ^ (L.wins * 7919) ^ (L.losses * 104729)) >>> 0
-      const res = rival
-        ? playRivalMatch(g.squad, level, rival, 3, seed)
-        : playArenaMatch(g.squad, level, oppId, 3, seed, bump)
-      // a real five is worth what its own ladder position says it is worth
-      const strength = rival
-        ? 84 + Math.min(10, Math.floor(rival.points / 250))
-        : (opp?.rating ?? 80) + bump
-      const out = recordLadder(g, res.win, strength)
-      track('card_match', {
-        mode: 'ladder', won: res.win, div: g.ladder.div, rating,
-        points: g.ladder.points ?? 0, rival: rival ? 1 : 0,
-      })
-      // the board is read back only after this write has had its turn
-      void commit(true).then(() => setSaved((n) => n + 1))
-      setBusy(false)
-      // the report used to name the world club it would have played even when
-      // the match was against a person's five
-      setShown({ res, opp: oppId, who: rival ? `${rival.name} ${rival.tag}` : undefined, out })
-    }, 30)
+    const r = await act('ladder')
+    setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const got = r.result as { res: ArenaResult; opp: string; who?: string; out: LadderOutcome }
+    track('card_match', {
+      mode: 'ladder', won: got.res.win, div: g.ladder.div, rating,
+      points: g.ladder.points ?? 0, rival: got.who ? 1 : 0,
+    })
+    setSaved((n) => n + 1)
+    setShown(got)
   }
 
   return (
@@ -215,16 +179,17 @@ export default function Ladder() {
                 </div>
               </div>
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
-                三局两胜，走完整的 BAN/PICK 和回合经济——和生涯模式是同一套比赛引擎。
+                三局两胜，走完整的 BAN/PICK 和回合经济——和生涯模式是同一套比赛引擎，<b>在服务器上打</b>。
                 {rival
                   ? '　对面是别的玩家存下来的阵容快照，不需要他在线，你的任何信息也不会给到他。'
                   : L.div >= 4 ? '　（这会儿没找到合适的真人卡组，先打真实俱乐部。）' : ''}
               </p>
-              <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'ladder', now)}>
+              <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
-                  : filled < 5 ? '先去组队'
-                    : !canPlay(g, 'ladder', now) ? '体力不够'
-                      : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
+                  : !cloud ? '需要联网'
+                    : filled < 5 ? '先去组队'
+                      : !canPlay(g, 'ladder', now) ? '体力不够'
+                        : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。

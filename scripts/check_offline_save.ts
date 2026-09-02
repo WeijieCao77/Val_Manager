@@ -1,27 +1,22 @@
 /**
- * The save that does not land, and the copy that survives it.
- *
- * A player won a ladder match on a phone, claimed the quest it finished,
- * opened the 试训包 it paid for, and put the phone down. An hour later the
- * desktop showed the quest undone and the pack gone. The match had saved;
- * nothing after it had.
- *
- * Three separate things made that possible and each is checked here:
- *   - a failed save was swallowed under "the next save will retry", when the
- *     failed save was the last thing the session did;
- *   - a non-2xx reply was read for a field it does not carry and treated as
- *     success;
- *   - and the next load wrote the server's older state over the local mirror,
- *     which was the only remaining copy — turning a lost hour into a lost hour
- *     forever.
- *
- * The real client module is driven against a real Postgres through the real
- * route handlers, because the bug lived in how the two talk to each other.
+ * The mirror is a display cache; the account is the server's.
  *
  *   npx tsx scripts/check_offline_save.ts
+ *
+ * This file used to prove the opposite — that a pack opened on a phone that
+ * then lost its network could be recovered from localStorage and pushed up
+ * later. That recovery was the door: anything a client could push up, an
+ * edited client could push up. Now nothing of value happens without the
+ * server, so there is nothing of value to recover. What the mirror still
+ * carries across a dead network is the cosmetic side — a name typed, a five
+ * rearranged — and that is what has to survive here.
+ *
+ * The real client module is driven against the real route handlers behind an
+ * in-process Postgres, because the contract lives in how the two talk.
  */
+process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
-import { CARD_SCHEMA, makeCardApi } from '../cards-api.js'
+const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
 
 // ---- a server -----------------------------------------------------------
 
@@ -77,14 +72,12 @@ g.fetch = async (url: string, init?: { body?: string }) => {
     path.replace(/^.*(\/api\/card\/\w+)$/, '$1'), 'test')
   return { ok: res.code < 400, status: res.code, json: async () => res.body }
 }
-// Node's navigator is getter-only, and the beacon has to be refused anyway:
-// this is the phone that could not send one.
 Object.defineProperty(globalThis, 'navigator', {
   configurable: true, value: { sendBeacon: () => false },
 })
 
 const account = await import('../src/engine/account.ts')
-const { createAccount, loadAccount, saveAccount, retryPending, knownRev } = account
+const { act, createAccount, loadAccount, saveAccount, retryPending } = account
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -95,9 +88,9 @@ const settle = () => new Promise((r) => setTimeout(r, 60))
 const serverState = async (id: string) => {
   const res: Res = { code: 0, body: {} }
   await routes.route({ body: JSON.stringify({ id }) } as never, res as never, '/api/card/load', 'peek')
-  return res.body.state as Record<string, unknown> | undefined
+  return res.body.state as Record<string, unknown> & { cards: Record<string, unknown>; squad: { slots: (string | null)[] } } | undefined
 }
-const mirrorOf = (d: Store, id: string) =>
+const mirrorOf = (d: Store) =>
   JSON.parse([...d].find(([k]) => k.startsWith('valmanager:card:state:'))?.[1] ?? 'null') as
     { state: Record<string, unknown>; rev: number | null; dirty: boolean } | null
 
@@ -105,124 +98,126 @@ const mirrorOf = (d: Store, id: string) =>
 
 use(phone)
 const made = await createAccount('测试')
+check('the account is built on the server', made.ok, made.ok ? '' : made.why)
+if (!made.ok) process.exit(1)
 const ID = made.state.id
-const st = made.state as unknown as Record<string, unknown>
-st.log = []
+const st = made.state
 await settle()
 
-// 18:20 — the ladder win. This one lands.
-;(st.log as unknown[]).push({ at: '2026-08-28T10:20:50.000Z', text: '天梯 钻石：胜，+290 金币' })
-st.coins = 1000
-saveAccount(made.state, true)
-await settle()
-check('the ladder win reaches the server', (await serverState(ID))?.coins === 1000)
-const revAfterWin = knownRev()
+// 18:20 — a pack. This one lands, on the server, before the reply.
+const opened = await act(st, 'open', { kind: 'scout', payWith: 'pack' })
+const first = Object.keys(st.cards)[0]
+check('the pack is opened on the server', opened.ok && !!first, opened.ok ? '' : opened.why)
+check('and the server holds the card', !!(await serverState(ID))?.cards[first])
+check('the local copy is what the server sent back', st.pulls === 1 && (await serverState(ID))?.pulls === 1)
 
-// 18:22 — the quest reward and the pack it paid for. The phone is going away.
+// 18:22 — the network goes. Nothing of value can happen now, and nothing
+// pretends to.
 net = 'down'
-;(st.log as unknown[]).push({ at: '2026-08-28T10:22:10.000Z', text: '试训包：抽到 brawk（金卡）' })
-st.coins = 900
-;(made.state.cards as Record<string, number>).brawk = 1
-saveAccount(made.state, true)
+const refused = await act(st, 'open', { kind: 'scout', payWith: 'pack' })
+check('offline, a pack cannot be opened', !refused.ok && refused.offline === true, refused.ok ? '' : refused.why)
+check('and the local copy did not pretend it was', st.pulls === 1 && st.packs.scout === 2)
+
+// what the player CAN do offline is arrange the five and rename
+st.name = '离线改名'
+st.squad.slots[0] = first
+saveAccount(st, true)
 await settle()
+check('a save that fails does not reach the server', (await serverState(ID))?.name !== '离线改名')
+check('the mirror keeps the cosmetic change', mirrorOf(phone)?.state.name === '离线改名')
+check('the mirror is marked dirty', mirrorOf(phone)?.dirty === true)
 
-check('a save that fails does not reach the server', (await serverState(ID))?.coins === 1000)
-check('the mirror keeps the pack anyway', !!mirrorOf(phone, ID)?.state.cards?.['brawk' as never])
-check('the mirror is marked dirty', mirrorOf(phone, ID)?.dirty === true)
-check('the mirror still names the revision it was built on', mirrorOf(phone, ID)?.rev === revAfterWin)
-
-// 20:00 — the desktop. It can only show what the server has, and that is the
-// symptom the player reported: the quest undone, the pack missing.
+// 20:30 — the network is back, the tab comes to the front
 net = 'up'
-use(desktop)
-const onDesktop = await loadAccount(ID)
-check('the desktop sees the older state — the reported symptom',
-  onDesktop.ok && onDesktop.state.coins === 1000 && !onDesktop.state.cards.brawk)
-check('and it is not told anything was recovered', onDesktop.ok && !onDesktop.recovered)
-
-// 20:30 — the phone comes back. This is where the pack used to die for good.
-use(phone)
-const back = await loadAccount(ID)
-check('the phone is given its own copy back', back.ok && !!back.state.cards.brawk)
-check('and is told so, so the player can be told', back.ok && back.recovered === true)
+retryPending(st)
 await settle()
-check('the recovered pack is pushed up to the server',
-  !!(await serverState(ID))?.cards?.['brawk' as never])
-check('the mirror is clean once the server has it', mirrorOf(phone, ID)?.dirty === false)
+const srv = await serverState(ID)
+check('the name is pushed up', srv?.name === '离线改名', String(srv?.name))
+check('so is the five', srv?.squad.slots[0] === first)
+check('the mirror is clean once the server has it', mirrorOf(phone)?.dirty === false)
 
-// ---- and it must not work in the other direction ------------------------
+// ---- a device that is merely behind -------------------------------------
 
 use(desktop)
 const d = await loadAccount(ID)
-;(d.state as unknown as Record<string, unknown>).coins = 5000
-saveAccount(d.state, true)
-await settle()
+check('the desktop sees the server\'s account', d.ok && d.state.name === '离线改名' && d.state.pulls === 1)
+if (d.ok) {
+  d.state.name = '桌面改名'
+  saveAccount(d.state, true)
+  await settle()
+}
 use(phone)
 const stalePhone = await loadAccount(ID)
-check('a phone that is merely behind does not clobber the desktop',
-  stalePhone.ok && stalePhone.state.coins === 5000 && !stalePhone.recovered)
+check('the phone reads the newer name rather than pushing its own',
+  stalePhone.ok && stalePhone.state.name === '桌面改名')
 
-// ---- the mirror the player's phone is actually holding ------------------
-// Written by the old code: a bare state, no envelope, no revision.
+// ---- the mirror a tampered phone is holding ----------------------------
+//
+// A bare state, no envelope, written by hand: coins, cards and a record it
+// never earned. Its cosmetic fields are taken, because they are its own to
+// write; everything else is the server's.
 
 const bare = JSON.parse(JSON.stringify((await serverState(ID))!)) as Record<string, unknown>
 bare.id = ID
-bare.coins = 4242
-bare.log = [{ at: '2026-08-29T01:00:00.000Z', text: '试训包：抽到 someone（金卡）' }]
+bare.coins = 4_242_424
+bare.pulls = 900
+bare.name = '篡改'
+bare.cards = { ...(bare.cards as object), 'p:P1': { id: 'p:P1', level: 5, dupes: 9, seen: 9, got: '2026-01-01' } }
+bare.ladder = { div: 5, points: 9999, stars: 0, best: 5, wins: 500, losses: 0, streak: 0 }
 phone.set(`valmanager:card:state:${ID}`, JSON.stringify(bare))
-const legacy = await loadAccount(ID)
-check('a legacy mirror with newer play is recovered', legacy.ok && legacy.state.coins === 4242 && !!legacy.recovered)
+const tampered = await loadAccount(ID)
 await settle()
-
-const behind = JSON.parse(JSON.stringify(bare)) as Record<string, unknown>
-behind.coins = 11
-behind.log = [{ at: '2026-01-01T00:00:00.000Z', text: '很久以前' }]
-phone.set(`valmanager:card:state:${ID}`, JSON.stringify(behind))
-const old = await loadAccount(ID)
-check('a legacy mirror with nothing new is ignored', old.ok && old.state.coins === 4242 && !old.recovered)
+check('a tampered mirror does not become the account',
+  tampered.ok && tampered.state.coins !== 4_242_424 && tampered.state.pulls === 1
+  && !tampered.state.cards['p:P1'] && tampered.state.ladder.wins === 0)
+check('the server was not touched by it either',
+  (await serverState(ID))?.pulls === 1 && (await serverState(ID))?.coins !== 4_242_424)
+check('but the name it carried is taken — that much is the player\'s to write',
+  tampered.ok && tampered.state.name === '篡改')
 
 // ---- a 429 is a failure, not a success ---------------------------------
 
 use(desktop)
 const r2 = await loadAccount(ID)
 net = 'ratelimited'
-;(r2.state as unknown as Record<string, unknown>).coins = 7777
+if (r2.ok) r2.state.name = '限流'
 const before = saves
-saveAccount(r2.state, true)
+if (r2.ok) saveAccount(r2.state, true)
 await settle()
-check('a 429 leaves the mirror dirty instead of passing as a save',
-  mirrorOf(desktop, ID)?.dirty === true)
+check('a 429 leaves the mirror dirty instead of passing as a save', mirrorOf(desktop)?.dirty === true)
 check('and it is retried rather than dropped', saves > before, `${saves - before} attempt(s)`)
 net = 'up'
-retryPending(r2.state)
+if (r2.ok) retryPending(r2.state)
 await settle()
-check('once the limit lifts, the retry lands', (await serverState(ID))?.coins === 7777)
+check('once the limit lifts, the retry lands', (await serverState(ID))?.name === '限流')
 
 // ---- the save is awaitable, which is what the leaderboard needs ---------
-//
-// 「排行榜不会实时更新」: the board reads the accounts table, and this account
-// only reaches that table when its save lands. The ladder refetched the moment
-// a match ended, raced its own write, and printed the row from before the
-// match — 段位 said 大师 48 while your own row said 大师 20. Nothing was stale
-// on the server. So saveAccount returns a promise, and the fix is only real if
-// the server has actually been written by the time it settles.
 {
   use(desktop)
   const r3 = await loadAccount(ID)
-  ;(r3.state as unknown as Record<string, unknown>).coins = 31337
+  if (!r3.ok) process.exit(1)
+  r3.state.name = '等它落地'
   const p = saveAccount(r3.state, true)
   check('saveAccount hands back something to wait on', typeof p?.then === 'function')
   await p
   check('and by the time it settles the server has the new state',
-    (await serverState(ID))?.coins === 31337, JSON.stringify((await serverState(ID))?.coins))
-
-  // the debounced form resolves immediately and does NOT promise a write —
-  // only the immediate form is what a read-back may wait on
-  ;(r3.state as unknown as Record<string, unknown>).coins = 4141
+    (await serverState(ID))?.name === '等它落地')
+  r3.state.name = '还没'
   await saveAccount(r3.state)
   check('the debounced form does not pretend the write has happened',
-    (await serverState(ID))?.coins === 31337)
+    (await serverState(ID))?.name === '等它落地')
   await settle()
+}
+
+// ---- opening the mode with no network at all ---------------------------
+{
+  net = 'down'
+  use(phone)
+  const off = await loadAccount(ID)
+  check('offline, the mirror is shown read-only', off.ok && off.cloud === false && off.state.pulls === 1)
+  net = 'up'
+  const miss = await loadAccount('VM-1111-1111-1111-1111-1111')
+  check('an id the server has never seen is a miss, not a local account', !miss.ok && miss.reason === 'missing')
 }
 
 console.log(bad ? `\n${bad} FAILED` : '\nall good')

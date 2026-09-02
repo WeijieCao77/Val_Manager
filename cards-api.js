@@ -13,9 +13,25 @@
  * its SHA-256 — so the table is a pile of hashes and game saves, and a copy of
  * it does not let anyone log in as anybody.
  */
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
 import { progressOf } from './progress.js'
+
+/**
+ * The rules, running here.
+ *
+ * `npm run build:server` bundles src/engine/server.ts into dist-server/ for
+ * the deployed process, which is plain Node and cannot read TypeScript. The
+ * check scripts run under tsx, which can, and they run against a checkout
+ * where the bundle may be missing or stale — so the source is the fallback,
+ * and under tsx it is also the truth.
+ */
+async function loadEngine() {
+  const fromBundle = await import('./dist-server/engine.mjs').catch(() => null)
+  if (fromBundle && !process.env.ENGINE_FROM_SOURCE) return fromBundle
+  return import('./src/engine/server.ts')
+}
+export const engine = await loadEngine()
 
 export const CARD_SCHEMA = `
 create table if not exists card_accounts (
@@ -214,32 +230,41 @@ const sameId = (a, b) => {
   return x.length === y.length && timingSafeEqual(x, y)
 }
 
+/** The most a client's cosmetic fields may weigh. Names and three fives, not a collection. */
+export const MAX_CLIENT = 64 * 1024
+
 /**
- * What a save is allowed to be, and what gets stripped out of it.
+ * What a client may write into its account: the cosmetic fields, and nothing
+ * else.
  *
- * Almost nothing here is a fairness check — a single-player collection is the
- * player's own business, and an anti-cheat pass on a browser game is theatre.
- * Three things do matter:
- *
- *   - the blob has to be bounded, or one request fills the disk;
- *   - a check-in dated in the future would freeze that account's streak
- *     forever once the real date caught up, so it is refused;
- *   - the account id is deleted before the state is written. The client sends
- *     its whole save, and the save carries the id — which would have put the
- *     plaintext password back in the table the hash exists to keep it out of.
- *     The client already knows which id it logged in with and writes it back
- *     on load, so nothing downstream misses it.
+ * The collection used to arrive whole, with a note here that checking it was
+ * theatre. It was — because the client was the one that had rolled the packs.
+ * It no longer is. A save carries the name, the five on the table, the
+ * presets and the friendlies; a `coins` in the same body is not refused, it
+ * is simply never read. An older client still sends its whole state, so the
+ * same fields are picked out of that.
  */
-export function vetState(state, today) {
-  if (!state || typeof state !== 'object' || Array.isArray(state)) return null
-  const raw = JSON.stringify(state)
-  if (raw.length > MAX_STATE) return null
-  const claimed = state?.daily?.claimed
-  if (typeof claimed === 'string' && claimed > today) return null
+export function vetClient(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out = {}
+  for (const k of engine.CLIENT_KEYS) if (k in raw) out[k] = raw[k]
+  if (JSON.stringify(out).length > MAX_CLIENT) return null
+  return out
+}
+
+/**
+ * The account as it is written: the id is deleted first. The state carries
+ * the id in memory, and the id is the whole of the login — the table holds a
+ * hash of it for exactly the reason it must not hold the thing itself.
+ */
+const stored = (state) => {
   const { id, ...rest } = state
   void id
   return rest
 }
+
+/** A seed the client never held. */
+const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
 export function makeCardApi(sql, { rateLimited, readBody, json }) {
   const guard = (req, res, bucket, max) => {
@@ -266,14 +291,24 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         select state, rev, name, extract(epoch from coalesce(saved, seen)) * 1000 as saved
         from card_accounts where id_hash = ${hash(id)}`
       if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
-      await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
-      // `saved` dates the 体力 meter for a save with no anchor of its own: it
-      // is the last moment the state was WRITTEN, which is the last moment the
-      // meter was known to be where it claims to be. Deliberately not `seen`,
-      // which this very handler bumps on the way past.
+      // Brought up to the current shape here, and the 体力 meter of a save with
+      // no anchor is dated from the last moment the state was WRITTEN — the
+      // last moment the meter was known to be where it claims to be. Written
+      // back when that happens, or the anchor would be "now" on every load
+      // and nothing would ever accrue. Deliberately not `seen`, which this
+      // very handler bumps on the way past.
+      const state = engine.migrateGacha(rows[0].state, id)
+      const saved = Number(rows[0].saved) || null
+      if (!state.daily.staminaAt) {
+        state.daily.staminaAt = saved ?? serverNow()
+        await sql`update card_accounts set state = ${sql.json(stored(state))}, seen = now()
+                  where id_hash = ${hash(id)}`
+      } else {
+        await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
+      }
       json(res, 200, {
-        ok: true, today, now: serverNow(), saved: Number(rows[0].saved) || null,
-        rev: rows[0].rev, state: rows[0].state,
+        ok: true, today, now: serverNow(), saved,
+        rev: rows[0].rev, state: stored(state),
         // the client cannot work its own code out — it has the id, not the
         // hash, and hashing in the browser to learn something the server
         // already knows would be work for nothing
@@ -286,22 +321,19 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   }
 
   /**
-   * Write the collection back, refusing to overwrite somebody's newer play.
+   * Write the client's cosmetic fields back, refusing to overwrite a newer
+   * copy of them.
    *
-   * There was no version check at all, and the failure it allows is not
-   * theoretical: a tab left open on a phone holds an hour-old state in memory,
-   * and when the browser thaws it, flushAccount's sendBeacon posts that state
-   * and the server took it. An evening on the desktop disappeared.
+   * A save carries the name, the five on the table, the presets and the
+   * friendlies — and nothing else is read out of it. The collection itself
+   * moves only through `act`. An older client still posts its whole state;
+   * the same four fields are picked out of it and the rest is ignored, which
+   * is how a tab that has not reloaded since this shipped keeps working
+   * without being able to write a single coin.
    *
-   * So a save carries the revision it was built on. If the row has moved past
-   * it, the write is refused and the current state handed back — whoever has
-   * the older base loses at most their last action, instead of the other
-   * device losing everything. A beacon cannot read the reply, which is fine:
-   * the point is that it does not land.
-   *
-   * A save with no baseRev is accepted. Only tabs loaded before this shipped
-   * send none, and they will be gone by tomorrow; refusing them would lose
-   * real progress today to protect against a rarer loss.
+   * The revision check stays: a five from a tab that thawed out of the
+   * background is still the older five, and the other device's is the one
+   * the player just chose.
    */
   async function save(req, res, bucket) {
     if (guard(req, res, `cs:${bucket}`, 120)) return
@@ -313,134 +345,39 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(body?.id)
     if (!id) { json(res, 400, { ok: false, bad: true, today }); return }
-    // the client normalises before sending; a mismatch means the id was
-    // rewritten in flight, which is not a request worth serving
     if (body?.id && !sameId(normalizeId(body.id), id)) { json(res, 400, { ok: false }); return }
-    const state = vetState(body?.state, today)
-    if (!state) { json(res, 400, { ok: false, why: 'state' }); return }
-    const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
+    const client = vetClient(body?.client ?? body?.state)
+    if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
+    if (typeof body?.name === 'string') client.name = body.name.slice(0, 40)
     const baseRev = Number.isInteger(body?.baseRev) ? body.baseRev : null
     try {
-      // Progress never goes backwards.
-      //
-      // The revision check catches a client writing on top of a copy it has
-      // not seen; it cannot catch a client writing on top of a copy it HAS
-      // seen and then ignored — a tab told it was stale, adopting the truth
-      // into one object and then saving from another. This is the property
-      // that has to hold whatever any client does: packs opened, matches
-      // played and cards owned only ever increase, so a save that lowers them
-      // is a stale copy by definition and is refused the same way.
-      const held = await sql`
-        select state, rev, ladder_seen, ladder_at, pardon_seen,
-               extract(epoch from (now() - created)) as age,
-               extract(epoch from (now() - pardon_at)) as since_pardon
-        from card_accounts where id_hash = ${hash(id)}`
-      if (held.length && progressOf(state) < progressOf(held[0].state)) {
-        json(res, 409, {
-          ok: false, stale: true, today, now: serverNow(),
-          rev: held[0].rev, state: held[0].state,
-        })
-        return
-      }
-      /**
-       * Matches cannot appear faster than 体力 allows.
-       *
-       * 15 points banked, one back every 50 minutes, two a ladder match — so
-       * between two saves an account can have played at most
-       * (15 + minutes / 50) / 2 more matches than it already had. A jump past
-       * that did not come from playing, whatever the save says.
-       *
-       * The FIRST save an account makes is a free baseline. Somebody who
-       * played for days in 仅本机 and only then connected arrives with a real
-       * record and no history here, and calling that cheating would be wrong.
-       * Everything after the baseline is checked.
-       *
-       * Flagged, never refused. Refusing would eat a real evening the first
-       * time a clock disagreed, which is exactly the bug that cost somebody
-       * their progress a week ago. The flag costs a place on a public board
-       * and nothing else — the account keeps playing, keeps its cards, keeps
-       * saving. Sticky, because an account that has once produced an
-       * impossible jump does not clear it by behaving afterwards.
-       */
-      const ladder = state?.ladder
-      const total = Number(ladder?.wins ?? 0) + Number(ladder?.losses ?? 0)
-      const seen = Number.isFinite(total) ? Math.max(0, Math.min(9_999_999, Math.trunc(total))) : null
-      /** Matches 体力 can pay for over a stretch of minutes, 15 already banked. */
-      const affordable = (mins) => Math.floor((15 + Math.max(0, mins) / 50) / 2)
-      /**
-       * Ten matches of slack. It absorbs a clock that disagrees and an evening
-       * played against a server that was down, and it is far below the margins
-       * the flag is for — the records this caught on the day it shipped stood
-       * at 1.9 to 62 times what the clock allowed.
-       */
-      const SLACK = 10
-      let jumped = false
-      if (seen != null) {
-        // How fast it grew, once there is a reading to grow from.
-        if (held.length && held[0].ladder_seen != null && held[0].ladder_at) {
-          const since = (Date.now() - new Date(held[0].ladder_at).getTime()) / 60000
-          if (seen - held[0].ladder_seen > affordable(since) + SLACK) jumped = true
-        }
-        // And where it stands, which is the question a brand-new account has to
-        // answer too: a first save is a free baseline for everything EXCEPT
-        // this, or arriving pre-filled would be the way past every other check.
-        //
-        // Measured from the account's creation — or from the owner's pardon,
-        // if there is one: a record he has cleared is not re-tried, only what
-        // has been added since.
-        const pardoned = held.length && held[0].pardon_seen != null && held[0].since_pardon != null
-        const base = pardoned ? Number(held[0].pardon_seen) : 0
-        const baseMins = pardoned
-          ? Number(held[0].since_pardon ?? 0) / 60
-          : held.length ? Number(held[0].age ?? 0) / 60 : 0
-        if (seen - base > affordable(baseMins) + SLACK) jumped = true
-
-        // And the score hanging off those matches. The board ranks on points,
-        // so bounding the matches alone would leave the top of it a free
-        // number — 73 is the best a single win has ever been worth.
-        const pts = Number(ladder?.points ?? 0)
-        const wins = Number(ladder?.wins ?? 0)
-        if (Number.isFinite(pts) && Number.isFinite(wins)
-            && pts > (Math.max(0, wins) + SLACK) * MAX_POINTS_PER_WIN) jumped = true
-      }
-
+      const held = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
+      if (!held.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
+      const merged = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
+      // A null baseRev compares against nothing and matches nothing: a client
+      // with no revision has, by definition, not seen what it is about to
+      // write over. It gets the current copy back instead.
       const rows = await sql`
-        insert into card_accounts (id_hash, name, state, rev, saved, ladder_seen, ladder_at, suspect)
-        values (${hash(id)}, ${name}, ${sql.json(state)}, 1, now(), ${seen}, now(), ${jumped})
-        on conflict (id_hash) do update
-          set state = excluded.state,
-              name  = coalesce(excluded.name, card_accounts.name),
-              rev   = card_accounts.rev + 1,
-              seen  = now(),
-              saved = now(),
-              ladder_seen = ${seen},
-              ladder_at   = now(),
-              suspect = card_accounts.suspect or ${jumped}
-          -- One static predicate rather than a spliced fragment: a nested
-          -- tagged template here is not a boolean in every driver, and the
-          -- check script caught it as "Invalid input for boolean type".
-          --
-          -- A null baseRev used to compare the row against itself — always
-          -- true — so that a client too old to send one could still write.
-          -- That is a door with no lock on it, and it is how an evening
-          -- disappeared: any save that had never read the row overwrote it
-          -- whole. It is refused now. A client with no revision has, by
-          -- definition, not seen what it is about to destroy; the insert above
-          -- still covers the only case that needs no revision, which is an
-          -- account being created.
-          where card_accounts.rev = ${baseRev}::int
+        update card_accounts
+           set state = ${sql.json(stored(merged))},
+               name  = ${merged.name ?? null},
+               rev   = rev + 1,
+               seen  = now(),
+               saved = now()
+         where id_hash = ${hash(id)} and rev = ${baseRev}::int
         returning rev`
       if (!rows.length) {
-        // somebody else wrote since this client last read; hand back the truth
-        const cur = await sql`
-          select state, rev from card_accounts where id_hash = ${hash(id)}`
+        const cur = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
         json(res, 409, {
           ok: false, stale: true, today, now: serverNow(),
           rev: cur[0]?.rev ?? null, state: cur[0]?.state ?? null,
         })
         return
       }
-      json(res, 200, { ok: true, today, rev: rows[0].rev })
+      json(res, 200, {
+        ok: true, today, now: serverNow(), rev: rows[0].rev,
+        state: stored(merged), code: battleCode(hash(id)),
+      })
     } catch (err) {
       console.warn('cards: save failed', err.message)
       json(res, 500, { ok: false, today })
@@ -450,33 +387,148 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   /**
    * Claim a freshly generated id.
    *
-   * Separate from save so that saving can never quietly take over an id that
-   * already belongs to somebody. A collision at 100 bits will not happen; the
-   * branch exists so that if it ever did, the newcomer is told to try again
-   * instead of writing over a stranger's collection.
+   * The account is BUILT here — the starter coins, the starter packs, the
+   * seed — and only the name is taken from the request. It used to arrive
+   * from the client, which made the opening state whatever the client said
+   * it was. Separate from save so that saving can never quietly take over an
+   * id that already belongs to somebody.
    */
   async function claim(req, res, bucket) {
     if (guard(req, res, `cn:${bucket}`, 20)) return
     const today = serverDay()
     if (!sql) { json(res, 200, { ok: false, offline: true, today }); return }
     let body
+    // an older client posts a whole state here; it is read for the name only
     try { body = JSON.parse(await readBody(req, MAX_STATE + 4096)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(body?.id)
-    const state = vetState(body?.state, today)
-    if (!id || !state) { json(res, 400, { ok: false, today }); return }
-    const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : null
+    if (!id) { json(res, 400, { ok: false, today }); return }
+    const name = typeof body?.name === 'string' ? body.name.slice(0, 40) : '经理'
+    const state = engine.newGacha(id, name, today)
+    state.daily.staminaAt = serverNow()
     try {
       const rows = await sql`
-        insert into card_accounts (id_hash, name, state, saved)
-        values (${hash(id)}, ${name}, ${sql.json(state)}, now())
+        insert into card_accounts (id_hash, name, state, saved, ladder_seen, ladder_at)
+        values (${hash(id)}, ${name}, ${sql.json(stored(state))}, now(), 0, now())
         on conflict (id_hash) do nothing
         returning rev`
       if (!rows.length) { json(res, 409, { ok: false, taken: true, today }); return }
       json(res, 200, {
-        ok: true, today, now: serverNow(), rev: rows[0].rev, code: battleCode(hash(id)),
+        ok: true, today, now: serverNow(), rev: rows[0].rev,
+        state: stored(state), code: battleCode(hash(id)),
       })
     } catch (err) {
       console.warn('cards: claim failed', err.message)
+      json(res, 500, { ok: false, today })
+    }
+  }
+
+  /** Everything waiting in the inbox, taken off the table exactly once. */
+  async function takeMail(me) {
+    const rows = await sql`
+      update card_mail set taken = now() where to_h = ${me} and taken is null
+      returning kind, card_id, level, coins, pack, count, body, made`
+    const mail = rows.map((r) => ({
+      kind: r.kind, cardId: r.card_id, level: r.level, coins: r.coins,
+      pack: r.pack ?? null, count: r.count ?? 1,
+      body: r.body ?? {}, at: new Date(r.made).getTime(),
+    }))
+    // gifts sent before gifting was removed still have to arrive; they come
+    // through the same door now
+    const gifts = await sql`
+      update card_gifts set claimed = now()
+      where to_h = ${me} and claimed is null
+      returning from_h, card_id, note`
+    if (gifts.length) {
+      const names = await sql`
+        select id_hash, name from card_accounts where id_hash = any(${gifts.map((r) => r.from_h)})`
+      const by = Object.fromEntries(names.map((n) => [n.id_hash, n]))
+      for (const r of gifts) {
+        const who = displayName(by[r.from_h]?.name, r.from_h)
+        mail.push({
+          kind: 'gift', cardId: r.card_id, level: 0, coins: 0, pack: null, count: 1,
+          body: { who: `${who.name} #${who.tag}`, note: r.note ?? '' }, at: Date.now(),
+        })
+      }
+    }
+    return mail
+  }
+
+  /**
+   * Do something that counts.
+   *
+   * This is the whole of the anti-cheat now, and it is not a check: it is
+   * where the game runs. The client names an action and hands over its
+   * cosmetic fields; the server loads the account it holds, lays those fields
+   * over it, runs the same rules the client used to run — pack rolled from a
+   * seed the client never saw, check-in dated by this clock, the match
+   * simulated with the five this account actually owns — writes the result,
+   * and hands the account back. What the client's localStorage said a moment
+   * before is not consulted at any point.
+   *
+   * Optimistic on the row's revision rather than a transaction: if another
+   * request wrote in between, the whole thing is run again on the fresh
+   * copy, so two tabs opening packs at once open two packs and pay for both.
+   * Mail taken off the table before a retry is carried into the retry, so a
+   * delivery can never be marked taken and then lost.
+   */
+  async function act(req, res, bucket) {
+    if (guard(req, res, `ca:${bucket}`, 240)) return
+    const today = serverDay()
+    const now = serverNow()
+    if (!sql) { json(res, 200, { ok: false, offline: true, today }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, MAX_CLIENT + 8192)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(body?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true, today }); return }
+    const action = typeof body?.action === 'string' ? body.action : ''
+    if (!engine.ACTIONS.includes(action) && action !== 'mail_take') {
+      json(res, 200, { ok: false, why: '没有这个操作', today })
+      return
+    }
+    const client = vetClient(body?.client)
+    if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
+    const args = body?.args && typeof body.args === 'object' && !Array.isArray(body.args) ? body.args : {}
+    const me = hash(id)
+    try {
+      let taken = []
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const held = await sql`select state, rev from card_accounts where id_hash = ${me}`
+        if (!held.length) { json(res, 200, { ok: false, missing: true, today, now }); return }
+        const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
+        let out
+        if (action === 'mail_take') {
+          taken = taken.concat(await takeMail(me))
+          engine.applyMail(g, taken)
+          out = { ok: true, result: { mail: taken } }
+        } else {
+          const env = { now, today, seed: freshSeed() }
+          if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me)
+          out = engine.runAction(g, action, args, env)
+        }
+        const total = g.ladder.wins + g.ladder.losses
+        const rows = await sql`
+          update card_accounts
+             set state = ${sql.json(stored(g))},
+                 name  = ${g.name ?? null},
+                 rev   = rev + 1,
+                 seen  = now(),
+                 saved = now(),
+                 ladder_seen = ${total},
+                 ladder_at   = now()
+           where id_hash = ${me} and rev = ${held[0].rev}
+          returning rev`
+        if (!rows.length) continue
+        json(res, 200, {
+          ok: out.ok,
+          why: out.ok ? undefined : out.why,
+          result: out.ok ? out.result : undefined,
+          today, now, rev: rows[0].rev, state: stored(g), code: battleCode(me),
+        })
+        return
+      }
+      json(res, 409, { ok: false, busy: true, why: '账号正忙，再试一次。', today, now })
+    } catch (err) {
+      console.warn('cards: act failed', err.message)
       json(res, 500, { ok: false, today })
     }
   }
@@ -602,6 +654,44 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }
   }
 
+  /**
+   * Other people's fives near a division, a dozen at random.
+   *
+   * Shared by the /rivals route and by the ladder action, which draws one of
+   * these on the server when the division calls for a real opponent. An
+   * account the 体力 clock has caught is left out: nobody should have to
+   * play a five that was typed in.
+   */
+  async function rivalPool(div, mine) {
+    return sql`
+      with pool as (
+        select
+          id_hash, name, state->'squad' as squad, state->'cards' as cards,
+          case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
+               then (state->'ladder'->>'div')::int else 0 end as div,
+          case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
+               then (state->'ladder'->>'points')::int else 0 end as points
+        from card_accounts
+        where jsonb_typeof(state->'squad'->'slots') = 'array'
+          and jsonb_array_length(state->'squad'->'slots') = 5
+          -- a five with an empty seat is not an opponent
+          and (select count(*) from jsonb_array_elements(state->'squad'->'slots') e
+               where jsonb_typeof(e) = 'string') = 5
+          and not suspect
+          and id_hash <> ${mine}
+      )
+      select id_hash, name, squad, cards, div, points
+      from pool
+      order by abs(div - ${div}), random()
+      limit 12`
+  }
+
+  async function pickRival(div, mine) {
+    const rows = await rivalPool(div, mine)
+    const fives = rows.map(squadOf).filter((x) => x.slots.filter(Boolean).length === 5)
+    return fives.length ? fives[Math.floor(Math.random() * fives.length)] : null
+  }
+
   async function rivals(req, res, bucket) {
     if (guard(req, res, `cr:${bucket}`, 60)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
@@ -615,30 +705,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       if (id) mine = hash(id)
     } catch { /* defaults are fine */ }
     try {
-      const rows = await sql`
-        with pool as (
-          select
-            id_hash, name, state->'squad' as squad, state->'cards' as cards,
-            case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
-                 then (state->'ladder'->>'div')::int else 0 end as div,
-            case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
-                 then (state->'ladder'->>'points')::int else 0 end as points
-          from card_accounts
-          where jsonb_typeof(state->'squad'->'slots') = 'array'
-            and jsonb_array_length(state->'squad'->'slots') = 5
-            -- a five with an empty seat is not an opponent
-            and (select count(*) from jsonb_array_elements(state->'squad'->'slots') e
-                 where jsonb_typeof(e) = 'string') = 5
-            and id_hash <> ${mine}
-        )
-        select id_hash, name, squad, cards, div, points
-        from pool
-        order by abs(div - ${div}), random()
-        limit 12`
-      json(res, 200, {
-        ok: true,
-        rivals: rows.map(squadOf),
-      })
+      const rows = await rivalPool(div, mine)
+      json(res, 200, { ok: true, rivals: rows.map(squadOf) })
     } catch (err) {
       console.warn('cards: rivals failed', err.message)
       json(res, 500, { ok: false })
@@ -768,6 +836,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       }
       if (path === '/api/card/load') { await load(req, res, bucket); return true }
       if (path === '/api/card/save') { await save(req, res, bucket); return true }
+      if (path === '/api/card/act') { await act(req, res, bucket); return true }
       if (path === '/api/card/claim') { await claim(req, res, bucket); return true }
       return false
     },

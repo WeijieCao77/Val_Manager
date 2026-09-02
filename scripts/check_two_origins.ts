@@ -1,26 +1,23 @@
 /**
- * The same account on two domains, and the evening that disappeared.
+ * The same account on two domains, and the evening that can no longer
+ * disappear.
  *
  *   npx tsx scripts/check_two_origins.ts
  *
- * Reported with screenshots: 大师 48 分 and three friend matches played on
- * val-manager-production.up.railway.app, then the account opened on
- * vctgames.com and the ladder back at 大师 0 / 35–10 with an empty friend
- * record — and the LEADERBOARD showing 35–10 too, so the server itself had
- * gone backwards. A stale save was accepted.
+ * The incident: 大师 48 分 and three friendlies played on one domain, then
+ * the account opened on the other and the ladder back at 35–10 — a tab left
+ * open on the first domain had beaconed its hour-old copy over the evening.
  *
- * The two domains are one service and one database, but they are two ORIGINS,
- * so each has its own localStorage and therefore its own mirror, its own
- * module state and its own idea of the current revision. Everything that
- * protects one device from another has to survive that, and this drives the
- * real client module twice — once per origin — against the real routes to find
- * out whether it does.
- *
- * Each origin is a separate import of engine/account.ts (the module keeps
- * `rev` in a closure, so two copies is the only honest way to model two tabs).
+ * Two domains are one service and one database but two ORIGINS, so each has
+ * its own localStorage, its own copy of the client module and its own idea of
+ * the current revision. This drives the real client twice — once per origin —
+ * against the real routes. The record is the server's now, so a stale tab
+ * has nothing of value to overwrite; what it can still send is a five and a
+ * friend list, and those are guarded by the revision.
  */
+process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
-import { CARD_SCHEMA, makeCardApi } from '../cards-api.js'
+const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -63,15 +60,18 @@ Object.defineProperty(globalThis, 'navigator', {
 })
 g.fetch = async (url: string, init?: { body?: string }) => {
   const res: Res = { code: 0, body: {} }
+  const path = String(url)
+  if (path.endsWith('/day')) {
+    return { ok: true, status: 200, json: async () => ({ ok: true, today: '2026-09-02', now: Date.now(), cloud: true }) }
+  }
   await routes.route({ body: init?.body ?? '{}' } as never, res as never,
-    String(url).replace(/^.*(\/api\/card\/\w+)$/, '$1'), 'test')
+    path.replace(/^.*(\/api\/card\/\w+)$/, '$1'), 'test')
   return { ok: res.code < 400, status: res.code, json: async () => res.body }
 }
 
 /** One origin: its own localStorage and its own copy of the client. */
 async function openOrigin(name: string) {
   const mine: Store = new Map()
-  // a fresh module instance — `rev` and the debounce timer are per-origin
   const mod = await import(`../src/engine/account.ts?origin=${name}`)
   const enter = () => { store = mine }
   return { name, store: mine, mod, enter }
@@ -83,200 +83,111 @@ const vct = await openOrigin('vct')
 const serverState = async (id: string) => {
   const res: Res = { code: 0, body: {} }
   await routes.route({ body: JSON.stringify({ id }) } as never, res as never, '/api/card/load', 'peek')
-  return res.body.state as Record<string, unknown> | undefined
-}
-const serverWins = async (id: string) => {
-  const st = await serverState(id) as { wins?: number; ladder?: { wins?: number } } | undefined
-  return Number(st?.ladder?.wins ?? st?.wins ?? -1)
+  return res.body.state as { pulls: number; friends: unknown[]; name: string; squad: { slots: (string | null)[] } } | undefined
 }
 
-// ---- the evening, as reported -------------------------------------------
+// ---- the evening, as it goes now ----------------------------------------
 
 railway.enter()
 const made = await railway.mod.createAccount('diandian')
+check('账号在服务器上建好', made.ok)
+if (!made.ok) process.exit(1)
 const ID = made.state.id as string
-const st = made.state as unknown as Record<string, unknown>
-// the ladder record is where wins actually live — the same field the report's
-// screenshots show as 35–10
-st.ladder = { div: 5, points: 0, stars: 0, best: 5, wins: 35, losses: 10, streak: 0 }
-st.log = []
-railway.mod.saveAccount(made.state, true)
-await settle()
-check('开局：服务器上是 35 胜', (await serverWins(ID)) === 35)
+const st = made.state
+// two packs on railway, on the server
+await railway.mod.act(st, 'open', { kind: 'scout', payWith: 'pack' })
+await railway.mod.act(st, 'open', { kind: 'scout', payWith: 'pack' })
+check('开局：服务器上是 2 抽', (await serverState(ID))?.pulls === 2)
 
-// the account is opened on the other domain and played there too — this is
-// what leaves a stale copy sitting in vctgames.com's own localStorage
+// the account is opened on the other domain too — this is what leaves a stale
+// copy sitting in vctgames.com's own localStorage
 vct.enter()
 const onVct = await vct.mod.loadAccount(ID)
-check('另一个域名读到的是同一个账号',
-  onVct.ok && (onVct.state as { ladder?: { wins?: number } }).ladder?.wins === 35)
-// he leaves that tab open and goes away: flushAccount is what a hidden tab does
+check('另一个域名读到的是同一个账号', onVct.ok && onVct.state.pulls === 2)
 vct.mod.flushAccount(onVct.state)
 await settle()
 
 // ---- now the evening on railway -----------------------------------------
 railway.enter()
-;(st.ladder as { wins: number; points: number }).wins = 37
-;(st.ladder as { wins: number; points: number }).points = 48
+await railway.mod.act(st, 'open', { kind: 'scout', payWith: 'pack' })
 st.friends = [{ code: 'aaaa1111', name: '胡兴旺', tag: '#EAED', wins: 1, losses: 0, at: '2026-09-01' }]
-railway.mod.saveAccount(made.state, true)
+st.squad.slots[0] = Object.keys(st.cards)[0]
+await railway.mod.saveAccount(st, true)
 await settle()
-check('railway 上打到 37 胜，还有一条好友战绩',
-  (await serverWins(ID)) === 37
-  && ((await serverState(ID))?.friends as unknown[])?.length === 1)
+check('railway 上开到 3 抽，还有一条好友战绩和一个首发',
+  (await serverState(ID))?.pulls === 3 && (await serverState(ID))?.friends.length === 1
+  && !!(await serverState(ID))?.squad.slots[0])
 
 // ---- he clicks back to the vctgames tab that was left open --------------
-//
-// It never reloads: the tab is still holding the 35-win state from before, and
-// coming back to the front is exactly when retryPending fires.
 vct.enter()
 let staleShown: Record<string, unknown> | null = null
 vct.mod.whenStale((fresh: Record<string, unknown>) => { staleShown = fresh })
 vct.mod.retryPending(onVct.state)
 await settle()
 
-const after = await serverWins(ID)
-console.log(`\n切回旧标签页之后，服务器上是 ${after} 胜`)
-check('旧标签页不能把服务器写回去', after === 37, `${after} 胜（应为 37）`)
-check('好友战绩还在',
-  ((await serverState(ID))?.friends as unknown[])?.length === 1,
-  JSON.stringify((await serverState(ID))?.friends))
-const shownWins = (staleShown as { ladder?: { wins?: number } } | null)?.ladder?.wins
-check('旧标签页自己被拉到最新进度', shownWins === 37,
-  staleShown ? String(shownWins) : '没收到 stale 回调')
+const after = await serverState(ID)
+check('旧标签页不能把好友战绩和首发写回去', after?.friends.length === 1 && !!after?.squad.slots[0],
+  JSON.stringify({ friends: after?.friends.length, first: after?.squad.slots[0] }))
+check('抽数当然也不会动——它从来不由客户端写', after?.pulls === 3)
+const shownPulls = (staleShown as { pulls?: number } | null)?.pulls
+check('旧标签页自己被拉到最新进度', shownPulls === 3, staleShown ? String(shownPulls) : '没收到 stale 回调')
 
-// ---- and the same tab saving again afterwards ---------------------------
-//
-// Having been told it was stale, it must not then be allowed to write the copy
-// it was holding — the adoption has to reach the object the tab is using.
-vct.mod.saveAccount(onVct.state, true)
+// having been told it was stale, saving again must not overwrite either
+await vct.mod.saveAccount(onVct.state, true)
 await settle()
-check('被告知落后之后，它再存一次也不会覆盖', (await serverWins(ID)) === 37,
-  `${await serverWins(ID)} 胜`)
+check('被告知落后之后，它再存一次也不会覆盖', (await serverState(ID))?.friends.length === 1)
 
 // ---- a client that never learned a revision -----------------------------
-//
-// baseRev travels with every save and the server compares it against the row.
-// A null one used to mean "write anyway", which is a door with no lock on it.
 {
   const res: Res = { code: 0, body: {} }
   await routes.route({
-    body: JSON.stringify({ id: ID, name: 'x', state: { wins: 1, cards: {} } }),
+    body: JSON.stringify({ id: ID, name: 'x', client: { friends: [], squad: { slots: [null, null, null, null, null], coach: null } } }),
   } as never, res as never, '/api/card/save', 'test')
-  const now = await serverWins(ID)
-  check('没带版本号的存档不能覆盖别人的进度', now === 37,
-    `写完之后是 ${now} 胜，返回 ${res.code}`)
+  check('没带版本号的存档不能覆盖别人的进度',
+    res.code === 409 && (await serverState(ID))?.friends.length === 1, `返回 ${res.code}`)
 }
 
-// ---- the things that legitimately go DOWN ------------------------------
+// ---- the stale tab tries to write VALUE, with the right revision --------
 //
-// The invariant is only safe if every term it measures is genuinely monotonic.
-// Two were not, and each would have refused an ordinary save from an ordinary
-// player rather than a stale one from a forgotten tab.
+// The revision only guards the cosmetic fields. Value is guarded by not
+// being read at all: a save built on the current revision that says 999
+// pulls and a 大师 record leaves the server's numbers exactly where they were.
 {
-  const { progressOf } = await import('../progress.js')
-  // a player coming back after a week: the check-in resets his streak to 1
-  const before = { pulls: 40, ladder: { wins: 3, losses: 1 }, cards: { a: 1 }, daily: { streak: 7 } }
-  const after = { ...before, daily: { streak: 1 } }
-  check('断签把连签清成 1，不能算成「进度倒退」',
-    progressOf(after) >= progressOf(before),
-    `${progressOf(before)} → ${progressOf(after)}`)
-
-  // the friend list is capped: the twenty-fifth friend pushes the oldest out
-  const full = {
-    pulls: 40, cards: { a: 1 },
-    friends: Array.from({ length: 24 }, (_, i) => ({ code: `c${i}`, wins: 5, losses: 5 })),
+  vct.enter()
+  const fresh = await vct.mod.loadAccount(ID)
+  if (fresh.ok) {
+    fresh.state.pulls = 999
+    fresh.state.coins = 9_999_999
+    fresh.state.ladder = { div: 5, points: 4800, stars: 0, best: 5, wins: 370, losses: 10, streak: 0 }
+    await vct.mod.saveAccount(fresh.state, true)
+    await settle()
   }
-  const rolled = {
-    ...full,
-    friends: [{ code: 'new', wins: 1, losses: 0 }, ...full.friends.slice(0, 23)],
-  }
-  check('好友列表满了之后挤掉最老的一条，也不能算倒退',
-    progressOf(rolled) >= progressOf(full),
-    `${progressOf(full)} → ${progressOf(rolled)}`)
-
-  // and the things that must count
-  check('多开一个包算进度', progressOf({ pulls: 2 }) > progressOf({ pulls: 1 }))
-  check('多打一场天梯算进度',
-    progressOf({ ladder: { wins: 1, losses: 1 } }) > progressOf({ ladder: { wins: 1, losses: 0 } }))
-  // Cards deliberately do NOT count any more: listing one on the trading post
-  // puts it in escrow and takes it off your side, and selling the 彩卡 you do
-  // not want in order to keep opening packs is the point of that market.
-  // Counting them would make every such sale look like a rollback.
-  check(progressOf({ cards: { a: 1, b: 1 } }) === progressOf({ cards: { a: 1 } }),
-    '卡的张数不算进度——挂牌卖卡会让它变少，那不是倒退')
-  check(progressOf({ pulls: 2, cards: {} }) > progressOf({ pulls: 1, cards: { a: 1, b: 1, c: 1 } }),
-    '抽卡次数才是主心骨：开得多的那份更新，哪怕卡更少')
-  check('多一个好友战绩算进度',
-    progressOf({ friends: [{}, {}] }) > progressOf({ friends: [{}] }))
-  check('金币不算进度——花掉了不等于倒退',
-    progressOf({ coins: 1 }) === progressOf({ coins: 99999 }))
+  const now = await serverState(ID) as unknown as { pulls: number; coins: number; ladder: { wins: number } }
+  check('版本号对得上也一样：抽数、金币、战绩都不由存档决定',
+    now.pulls === 3 && now.coins !== 9_999_999 && now.ladder.wins === 0,
+    JSON.stringify({ pulls: now.pulls, coins: now.coins, wins: now.ladder.wins }))
 }
 
-// ---- a real returning player is not locked out -------------------------
-{
-  const st2 = onVct.state as unknown as Record<string, unknown>
-  st2.ladder = { div: 5, points: 48, stars: 0, best: 5, wins: 37, losses: 10, streak: 0 }
-  st2.pulls = 1
-  st2.daily = { streak: 7, claimed: null, questDay: null, picked: [], progress: {}, taken: [] }
-  vct.mod.saveAccount(onVct.state, true)
-  await settle()
-  const kept = (await serverState(ID)) as { daily?: { streak?: number } }
-  check('连签 7 天的存档存得进去', kept?.daily?.streak === 7, JSON.stringify(kept?.daily?.streak))
-  // now he misses a day and checks in again: streak 7 → 1, and one more pull
-  ;(st2.daily as { streak: number }).streak = 1
-  st2.pulls = 2
-  vct.mod.saveAccount(onVct.state, true)
-  await settle()
-  const back = (await serverState(ID)) as { daily?: { streak?: number } }
-  check('隔了一周回来，连签清零也照样存得进去', back?.daily?.streak === 1,
-    JSON.stringify(back?.daily?.streak))
-}
-
-// ---- recovering an evening that was already lost ------------------------
+// ---- and the machine that actually played still sees the truth ---------
 //
-// The incident happened before the fix shipped, so the server is holding the
-// clobbered copy. The device that actually played it still has the real one in
-// its own localStorage, and opening that device has to hand it back rather
-// than politely adopting the wreckage.
+// The old recovery path — a device with MORE play pushing it back over the
+// server — is gone, and this is the test that it stays gone. A mirror
+// claiming 37 wins is a mirror; the account says what the server says.
 {
   const played = await openOrigin('played')
   played.enter()
   const acc = await played.mod.createAccount('受害者')
+  if (!acc.ok) process.exit(1)
   const RID = acc.state.id as string
-  const rs = acc.state as unknown as Record<string, unknown>
+  const rs = JSON.parse(JSON.stringify(acc.state)) as Record<string, unknown>
   rs.pulls = 30
   rs.ladder = { div: 5, points: 48, stars: 0, best: 5, wins: 37, losses: 10, streak: 3 }
-  rs.friends = [
-    { code: 'a1', name: '胡兴旺', tag: '#EAED', wins: 1, losses: 0, at: '2026-09-01' },
-    { code: 'a2', name: '冷水鱼', tag: '#6C19', wins: 1, losses: 0, at: '2026-09-01' },
-  ]
-  played.mod.saveAccount(acc.state, true)
-  await settle()
-  check('这台设备打到了 37 胜、大师 48 分、两条好友战绩',
-    (await serverWins(RID)) === 37)
-
-  // the clobber, by hand, exactly as the bug produced it
-  await sql`update card_accounts set state = ${sql.json({
-    pulls: 30, cards: {},
-    ladder: { div: 5, points: 0, stars: 0, best: 5, wins: 35, losses: 10, streak: 0 },
-    friends: [],
-    daily: { claimed: null, streak: 1, questDay: null, picked: [], progress: {}, taken: [] },
-  })}, rev = rev + 1 where id_hash = (select id_hash from card_accounts order by created desc limit 1)`
-  check('服务器被一个旧标签页覆盖成了 35 胜、大师 0、没有好友战绩',
-    (await serverWins(RID)) === 35)
-
-  // he opens the machine he actually played on
-  played.enter()
+  played.store.set(`valmanager:card:state:${RID}`, JSON.stringify({ state: rs, rev: 1, dirty: true }))
   const back = await played.mod.loadAccount(RID)
   await settle()
-  const st3 = back.state as { ladder?: { wins?: number; points?: number }; friends?: unknown[] }
-  check('在真正打过的那台设备上重新打开，进度回来了', st3?.ladder?.wins === 37,
-    String(st3?.ladder?.wins))
-  check('大师分也回来了', st3?.ladder?.points === 48, String(st3?.ladder?.points))
-  check('两条好友战绩都回来了', st3?.friends?.length === 2, String(st3?.friends?.length))
-  check('并且推回了服务器', (await serverWins(RID)) === 37, `${await serverWins(RID)} 胜`)
-  check('界面会告诉他这件事发生过', back.recovered === true, String(back.recovered))
+  check('本机镜像说 37 胜，账号说 0 胜——听账号的',
+    back.ok && back.state.ladder.wins === 0 && back.state.pulls === 0)
+  check('服务器也没有被那份镜像推动', (await serverState(RID))?.pulls === 0)
 }
 
 console.log(bad ? `\n${bad} FAILED` : '\nall good')

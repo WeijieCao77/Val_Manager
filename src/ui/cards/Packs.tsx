@@ -4,62 +4,73 @@ import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, QUESTS, HARD_PITY, SOFT_PITY,
-  checkIn, claimQuest, collectionProgress, openPack, refreshDaily, salvage,
-  claimSeries, featuredSeries, packCost, seriesOfPack, seriesProgress,
+  collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
 } from '../../engine/gacha'
-import type { PackKind, Pulled, QuestKey } from '../../engine/gacha'
-import { RARITY_CN, isPlayerCard } from '../../engine/cards'
+import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
+import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 
+/** What the server says came out of a pack, resolved back to cards. */
+interface PulledWire { cardId: string; dupe: boolean; salvage: number }
+
 export default function Packs() {
-  const { g, today, commit, toast } = useCards()
+  const { g, today, act, toast } = useCards()
   const [opening, setOpening] = useState<Pulled[] | null>(null)
   const [shown, setShown] = useState(0)
+  const [busy, setBusy] = useState(false)
 
   refreshDaily(g, today)
   const prog = collectionProgress(g)
   const series = seriesProgress(g)
   const featured = featuredSeries(today)
 
-  const open = (kind: PackKind, payWith: 'pack' | 'coins') => {
-    try {
-      const out = openPack(g, kind, payWith, today)
-      track('card_pull', {
-        kind,
-        paid: payWith,
-        gold: out.filter((p) => p.card.rarity === 'gold').length,
-        dupes: out.filter((p) => p.dupe).length,
-      })
-      commit()
-      setOpening(out)
-      setShown(1)
-    } catch (e) {
-      toast(e instanceof Error ? e.message : '开不了')
-    }
+  // The pack is rolled on the server and comes back already in the
+  // collection; what happens here is the reveal.
+  const open = async (kind: PackKind, payWith: 'pack' | 'coins') => {
+    if (busy) return
+    setBusy(true)
+    const r = await act('open', { kind, payWith })
+    setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const wire = ((r.result as { pulled?: PulledWire[] } | undefined)?.pulled ?? [])
+    const out: Pulled[] = wire
+      .map((p) => { const card = cardById(p.cardId); return card ? { card, dupe: p.dupe, salvage: p.salvage } : null })
+      .filter((x): x is Pulled => !!x)
+    if (!out.length) { toast('开是开了，但没读到卡——刷新看看收藏。'); return }
+    track('card_pull', {
+      kind,
+      paid: payWith,
+      gold: out.filter((p) => p.card.rarity === 'gold').length,
+      dupes: out.filter((p) => p.dupe).length,
+    })
+    setOpening(out)
+    setShown(1)
   }
 
   const done = () => {
     setOpening(null)
     setShown(0)
-    commit(true)
   }
 
-  const check = () => {
-    const r = checkIn(g, today)
-    if (!r.already) track('card_signin', { streak: r.streak })
-    commit(true)
-    toast(r.already ? '今天已经签过到了。' : `签到第 ${r.streak} 天：+${r.coins} 金币，卡包已入库。`)
+  const check = async () => {
+    const r = await act('checkin')
+    if (!r.ok) { toast(r.why); return }
+    const c = r.result as CheckIn
+    if (!c.already) track('card_signin', { streak: c.streak })
+    toast(c.already ? '今天已经签过到了。' : `签到第 ${c.streak} 天：+${c.coins} 金币，卡包已入库。`)
   }
 
-  const claim = (key: QuestKey) => {
-    const n = claimQuest(g, key)
-    if (n) { commit(true); toast(`任务完成，+${n} 金币。`) }
+  const claim = async (key: QuestKey) => {
+    const r = await act('quest', { key })
+    if (!r.ok) { toast(r.why); return }
+    toast(`任务完成，+${(r.result as { coins: number }).coins} 金币。`)
   }
 
-  const takeSeries = (region: Parameters<typeof claimSeries>[1]) => {
-    const got = claimSeries(g, region)
-    if (got) { commit(true); toast(`系列奖励已领取：${got}`) }
+  const takeSeries = async (region: Series) => {
+    const r = await act('series', { region })
+    if (!r.ok) { toast(r.why); return }
+    toast(`系列奖励已领取：${(r.result as { got: string }).got}`)
   }
 
   const signedToday = g.daily.claimed === today
@@ -96,7 +107,7 @@ export default function Packs() {
               )
             })}
           </div>
-          <button className="primary" onClick={check} disabled={signedToday}>
+          <button className="primary" onClick={() => void check()} disabled={signedToday}>
             {signedToday ? '今天已签到' : '签到'}
           </button>
         </Panel>
@@ -113,7 +124,7 @@ export default function Packs() {
                   <div className="small">{q.label}</div>
                   <div className="tiny faint mono">{Math.min(at, q.target)}/{q.target} · +{q.reward} 金币</div>
                 </div>
-                <button className="sm" onClick={() => claim(key)} disabled={!full || taken}>
+                <button className="sm" onClick={() => void claim(key)} disabled={!full || taken}>
                   {taken ? '已领' : full ? '领取' : '进行中'}
                 </button>
               </div>
@@ -149,7 +160,7 @@ export default function Packs() {
                 </h4>
                 <p>{def.blurb}</p>
                 <div className="row" style={{ gap: 6 }}>
-                  <button className="primary sm" onClick={() => open(kind, 'pack')} disabled={own < 1}>
+                  <button className="primary sm" onClick={() => void open(kind, 'pack')} disabled={busy || own < 1}>
                     打开（{own}）
                   </button>
                   {def.shop === false ? (
@@ -157,8 +168,8 @@ export default function Packs() {
                   ) : (
                     <button
                       className="sm"
-                      onClick={() => open(kind, 'coins')}
-                      disabled={g.coins < def.cost}
+                      onClick={() => void open(kind, 'coins')}
+                      disabled={busy || g.coins < def.cost}
                     >
                       花 {def.cost} 金币
                     </button>
@@ -222,19 +233,19 @@ export default function Packs() {
                       : '全部收齐了'}
                 </div>
                 <div className="row" style={{ gap: 6 }}>
-                  <button className="primary sm" onClick={() => open(s.pack, 'pack')} disabled={own < 1}>
+                  <button className="primary sm" onClick={() => void open(s.pack, 'pack')} disabled={busy || own < 1}>
                     打开（{own}）
                   </button>
                   <button
                     className="sm"
-                    onClick={() => open(s.pack, 'coins')}
-                    disabled={g.coins < price}
+                    onClick={() => void open(s.pack, 'coins')}
+                    disabled={busy || g.coins < price}
                   >
                     花 {price} 金币
                     {hot && <s className="faint" style={{ marginLeft: 4 }}>{def.cost}</s>}
                   </button>
                   {s.ready.length > 0 && (
-                    <button className="sm warn" onClick={() => takeSeries(s.region)}>领奖</button>
+                    <button className="sm warn" onClick={() => void takeSeries(s.region)}>领奖</button>
                   )}
                 </div>
               </div>
@@ -253,11 +264,13 @@ export default function Packs() {
           // and swallowed every click
           onNext={() => setShown((n) => Math.min(n + 1, opening.length + 1))}
           onDone={done}
-          onSellAll={() => {
-            let coins = 0
-            for (const p of opening) if (p.dupe) coins += salvage(g, p.card.id, 1)
-            commit(true)
-            toast(coins ? `重复卡已分解，+${coins} 金币。` : '这一包没有重复卡。')
+          onSellAll={async () => {
+            const cardIds = opening.filter((p) => p.dupe).map((p) => p.card.id)
+            if (!cardIds.length) { toast('这一包没有重复卡。'); return }
+            const r = await act('salvage_dupes', { cardIds })
+            if (!r.ok) { toast(r.why); return }
+            const coins = (r.result as { coins: number }).coins
+            toast(coins ? `重复卡已分解，+${coins} 金币。` : '这一包的重复卡已经分解过了。')
           }}
         />
       )}

@@ -14,12 +14,11 @@
  * and the card goes home. Both are settled the moment anyone looks at the
  * market, so the state a player sees is always already correct.
  *
- * What this cannot do is verify that the seller really owned the card. Saves
- * in this game are client-authoritative — that is the design, and an anti-cheat
- * pass on a browser game is theatre — so an edited client can list a card it
- * conjured. The ownership check below reads the seller's SAVED state, which
- * raises the cost from "edit one number" to "edit and save", and no further.
- * Worth saying plainly rather than implying a guarantee that is not there.
+ * The collection is the server's now — see engine/actions.ts — so the seller
+ * really does own the card: it is taken out of the server's copy of the
+ * account at the moment it is listed, and a bid takes the coins out of the
+ * bidder's at the moment it is made. A client that says otherwise is not
+ * consulted.
  */
 import { createHash } from 'node:crypto'
 
@@ -82,7 +81,9 @@ export const askFloor = (rarity) => Math.max(MIN_ASK, SALVAGE_FLOOR[rarity] ?? M
 
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
-export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, rateLimited }) {
+export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine }) {
+  /** The account as it is written: never with the id in it. */
+  const stored = (state) => { const { id, ...rest } = state; void id; return rest }
   const guard = (req, res, bucket, max) => {
     if (rateLimited(bucket, max)) { json(res, 429, { ok: false, why: 'rate' }); return true }
     return false
@@ -195,9 +196,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const me = hash(id)
     const cardId = String(b?.cardId ?? '').slice(0, 40)
     const ask = Math.round(Number(b?.ask))
-    const level = Math.max(0, Math.min(20, Math.round(Number(b?.level) || 0)))
-    const rarity = String(b?.rarity ?? '')
-    const floor = askFloor(rarity)
+    // The card table is the server's now, so neither the metal nor the level
+    // is read off the request: the floor comes from what the card is, and the
+    // level from what the account actually holds.
+    const card = engine.cardById(cardId)
+    if (!card) { json(res, 200, { ok: false, notOwned: true }); return }
+    const floor = askFloor(card.rarity)
     if (!cardId || !Number.isFinite(ask) || ask < floor || ask > MAX_ASK) {
       json(res, 200, { ok: false, bad: true, min: floor, max: MAX_ASK })
       return
@@ -218,10 +222,27 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // sale would have nothing behind it
     const held = Number(owned.dupes ?? 0) + 1
     if ((already[0]?.n ?? 0) >= held) { json(res, 200, { ok: false, alreadyListed: true }); return }
-    const r = await sql`
-      insert into card_listings (seller_h, card_id, level, ask)
-      values (${me}, ${cardId}, ${level}, ${ask}) returning id`
-    json(res, 200, { ok: true, id: String(r[0].id) })
+    // The card leaves the collection HERE, on the server's copy — a spare
+    // first, at level 0; the card itself otherwise, at the level it holds.
+    // It used to leave on the client's copy after this reply, which meant a
+    // client that skipped that step listed a card it still held.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const row = await sql`select state, rev from card_accounts where id_hash = ${me}`
+      if (!row.length) { json(res, 200, { ok: false, notOwned: true }); return }
+      const g = engine.migrateGacha(row[0].state, id)
+      const esc = engine.escrowCard(g, cardId)
+      if (!esc.ok) { json(res, 200, { ok: false, notOwned: true }); return }
+      const w = await sql`
+        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
+        where id_hash = ${me} and rev = ${row[0].rev} returning rev`
+      if (!w.length) continue
+      const r = await sql`
+        insert into card_listings (seller_h, card_id, level, ask)
+        values (${me}, ${cardId}, ${esc.level}, ${ask}) returning id`
+      json(res, 200, { ok: true, id: String(r[0].id), state: stored(g), rev: w[0].rev })
+      return
+    }
+    json(res, 409, { ok: false, busy: true })
   }
 
   /** Take it back off the shelf. The card comes home through the inbox. */
@@ -271,17 +292,34 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
-    const mine = await sql`select state->>'coins' as coins from card_accounts where id_hash = ${me}`
-    if (Number(mine[0]?.coins ?? 0) < price) { json(res, 200, { ok: false, broke: true }); return }
     const dup = await sql`
       select count(*)::int as n from card_offers
       where listing = ${l.id} and buyer_h = ${me} and status = 'open'`
     if ((dup[0]?.n ?? 0) > 0) { json(res, 200, { ok: false, already: true }); return }
+    // the coins leave the server's copy of the account, here, before the
+    // offer exists — a bid is never made with money the account does not hold
+    let state = null
+    let rev = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const row = await sql`select state, rev from card_accounts where id_hash = ${me}`
+      if (!row.length) { json(res, 200, { ok: false, broke: true }); return }
+      const g = engine.migrateGacha(row[0].state, id)
+      if (g.coins < price) { json(res, 200, { ok: false, broke: true }); return }
+      g.coins -= price
+      const w = await sql`
+        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
+        where id_hash = ${me} and rev = ${row[0].rev} returning rev`
+      if (!w.length) continue
+      state = stored(g)
+      rev = w[0].rev
+      break
+    }
+    if (!state) { json(res, 409, { ok: false, busy: true }); return }
     await sql`insert into card_offers (listing, buyer_h, price) values (${l.id}, ${me}, ${price})`
     await post(l.seller_h, 'offer_made', {
       body: { listing: String(l.id), cardId: l.card_id, price, ask: l.ask, who: await nameOf(me) },
     })
-    json(res, 200, { ok: true })
+    json(res, 200, { ok: true, state, rev })
   }
 
   /** Offers on my listings, and my own bids. */
@@ -400,22 +438,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
-    if (!b?.take) {
-      const n = await sql`select count(*)::int as n from card_mail where to_h = ${me} and taken is null`
-      json(res, 200, { ok: true, waiting: n[0]?.n ?? 0 })
-      return
-    }
-    const rows = await sql`
-      update card_mail set taken = now() where to_h = ${me} and taken is null
-      returning kind, card_id, level, coins, pack, count, body, made`
-    json(res, 200, {
-      ok: true,
-      mail: rows.map((r) => ({
-        kind: r.kind, cardId: r.card_id, level: r.level, coins: r.coins,
-        pack: r.pack ?? null, count: r.count ?? 1,
-        body: r.body ?? {}, at: new Date(r.made).getTime(),
-      })),
-    })
+    // Taking moved to /api/card/act (mail_take): the server applies a
+    // delivery to the account itself now, so a client can no longer be handed
+    // mail and asked to keep it. This route only counts.
+    if (b?.take) { json(res, 200, { ok: false, moved: true }); return }
+    const n = await sql`select count(*)::int as n from card_mail where to_h = ${me} and taken is null`
+    json(res, 200, { ok: true, waiting: n[0]?.n ?? 0 })
   }
 
   return {

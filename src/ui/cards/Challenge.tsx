@@ -4,9 +4,9 @@ import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
   allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeToday,
-  evaluate, guessChallenge, KIND_CN, revealed, triesLeft,
+  evaluate, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
-import type { GuessRow, HintMark } from '../../engine/challenge'
+import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
 
 const MARK_STYLE: Record<HintMark, { bg: string; fg: string; suffix?: string }> = {
   hit: { bg: 'var(--win-wash)', fg: 'var(--win)' },
@@ -28,8 +28,9 @@ const assetBase = (): string =>
  * know something. Same puzzle for everybody, so it is a thing to argue about.
  */
 export default function Challenge() {
-  const { g, today, commit, toast } = useCards()
+  const { g, today, act, toast } = useCards()
   const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const { kind, answer, state, rows } = challengeToday(g, today)
   // One list, all four kinds. The screen deliberately does not say which sort
@@ -50,26 +51,33 @@ export default function Challenge() {
       .slice(0, 8)
     : []
 
-  const submit = (id: string) => {
+  // the guess is judged and paid on the server; the row it hands back is the
+  // same row the table draws from the account afterwards
+  const submit = async (id: string) => {
     const why = challengeBlock(g, today)
     if (why) { toast(why); return }
-    const turn = guessChallenge(g, today, id)
+    if (busy) return
+    setBusy(true)
+    const r = await act('challenge', { guessId: id })
+    setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const turn = (r.result as { turn: ChallengeTurn }).turn
     setQuery('')
     if (turn.finished) {
+      const after = g.challenge
+      const tries = after?.guesses.length ?? 0
       track('card_challenge', {
-        kind, solved: turn.solved ? 1 : 0, tries: state.guesses.length,
-        streak: state.streak,
+        kind, solved: turn.solved ? 1 : 0, tries, streak: after?.streak ?? 0,
       })
       if (turn.solved) {
-        const r = turn.reward
-        toast(`猜中了！第 ${state.guesses.length} 次 · +${r?.coins ?? 0} 金币`
-          + (r?.pack ? ` + ${r.pack === 'ten' ? '十连包' : r.pack === 'elite' ? '选拔包' : '试训包'}` : '')
-          + (r?.streakPack ? ' + 连签七天的十连包' : ''))
+        const rw = turn.reward
+        toast(`猜中了！第 ${tries} 次 · +${rw?.coins ?? 0} 金币`
+          + (rw?.pack ? ` + ${rw.pack === 'ten' ? '十连包' : rw.pack === 'elite' ? '选拔包' : '试训包'}` : '')
+          + (rw?.streakPack ? ' + 连签七天的十连包' : ''))
       } else {
         toast(`没猜中，答案是 ${answerRow.name}。退回 ${turn.reward?.coins ?? 0} 金币，明天再来。`)
       }
     }
-    commit(true)
   }
 
   // the answer's own row, used for the reveal — built here rather than stored
@@ -158,7 +166,7 @@ export default function Challenge() {
         {!state.done && (
           <form
             style={{ position: 'relative', marginBottom: 10 }}
-            onSubmit={(e) => { e.preventDefault(); if (matches[0]) submit(matches[0].id) }}
+            onSubmit={(e) => { e.preventDefault(); if (matches[0]) void submit(matches[0].id) }}
           >
             <div className="row" style={{ gap: 8 }}>
               <input
@@ -171,7 +179,7 @@ export default function Challenge() {
               {/* a real submit button, so Enter and the phone's 「前往」 both
                   work — a form with no submit control does not reliably
                   implicit-submit, and a thumb wants something to press anyway */}
-              <button className="primary" type="submit" disabled={!!block || !matches[0]}>
+              <button className="primary" type="submit" disabled={!!block || !matches[0] || busy}>
                 猜
               </button>
             </div>
@@ -191,7 +199,7 @@ export default function Challenge() {
                       display: 'block', width: '100%', textAlign: 'left', border: 0,
                       borderRadius: 0, padding: '8px 11px',
                     }}
-                    onClick={() => submit(c.id)}
+                    onClick={() => void submit(c.id)}
                   >
                     <b>{c.name}</b>{' '}
                     <span className="tag" style={{ marginLeft: 2 }}>{KIND_CN[c.kind!]}</span>{' '}

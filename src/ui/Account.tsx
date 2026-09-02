@@ -56,13 +56,12 @@ export default function Account(
     setErr(null)
     try {
       const r = await createAccount(name)
+      // the account is built on the server; without it there is none to write down
+      if (!r.ok) { setErr(r.why); return }
       setMadeNow(true)
       setShown(true)          // you cannot write down what you cannot see
       track('account', { act: 'new' })
       settle(r.state.id)
-      if (!r.cloud) {
-        setErr('服务器暂时连不上，账号先建在这台设备上了，联网后会自动同步。')
-      }
     } catch {
       setErr('创建失败，稍后再试一次。')
     } finally {

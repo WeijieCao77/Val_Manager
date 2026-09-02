@@ -3,11 +3,9 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import {
-  CUP_ENTRY, CUP_PRIZE, CUP_WIN, PACKS, STAMINA_COST, canPlay, cupOpponent, enterCup,
-  levelOf, recordCup, spendPlay,
+  CUP_ENTRY, CUP_PRIZE, CUP_WIN, PACKS, STAMINA_COST, canPlay, cupOpponent, levelOf,
 } from '../../engine/gacha'
 import type { CupOutcome } from '../../engine/gacha'
-import { playArenaMatch } from '../../engine/arena'
 import type { ArenaResult } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
@@ -16,7 +14,7 @@ import { track } from '../../engine/telemetry'
 const ROUND_CN = ['八强', '四强', '决赛']
 
 export default function Cup() {
-  const { g, now, commit, toast, go } = useCards()
+  const { g, now, act, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome } | null>(null)
 
@@ -26,36 +24,32 @@ export default function Cup() {
   const cup = g.cup
   const live = cup && !cup.done
 
-  const enter = () => {
+  const enter = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
-    try {
-      enterCup(g, rating)
-      commit(true)
-      toast('抽签完成，八强对手已经出来了。')
-    } catch (e) {
-      toast(e instanceof Error ? e.message : '报不了名')
-    }
+    setBusy(true)
+    const r = await act('cup_enter')
+    setBusy(false)
+    toast(r.ok ? '抽签完成，八强对手已经出来了。' : r.why)
   }
 
-  const play = () => {
-    const oppId = cupOpponent(g)
-    if (!oppId || !cup) return
-    if (!spendPlay(g, 'cup', now)) {
-      toast('体力不够了。杯赛进度会留着，回头接着打。')
-      return
-    }
+  // the bracket is played on the server, against the club it drew, with the
+  // five it knows this account holds; what comes back is the scoreboard
+  const play = async () => {
+    if (!cupOpponent(g) || !cup) return
+    const round = cup.round
     setBusy(true)
-    window.setTimeout(() => {
-      const seed = (Date.now() ^ (cup.round * 7919) ^ (cup.legs.length * 31)) >>> 0
-      const res = playArenaMatch(g.squad, level, oppId, 3, seed)
-      const out = recordCup(g, {
-        opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
-      })
-      track('card_match', { mode: 'cup', won: res.win, round: cup.round, rating, title: !!out.won })
-      commit(true)
-      setBusy(false)
-      setShown({ res, opp: oppId, out })
-    }, 30)
+    const r = await act('cup_play')
+    setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const { res, opp, out } = r.result as { res: ArenaResult; opp: string; out: CupOutcome }
+    track('card_match', { mode: 'cup', won: res.win, round, rating, title: !!out.won })
+    setShown({ res, opp, out })
+  }
+
+  const clear = async () => {
+    const r = await act('cup_clear')
+    if (!r.ok) toast(r.why)
+    return r.ok
   }
 
   return (
@@ -72,7 +66,7 @@ export default function Cup() {
         </p>
 
         {!cup && (
-          <button className="primary" onClick={enter} disabled={g.coins < CUP_ENTRY}>
+          <button className="primary" onClick={() => void enter()} disabled={busy || g.coins < CUP_ENTRY}>
             {g.coins < CUP_ENTRY ? `金币不够（还差 ${CUP_ENTRY - g.coins}）` : `报名（−${CUP_ENTRY} 金币）`}
           </button>
         )}
@@ -108,7 +102,7 @@ export default function Cup() {
 
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
               {live ? (
-                <button className="primary" onClick={play} disabled={busy || !canPlay(g, 'cup', now)}>
+                <button className="primary" onClick={() => void play()} disabled={busy || !canPlay(g, 'cup', now)}>
                   {busy ? '比赛中…'
                     : !canPlay(g, 'cup', now) ? '体力不够'
                       : `打${ROUND_CN[cup.round]}（${STAMINA_COST.cup} 体力）`}
@@ -120,10 +114,10 @@ export default function Cup() {
                       ? <b style={{ color: 'var(--warn)' }}>🏆 冠军</b>
                       : <span className="muted">止步{ROUND_CN[Math.max(0, cup.legs.length - 1)]}</span>}
                   </div>
-                  <button className="primary" onClick={() => { g.cup = null; commit(true); enter() }}>
+                  <button className="primary" disabled={busy} onClick={async () => { if (await clear()) void enter() }}>
                     再来一届（−{CUP_ENTRY}）
                   </button>
-                  <button onClick={() => { g.cup = null; commit(true) }}>收工</button>
+                  <button disabled={busy} onClick={() => void clear()}>收工</button>
                 </>
               )}
             </div>
