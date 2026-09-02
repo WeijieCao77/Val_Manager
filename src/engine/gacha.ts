@@ -450,6 +450,27 @@ export interface LogEntry {
   text: string
 }
 
+/**
+ * One thing the inbox delivered, kept so it can be read again.
+ *
+ * The server hands mail over exactly once and marks it taken, so the only
+ * place it can be shown afterwards is the save. The changelog promised a
+ * 信箱 and the group went looking for one; what existed was a toast that
+ * lasted three seconds. This is the list behind the button.
+ */
+export interface MailEntry {
+  /** ms since epoch, when it was collected */
+  at: number
+  kind: string
+  text: string
+  /** the note an official grant came with */
+  note?: string
+  seen?: boolean
+}
+
+/** Enough to scroll back through a busy week on the trading post. */
+export const MAIL_MAX = 40
+
 export interface GachaState {
   version: number
   /** the account id this collection belongs to; the whole of identity */
@@ -476,6 +497,8 @@ export interface GachaState {
   friends?: FriendRec[]
   /** saved squad presets — see SQUAD_PRESETS */
   presets?: (SquadPreset | null)[]
+  /** what the inbox has delivered, newest first — see MailEntry */
+  mail?: MailEntry[]
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number

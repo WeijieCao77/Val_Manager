@@ -10,7 +10,7 @@
  */
 import { cardById, isPlayerCard } from './cards'
 import { rememberedId } from './cardid'
-import { PACKS } from './gacha'
+import { MAIL_MAX, PACKS } from './gacha'
 import type { GachaState, PackKind } from './gacha'
 
 const api = (p: string) => `/api/market/${p}`
@@ -164,13 +164,44 @@ export function mailLine(m: MailItem): string {
 export async function collectMail(g: GachaState): Promise<MailItem[]> {
   const r = await post<{ ok: boolean; mail: MailItem[] }>('mail', { take: true })
   if (!r?.ok || !r.mail?.length) return []
-  for (const m of r.mail) {
+  applyMail(g, r.mail)
+  return r.mail
+}
+
+/**
+ * Apply what the server handed over, and keep a readable copy of it.
+ *
+ * Split from the fetch so it can be exercised without a server. The copy is
+ * what the 信箱 button shows: the server has already marked these taken, so
+ * the save is the only place they can be read back from.
+ */
+export function applyMail(g: GachaState, mail: MailItem[]): void {
+  const now = Date.now()
+  for (const m of mail) {
     if (m.coins) g.coins += m.coins
     if (m.cardId) restoreCard(g, m.cardId, m.level)
     if (m.pack && m.pack in PACKS) {
       const k = m.pack as PackKind
       g.packs[k] = (g.packs[k] ?? 0) + Math.max(1, m.count)
     }
+    const note = m.kind === 'grant' ? String(m.body?.note ?? '') : ''
+    // the note gets its own line in the box, so the headline goes without it
+    const text = mailLine(note ? { ...m, body: { ...m.body, note: '' } } : m)
+    g.mail = [
+      { at: m.at || now, kind: m.kind, text, ...(note ? { note } : {}), seen: false },
+      ...(g.mail ?? []),
+    ].slice(0, MAIL_MAX)
   }
-  return r.mail
+}
+
+/** How many deliveries the player has not looked at yet. */
+export const unreadMail = (g: GachaState): number => (g.mail ?? []).filter((m) => !m.seen).length
+
+/** The player opened the box: everything in it has been looked at. */
+export function markMailSeen(g: GachaState): boolean {
+  let changed = false
+  for (const m of g.mail ?? []) {
+    if (!m.seen) { m.seen = true; changed = true }
+  }
+  return changed
 }

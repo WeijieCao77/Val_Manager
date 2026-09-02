@@ -1756,6 +1756,20 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   background: var(--accent); flex: none; margin-left: 1px;
 }
 .log-card { width: min(520px, calc(100vw - 32px)); }
+
+/* ---------------------------------------------------------------- 信箱
+
+   A chip in the card mode's top bar, because the corner already holds three
+   buttons and the row of tabs is ten wide on a phone. It lights up in the
+   accent while something in it is unread, like the 更新日志 dot. */
+.mail-chip { cursor: pointer; user-select: none; }
+.mail-chip:hover { color: var(--text); border-color: var(--accent-line); }
+.mail-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mail-card { width: min(520px, calc(100vw - 32px)); }
+.mail-list { display: flex; flex-direction: column; }
+.mail-item { padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.mail-item:last-child { border-bottom: none; }
+.mail-item.grant { box-shadow: inset 2px 0 0 var(--warn); padding-left: 10px; }
 /* Third in the stack, above 更新日志. Only the card mode mounts it — the
    career mode has no packs and no rates to publish. */
 .odds-fab { bottom: 108px; }

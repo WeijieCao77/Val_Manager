@@ -12,6 +12,7 @@ import Cup from './cards/Cup'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import OddsFab from './cards/OddsFab'
+import MailBox from './cards/MailBox'
 import Credit from './Credit'
 import Support from './Support'
 import Changelog from './Changelog'
@@ -221,7 +222,10 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     void collectMail(gRef.current).then((mail) => {
       if (!alive || !mail.length) return
       commit(true)
-      toast(mail.length === 1 ? mailLine(mail[0]) : `交易区有 ${mail.length} 条新消息，已处理。`)
+      // the toast is the knock; the 信箱 button at the top is the letter
+      toast(mail.length === 1
+        ? `${mailLine(mail[0])}。已收下，顶上信箱里能再看。`
+        : `信箱收到 ${mail.length} 条，都已收下——点顶上的信箱看。`)
     })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,8 +239,16 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   useEffect(() => {
     const onVis = () => {
       if (!gRef.current) return
-      if (document.visibilityState === 'hidden') flushAccount(gRef.current)
-      else retryPending(gRef.current)
+      if (document.visibilityState === 'hidden') { flushAccount(gRef.current); return }
+      retryPending(gRef.current)
+      // and see what arrived while this tab was in the background — a sale
+      // used to wait for a reload before it reached the person it paid
+      const g = gRef.current
+      void collectMail(g).then((mail) => {
+        if (!mail.length || gRef.current !== g) return
+        commit(true)
+        toast(`信箱收到 ${mail.length} 条，都已收下——点顶上的信箱看。`)
+      })
     }
     const onOnline = () => { if (gRef.current) retryPending(gRef.current) }
     document.addEventListener('visibilitychange', onVis)
@@ -333,6 +345,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           <div className="chip small muted" title="未开的卡包">
             📦 {Object.values(g.packs).reduce((s, n) => s + (n ?? 0), 0)}
           </div>
+          <MailBox />
           <div className="spacer" />
           {!cloud && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
           <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
