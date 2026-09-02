@@ -1,4 +1,5 @@
 import { useGame } from './ctx'
+import { ask } from './confirm'
 import { Bar, Panel, money, moneyFull } from './common'
 import { seasonUpkeep, sponsorIncome } from '../engine/finance'
 import { dropSponsor, sponsorSlots } from '../engine/commercial'
@@ -73,8 +74,8 @@ export default function Finances() {
                     <td className="num muted">前 {s.bonusPlacement}</td>
                     <td className="num mono pos">{money(s.bonus)}</td>
                     <td className="sticky-act">
-                      <button className="sm ghost" onClick={() => {
-                        if (!window.confirm(`与 ${s.name} 解约？本赛季剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位立即空出。`)) return
+                      <button className="sm ghost" onClick={async () => {
+                        if (!(await ask(`与 ${s.name} 解约？本赛季剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位立即空出。`))) return
                         toast(dropSponsor(game, i))
                         commit()
                       }}>解约</button>

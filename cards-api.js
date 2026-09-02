@@ -13,6 +13,8 @@
  * its SHA-256 — so the table is a pile of hashes and game saves, and a copy of
  * it does not let anyone log in as anybody.
  */
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
 import { progressOf } from './progress.js'
@@ -285,7 +287,7 @@ const stored = (state) => {
 /** A seed the client never held. */
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
-export function makeCardApi(sql, { rateLimited, readBody, json }) {
+export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
   const guard = (req, res, bucket, max) => {
     if (rateLimited(bucket, max)) {
       json(res, 429, { ok: false, why: 'rate' })
@@ -843,6 +845,39 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   }
 
   /**
+   * Today's puzzle picture, for one account — and nothing that names it.
+   *
+   * The challenge used to draw its blurred subject from the ordinary asset
+   * URL, faces/P267.webp, so dragging the picture out of the page (or reading
+   * the address) handed over the answer by file name, at full clarity. This
+   * route answers a POST with the bytes only: no id in the URL, a generic file
+   * name, no caching — and the page draws them onto a canvas at the current
+   * blur, so what can be dragged or saved is what is on screen.
+   */
+  async function puzzle(req, res, bucket) {
+    if (guard(req, res, `pz:${bucket}`, 60)) return
+    let id = null
+    try { id = normalizeId(JSON.parse(await readBody(req, 4096))?.id) } catch { /* below */ }
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const today = serverDay()
+    const kind = engine.kindFor(today, id)
+    const rel = engine.imgOf(kind, engine.answerFor(today, id))
+    if (!rel || !staticRoot) { json(res, 404, { ok: false }); return }
+    try {
+      const buf = await readFile(join(staticRoot, rel))
+      res.writeHead(200, {
+        'Content-Type': 'image/webp',
+        'Content-Length': buf.length,
+        'Cache-Control': 'no-store',
+        'Content-Disposition': 'inline; filename="puzzle.webp"',
+      })
+      res.end(buf)
+    } catch {
+      json(res, 404, { ok: false })
+    }
+  }
+
+  /**
    * Gifting is gone. Claiming is not.
    *
    * A free card transfer with no cost at all is an alt-account funnel: make
@@ -905,6 +940,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
       if (path === '/api/card/friend_cards') { await friendCards(req, res, bucket); return true }
+      if (path === '/api/card/puzzle') { await puzzle(req, res, bucket); return true }
       if (path === '/api/card/gifts') { await gifts(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })

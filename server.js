@@ -337,7 +337,7 @@ async function stats(req, res, url) {
   }
 }
 
-const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json }))
+const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json, staticRoot: ROOT }))
 let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null

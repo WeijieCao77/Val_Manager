@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ask } from './confirm'
 import { useGame } from './ctx'
 import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
@@ -84,8 +85,8 @@ export default function Saves() {
                     <div className="row" style={{ gap: 6 }}>
                       {/* the one verb this screen was missing: a slot could be
                           written and deleted but never opened */}
-                      <button className="sm" onClick={() => {
-                        if (window.confirm(`读取「${s.slot === 'autosave' ? '自动存档' : s.slot}」？当前未保存的进度会被它替换。`)) {
+                      <button className="sm" onClick={async () => {
+                        if (await ask(`读取「${s.slot === 'autosave' ? '自动存档' : s.slot}」？当前未保存的进度会被它替换。`)) {
                           loadSlot(s.slot)
                         }
                       }}>
@@ -93,8 +94,8 @@ export default function Saves() {
                       </button>
                       <button
                         className="sm ghost"
-                        onClick={() => {
-                          if (window.confirm(`删除存档「${s.slot}」？`)) {
+                        onClick={async () => {
+                          if (await ask(`删除存档「${s.slot}」？`, '删除')) {
                             deleteSave(s.slot)
                             refresh()
                             toast('存档已删除。')

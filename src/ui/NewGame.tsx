@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ask } from './confirm'
 import { createNewGame, WORLD_PLAYERS } from '../engine/world'
 import { WORLD_TEAMS } from '../engine/teams'
 import { setupSeason } from '../engine/season'
@@ -105,7 +106,7 @@ export default function NewGame({ onHome,
 
   const onImport = (file: File) => {
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const g = importSave(String(reader.result))
         // the first commit will write this over the autosave — if the autosave
@@ -115,10 +116,11 @@ export default function NewGame({ onHome,
           // Storage is full and the newer career cannot be backed up. Going
           // ahead would destroy it silently, which is the one outcome nobody
           // would choose if asked.
-          const ok = window.confirm(
+          const ok = await ask(
             `当前自动存档（${rescue.year} 年第 ${rescue.day} 天）比这份文件更新，`
             + '但存储空间不足，无法先给它做备份。\n\n'
             + '继续导入会永久覆盖它。建议先到「存档」页删掉一些旧存档再导入。\n\n仍要继续吗？',
+            '仍要导入',
           )
           if (!ok) return
         }

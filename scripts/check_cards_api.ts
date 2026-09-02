@@ -432,5 +432,40 @@ await offlineApi.route({ body: '{}', method: 'POST' } as never, res as never, '/
 check('without a database the route says so instead of throwing',
   res.body.offline === true && typeof res.body.today === 'string')
 
+
+// ---- the puzzle picture names nothing ---------------------------------
+//
+// Dragging the challenge's <img> to the desktop used to hand over the answer
+// as a file name. The picture now comes from a POST that knows the account,
+// carries a generic name, and must not be cached.
+{
+  const { readFile } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const engine = await import('../src/engine/server.ts')
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'public')
+  const api2 = makeCardApi(sql, { rateLimited, readBody, json, staticRoot: root } as never)
+  const got: { code: number; head: Record<string, unknown>; body: Buffer | null; json: unknown } =
+    { code: 0, head: {}, body: null, json: null }
+  const res = {
+    writeHead(code: number, head: Record<string, unknown>) { got.code = code; got.head = head },
+    end(b: Buffer) { got.body = b },
+  }
+  const jsonRes = (r: typeof res, code: number, body: unknown) => { got.code = code; got.json = body }
+  const api3 = makeCardApi(sql, { rateLimited, readBody, json: jsonRes, staticRoot: root } as never)
+  void api2
+  await api3.route({ body: JSON.stringify({ id: ID }), method: 'POST' } as never, res as never, '/api/card/puzzle', 'pz')
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
+  const rel = engine.imgOf(engine.kindFor(today, ID), engine.answerFor(today, ID))
+  const want = rel ? await readFile(join(root, rel)) : null
+  check('puzzle route answers the picture', got.code === 200 && !!got.body && !!want && Buffer.compare(got.body!, want!) === 0)
+  check('with a generic file name and no caching',
+    String(got.head['Content-Disposition']).includes('puzzle.webp') && got.head['Cache-Control'] === 'no-store')
+  check('and no player id anywhere in the headers',
+    !JSON.stringify(got.head).match(/P\d{2,}/))
+  await api3.route({ body: JSON.stringify({ id: 'nope' }), method: 'POST' } as never, res as never, '/api/card/puzzle', 'pz')
+  check('a bad id is 400, not a picture', got.code === 400)
+}
+
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
 process.exit(bad ? 1 : 0)

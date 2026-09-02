@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ask as askConfirm } from './confirm'
 import { useGame } from './ctx'
 import { Bar, money, Panel, Stat } from './common'
 import { useAction } from './useAction'
@@ -44,9 +45,9 @@ export default function Career() {
     .filter((x) => x.odds > 0)
     .sort((a, b) => b.t.reputation - a.t.reputation)
 
-  const move = (teamId: string, fn: () => string) => {
+  const move = async (teamId: string, fn: () => string) => {
     const name = game.teams[teamId]?.name
-    if (!window.confirm(`确定离开 ${me?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`)) return
+    if (!(await askConfirm(`确定离开 ${me?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`))) return
     toast(fn())
     commit()
   }

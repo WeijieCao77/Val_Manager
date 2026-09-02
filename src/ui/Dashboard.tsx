@@ -1,3 +1,4 @@
+import { ask } from './confirm'
 import { useRef, useState } from 'react'
 import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
@@ -156,8 +157,8 @@ export default function Dashboard() {
 
   const offers = (game.jobOffers ?? []).filter((o) => o.expiresOn > game.day)
 
-  const takeJob = (id: string, name: string) => {
-    if (!window.confirm(`确定离开 ${game.teams[game.myTeam]?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`)) return
+  const takeJob = async (id: string, name: string) => {
+    if (!(await ask(`确定离开 ${game.teams[game.myTeam]?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`, '接受邀请'))) return
     toast(acceptJob(game, id))
     commit()
   }
@@ -187,7 +188,7 @@ export default function Dashboard() {
                       {o.pitch} · {o.expiresOn - game.day} 天内答复
                     </div>
                   </span>
-                  <button className="sm primary right" onClick={() => takeJob(o.id, t.name)}>接受</button>
+                  <button className="sm primary right" onClick={() => void takeJob(o.id, t.name)}>接受</button>
                 </div>
               )
             })}

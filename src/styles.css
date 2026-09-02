@@ -1989,3 +1989,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   margin-bottom: 14px;
 }
 .ng-home:hover { color: var(--accent); }
+
+/* the save warning can be closed; the ask() box shares the support card look */
+.save-warn { position: relative; padding-right: 40px; }
+.save-warn-x { position: absolute; top: 6px; right: 6px; padding: 2px 8px; }
+.ask-card { max-width: 420px; }
+.ask-text { margin: 0; line-height: 1.7; white-space: pre-line; }

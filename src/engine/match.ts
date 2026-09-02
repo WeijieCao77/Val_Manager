@@ -13,7 +13,7 @@ import type {
 
 /** How much each role tends to take kills / take deaths. */
 const KILL_WEIGHT: Record<Role, number> = {
-  决斗者: 1.18, 自由人: 1.03, 先锋: 0.98, 哨卫: 0.95, 控场: 0.90,
+  决斗者: 1.15, 自由人: 1.03, 先锋: 0.98, 哨卫: 0.96, 控场: 0.93,
 }
 const DEATH_WEIGHT: Record<Role, number> = {
   决斗者: 1.25, 先锋: 1.08, 自由人: 1.0, 控场: 0.9, 哨卫: 0.88,
@@ -468,12 +468,14 @@ function allocateRound(
     if (!killers.length) return
     const vPool = victims.slice()
     for (let i = 0; i < count && vPool.length; i++) {
-      // the flat term keeps role players on the scoreboard: even a star only
-      // out-fragS a support by roughly 2x over a season, as in real VCT data
-      // the flat term keeps role players on the scoreboard: even a star only
-      // out-frags a support by roughly 1.5x over a season, as in real VCT data
+      // The flat term keeps role players on the scoreboard — even a star only
+      // out-frags a support by roughly 1.5x over a season — but it used to be
+      // most of the weight: a 96-aim controller fragged like a 67-aim
+      // initiator, because the role factor outweighed thirty points of aim.
+      // Real scoreboards do not look like that (happywei 221 ACS to stax's
+      // 176), so the gun carries more of it now and the role a little less.
       const kw = killers.map(
-        (p) => (70 + (p.attrs.aim * 0.55 + p.attrs.reaction * 0.3 + p.attrs.clutch * 0.15) * 0.45) *
+        (p) => (42 + (p.attrs.aim * 0.55 + p.attrs.reaction * 0.3 + p.attrs.clutch * 0.15) * 0.78) *
           KILL_WEIGHT[p.role] * (0.9 + p.form / 500) * (p.id === focusId ? 1.55 : 1),
       )
       const dw = vPool.map(

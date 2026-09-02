@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ask } from './confirm'
 import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
@@ -49,7 +50,7 @@ export default function Squad() {
     commit()
   }
 
-  const release = (p: Player) => {
+  const release = async (p: Player) => {
     // say no before charging an action point for it, and before asking a
     // question whose answer cannot be honoured
     const blocked = squadFloorBlock(game, game.myTeam)
@@ -59,7 +60,7 @@ export default function Squad() {
     const warn = hurt.length
       ? `\n\n更衣室反应：${hurt.map((h) => `${h.p.ign} 信任 −${h.hit.toFixed(0)}`).join('，')}`
       : ''
-    if (!window.confirm(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。${warn}`)) return
+    if (!(await ask(`确定与 ${p.ign} 解约？需支付违约金约 ${money(payoff)}。${warn}`, '解约'))) return
     if (!spendAction(game, 'release')) { toast(NO_ACTIONS_LEFT); return }
     toast(releasePlayer(game, p))
     commit()

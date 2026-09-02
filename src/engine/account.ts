@@ -127,7 +127,7 @@ export const whenStale = (fn: StaleHandler | null): void => { onStale = fn }
 
 // guarded the way dossier.ts is, so a check script can import this file
 const BASE = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : '/'
-const api = (path: string) => `${BASE}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
+export const api = (path: string) => `${BASE}api/card/${path}`.replace(/([^:])\/\//g, '$1/')
 
 /** The part of the account this client is allowed to write. */
 const clientFields = (state: GachaState): Partial<GachaState> => {

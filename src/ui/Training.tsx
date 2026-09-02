@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ask } from './confirm'
 import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
@@ -351,11 +352,11 @@ export default function Training() {
                 </span>
                 <span className="tiny faint">{drillDone}/7 天 · 第 7 天结算效果</span>
               </span>
-              <button className="sm ghost" onClick={() => {
-                if (!window.confirm(
+              <button className="sm ghost" onClick={async () => {
+                if (!(await ask(
                   `重选将荒废现有进度（已训练 ${drillDone}/7 天，不会产生任何效果），\n` +
                   '新计划确定后重新从第 1 天数起。确定吗？',
-                )) return
+                ))) return
                 game.drillLock = undefined
                 logActivity(game, 'training', `撤销团队训练计划（荒废 ${drillDone}/7 天进度）`)
                 commit()
@@ -575,8 +576,8 @@ export default function Training() {
                     培 +{staffShare(m, 'development').toFixed(1)}
                   </span>
                   <span className="tiny mono">{money(m.salary)}</span>
-                  <button className="sm ghost" onClick={() => {
-                    if (!window.confirm(`确定与 ${m.name} 解约？`)) return
+                  <button className="sm ghost" onClick={async () => {
+                    if (!(await ask(`确定与 ${m.name} 解约？`))) return
                     toast(releaseStaff(game, m.name)); commit()
                   }}>解约</button>
                 </div>

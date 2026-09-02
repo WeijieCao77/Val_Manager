@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../../engine/account'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
@@ -88,6 +89,57 @@ export default function Challenge() {
   const blur = Math.round((1 - show) * 22)
   const zoom = 1 + (1 - show) * 1.6
 
+  // The picture comes from a route that names nothing — POST, no id in the
+  // address, a generic file name — and is painted onto a canvas at the
+  // current blur. It used to be an <img> of faces/P267.webp: drag it to the
+  // desktop and the file name was the answer, at full clarity.
+  const canvas = useRef<HTMLCanvasElement | null>(null)
+  const [pic, setPic] = useState<HTMLImageElement | null>(null)
+  const [picMissing, setPicMissing] = useState(false)
+  useEffect(() => {
+    let alive = true
+    let url = ''
+    setPic(null); setPicMissing(false)
+    fetch(api('puzzle'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: g.id }),
+    })
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((blob) => new Promise<HTMLImageElement>((resolve, reject) => {
+        url = URL.createObjectURL(blob)
+        const im = new Image()
+        im.onload = () => resolve(im)
+        im.onerror = () => reject(new Error('decode'))
+        im.src = url
+      }))
+      .then((im) => { if (alive) setPic(im) })
+      .catch(() => { if (alive) setPicMissing(true) })
+    return () => { alive = false; if (url) URL.revokeObjectURL(url) }
+  }, [g.id, today, answer])
+  useEffect(() => {
+    const c = canvas.current
+    if (!c || !pic) return
+    const w = c.clientWidth || 600
+    const h = 210
+    c.width = w; c.height = h
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, w, h)
+    // backdrop: the picture blown up to cover the box, blurred hard
+    const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
+    ctx.save()
+    ctx.globalAlpha = 0.75
+    ctx.filter = `blur(${blur + 16}px) saturate(1.2)`
+    ctx.drawImage(pic, (w - pic.width * cover) / 2, (h - pic.height * cover) / 2, pic.width * cover, pic.height * cover)
+    ctx.restore()
+    // subject: the whole picture, contained, at the current blur
+    const fit = Math.min(w / pic.width, h / pic.height) * zoom
+    ctx.save()
+    ctx.filter = `blur(${blur}px)`
+    ctx.drawImage(pic, (w - pic.width * fit) / 2, (h - pic.height * fit) / 2, pic.width * fit, pic.height * fit)
+    ctx.restore()
+  }, [pic, blur, zoom])
+
   return (
     <>
       <Panel
@@ -127,29 +179,18 @@ export default function Challenge() {
           {/* the answer always has a picture — answerPool sees to that — but a
               data file can always lose one, and a broken image is a broken
               puzzle for everybody on earth that day */}
-          {!answerRow.img && <span className="faint small">（这一题没有图）</span>}
-          {answerRow.img && <img
-            src={`${assetBase()}${answerRow.img}`}
-            alt=""
-            aria-hidden
-            style={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', opacity: 0.75,
-              filter: `blur(${blur + 16}px) saturate(1.2)`,
-              transform: `scale(${zoom + 0.4})`,
-              transition: 'filter .35s ease, transform .35s ease',
-            }}
-          />}
-          {answerRow.img && <img
-            src={`${assetBase()}${answerRow.img}`}
-            alt=""
-            style={{
-              position: 'relative', display: 'block', margin: '0 auto',
-              width: '100%', height: '100%', objectFit: 'contain',
-              filter: `blur(${blur}px)`, transform: `scale(${zoom})`,
-              transition: 'filter .35s ease, transform .35s ease',
-            }}
-          />}
+          {(!answerRow.img || picMissing) && (
+            <span className="faint small">{picMissing ? '（图片没加载出来，刷新试试）' : '（这一题没有图）'}</span>
+          )}
+          {answerRow.img && !picMissing && (
+            <canvas
+              ref={canvas}
+              aria-hidden
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: pic ? 'block' : 'none' }}
+            />
+          )}
           <div className="tiny" style={{
             position: 'absolute', right: 8, bottom: 8, padding: '2px 8px',
             borderRadius: 999, background: 'rgba(8,12,18,.72)', color: 'var(--muted)',

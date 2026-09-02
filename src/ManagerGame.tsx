@@ -90,6 +90,11 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   // 'behind' = another tab is ahead; 'failed' = the write itself threw;
   // 'shrunk' = it threw, old match detail was dropped, and the write went in
   const [saveWarn, setSaveWarn] = useState<'behind' | 'failed' | 'shrunk' | null>(null)
+  // The banner can be closed. It comes back if the reason changes — a new
+  // kind of failure is new information — but a player who has read it and
+  // exported a file does not need it over every screen until the write
+  // works again, which on a full phone can be never.
+  const [warnHidden, setWarnHidden] = useState<'behind' | 'failed' | 'shrunk' | null>(null)
 
   useEffect(() => {
     setBooted(true)
@@ -336,8 +341,12 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           </main>
         </div>
 
-        {saveWarn && (
+        {saveWarn && warnHidden !== saveWarn && (
           <div className="save-warn" role="alert">
+            <button
+              className="sm ghost save-warn-x" aria-label="关闭提示"
+              onClick={() => setWarnHidden(saveWarn)}
+            >✕</button>
             <b>{saveWarn === 'shrunk' ? '⚠ 存储空间满了，已精简存档' : '⚠ 进度没有被保存'}</b>
             <span>
               {saveWarn === 'behind'
@@ -348,7 +357,8 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
                     + '生涯本身（阵容、合同、荣誉、成就）一点没少，之后的进度照常写入。'
                     + '想彻底腾地方，可以去「存档」页删掉用不上的手动存档。'
                   : '浏览器拒绝了写入（多半是存储空间满了）。'
-                    + '现在的进度只存在这个页面里——请去「存档」页导出成文件。'}
+                    + '现在的进度只存在这个页面里——请去「存档」页导出成文件，'
+                    + '并删掉用不上的手动存档腾地方。导出之后可以关掉这条提示；写入恢复时它会自己消失。'}
             </span>
           </div>
         )}
