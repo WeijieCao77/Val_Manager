@@ -127,6 +127,20 @@ alter table card_mail add column if not exists pack text;
 alter table card_mail add column if not exists count int not null default 1;
 `
 
+/**
+ * The most 大师 points one win can possibly be worth.
+ *
+ * masterPoints() pays MASTER_WIN 20, plus 3 for every point the opponent
+ * rates above 84, plus 8 on a streak. The clubs stop at 89 and oppBumpFor()
+ * adds at most 10, so the best win in the game is 20 + (99 - 84) * 3 + 8.
+ *
+ * It matters because the board ranks on points, not matches: bounding how
+ * many matches an account can have played does nothing if the score attached
+ * to them is a free number. check_cheat.ts re-derives this from the engine
+ * every run, so the two cannot drift apart quietly.
+ */
+export const MAX_POINTS_PER_WIN = 73
+
 /** Bodies are capped well under this; 512KB is the point of refusing to look. */
 export const MAX_STATE = 512 * 1024
 
@@ -362,6 +376,14 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         // this, or arriving pre-filled would be the way past every other check.
         const ageMins = held.length ? Number(held[0].age ?? 0) / 60 : 0
         if (seen > affordable(ageMins) + SLACK) jumped = true
+
+        // And the score hanging off those matches. The board ranks on points,
+        // so bounding the matches alone would leave the top of it a free
+        // number — 73 is the best a single win has ever been worth.
+        const pts = Number(ladder?.points ?? 0)
+        const wins = Number(ladder?.wins ?? 0)
+        if (Number.isFinite(pts) && Number.isFinite(wins)
+            && pts > (Math.max(0, wins) + SLACK) * MAX_POINTS_PER_WIN) jumped = true
       }
 
       const rows = await sql`

@@ -16,7 +16,8 @@
  *   npx tsx scripts/check_cheat.ts
  */
 import { PGlite } from '@electric-sql/pglite'
-import { CARD_SCHEMA, makeCardApi, serverDay } from '../cards-api.js'
+import { CARD_SCHEMA, MAX_POINTS_PER_WIN, makeCardApi, serverDay } from '../cards-api.js'
+import { masterPoints, oppBumpFor } from '../src/engine/gacha'
 
 const db = new PGlite()
 const sql = Object.assign(
@@ -218,6 +219,55 @@ for (const [what, ladder] of [
 }
 check('and none of it reached the board unflagged',
   (await flagOf('p0007')).suspect === true || true)
+
+// ---- the score, not just the matches ---------------------------------
+//
+// The board ranks on 大师 points. Bounding the matches and leaving the score
+// free would just move where a number gets typed.
+
+// The engine has to agree with the constant the server checks against, or the
+// bound silently becomes wrong the next time a win is made worth more.
+let best = 0
+for (let rating = 60; rating <= 89 + oppBumpFor(100_000); rating++) {
+  for (const streak of [0, 3, 40]) best = Math.max(best, masterPoints(true, rating, streak))
+}
+check('the server knows what the best possible win pays',
+  best === MAX_POINTS_PER_WIN, `engine ${best}, server ${MAX_POINTS_PER_WIN}`)
+
+const inflated = idOf(8)
+await save(inflated, 1, 0)
+await ageBy('p0008', 40)
+let res = await call('/api/card/save', {
+  id: inflated, baseRev: 1, name: 'p0008',
+  state: {
+    version: 1, id: inflated, coins: 1, cards: {}, pulls: 30,
+    daily: { claimed: null },
+    ladder: { div: 5, points: 99_999, stars: 0, wins: 20, losses: 10 },
+  },
+})
+check('20 wins cannot be worth 99999 points', (await flagOf('p0008')).suspect === true)
+check('...and that save is still accepted', res.code === 200 || res.code === 409, `code ${res.code}`)
+
+// A real 大师 run has to survive it. diandian #6BEC stood at 241 points on
+// 46 wins the day this shipped; the bound allows 46 * 73.
+const real = idOf(9)
+await save(real, 1, 0)
+await ageBy('p0009', 120)  // 58 matches needs five days of 体力, and gets them
+res = await call('/api/card/save', {
+  id: real, baseRev: 1, name: 'p0009',
+  state: {
+    version: 1, id: real, coins: 1, cards: {}, pulls: 58,
+    daily: { claimed: null },
+    ladder: { div: 5, points: 241, stars: 0, wins: 46, losses: 12 },
+  },
+})
+check('a real 大师 record is left alone', (await flagOf('p0009')).suspect === false)
+
+// The slack has to cover a new account's first wins, or the very first match
+// somebody wins on a fresh save trips a check meant for fabricated scores.
+const fresh = idOf(10)
+res = await save(fresh, 1, 0, null, { ladder: { div: 5, points: 73, stars: 0, wins: 1, losses: 0 } })
+check('one win worth full marks is not a cheat', (await flagOf('p0010')).suspect === false)
 
 check('the server day is still the server day', serverDay().length === 10)
 
