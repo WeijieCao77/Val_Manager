@@ -81,6 +81,9 @@ export function mailLine(m: MailItem): string {
     case 'listing_pulled': return `${nameOf(m.cardId ?? '')} 已撤回`
     case 'listing_expired': return `${nameOf(m.cardId ?? '')} 连续三次没回复报价，已自动下架并退回`
     case 'gift': return `收到 ${who} 送的 ${nameOf(m.cardId ?? '')}`
+    case 'swap_offer': return `${who} 想用 ${nameOf(String(m.body?.give ?? ''))} 换你的 ${nameOf(String(m.body?.want ?? ''))}——去好友页答复`
+    case 'swap_in': return `换到了 ${nameOf(m.cardId ?? '')}（和 ${who} 的交换成交）`
+    case 'swap_back': return `${nameOf(m.cardId ?? '')} 退回来了（${String(m.body?.reason ?? '交换没成')}）`
     case 'grant': {
       const bits = []
       if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)

@@ -11,7 +11,7 @@ export type { ActEnv, ActResult } from './cardActions'
 export {
   newGacha, migrateGacha, mergeClientFields, takeServerFields, clampState, refreshDaily,
   primeStamina, pendingOpponent, SERVER_KEYS, CLIENT_KEYS, STARTER_COINS, GACHA_VERSION,
-  masterPoints, oppBumpFor,
+  masterPoints, oppBumpFor, canPlay, spendPlay, STAMINA_COST,
 } from './gacha'
 export type { GachaState } from './gacha'
 export { applyMail, escrowCard, restoreCard, mailLine } from './inbox'

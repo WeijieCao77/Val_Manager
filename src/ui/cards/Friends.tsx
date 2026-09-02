@@ -11,6 +11,7 @@ import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { fetchFriend, myCode } from '../../engine/account'
 import type { FriendMiss } from '../../engine/account'
 import { track } from '../../engine/telemetry'
+import Swap from './Swap'
 
 type Found = RivalSquad & { code: string }
 
@@ -169,6 +170,8 @@ export default function Friends() {
           )}
         </Panel>
       </div>
+
+      <Swap />
 
       <Panel
         title="对战记录"

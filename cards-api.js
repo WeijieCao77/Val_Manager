@@ -150,6 +150,25 @@ create index if not exists mail_to_idx on card_mail (to_h) where taken is null;
 -- added after the table existed; harmless on a fresh database
 alter table card_mail add column if not exists pack text;
 alter table card_mail add column if not exists count int not null default 1;
+
+-- A card swap between two friends: like for like, one 体力 a side.
+-- The proposer's card sits here in escrow from the moment it is offered; the
+-- friend's leaves their account only when they accept. Every ending — done,
+-- declined, cancelled, expired — sends both cards somewhere through
+-- card_mail, so nobody is left holding nothing.
+create table if not exists card_swaps (
+  id         bigserial primary key,
+  from_h     text not null,
+  to_h       text not null,
+  give_id    text not null,
+  give_level int not null default 0,
+  want_id    text not null,
+  status     text not null default 'open',
+  made       timestamptz not null default now(),
+  settled    timestamptz
+);
+create index if not exists swap_to_idx on card_swaps (to_h) where status = 'open';
+create index if not exists swap_from_idx on card_swaps (from_h) where status = 'open';
 `
 
 /**
@@ -768,6 +787,45 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   }
 
   /**
+   * A friend's whole collection, by battle code — ids and levels only.
+   *
+   * The swap screen has to let you point at the card you want, and the five
+   * on the table is not enough to point at. Same door as /friend: the code is
+   * a thing people post on purpose, and what comes back identifies cards, not
+   * the person holding them.
+   */
+  async function friendCards(req, res, bucket) {
+    if (guard(req, res, `fc:${bucket}`, 60)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let code = ''
+    try {
+      const body = JSON.parse(await readBody(req, 4096))
+      code = String(body?.code ?? '').toLowerCase().replace(/[^0-9a-f]/g, '')
+    } catch { /* handled below */ }
+    if (code.length !== CODE_LEN) { json(res, 200, { ok: false, bad: true }); return }
+    try {
+      const rows = await sql`
+        select id_hash, name, state->'cards' as cards
+        from card_accounts where left(id_hash, ${CODE_LEN}) = ${code} limit 2`
+      if (!rows.length) { json(res, 200, { ok: false, missing: true }); return }
+      if (rows.length > 1) { json(res, 200, { ok: false, clash: true }); return }
+      const r = rows[0]
+      const shown = displayName(r.name, r.id_hash)
+      const cards = Object.values(r.cards ?? {})
+        .filter((c) => c && typeof c === 'object' && typeof c.id === 'string')
+        .map((c) => ({
+          id: c.id,
+          level: typeof c.level === 'number' ? Math.max(0, Math.trunc(c.level)) : 0,
+          dupes: typeof c.dupes === 'number' ? Math.max(0, Math.trunc(c.dupes)) : 0,
+        }))
+      json(res, 200, { ok: true, name: shown.name, tag: `#${shown.tag}`, code, cards })
+    } catch (err) {
+      console.warn('cards: friend cards failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
+  /**
    * Gifting is gone. Claiming is not.
    *
    * A free card transfer with no cost at all is an alt-account funnel: make
@@ -829,6 +887,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
+      if (path === '/api/card/friend_cards') { await friendCards(req, res, bucket); return true }
       if (path === '/api/card/gifts') { await gifts(req, res, bucket); return true }
       if (path === '/api/card/day') {
         json(res, 200, { ok: true, today: serverDay(), now: serverNow(), cloud: !!sql })

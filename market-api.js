@@ -446,8 +446,230 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     json(res, 200, { ok: true, waiting: n[0]?.n ?? 0 })
   }
 
+  // ---------------------------------------------------------------- swaps
+
+  /** How long a swap waits for an answer, and how many one account may have out. */
+  const SWAP_DAYS = 3
+  const MAX_SWAPS = 5
+
+  /** Send both escrowed cards home from a swap that did not happen. */
+  async function unwindSwap(row, reason) {
+    await post(row.from_h, 'swap_back', {
+      cardId: row.give_id, level: row.give_level, body: { reason, swap: String(row.id) },
+    })
+  }
+
+  /** Swaps nobody answered go home with the offers. */
+  async function sweepSwaps() {
+    const stale = await sql`
+      update card_swaps set status = 'expired', settled = now()
+      where status = 'open' and made < now() - make_interval(days => ${SWAP_DAYS})
+      returning id, from_h, give_id, give_level`
+    for (const row of stale) await unwindSwap(row, '三天没答复，自动撤回')
+  }
+
+  /** One account by battle code, or a reason it could not be found. */
+  async function byCode(code) {
+    const clean = String(code ?? '').toLowerCase().replace(/[^0-9a-f]/g, '')
+    if (clean.length !== 8) return { why: 'bad' }
+    const rows = await sql`
+      select id_hash, name from card_accounts where left(id_hash, 8) = ${clean} limit 2`
+    if (!rows.length) return { why: 'missing' }
+    if (rows.length > 1) return { why: 'clash' }
+    return { row: rows[0] }
+  }
+
+  /**
+   * Change one account's collection under the revision, retrying if another
+   * request wrote in between. `edit` returns false to refuse.
+   */
+  async function editAccount(h, id, edit) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const row = await sql`select state, rev from card_accounts where id_hash = ${h}`
+      if (!row.length) return { ok: false, why: 'missing' }
+      const g = engine.migrateGacha(row[0].state, id ?? 'VM-0000-0000-0000-0000-0000')
+      const why = edit(g)
+      if (why) return { ok: false, why }
+      const w = await sql`
+        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
+        where id_hash = ${h} and rev = ${row[0].rev} returning rev`
+      if (!w.length) continue
+      return { ok: true, state: stored(g), rev: w[0].rev }
+    }
+    return { ok: false, why: 'busy' }
+  }
+
+  /**
+   * Offer a friend a swap: my card for one of theirs, of the same metal.
+   *
+   * Like for like is the whole rule — a silver for a silver — because a swap
+   * that crosses metals is a gift with extra steps, and gifting was removed
+   * for being an alt-account funnel. My card leaves my account now and waits
+   * in escrow; one 体力 is spent now too. Theirs is checked, not taken: it
+   * leaves when they accept, and they pay their own point then.
+   */
+  async function swap(req, res, bucket) {
+    if (guard(req, res, `sw:${bucket}`, 30)) return
+    await sweep(); await sweepSwaps()
+    let b
+    try { b = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    const giveId = String(b?.giveId ?? '').slice(0, 40)
+    const wantId = String(b?.wantId ?? '').slice(0, 40)
+    const give = engine.cardById(giveId)
+    const want = engine.cardById(wantId)
+    if (!give || !want) { json(res, 200, { ok: false, notOwned: true }); return }
+    if (give.rarity !== want.rarity) { json(res, 200, { ok: false, rarity: true }); return }
+    const them = await byCode(b?.code)
+    if (!them.row) { json(res, 200, { ok: false, [them.why]: true }); return }
+    if (them.row.id_hash === me) { json(res, 200, { ok: false, self: true }); return }
+    const young = await tooNew(me)
+    if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
+    const theirYoung = await tooNew(them.row.id_hash)
+    if (theirYoung) { json(res, 200, { ok: false, theyNew: true }); return }
+    const open = await sql`select count(*)::int as n from card_swaps where from_h = ${me} and status = 'open'`
+    if ((open[0]?.n ?? 0) >= MAX_SWAPS) { json(res, 200, { ok: false, full: true, max: MAX_SWAPS }); return }
+    // they have to hold what I am asking for, right now — checked again when they accept
+    const theirs = await sql`select state->'cards' as cards from card_accounts where id_hash = ${them.row.id_hash}`
+    if (!theirs[0]?.cards?.[wantId]) { json(res, 200, { ok: false, theyLack: true }); return }
+    let level = 0
+    const r = await editAccount(me, id, (g) => {
+      if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
+      const esc = engine.escrowCard(g, giveId)
+      if (!esc.ok) return 'notOwned'
+      engine.spendPlay(g, 'swap', Date.now())
+      level = esc.level
+      return null
+    })
+    if (!r.ok) { json(res, 200, { ok: false, [r.why]: true }); return }
+    const ins = await sql`
+      insert into card_swaps (from_h, to_h, give_id, give_level, want_id)
+      values (${me}, ${them.row.id_hash}, ${giveId}, ${level}, ${wantId}) returning id`
+    await post(them.row.id_hash, 'swap_offer', {
+      body: { swap: String(ins[0].id), give: giveId, want: wantId, who: await nameOf(me) },
+    })
+    json(res, 200, { ok: true, id: String(ins[0].id), state: r.state, rev: r.rev })
+  }
+
+  /** Swaps waiting on me, and the ones I have out. */
+  async function swaps(req, res, bucket) {
+    if (guard(req, res, `sq:${bucket}`, 90)) return
+    await sweepSwaps()
+    let b
+    try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    const inbound = await sql`
+      select id, from_h, give_id, give_level, want_id, made from card_swaps
+      where to_h = ${me} and status = 'open' order by made desc`
+    const outbound = await sql`
+      select id, to_h, give_id, give_level, want_id, made from card_swaps
+      where from_h = ${me} and status = 'open' order by made desc`
+    const names = {}
+    for (const r of inbound) if (!(r.from_h in names)) names[r.from_h] = await nameOf(r.from_h)
+    for (const r of outbound) if (!(r.to_h in names)) names[r.to_h] = await nameOf(r.to_h)
+    json(res, 200, {
+      ok: true, days: SWAP_DAYS,
+      inbound: inbound.map((r) => ({
+        id: String(r.id), who: names[r.from_h], give: r.give_id, giveLevel: r.give_level,
+        want: r.want_id, madeAt: new Date(r.made).getTime(),
+      })),
+      outbound: outbound.map((r) => ({
+        id: String(r.id), who: names[r.to_h], give: r.give_id, giveLevel: r.give_level,
+        want: r.want_id, madeAt: new Date(r.made).getTime(),
+      })),
+    })
+  }
+
+  /**
+   * Take a swap, or turn it down.
+   *
+   * Accepting takes the wanted card out of the answerer's account and a
+   * point of 体力 with it, in one write; then both cards go out as mail. If
+   * the answerer no longer holds the card — sold it, listed it — the swap
+   * is declined for them and the proposer's card goes home.
+   */
+  async function swapAnswer(req, res, bucket) {
+    if (guard(req, res, `sa:${bucket}`, 40)) return
+    await sweepSwaps()
+    let b
+    try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    const got = await sql`
+      select id, from_h, to_h, give_id, give_level, want_id from card_swaps
+      where id = ${String(b?.swap ?? '')}::bigint and status = 'open'`
+    if (!got.length || got[0].to_h !== me) { json(res, 200, { ok: false, gone: true }); return }
+    const row = got[0]
+    if (!b?.accept) {
+      const done = await sql`
+        update card_swaps set status = 'declined', settled = now()
+        where id = ${row.id} and status = 'open' returning id`
+      if (!done.length) { json(res, 200, { ok: false, gone: true }); return }
+      await unwindSwap(row, '对方拒绝了')
+      json(res, 200, { ok: true, declined: true })
+      return
+    }
+    let level = 0
+    const r = await editAccount(me, id, (g) => {
+      if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
+      const esc = engine.escrowCard(g, row.want_id)
+      if (!esc.ok) return 'notOwned'
+      engine.spendPlay(g, 'swap', Date.now())
+      level = esc.level
+      return null
+    })
+    if (!r.ok) {
+      if (r.why === 'notOwned') {
+        // they no longer hold it: the swap cannot happen, and the proposer
+        // should not wait three days to learn that
+        await sql`update card_swaps set status = 'declined', settled = now() where id = ${row.id}`
+        await unwindSwap(row, '对方已经没有这张卡了')
+      }
+      json(res, 200, { ok: false, [r.why]: true })
+      return
+    }
+    const won = await sql`
+      update card_swaps set status = 'done', settled = now()
+      where id = ${row.id} and status = 'open' returning id`
+    if (!won.length) {
+      // settled a moment ago from another tab: give the card straight back
+      await post(me, 'swap_back', { cardId: row.want_id, level, body: { reason: '这个交换已经结束了' } })
+      json(res, 200, { ok: false, gone: true, state: r.state, rev: r.rev })
+      return
+    }
+    await post(me, 'swap_in', { cardId: row.give_id, level: row.give_level, body: { who: await nameOf(row.from_h) } })
+    await post(row.from_h, 'swap_in', { cardId: row.want_id, level, body: { who: await nameOf(me) } })
+    json(res, 200, { ok: true, state: r.state, rev: r.rev })
+  }
+
+  /** Take an offer back before it is answered. The card comes home through the inbox. */
+  async function swapCancel(req, res, bucket) {
+    if (guard(req, res, `sc:${bucket}`, 30)) return
+    let b
+    try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    const rows = await sql`
+      update card_swaps set status = 'cancelled', settled = now()
+      where id = ${String(b?.swap ?? '')}::bigint and from_h = ${me} and status = 'open'
+      returning id, from_h, give_id, give_level`
+    if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
+    await unwindSwap(rows[0], '你撤回了')
+    json(res, 200, { ok: true })
+  }
+
   return {
     async route(req, res, path, bucket) {
+      if (path === '/api/market/swap') { await swap(req, res, bucket); return true }
+      if (path === '/api/market/swaps') { await swaps(req, res, bucket); return true }
+      if (path === '/api/market/swap_answer') { await swapAnswer(req, res, bucket); return true }
+      if (path === '/api/market/swap_cancel') { await swapCancel(req, res, bucket); return true }
       if (path === '/api/market/browse') { await browse(req, res, bucket); return true }
       if (path === '/api/market/list') { await list(req, res, bucket); return true }
       if (path === '/api/market/unlist') { await unlist(req, res, bucket); return true }

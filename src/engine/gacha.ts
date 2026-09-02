@@ -186,8 +186,11 @@ export const MYTHIC_FLOOR = 1200
  * things and taking them away twice would just be mean.
  */
 export const STAMINA_MAX = 15
-/** a ladder match, and the cup's ticket — one payment for the whole bracket */
-export const STAMINA_COST = { ladder: 2, cup: 5 } as const
+/**
+ * A ladder match, the cup's ticket — one payment for the whole bracket — and
+ * a card swap with a friend, charged to each side when they act.
+ */
+export const STAMINA_COST = { ladder: 2, cup: 5, swap: 1 } as const
 export type PlayKind = keyof typeof STAMINA_COST
 
 /**

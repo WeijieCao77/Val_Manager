@@ -277,6 +277,40 @@ export async function fetchFriend(
   }
 }
 
+/** One card in a friend's collection, as the swap screen sees it. */
+export interface FriendCard { id: string; level: number; dupes: number }
+
+/**
+ * A friend's whole collection, by 对战码 — ids and levels, nothing else.
+ *
+ * What the swap screen points at. The same door as fetchFriend, and the same
+ * reasons it fails.
+ */
+export async function fetchFriendCards(
+  code: string,
+): Promise<{ ok: true; name: string; tag: string; code: string; cards: FriendCard[] } | { ok: false; why: FriendMiss }> {
+  const clean = code.trim().toLowerCase().replace(/[^0-9a-f]/g, '')
+  if (clean.length !== 8) return { ok: false, why: 'bad' }
+  try {
+    const r = await fetch(api('friend_cards'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: clean }),
+    })
+    if (!r.ok) return { ok: false, why: 'offline' }
+    const j = await r.json() as {
+      ok?: boolean; name?: string; tag?: string; cards?: FriendCard[]
+      bad?: boolean; missing?: boolean; clash?: boolean
+    }
+    if (j.ok && Array.isArray(j.cards)) {
+      return { ok: true, name: j.name ?? '', tag: j.tag ?? '', code: clean.toUpperCase(), cards: j.cards }
+    }
+    return { ok: false, why: j.bad ? 'bad' : j.clash ? 'clash' : j.missing ? 'missing' : 'offline' }
+  } catch {
+    return { ok: false, why: 'offline' }
+  }
+}
+
 /** Today, in the one timezone the streak rolls over in. Device clock is last resort. */
 export async function fetchDay(): Promise<DayInfo> {
   try {

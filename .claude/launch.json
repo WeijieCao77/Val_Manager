@@ -19,6 +19,18 @@
         "dev:server"
       ],
       "port": 8080
+    },
+    {
+      "name": "val-server-admin",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "ANALYTICS_TOKEN=devtoken",
+        "DATABASE_URL=pglite://",
+        "PORT=8080",
+        "node",
+        "server.js"
+      ],
+      "port": 8080
     }
   ]
 }

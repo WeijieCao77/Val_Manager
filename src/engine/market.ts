@@ -83,6 +83,30 @@ export const askFloorOf = (rarity: string): number =>
   ({ mythic: 4000, gold: 700, silver: 200, bronze: 60 } as Record<string, number>)[rarity] ?? 50
 
 export const unlistCard = (listing: string) => post<Record<string, unknown>>('unlist', { listing })
+
+// ---------------------------------------------------------------- swaps
+
+/** A swap on the table: what they give, what they want, who they are. */
+export interface SwapRow {
+  id: string
+  who: string
+  give: string
+  giveLevel: number
+  want: string
+  madeAt: number
+}
+
+/** Offer a friend my card for one of theirs — same metal, one 体力. */
+export const proposeSwap = (code: string, giveId: string, wantId: string) =>
+  post<WithState & { id?: string }>('swap', { code, giveId, wantId })
+
+export const mySwaps = () =>
+  post<{ ok: boolean; inbound: SwapRow[]; outbound: SwapRow[]; days: number }>('swaps', {})
+
+export const answerSwap = (swap: string, accept: boolean) =>
+  post<WithState>('swap_answer', { swap, accept })
+
+export const cancelSwap = (swap: string) => post<Record<string, unknown>>('swap_cancel', { swap })
 export const bidOn = (listing: string, price: number) => post<WithState>('offer', { listing, price })
 export const answerOffer = (offer: string, accept: boolean) =>
   post<Record<string, unknown>>('answer', { offer, accept })
