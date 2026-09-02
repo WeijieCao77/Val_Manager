@@ -88,6 +88,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
   try {
     await sql.unsafe(CARD_SCHEMA)
     await sql.unsafe(SITE_SCHEMA)
+    await sql.unsafe(PROFILE_SCHEMA)
     console.log('cards: in-process database (pglite), nothing persists')
   } catch (err) {
     console.warn('pglite: schema failed —', err.message)
