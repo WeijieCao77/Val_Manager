@@ -27,6 +27,10 @@ export default function MailBox() {
   const { g, cloud, act, toast } = useCards()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  // what was unread the moment the box opened: reading marks it read on the
+  // server at once, so without a snapshot the 「新」 tag would vanish before
+  // anyone saw which entries it was on
+  const [fresh, setFresh] = useState<Set<number>>(() => new Set())
   const unread = unreadMail(g)
   const list = g.mail ?? []
 
@@ -45,6 +49,7 @@ export default function MailBox() {
 
   useEffect(() => {
     if (!open) return
+    setFresh(new Set((g.mail ?? []).filter((m) => !m.seen).map((m) => m.at)))
     // reading is what marks it read — not the arrival, and not the toast
     if (unreadMail(g) > 0 && cloud) void act('mail_seen')
     void collect()
@@ -79,7 +84,8 @@ export default function MailBox() {
             </div>
             <p className="small muted" style={{ lineHeight: 1.8 }}>
               交易区的成交、退款、被拒的报价，和<b>官方发放的卡包、金币、卡</b>都从这里进来。
-              打开卡池时自动收下并记在这里；东西已经到账，这里是给你看一眼的。
+              打开卡池时自动收下并记在这里——<b>列表里的每一条都已经到账</b>，不用再点；
+              标着「新」的是这次才到的。「收取」只是把刚刚才寄到的立刻拿进来。
             </p>
             {!cloud && (
               <p className="small" style={{ color: 'var(--warn)' }}>服务器连不上，信箱暂时收不了。</p>
@@ -94,6 +100,11 @@ export default function MailBox() {
                       <span className="tiny faint mono">{when(m.at)}</span>
                       {m.kind === 'grant' && (
                         <span className="tag" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>官方</span>
+                      )}
+                      {fresh.has(m.at) ? (
+                        <span className="tag" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>新 · 已到账</span>
+                      ) : (
+                        <span className="tiny faint">已到账</span>
                       )}
                     </div>
                     <div className="small" style={{ marginTop: 2 }}>{m.text}</div>

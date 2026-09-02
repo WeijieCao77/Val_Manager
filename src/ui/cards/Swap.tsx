@@ -20,6 +20,7 @@ import { collection, STAMINA_COST, canPlay } from '../../engine/gacha'
 import { fetchFriendCards, myCode, takeServer } from '../../engine/account'
 import type { FriendCard, FriendMiss } from '../../engine/account'
 import { answerSwap, cancelSwap, mySwaps, proposeSwap } from '../../engine/market'
+import { CardPicker } from './Picker'
 import type { SwapRow } from '../../engine/market'
 
 const MISS: Record<FriendMiss, string> = {
@@ -162,15 +163,15 @@ export default function Swap() {
             <div className="grid c2" style={{ gap: 12, alignItems: 'start' }}>
               <div>
                 <div className="tiny faint" style={{ marginBottom: 4 }}>我给</div>
-                <select style={{ width: '100%' }} value={give} onChange={(e) => { setGive(e.target.value); setWant('') }}>
-                  <option value="">选一张我的卡（{sellable.length} 种）</option>
-                  {sellable.slice(0, 300).map(({ card, owned, rating }) => (
-                    <option key={card.id} value={card.id}>
-                      {RARITY_CN[card.rarity]} · {isPlayerCard(card) ? card.ign : card.name} · {rating}
-                      {owned.dupes > 0 ? ` · 多 ${owned.dupes} 张` : owned.level > 0 ? ` · +${owned.level}` : ' · 仅此一张'}
-                    </option>
-                  ))}
-                </select>
+                <CardPicker
+                  rows={sellable.map(({ card, owned }) => ({
+                    card,
+                    note: owned.dupes > 0 ? `多 ${owned.dupes} 张` : owned.level > 0 ? `+${owned.level}` : '仅此一张',
+                  }))}
+                  value={give}
+                  onChange={(id) => { setGive(id); setWant('') }}
+                  placeholder="选一张我的卡"
+                />
                 {giveCard && (
                   <div style={{ marginTop: 8 }}>
                     <CardFace card={giveCard} level={giveLevel} size="sm" footer={`给出 +${giveLevel}`} />
@@ -181,15 +182,16 @@ export default function Swap() {
                 <div className="tiny faint" style={{ marginBottom: 4 }}>
                   我要{giveCard ? `（他的${RARITY_CN[giveCard.rarity]}，${theirs.length} 张）` : '（先选我给什么）'}
                 </div>
-                <select style={{ width: '100%' }} value={want} onChange={(e) => setWant(e.target.value)} disabled={!giveCard}>
-                  <option value="">选一张他的卡</option>
-                  {theirs.slice(0, 300).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {isPlayerCard(c.card) ? c.card.ign : c.card.name} · {c.card.rating}
-                      {c.dupes > 0 ? ' · 他有多的（+0）' : c.level > 0 ? ` · +${c.level}` : ''}
-                    </option>
-                  ))}
-                </select>
+                <CardPicker
+                  rows={theirs.map((c) => ({
+                    card: c.card,
+                    note: c.dupes > 0 ? '他有多的（+0）' : c.level > 0 ? `+${c.level}` : '',
+                  }))}
+                  value={want}
+                  onChange={setWant}
+                  placeholder="选一张他的卡"
+                  disabled={!giveCard}
+                />
                 {want && cardById(want) && (
                   <div style={{ marginTop: 8 }}>
                     <CardFace

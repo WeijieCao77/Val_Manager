@@ -1322,6 +1322,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number): CupSt
     dice -= p
   }
   const path: string[] = []
+  const taken = new Set<string>()
   for (let round = 0; round < rounds; round++) {
     // Each round is a step up from where YOU are, not a step up the world
     // rankings. Pinned to the absolute table instead, the final was the best
@@ -1329,11 +1330,23 @@ export function enterCup(g: GachaState, squadRating: number, now: number): CupSt
     // cup was a tax on not having a finished collection. The climb runs from
     // eight below the five to eight above it whatever the depth, so a longer
     // bracket is more matches, not a harder final.
+    //
+    // Drawn from the six clubs nearest the target, never from the whole
+    // table: the first version took "within five points" and, when nobody
+    // was, any club on earth — which is how a squad in the sixties drew LOUD
+    // in the quarters, Heretics in the semi, and a 66 in the final.
     const target = squadRating - 8 + (16 / (rounds - 1)) * round
-    const band = sorted.filter((t) => Math.abs(t.rating - target) <= 5)
-    const pick = rng.pick(band.length ? band : sorted)
+    const near = sorted
+      .filter((t) => !taken.has(t.id))
+      .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target))
+      .slice(0, 6)
+    const pick = rng.pick(near.length ? near : sorted)
+    taken.add(pick.id)
     path.push(pick.id)
   }
+  // whoever was drawn, the bracket climbs: the final is the strongest of them
+  const ratingOf = new Map(sorted.map((t) => [t.id, t.rating]))
+  path.sort((a, b) => (ratingOf.get(a) ?? 0) - (ratingOf.get(b) ?? 0))
   g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY }
   done()
   note(g, `报名了一场 ${rounds} 轮的杯赛（−${STAMINA_COST.cup} 体力）`)
