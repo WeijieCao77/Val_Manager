@@ -11,6 +11,7 @@
  * deploy, which is exactly when nobody would notice it had vanished.
  */
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { battleCode } from './cards-api.js'
 
 /**
  * Every pack the game has. A grant naming anything else is refused rather than
@@ -203,11 +204,78 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     })
   }
 
+  /**
+   * Who the 体力 clock has caught, and second thoughts about it.
+   *
+   * GET lists them. POST with { who, clear: true } puts one back on the
+   * leaderboard, because the check is arithmetic and arithmetic has no idea
+   * whether somebody spent a weekend playing against a server that was down.
+   * A flag is a claim about a record, not about a person, and the owner has to
+   * be able to withdraw one — otherwise the honest answer to an appeal is
+   * editing the database by hand, which is how mistakes happen.
+   */
+  async function flagged(req, res) {
+    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+
+    if (req.method === 'GET') {
+      const rows = await sql`
+        select id_hash, name, created, ladder_seen,
+               coalesce((state->'ladder'->>'wins')::int, 0) as wins,
+               coalesce((state->'ladder'->>'losses')::int, 0) as losses,
+               floor((15 + extract(epoch from (now() - created)) / 3000) / 2) as ceiling
+        from card_accounts
+        where suspect
+          and state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
+          and state->'ladder'->>'losses' ~ '^[0-9]{1,7}$'
+        order by (coalesce((state->'ladder'->>'wins')::int, 0)
+                + coalesce((state->'ladder'->>'losses')::int, 0))
+               - floor((15 + extract(epoch from (now() - created)) / 3000) / 2) desc
+        limit 100`
+      json(res, 200, {
+        ok: true,
+        flagged: rows.map((r) => {
+          const shown = displayName(r.name, r.id_hash)
+          const played = r.wins + r.losses
+          return {
+            who: battleCode(r.id_hash),
+            name: `${shown.name} #${shown.tag}`,
+            played, ceiling: Number(r.ceiling), over: played - Number(r.ceiling),
+            created: r.created,
+          }
+        }),
+      })
+      return
+    }
+
+    let body
+    try { body = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
+    const who = String(body?.who ?? '').trim()
+    if (!/^[0-9A-Fa-f]{8}$/.test(who)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
+    const on = body?.clear ? false : true
+    const r = await sql`
+      update card_accounts set suspect = ${on}
+      where left(id_hash, 8) = ${who.toLowerCase()}
+      returning id_hash, name`
+    if (!r.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
+    if (r.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
+    const shown = displayName(r[0].name, r[0].id_hash)
+    json(res, 200, { ok: true, to: `${shown.name} #${shown.tag}`, suspect: on })
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, url) {
       if (path === '/api/site/wechat') { await status(res); return true }
       if (path === '/api/site/wechat.img') { await image(res); return true }
+      if (path === '/api/admin/flag') {
+        if (!same(url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'GET' && req.method !== 'POST') { json(res, 405, { ok: false }); return true }
+        await flagged(req, res)
+        return true
+      }
       if (path === '/api/admin/grant') {
         if (!same(url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')

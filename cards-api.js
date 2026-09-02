@@ -32,6 +32,26 @@ create index if not exists card_seen_idx on card_accounts (seen desc);
 -- a different question and needs its own column. (No backticks in here: this
 -- is a template literal and one would end it.)
 alter table card_accounts add column if not exists saved timestamptz;
+-- The ladder total this account has been SEEN at, and when. Growth between two
+-- saves is bounded by 体力: 15 banked, one point back every 50 minutes, two a
+-- ladder match. A save that outruns that clock did not come from playing.
+alter table card_accounts add column if not exists ladder_seen int;
+alter table card_accounts add column if not exists ladder_at timestamptz;
+alter table card_accounts add column if not exists suspect boolean not null default false;
+-- One pass over the accounts that existed before the clock check did. Nothing
+-- here has a baseline to measure growth from, so the only question askable of
+-- them is the crude one: could this record have been played AT ALL since the
+-- account was made? Ten matches of slack absorbs clock skew and the odd
+-- 仅本机 evening; past that, a record is not slightly optimistic, it is
+-- invented. Runs once — ladder_at is null only for rows that never saved
+-- through the check.
+update card_accounts set suspect = true
+where ladder_at is null
+  and coalesce((state->'ladder'->>'wins')::int, 0)
+    + coalesce((state->'ladder'->>'losses')::int, 0)
+    > 10 + floor((15 + extract(epoch from (now() - created)) / 3000) / 2)
+  and state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
+  and state->'ladder'->>'losses' ~ '^[0-9]{1,7}$';
 update card_accounts set saved = seen where saved is null;
 -- the 好友对战码 is the first eight characters of id_hash, and looking one up
 -- is otherwise a sequential scan of every account in the table
@@ -287,7 +307,10 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       // that has to hold whatever any client does: packs opened, matches
       // played and cards owned only ever increase, so a save that lowers them
       // is a stale copy by definition and is refused the same way.
-      const held = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
+      const held = await sql`
+        select state, rev, ladder_seen, ladder_at,
+               extract(epoch from (now() - created)) as age
+        from card_accounts where id_hash = ${hash(id)}`
       if (held.length && progressOf(state) < progressOf(held[0].state)) {
         json(res, 409, {
           ok: false, stale: true, today, now: serverNow(),
@@ -295,15 +318,64 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         })
         return
       }
+      /**
+       * Matches cannot appear faster than 体力 allows.
+       *
+       * 15 points banked, one back every 50 minutes, two a ladder match — so
+       * between two saves an account can have played at most
+       * (15 + minutes / 50) / 2 more matches than it already had. A jump past
+       * that did not come from playing, whatever the save says.
+       *
+       * The FIRST save an account makes is a free baseline. Somebody who
+       * played for days in 仅本机 and only then connected arrives with a real
+       * record and no history here, and calling that cheating would be wrong.
+       * Everything after the baseline is checked.
+       *
+       * Flagged, never refused. Refusing would eat a real evening the first
+       * time a clock disagreed, which is exactly the bug that cost somebody
+       * their progress a week ago. The flag costs a place on a public board
+       * and nothing else — the account keeps playing, keeps its cards, keeps
+       * saving. Sticky, because an account that has once produced an
+       * impossible jump does not clear it by behaving afterwards.
+       */
+      const ladder = state?.ladder
+      const total = Number(ladder?.wins ?? 0) + Number(ladder?.losses ?? 0)
+      const seen = Number.isFinite(total) ? Math.max(0, Math.min(9_999_999, Math.trunc(total))) : null
+      /** Matches 体力 can pay for over a stretch of minutes, 15 already banked. */
+      const affordable = (mins) => Math.floor((15 + Math.max(0, mins) / 50) / 2)
+      /**
+       * Ten matches of slack. It absorbs a clock that disagrees and an evening
+       * played against a server that was down, and it is far below the margins
+       * the flag is for — the records this caught on the day it shipped stood
+       * at 1.9 to 62 times what the clock allowed.
+       */
+      const SLACK = 10
+      let jumped = false
+      if (seen != null) {
+        // How fast it grew, once there is a reading to grow from.
+        if (held.length && held[0].ladder_seen != null && held[0].ladder_at) {
+          const since = (Date.now() - new Date(held[0].ladder_at).getTime()) / 60000
+          if (seen - held[0].ladder_seen > affordable(since) + SLACK) jumped = true
+        }
+        // And where it stands, which is the question a brand-new account has to
+        // answer too: a first save is a free baseline for everything EXCEPT
+        // this, or arriving pre-filled would be the way past every other check.
+        const ageMins = held.length ? Number(held[0].age ?? 0) / 60 : 0
+        if (seen > affordable(ageMins) + SLACK) jumped = true
+      }
+
       const rows = await sql`
-        insert into card_accounts (id_hash, name, state, rev, saved)
-        values (${hash(id)}, ${name}, ${sql.json(state)}, 1, now())
+        insert into card_accounts (id_hash, name, state, rev, saved, ladder_seen, ladder_at, suspect)
+        values (${hash(id)}, ${name}, ${sql.json(state)}, 1, now(), ${seen}, now(), ${jumped})
         on conflict (id_hash) do update
           set state = excluded.state,
               name  = coalesce(excluded.name, card_accounts.name),
               rev   = card_accounts.rev + 1,
               seen  = now(),
-              saved = now()
+              saved = now(),
+              ladder_seen = ${seen},
+              ladder_at   = now(),
+              suspect = card_accounts.suspect or ${jumped}
           -- One static predicate rather than a spliced fragment: a nested
           -- tagged template here is not a boolean in every driver, and the
           -- check script caught it as "Invalid input for boolean type".
@@ -409,6 +481,10 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
                  then (state->'ladder'->>'losses')::int else 0 end as losses
           from card_accounts
           where jsonb_typeof(state->'ladder') = 'object'
+            -- An account whose matches once outran the 体力 clock keeps
+            -- playing and keeps its collection; it just does not get to stand
+            -- at the top of a board that means something to everybody else.
+            and not suspect
         ), placed as (
           select *, rank() over (
             order by div desc, points desc, stars desc, wins desc, id_hash
