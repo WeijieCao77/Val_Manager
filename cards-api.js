@@ -38,15 +38,24 @@ alter table card_accounts add column if not exists saved timestamptz;
 alter table card_accounts add column if not exists ladder_seen int;
 alter table card_accounts add column if not exists ladder_at timestamptz;
 alter table card_accounts add column if not exists suspect boolean not null default false;
+-- A pardon, and where it was granted. The absolute check asks whether the
+-- whole record could have been played since the account was made; a player
+-- the owner has cleared — a weekend of unlimited 体力 during a test, an
+-- evening against a server that was down — would fail it again on his very
+-- next save. So a pardon moves the origin: from here on, only what he adds
+-- past pardon_seen is measured, over the time since pardon_at.
+alter table card_accounts add column if not exists pardon_seen int;
+alter table card_accounts add column if not exists pardon_at timestamptz;
 -- One pass over the accounts that existed before the clock check did. Nothing
 -- here has a baseline to measure growth from, so the only question askable of
 -- them is the crude one: could this record have been played AT ALL since the
 -- account was made? Ten matches of slack absorbs clock skew and the odd
 -- 仅本机 evening; past that, a record is not slightly optimistic, it is
 -- invented. Runs once — ladder_at is null only for rows that never saved
--- through the check.
+-- through the check — and never over somebody the owner has pardoned.
 update card_accounts set suspect = true
 where ladder_at is null
+  and pardon_at is null
   and coalesce((state->'ladder'->>'wins')::int, 0)
     + coalesce((state->'ladder'->>'losses')::int, 0)
     > 10 + floor((15 + extract(epoch from (now() - created)) / 3000) / 2)
@@ -322,8 +331,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
       // played and cards owned only ever increase, so a save that lowers them
       // is a stale copy by definition and is refused the same way.
       const held = await sql`
-        select state, rev, ladder_seen, ladder_at,
-               extract(epoch from (now() - created)) as age
+        select state, rev, ladder_seen, ladder_at, pardon_seen,
+               extract(epoch from (now() - created)) as age,
+               extract(epoch from (now() - pardon_at)) as since_pardon
         from card_accounts where id_hash = ${hash(id)}`
       if (held.length && progressOf(state) < progressOf(held[0].state)) {
         json(res, 409, {
@@ -374,8 +384,16 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
         // And where it stands, which is the question a brand-new account has to
         // answer too: a first save is a free baseline for everything EXCEPT
         // this, or arriving pre-filled would be the way past every other check.
-        const ageMins = held.length ? Number(held[0].age ?? 0) / 60 : 0
-        if (seen > affordable(ageMins) + SLACK) jumped = true
+        //
+        // Measured from the account's creation — or from the owner's pardon,
+        // if there is one: a record he has cleared is not re-tried, only what
+        // has been added since.
+        const pardoned = held.length && held[0].pardon_seen != null && held[0].since_pardon != null
+        const base = pardoned ? Number(held[0].pardon_seen) : 0
+        const baseMins = pardoned
+          ? Number(held[0].since_pardon ?? 0) / 60
+          : held.length ? Number(held[0].age ?? 0) / 60 : 0
+        if (seen - base > affordable(baseMins) + SLACK) jumped = true
 
         // And the score hanging off those matches. The board ranks on points,
         // so bounding the matches alone would leave the top of it a free

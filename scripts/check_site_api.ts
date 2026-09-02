@@ -231,5 +231,31 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   check(n[0].n === 2, '而且没有多发出去任何东西', String(n[0].n))
 }
 
+// ---- a pardon is a baseline, not just a cleared bit ---------------------
+{
+  const st = { version: 1, coins: 0, cards: {}, daily: { claimed: null },
+    ladder: { div: 5, points: 300, wins: 90, losses: 36 } }
+  await sql`
+    insert into card_accounts (id_hash, name, state, created, rev, suspect, ladder_seen, ladder_at)
+    values ('80f5d677aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '牛逼王', ${sql.json(st)},
+            now() - interval '30 hours', 3, true, 126, now())`
+  const listed = await call('/api/admin/flag', { token: TOKEN })
+  const names = ((listed.body.flagged ?? []) as { name: string; who: string }[])
+  check(names.some((x) => x.who === '80F5D677'), '被标记的账号在名单里', JSON.stringify(names))
+
+  const cleared = await call('/api/admin/flag', { method: 'POST', token: TOKEN, body: { who: '80F5D677', clear: true } })
+  check(cleared.body.ok === true && cleared.body.suspect === false, '放出来了', JSON.stringify(cleared.body))
+  const row = (await sql`select suspect, pardon_seen, pardon_at from card_accounts where left(id_hash, 8) = '80f5d677'`) as
+    unknown as { suspect: boolean; pardon_seen: number; pardon_at: unknown }[]
+  check(row[0].suspect === false && row[0].pardon_seen === 126 && !!row[0].pardon_at,
+    '赦免记下了当时的场次和时间', JSON.stringify(row[0]))
+
+  const again = await call('/api/admin/flag', { method: 'POST', token: TOKEN, body: { who: '80F5D677' } })
+  const row2 = (await sql`select suspect, pardon_seen, pardon_at from card_accounts where left(id_hash, 8) = '80f5d677'`) as
+    unknown as { suspect: boolean; pardon_seen: number | null; pardon_at: unknown }[]
+  check(again.body.ok === true && row2[0].suspect === true && row2[0].pardon_seen === null && row2[0].pardon_at === null,
+    '手动再标记会收回赦免', JSON.stringify(row2[0]))
+}
+
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
 process.exit(bad ? 1 : 0)

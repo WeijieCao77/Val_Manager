@@ -252,10 +252,24 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     const who = String(body?.who ?? '').trim()
     if (!/^[0-9A-Fa-f]{8}$/.test(who)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
     const on = body?.clear ? false : true
-    const r = await sql`
-      update card_accounts set suspect = ${on}
-      where left(id_hash, 8) = ${who.toLowerCase()}
-      returning id_hash, name`
+    // Clearing is a pardon, and a pardon has to move the origin the save
+    // check measures from — otherwise the very next save re-derives the same
+    // flag from the same record. Flagging by hand withdraws any pardon.
+    const r = on
+      ? await sql`
+          update card_accounts set suspect = true, pardon_seen = null, pardon_at = null
+          where left(id_hash, 8) = ${who.toLowerCase()}
+          returning id_hash, name`
+      : await sql`
+          update card_accounts
+             set suspect = false,
+                 pardon_seen = case when state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
+                                     and state->'ladder'->>'losses' ~ '^[0-9]{1,7}$'
+                                    then (state->'ladder'->>'wins')::int + (state->'ladder'->>'losses')::int
+                                    else 0 end,
+                 pardon_at = now()
+          where left(id_hash, 8) = ${who.toLowerCase()}
+          returning id_hash, name`
     if (!r.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
     if (r.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
     const shown = displayName(r[0].name, r[0].id_hash)

@@ -269,6 +269,39 @@ const fresh = idOf(10)
 res = await save(fresh, 1, 0, null, { ladder: { div: 5, points: 73, stars: 0, wins: 1, losses: 0 } })
 check('one win worth full marks is not a cheat', (await flagOf('p0010')).suspect === false)
 
+// ---- a pardon has to stick -------------------------------------------
+//
+// 牛逼王 #80F5: 126 matches on an account whose age allows 92, because he
+// played through a weekend of unlimited 体力 during a test. Clearing the flag
+// alone lasted exactly one save — the absolute check re-derived it from the
+// same record. A pardon moves the origin: from pardon_seen at pardon_at, only
+// what he adds is measured.
+
+const pardoned = idOf(11)
+await save(pardoned, 1, 0)
+await ageBy('p0011', 30)
+await save(pardoned, 90, 36, 1)          // 126 in 30 hours: flagged, like his
+check('the record that needs the pardon is flagged first', (await flagOf('p0011')).suspect === true)
+// what the admin route writes when the owner clears him
+await sql`update card_accounts set suspect = false, pardon_seen = 126, pardon_at = now() where name = ${'p0011'}`
+await save(pardoned, 91, 36, 2)          // one more match, a moment later
+check('one match after the pardon does not re-flag him', (await flagOf('p0011')).suspect === false)
+await ageBy('p0011', 60, false)          // the account keeps ageing; the pardon stays put
+await save(pardoned, 95, 38, 3)
+check('a few more still do not', (await flagOf('p0011')).suspect === false)
+await save(pardoned, 150, 60, 4)         // 85 more inside the same hour: not from playing
+check('but an impossible jump after the pardon is caught again', (await flagOf('p0011')).suspect === true)
+
+// and the one-time back-fill must not undo a pardon on the next boot
+await sql`
+  insert into card_accounts (id_hash, name, state, created, rev, pardon_seen, pardon_at)
+  values ('old3', 'old-pardoned', ${sql.json({
+    version: 1, coins: 0, cards: {}, daily: { claimed: null },
+    ladder: { div: 5, points: 300, wins: 200, losses: 2 },
+  })}, now() - interval '15 hours', 1, 202, now())`
+await db.exec(CARD_SCHEMA)
+check('the back-fill leaves a pardoned account alone', (await flagOf('old-pardoned')).suspect === false)
+
 check('the server day is still the server day', serverDay().length === 10)
 
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
