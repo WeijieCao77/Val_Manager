@@ -58,10 +58,15 @@ _opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_jar))
 # the jar with a bare /stats before asking for anything. min_rounds=1 so a
 # substitute who played one map is on the list; the page defaults to 100.
 BARE = "https://www.vlr.gg/stats"
-PAGE = ("https://www.vlr.gg/stats?tier=vct&region=all&span=2026&side=all"
+PAGE = ("https://www.vlr.gg/stats?tier=vct&region=all&span={span}&side=all"
         "&role=all&agent=all&map_id=all&min_rating=0&min_rounds=1"
         "&sort=rating2&dir=desc&page={page}")
-MAX_PAGES = 12
+MAX_PAGES = 40
+# --span all: the same table over every VCT-tier event vlr has, into its own
+# cache. It is not a roster (a retired player's last club is still on it) and
+# never touches the raw file; it is where a career clutch rate comes from,
+# which the per-event pages do not carry for CN events at all.
+CACHE_ALL = ROOT / "scripts" / "cache" / "vlr_stats_all.json"
 
 # agent -> role letter, the same grouping build_world.py uses
 AGENT_ROLE = {}
@@ -132,9 +137,14 @@ def parse_rows(html: str) -> list[dict]:
         }
         for col, key in (("rnd", "rnd"), ("rating2", "R"), ("acs", "acs"), ("kd", "kd"),
                          ("kast", "kast"), ("adr", "adr"), ("kpr", "kpr"), ("apr", "apr"),
-                         ("fbpr", "fkpr"), ("fdpr", "fdpr"), ("hsp", "hs")):
+                         ("fbpr", "fkpr"), ("fdpr", "fdpr"), ("hsp", "hs"), ("clp", "clp")):
             m = re.search(rf'data-col="{col}"[^>]*>(.*?)</td>', tr, re.S)
             row[key] = f(_text(m.group(1))) if m else None
+        # clutches, as won/played — the one number on the page that says
+        # what a player does when it is him against several
+        m = re.search(r'data-col="cl"[^>]*>(.*?)</td>', tr, re.S)
+        cm = re.match(r"(\d+)/(\d+)", _text(m.group(1))) if m else None
+        row["clw"], row["clt"] = (int(cm.group(1)), int(cm.group(2))) if cm else (None, None)
         if row["rnd"]:
             rows.append(row)
     return rows
@@ -145,18 +155,18 @@ def last_page(html: str) -> int:
     return max(pages) if pages else 1
 
 
-def fetch() -> dict:
-    cache = json.loads(CACHE.read_text("utf-8")) if CACHE.exists() else {}
+def fetch(span: str = "2026", cache_path: Path = CACHE, start: int = 1) -> dict:
+    cache = json.loads(cache_path.read_text("utf-8")) if cache_path.exists() else {}
     players: dict = {}
     try:
         _get(BARE)                       # sets the cookie; see BARE above
-        # the 2026 table renders no page links, but page=N answers all the
-        # same: walk until a page comes back short
-        for p in range(1, MAX_PAGES + 1):
-            html = _get(PAGE.format(page=p))
+        # the table renders no page links, but page=N answers all the same:
+        # walk until a page comes back short
+        for p in range(start, start + MAX_PAGES):
+            html = _get(PAGE.format(span=span, page=p))
             sel = re.findall(r'<option value="([^"]*)" selected', html)
-            if "2026" not in sel:
-                raise RuntimeError(f"the page ignored span=2026 (selected {sel}); refusing to "
+            if span not in sel:
+                raise RuntimeError(f"the page ignored span={span} (selected {sel}); refusing to "
                                    "write a 60-day window as the season")
             rows = parse_rows(html)
             print(f"page {p}: {len(rows)} lines", flush=True)
@@ -171,10 +181,10 @@ def fetch() -> dict:
     # merge: a player seen today replaces his old line; one not seen keeps it
     merged = dict(cache.get("players") or {})
     merged.update(players)
-    cache = {"fetched": time.strftime("%Y-%m-%d"), "players": merged}
-    CACHE.parent.mkdir(parents=True, exist_ok=True)
-    CACHE.write_text(json.dumps(cache, ensure_ascii=False), "utf-8")
-    print(f"{len(players)} lines today, {len(merged)} in cache -> {CACHE.relative_to(ROOT)}")
+    cache = {"fetched": time.strftime("%Y-%m-%d"), "span": span, "players": merged}
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(cache, ensure_ascii=False), "utf-8")
+    print(f"{len(players)} lines today, {len(merged)} in cache -> {cache_path.relative_to(ROOT)}")
     return cache
 
 
@@ -240,7 +250,13 @@ def rewrite(cache: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-fetch", action="store_true", help="rewrite from the cache only")
+    ap.add_argument("--span", default="2026", help="2026 (default) or all — see CACHE_ALL")
+    ap.add_argument("--from", dest="start", type=int, default=1,
+                    help="first page to fetch — resume a long table where it stopped")
     args = ap.parse_args()
+    if args.span == "all":
+        c = fetch("all", CACHE_ALL, args.start)
+        return 0 if c.get("players") else 2
     cache = (json.loads(CACHE.read_text("utf-8")) if CACHE.exists() else {}) if args.no_fetch else fetch()
     if not cache.get("players"):
         print("nothing fetched and nothing cached; the raw file is untouched", file=sys.stderr)

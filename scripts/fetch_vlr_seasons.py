@@ -113,6 +113,9 @@ def event_stats(eid: str, slug: str) -> list[dict]:
             row[col] = f(_text(m.group(1))) if m else None
         m = re.search(r'data-col="rnd"[^>]*>(.*?)</td>', tr, re.S)
         row["rnd"] = f(_text(m.group(1))) if m else None
+        m = re.search(r'data-col="cl"[^>]*>(.*?)</td>', tr, re.S)
+        cm = re.match(r"(\d+)/(\d+)", _text(m.group(1))) if m else None
+        row["clw"], row["clt"] = (int(cm.group(1)), int(cm.group(2))) if cm else (None, None)
         if row["rnd"]:
             rows.append(row)
     return rows

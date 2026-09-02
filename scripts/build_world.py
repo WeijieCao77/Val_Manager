@@ -344,6 +344,8 @@ CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json
 TENURE_CACHE = os.path.join(ROOT, "scripts", "cache", "liquipedia_tenure.json")
 CAREER_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_career.json")
 SEASONS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_seasons.json")
+VLR_STATS_2026 = os.path.join(ROOT, "scripts", "cache", "vlr_stats2026.json")
+VLR_STATS_ALL = os.path.join(ROOT, "scripts", "cache", "vlr_stats_all.json")
 
 # Recent form says more about a player than three-year-old form, but not so much
 # more that one split erases a career. 2026 counts three times what 2024 does.
@@ -509,11 +511,13 @@ def season_profiles():
         out[ign] = line
 
     # how much better (or worse) they are when it matters, as a ratio
+    # ratio and the tier-weighted rounds behind it: 232 rounds as a stand-in
+    # two years ago is evidence of something, but not of 3.5 points
     stage = {}
     for ign, (bs, bw) in big.items():
         tot, tw = base.get(ign, [0, 0])
         if bw > 0 and tw > 0 and tot > 0:
-            stage[ign] = (bs / bw) / (tot / tw)
+            stage[ign] = ((bs / bw) / (tot / tw), bw)
     return out, stage, t1_rounds
 
 
@@ -881,15 +885,40 @@ def main():
         ratio = sea["R"] / c["R"]
         return int(clamp(round(70 + (ratio - 1) * 130 + rng.range(-4, 4)), 30, 99))
 
-    # clutch rate only exists in the parse.bot snapshot, so rank within it
+    # Clutches — won over played, one against several — from vlr's VCT-tier
+    # tables: the all-time table first (a career's worth), this season's
+    # where that is all there is. The rate is pulled toward the league mean
+    # by how few situations back it (twenty count as much as the prior), so
+    # 3/5 does not outrank 40/150. The parse.bot snapshot remains the
+    # fallback for anyone vlr has no clutch line for.
     cl_rows = []
+    have_cl = set()
+    cl_src = {}
+    for path in (VLR_STATS_ALL, VLR_STATS_2026):
+        for ign, r in (load_json(path).get("players") or {}).items():
+            if r.get("clt") and ign not in cl_src:
+                cl_src[ign] = (r["clw"], r["clt"])
+    if cl_src:
+        tot_w = sum(w for w, _ in cl_src.values())
+        tot_t = sum(t for _, t in cl_src.values())
+        mean = tot_w / tot_t if tot_t else 0.15
+        PRIOR = 20
+        for ign, (w_, t_) in cl_src.items():
+            cl_rows.append({"ign": ign, "clutch_pct": (w_ + PRIOR * mean) / (t_ + PRIOR)})
+            have_cl.add(ign.lower())
+    cl_rows_ci = {r["ign"].lower() for r in cl_rows}
     for ign, rec in agent_pools.items():
+        if ign.lower() in cl_rows_ci:
+            continue
         v = str(rec.get("clutch_pct") or "").replace("%", "").strip()
         try:
-            cl_rows.append({"ign": ign, "clutch_pct": float(v)})
+            cl_rows.append({"ign": ign, "clutch_pct": float(v) / 100})
+            have_cl.add(ign.lower())
         except ValueError:
             continue
-    P["clutch_pct"] = pctiles(cl_rows, "clutch_pct") if cl_rows else {}
+    P["clutch_pct"] = CiDict(pctiles(cl_rows, "clutch_pct")) if cl_rows else {}
+    print(f"clutch: real rates for {len(cl_src)} players from vlr, "
+          f"{len(cl_rows) - len(cl_src)} from the parse.bot snapshot")
 
     ROLE_UTIL = {"控场": 1.0, "先锋": 0.95, "哨卫": 0.7, "自由人": 0.55, "决斗者": 0.25}
     ROLE_COMM = {"控场": 0.8, "先锋": 0.85, "哨卫": 0.6, "自由人": 0.7, "决斗者": 0.4}
@@ -921,7 +950,10 @@ def main():
             "reaction": scale(axis(0.55 * g("fkpr") + 0.3 * g("kpr") + 0.15 * g("acs"), q)),
             "awareness": scale(axis(0.5 * g("kast") + 0.35 * g("fdpr") + 0.15 * q, q)),
             "utility": scale(axis(0.55 * g("apr") + 0.45 * ROLE_UTIL[r["role"]], q)),
-            "clutch": scale(axis(0.6 * q + 0.4 * g("kd"), q)),
+            # measured where it can be: a clutch rate is what the attribute
+            # claims to be, and the rating percentile only steadies it
+            "clutch": scale(axis(0.5 * g("clutch_pct") + 0.3 * q + 0.2 * g("kd"), q))
+            if ign.lower() in have_cl else scale(axis(0.6 * q + 0.4 * g("kd"), q)),
             "teamwork": scale(axis(0.5 * g("kast") + 0.5 * g("apr"), q)),
             "communication": scale(axis(0.55 * g("kast") + 0.45 * ROLE_COMM[r["role"]], q)),
             "igl": scale(axis(0.4 * g("apr") + 0.3 * g("kast") + 0.3 * ROLE_COMM[r["role"]], q),
@@ -935,8 +967,11 @@ def main():
         # so it is carried as its own term rather than folded into `overall` —
         # otherwise the first recompute in-game (training, ageing, covering a
         # second role) silently threw it away.
-        lift = stage.get(ign)
-        stage_bonus = round(clamp((lift - 1) * 26, -4, 5), 2) if lift is not None else 0.0
+        lift, big_rounds = stage.get(ign) or (None, 0.0)
+        # the same shrink every other stat gets: half weight at 400 rounds,
+        # so a small international sample nudges rather than decides
+        stage_w = big_rounds / (big_rounds + SHRINK_ROUNDS)
+        stage_bonus = round(clamp((lift - 1) * 26 * stage_w, -4, 5), 2) if lift is not None else 0.0
         ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
