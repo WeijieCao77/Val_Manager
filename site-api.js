@@ -61,7 +61,7 @@ const same = (a, b) => {
 
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
-export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName }) {
+export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName, engine, tokenFrom }) {
   /** Cached in the process: the front page asks for this on every visit. */
   let cache = null
   let cachedAt = 0
@@ -190,6 +190,12 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       json(res, 200, { ok: false, why: `没有这种卡包（${PACK_KINDS.join(' / ')}）` })
       return
     }
+    // a card id that is not in the set would sit in the account as a card
+    // nothing can draw; refused here, and refused again when mail is applied
+    if (cardId && engine && !engine.cardById(cardId)) {
+      json(res, 200, { ok: false, why: `没有这张卡（${cardId}）——卡的 ID 是 p:P123 这种` })
+      return
+    }
     if (!pack && !coins && !cardId) { json(res, 200, { ok: false, why: '什么都没填' }); return }
 
     await sql`
@@ -282,7 +288,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       if (path === '/api/site/wechat') { await status(res); return true }
       if (path === '/api/site/wechat.img') { await image(res); return true }
       if (path === '/api/admin/flag') {
-        if (!same(url.searchParams.get('token'), token) || !token) {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
           return true
         }
@@ -291,7 +297,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         return true
       }
       if (path === '/api/admin/grant') {
-        if (!same(url.searchParams.get('token'), token) || !token) {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
           return true
         }
@@ -302,7 +308,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       if (path === '/api/admin/wechat') {
         // 404 rather than 401, like every other admin route here: an endpoint
         // that admits it exists is an endpoint somebody comes back to
-        if (!same(url.searchParams.get('token'), token) || !token) {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
           return true
         }

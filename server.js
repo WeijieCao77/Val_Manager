@@ -42,6 +42,18 @@ const PORT = Number(process.env.PORT) || 8080
 const TOKEN = process.env.ANALYTICS_TOKEN || ''
 
 /**
+ * Where the admin token is read from: a header first. A token in the URL
+ * ends up in browser history, screenshots and proxy logs; a header does
+ * not. The query string still works, for the one link that opens the
+ * dashboard and for a curl typed by hand — the page itself then strips it
+ * from the address bar and sends the header from there on.
+ */
+const tokenFrom = (req, url) => {
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '')
+  return (m && m[1].trim()) || req.headers['x-admin-token'] || url.searchParams.get('token')
+}
+
+/**
  * How much history the events table is allowed to keep.
  *
  * Env vars because the answer is a disk size, and a disk size is bought rather
@@ -76,19 +88,15 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
   // whole card mode — accounts, packs, the ladder, the trading post — with
   // nothing installed. Gone when the process exits, which is the point.
   const { PGlite } = await import('@electric-sql/pglite')
-  const db = new PGlite()
-  sql = Object.assign(
-    async (strings, ...vals) => {
-      const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
-      const r = await db.query(text, vals)
-      return Object.assign(r.rows, { count: r.affectedRows ?? 0 })
-    },
-    { unsafe: async (q) => (await db.exec(q), []), json: (v) => JSON.stringify(v) },
-  )
+  const { makeSql } = await import('./pglite-sql.js')
+  sql = makeSql(new PGlite())
   try {
-    await sql.unsafe(CARD_SCHEMA)
-    await sql.unsafe(SITE_SCHEMA)
-    await sql.unsafe(PROFILE_SCHEMA)
+    // every table the Postgres branch creates, so the dashboard and the
+    // analytics routes answer locally too instead of 500ing on a missing
+    // relation — which is exactly the kind of thing a local run is for
+    for (const schema of [SCHEMA, ROLLUP_SCHEMA, CARD_SCHEMA, SITE_SCHEMA, PROFILE_SCHEMA]) {
+      await sql.unsafe(schema)
+    }
     console.log('cards: in-process database (pglite), nothing persists')
   } catch (err) {
     console.warn('pglite: schema failed —', err.message)
@@ -312,7 +320,7 @@ async function ingest(req, res) {
 }
 
 async function stats(req, res, url) {
-  if (!tokenOk(url.searchParams.get('token'), TOKEN)) {
+  if (!tokenOk(tokenFrom(req, url), TOKEN)) {
     json(res, 404, { ok: false })
     return
   }
@@ -334,7 +342,7 @@ let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
 const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
-  readBody, json, token: TOKEN, normalizeId, displayName,
+  readBody, json, token: TOKEN, normalizeId, displayName, engine, tokenFrom,
 }))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
@@ -467,7 +475,7 @@ createServer((req, res) => {
     // probes, tests and anyone poking at it land in the same table as real
     // players, and waiting 180 days for the pruner is not a remedy. Behind the
     // same token as the dashboard.
-    if (req.method !== 'POST' || !tokenOk(url.searchParams.get('token'), TOKEN)) {
+    if (req.method !== 'POST' || !tokenOk(tokenFrom(req, url), TOKEN)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
       return
     }
@@ -496,7 +504,7 @@ createServer((req, res) => {
   if (path === '/admin') {
     // 404 rather than 401: an endpoint that admits it exists is an endpoint
     // someone comes back to
-    if (!tokenOk(url.searchParams.get('token'), TOKEN)) {
+    if (!tokenOk(tokenFrom(req, url), TOKEN)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
       return
     }

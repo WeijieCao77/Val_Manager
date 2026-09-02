@@ -54,6 +54,9 @@ export function escrowCard(g: GachaState, cardId: string): { ok: boolean; level:
 
 /** Put a card back, at the level it went out with. */
 export function restoreCard(g: GachaState, cardId: string, level: number): void {
+  // never a card the game does not have — a row with a bad id (a grant typed
+  // wrong, an old card retired from the set) must not become an owned card
+  if (!cardById(cardId)) return
   const had = g.cards[cardId]
   if (had) { had.dupes++; had.seen++; return }
   g.cards[cardId] = {

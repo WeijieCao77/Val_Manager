@@ -14,19 +14,13 @@
  * exist, which is why visitors is a table and not a query.
  */
 import { PGlite } from '@electric-sql/pglite'
+import { makeSql } from '../pglite-sql.js'
 import { SCHEMA } from '../analytics.js'
 import { ROLLUP_SCHEMA, history, rollup } from '../rollup.js'
 import { prune } from '../stats.js'
 
 const db = new PGlite()
-const sql = Object.assign(
-  async (strings: TemplateStringsArray, ...vals: unknown[]) => {
-    const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
-    const r = await db.query(text, vals as never[])
-    return Object.assign(r.rows as never[], { count: r.affectedRows ?? 0 })
-  },
-  { unsafe: async (q: string) => (await db.exec(q), []) },
-)
+const sql = makeSql(db)
 await db.exec(SCHEMA.replace(/^-- .*$/gm, ''))
 await db.exec(ROLLUP_SCHEMA)
 

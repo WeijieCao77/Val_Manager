@@ -442,8 +442,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
   }
 
   /** Everything waiting in the inbox, taken off the table exactly once. */
-  async function takeMail(me) {
-    const rows = await sql`
+  async function takeMail(me, db = sql) {
+    const rows = await db`
       update card_mail set taken = now() where to_h = ${me} and taken is null
       returning kind, card_id, level, coins, pack, count, body, made`
     const mail = rows.map((r) => ({
@@ -453,12 +453,12 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     }))
     // gifts sent before gifting was removed still have to arrive; they come
     // through the same door now
-    const gifts = await sql`
+    const gifts = await db`
       update card_gifts set claimed = now()
       where to_h = ${me} and claimed is null
       returning from_h, card_id, note`
     if (gifts.length) {
-      const names = await sql`
+      const names = await db`
         select id_hash, name from card_accounts where id_hash = any(${gifts.map((r) => r.from_h)})`
       const by = Object.fromEntries(names.map((n) => [n.id_hash, n]))
       for (const r of gifts) {
@@ -509,39 +509,56 @@ export function makeCardApi(sql, { rateLimited, readBody, json }) {
     const args = body?.args && typeof body.args === 'object' && !Array.isArray(body.args) ? body.args : {}
     const me = hash(id)
     try {
-      let taken = []
+      // One attempt is one transaction. That matters for mail_take: the rows
+      // are marked taken and the account that received them is written in
+      // the same transaction, so a write that loses the revision race (or a
+      // process that dies between the two) leaves the mail untaken rather
+      // than gone. A lost race throws to roll back and the loop tries again.
+      const run = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
+      const STALE = Symbol('stale')
       for (let attempt = 0; attempt < 3; attempt++) {
-        const held = await sql`select state, rev from card_accounts where id_hash = ${me}`
-        if (!held.length) { json(res, 200, { ok: false, missing: true, today, now }); return }
-        const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
-        let out
-        if (action === 'mail_take') {
-          taken = taken.concat(await takeMail(me))
-          engine.applyMail(g, taken)
-          out = { ok: true, result: { mail: taken } }
-        } else {
-          const env = { now, today, seed: freshSeed() }
-          if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me)
-          out = engine.runAction(g, action, args, env)
+        let reply
+        try {
+          reply = await run(async (db) => {
+            const held = await db`select state, rev from card_accounts where id_hash = ${me}`
+            if (!held.length) return { missing: true }
+            const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
+            let out
+            if (action === 'mail_take') {
+              const taken = await takeMail(me, db)
+              engine.applyMail(g, taken)
+              out = { ok: true, result: { mail: taken } }
+            } else {
+              const env = { now, today, seed: freshSeed() }
+              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me)
+              out = engine.runAction(g, action, args, env)
+            }
+            const total = g.ladder.wins + g.ladder.losses
+            const rows = await db`
+              update card_accounts
+                 set state = ${db.json(stored(g))},
+                     name  = ${g.name ?? null},
+                     rev   = rev + 1,
+                     seen  = now(),
+                     saved = now(),
+                     ladder_seen = ${total},
+                     ladder_at   = now()
+               where id_hash = ${me} and rev = ${held[0].rev}
+              returning rev`
+            if (!rows.length) throw STALE
+            return { out, rev: rows[0].rev, state: stored(g) }
+          })
+        } catch (e) {
+          if (e === STALE) continue
+          throw e
         }
-        const total = g.ladder.wins + g.ladder.losses
-        const rows = await sql`
-          update card_accounts
-             set state = ${sql.json(stored(g))},
-                 name  = ${g.name ?? null},
-                 rev   = rev + 1,
-                 seen  = now(),
-                 saved = now(),
-                 ladder_seen = ${total},
-                 ladder_at   = now()
-           where id_hash = ${me} and rev = ${held[0].rev}
-          returning rev`
-        if (!rows.length) continue
+        if (reply.missing) { json(res, 200, { ok: false, missing: true, today, now }); return }
+        const { out } = reply
         json(res, 200, {
           ok: out.ok,
           why: out.ok ? undefined : out.why,
           result: out.ok ? out.result : undefined,
-          today, now, rev: rows[0].rev, state: stored(g), code: battleCode(me),
+          today, now, rev: reply.rev, state: reply.state, code: battleCode(me),
         })
         return
       }

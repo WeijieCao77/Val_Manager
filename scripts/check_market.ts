@@ -15,6 +15,7 @@
  */
 process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
+import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
 import { ALL_CARDS, SALVAGE } from '../src/engine/cards'
 // real cards of each metal: the server reads the metal off the card table now
@@ -28,14 +29,7 @@ const {
 const engine = await import('../src/engine/server.ts')
 
 const db = new PGlite()
-const sql = Object.assign(
-  async (strings: TemplateStringsArray, ...vals: unknown[]) => {
-    const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
-    const r = await db.query(text, vals as never[])
-    return Object.assign(r.rows as never[], { count: r.affectedRows ?? 0 })
-  },
-  { unsafe: async (q: string) => (await db.exec(q), []), json: (v: unknown) => JSON.stringify(v) },
-)
+const sql = makeSql(db)
 await db.exec(CARD_SCHEMA)
 
 let bad = 0

@@ -10,6 +10,7 @@
  * database to provision.
  */
 import { PGlite } from '@electric-sql/pglite'
+import { makeSql } from '../pglite-sql.js'
 import { EVENTS, SCHEMA } from '../analytics.js'
 import { CARD_SCHEMA } from '../cards-api.js'
 import { overview, prune, storage } from '../stats.js'
@@ -17,14 +18,7 @@ import { overview, prune, storage } from '../stats.js'
 const db = new PGlite()
 
 /** The tagged-template shape stats.js expects, backed by a real engine. */
-const sql = Object.assign(
-  async (strings: TemplateStringsArray, ...vals: unknown[]) => {
-    const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
-    const r = await db.query(text, vals as never[])
-    return Object.assign(r.rows as never[], { count: r.affectedRows ?? 0 })
-  },
-  { unsafe: async (q: string) => (await db.exec(q), []) },
-)
+const sql = makeSql(db)
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {

@@ -171,7 +171,23 @@ export const dashboardHtml = () => `<!doctype html>
 
 <script>
 const $ = (s) => document.querySelector(s)
-const token = new URLSearchParams(location.search).get('token') || ''
+// The token arrives once, in the link that opens this page, and is then
+// taken out of the address bar: a URL gets copied, screenshotted and logged,
+// and every request from here sends it as a header instead.
+const token = (() => {
+  const q = new URLSearchParams(location.search)
+  let t = q.get('token') || ''
+  try {
+    if (t) sessionStorage.setItem('admin_token', t)
+    else t = sessionStorage.getItem('admin_token') || ''
+  } catch { /* storage blocked: the token lives for this page load only */ }
+  if (q.has('token')) {
+    q.delete('token')
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''))
+  }
+  return t
+})()
+const auth = () => ({ Authorization: 'Bearer ' + token })
 const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
 const pct = (a, b) => (b ? Math.round(100 * a / b) : 0)
 // A cohort from yesterday has not had a seventh day yet. Printing 0% there
@@ -481,7 +497,7 @@ function render(d) {
 async function load(days) {
   $('#status').textContent = '加载中…'
   try {
-    const r = await fetch('/api/stats?days=' + days + '&token=' + encodeURIComponent(token))
+    const r = await fetch('/api/stats?days=' + days, { headers: auth() })
     if (!r.ok) throw new Error('HTTP ' + r.status)
     const d = await r.json()
     render(d)
@@ -498,9 +514,9 @@ $('#gSend').onclick = async () => {
   if (!who) { $('#gMsg').textContent = '先填对战码或账号 ID'; return }
   $('#gMsg').textContent = '发送中…'
   try {
-    const r = await fetch('/api/admin/grant?token=' + encodeURIComponent(token), {
+    const r = await fetch('/api/admin/grant', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...auth() },
       body: JSON.stringify({
         who,
         pack: $('#gPack').value || null,
@@ -541,7 +557,7 @@ function wxDraw() {
 
 async function wxLoad() {
   try {
-    const r = await fetch('/api/admin/wechat?token=' + encodeURIComponent(token))
+    const r = await fetch('/api/admin/wechat', { headers: auth() })
     if (!r.ok) throw new Error('HTTP ' + r.status)
     const j = await r.json()
     Object.assign(wx, j.config || {})
@@ -554,9 +570,9 @@ async function wxLoad() {
 async function wxSave(body) {
   $('#wxMsg').textContent = '保存中…'
   try {
-    const r = await fetch('/api/admin/wechat?token=' + encodeURIComponent(token), {
+    const r = await fetch('/api/admin/wechat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...auth() },
       body: JSON.stringify(body),
     })
     const j = await r.json().catch(() => null)

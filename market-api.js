@@ -89,11 +89,26 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     return false
   }
 
-  const post = (to, kind, extra = {}) => sql`
+  const post = (to, kind, extra = {}, db = sql) => db`
     insert into card_mail (to_h, kind, card_id, level, coins, pack, count, body)
     values (${to}, ${kind}, ${extra.cardId ?? null}, ${extra.level ?? 0},
             ${extra.coins ?? 0}, ${extra.pack ?? null}, ${extra.count ?? 1},
-            ${sql.json(extra.body ?? {})})`
+            ${db.json(extra.body ?? {})})`
+
+  /**
+   * Everything that moves a card or a coin runs inside one of these. A
+   * listing is "the card leaves the account" AND "the listing exists"; a bid
+   * is "the coins leave" AND "the offer exists"; a sale is a status change
+   * AND two pieces of mail. Done as separate statements, a crash or a
+   * database error between them left an account short with nothing owed to
+   * it. Inside a transaction the whole step happens or none of it does.
+   * (The PGlite shim carries the same `begin`; without one at all, plain.)
+   */
+  const tx = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
+
+  /** A listing, offer or swap id off the wire: digits, or nothing. Anything
+   *  else went straight into a `::bigint` cast and answered 500. */
+  const rowId = (v) => (/^\d{1,18}$/.test(String(v ?? '')) ? String(v) : null)
 
   /**
    * Settle everything the clock has decided, before anyone reads the market.
@@ -103,30 +118,32 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    * failure leaves the market wrong.
    */
   async function sweep() {
-    const stale = await sql`
-      update card_offers set status = 'expired', settled = now()
-      where status = 'open' and made < now() - make_interval(days => ${OFFER_DAYS})
-      returning id, listing, buyer_h, price`
-    for (const o of stale) {
-      // the coins go home
-      await post(o.buyer_h, 'offer_expired', {
-        coins: o.price, body: { listing: String(o.listing) },
-      })
-      await sql`update card_listings set ignored = ignored + 1 where id = ${o.listing}`
-    }
-    const dead = await sql`
-      update card_listings set status = 'expired', closed = now()
-      where status = 'open' and ignored >= ${IGNORE_LIMIT}
-      returning id, seller_h, card_id, level`
-    for (const l of dead) {
-      // and so does the card
-      await post(l.seller_h, 'listing_expired', {
-        cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
-      })
-      await sql`
+    await tx(async (db) => {
+      const stale = await db`
         update card_offers set status = 'expired', settled = now()
-        where listing = ${l.id} and status = 'open'`
-    }
+        where status = 'open' and made < now() - make_interval(days => ${OFFER_DAYS})
+        returning id, listing, buyer_h, price`
+      for (const o of stale) {
+        // the coins go home
+        await post(o.buyer_h, 'offer_expired', {
+          coins: o.price, body: { listing: String(o.listing) },
+        }, db)
+        await db`update card_listings set ignored = ignored + 1 where id = ${o.listing}`
+      }
+      const dead = await db`
+        update card_listings set status = 'expired', closed = now()
+        where status = 'open' and ignored >= ${IGNORE_LIMIT}
+        returning id, seller_h, card_id, level`
+      for (const l of dead) {
+        // and so does the card
+        await post(l.seller_h, 'listing_expired', {
+          cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
+        }, db)
+        await db`
+          update card_offers set status = 'expired', settled = now()
+          where listing = ${l.id} and status = 'open'`
+      }
+    })
   }
 
   /**
@@ -226,23 +243,27 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // first, at level 0; the card itself otherwise, at the level it holds.
     // It used to leave on the client's copy after this reply, which meant a
     // client that skipped that step listed a card it still held.
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const row = await sql`select state, rev from card_accounts where id_hash = ${me}`
-      if (!row.length) { json(res, 200, { ok: false, notOwned: true }); return }
-      const g = engine.migrateGacha(row[0].state, id)
-      const esc = engine.escrowCard(g, cardId)
-      if (!esc.ok) { json(res, 200, { ok: false, notOwned: true }); return }
-      const w = await sql`
-        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
-        where id_hash = ${me} and rev = ${row[0].rev} returning rev`
-      if (!w.length) continue
-      const r = await sql`
-        insert into card_listings (seller_h, card_id, level, ask)
-        values (${me}, ${cardId}, ${esc.level}, ${ask}) returning id`
-      json(res, 200, { ok: true, id: String(r[0].id), state: stored(g), rev: w[0].rev })
-      return
-    }
-    json(res, 409, { ok: false, busy: true })
+    const out = await tx(async (db) => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const row = await db`select state, rev from card_accounts where id_hash = ${me}`
+        if (!row.length) return { notOwned: true }
+        const g = engine.migrateGacha(row[0].state, id)
+        const esc = engine.escrowCard(g, cardId)
+        if (!esc.ok) return { notOwned: true }
+        const w = await db`
+          update card_accounts set state = ${db.json(stored(g))}, rev = rev + 1, saved = now()
+          where id_hash = ${me} and rev = ${row[0].rev} returning rev`
+        if (!w.length) continue
+        const r = await db`
+          insert into card_listings (seller_h, card_id, level, ask)
+          values (${me}, ${cardId}, ${esc.level}, ${ask}) returning id`
+        return { ok: true, id: String(r[0].id), state: stored(g), rev: w[0].rev }
+      }
+      return { busy: true }
+    })
+    if (out.notOwned) { json(res, 200, { ok: false, notOwned: true }); return }
+    if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
+    json(res, 200, out)
   }
 
   /** Take it back off the shelf. The card comes home through the inbox. */
@@ -254,18 +275,23 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
-    const rows = await sql`
-      update card_listings set status = 'pulled', closed = now()
-      where id = ${String(b?.listing ?? '')}::bigint and seller_h = ${me} and status = 'open'
-      returning id, card_id, level`
-    if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
-    const l = rows[0]
-    await post(me, 'listing_pulled', { cardId: l.card_id, level: l.level })
-    const back = await sql`
-      update card_offers set status = 'expired', settled = now()
-      where listing = ${l.id} and status = 'open' returning buyer_h, price`
-    for (const o of back) await post(o.buyer_h, 'offer_expired', { coins: o.price })
-    json(res, 200, { ok: true, refunded: back.length })
+    const lid = rowId(b?.listing)
+    if (!lid) { json(res, 400, { ok: false, bad: true }); return }
+    const out = await tx(async (db) => {
+      const rows = await db`
+        update card_listings set status = 'pulled', closed = now()
+        where id = ${lid}::bigint and seller_h = ${me} and status = 'open'
+        returning id, card_id, level`
+      if (!rows.length) return { gone: true }
+      const l = rows[0]
+      await post(me, 'listing_pulled', { cardId: l.card_id, level: l.level }, db)
+      const back = await db`
+        update card_offers set status = 'expired', settled = now()
+        where listing = ${l.id} and status = 'open' returning buyer_h, price`
+      for (const o of back) await post(o.buyer_h, 'offer_expired', { coins: o.price }, db)
+      return { ok: true, refunded: back.length }
+    })
+    json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
   /** Bid. The coins leave your side now and come back if it does not go through. */
@@ -278,9 +304,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
     const price = Math.round(Number(b?.price))
+    const lid = rowId(b?.listing)
+    if (!lid) { json(res, 400, { ok: false, bad: true }); return }
     const rows = await sql`
       select id, seller_h, card_id, ask from card_listings
-      where id = ${String(b?.listing ?? '')}::bigint and status = 'open'`
+      where id = ${lid}::bigint and status = 'open'`
     if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
     const l = rows[0]
     if (l.seller_h === me) { json(res, 200, { ok: false, self: true }); return }
@@ -298,28 +326,29 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if ((dup[0]?.n ?? 0) > 0) { json(res, 200, { ok: false, already: true }); return }
     // the coins leave the server's copy of the account, here, before the
     // offer exists — a bid is never made with money the account does not hold
-    let state = null
-    let rev = null
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const row = await sql`select state, rev from card_accounts where id_hash = ${me}`
-      if (!row.length) { json(res, 200, { ok: false, broke: true }); return }
-      const g = engine.migrateGacha(row[0].state, id)
-      if (g.coins < price) { json(res, 200, { ok: false, broke: true }); return }
-      g.coins -= price
-      const w = await sql`
-        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
-        where id_hash = ${me} and rev = ${row[0].rev} returning rev`
-      if (!w.length) continue
-      state = stored(g)
-      rev = w[0].rev
-      break
-    }
-    if (!state) { json(res, 409, { ok: false, busy: true }); return }
-    await sql`insert into card_offers (listing, buyer_h, price) values (${l.id}, ${me}, ${price})`
-    await post(l.seller_h, 'offer_made', {
-      body: { listing: String(l.id), cardId: l.card_id, price, ask: l.ask, who: await nameOf(me) },
+    const who = await nameOf(me)
+    const out = await tx(async (db) => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const row = await db`select state, rev from card_accounts where id_hash = ${me}`
+        if (!row.length) return { broke: true }
+        const g = engine.migrateGacha(row[0].state, id)
+        if (g.coins < price) return { broke: true }
+        g.coins -= price
+        const w = await db`
+          update card_accounts set state = ${db.json(stored(g))}, rev = rev + 1, saved = now()
+          where id_hash = ${me} and rev = ${row[0].rev} returning rev`
+        if (!w.length) continue
+        await db`insert into card_offers (listing, buyer_h, price) values (${l.id}, ${me}, ${price})`
+        await post(l.seller_h, 'offer_made', {
+          body: { listing: String(l.id), cardId: l.card_id, price, ask: l.ask, who },
+        }, db)
+        return { ok: true, state: stored(g), rev: w[0].rev }
+      }
+      return { busy: true }
     })
-    json(res, 200, { ok: true, state, rev })
+    if (out.broke) { json(res, 200, { ok: false, broke: true }); return }
+    if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
+    json(res, 200, out)
   }
 
   /** Offers on my listings, and my own bids. */
@@ -375,52 +404,59 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
     const take = !!b?.accept
+    const oid = rowId(b?.offer)
+    if (!oid) { json(res, 400, { ok: false, bad: true }); return }
     const got = await sql`
       select o.id, o.buyer_h, o.price, l.id as listing, l.seller_h, l.card_id, l.level, l.status
       from card_offers o join card_listings l on l.id = o.listing
-      where o.id = ${String(b?.offer ?? '')}::bigint and o.status = 'open'`
+      where o.id = ${oid}::bigint and o.status = 'open'`
     if (!got.length || got[0].seller_h !== me) { json(res, 200, { ok: false, gone: true }); return }
     const o = got[0]
     if (!take) {
-      const done = await sql`
-        update card_offers set status = 'declined', settled = now()
-        where id = ${o.id} and status = 'open' returning id`
-      if (!done.length) { json(res, 200, { ok: false, gone: true }); return }
-      // a refusal is still an answer, so it does not count against the listing
-      await post(o.buyer_h, 'offer_declined', {
-        coins: o.price, body: { cardId: o.card_id, price: o.price },
+      const out = await tx(async (db) => {
+        const done = await db`
+          update card_offers set status = 'declined', settled = now()
+          where id = ${o.id} and status = 'open' returning id`
+        if (!done.length) return { gone: true }
+        // a refusal is still an answer, so it does not count against the listing
+        await post(o.buyer_h, 'offer_declined', {
+          coins: o.price, body: { cardId: o.card_id, price: o.price },
+        }, db)
+        return { ok: true, declined: true }
       })
-      json(res, 200, { ok: true, declined: true })
+      json(res, 200, out.gone ? { ok: false, gone: true } : out)
       return
     }
     if (o.status !== 'open') { json(res, 200, { ok: false, gone: true }); return }
-    const won = await sql`
-      update card_offers set status = 'accepted', settled = now()
-      where id = ${o.id} and status = 'open' returning id`
-    if (!won.length) { json(res, 200, { ok: false, gone: true }); return }
-    const closed = await sql`
-      update card_listings set status = 'sold', closed = now()
-      where id = ${o.listing} and status = 'open' returning id`
-    if (!closed.length) {
-      // somebody else closed it a moment ago; give the money straight back
-      await sql`update card_offers set status = 'expired' where id = ${o.id}`
-      await post(o.buyer_h, 'offer_expired', { coins: o.price })
-      json(res, 200, { ok: false, gone: true })
-      return
-    }
-    await post(o.buyer_h, 'bought', {
-      cardId: o.card_id, level: o.level,
-      body: { price: o.price, who: await nameOf(me) },
+    const [sellerName, buyerName] = [await nameOf(me), await nameOf(o.buyer_h)]
+    const out = await tx(async (db) => {
+      const won = await db`
+        update card_offers set status = 'accepted', settled = now()
+        where id = ${o.id} and status = 'open' returning id`
+      if (!won.length) return { gone: true }
+      const closed = await db`
+        update card_listings set status = 'sold', closed = now()
+        where id = ${o.listing} and status = 'open' returning id`
+      if (!closed.length) {
+        // somebody else closed it a moment ago; give the money straight back
+        await db`update card_offers set status = 'expired' where id = ${o.id}`
+        await post(o.buyer_h, 'offer_expired', { coins: o.price }, db)
+        return { gone: true }
+      }
+      await post(o.buyer_h, 'bought', {
+        cardId: o.card_id, level: o.level, body: { price: o.price, who: sellerName },
+      }, db)
+      await post(me, 'sold', {
+        coins: o.price, body: { cardId: o.card_id, price: o.price, who: buyerName },
+      }, db)
+      // every other bid on that card goes home
+      const rest = await db`
+        update card_offers set status = 'expired', settled = now()
+        where listing = ${o.listing} and status = 'open' returning buyer_h, price`
+      for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: { cardId: o.card_id } }, db)
+      return { ok: true, price: o.price }
     })
-    await post(me, 'sold', {
-      coins: o.price, body: { cardId: o.card_id, price: o.price, who: await nameOf(o.buyer_h) },
-    })
-    // every other bid on that card goes home
-    const rest = await sql`
-      update card_offers set status = 'expired', settled = now()
-      where listing = ${o.listing} and status = 'open' returning buyer_h, price`
-    for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: { cardId: o.card_id } })
-    json(res, 200, { ok: true, price: o.price })
+    json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
   /**
@@ -453,19 +489,21 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
   const MAX_SWAPS = 5
 
   /** Send both escrowed cards home from a swap that did not happen. */
-  async function unwindSwap(row, reason) {
+  async function unwindSwap(row, reason, db = sql) {
     await post(row.from_h, 'swap_back', {
       cardId: row.give_id, level: row.give_level, body: { reason, swap: String(row.id) },
-    })
+    }, db)
   }
 
   /** Swaps nobody answered go home with the offers. */
   async function sweepSwaps() {
-    const stale = await sql`
-      update card_swaps set status = 'expired', settled = now()
-      where status = 'open' and made < now() - make_interval(days => ${SWAP_DAYS})
-      returning id, from_h, give_id, give_level`
-    for (const row of stale) await unwindSwap(row, '三天没答复，自动撤回')
+    await tx(async (db) => {
+      const stale = await db`
+        update card_swaps set status = 'expired', settled = now()
+        where status = 'open' and made < now() - make_interval(days => ${SWAP_DAYS})
+        returning id, from_h, give_id, give_level`
+      for (const row of stale) await unwindSwap(row, '三天没答复，自动撤回', db)
+    })
   }
 
   /** One account by battle code, or a reason it could not be found. */
@@ -483,15 +521,15 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    * Change one account's collection under the revision, retrying if another
    * request wrote in between. `edit` returns false to refuse.
    */
-  async function editAccount(h, id, edit) {
+  async function editAccount(h, id, edit, db = sql) {
     for (let attempt = 0; attempt < 3; attempt++) {
-      const row = await sql`select state, rev from card_accounts where id_hash = ${h}`
+      const row = await db`select state, rev from card_accounts where id_hash = ${h}`
       if (!row.length) return { ok: false, why: 'missing' }
       const g = engine.migrateGacha(row[0].state, id ?? 'VM-0000-0000-0000-0000-0000')
       const why = edit(g)
       if (why) return { ok: false, why }
-      const w = await sql`
-        update card_accounts set state = ${sql.json(stored(g))}, rev = rev + 1, saved = now()
+      const w = await db`
+        update card_accounts set state = ${db.json(stored(g))}, rev = rev + 1, saved = now()
         where id_hash = ${h} and rev = ${row[0].rev} returning rev`
       if (!w.length) continue
       return { ok: true, state: stored(g), rev: w[0].rev }
@@ -534,23 +572,28 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // they have to hold what I am asking for, right now — checked again when they accept
     const theirs = await sql`select state->'cards' as cards from card_accounts where id_hash = ${them.row.id_hash}`
     if (!theirs[0]?.cards?.[wantId]) { json(res, 200, { ok: false, theyLack: true }); return }
-    let level = 0
-    const r = await editAccount(me, id, (g) => {
-      if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
-      const esc = engine.escrowCard(g, giveId)
-      if (!esc.ok) return 'notOwned'
-      engine.spendPlay(g, 'swap', Date.now())
-      level = esc.level
-      return null
+    const who = await nameOf(me)
+    const out = await tx(async (db) => {
+      let level = 0
+      const r = await editAccount(me, id, (g) => {
+        if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
+        const esc = engine.escrowCard(g, giveId)
+        if (!esc.ok) return 'notOwned'
+        engine.spendPlay(g, 'swap', Date.now())
+        level = esc.level
+        return null
+      }, db)
+      if (!r.ok) return r
+      const ins = await db`
+        insert into card_swaps (from_h, to_h, give_id, give_level, want_id)
+        values (${me}, ${them.row.id_hash}, ${giveId}, ${level}, ${wantId}) returning id`
+      await post(them.row.id_hash, 'swap_offer', {
+        body: { swap: String(ins[0].id), give: giveId, want: wantId, who },
+      }, db)
+      return { ok: true, id: String(ins[0].id), state: r.state, rev: r.rev }
     })
-    if (!r.ok) { json(res, 200, { ok: false, [r.why]: true }); return }
-    const ins = await sql`
-      insert into card_swaps (from_h, to_h, give_id, give_level, want_id)
-      values (${me}, ${them.row.id_hash}, ${giveId}, ${level}, ${wantId}) returning id`
-    await post(them.row.id_hash, 'swap_offer', {
-      body: { swap: String(ins[0].id), give: giveId, want: wantId, who: await nameOf(me) },
-    })
-    json(res, 200, { ok: true, id: String(ins[0].id), state: r.state, rev: r.rev })
+    if (!out.ok) { json(res, 200, { ok: false, [out.why]: true }); return }
+    json(res, 200, out)
   }
 
   /** Swaps waiting on me, and the ones I have out. */
@@ -600,51 +643,59 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    const sid = rowId(b?.swap)
+    if (!sid) { json(res, 400, { ok: false, bad: true }); return }
     const got = await sql`
       select id, from_h, to_h, give_id, give_level, want_id from card_swaps
-      where id = ${String(b?.swap ?? '')}::bigint and status = 'open'`
+      where id = ${sid}::bigint and status = 'open'`
     if (!got.length || got[0].to_h !== me) { json(res, 200, { ok: false, gone: true }); return }
     const row = got[0]
     if (!b?.accept) {
-      const done = await sql`
-        update card_swaps set status = 'declined', settled = now()
-        where id = ${row.id} and status = 'open' returning id`
-      if (!done.length) { json(res, 200, { ok: false, gone: true }); return }
-      await unwindSwap(row, '对方拒绝了')
-      json(res, 200, { ok: true, declined: true })
+      const out = await tx(async (db) => {
+        const done = await db`
+          update card_swaps set status = 'declined', settled = now()
+          where id = ${row.id} and status = 'open' returning id`
+        if (!done.length) return { gone: true }
+        await unwindSwap(row, '对方拒绝了', db)
+        return { ok: true, declined: true }
+      })
+      json(res, 200, out.gone ? { ok: false, gone: true } : out)
       return
     }
-    let level = 0
-    const r = await editAccount(me, id, (g) => {
-      if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
-      const esc = engine.escrowCard(g, row.want_id)
-      if (!esc.ok) return 'notOwned'
-      engine.spendPlay(g, 'swap', Date.now())
-      level = esc.level
-      return null
-    })
-    if (!r.ok) {
-      if (r.why === 'notOwned') {
-        // they no longer hold it: the swap cannot happen, and the proposer
-        // should not wait three days to learn that
-        await sql`update card_swaps set status = 'declined', settled = now() where id = ${row.id}`
-        await unwindSwap(row, '对方已经没有这张卡了')
+    const [theirName, myName] = [await nameOf(row.from_h), await nameOf(me)]
+    const out = await tx(async (db) => {
+      let level = 0
+      const r = await editAccount(me, id, (g) => {
+        if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
+        const esc = engine.escrowCard(g, row.want_id)
+        if (!esc.ok) return 'notOwned'
+        engine.spendPlay(g, 'swap', Date.now())
+        level = esc.level
+        return null
+      }, db)
+      if (!r.ok) {
+        if (r.why === 'notOwned') {
+          // they no longer hold it: the swap cannot happen, and the proposer
+          // should not wait three days to learn that
+          await db`update card_swaps set status = 'declined', settled = now() where id = ${row.id}`
+          await unwindSwap(row, '对方已经没有这张卡了', db)
+        }
+        return { ok: false, why: r.why }
       }
-      json(res, 200, { ok: false, [r.why]: true })
-      return
-    }
-    const won = await sql`
-      update card_swaps set status = 'done', settled = now()
-      where id = ${row.id} and status = 'open' returning id`
-    if (!won.length) {
-      // settled a moment ago from another tab: give the card straight back
-      await post(me, 'swap_back', { cardId: row.want_id, level, body: { reason: '这个交换已经结束了' } })
-      json(res, 200, { ok: false, gone: true, state: r.state, rev: r.rev })
-      return
-    }
-    await post(me, 'swap_in', { cardId: row.give_id, level: row.give_level, body: { who: await nameOf(row.from_h) } })
-    await post(row.from_h, 'swap_in', { cardId: row.want_id, level, body: { who: await nameOf(me) } })
-    json(res, 200, { ok: true, state: r.state, rev: r.rev })
+      const won = await db`
+        update card_swaps set status = 'done', settled = now()
+        where id = ${row.id} and status = 'open' returning id`
+      if (!won.length) {
+        // settled a moment ago from another tab: give the card straight back
+        await post(me, 'swap_back', { cardId: row.want_id, level, body: { reason: '这个交换已经结束了' } }, db)
+        return { ok: false, gone: true, state: r.state, rev: r.rev }
+      }
+      await post(me, 'swap_in', { cardId: row.give_id, level: row.give_level, body: { who: theirName } }, db)
+      await post(row.from_h, 'swap_in', { cardId: row.want_id, level, body: { who: myName } }, db)
+      return { ok: true, state: r.state, rev: r.rev }
+    })
+    if (!out.ok) { json(res, 200, out.gone ? out : { ok: false, [out.why]: true }); return }
+    json(res, 200, out)
   }
 
   /** Take an offer back before it is answered. The card comes home through the inbox. */
@@ -655,13 +706,18 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
-    const rows = await sql`
-      update card_swaps set status = 'cancelled', settled = now()
-      where id = ${String(b?.swap ?? '')}::bigint and from_h = ${me} and status = 'open'
-      returning id, from_h, give_id, give_level`
-    if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
-    await unwindSwap(rows[0], '你撤回了')
-    json(res, 200, { ok: true })
+    const sid = rowId(b?.swap)
+    if (!sid) { json(res, 400, { ok: false, bad: true }); return }
+    const out = await tx(async (db) => {
+      const rows = await db`
+        update card_swaps set status = 'cancelled', settled = now()
+        where id = ${sid}::bigint and from_h = ${me} and status = 'open'
+        returning id, from_h, give_id, give_level`
+      if (!rows.length) return { gone: true }
+      await unwindSwap(rows[0], '你撤回了', db)
+      return { ok: true }
+    })
+    json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
   return {

@@ -15,20 +15,15 @@
  *   - turning it off, and deleting the picture, both actually take effect
  */
 import { PGlite } from '@electric-sql/pglite'
+import { makeSql } from '../pglite-sql.js'
 import { SITE_SCHEMA, makeSiteApi, readDataUrl } from '../site-api.js'
+import { engine } from '../cards-api.js'
 import { CARD_SCHEMA, normalizeId } from '../cards-api.js'
 import { displayName } from '../names.js'
 import { createHash } from 'node:crypto'
 
 const db = new PGlite()
-const sql = Object.assign(
-  async (strings: TemplateStringsArray, ...vals: unknown[]) => {
-    const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? `$${i + 1}` : ''), '')
-    const r = await db.query(text, vals as never[])
-    return Object.assign(r.rows as never[], { count: r.affectedRows ?? 0 })
-  },
-  { unsafe: async (q: string) => (await db.exec(q), []), json: (v: unknown) => JSON.stringify(v) },
-)
+const sql = makeSql(db)
 await db.exec(SITE_SCHEMA)
 await db.exec(CARD_SCHEMA)
 
@@ -48,7 +43,7 @@ const readBody = (req: { body: string }, limit: number) =>
   })
 
 const api = makeSiteApi(sql, {
-  readBody, json, token: TOKEN, normalizeId, displayName,
+  readBody, json, token: TOKEN, normalizeId, displayName, engine,
 } as never)
 
 /**
@@ -217,6 +212,12 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
 
   r = await admin({ who: P, coins: 5000, note: '补偿' })
   check(r.body.ok === true, '完整账号 ID 也认', JSON.stringify(r.body))
+  // a card id that is not in the set must not reach an account: it would sit
+  // there as a card nothing can draw or sell
+  r = await admin({ who: code, cardId: 'p:NOPE' })
+  check(r.body.ok === false && /没有这张卡/.test(String(r.body.why)), '不存在的卡 ID 发不出去', JSON.stringify(r.body))
+  r = await admin({ who: code, cardId: 'p:P0' })
+  check(r.body.ok === true, '真实的卡 ID 可以发', JSON.stringify(r.body))
   r = await admin({ who: code, pack: 'nope' })
   check(r.body.ok === false && /没有这种卡包/.test(String(r.body.why)), '不存在的卡包会被拒绝',
     JSON.stringify(r.body))
@@ -228,7 +229,7 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const noTok = await admin({ who: code, pack: 'ten' }, 'wrong')
   check(noTok.code === 404, 'token 不对时这个接口是 404', `code ${noTok.code}`)
   const n = await sql`select count(*)::int as n from card_mail where to_h = ${hashOf(P)}`
-  check(n[0].n === 2, '而且没有多发出去任何东西', String(n[0].n))
+  check(n[0].n === 3, '而且没有多发出去任何东西（两个包 + 一张卡）', String(n[0].n))
 }
 
 // ---- a pardon is a baseline, not just a cleared bit ---------------------

@@ -62,10 +62,13 @@ const bid = (g: GameState, p: Player) => {
 {
   const g = mk('EDG', true)
   const me = g.teams[g.myTeam]
+  // relative to what the real roster already holds — EDG signed stew, a
+  // Korean, in September 2026, and the world is rebuilt from real rosters
+  const base = importCount(g, g.myTeam)
   const foreigners = Object.values(g.players)
-    .filter((p) => !p.teamId && isImport(p, me)).slice(0, 2)
+    .filter((p) => !p.teamId && isImport(p, me)).slice(0, IMPORT_MAX - base)
   for (const p of foreigners) { p.teamId = g.myTeam; me.roster.push(p.id) }
-  check('two imports fit', importCount(g, g.myTeam) === 2)
+  check('two imports fit', importCount(g, g.myTeam) === IMPORT_MAX, `${base} 已有 + ${foreigners.length}`)
 
   const third = Object.values(g.players).find((p) => p.teamId && p.teamId !== g.myTeam && isImport(p, me))!
   const msg = bid(g, third)
@@ -98,12 +101,14 @@ const bid = (g: GameState, p: Player) => {
 {
   const g = mk('EDG', false)
   const me = g.teams[g.myTeam]
+  const base = importCount(g, g.myTeam)
   const foreigners = Object.values(g.players)
-    .filter((p) => !p.teamId && isImport(p, me)).slice(0, 3)
+    .filter((p) => !p.teamId && isImport(p, me)).slice(0, Math.max(0, 3 - base))
   for (const p of foreigners) { p.teamId = g.myTeam; me.roster.push(p.id) }
   g.importLimit = true
   check('three imports survive the rule turning on beneath them',
-    importCount(g, g.myTeam) === 3 && me.roster.length === squadOf(g, g.myTeam).length)
+    importCount(g, g.myTeam) === 3 && me.roster.length === squadOf(g, g.myTeam).length,
+    `${importCount(g, g.myTeam)} 名外援`)
   const another = Object.values(g.players).find((p) => p.teamId && p.teamId !== g.myTeam && isImport(p, me))!
   check('but a fourth cannot join', importBlock(g, g.myTeam, another) !== null)
 }

@@ -151,11 +151,20 @@ export function makeProfileApi(sql, { rateLimited, readBody, json }) {
       // Read-modify-write rather than an upsert of the incoming value: the
       // stored row may hold an ending this device has never seen, and the
       // whole contract of this table is that unlocking only ever adds.
-      const rows = await sql`select profile from site_profiles where id_hash = ${hash(got.id)}`
-      const merged = fold(rows[0]?.profile, incoming)
-      await sql`
-        insert into site_profiles (id_hash, profile) values (${hash(got.id)}, ${sql.json(merged)})
-        on conflict (id_hash) do update set profile = ${sql.json(merged)}, seen = now()`
+      // In one transaction with the row locked: two devices saving at once
+      // used to read the same old row and the second write dropped whatever
+      // the first had just unlocked. The empty insert first means there is
+      // always a row to lock, even for an account saving for the first time.
+      const h = hash(got.id)
+      const run = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
+      const merged = await run(async (db) => {
+        await db`insert into site_profiles (id_hash, profile) values (${h}, ${db.json(vet(null))})
+                 on conflict (id_hash) do nothing`
+        const rows = await db`select profile from site_profiles where id_hash = ${h} for update`
+        const m = fold(rows[0]?.profile, incoming)
+        await db`update site_profiles set profile = ${db.json(m)}, seen = now() where id_hash = ${h}`
+        return m
+      })
       json(res, 200, { ok: true, profile: merged })
     } catch {
       json(res, 500, { ok: false })
