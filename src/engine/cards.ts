@@ -192,6 +192,9 @@ function buildCoachCards(): CoachCard[] {
  * not authored: they are his own, moved by the same amount the rating moved,
  * so the shape of the player survives. A duelist stays a duelist.
  */
+/** How far above his ordinary card a彩卡 of the same man always sits. */
+export const LEGEND_EDGE = 2
+
 function legendAttrs(base: Attrs, delta: number): Attrs {
   const out = { ...base }
   for (const k of Object.keys(out) as (keyof Attrs)[]) {
@@ -214,6 +217,12 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
     // the picture from that night, where Liquipedia has one; otherwise the
     // ordinary studio portrait rather than nothing
     const photo = legendPhoto(l.id)
+    // A night is never worth less than the everyday card of the same man.
+    // The authored number was written against the ordinary rating of its
+    // day; ratings move (CHICHOO reached 94 on 2026-09-03 while his 2024
+    // Seoul card still said 93), so the彩卡 floors at the ordinary card
+    // plus two, and the authored number only ever lifts it further.
+    const rating = Math.min(99, Math.max(l.rating, base.rating + LEGEND_EDGE))
     out.push({
       ...base,
       id: l.id,
@@ -221,8 +230,8 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
       clubId: l.clubId,
       clubTag: l.clubTag,
       face: photo ? faceUrl(photo.img, photo.v) : base.face,
-      attrs: legendAttrs(base.attrs, l.rating - base.rating),
-      rating: l.rating,
+      attrs: legendAttrs(base.attrs, rating - base.rating),
+      rating,
       rarity: 'mythic',
     })
   }
