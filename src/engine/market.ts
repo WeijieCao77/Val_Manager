@@ -60,7 +60,7 @@ export interface Offer {
 export interface Gate { need: number; have: number }
 
 export const browseMarket = () =>
-  post<{ ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null }>('browse', {})
+  post<{ ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null; total?: number; shelf?: number }>('browse', {})
 
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})

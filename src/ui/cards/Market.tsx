@@ -34,6 +34,8 @@ export default function Market() {
   const { g, commit, toast, cloud } = useCards()
   const level = (id: string) => levelOf(g, id)
   const [shelf, setShelf] = useState<Listing[] | null>(null)
+  /** how many listings are open in all, and how many of other people's the shelf shows */
+  const [size, setSize] = useState<{ total: number; shelf: number } | null>(null)
   const [inbound, setInbound] = useState<Offer[]>([])
   const [outbound, setOutbound] = useState<Offer[]>([])
   const [days, setDays] = useState(3)
@@ -51,7 +53,11 @@ export default function Market() {
 
   const refresh = useCallback(async () => {
     const [b, o] = await Promise.all([browseMarket(), myOffers()])
-    if (b?.ok) { setShelf(b.listings); setGate(b.gate ?? null) }
+    if (b?.ok) {
+      setShelf(b.listings)
+      setGate(b.gate ?? null)
+      setSize(typeof b.total === 'number' && typeof b.shelf === 'number' ? { total: b.total, shelf: b.shelf } : null)
+    }
     else setShelf([])
     if (o?.ok) { setInbound(o.inbound); setOutbound(o.outbound); setDays(o.days) }
   }, [])
@@ -251,7 +257,7 @@ export default function Market() {
 
       <Panel
         title="货架"
-        actions={<span className="tiny muted">{theirs.length} 张在卖{theirs.length !== theirsAll.length ? `（共 ${theirsAll.length}）` : ''}</span>}
+        actions={<span className="tiny muted">{theirs.length} 张在卖{theirs.length !== theirsAll.length ? `（共 ${theirsAll.length}）` : ''}{size && size.total > theirsAll.length + mineOnShelf.length ? `，全站 ${size.total} 张，只显示最新 ${size.shelf} 张` : ''}</span>}
       >
         {shelf === null ? <p className="empty">读取中…</p>
           : theirsAll.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>

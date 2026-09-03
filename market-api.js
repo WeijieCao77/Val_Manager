@@ -26,6 +26,8 @@ import { createHash } from 'node:crypto'
 export const HAGGLE = 0.10
 /** An offer the seller never answers. */
 export const OFFER_DAYS = 3
+/** How many other people's listings the shelf shows, newest first. */
+export const SHELF = 400
 /** Consecutive ignored offers before the listing gives up. */
 export const IGNORE_LIMIT = 3
 /** Nobody needs more than this on the shelf at once. */
@@ -185,7 +187,24 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       const id = normalizeId(b?.id)
       if (id) mine = hash(id)
     } catch { /* browsing without an account is fine */ }
-    const rows = await sql`
+    // Your own listings come first and come ALL of them, outside the window.
+    // The shelf used to be "the 120 newest", full stop, and 「我挂的牌」 on
+    // the client is read off the same shelf — so once 120 newer listings
+    // existed, an older one vanished from its owner's page and from every
+    // buyer's, with the card still in escrow: 「挂了一张金卡消失了，也没有
+    // 别人报价」. The window is wider too, and the reply says how many are
+    // open in total so the page can say so.
+    const own = mine ? await sql`
+      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created,
+             (select count(*)::int from card_offers o
+               where o.listing = l.id and o.status = 'open') as offers,
+             (select max(o.price)::int from card_offers o
+               where o.listing = l.id and o.status = 'open') as best,
+             false as bid
+      from card_listings l
+      where l.status = 'open' and l.seller_h = ${mine}
+      order by l.created desc` : []
+    const others = await sql`
       select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
@@ -194,9 +213,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
              exists (select 1 from card_offers o
                where o.listing = l.id and o.status = 'open' and o.buyer_h = ${mine}) as bid
       from card_listings l
-      where l.status = 'open'
+      where l.status = 'open' and l.seller_h <> ${mine}
       order by l.created desc
-      limit 120`
+      limit ${SHELF}`
+    const rows = [...own, ...others]
+    const total = (await sql`select count(*)::int as n from card_listings where status = 'open'`)[0].n
     const names = {}
     for (const r of rows) if (!(r.seller_h in names)) names[r.seller_h] = await nameOf(r.seller_h)
     const young = mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0 }
@@ -204,6 +225,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       ok: true,
       haggle: HAGGLE,
       gate: young,
+      total,
+      shelf: SHELF,
       listings: rows.map((r) => ({
         id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
         seller: names[r.seller_h], mine: r.seller_h === mine,

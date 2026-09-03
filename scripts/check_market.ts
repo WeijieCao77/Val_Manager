@@ -24,7 +24,7 @@ const MYTHIC = idOf('mythic'), BRONZE = idOf('bronze'), GOLD = idOf('gold')
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { displayName } = await import('../names.js')
 const {
-  HAGGLE, IGNORE_LIMIT, OFFER_DAYS, SALVAGE_FLOOR, TRADE_PULLS, askFloor, makeMarketApi,
+  HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS, SALVAGE_FLOOR, SHELF, TRADE_PULLS, askFloor, makeMarketApi,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -321,6 +321,39 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   const after = (await sql`select (state->>'coins')::int as coins from card_accounts
     where id_hash = ${hashOf(OTHER)}`)[0].coins as number
   check('领完信箱，路人的金币一分不少', after === before, `${before} -> ${after}`)
+}
+
+// ---- 自己挂的牌永远看得见，哪怕货架上后来又多了几百张 ------------------------
+{
+  // 「我挂了一张金卡消失了，也没有别人报价」(2026-09-03)：货架只取最新的
+  // 120 张，「我挂的牌」又是从同一份货架里筛出来的，所以别人一多挂，自己的
+  // 老牌就从自己页面上消失了，也从所有买家眼前消失了——卡还在托管里。
+  const S7 = 'VM-KKKK-KKKK-KKKK-KKKK-KKKK'
+  await account(S7, '老牌', 0, { [GOLD]: { id: GOLD, dupes: 0 } })
+  const old = String((await call('/api/market/list', { id: S7, cardId: GOLD, ask: 2000 })).id)
+  // one listing per card id and MAX_LISTINGS per seller, so the flood is
+  // many sellers with a few distinct cards each
+  const used = new Set([GOLD, BRONZE, MYTHIC])
+  const stock = ALL_CARDS.filter((c) => c.kind === 'player' && !used.has(c.id) && /^p:P\d{2,}$/.test(c.id)).slice(0, SHELF + 5)
+  let listed = 0
+  for (let i = 0; i < stock.length; i += MAX_LISTINGS) {
+    const cards = stock.slice(i, i + MAX_LISTINGS)
+    const flood = `VM-MMMM-MMMM-MMMM-MMMM-M${String(i / MAX_LISTINGS).padStart(3, '0')}`
+    await account(flood, `刷屏${i}`, 0, Object.fromEntries(cards.map((c) => [c.id, { id: c.id, dupes: 0 }])))
+    for (const c of cards) {
+      const r = await call('/api/market/list', { id: flood, cardId: c.id, ask: 1000 })
+      if (r.ok) listed++
+    }
+  }
+  check(`货架被灌了 ${listed} 张新牌`, listed === stock.length, `${listed}/${stock.length}`)
+  const seen = await call('/api/market/browse', { id: S7 })
+  const rows = seen.listings as { id: string; mine: boolean }[]
+  check('自己那张老牌还在自己眼前，标着 mine', rows.some((l) => l.id === old && l.mine), `${rows.length} 张里没有`)
+  check(`别人的只取最新 ${SHELF} 张`, rows.filter((l) => !l.mine).length === SHELF, String(rows.filter((l) => !l.mine).length))
+  check('回复里说了货架上一共有多少张', Number(seen.total) >= stock.length + 1, String(seen.total))
+  const other = await call('/api/market/browse', { id: BUYER })
+  check('买家看不到被挤出窗口的老牌（这是下一步要做的分页，先把事实写下来）',
+    !(other.listings as { id: string }[]).some((l) => l.id === old))
 }
 
 // ---- 每一笔托管最后都有人收到 -------------------------------------------

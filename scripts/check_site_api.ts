@@ -160,6 +160,38 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   check(r.handled === false, '不认识的路径交回给服务器，不是自己回一个 200')
 }
 
+// ---- 后台按对战码看一个账号 ---------------------------------------------
+{
+  const r0 = await call('/api/admin/account?code=deadbeef')
+  check(r0.code === 404, '不带 token 查账号是 404', `code ${r0.code}`)
+  const { makeMarketApi } = await import('../market-api.js')
+  const market = makeMarketApi(sql, {
+    readBody: (req: { body: string }) => Promise.resolve(req.body), json: (res: { code: number; body: unknown }, code: number, body: unknown) => { res.code = code; res.body = body },
+    normalizeId, displayName, rateLimited: () => false, engine,
+  } as never)
+  const ID = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
+  const idHash = createHash('sha256').update(ID).digest('hex')
+  const goldId = engine.ALL_CARDS ? undefined : undefined
+  void goldId
+  const { ALL_CARDS } = await import('../src/engine/cards')
+  const card = ALL_CARDS.find((c) => c.kind === 'player' && c.rarity === 'gold')!
+  await sql`insert into card_accounts (id_hash, name, state) values (${idHash}, '查我',
+    ${JSON.stringify({ coins: 1234, pulls: 60, cards: { [card.id]: { id: card.id, dupes: 0 } } })})`
+  const lres = { code: 0, body: {} as Record<string, unknown> }
+  await market.route({ body: JSON.stringify({ id: ID, cardId: card.id, ask: 3000 }), method: 'POST' } as never, lres as never, '/api/market/list', 't')
+  check('（准备）挂牌成功', lres.body.ok === true, JSON.stringify(lres.body))
+  const r = await call(`/api/admin/account?code=${idHash.slice(0, 8).toUpperCase()}`, { token: TOKEN })
+  const b = r.body as { ok: boolean; who: string; coins: number; cards: number; listings: { card: string; status: string; ask: number }[]; untaken: number }
+  check('带 token 能按对战码找到账号', r.code === 200 && b.ok === true && /查我 #/.test(b.who), JSON.stringify(r.body).slice(0, 120))
+  check('看得到金币和卡数（挂出去的那张已经不在手里）', b.coins === 1234 && b.cards === 0, `${b.coins} / ${b.cards}`)
+  check('看得到那张挂牌，带选手名和状态', b.listings.length === 1 && b.listings[0].status === 'open'
+    && b.listings[0].ask === 3000 && b.listings[0].card === card.ign, JSON.stringify(b.listings))
+  const bad = await call('/api/admin/account?code=zz', { token: TOKEN })
+  check('对战码格式不对就说不对', (bad.body as { why?: string }).why === '填 8 位对战码', JSON.stringify(bad.body))
+  const none = await call('/api/admin/account?code=00000000', { token: TOKEN })
+  check('没有的账号就说没有', (none.body as { why?: string }).why === '找不到这个账号', JSON.stringify(none.body))
+}
+
 // ---- every admin route this module owns has to be reachable ------------
 //
 // /api/admin/grant shipped unreachable once: the route existed, the module

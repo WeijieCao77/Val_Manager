@@ -282,9 +282,73 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     json(res, 200, { ok: true, to: `${shown.name} #${shown.tag}`, suspect: on })
   }
 
+  /**
+   * One account, as support needs to see it: what the player holds, what
+   * is on the shelf in their name, what has closed, what waits in the
+   * inbox. Read-only, by 对战码, behind the token like everything else
+   * here. Written for 「挂了一张金卡消失了」 — the answer was in three
+   * tables and there was no way to read them but a database console.
+   */
+  async function account(res, url) {
+    const code = String(url.searchParams.get('code') ?? '').trim().toLowerCase()
+    if (!/^[0-9a-f]{8}$/.test(code)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
+    const acc = await sql`
+      select id_hash, name, suspect,
+             (state->>'coins')::int as coins, (state->>'pulls')::int as pulls,
+             (select count(*)::int from jsonb_object_keys(coalesce(state->'cards', '{}'::jsonb))) as cards
+      from card_accounts where left(id_hash, 8) = ${code} limit 2`
+    if (!acc.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
+    if (acc.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
+    const a = acc[0]
+    const h = a.id_hash
+    const ign = (cardId) => (engine?.cardById?.(cardId)?.ign ?? engine?.cardById?.(cardId)?.name ?? cardId)
+    const listings = await sql`
+      select l.id, l.card_id, l.level, l.ask, l.status, l.created, l.closed, l.ignored,
+             (select count(*)::int from card_offers o where o.listing = l.id and o.status = 'open') as offers,
+             (select count(*)::int from card_listings x where x.status = 'open' and x.created > l.created) as newer
+      from card_listings l where l.seller_h = ${h}
+      order by l.created desc limit 20`
+    const offers = await sql`
+      select o.id, o.listing, o.price, o.status, o.made, o.settled, l.card_id
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.buyer_h = ${h} order by o.made desc limit 20`
+    const mail = await sql`
+      select id, kind, card_id, coins, made, taken from card_mail
+      where to_h = ${h} order by made desc limit 20`
+    const shown = displayName(a.name, h)
+    json(res, 200, {
+      ok: true,
+      who: `${shown.name} #${shown.tag}`, code: code.toUpperCase(), suspect: !!a.suspect,
+      coins: a.coins, pulls: a.pulls, cards: a.cards,
+      listings: listings.map((l) => ({
+        id: String(l.id), card: ign(l.card_id), cardId: l.card_id, level: l.level, ask: l.ask,
+        status: l.status, created: l.created, closed: l.closed, ignored: l.ignored,
+        offers: l.offers, newerOpen: l.newer,
+      })),
+      offers: offers.map((o) => ({
+        id: String(o.id), listing: String(o.listing), card: ign(o.card_id), price: o.price,
+        status: o.status, made: o.made, settled: o.settled,
+      })),
+      mail: mail.map((m) => ({
+        id: String(m.id), kind: m.kind, card: m.card_id ? ign(m.card_id) : null, coins: m.coins,
+        made: m.made, taken: m.taken,
+      })),
+      untaken: mail.filter((m) => !m.taken).length,
+    })
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, url) {
+      if (path === '/api/admin/account') {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'GET') { json(res, 405, { ok: false }); return true }
+        await account(res, url)
+        return true
+      }
       if (path === '/api/site/wechat') { await status(res); return true }
       if (path === '/api/site/wechat.img') { await image(res); return true }
       if (path === '/api/admin/flag') {
