@@ -358,9 +358,43 @@ VLR_STATS_2026 = os.path.join(ROOT, "scripts", "cache", "vlr_stats2026.json")
 VLR_STATS_ALL = os.path.join(ROOT, "scripts", "cache", "vlr_stats_all.json")
 RIB_CLUTCH = os.path.join(ROOT, "scripts", "cache", "rib_clutch.json")
 
-# Recent form says more about a player than three-year-old form, but not so much
-# more that one split erases a career. 2026 counts three times what 2024 does.
-YEAR_WEIGHT = {2026: 3.0, 2025: 2.0, 2024: 1.0}
+# Recent form is what a player IS; older form is what he was. The owner's rule
+# (2026-09-03): the last three splits — a year to a year and a half — carry
+# the weight, and everything older fades fast. Weighted by how long ago the
+# event was played, not by calendar year, so in September a Stage 2 split
+# from this year and a Champions from last year both count in full, while a
+# Kickoff from two and a half years back is a footnote.
+SEASON_NOW = SEASON_YEAR + 8.5 / 12          # early September of the season year
+
+# when in its year each kind of event is played (fractional months)
+STAGE_MONTH = {"kickoff": 1.5, "stage-1": 4.0, "stage-2": 7.5, "champions": 9.5, "league": 5.0}
+MASTERS_MONTH = {"madrid": 3.5, "shanghai": 6.0, "bangkok": 2.5, "toronto": 6.0, "santiago": 3.5, "london": 6.5}
+
+
+def event_time(ev):
+    """Fractional year an event was played, off its slug."""
+    slug = str(ev.get("slug") or "")
+    year = float(ev.get("year") or SEASON_YEAR)
+    tier = ev.get("tier")
+    if tier == "masters":
+        city = next((c for c in MASTERS_MONTH if c in slug), None)
+        return year + (MASTERS_MONTH[city] if city else 5.0) / 12
+    if "stage-2" in slug:
+        return year + STAGE_MONTH["stage-2"] / 12
+    if "stage-1" in slug:
+        return year + STAGE_MONTH["stage-1"] / 12
+    return year + STAGE_MONTH.get(tier, 5.0) / 12
+
+
+def recency(age_years):
+    """Weight for evidence this old: full for a year, gone to a fifth by two and a half."""
+    if age_years <= 1.0:
+        return 1.0
+    if age_years <= 1.5:
+        return 1.0 - (age_years - 1.0) * 0.8        # 1.0 -> 0.6
+    if age_years <= 2.5:
+        return 0.6 - (age_years - 1.5) * 0.4        # 0.6 -> 0.2
+    return 0.15
 # What a player does when the stage is biggest, relative to their own baseline.
 TIER_WEIGHT = {"champions": 1.0, "masters": 0.75, "league": 0.0, "kickoff": 0.0}
 
@@ -467,27 +501,35 @@ def season_profiles():
     cache = load_json(SEASONS_CACHE)
     events, stats = cache.get("events") or {}, cache.get("stats") or {}
     if not stats:
-        return {}, {}, {}
+        return {}, {}, {}, {}
 
     COLS = {"rating2": "R", "acs": "acs", "kd": "kd", "kast": "kast",
             "adr": "adr", "kpr": "kpr", "apr": "apr", "fkpr": "fkpr",
             "fdpr": "fdpr", "hs": "hs"}
     weighted, big, base = {}, {}, {}
-    # rounds actually played at tier 1, unweighted — how much VCT evidence there
-    # is, which is a different question from how recent it is
+    # rounds played at tier 1, weighted by how long ago — how much CURRENT
+    # VCT evidence there is. Unweighted, 190 rounds from two years back were
+    # enough to make a Challengers player half a VCT player today, which is
+    # how the tier-two table came to hold 88s and 90s above the tier-one
+    # median (2026-09-03). Evidence that old proves what he was, not is.
     t1_rounds: dict[str, float] = {}
+    # and this season's alone, unweighted: the question "is he a tier-one
+    # player NOW" is answered by this year's rounds, not last year's
+    t1_now: dict[str, float] = {}
     for eid, rows in stats.items():
         ev = events.get(eid)
         if not ev:
             continue
-        yw = YEAR_WEIGHT.get(ev.get("year"), 0.5)
+        yw = recency(SEASON_NOW - event_time(ev))
         tw = TIER_WEIGHT.get(ev.get("tier"), 0.0)
         for r in rows:
             rnd = r.get("rnd") or 0
             if not rnd:
                 continue
             ign = r["ign"]
-            t1_rounds[ign] = t1_rounds.get(ign, 0.0) + rnd
+            t1_rounds[ign] = t1_rounds.get(ign, 0.0) + rnd * yw
+            if ev.get("year") == SEASON_YEAR:
+                t1_now[ign] = t1_now.get(ign, 0.0) + rnd
             acc = weighted.setdefault(ign, {"w": 0.0})
             acc["w"] += rnd * yw
             for src, dst in COLS.items():
@@ -529,7 +571,7 @@ def season_profiles():
         tot, tw = base.get(ign, [0, 0])
         if bw > 0 and tw > 0 and tot > 0:
             stage[ign] = ((bs / bw) / (tot / tw), bw)
-    return out, stage, t1_rounds
+    return out, stage, t1_rounds, t1_now
 
 
 def challengers_real_names():
@@ -830,7 +872,8 @@ def main():
     career = CiDict({k: v for k, v in load_json(CAREER_CACHE).items()
                      if not k.startswith("_") and not v.get("miss")})
     # three seasons broken out by year and stage beats one flattened average
-    profiles, stage, t1_rounds = season_profiles()
+    profiles, stage, t1_rounds, t1_now = season_profiles()
+    t1_now = CiDict(t1_now)
     # The event tables only hold VCT events, so a player whose whole 2026 was
     # China Evolution Series has no 2026 in his profile at all and is rated
     # on the seasons before — S1Mon on his EDG years, with nothing said about
@@ -840,9 +883,42 @@ def main():
     T1_TAGS = {tag for lst in TIER1.values() for tag, _ in lst}
     sc = load_json(SEASONS_CACHE)
     covered = set()
+    # Clubs that played their way into a VCT event this season — EP, FF, JL in
+    # EMEA's Stage 2, 2G and BST in Americas' — are tier-one strength for
+    # the rating even though the manager's leagues keep them in Challengers:
+    # 「打入了 VCT 的队伍可以算一级实力」(the owner, 2026-09-03). A hundred
+    # rounds by anyone on the roster is the bar, so a single sub's map does
+    # not promote a club.
+    vct_rounds = {}
     for eid, rws in (sc.get("stats") or {}).items():
-        if (sc.get("events") or {}).get(eid, {}).get("year") == SEASON_YEAR:
+        e = (sc.get("events") or {}).get(eid, {})
+        if e.get("year") == SEASON_YEAR:
             covered.update(x["ign"].lower() for x in rws)
+            if e.get("tier") in ("league", "kickoff"):
+                for x in rws:
+                    if x.get("club"):
+                        vct_rounds[x["club"]] = vct_rounds.get(x["club"], 0) + (x.get("rnd") or 0)
+    VCT_NOW = {tag for tag, n in vct_rounds.items() if n >= 100}
+    # vlr's event pages and its team pages do not always spell a club the same
+    # way (FF on the Stage 2 page, FFE on the roster): a club whose event tag
+    # matches nothing in the txt is matched by its people instead — three or
+    # more of the same names under the event tag and the txt tag is the same
+    # club. Kachoww came out compressed for the spelling alone.
+    txt_tags = {r["tag"] for r in rows if r.get("tag")}
+    for tag in list(VCT_NOW):
+        if tag in txt_tags:
+            continue
+        names = set()
+        for eid, rws in (sc.get("stats") or {}).items():
+            e = (sc.get("events") or {}).get(eid, {})
+            if e.get("year") == SEASON_YEAR and e.get("tier") in ("league", "kickoff"):
+                names.update(x["ign"].lower() for x in rws if x.get("club") == tag)
+        best = max(txt_tags, key=lambda t: len(names & {r["ign"].lower() for r in rows if r.get("tag") == t}), default=None)
+        if best and len(names & {r["ign"].lower() for r in rows if r.get("tag") == best}) >= 3:
+            VCT_NOW.add(best)
+    promoted = sorted(VCT_NOW - T1_TAGS)
+    if promoted:
+        print(f"tier: {len(promoted)} clubs outside the partner lists played VCT {SEASON_YEAR} and rate as tier one: {', '.join(promoted)}")
     # vlr publishes no Rating for the China Evolution Series rows, and Rating
     # carries 0.42 of every attribute, so without it that season would enter
     # the profile with nothing said about how the player actually fragged.
@@ -896,7 +972,7 @@ def main():
             if est is not None:
                 r = {**r, "R": round(est, 3)}
         w_old = line.get("rnd") or 0
-        w_new = r["rnd"] * YEAR_WEIGHT[SEASON_YEAR]
+        w_new = r["rnd"] * recency(SEASON_NOW - (SEASON_YEAR + STAGE_MONTH["stage-2"] / 12))
         for k in STAT_KEYS:
             v = r.get(k)
             if v is None or line.get(k) is None:
@@ -955,9 +1031,14 @@ def main():
     # ones who played, and so leave Haodong out); Masters winners come from
     # vlr's placements, which is where those records are. A page about a
     # different person with the same handle is refused on nationality.
-    TITLE_VALUE = {"champions": 3.0, "masters": 2.0}
+    # Champions 3, Masters 2, a regional split or Kickoff 1, an Ascension
+    # (the tier-two title that earns promotion) half — 赛区内冠军 count as
+    # well as the international ones, at the owner's request (2026-09-03).
+    TITLE_VALUE = {"champions": 3.0, "masters": 2.0, "league": 1.0, "ascension": 0.5}
     TITLE_FADE = {0: 1.0, 1: 1.0, 2: 0.67, 3: 0.33}
-    TITLE_CAP = 5.0
+    TITLE_CAP = 6.0
+    REGIONAL = re.compile(r"^Champions Tour \d{4}: (Americas|EMEA|Pacific|China) (Stage \d|Kickoff|League)$")
+    ASCENSION = re.compile(r"^Champions Tour \d{4} (Americas|EMEA|Pacific|China): Ascension$")
     lp_titles = CiDict(load_json(TITLES_CACHE))
     vlr_prof = CiDict(load_json(PROFILES_CACHE))
     INTL_MASTERS = re.compile(r"^(Champions Tour \d{4}: (Masters|LOCK//IN) \S+"
@@ -970,21 +1051,34 @@ def main():
         rec = lp_titles.get(ign) or {}
         if rec.get("titles") and same_person({"country": rec.get("country")}, nat):
             for t in rec["titles"]:
-                won[(t["year"], t["kind"])] = t["event"]
+                won[(t["year"], t["kind"], t["event"])] = t["event"]
         for e in (vlr_prof.get(ign) or {}).get("events") or []:
             if e.get("place") != "1st" or not e.get("year"):
                 continue
             name = str(e.get("event") or "")
             kind = ("champions" if re.match(r"^Valorant Champions \d{4}$", name)
-                    else "masters" if INTL_MASTERS.match(name) else None)
+                    else "masters" if INTL_MASTERS.match(name)
+                    else "league" if REGIONAL.match(name)
+                    else "ascension" if ASCENSION.match(name) else None)
             if kind:
-                won.setdefault((int(e["year"]), kind), name)
+                # one entry per title, not per kind: two regional titles in a
+                # year are two titles
+                won.setdefault((int(e["year"]), kind, name), name)
         return won
 
     def title_credit(ign, nat):
         won = titles_for(ign, nat)
-        total = min(TITLE_CAP, sum(TITLE_VALUE[k] * TITLE_FADE.get(SEASON_YEAR - y, 0.0)
-                                   for (y, k) in won))
+        # the same trophy can come from both sources under slightly different
+        # names; count each (year, kind) once for the international ones
+        seen = set()
+        total = 0.0
+        for (y, k, name) in won:
+            key = (y, k) if k in ("champions", "masters") else (y, k, name)
+            if key in seen:
+                continue
+            seen.add(key)
+            total += TITLE_VALUE[k] * TITLE_FADE.get(SEASON_YEAR - y, 0.0)
+        total = min(TITLE_CAP, total)
         if won:
             titled[ign] = (round(total, 2), sorted(won.values()))
         return total
@@ -1159,6 +1253,21 @@ def main():
             "igl": scale(axis(0.4 * g("apr") + 0.3 * g("kast") + 0.3 * ROLE_COMM[r["role"]], q),
                          35, 84),
         }
+        # 次级和一级有差距. The sub-tier translation (R x0.831 and friends)
+        # is measured on the players who got called up, so it errs low, and
+        # ranked in one pool a Challengers star on a translated 1.00 sat
+        # level with a VCT starter on 1.00 — the tier-two table held 88s and
+        # 90s above the tier-one median. A player at a tier-two club with no
+        # recent tier-one evidence (fewer than 300 recency-weighted VCT
+        # rounds) has every attribute pulled toward 60 by a quarter: 89
+        # becomes 82, 67 becomes 65. On the attributes, not the overall, so
+        # the in-game recompute cannot undo it. "Recent" means this season:
+        # a full split at tier one this year (600 rounds) and the numbers
+        # speak for themselves; a play-in's worth, or last year's, and the
+        # club he is at now is the better witness — unless that club itself
+        # played VCT this season (VCT_NOW), which is tier-one strength.
+        if r["tag"] not in T1_TAGS and r["tag"] not in VCT_NOW and t1_now.get(ign, 0.0) < 600:
+            a = {k: int(clamp(round(60 + (v - 60) * 0.75), 20, 99)) for k, v in a.items()}
         w = ROLE_WEIGHT.get(r["role"], ATTR_WEIGHT)
         ovr = sum(a[k] * w.get(k, ATTR_WEIGHT[k]) for k in ATTRS)
         # Turning up at Champions is the hardest thing to fake, and a career
