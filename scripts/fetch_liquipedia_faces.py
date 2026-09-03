@@ -144,12 +144,27 @@ def chunks(xs: list, n: int):
         yield xs[i:i + n]
 
 
-def find_files(names: list[str]) -> dict[str, str]:
-    """name -> "File:..." for the ones with a photo we can attribute."""
+# Handles that are somebody else at the bare title. Liquipedia's 「Ash」 is a
+# Canadian caster and 「Klaus」 is KRÜ's Argentine duelist; the Gen.G Ash and
+# VARREL's Klaus live at suffixed pages, and the bare pages carried photos
+# whose file names passed is_photo_of — so both cards wore the wrong face
+# until a reader noticed (2026-09-03). The category check in find_files
+# catches the caster; this map says where the right person is.
+PAGE_OF = {"Ash": "Ash (Korean player)", "Klaus": "Klaus (Korean player)"}
+
+
+def find_files(names: list[str], kind: str = "Players") -> dict[str, str]:
+    """name -> "File:..." for the ones with a photo we can attribute.
+
+    `kind` is the category the page must belong to — "Players" or "Staffs" —
+    so a caster or a coach who happens to share a handle is skipped rather
+    than photographed.
+    """
     out: dict[str, str] = {}
     for batch in chunks(names, 30):
-        r = api({"prop": "images", "imlimit": "500", "redirects": "1",
-                 "titles": "|".join(batch)})
+        asked_of = {PAGE_OF.get(n, n): n for n in batch}
+        r = api({"prop": "images|categories", "imlimit": "500", "cllimit": "500",
+                 "redirects": "1", "titles": "|".join(asked_of)})
         q = r.get("query", {})
         back: dict[str, str] = {}
         for k in ("normalized", "redirects"):
@@ -158,7 +173,12 @@ def find_files(names: list[str]) -> dict[str, str]:
         for p in (q.get("pages", {}) or {}).values():
             title = p.get("title", "")
             asked = back.get(title, title)
-            name = next((x for x in batch if x.lower() == asked.lower()), asked)
+            name = next((n for t, n in asked_of.items() if t.lower() == asked.lower()), asked)
+            cats = {c["title"].split(":", 1)[-1] for c in (p.get("categories") or [])}
+            if not any(c.endswith(kind) for c in cats):
+                print(f"  -- {name}: 「{title}」 is not a {kind.lower()[:-1]} page "
+                      f"({', '.join(sorted(cats))[:70] or 'no categories'}), skipped")
+                continue
             for f in [x["title"] for x in p.get("images", [])]:
                 if is_photo_of(f, name):
                     out[name] = f
@@ -294,8 +314,8 @@ def main() -> int:
         return 0
 
     try:
-        pf = find_files(want_players)
-        cf = find_files(want_coaches)
+        pf = find_files(want_players, "Players")
+        cf = find_files(want_coaches, "Staffs")
         urls = resolve(sorted({*pf.values(), *cf.values()}))
         for name, f in pf.items():
             if f in urls:

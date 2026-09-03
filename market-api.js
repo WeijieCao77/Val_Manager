@@ -139,9 +139,19 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         await post(l.seller_h, 'listing_expired', {
           cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
         }, db)
-        await db`
+        // and so do the bids still sitting on it. A listing can die with a
+        // fresh offer on it — somebody bid after the third ignored one was
+        // made and before it was swept — and this used to mark that offer
+        // expired without the mail, which is how 「出价的金币被卡了」 happened:
+        // the card was gone from the shelf and the coins were gone with it.
+        const back = await db`
           update card_offers set status = 'expired', settled = now()
-          where listing = ${l.id} and status = 'open'`
+          where listing = ${l.id} and status = 'open' returning buyer_h, price`
+        for (const o of back) {
+          await post(o.buyer_h, 'offer_expired', {
+            coins: o.price, body: { listing: String(l.id) },
+          }, db)
+        }
       }
     })
   }

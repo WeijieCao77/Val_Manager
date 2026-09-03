@@ -28,6 +28,40 @@ const assetBase = (): string =>
  * in fifteen seconds, and this is the part that asks the player to actually
  * know something. Same puzzle for everybody, so it is a thing to argue about.
  */
+/** Letters and digits only, so 「GENG」 and 「Gen.G」 are the same word. */
+const fold = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, '')
+
+/**
+ * The picker's short list, best match first.
+ *
+ * It used to be "the first eight things containing the text", and for 「LOUD」
+ * that was LOUD's five players and three more before the club itself, which
+ * sits further down the list — so the club could not be guessed at all. And
+ * 「GENG」 found nothing, because the club is spelled Gen.G. Now a name or tag
+ * that IS the text comes first, then the ones that start with it, then the
+ * ones that merely contain it, and the hint (club · region) last.
+ */
+function rankMatches<T extends { id: string; name: string; hint: string }>(all: T[], query: string): T[] {
+  const q = fold(query)
+  if (!q) return []
+  const scored: [number, T][] = []
+  for (const c of all) {
+    const name = fold(c.name)
+    // the first half of the hint is the thing's other name — a club's tag,
+    // an agent's English name, a map's — except for a player, whose hint is
+    // the club he plays for, and 「LOUD」 must not make all five of them
+    // rank level with the club
+    const alias = /^P\d+$/.test(c.id) ? '' : fold(c.hint.split('·')[0])
+    let s = 0
+    if (name === q || alias === q) s = 4
+    else if (name.startsWith(q) || alias.startsWith(q)) s = 3
+    else if (name.includes(q)) s = 2
+    else if (fold(c.hint).includes(q)) s = 1
+    if (s) scored.push([s, c])
+  }
+  return scored.sort((a, b) => b[0] - a[0]).map(([, c]) => c).slice(0, 8)
+}
+
 export default function Challenge() {
   const { g, today, act, toast } = useCards()
   const [query, setQuery] = useState('')
@@ -42,15 +76,7 @@ export default function Challenge() {
   const block = challengeBlock(g, today)
 
   const guessed = new Set(state.guesses)
-  const matches = query.trim()
-    ? choices
-      .filter((c) => !guessed.has(c.id))
-      .filter((c) => {
-        const q = query.trim().toLowerCase()
-        return c.name.toLowerCase().includes(q) || c.hint.toLowerCase().includes(q)
-      })
-      .slice(0, 8)
-    : []
+  const matches = query.trim() ? rankMatches(choices.filter((c) => !guessed.has(c.id)), query) : []
 
   // the guess is judged and paid on the server; the row it hands back is the
   // same row the table draws from the account afterwards

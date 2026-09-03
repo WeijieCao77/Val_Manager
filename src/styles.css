@@ -1457,9 +1457,25 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .cardface.shot .cf-foot,
 .cardface.shot .cf-pips { position: relative; z-index: 2; }
 
-/* the card takes the photograph's shape, and the caption sits in the bottom of
-   it rather than hanging off the end */
-.cardface.shot { aspect-ratio: 36 / 50; }
+/* Every card the same height as its neighbours.
+ *
+ * The 彩卡 used to take the photograph's 36:50 shape, which at 132px wide is
+ * 183px — thirty pixels shorter than the ordinary card beside it, and it
+ * showed in every pack reveal and every match report. A footer card was
+ * shorter than an attribute card by a row for the same reason. The floors
+ * here are the measured height of the ordinary player card at each size
+ * (min-height, not height: a platform whose fonts sit taller must be able
+ * to grow the card rather than clip it), the bottom block is pushed to the
+ * bottom edge so the shorter variants keep the same outline, and the
+ * photograph fills whatever is left. */
+.cardface.s-sm { min-height: 166px; }
+.cardface.s-md { min-height: 212px; }
+.cardface.s-lg { min-height: 281px; }
+.cf-attrs, .cf-foot { margin-top: auto; }
+/* the club line never wraps — a two-letter flag code, a four-letter tag and
+   an IGL chip together were enough to push it onto a second line and make
+   that one card taller than the row */
+.cf-meta { white-space: nowrap; max-width: 100%; }
 .cf-push { flex: 1; }
 
 /* ---- the club crest ---------------------------------------------------

@@ -287,6 +287,42 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))
 }
 
+// ---- 下架那一刻还挂着的报价，钱也要退 ----------------------------------------
+{
+  // Three ignored offers take a listing down. If a FOURTH, fresh offer is
+  // sitting on it at that moment — somebody bid the day before the shelf gave
+  // up — the listing's death used to mark that offer expired without mailing
+  // the coins home. 「出价的金币被卡了」, from the group, 2026-09-03.
+  const S6 = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
+  await account(S6, '卖六', 0, { 'p:P6': { id: 'p:P6', dupes: 0 } })
+  const l6 = String((await call('/api/market/list', { id: S6, cardId: 'p:P6', ask: 1000 })).id)
+  const before = (await sql`select (state->>'coins')::int as coins from card_accounts
+    where id_hash = ${hashOf(OTHER)}`)[0].coins as number
+  for (let i = 0; i < IGNORE_LIMIT; i++) {
+    await call('/api/market/offer', { id: BUYER, listing: l6, price: 1000 })
+    if (i === IGNORE_LIMIT - 1) {
+      // the fresh bid, made before the last ignored one is swept
+      const fresh = await call('/api/market/offer', { id: OTHER, listing: l6, price: 950 })
+      check('路人的新报价挂上去了', fresh.ok === true, JSON.stringify(fresh))
+    }
+    await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1})
+              where status = 'open' and buyer_h = ${hashOf(BUYER)}`
+    await call('/api/market/browse', { id: BUYER })
+  }
+  const dead = await sql`select status from card_listings where id = ${l6}::bigint`
+  check('第三次没反馈，挂牌下架了', dead[0].status === 'expired', dead[0].status)
+  const left = await sql`select status from card_offers
+    where listing = ${l6}::bigint and buyer_h = ${hashOf(OTHER)}`
+  check('路人的报价随之结束', left[0]?.status === 'expired', JSON.stringify(left))
+  const back = await inbox(OTHER)
+  check('下架时还挂着的报价，钱退回了路人',
+    back.some((m) => m.kind === 'offer_expired' && m.coins === 950),
+    JSON.stringify(back.map((m) => [m.kind, m.coins])))
+  const after = (await sql`select (state->>'coins')::int as coins from card_accounts
+    where id_hash = ${hashOf(OTHER)}`)[0].coins as number
+  check('领完信箱，路人的金币一分不少', after === before, `${before} -> ${after}`)
+}
+
 // ---- 每一笔托管最后都有人收到 -------------------------------------------
 {
   const open = await sql`

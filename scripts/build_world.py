@@ -761,6 +761,54 @@ def main():
     ov_igl = ov.get("igl", {})
     ov_roles = ov.get("roles", {})
 
+    # Every agent pool we have, most-played first, one source per player: vlr's
+    # 2026 table (the three agents he has played most this season) wins, then
+    # the parsebot snapshot, then vlr's all-time table for whoever the season
+    # has not seen. The role letter in the txt was the most-played agent's role
+    # on the day the file was first written and is never refreshed — S1Mon kept
+    # 「控场」 from an Omen season long after Breach and KAY/O became his agents,
+    # which the group noticed — so it is the fallback now, not the source.
+    # Applied here, before rating, because a player is rated against the peers
+    # of his own role.
+    pools = {}
+    for path, via in ((VLR_STATS_ALL, "vlr all-time"), (AGENTS_F, "parsebot"), (VLR_STATS_2026, "vlr 2026")):
+        src = load_json(path)
+        for ign, rec in (src.get("players") if "players" in src else src).items():
+            if rec.get("agents"):
+                pools[ign.lower()] = {"agents": list(rec["agents"]), "via": via}
+
+    def pool_of(ign):
+        return pools.get(ign.lower())
+
+    def roles_for(ign, current):
+        """The ordered role set for a player, and where it came from."""
+        fixed = ov_roles.get(ign)
+        if fixed:
+            return list(fixed), "verified"
+        pool = pool_of(ign) or {}
+        derived = roles_from_agents(pool.get("agents"))
+        if not derived:
+            return [current or "自由人"], "vlr-primary"
+        if pool.get("via") == "vlr all-time" and current and current != "自由人":
+            # The all-time table is what he has EVER played, most first, and a
+            # veteran's lifetime leader is not necessarily his position today:
+            # Kada's is Jett, and he has been an initiator for two seasons. For
+            # the players this season's table has not seen, the role letter —
+            # the most recent most-played agent we recorded — stays in front,
+            # and the lifetime pool only says what else he covers.
+            return [current] + [x for x in derived if x != current], "agents"
+        return derived, "agents"
+
+    retagged = []
+    for r in rows:
+        roles, _via = roles_for(r["ign"], r["role"])
+        if roles[0] != r["role"]:
+            retagged.append((r["ign"], r["role"], roles[0]))
+        r["role"] = roles[0]
+        r["roles"] = roles
+    print(f"roles: agent pools for {sum(1 for r in rows if pool_of(r['ign']))}/{len(rows)} players, "
+          f"{len(retagged)} primary roles corrected from the stale role letter")
+
     # ---- ability from a career, form from this season ------------------
     #
     # Deriving attributes from one season modelled a player having a bad year
@@ -1140,27 +1188,19 @@ def main():
         # Evidence first: a player's real agent pool tells us exactly which
         # roles they cover, which neither vlr's single "most-played role" nor
         # Liquipedia can express.
+        # (hand-verified sets win inside roles_for, for the players no table
+        # describes well)
         pinned = set()
         for p in squad:
-            pool = (agent_pools.get(p["ign"]) or {}).get("agents") or []
-            derived = roles_from_agents(pool)
-            if derived:
-                p["agentPool"] = pool
-                p["roles"] = derived
-                p["role"] = derived[0]
-                p["flex"] = len(derived) > 1
-                p["roleSource"] = "agents"
-                pinned.add(p["ign"])
-
-        # hand-verified sets still win, for players the snapshot does not cover
-        for p in squad:
-            fixed = ov_roles.get(p["ign"])
-            if fixed:
-                p["roles"] = list(fixed)
-                p["role"] = fixed[0]
-                p["flex"] = len(fixed) > 1
-                p["roleSource"] = "verified"
-                pinned.add(p["ign"])
+            roles, via = roles_for(p["ign"], p["role"])
+            if via == "vlr-primary":
+                continue              # nothing known beyond the role letter
+            p["agentPool"] = (pool_of(p["ign"]) or {}).get("agents") or []
+            p["roles"] = roles
+            p["role"] = roles[0]
+            p["flex"] = len(roles) > 1
+            p["roleSource"] = via
+            pinned.add(p["ign"])
 
         seen = {}
         dupes = []
@@ -1179,6 +1219,23 @@ def main():
             if gap in ("控场", "哨卫"):
                 p["attrs"]["utility"] = int(clamp(p["attrs"]["utility"] + 3, 20, 99))
             if gap == "哨卫":
+                p["attrs"]["awareness"] = int(clamp(p["attrs"]["awareness"] + 2, 20, 99))
+            p["overall"] = int(round(clamp(
+                sum(p["attrs"][k] * ROLE_WEIGHT.get(p["role"], ATTR_WEIGHT)[k] for k in ATTRS)
+            + p.get("stageBonus", 0.0), 30, 97)))
+
+        # The same nudge for a second role the data actually shows. Until the
+        # agent pools covered everyone, only a GUESSED second role earned it,
+        # so a real Cypher-and-Omen flex was rated as if he covered nothing
+        # and lost two points the day his pool was read.
+        for p in squad:
+            if p["ign"] not in pinned or len(p["roles"]) < 2:
+                continue
+            extra = [r for r in p["roles"][1:] if r in ("控场", "哨卫")]
+            if not extra:
+                continue
+            p["attrs"]["utility"] = int(clamp(p["attrs"]["utility"] + 3, 20, 99))
+            if "哨卫" in extra:
                 p["attrs"]["awareness"] = int(clamp(p["attrs"]["awareness"] + 2, 20, 99))
             p["overall"] = int(round(clamp(
                 sum(p["attrs"][k] * ROLE_WEIGHT.get(p["role"], ATTR_WEIGHT)[k] for k in ATTRS)

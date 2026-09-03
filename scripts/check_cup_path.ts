@@ -21,6 +21,14 @@ const check = (name: string, ok: boolean, detail = '') => {
 const ratingOf = new Map(WORLD_TEAMS.map((t) => [t.id, t.rating]))
 const lowest = Math.min(...WORLD_TEAMS.map((t) => t.rating))
 const highest = Math.max(...WORLD_TEAMS.map((t) => t.rating))
+// A squad below every club plays the weakest clubs, and the draw takes the
+// six nearest AFTER the ones already in the bracket are set aside, so a
+// five-round bracket can reach the tenth-weakest club. How far that is
+// depends on how bunched the bottom of the table is — 66 today, 65 before
+// the 2026-09-03 rebuild — so the window is read off the table, not fixed.
+const ladder = WORLD_TEAMS.map((t) => t.rating).sort((a, b) => a - b)
+const floorBand = ladder[Math.min(9, ladder.length - 1)]
+const ceilingBand = ladder[Math.max(0, ladder.length - 10)]
 
 const g = newGacha('VM-CUPP-CUPP-CUPP-CUPP-CUPP', '杯赛签表', '2026-09-02')
 const now = Date.parse('2026-09-02T12:00:00Z')
@@ -43,8 +51,8 @@ for (let squad = 40; squad <= 96; squad += 4) {
     // the climb is squad−8 … squad+8, clamped to the world's own range — a
     // squad below the weakest club plays the weakest clubs — and the six
     // nearest can sit a few points off the exact target
-    const lo = Math.min(Math.max(lowest, squad - 8), highest) - 6
-    const hi = Math.max(Math.min(highest, squad + 8), lowest) + 6
+    const lo = Math.min(Math.min(Math.max(lowest, squad - 8), highest) - 6, ceilingBand)
+    const hi = Math.max(Math.max(Math.min(highest, squad + 8), lowest) + 6, floorBand)
     if (rs.some((r) => r < lo || r > hi)) farOff++
     if (example.length < 4 && i === 0) example.push(`${squad}: ${rs.join(' → ')}`)
   }
