@@ -42,13 +42,80 @@
         "fdpr": null
       },
       "agents": [
-        { "cn": "捷风", "en": "Jett", "rounds": 115, "acs": 205.2, "kd": 0.88 },
-        { "cn": "霓虹", "en": "Neon", "rounds": 76, "acs": 247.8, "kd": 1.00 },
-        { "cn": "幻棱", "en": "Iso", "rounds": 72, "acs": 198.7, "kd": 0.89 },
-        { "cn": "雷兹", "en": "Raze", "rounds": 21, "acs": 196.0, "kd": 0.82 }
+        {
+          "cn": "捷风",
+          "en": "Jett",
+          "rounds": 115,
+          "acs": 205.2,
+          "kd": 0.88
+        },
+        {
+          "cn": "霓虹",
+          "en": "Neon",
+          "rounds": 76,
+          "acs": 247.8,
+          "kd": 1.0
+        },
+        {
+          "cn": "幻棱",
+          "en": "Iso",
+          "rounds": 72,
+          "acs": 198.7,
+          "kd": 0.89
+        },
+        {
+          "cn": "雷兹",
+          "en": "Raze",
+          "rounds": 21,
+          "acs": 196.0,
+          "kd": 0.82
+        }
       ],
       "roleNote": "All four agents are duelists, so 决斗者 is measured rather than guessed — 号角's own 位置 field is blank.",
       "photo": "https://files.haojiao.cc/cms/20260520/1779265195147.png"
+    },
+    "Midnight": {
+      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/iwgRCc3t7plQpVul",
+      "checked": "2026-09-03",
+      "realName": "王英杰",
+      "nat": "cn",
+      "birth": "1997-08-05",
+      "team": "RA",
+      "teamNote": "RA 首发自 2024-03-09；2026-03-12 至 03-31 短暂转任助理教练，03-31 回到选手名单。页面备注「另外ID：Exile」。vlr 的 2026 表没有他的行，所以此前整个人都不在世界里。",
+      "joined": "2024-03",
+      "status": "现役",
+      "stats": {
+        "rounds": 411,
+        "acs": 196.6,
+        "kd": 1.01,
+        "kills": 279,
+        "deaths": 277,
+        "assists": 109,
+        "rating": null,
+        "kast": null,
+        "adr": null,
+        "hs": null,
+        "fkpr": null,
+        "fdpr": null
+      },
+      "agents": [
+        {
+          "cn": "猎枭",
+          "en": "Sova",
+          "rounds": 296,
+          "acs": 207.1,
+          "kd": 1.06
+        },
+        {
+          "cn": "黑梦",
+          "en": "Fade",
+          "rounds": 115,
+          "acs": 169.4,
+          "kd": 0.87
+        }
+      ],
+      "roleNote": "Both agents are initiators, so 先锋 is measured rather than guessed — 号角's own 位置 field is blank. He calls for RA (overrides.json).",
+      "photo": "https://files.haojiao.cc/cms/20240906/1725595533756.png"
     }
   }
 }

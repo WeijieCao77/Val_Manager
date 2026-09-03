@@ -19,7 +19,8 @@ interface RawPlayer {
   joined?: string | null
   rounds?: number
   vlr?: { rating: number | null; acs: number | null; rounds: number }
-  age: number; isIgl: boolean; attrs: Attrs; overall: number; potential: number
+  age: number; isIgl: boolean; iglSource?: 'verified' | 'inferred'
+  attrs: Attrs; overall: number; potential: number
   form: number; morale: number; fatigue: number; salary: number; value: number
   contractYears: number; loyalty: number; ambition: number
 }
@@ -239,6 +240,10 @@ export function createNewGame(
   }
 
   for (const id of Object.keys(teams)) {
+    // Static data may honestly leave a club's real caller unknown. AI clubs
+    // still appoint an in-save stand-in; the human's club leaves that choice
+    // to the manager and the squad screen warns about it.
+    ensureCaller(state, id)
     teams[id].starters = autoStarters(state, id)
   }
   for (const pid of teams[myTeamId].roster) {
@@ -289,6 +294,7 @@ export function appointIgl(state: GameState, playerId: string): string {
   const prev = prevs.sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   for (const x of prevs) {
     x.isIgl = false
+    x.iglSource = undefined
     const healthy = x.injuredUntil <= state.day
     const starting = state.teams[state.myTeam].starters.includes(x.id)
     if (healthy && starting) {
@@ -298,6 +304,7 @@ export function appointIgl(state: GameState, playerId: string): string {
     }
   }
   p.isIgl = true
+  p.iglSource = 'verified'
   state.news.push({
     day: state.day, kind: 'club', important: true,
     text: `${p.ign} 接过队内指挥${prev ? `（此前是 ${prev.ign}）` : ''}。`,
@@ -323,6 +330,7 @@ export function ensureCaller(state: GameState, teamId: string): void {
   if (!squad.length || squad.some((p) => p.isIgl)) return
   const next = squad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   next.isIgl = true
+  next.iglSource = 'inferred'
 }
 
 // squadOf / freeAgents / coachOr / wageBill live in roster.ts and WORLD_TEAMS
@@ -332,4 +340,3 @@ export function ensureCaller(state: GameState, teamId: string): void {
 // downloading the game to print two integers.
 
 /** Wage bill per season for a club. */
-

@@ -95,7 +95,31 @@ const mk = (): GameState => {
   }
   check('nobody is auto-assigned out of position avoidably', avoidable === 0, `${avoidable} 次可避免的错位`)
   check('and every automatic comp still covers all four jobs', gaps === 0, `${gaps} 套缺位置`)
-  check('squads with a hole in the roster do get someone forced into it', forced > 0, `${forced} 次`)
+  console.log(`  ${forced} 次被迫错位（世界里现有的位置空缺）`)
+
+  // The hole is built here rather than found: the world used to contain
+  // exactly one (RA without a sentinel), and it closed the day Z1Yan was
+  // corrected to 哨卫 — a check that only fires when the data happens to be
+  // wrong is not a check. Strip 哨卫 from a whole five and somebody must
+  // still be sent to play it.
+  const t = Object.values(g.teams).find((x) => selectLineup(g, x.id).length === 5)!
+  const five = selectLineup(g, t.id)
+  for (const p of five) {
+    const rs = (p.roles ?? [p.role]).filter((r) => r !== '哨卫')
+    p.role = rs[0] ?? '决斗者'
+    p.roles = rs.length ? rs : ['决斗者']
+    p.rolePro = {}
+  }
+  let holeForced = 0
+  let holeGaps = 0
+  for (const m of MAPS) {
+    const picks = autoAgents(g, t.id, five, m)
+    if (agentRoleGaps(five, picks).length) holeGaps++
+    holeForced += five.filter((p) => agentFit(p, picks[p.id]) < 1).length
+  }
+  check('a five with nobody for 哨卫 still gets someone forced into it', holeForced > 0,
+    `${t.tag}: ${holeForced} 次 over ${MAPS.length} maps`)
+  check('and that forced sheet still covers all four jobs', holeGaps === 0, `${holeGaps} 套缺位置`)
 }
 
 // ---- a hand-made bad sheet really does weaken the side

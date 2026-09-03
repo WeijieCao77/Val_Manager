@@ -84,7 +84,6 @@
   "P398",
   "P399",
   "P400",
-  "P401",
   "P402",
   "P405",
   "P406",
@@ -95,7 +94,9 @@
   "P421",
   "P422",
   "P423",
-  "P424"
+  "P424",
+  "P428",
+  "P522"
  ],
  "igns": [
   "Sharks",
@@ -174,17 +175,19 @@
   "yosemite",
   "aluba",
   "Deryeon",
+  "stew",
   "monk",
   "Eren",
   "Layla",
   "Dingwei",
+  "Youjun",
   "5CM",
   "S1Mon",
   "Juicy",
   "Akeman",
   "Ying",
   "sibeastw0w",
-  "Z1yan",
+  "Z1Yan",
   "Guran",
   "jowa",
   "Levius",
@@ -192,10 +195,10 @@
   "AcMe",
   "Yoyo",
   "Satoshi",
-  "FFs"
+  "Z1Yan"
  ],
  "rejected": {
   "P417": "Apathy (WSIG, 黄盈盛) — 号角的图是另一个同名选手，人不对，2026-08-31 撤下"
  },
- "fetched": "2026-09-02"
+ "fetched": "2026-09-03"
 }

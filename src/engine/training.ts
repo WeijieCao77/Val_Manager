@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng'
 import { INJURIES } from './content'
-import { recomputeOverall, refreshValue, ageDrift } from './player'
+import { recomputeOverall, refreshValue, ageDrift, weightsFor } from './player'
 import { coachOr, squadOf } from './roster'
 import { duoBonded, weeklyBonds } from './bonds'
 import { analystEdge, staffBonus } from './staff'
@@ -22,6 +22,44 @@ import type { Attrs, GameState, Player, Team } from './types'
  * to this.
  */
 export const FORM_BASE = 70
+
+/** The shared load-management line used by both automatic plans. */
+export const REST_AT = 45
+
+/**
+ * The most useful individual focus for this player's actual role.
+ *
+ * Overall is role-weighted, so "train the lowest raw number" is not neutral:
+ * it sent duelists to communication (5% of their rating) instead of aim (28%).
+ * The training screen's 「按位置分配」 and every AI club use this same
+ * judgement — the heaviest attribute that still has somewhere to go, and
+ * among equals the one he is worse at. A manager can still override it by
+ * hand. Only the caller is ever pointed at 指挥, and anyone tired, hurt or
+ * already at his ceiling is rested instead.
+ */
+export function recommendedTrainingFocus(p: Player): keyof Attrs | 'rest' {
+  if (p.potential <= p.overall || p.fatigue >= REST_AT) return 'rest'
+  const weights = weightsFor(p)
+  const room = ATTR_KEYS.filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
+  if (!room.length) return 'rest'
+  return room.reduce((a, b) => {
+    const d = weights[b] - weights[a]
+    if (Math.abs(d) > 0.001) return d > 0 ? b : a
+    return p.attrs[b] < p.attrs[a] ? b : a
+  })
+}
+
+/**
+ * A title makes rival clubs accelerate high-upside youngsters, not every
+ * veteran and unattached player in the database. The boost is deliberately
+ * bounded: coaching, facilities, age, morale and headroom remain the engine.
+ */
+export function aiGrowthMultiplier(state: GameState, p: Player, team: Team): number {
+  const eligible = team.id !== state.myTeam && p.teamId === team.id &&
+    p.age <= 23 && p.potential - p.overall >= 3
+  if (!eligible) return 1
+  return 1 + 0.10 * Math.min(Math.max(state.rivalry ?? 0, 0), 2)
+}
 
 /** One week of practice for a single player. */
 function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string | null {
@@ -66,9 +104,7 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
     ? skillMod(state.manager, 'training') *
       (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1)
     : 1
-  // once the player's club has taken a world title, everyone else trains like
-  // they mean it — the gap the trophy proved is the gap they are closing
-  const chasing = mine ? 1 : 1 + 0.22 * Math.min(state.rivalry ?? 0, 2)
+  const chasing = aiGrowthMultiplier(state, p, team)
   const gain =
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
     clamp(headroom / 12, 0.25, 1.6) * available * talent * chasing
@@ -339,15 +375,17 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         const note = trainPlayer(state, p, team, rng)
         if (note) notes.push(note)
       } else {
-        // AI clubs train their weakest useful attribute
-        const weakest = ATTR_KEYS
-          .filter((k) => k !== 'igl' || p.isIgl)
-          .reduce((a, b) => (p.attrs[a] < p.attrs[b] ? a : b))
-        const saved = state.training[p.id]
-        state.training[p.id] = weakest
+        // AI clubs follow the same role-aware plan the training screen offers
+        // the manager, and rest the tired and the finished instead of
+        // grinding every healthy player forever. It used to train whichever
+        // raw number was lowest — a duelist on communication, worth a fifth of
+        // a point of aim — so the world's clubs threw away half their
+        // development for years. The plan is written into the same map as
+        // the manager's, so a player arrives at a new club with his programme
+        // visible; it is a pure function of the player, so it stays put
+        // until the attribute has nowhere left to go.
+        state.training[p.id] = recommendedTrainingFocus(p)
         trainPlayer(state, p, team, rng)
-        if (saved === undefined) delete state.training[p.id]
-        else state.training[p.id] = saved
       }
 
       // A promised standing is a commitment. Bench a player you called a core
@@ -478,16 +516,23 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
   // as easy to raid as on day one.
   growLoyalty(state)
   for (const p of Object.values(state.players)) {
+    const seasonAge = p.age
     p.age += 1
     // Scouts re-rate the young every winter. A prospect who has nearly caught
     // his projection sometimes turns out to have been under-rated — that is
     // where next season's headroom comes from, for the AI's academy kids and
     // the player's alike. Rivalry makes the rest of the world's kids likelier
     // to be pushed: clubs chasing a champion coach their youth harder.
-    if (p.age <= 23 && p.potential - p.overall < 4 && p.potential < 97) {
-      const pushed = p.teamId !== state.myTeam && (state.rivalry ?? 0) > 0
-      if (rng.chance(pushed ? 0.45 : 0.28)) {
-        p.potential = clamp(p.potential + rng.int(1, 3), p.potential, 99)
+    const playedEnough = p.season.maps >= 10 || p.season.rounds >= 200
+    const revisions = p.potentialRevisions ?? 0
+    if (p.teamId && seasonAge <= 23 && playedEnough && revisions < 2 &&
+        p.potential - p.overall < 4 && p.potential < 97) {
+      const pressure = p.teamId !== state.myTeam
+        ? Math.min(Math.max(state.rivalry ?? 0, 0), 2)
+        : 0
+      if (rng.chance(0.28 + pressure * 0.08)) {
+        p.potential = clamp(p.potential + rng.int(1, 2), p.potential, 99)
+        p.potentialRevisions = revisions + 1
       }
     }
     const drift = ageDrift(p)

@@ -264,6 +264,7 @@ function migrate(state: GameState): GameState {
   }
   for (const p of Object.values(state.players)) {
     p.xp ??= {}
+    p.potentialRevisions ??= 0
     p.agentPool ??= []
     p.injuredUntil ??= 0
   }

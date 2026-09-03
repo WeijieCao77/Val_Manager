@@ -208,9 +208,11 @@ def main() -> int:
     check("a designated caller calls at his club's level", not weak_callers,
           str(weak_callers[:4]))
 
-    check("exactly one IGL named per club",
-          all(n == 1 for _, n in igl_counts),
-          str([x for x in igl_counts if x[1] != 1][:5]))
+    unknown_igl = {tag for tag, name in ov_igl.items() if name is None}
+    bad_igl_counts = [(tag, n) for tag, n in igl_counts
+                      if n != (0 if tag in unknown_igl else 1)]
+    check("one IGL per club unless the source explicitly says unknown",
+          not bad_igl_counts, str(bad_igl_counts[:5]))
 
     neg = [(p["ign"], p["salary"], p["value"]) for p in players
            if p["salary"] < 0 or p["value"] < 0]
@@ -307,6 +309,11 @@ def main() -> int:
             known_coach.add(rec["coach"].lower())
         for a in rec.get("assistants") or []:
             known_coach.add(str(a).lower())
+    for rec in (load(RAW / "overrides.json").get("coaches") or {}).values():
+        if rec.get("name"):
+            known_coach.add(rec["name"].lower())
+        for a in rec.get("assistants") or []:
+            known_coach.add(str(a).lower())
     fake_coach = [c for c in coach_names if c.lower() not in known_coach]
     check("every named coach is a scraped person", not fake_coach,
           f"{len(fake_coach)}: {fake_coach[:6]}")
@@ -342,7 +349,15 @@ def main() -> int:
         caller = next((P[r]["ign"] for r in t["roster"] if r in P and P[r].get("isIgl")), None)
         if caller != want:
             lost_igl.append((tag, want, caller))
-    check("every hand-verified IGL is the one who calls", not lost_igl, str(lost_igl[:4]))
+    check("every hand-verified IGL state survives into the world", not lost_igl, str(lost_igl[:4]))
+
+    lost_coaches = []
+    for tag, want in (ov.get("coaches") or {}).items():
+        t = by_tag.get(tag)
+        if t and (t.get("coach") or {}).get("name") != want.get("name"):
+            lost_coaches.append((tag, want.get("name"), (t.get("coach") or {}).get("name")))
+    check("every hand-verified coach survives into the world",
+          not lost_coaches, str(lost_coaches[:4]))
 
     lost_roles = []
     for ign, want in (ov.get("roles") or {}).items():
@@ -353,6 +368,25 @@ def main() -> int:
             lost_roles.append((ign, want, p2.get("roles")))
     check("every hand-verified role set survives into the world",
           not lost_roles, str(lost_roles[:4]))
+
+    # Rare Atom, reported by the group on 2026-09-03: Z1Yan is a sentinel, York
+    # is head coach and Midnight calls. All three were wrong or missing in the
+    # cached sources, so they are pinned by name here as well as through the
+    # generic override checks above — deleting an override line would
+    # otherwise pass in silence.
+    ra = by_tag.get("RA") or {}
+    ra_squad = [P[r] for r in ra.get("roster", []) if r in P]
+    z1 = next((x for x in ra_squad if x["ign"] == "Z1Yan"), None)
+    mid = next((x for x in ra_squad if x["ign"] == "Midnight"), None)
+    check("RA: Z1Yan is a sentinel",
+          bool(z1) and z1["role"] == "哨卫" and list(z1.get("roles") or []) == ["哨卫"],
+          str(z1 and (z1["role"], z1.get("roles"))))
+    check("RA: York is head coach", (ra.get("coach") or {}).get("name") == "York",
+          str(ra.get("coach")))
+    check("RA: Midnight is on the roster and is the one who calls",
+          bool(mid) and mid.get("isIgl") is True and mid.get("iglSource") == "verified"
+          and sum(1 for x in ra_squad if x.get("isIgl")) == 1,
+          str(mid and (mid.get("isIgl"), mid.get("iglSource"), mid.get("role"))))
 
     misplaced = []
     for ign, rec in hj.items():

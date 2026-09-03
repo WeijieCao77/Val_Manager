@@ -84,7 +84,11 @@ export default function PlayerModal(
           <span>{p.ign}</span>
           <Roles p={p} />
           <OvrBadge value={p.overall} />
-          {p.isIgl && <span className="tag">IGL</span>}
+          {p.isIgl && (
+            <span className="tag" title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '已确认的队内指挥'}>
+              {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+            </span>
+          )}
         </span>
       }
       onClose={onClose}

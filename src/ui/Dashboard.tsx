@@ -446,7 +446,12 @@ export default function Dashboard() {
                 if ((game.commercialDays?.[p.id] ?? 0) >= 2) notes.push('本周商务占用多')
                 return (
                   <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
-                    <td><b>{p.ign}</b>{p.isIgl && <span className="tag" style={{ marginLeft: 5 }}>IGL</span>}</td>
+                    <td><b>{p.ign}</b>{p.isIgl && (
+                      <span className="tag" style={{ marginLeft: 5 }}
+                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '队内指挥'}>
+                        {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+                      </span>
+                    )}</td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
                     <td style={{ width: 110 }}><Condition p={p} day={game.day} /></td>

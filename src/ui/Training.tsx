@@ -8,61 +8,22 @@ import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
 import { poolFor } from '../engine/match'
-import { weightsFor } from '../engine/player'
 import { logActivity } from '../engine/agenda'
-import { doPhysio, physioBlock, PHYSIO_COST, reviewIglXp } from '../engine/training'
+import {
+  doPhysio, physioBlock, PHYSIO_COST, recommendedTrainingFocus, REST_AT, reviewIglXp,
+} from '../engine/training'
 import { useAction } from './useAction'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
   facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus, staffMarket,
   staffRaw, staffShare, upgradeFacility,
 } from '../engine/staff'
-import type { Attrs, Player, StaffRole } from '../engine/types'
+import type { Attrs, StaffRole } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
   { key: 'rest', label: '休息' },
   ...ATTR_KEYS.map((k) => ({ key: k, label: ATTR_CN[k] })),
 ]
-
-/** Suggest what this player would gain most from working on. */
-/**
- * What this player should actually practise.
- *
- * It used to name his lowest attribute, which ignores what his position is
- * judged on: a duelist was told to work on 沟通 (weight 0.05) instead of 枪法
- * (0.28), so following the game's own advice moved his rating about a fifth as
- * fast as the obvious alternative. Overall is a role-weighted sum, so the
- * value of a point is exactly that weight — pick the heaviest attribute that
- * still has somewhere to go, and among equals the one he is worse at.
- */
-/**
- * Rest anyone at or above this.
- *
- * Measured, not guessed: eight saves over five seasons, one club, varying only
- * this number. Resting everyone is safe and stagnant (+3.8 ability in five
- * years); holding out to 62 is the worst of both worlds — 3.2 injuries a
- * season, a *worse* league position than not training at all, and half the
- * saves sacked. Resting at 40 gave the best placing and the most growth. The
- * button used to hold out to 70, which is deeper into the bad zone than the
- * 62 that was measured as worst, so the game's own convenience button put you
- * on close to the worst available policy.
- */
-const REST_AT = 45
-
-function suggest(p: Player): keyof Attrs {
-  const head = p.potential - p.overall
-  if (head <= 0) return 'teamwork'
-  const w = weightsFor(p)
-  // a maxed-out player leaves nothing to filter, and reduce with no initial
-  // value throws on an empty array — which would take the whole page down
-  const room = ATTR_KEYS.filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
-  if (!room.length) return 'teamwork'
-  return room.reduce((a, b) => {
-    const d = w[b] - w[a]
-    if (Math.abs(d) > 0.001) return d > 0 ? b : a
-    return p.attrs[b] < p.attrs[a] ? b : a
-  })
-}
 
 export default function Training() {
   const { game, commit, toast, openPlayer } = useGame()
@@ -100,13 +61,15 @@ export default function Training() {
   const autoFocus = () => {
     let rested = 0
     for (const p of squad) {
-      const tired = p.fatigue >= REST_AT
-      if (tired) rested++
-      game.training[p.id] = tired ? 'rest' : suggest(p)
+      // the shared judgement rests the tired and the finished; an injury is
+      // the one thing it cannot see without the calendar
+      const focus = p.injuredUntil > game.day ? 'rest' : recommendedTrainingFocus(p)
+      if (focus === 'rest') rested++
+      game.training[p.id] = focus
     }
     commit()
     toast(rested
-      ? `已按位置重点分配，其中 ${rested} 人体能偏低改为休息。`
+      ? `已按位置重点分配，其中 ${rested} 人受伤、体能偏低或已到潜力上限，改为休息。`
       : '已按位置重点分配训练。')
   }
 
@@ -429,7 +392,7 @@ export default function Training() {
                         {OPTIONS.map((o) => (
                           <option key={o.key} value={o.key}>
                             {o.label}{o.key !== 'rest' ? ` (${p.attrs[o.key as keyof Attrs]})` : ''}
-                            {o.key === suggest(p) ? ' ◄ 建议' : ''}
+                            {o.key === recommendedTrainingFocus(p) ? ' ◄ 建议' : ''}
                           </option>
                         ))}
                       </select>

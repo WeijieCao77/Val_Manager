@@ -542,7 +542,12 @@ export default function Transfers() {
                 <tr key={p.id}>
                   <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                     <b>{p.ign}</b>
-                    {p.isIgl && <span className="tag" style={{ marginLeft: 6 }}>IGL</span>}
+                    {p.isIgl && (
+                      <span className="tag" style={{ marginLeft: 6 }}
+                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '队内指挥'}>
+                        {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+                      </span>
+                    )}
                     {game.importLimit && isImport(p, me) && (
                       <span className="tag warn" style={{ marginLeft: 6 }} title="来自其他赛区，占用外援名额">外援</span>
                     )}

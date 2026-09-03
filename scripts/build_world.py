@@ -812,6 +812,8 @@ def main():
     ov = load_json(OVERRIDES)
     ov_igl = ov.get("igl", {})
     ov_roles = ov.get("roles", {})
+    for key, fixed in (ov.get("coaches") or {}).items():
+        coaches[key] = {**coaches.get(key, {}), **fixed}
 
     # Every agent pool we have, most-played first, one source per player: vlr's
     # 2026 table (the three agents he has played most this season) wins, then
@@ -1493,7 +1495,9 @@ def main():
         # `igl=` field on the club's Liquipedia infobox, then — only if neither
         # exists — the most support-shaped player on the roster.
         lp = coaches.get(tag) or coaches.get(display) or {}
-        named = ov_igl.get(tag) or ov_igl.get(display) or lp.get("igl")
+        override_key = tag if tag in ov_igl else display if display in ov_igl else None
+        named = ov_igl.get(override_key) if override_key else lp.get("igl")
+        explicitly_unknown = override_key is not None and not named
         igl = None
         if named:
             igl = next((p for p in squad if p["ign"].lower() == str(named).lower()), None)
@@ -1504,27 +1508,29 @@ def main():
                 # JDG ended up calling through jkuro when Liquipedia said
                 # coconut (who plays elsewhere) and BerLIN actually calls.
                 stale_igl.append((tag, str(named)))
-        if igl is None:
+        if igl is None and not explicitly_unknown:
             igl = max(squad, key=lambda p: p["attrs"]["igl"] +
                       (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
             guessed_igl.append(tag)
-        igl["isIgl"] = True
-        igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
-        # A club's trusted caller calls at the club's level. The attribute is
-        # derived from APR/KAST, and a real IGL's value is precisely what those
-        # numbers cannot see — Boaster's whole style is sacrificing his own
-        # line to run the team, which priced the FNATIC and EDG title-winning
-        # callers (Boaster 71, nobody 77) below mid-table fraggers. So the
-        # designated caller's igl is floored at his squad's strength: strong
-        # sides keep strong callers, weak sides keep modest ones, and nobody
-        # is lowered — a caller already rated above his club stays there.
-        top5 = sorted((q["overall"] for q in squad), reverse=True)[:5]
-        squad_level = sum(top5) / max(1, len(top5))
-        igl["attrs"]["igl"] = int(clamp(max(igl["attrs"]["igl"], round(squad_level)), 40, 96))
-        igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
-        igl["overall"] = int(round(clamp(
-            sum(igl["attrs"][k] * ROLE_WEIGHT.get(igl["role"], ATTR_WEIGHT)[k] for k in ATTRS)
-            + igl.get("stageBonus", 0.0), 30, 97)))
+        if igl is not None:
+            igl["isIgl"] = True
+            igl["iglSource"] = "verified" if named else "inferred"
+            igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))
+            # A club's trusted caller calls at the club's level. The attribute is
+            # derived from APR/KAST, and a real IGL's value is precisely what those
+            # numbers cannot see — Boaster's whole style is sacrificing his own
+            # line to run the team, which priced the FNATIC and EDG title-winning
+            # callers (Boaster 71, nobody 77) below mid-table fraggers. So the
+            # designated caller's igl is floored at his squad's strength: strong
+            # sides keep strong callers, weak sides keep modest ones, and nobody
+            # is lowered — a caller already rated above his club stays there.
+            top5 = sorted((q["overall"] for q in squad), reverse=True)[:5]
+            squad_level = sum(top5) / max(1, len(top5))
+            igl["attrs"]["igl"] = int(clamp(max(igl["attrs"]["igl"], round(squad_level)), 40, 96))
+            igl["attrs"]["communication"] = int(clamp(igl["attrs"]["communication"] + 4, 25, 99))
+            igl["overall"] = int(round(clamp(
+                sum(igl["attrs"][k] * ROLE_WEIGHT.get(igl["role"], ATTR_WEIGHT)[k] for k in ATTRS)
+                + igl.get("stageBonus", 0.0), 30, 97)))
 
         # Potential was fixed before these bumps, so covering a second role or
         # taking the armband could push a player above his own ceiling — four

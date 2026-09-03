@@ -230,7 +230,7 @@ export default function Squad() {
                               ? `队里有 ${iglsInSquad.length} 名指挥出身的选手，由指挥属性最高的他实际喊话（${p.attrs.igl}）`
                               : `指挥出身，但队里由指挥属性更高的 ${caller?.ign} 实际喊话——多名指挥不冲突也不叠加`)
                             : '队内指挥'}>
-                          IGL
+                          {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
                         </span>
                       )}
                       {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}

@@ -22,13 +22,24 @@
   "which is a real source — so nothing is pinned here. Only add an entry if a",
   "club's infobox is wrong or missing AND you can verify the caller.",
   "JDG: the infobox named coconut, who plays for another club — a stale roster entry, so the build fell back to guessing and picked jkuro. BerLIN is the caller; recorded here rather than relying on a wiki edit, which is cached anyway and can be reverted.",
-  "FPX: KovaQ left on 2026-09-01 and took the armband with him. coconut calls now; zhubibi came in as 临时替补 (see haojiao_players.json) and is a duelist, not a caller."
+  "FPX: KovaQ left on 2026-09-01 and took the armband with him. coconut calls now; zhubibi came in as 临时替补 (see haojiao_players.json) and is a duelist, not a caller.",
+  "RA: Midnight calls. The cached Liquipedia infobox names him too, but vlr's 2026 table has no row for him, so he never reached the world at all and the build was guessing a caller from the five who did. He is entered from 号角 in haojiao_players.json; naming him here keeps the armband on him across rebuilds."
  ],
  "igl": {
   "TYL": "SiuFatBB",
   "WOL": "aluba",
   "JDG": "BerLIN",
-  "FPX": "coconut"
+  "FPX": "coconut",
+  "RA": "Midnight"
+ },
+ "_coach_note": [
+  "RA: York is the current head coach; the cached Liquipedia entry still names mikiya."
+ ],
+ "coaches": {
+  "RA": {
+   "name": "York",
+   "assistants": []
+  }
  },
  "_roles_note": [
   "Role breadth is the one thing neither source gives directly: vlr's filter",
@@ -36,7 +47,8 @@
   "per-player role field. Entries below are hand-verified stand-ins until the",
   "per-role round distribution can be scraped from vlr",
   "(role=duelist|initiator|controller|sentinel), which is the real fix.",
-  "Setrod: plays sentinel as well as duelist. vlr's filter reports only his most-played role, so the build had him as a duelist and nothing else — which left FPX fielding three duelists and no sentinel after the KovaQ/zhubibi swap."
+  "Setrod: plays sentinel as well as duelist. vlr's filter reports only his most-played role, so the build had him as a duelist and nothing else — which left FPX fielding three duelists and no sentinel after the KovaQ/zhubibi swap.",
+  "Z1Yan: Rare Atom's sentinel; the cached role letter and agent sample had him as controller."
  ],
  "roles": {
   "f0rsakeN": [
@@ -48,6 +60,9 @@
   ],
   "Setrod": [
    "决斗者",
+   "哨卫"
+  ],
+  "Z1Yan": [
    "哨卫"
   ]
  }

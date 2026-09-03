@@ -236,6 +236,8 @@ export interface Player {
   traits?: Trait[]
   age: number
   isIgl: boolean
+  /** Whether the caller is confirmed by a source or appointed by the simulation. */
+  iglSource?: 'verified' | 'inferred'
   attrs: Attrs
   overall: number
   /**
@@ -246,6 +248,8 @@ export interface Player {
    */
   stageBonus?: number
   potential: number
+  /** Career count of winter potential re-evaluations; absent in old saves means zero. */
+  potentialRevisions?: number
   /** 0-100, short-term performance swing */
   form: number
   morale: number
