@@ -120,6 +120,17 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
     await sql.unsafe(SITE_SCHEMA)
     await sql.unsafe(ROLLUP_SCHEMA)
     console.log('analytics: connected, schema ready')
+    // Settle what the market owes, before anyone trades. Until 2026-09-03 a
+    // listing that died of three ignored offers kept the bids still sitting
+    // on it; the sweep refunds now, and this pays back whoever it already
+    // happened to. The ledger comes out even after the first run, so it is
+    // idempotent and cheap enough to simply run on every boot — which is
+    // also the only hand this project has on the production database.
+    import('./scripts/refund_stranded_offers.js')
+      .then(({ repair }) => repair(sql, true))
+      .then((debts) => debts.length && console.log(
+        `market: refunded ${debts.length} stranded bid(s), ${debts.reduce((a, d) => a + d.coins, 0)} coins`))
+      .catch((e) => console.warn('market: stranded-offer repair failed', e.message))
     // Prune on boot rather than on a daily timer. Railway redeploys often
     // enough that a 24-hour interval would rarely reach its first tick, so the
     // retention policy would have been written down and never enforced.
