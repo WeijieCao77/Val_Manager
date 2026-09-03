@@ -92,7 +92,7 @@ LEGENDS: dict[str, dict] = {
     "L:boaster-2023-double":      {"ign": "Boaster", "real": "Howlett", "club": ["fnc", "fnatic"], "event": [r"lockin", r"lock in", r"lock--in", r"masters tokyo"], "year": ["2023"]},
     "L:jinggg-toronto-2025":      {"ign": "Jinggg", "real": "Wang", "club": ["paper rex", "prx"], "event": [r"toronto"], "year": ["2025"]},
     "L:chichoo-champions-2024":   {"ign": "CHICHOO", "real": "Wan", "club": ["edg", "edward"], "event": [r"champions 2024"], "year": ["2024"]},
-    "L:izu-bangkok-2025":         {"ign": "iZu", "real": "Ham", "club": ["t1"], "event": [r"bangkok"], "year": ["2025"]},
+    "L:chichoo-bangkok-2025":     {"ign": "CHICHOO", "real": "Wan", "club": ["edg", "edward"], "event": [r"bangkok"], "year": ["2025"]},
 }
 
 

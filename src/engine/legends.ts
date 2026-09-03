@@ -187,14 +187,14 @@ export const LEGENDS: Legend[] = [
     note: '那支 FNATIC 的指挥。数据从来不好看，但两座大赛冠军是他喊下来的。',
   },
   {
-    id: 'L:izu-bangkok-2025',
-    ign: 'iZu', title: '2025 曼谷大师赛 冠军', short: '25 曼谷冠军',
-    year: 2025, kind: 'icon', clubId: 'T25', clubTag: 'T1',
-    rating: 94,
-    // Meteor took the trophy; iZu carried the tournament — T1's best line
-    // in Bangkok by a distance, 453 rounds at R 1.13, K/D 1.24, KAST 75%,
-    // fifth of every player at the event. 「曼谷大师赛发挥爆种」.
-    note: 'T1 曼谷登顶那两周的最稳一环：453 回合 R 1.13、K/D 1.24，全队第一，全赛事第五。',
+    id: 'L:chichoo-bangkok-2025',
+    ign: 'CHICHOO', title: '2025 曼谷大师赛 爆种', short: '25 曼谷爆种',
+    year: 2025, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 97,
+    // No trophy — EDG went out third — but the tournament's best player by
+    // the numbers, ahead of every winner: 313 rounds at R 1.23, ACS 236,
+    // K/D 1.27, ADR 158. The owner's word for it was 爆种.
+    note: 'EDG 止步第三，但整届赛事他是全场第一：313 回合 R 1.23、ACS 236、K/D 1.27、ADR 158。',
   },
   {
     id: 'L:jinggg-toronto-2025',
