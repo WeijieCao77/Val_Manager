@@ -35,6 +35,25 @@ export const ARENA_TEAM = 'ARENA'
  * all-star five wins the head-to-head; nine points below, it loses.
  */
 const CHEM_RATING = 0.12
+/**
+ * How much of the gap between two cards the match actually sees.
+ *
+ * The card mode plays its matches on the manager's engine, which was tuned
+ * for clubs: a four-point gap in overall is a real gap between two real
+ * rosters and it decides most series. Between two five-card hands it decided
+ * nearly all of them — measured 2026-09-03, after the title credit: PRX's five
+ * (93) beat G2's five (89) in 92% of bo3s, and the three strongest full clubs
+ * beat the rest of the top twelve nine times in ten. A collection game whose
+ * strongest hand wins nine in ten has no contest left in it once somebody
+ * completes that hand. So every seated card is pulled toward the middle by
+ * this factor — ability and chemistry alike, so their balance is unchanged —
+ * and the same four points is a favourite, not a formality.
+ * scripts/check_club_balance.ts is the measurement.
+ */
+const SPREAD = 0.5
+const PIVOT_ATTR = 70
+const PIVOT_OVERALL = 80
+const squeeze = (x: number, pivot: number) => clamp(Math.round(pivot + (x - pivot) * SPREAD), 1, 99)
 
 export interface ArenaSquad extends Squad {
   /** display name for the assembled club */
@@ -150,6 +169,11 @@ function seatSquad(
       communication: clamp(clone.attrs.communication + lift, 1, 99),
     }
     clone.overall = clamp(Math.round(clone.overall + (chem.score - 50) * CHEM_RATING), 1, 99)
+    // and then the whole thing, chemistry included, comes in toward the middle
+    for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
+      clone.attrs[k] = squeeze(clone.attrs[k], PIVOT_ATTR)
+    }
+    clone.overall = squeeze(clone.overall, PIVOT_OVERALL)
     state.players[id] = { ...clone, id, teamId }
     cardOf[id] = cardId
     roster.push(id)
@@ -173,9 +197,10 @@ function seatSquad(
     coach: isCoachCard(coachCard)
       ? {
         name: coachCard.name,
-        tactics: coachCard.tactics,
-        development: coachCard.development,
-        motivation: coachCard.motivation,
+        // the coach comes in toward the middle like the players do
+        tactics: squeeze(coachCard.tactics, PIVOT_ATTR),
+        development: squeeze(coachCard.development, PIVOT_ATTR),
+        motivation: squeeze(coachCard.motivation, PIVOT_ATTR),
       }
       : null,
     facilities: 60,

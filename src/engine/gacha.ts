@@ -14,7 +14,7 @@ import {
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating,
 } from './cards'
-import type { Card, CoachCard, Rarity, Squad } from './cards'
+import type { Card, CoachCard, PlayerCard, Rarity, Squad } from './cards'
 import { newChallenge } from './challenge'
 import type { ChallengeState } from './challenge'
 
@@ -923,6 +923,57 @@ export const collectionProgress = (g: GachaState) => ({
  * Counted off the cards, so a legend of a Chinese player counts toward China
  * exactly as his ordinary card does.
  */
+/**
+ * 全队收藏: one line per club, how many of its player cards you hold.
+ *
+ * The set is every ordinary player card the club has in the pool (five to
+ * seven — the彩卡 are the same men on a different night and do not count
+ * twice), so 「集齐 NRG」 means the five NRG cards, and a club with seven on
+ * the books asks for seven. Derived from the collection on every call
+ * rather than kept as state: there is nothing to award yet, so there is
+ * nothing to get out of sync.
+ */
+export interface ClubSet {
+  clubId: string
+  tag: string
+  name: string
+  region: string
+  tier: number
+  total: number
+  owned: number
+  done: boolean
+  /** the cards still missing, strongest first, for the「还缺」line */
+  missing: string[]
+}
+
+const CLUB_CARDS: Map<string, PlayerCard[]> = (() => {
+  const by = new Map<string, PlayerCard[]>()
+  for (const c of ALL_CARDS) {
+    if (!isPlayerCard(c) || c.rarity === 'mythic' || !c.clubId) continue
+    const list = by.get(c.clubId) ?? []
+    list.push(c)
+    by.set(c.clubId, list)
+  }
+  for (const list of by.values()) list.sort((a, b) => b.rating - a.rating)
+  return by
+})()
+
+export function clubSets(g: GachaState): ClubSet[] {
+  const out: ClubSet[] = []
+  for (const t of WORLD_TEAMS) {
+    const cards = CLUB_CARDS.get(t.id)
+    if (!cards || cards.length < 5) continue
+    const missing = cards.filter((c) => !g.cards[c.id]).map((c) => c.ign)
+    out.push({
+      clubId: t.id, tag: t.tag, name: t.name, region: t.region, tier: t.tier,
+      total: cards.length, owned: cards.length - missing.length, done: missing.length === 0, missing,
+    })
+  }
+  // the ones you have finished first, then the nearest to finished
+  return out.sort((a, b) => Number(b.done) - Number(a.done)
+    || (b.owned / b.total) - (a.owned / a.total) || a.tier - b.tier || a.tag.localeCompare(b.tag))
+}
+
 export interface SeriesProgress {
   region: Series
   owned: number

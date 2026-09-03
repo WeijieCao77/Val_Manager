@@ -2011,3 +2011,16 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .save-warn-x { position: absolute; top: 6px; right: 6px; padding: 2px 8px; }
 .ask-card { max-width: 420px; }
 .ask-text { margin: 0; line-height: 1.7; white-space: pre-line; }
+
+/* ---- 全队收藏 ---------------------------------------------------------- */
+.club-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.club-set {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  padding: 7px 9px; border-radius: 6px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  font-size: 12px;
+}
+.club-set b { font-size: 13px; }
+.club-set.done { border-color: var(--accent-line); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+.club-set-crest { width: 20px; height: 20px; border-radius: 4px; background: center / contain no-repeat, var(--panel); flex: none; }
+.club-set-mark { color: var(--accent); font-weight: 700; margin-left: auto; }

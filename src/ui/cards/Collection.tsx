@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
-import { collection, upgradeCost } from '../../engine/gacha'
+import { clubSets, collection, upgradeCost } from '../../engine/gacha'
+import { crestUrl } from '../../engine/dossier'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
 } from '../../engine/cards'
@@ -44,11 +45,49 @@ export default function Collection() {
       .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && match(card) && matchesFilter(card, filter))
   }, [mine, pool, filter, dupesOnly, q, missing])
 
+  const sets = useMemo(() => clubSets(g), [g, g.cards])
+  const doneSets = sets.filter((x) => x.done)
+  const [allSets, setAllSets] = useState(false)
   const sel = open ? cardById(open) : null
   const owned = open ? g.cards[open] : undefined
 
   return (
     <>
+      {/* 全队收藏: every club whose player cards you hold in full. Asked for
+          by the owner — 「解锁 PRX 全队、EDG 全队、NRG 全队」— and derived
+          from the collection each time rather than stored, since nothing
+          is paid out for it yet. Finished clubs first, then the nearest. */}
+      <Panel
+        title="全队收藏"
+        actions={
+          <div className="row" style={{ gap: 8 }}>
+            <span className="tiny muted mono">集齐 {doneSets.length}/{sets.length} 支</span>
+            <button className="sm" onClick={() => setAllSets((v) => !v)}>{allSets ? '只看快齐的' : '看全部'}</button>
+          </div>
+        }
+      >
+        <p className="tiny muted" style={{ marginTop: 0 }}>
+          一支俱乐部的选手卡全部到手就算集齐（5–7 张，按它在卡池里的人数；彩卡是同一个人的另一晚，不算第二张）。
+        </p>
+        <div className="club-sets">
+          {(allSets ? sets : sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).slice(0, 24)).map((x) => {
+            const crest = crestUrl(x.clubId)
+            return (
+              <div key={x.clubId} className={`club-set${x.done ? ' done' : ''}`} title={x.done ? `${x.name}：已集齐` : `${x.name}：还缺 ${x.missing.join('、')}`}>
+                {crest ? <span className="club-set-crest" style={{ backgroundImage: `url(${crest})` }} /> : <span className="club-set-crest" />}
+                <b>{x.tag}</b>
+                <span className="mono tiny">{x.owned}/{x.total}</span>
+                {x.done ? <span className="club-set-mark">✓ 全队</span>
+                  : <span className="tiny faint">缺 {x.missing.slice(0, 2).join('、')}{x.missing.length > 2 ? '…' : ''}</span>}
+              </div>
+            )
+          })}
+          {!allSets && sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).length === 0 && (
+            <p className="empty">还没有哪支队快集齐。点「看全部」看每支队差多少。</p>
+          )}
+        </div>
+      </Panel>
+
       <Panel
         title={missing ? '还没抽到的卡' : '我的收藏'}
         actions={
