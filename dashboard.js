@@ -456,15 +456,23 @@ function render(d) {
         ? Math.max(0, Math.round((Date.now() - new Date(st.oldest).getTime()) / 86400000))
         : 0
       const rowPct = pct(st.rows || 0, st.maxRows || 1)
-      const nearly = rowPct >= 80
+      const bytePct = pct(st.bytes || 0, st.maxBytes || 1)
+      const nearly = rowPct >= 80 || bytePct >= 80
       return panel('数据库 · 这里存着多少历史',
         '<div class="big">' + days + '<small>天的历史</small></div>' +
         '<div class="muted" style="font-size:12px;margin-top:6px">' +
         '最早一条 ' + (st.oldest ? esc(String(st.oldest).slice(0, 10)) : '—') +
         ' · ' + (st.rows || 0).toLocaleString() + ' 行（上限 ' +
         (st.maxRows || 0).toLocaleString() + '，' + rowPct + '%）' +
-        ' · 占盘 ' + gb(st.bytes || 0) + '</div>' +
-        (nearly
+        ' · 占盘 ' + gb(st.bytes || 0) + (st.maxBytes ? '（上限 ' + gb(st.maxBytes) + '，' + bytePct + '%）' : '') + '</div>' +
+        // The state that cost two days of data on 2026-09-02: the table went
+        // over its byte backstop and every batch was acknowledged and dropped,
+        // with nothing on this page saying so. Now it says so, in red, first.
+        (st.refusing
+          ? '<div style="font-size:13px;margin-top:6px;color:var(--bad, #ff5c5c);font-weight:700">'
+            + '⛔ 统计正在拒绝写入：events 表超过体积上限，清理后仍超。现在页面上的今天是空的，不是没人来。</div>'
+          : '') +
+        (nearly && !st.refusing
           ? '<div style="font-size:12px;margin-top:6px;color:var(--warn)">'
             + '⚠ 快到上限了，最旧的数据随时会被清掉。</div>'
           : ''),

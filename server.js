@@ -63,7 +63,12 @@ const tokenFrom = (req, url) => {
  * that touches anything else.
  */
 const num = (v, dflt) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.trunc(Number(v)) : dflt)
-const MAX_ROWS = num(process.env.ANALYTICS_MAX_ROWS, 4_000_000)
+// About a day of play at the current volume (2.6M events on 09-01). The raw
+// table only has to hold what the hourly rollup has not folded yet; history
+// lives in the rollup tables. 4M was a day and a half and, at ~420 bytes a
+// row with indexes, already past the byte backstop below — which is how the
+// backstop tripped on 2026-09-02 and two days of play went unrecorded.
+const MAX_ROWS = num(process.env.ANALYTICS_MAX_ROWS, 3_000_000)
 const PRUNE_DAYS = num(process.env.ANALYTICS_KEEP_DAYS, 180)
 
 const TYPES = {
@@ -265,25 +270,46 @@ function bucketOf(req) {
  * it. Long before the disk fills, three of the dashboard's queries scan the
  * whole table and it simply stops answering.
  *
- * Three orders of magnitude above anything this game will organically produce,
- * so it is a backstop and not a policy.
+ * This was 1.5GB and described as "three orders of magnitude above anything
+ * this game will organically produce". It was not: 6,282 people on 09-01
+ * wrote 2.6M rows, 3.5M rows weighed 1.5GB, and from 2026-09-02 the guard
+ * answered every batch 204 and kept nothing — two days of play unrecorded,
+ * the dashboard showing 9 visitors, and nothing on the page saying why.
+ *
+ * Three things changed. The budget is 3GB on a 5GB volume, and settable.
+ * Going over it now prunes first — the row ceiling is the policy, this is
+ * the backstop — and refuses only if the table is still over afterwards.
+ * And refusing is visible: /api/stats carries it, and the dashboard says so
+ * in red rather than drawing an empty bar chart.
  */
-const MAX_TABLE_BYTES = 1_500_000_000
+const MAX_TABLE_BYTES = num(process.env.ANALYTICS_MAX_BYTES, 3_000_000_000)
 let sizeChecked = 0
 let sizeBytes = 0
+let refusing = false
+
+async function measureTable() {
+  const r = await sql`select pg_total_relation_size('events') as b`
+  sizeBytes = Number(r[0]?.b ?? 0)
+  return sizeBytes
+}
 
 async function overBudget() {
   const now = Date.now()
-  if (now - sizeChecked < 5 * 60_000) return sizeBytes > MAX_TABLE_BYTES
+  if (now - sizeChecked < 5 * 60_000) return refusing
   sizeChecked = now
   try {
-    const r = await sql`select pg_total_relation_size('events') as b`
-    sizeBytes = Number(r[0]?.b ?? 0)
-    if (sizeBytes > MAX_TABLE_BYTES) {
-      console.warn(`analytics: events table at ${Math.round(sizeBytes / 1e6)}MB — refusing writes`)
+    if (await measureTable() > MAX_TABLE_BYTES) {
+      // make room the way the policy says to, then look again
+      const n = await prune(sql, PRUNE_DAYS, Math.floor(MAX_ROWS * 0.7))
+      const after = await measureTable()
+      refusing = after > MAX_TABLE_BYTES
+      console.warn(`analytics: events table at ${Math.round(after / 1e6)}MB after pruning ${n} rows — `
+        + (refusing ? 'REFUSING WRITES' : 'writing again'))
+    } else {
+      refusing = false
     }
   } catch { /* if we cannot measure it, do not block on it */ }
-  return sizeBytes > MAX_TABLE_BYTES
+  return refusing
 }
 
 async function ingest(req, res) {
@@ -341,7 +367,11 @@ async function stats(req, res, url) {
     const [data, disk, hist] = await Promise.all([
       overview(sql, days), storage(sql, MAX_ROWS), history(sql, 120),
     ])
-    json(res, 200, { ...data, storage: disk, history: hist })
+    json(res, 200, {
+      ...data,
+      storage: { ...disk, maxBytes: MAX_TABLE_BYTES, refusing },
+      history: hist,
+    })
   } catch (err) {
     console.warn('analytics: query failed', err.message)
     json(res, 500, { ok: false, why: err.message })
