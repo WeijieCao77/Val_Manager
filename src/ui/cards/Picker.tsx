@@ -22,7 +22,8 @@ export interface PickRow {
 
 const nameOf = (c: Card) => (isPlayerCard(c) ? c.ign : c.name)
 
-const hit = (c: Card, q: string): boolean => {
+/** The search box rule: handle or club tag contains the text. Shared with the shelf. */
+export const matchesQuery = (c: Card, q: string): boolean => {
   const s = q.trim().toLowerCase()
   if (!s) return true
   return nameOf(c).toLowerCase().includes(s) || (c.clubTag ?? '').toLowerCase().includes(s)
@@ -39,7 +40,7 @@ export function CardPicker({
 }) {
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [q, setQ] = useState('')
-  const shown = rows.filter((r) => matchesFilter(r.card, filter) && hit(r.card, q))
+  const shown = rows.filter((r) => matchesFilter(r.card, filter) && matchesQuery(r.card, q))
   // the card already chosen stays in the menu whatever the filter says, so
   // narrowing the list cannot silently un-choose it
   const chosen = value && !shown.some((r) => r.card.id === value) ? rows.find((r) => r.card.id === value) : undefined

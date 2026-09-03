@@ -20,7 +20,7 @@ import {
 import type { Gate, Listing, Offer } from '../../engine/market'
 import { takeServer } from '../../engine/account'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
-import { CardPicker } from './Picker'
+import { CardPicker, matchesQuery } from './Picker'
 import type { CardFilter } from './Filters'
 
 const HAGGLE = 0.1
@@ -34,6 +34,8 @@ export default function Market() {
   const { g, commit, toast, cloud } = useCards()
   const level = (id: string) => levelOf(g, id)
   const [shelf, setShelf] = useState<Listing[] | null>(null)
+  /** the shelf's own search box — the same rule the listing menu uses */
+  const [q, setQ] = useState('')
   /** how many listings are open in all, and how many of other people's the shelf shows */
   const [size, setSize] = useState<{ total: number; shelf: number } | null>(null)
   const [inbound, setInbound] = useState<Offer[]>([])
@@ -150,7 +152,7 @@ export default function Market() {
   const mineOnShelf = (shelf ?? []).filter((l) => l.mine)
   const theirsAll = (shelf ?? []).filter((l) => !l.mine)
   const shelfCards = theirsAll.map((l) => cardById(l.cardId)).filter((c): c is NonNullable<typeof c> => !!c)
-  const theirs = theirsAll.filter((l) => { const c = cardById(l.cardId); return !!c && matchesFilter(c, filter) })
+  const theirs = theirsAll.filter((l) => { const c = cardById(l.cardId); return !!c && matchesFilter(c, filter) && matchesQuery(c, q) })
 
   return (
     <>
@@ -170,10 +172,6 @@ export default function Market() {
           </p>
         </Panel>
       )}
-
-      <Panel title="货架筛选" actions={<span className="tiny muted">只筛下面的货架；挂牌菜单有自己的筛选</span>}>
-        <CardFilters value={filter} onChange={setFilter} pool={shelfCards} />
-      </Panel>
 
       <Panel title="挂一张卡出去" actions={<span className="tiny muted">还价范围 ±10%</span>}>
         <CardPicker
@@ -259,6 +257,26 @@ export default function Market() {
         title="货架"
         actions={<span className="tiny muted">{theirs.length} 张在卖{theirs.length !== theirsAll.length ? `（共 ${theirsAll.length}）` : ''}{size && size.total > theirsAll.length + mineOnShelf.length ? `，全站 ${size.total} 张，只显示最新 ${size.shelf} 张` : ''}</span>}
       >
+        {/* The filter belongs to the thing it filters. It used to be its own
+            panel at the top of the page, two panels away from the shelf and
+            right above the listing menu — which has its own — and read as
+            if it filtered that. */}
+        {theirsAll.length > 0 && (
+          <CardFilters
+            value={filter}
+            onChange={setFilter}
+            pool={shelfCards}
+            extra={
+              <input
+                className="sm"
+                style={{ width: 150, padding: '4px 7px' }}
+                placeholder="搜 ID / 战队"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            }
+          />
+        )}
         {shelf === null ? <p className="empty">读取中…</p>
           : theirsAll.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>
             : theirs.length === 0 ? <p className="empty">货架上没有符合筛选的卡。</p>
