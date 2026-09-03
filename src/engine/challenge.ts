@@ -20,6 +20,7 @@
  * its facts up is worse than no quiz.
  */
 import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
+import { natCountry, natName } from './nat'
 import { hashStr } from './rng'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS } from './teams'
@@ -323,7 +324,13 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
           value: String(g.role),
           mark: g.role === a.role ? 'hit' : shares ? 'near' : 'miss',
         },
-        { label: '国籍', value: String(g.nat ?? '?').toUpperCase(), mark: same(g.nat, a.nat) },
+        {
+          label: '国籍', value: natName(g.nat),
+          // 中国台湾 / 中国香港 / 中国澳门 against 中国 is the same country,
+          // not the same code — a near miss, like sharing one of two roles
+          mark: same(g.nat, a.nat) === 'hit' ? 'hit'
+            : natCountry(g.nat) && natCountry(g.nat) === natCountry(a.nat) ? 'near' : 'miss',
+        },
         { label: '年龄', value: String(g.age), mark: num(g.age, a.age, 1) },
         { label: '能力', value: String(g.overall), mark: num(g.overall, a.overall, 2) },
       ],

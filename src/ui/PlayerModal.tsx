@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { natName } from '../engine/nat'
 import { AgentIcon, Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
@@ -99,7 +100,7 @@ export default function PlayerModal(
             <div className="small muted" style={{ marginBottom: 8 }}>
               {p.realName}
               {p.realName && p.nat ? ' · ' : ''}
-              {p.nat ? p.nat.toUpperCase() : ''}
+              {p.nat ? natName(p.nat) : ''}
             </div>
           )}
           <div className="row wrap" style={{ gap: 7, marginBottom: 12 }}>

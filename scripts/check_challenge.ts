@@ -14,6 +14,7 @@
  * less than it takes is a tax, not a reason to come back.
  */
 import { existsSync } from 'node:fs'
+import { WORLD_PLAYERS } from '../src/engine/world'
 import { fileURLToPath } from 'node:url'
 import {
   allChoices, answerFor, CHALLENGE_COST, CHALLENGE_REFUND, CHALLENGE_TRIES,
@@ -294,6 +295,24 @@ const dateAt = (n: number): string =>
     check(`猜错 ${i} 次比 ${i - 1} 次至少清楚一半`, steps[i] >= steps[i - 1] * 1.5, `${steps[i - 1]} → ${steps[i]}`)
   }
   check('猜完之后不会再变', detail(CHALLENGE_TRIES) === Infinity && detail(CHALLENGE_TRIES + 3) === Infinity)
+}
+
+// ---- 国籍一格写的是名字，台湾、香港、澳门写作中国台湾 / 中国香港 / 中国澳门 ----
+// 「SpiritZ1 的国籍显示的是 TW」——一个代码不该以两个大写字母的样子漏到题面上。
+{
+  const byNat = (nat: string) => WORLD_PLAYERS.find((p) => p.nat === nat)!
+  const tw = byNat('tw'), hk = byNat('hk'), cn = byNat('cn'), kr = byNat('kr')
+  const natCell = (answer: string, guess: string) =>
+    evaluate('player', answer, guess).cells.find((c) => c.label === '国籍')!
+  check('台湾选手的国籍写作「中国台湾」', natCell(cn.id, tw.id).value === '中国台湾', natCell(cn.id, tw.id).value)
+  check('香港选手的国籍写作「中国香港」', natCell(cn.id, hk.id).value === '中国香港', natCell(cn.id, hk.id).value)
+  check('其他国家也写名字，不写代码', natCell(cn.id, kr.id).value === '韩国', natCell(cn.id, kr.id).value)
+  check('拿中国台湾去猜中国大陆，算「接近」而不是「错」', natCell(cn.id, tw.id).mark === 'near')
+  check('拿中国香港去猜中国台湾，同样是「接近」', natCell(tw.id, hk.id).mark === 'near')
+  check('同一个代码才是「命中」', natCell(tw.id, tw.id).mark === 'hit')
+  check('韩国对中国还是「错」', natCell(cn.id, kr.id).mark === 'miss')
+  check('题面上再也没有 TW / HK / MO 三个字母',
+    WORLD_PLAYERS.every((p) => !/^(TW|HK|MO)$/.test(natCell(p.id, p.id).value)))
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
