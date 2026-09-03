@@ -185,13 +185,14 @@
    }
   },
   "L:chichoo-bangkok-2025": {
-   "file": "File:EDG CHICHOO at Masters Madrid.jpg",
-   "tier": "club",
-   "score": 100,
-   "url": "https://liquipedia.net/commons/images/thumb/8/89/EDG_CHICHOO_at_Masters_Madrid.jpg/500px-EDG_CHICHOO_at_Masters_Madrid.jpg",
-   "page": "https://liquipedia.net/commons/File:EDG_CHICHOO_at_Masters_Madrid.jpg",
+   "file": "54339450049_dd6302cac0_o.jpg",
+   "tier": "override",
+   "score": 1000,
+   "url": null,
+   "page": null,
    "license": null,
-   "author": null
+   "author": null,
+   "note": "owner-supplied, Bangkok 2025"
   }
  }
 }

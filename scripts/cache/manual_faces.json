@@ -8,5 +8,16 @@
   "file": "l-neon-london-2026.webp",
   "source": "55348185912_d7d333db67_o.jpg",
   "by": "manual"
+ },
+ "L:chichoo-bangkok-2025": {
+  "file": "l-chichoo-bangkok-2025.webp",
+  "source": "54339450049_dd6302cac0_o.jpg",
+  "by": "manual",
+  "crop": {
+   "cx": 0.585,
+   "cy": 0.28,
+   "zoom": 1.0
+  },
+  "note": "Bangkok 2025, Wat Arun behind him; supplied by the owner 2026-09-03"
  }
 }
