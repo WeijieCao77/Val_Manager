@@ -95,17 +95,23 @@ const mk = (tag = 'TYL'): GameState => {
 
 // ---- an injured man is rested, so the trust tick cannot punish him for it
 {
-  const g = mk()
-  for (const p of squadOf(g, g.myTeam)) { g.training[p.id] = 'aim'; p.fatigue = 95 }
-  const rng = new Rng(4)
+  // One fixed seed and forty weeks used to be "enough" for an injury to
+  // turn up, until it was not, and the test failed for want of a patient.
+  // Injuries are rare by design, so several seeds are tried; the failure
+  // that matters is an injured man left training, not a lucky squad.
   let found = false
-  for (let w = 0; w < 40 && !found; w++) {
-    weeklyTick(g, rng)
-    const hurt = squadOf(g, g.myTeam).find((p) => p.injuredUntil > g.day)
-    if (hurt) { found = true; check('an injured player is put on rest', g.training[hurt.id] === 'rest', g.training[hurt.id]) }
-    g.day += 7
+  for (let seed = 4; seed < 40 && !found; seed++) {
+    const g = mk()
+    for (const p of squadOf(g, g.myTeam)) { g.training[p.id] = 'aim'; p.fatigue = 95 }
+    const rng = new Rng(seed)
+    for (let w = 0; w < 40 && !found; w++) {
+      weeklyTick(g, rng)
+      const hurt = squadOf(g, g.myTeam).find((p) => p.injuredUntil > g.day)
+      if (hurt) { found = true; check('an injured player is put on rest', g.training[hurt.id] === 'rest', g.training[hurt.id]) }
+      g.day += 7
+    }
   }
-  check('an injury actually occurred to test', found)
+  check('an injury actually occurred to test (within 36 seeds × 40 weeks)', found)
 }
 
 // ---- autoStarters does not field the injured

@@ -105,20 +105,31 @@ def main() -> int:
     short = [(t["tag"], len(t["roster"])) for t in teams if len(t["roster"]) < 5]
     check("every club can field five", not short, str(short))
 
-    # a roster that cannot cover the four core roles is a squad the sim punishes
-    thin_roles = []
+    # a roster that cannot cover the four core roles is a squad the sim punishes.
+    # The whole roster, not the first five: autoStarters may seat a sub to
+    # cover a role, and judging the first five alone flagged EF, GEN and AT
+    # whose bench covers the gap. A club short across all six or seven is
+    # the real finding (RA, 2026-09-03).
+    CORE = {"决斗者", "先锋", "控场", "哨卫"}
+    thin_roles, bench_only = [], []
     for t in teams:
-        covered = set()
-        for r in t["roster"][:5]:
-            covered.update(P[r].get("roles") or [P[r]["role"]])
-        gaps = {"决斗者", "先锋", "控场", "哨卫"} - covered
-        if gaps:
-            thin_roles.append((t["tag"], "".join(sorted(gaps))))
+        five, everyone = set(), set()
+        for i, r in enumerate(t["roster"]):
+            rs = set(P[r].get("roles") or [P[r]["role"]])
+            everyone |= rs
+            if i < 5:
+                five |= rs
+        if CORE - everyone:
+            thin_roles.append((t["tag"], "".join(sorted(CORE - everyone))))
+        elif CORE - five:
+            bench_only.append((t["tag"], "".join(sorted(CORE - five))))
     if thin_roles:
-        warn("starting fives cover all four core roles",
-             f"{len(thin_roles)} clubs short: {thin_roles[:6]}")
+        warn("every roster can cover the four core roles",
+             f"{len(thin_roles)} clubs cannot even with subs: {thin_roles[:6]}")
     else:
-        check("starting fives cover all four core roles", True)
+        check("every roster can cover the four core roles", True)
+    if bench_only:
+        print(f"        {len(bench_only)} clubs cover a core role only from the bench: {bench_only[:6]}")
 
     # ranges
     def out_of_range(key, lo, hi):

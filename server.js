@@ -32,10 +32,18 @@ import { overview, prune, storage } from './stats.js'
 import { ROLLUP_SCHEMA, history, rollup } from './rollup.js'
 import { dashboardHtml } from './dashboard.js'
 
-// Analytics is a side-car. Nothing in it is worth taking the game offline for,
-// so an unexpected throw anywhere is logged and the process keeps serving.
-process.on('uncaughtException', (err) => console.error('uncaught:', err?.message))
+// A rejected promise is logged and life goes on: the analytics side-car and
+// the odd lost client are where those come from, and none of it is worth
+// taking the game offline for. An uncaught synchronous throw is different —
+// the process is in a state nobody reasoned about — so it is logged and the
+// process exits, and the platform restarts it clean within seconds. It used
+// to keep serving; a review (2026-09-03) pointed out that nothing would ever
+// restart it then.
 process.on('unhandledRejection', (err) => console.error('unhandled:', err?.message))
+process.on('uncaughtException', (err) => {
+  console.error('uncaught, exiting for a clean restart:', err?.stack || err?.message)
+  setTimeout(() => process.exit(1), 300).unref?.()
+})
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'dist')
 const PORT = Number(process.env.PORT) || 8080
@@ -553,6 +561,11 @@ createServer((req, res) => {
     res.end(dashboardHtml())
     return
   }
+
+  // Anything under /api/ that no module claimed is a wrong address, and it
+  // should say so: falling through to index.html answered a mistyped route
+  // with HTTP 200 and a page, which is how a broken deploy looks fine.
+  if (path.startsWith('/api/')) { json(res, 404, { ok: false, why: 'no such route' }); return }
 
   let file = join(ROOT, normalize(path).replace(/^(\.\.[/\\])+/, ''))
   if (!file.startsWith(ROOT)) {

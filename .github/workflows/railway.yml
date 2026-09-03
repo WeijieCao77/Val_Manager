@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # Read the secret once at job level so the deploy step can test for it — a
     # secret cannot be referenced directly from an `if:` expression.
     #
@@ -32,6 +33,12 @@ jobs:
       - run: npm ci
       - run: npx tsc -b --noEmit
       - run: npm run build
+      # The game's own logic audit: every check_*.ts, the data audit, the
+      # concurrency and market cases. A commit that fails any of them does
+      # not deploy. Slow, deliberately — it was not here before, and two
+      # checks had been failing for days with nothing to say so.
+      - run: npm run audit
+        timeout-minutes: 30
 
       - name: Deploy
         if: env.HAS_TOKEN != ''

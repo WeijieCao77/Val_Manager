@@ -95,16 +95,35 @@ const mk = (): GameState => {
       .sort((a, b) => b - a)
     return os.slice(0, 10).reduce((a, b) => a + b, 0) / 10
   }
+  // "At least a point in two seasons" was written when the top ten sat at 85
+  // with room to spare. After the 2026-09-03 rating rework they open at 87.6,
+  // mostly 24-to-27-year-olds a few points under their ceilings, and a flat
+  // point would ask veterans to grow through their own potential. So two
+  // things are checked instead: the top ten still climb (no stagnation), and
+  // the young men in those squads — the ones with room — actually use it.
+  const topSquads = () => Object.values(g.teams)
+    .filter((t) => t.id !== g.myTeam)
+    .map((t) => squadOf(g, t.id).sort((a, b) => b.overall - a.overall).slice(0, 5))
+    .sort((a, b) => b.reduce((x, p) => x + p.overall, 0) - a.reduce((x, p) => x + p.overall, 0))
+    .slice(0, 10)
+    .flat()
   const start = top10mean()
+  const young = topSquads().filter((p) => p.age <= 23 && p.potential - p.overall >= 3)
+  const youngStart = young.map((p) => ({ p, o: p.overall, room: p.potential - p.overall }))
   for (let season = 0; season < 2; season++) {
     let guard = 0
     const y = g.year
     while (g.year === y && guard++ < 400) advanceDay(g, rng)
   }
   const end = top10mean()
-  check('two seasons on, the AI top ten mean rose at least a point',
-    end - start >= 1.0, `${start.toFixed(2)} → ${end.toFixed(2)}`)
+  check('two seasons on, the AI top ten mean still climbs', end - start >= 0.5,
+    `${start.toFixed(2)} → ${end.toFixed(2)} (+${(end - start).toFixed(2)})`)
   check('and did not run away', end <= 93, `${end.toFixed(2)}`)
+  const grown = youngStart.map(({ p, o, room }) => (p.overall - o) / room)
+  const share = grown.reduce((a, b) => a + b, 0) / Math.max(1, grown.length)
+  check(`the young in those squads close a quarter of their headroom (${youngStart.length} of them)`,
+    youngStart.length === 0 || share >= 0.25,
+    `mean ${(share * 100).toFixed(0)}% closed · ` + youngStart.slice(0, 5).map(({ p, o, room }) => `${p.ign} ${o}→${p.overall}/${o + room}`).join(', '))
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

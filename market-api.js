@@ -697,6 +697,15 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     }
     const [theirName, myName] = [await nameOf(row.from_h), await nameOf(me)]
     const out = await tx(async (db) => {
+      // The swap row is locked for the whole transaction, so two accepts of
+      // the same swap — two tabs, a double tap — queue behind each other and
+      // the second one finds it settled. Without this the second request
+      // used to see the card already gone from the account, mark the DONE
+      // swap declined unconditionally, and mail the proposer's card back on
+      // top of the one already delivered: one card in two inboxes.
+      const held = await db`
+        select id from card_swaps where id = ${row.id} and status = 'open' for update`
+      if (!held.length) return { gone: true }
       let level = 0
       const r = await editAccount(me, id, (g) => {
         if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
@@ -709,9 +718,13 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       if (!r.ok) {
         if (r.why === 'notOwned') {
           // they no longer hold it: the swap cannot happen, and the proposer
-          // should not wait three days to learn that
-          await db`update card_swaps set status = 'declined', settled = now() where id = ${row.id}`
-          await unwindSwap(row, '对方已经没有这张卡了', db)
+          // should not wait three days to learn that. Conditional on the row
+          // still being open, and the card goes home only if this is the
+          // request that closed it.
+          const closed = await db`
+            update card_swaps set status = 'declined', settled = now()
+            where id = ${row.id} and status = 'open' returning id`
+          if (closed.length) await unwindSwap(row, '对方已经没有这张卡了', db)
         }
         return { ok: false, why: r.why }
       }

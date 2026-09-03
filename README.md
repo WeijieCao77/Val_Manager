@@ -499,6 +499,10 @@ VCT 的零头，不是三成。
 
 没有 `DATABASE_URL` 时（比如本地跑），统计整体关闭，游戏行为和以前完全一样。数据库挂了或连不上也一样——**统计绝不能拖垮游戏**，这条实测过。
 
+**部署门禁**：推到 `main` 触发 `.github/workflows/railway.yml`，依次跑类型检查、构建、`npm run audit`（全部 68 步：
+每一个 `scripts/check_*.ts`、数据审计、交易并发用例），任何一步失败就不部署。审计脚本以前有 23 个不在链里、
+两个已经失败了好几天没人知道（2026-09-03 的代码审查发现），现在都在链里、都在门禁里。
+
 后台在 `/admin?token=…`，口令存在 Railway 环境变量 `ANALYTICS_TOKEN` 里，不在代码库中。页面打开后会把口令从地址栏里去掉，之后每个请求都用 `Authorization: Bearer` 头发送；直接调 `/api/admin/*` 也请用这个头（`?token=` 仍可用，但会留在历史记录和日志里）。口令不对一律返回 404 而不是 401——会承认自己存在的入口，别人就会再回来试。
 
 支持用的只读查询：`GET /api/admin/account?code=<8 位对战码>`（同样的头），返回这个账号的金币、卡数、最近 20 张挂牌（含状态和「比它新的在售挂牌数」）、最近 20 笔报价和最近 20 封信（含是否已领）。群里说「卡消失了」「钱没退」时先查这个，三张表一次看全。
@@ -596,7 +600,13 @@ src/
   public/faces/    选手照片（头像 192px、彩卡 360×500，webp）
   public/logos/    战队队标（256px webp）
 
-cards-api.js           服务端：/api/card/{day,claim,load,save}
+server.js              服务端入口：静态文件、/api/e 埋点、/api/stats、路由分发；启动时对账退款
+cards-api.js           /api/card/{day,claim,load,save,act,mail,friend_cards,puzzle}——卡牌模式，服务端权威
+market-api.js          /api/market/{browse,list,unlist,offer,offers,answer,swap,swaps,swap_answer,swap_cancel}
+profile-api.js         /api/profile/*——经理模式的云端存档
+site-api.js            /api/site/*（首页二维码等）与 /api/admin/{flag,grant,wechat,account}（口令保护）
+stats.js / rollup.js / analytics.js   游玩数据：事件校验、汇总表、清理、后台查询
+dashboard.js           /admin 后台页面
 
 scripts/
   build_world.py         由真实数据构建 world.json

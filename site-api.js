@@ -258,13 +258,22 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     const who = String(body?.who ?? '').trim()
     if (!/^[0-9A-Fa-f]{8}$/.test(who)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
     const on = body?.clear ? false : true
+    // Look before writing: eight hex characters can collide, and the update
+    // used to run against the prefix first and count the matches after, so
+    // a collision flagged (or pardoned) two accounts and then reported an
+    // error. Resolve the code to exactly one account, then write by its id.
+    const hits = await sql`
+      select id_hash, name from card_accounts where left(id_hash, 8) = ${who.toLowerCase()} limit 2`
+    if (!hits.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
+    if (hits.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
+    const target = hits[0].id_hash
     // Clearing is a pardon, and a pardon has to move the origin the save
     // check measures from — otherwise the very next save re-derives the same
     // flag from the same record. Flagging by hand withdraws any pardon.
     const r = on
       ? await sql`
           update card_accounts set suspect = true, pardon_seen = null, pardon_at = null
-          where left(id_hash, 8) = ${who.toLowerCase()}
+          where id_hash = ${target}
           returning id_hash, name`
       : await sql`
           update card_accounts
@@ -274,10 +283,9 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
                                     then (state->'ladder'->>'wins')::int + (state->'ladder'->>'losses')::int
                                     else 0 end,
                  pardon_at = now()
-          where left(id_hash, 8) = ${who.toLowerCase()}
+          where id_hash = ${target}
           returning id_hash, name`
     if (!r.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
-    if (r.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
     const shown = displayName(r[0].name, r[0].id_hash)
     json(res, 200, { ok: true, to: `${shown.name} #${shown.tag}`, suspect: on })
   }

@@ -192,6 +192,40 @@ check('按对战码能看到对方有哪些卡', fc.ok === true && Array.isArray
 check('只有卡的编号和等级，没有账号', !JSON.stringify(fc).includes('VM-') && !JSON.stringify(fc).includes('coins') && !JSON.stringify(fc).includes('id_hash'))
 check('没人用过的码是 missing', (await call('/api/card/friend_cards', { code: '00000000' })).missing === true)
 
+// ---- two accepts at once cannot mint a card ------------------------------
+// Found by a code review on 2026-09-03: the second of two simultaneous
+// accepts saw the card gone, flipped the DONE swap to declined without
+// checking, and mailed the proposer's card back on top of the copy already
+// delivered. Same swap, two requests, fired together.
+{
+  const C = 'VM-CCCC-CCCC-CCCC-CCCC-CCCC'
+  const D = 'VM-DDDD-DDDD-DDDD-DDDD-DDDD'
+  await call('/api/card/claim', { id: C, name: '丙' })
+  await call('/api/card/claim', { id: D, name: '丁' })
+  for (const id of [C, D]) await patch(id, 'pulls', TRADE_PULLS + 5)
+  await patch(C, 'cards', { [silver[5]]: owned(silver[5]) })
+  await patch(D, 'cards', { [silver[6]]: owned(silver[6]) })
+  for (const id of [C, D]) await patch(id, 'daily', { ...(await stored(id)).daily, stamina: STAMINA_MAX, staminaAt: Date.now() })
+  const made = await call('/api/market/swap', { id: C, code: codeOf(D), giveId: silver[5], wantId: silver[6] })
+  check('（准备）发起了一个交换', made.ok === true, JSON.stringify(made))
+  const sw = String(made.id)
+  const [r1, r2] = await Promise.all([
+    call('/api/market/swap_answer', { id: D, swap: sw, accept: true }),
+    call('/api/market/swap_answer', { id: D, swap: sw, accept: true }),
+  ])
+  const oks = [r1, r2].filter((r) => r.ok === true).length
+  check('两个同时的接受只有一个成交', oks === 1, JSON.stringify([r1, r2]).slice(0, 160))
+  const st = await sql`select status from card_swaps where id = ${sw}::bigint`
+  check('交换最后是 done，不是 declined', st[0].status === 'done', st[0].status)
+  const mc = await inbox(C)
+  const md = await inbox(D)
+  check('丙收到丁的卡，一张', mc.filter((m) => m.kind === 'swap_in' && m.cardId === silver[6]).length === 1, JSON.stringify(mc))
+  check('丙没有收到自己那张卡的「退回」', !mc.some((m) => m.kind === 'swap_back'), JSON.stringify(mc))
+  check('丁收到丙的卡，一张', md.filter((m) => m.kind === 'swap_in' && m.cardId === silver[5]).length === 1, JSON.stringify(md))
+  const copies = await sql`select count(*)::int as n from card_mail where card_id = ${silver[5]} and kind in ('swap_in', 'swap_back')`
+  check('丙那张卡在全部信件里只出现一次', copies[0].n === 1, String(copies[0].n))
+}
+
 // ---- nothing stranded ----------------------------------------------------
 {
   const open = await sql`select count(*)::int as n from card_swaps where status = 'open'`
