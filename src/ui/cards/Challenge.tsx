@@ -5,7 +5,7 @@ import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
   allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeToday,
-  evaluate, KIND_CN, revealed, triesLeft,
+  detail, evaluate, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
 
@@ -62,6 +62,86 @@ function rankMatches<T extends { id: string; name: string; hint: string }>(all: 
   return scored.sort((a, b) => b[0] - a[0]).map(([, c]) => c).slice(0, 8)
 }
 
+const blank = (w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] => {
+  const k = document.createElement('canvas')
+  k.width = Math.max(1, Math.round(w))
+  k.height = Math.max(1, Math.round(h))
+  const ctx = k.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  return [k, ctx]
+}
+
+/**
+ * A picture reduced to `cells` columns of colour.
+ *
+ * Shrunk to that many pixels across and grown back, so what comes out is the
+ * average colour of each patch and nothing finer. This replaces a canvas
+ * blur, which softened edges and kept every large shape — a crest blown up
+ * to twice the frame stayed readable through 22px of it, and a map's hard
+ * top and bottom edges showed at any radius. It also leaned on the canvas
+ * filter, which Safari before 18 does not have, and an unfiltered draw is
+ * the answer in the clear.
+ *
+ * Both directions go a factor of two at a time: one jump down aliases and
+ * keeps fine detail as speckle instead of averaging it away, and one jump up
+ * from a handful of pixels draws bilinear diamonds around every cell.
+ */
+function coarsen(src: HTMLCanvasElement, cells: number): HTMLCanvasElement {
+  const w = src.width
+  const h = src.height
+  if (!Number.isFinite(cells) || cells >= w) return src
+  const tw = Math.max(1, Math.round(cells))
+  const th = Math.max(1, Math.round((cells * h) / w))
+  let cur = src
+  while (cur.width / 2 > tw) {
+    const [k, ctx] = blank(Math.ceil(cur.width / 2), Math.ceil(cur.height / 2))
+    ctx.drawImage(cur, 0, 0, k.width, k.height)
+    cur = k
+  }
+  const [tiny, tctx] = blank(tw, th)
+  tctx.drawImage(cur, 0, 0, tw, th)
+  cur = tiny
+  while (cur.width * 2 < w) {
+    const [k, ctx] = blank(cur.width * 2, cur.height * 2)
+    ctx.drawImage(cur, 0, 0, k.width, k.height)
+    cur = k
+  }
+  const [out, octx] = blank(w, h)
+  octx.drawImage(cur, 0, 0, w, h)
+  return out
+}
+
+/**
+ * The frame at this many cells of detail.
+ *
+ * Three of the four kinds are square — faces 192², agents 128², crests 256²
+ * — and only a map is a 4.55:1 strip, so a frame that cropped or letterboxed
+ * gave the kind away from across the room. The picture is drawn whole and
+ * contained on a backdrop of itself blown up past the box and washed out,
+ * and then the whole frame is coarsened together: at the opening six cells
+ * the strip's edges and the backdrop are one smudge, and they separate only
+ * as the misses buy detail.
+ */
+function paintPuzzle(
+  ctx: CanvasRenderingContext2D, pic: HTMLImageElement,
+  w: number, h: number, zoom: number, cells: number,
+) {
+  const [frame, f] = blank(w, h)
+  // backdrop: the picture past the edges of the box, washed to eight cells
+  const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
+  const [back, b] = blank(w, h)
+  b.drawImage(pic, (w - pic.width * cover) / 2, (h - pic.height * cover) / 2, pic.width * cover, pic.height * cover)
+  f.globalAlpha = 0.75
+  f.drawImage(coarsen(back, 8), 0, 0)
+  f.globalAlpha = 1
+  // subject: the whole picture, contained
+  const fit = Math.min(w / pic.width, h / pic.height) * zoom
+  f.drawImage(pic, (w - pic.width * fit) / 2, (h - pic.height * fit) / 2, pic.width * fit, pic.height * fit)
+  ctx.clearRect(0, 0, w, h)
+  ctx.drawImage(coarsen(frame, cells), 0, 0)
+}
+
 export default function Challenge() {
   const { g, today, act, toast } = useCards()
   const [query, setQuery] = useState('')
@@ -112,12 +192,12 @@ export default function Challenge() {
 
   // how much of the picture is showing: nothing at the start, all of it at the end
   const show = state.done ? 1 : revealed(used)
-  const blur = Math.round((1 - show) * 22)
   const zoom = 1 + (1 - show) * 1.6
+  const cells = state.done ? Infinity : detail(used)
 
   // The picture comes from a route that names nothing — POST, no id in the
   // address, a generic file name — and is painted onto a canvas at the
-  // current blur. It used to be an <img> of faces/P267.webp: drag it to the
+  // current detail. It used to be an <img> of faces/P267.webp: drag it to the
   // desktop and the file name was the answer, at full clarity.
   const canvas = useRef<HTMLCanvasElement | null>(null)
   const [pic, setPic] = useState<HTMLImageElement | null>(null)
@@ -147,24 +227,14 @@ export default function Challenge() {
     if (!c || !pic) return
     const w = c.clientWidth || 600
     const h = 210
-    c.width = w; c.height = h
+    // device pixels, or the answer is soft even once it is in the clear
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    c.width = Math.round(w * dpr)
+    c.height = Math.round(h * dpr)
     const ctx = c.getContext('2d')
     if (!ctx) return
-    ctx.clearRect(0, 0, w, h)
-    // backdrop: the picture blown up to cover the box, blurred hard
-    const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
-    ctx.save()
-    ctx.globalAlpha = 0.75
-    ctx.filter = `blur(${blur + 16}px) saturate(1.2)`
-    ctx.drawImage(pic, (w - pic.width * cover) / 2, (h - pic.height * cover) / 2, pic.width * cover, pic.height * cover)
-    ctx.restore()
-    // subject: the whole picture, contained, at the current blur
-    const fit = Math.min(w / pic.width, h / pic.height) * zoom
-    ctx.save()
-    ctx.filter = `blur(${blur}px)`
-    ctx.drawImage(pic, (w - pic.width * fit) / 2, (h - pic.height * fit) / 2, pic.width * fit, pic.height * fit)
-    ctx.restore()
-  }, [pic, blur, zoom])
+    paintPuzzle(ctx, pic, c.width, c.height, zoom, cells)
+  }, [pic, zoom, cells])
 
   return (
     <>
@@ -187,16 +257,7 @@ export default function Challenge() {
           没猜中退一半。
         </p>
 
-        {/* The subject.
-            Three of the four kinds are square — faces are 192², agents 128²,
-            crests 256² — and only a map is a 4.55:1 strip. A flat banner frame
-            with object-fit:cover therefore sliced a band out of the middle of
-            every portrait, and was the one shape a map filled naturally, which
-            gave the kind away from across the room.
-            So: the image whole, on a backdrop of itself blown up and blurred.
-            Nothing is cropped, the letterbox that would betray the aspect
-            ratio is filled in, and at the opening blur the whole box is one
-            smudge whatever is under it. */}
+        {/* The subject — see paintPuzzle for why it is drawn the way it is. */}
         <div style={{
           position: 'relative', height: 210, borderRadius: 4, overflow: 'hidden',
           background: 'var(--panel-2)', marginBottom: 12,

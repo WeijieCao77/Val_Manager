@@ -821,7 +821,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
 }
 .cardface.tap { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
-.cardface.tap:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0, 0, 0, .55); }
 .cardface.dim { opacity: .38; filter: grayscale(.5); }
 .cardface.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -1037,6 +1036,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
+  /* a card is capped at 150px; in a wider column it sits in the middle
+     rather than against the left edge */
+  justify-items: center;
 }
 @media (max-width: 720px) {
   .cm-squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1045,13 +1047,32 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 
 /* ---- pack opening ----------------------------------------------------- */
 
+/* A scroll container, not a centred grid cell.
+ *
+ * Ten cards at 96px are four rows on a phone — about 740px with the buttons
+ * — and a phone's Safari viewport is 660. `place-items: center` on a fixed
+ * box that does not scroll centres an overflowing child, so the top row and
+ * the 收下 button were both off-screen with no way to reach them: the way out
+ * was to reload the page or shrink it. Auto margins centre the reveal the
+ * same way when it fits, and let it scroll from the top when it does not. */
 .pack-stage {
   position: fixed; inset: 0; z-index: 60;
   background: radial-gradient(70% 60% at 50% 40%, #1d2b3c 0%, #080c12 78%);
-  display: grid; place-items: center;
+  display: flex; flex-direction: column; align-items: center;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 20px;
 }
-.pack-reveal { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pack-reveal { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; }
+/* the buttons ride the bottom edge while the strip scrolls under them, so
+   收下 is in reach before the last row is */
+.pack-actions {
+  position: sticky; bottom: 0; z-index: 1;
+  display: flex; gap: 8px; justify-content: center;
+  width: 100%;
+  margin-top: -8px;
+  padding: 14px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(8, 12, 18, .97) 65%, rgba(8, 12, 18, 0));
+}
 .pack-card { animation: pack-in .42s cubic-bezier(.2, .9, .3, 1.2) both; }
 @keyframes pack-in {
   from { opacity: 0; transform: translateY(26px) scale(.86) rotateY(28deg); }
@@ -1542,12 +1563,17 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   padding: 2px 5px;
 }
 
-/* hover lifts the whole thing rather than just nudging it */
-.cardface.tap:hover {
-  transform: translateY(-4px) scale(1.015);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .6);
+/* Hover lifts the whole thing rather than just nudging it — on a device that
+ * can hover. A phone applies :hover to whatever was last tapped and leaves
+ * it there, so the card just chosen for the squad sat four pixels above its
+ * neighbours and a touch larger, which read as one card out of line. */
+@media (hover: hover) {
+  .cardface.tap:hover {
+    transform: translateY(-4px) scale(1.015);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .6);
+  }
+  .cardface.r-mythic.tap:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, .6), 0 0 26px rgba(180, 120, 255, .35); }
 }
-.cardface.r-mythic.tap:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, .6), 0 0 26px rgba(180, 120, 255, .35); }
 
 /* ---------------------------------------------------------------- crests
 

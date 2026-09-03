@@ -377,6 +377,23 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
 export const revealed = (used: number): number =>
   Math.min(1, used / (CHALLENGE_TRIES - 1))
 
+/**
+ * How finely the picture is drawn: cells across the frame.
+ *
+ * The screen shrinks the frame to this many pixels wide and grows it back,
+ * so nothing finer than a cell survives — at six cells a crest is a few
+ * patches of colour whatever its shape, and a map's hard top and bottom
+ * edges are averaged into the backdrop. Blur was tried first and is the
+ * wrong tool: it softens edges but keeps every large shape, and the first
+ * screenshots from the group were a map you could name unguessed and a
+ * crest you could read through it. Each miss buys a real step (6 → 10 → 17
+ * → 28 → 48, a factor of 1.68), and the last guess is made on the picture
+ * as it is. Relative to the frame rather than in pixels, so a phone and a
+ * desktop are equally hard.
+ */
+export const detail = (used: number): number =>
+  used >= CHALLENGE_TRIES - 1 ? Infinity : Math.round(6 * 1.68 ** used)
+
 // ---------------------------------------------------------------- rewards
 
 export interface ChallengeReward {

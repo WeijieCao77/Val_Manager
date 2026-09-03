@@ -319,7 +319,7 @@ function PackStage({
   const dupes = pulled.filter((p) => p.dupe).length
 
   const actions = (
-    <div className="row" style={{ gap: 8 }}>
+    <div className="pack-actions">
       {dupes > 0 && (
         <button onClick={(e) => { e.stopPropagation(); onSellAll() }}>
           分解 {dupes} 张重复卡

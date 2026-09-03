@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import {
   allChoices, answerFor, CHALLENGE_COST, CHALLENGE_REFUND, CHALLENGE_TRIES,
   challengeBlock, challengeToday, choicesFor, evaluate, guessChallenge, kindFor, kindOfId,
-  newChallenge, rewardFor,
+  detail, newChallenge, rewardFor,
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
 import { newGacha, PACKS } from '../src/engine/gacha'
@@ -278,6 +278,22 @@ const dateAt = (n: number): string =>
   }
   console.log(`  两周里，把答案抄给别的账号还能用的比例：${(same / total * 100).toFixed(1)}%`)
   check('抄答案基本上没用了', same / total < 0.15, `${same}/${total}`)
+}
+
+// ---- 图有多糊 -----------------------------------------------------------
+//
+// The picture is drawn at `detail(used)` cells across the frame. The opening
+// frame has to be a few patches of colour — a crest at six cells cannot be
+// read, at sixteen it can — and every miss has to buy a real step of clarity.
+{
+  const steps = Array.from({ length: CHALLENGE_TRIES }, (_, i) => detail(i))
+  console.log(`\n每猜错一次的清晰度（横向格数）：${steps.map((s) => (Number.isFinite(s) ? s : '原图')).join(' → ')}`)
+  check('开局最多八格，看不出是人是队', steps[0] <= 8, `${steps[0]}`)
+  check('最后一次猜的时候是原图', !Number.isFinite(steps[CHALLENGE_TRIES - 1]))
+  for (let i = 1; i < CHALLENGE_TRIES - 1; i++) {
+    check(`猜错 ${i} 次比 ${i - 1} 次至少清楚一半`, steps[i] >= steps[i - 1] * 1.5, `${steps[i - 1]} → ${steps[i]}`)
+  }
+  check('猜完之后不会再变', detail(CHALLENGE_TRIES) === Infinity && detail(CHALLENGE_TRIES + 3) === Infinity)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
