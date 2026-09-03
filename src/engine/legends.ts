@@ -80,7 +80,7 @@ export const LEGENDS: Legend[] = [
     id: 'L:zmjjkk-champions-2024',
     ign: 'ZmjjKK', title: '2024 首尔冠军赛 FMVP', short: '24 首尔 FMVP',
     year: 2024, kind: 'fmvp', clubId: 'T36', clubTag: 'EDG',
-    rating: 96,
+    rating: 97,
     note: 'EDG 3–2 Heretics，决赛五图 111 杀创纪录，中国赛区首个国际冠军。',
   },
   {
@@ -185,6 +185,16 @@ export const LEGENDS: Legend[] = [
     // 62 today. He called both of those wins; the card is the shelf, not the aim
     rating: 86,
     note: '那支 FNATIC 的指挥。数据从来不好看，但两座大赛冠军是他喊下来的。',
+  },
+  {
+    id: 'L:izu-bangkok-2025',
+    ign: 'iZu', title: '2025 曼谷大师赛 冠军', short: '25 曼谷冠军',
+    year: 2025, kind: 'icon', clubId: 'T25', clubTag: 'T1',
+    rating: 94,
+    // Meteor took the trophy; iZu carried the tournament — T1's best line
+    // in Bangkok by a distance, 453 rounds at R 1.13, K/D 1.24, KAST 75%,
+    // fifth of every player at the event. 「曼谷大师赛发挥爆种」.
+    note: 'T1 曼谷登顶那两周的最稳一环：453 回合 R 1.13、K/D 1.24，全队第一，全赛事第五。',
   },
   {
     id: 'L:jinggg-toronto-2025',

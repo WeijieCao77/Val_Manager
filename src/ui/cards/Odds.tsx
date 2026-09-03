@@ -126,7 +126,7 @@ export function OddsWhy() {
         </li>
       </ul>
       <p className="tiny faint" style={{ marginBottom: 0 }}>
-        彩卡是二十张「某个夜晚」的纪念卡，本来就设计成中不了的东西。
+        彩卡是二十一张「某个夜晚」的纪念卡，本来就设计成中不了的东西。
         它稀有不是为了让你多花钱——这个游戏不卖任何东西。
       </p>
     </>
