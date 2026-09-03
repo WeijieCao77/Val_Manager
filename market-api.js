@@ -384,6 +384,43 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     json(res, 200, out)
   }
 
+  /**
+   * Take a bid back.
+   *
+   * The clock returns an unanswered offer after three days, but three days is
+   * a long time to have coins locked on a seller who has simply stopped
+   * playing — 「如果卖家一直不同意报价钱就卡在那了」. A bid still open is the
+   * buyer's to withdraw at any moment. Like every other escrow it goes home
+   * through the inbox; and it does not count against the listing, because
+   * the seller was not the one who let it lapse.
+   */
+  async function withdraw(req, res, bucket) {
+    if (guard(req, res, `mw:${bucket}`, 30)) return
+    await sweep()
+    let b
+    try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    const oid = rowId(b?.offer)
+    if (!oid) { json(res, 400, { ok: false, bad: true }); return }
+    const out = await tx(async (db) => {
+      const rows = await db`
+        update card_offers set status = 'withdrawn', settled = now()
+        where id = ${oid}::bigint and buyer_h = ${me} and status = 'open'
+        returning id, listing, price`
+      if (!rows.length) return { gone: true }
+      const o = rows[0]
+      const l = await db`select card_id from card_listings where id = ${o.listing}`
+      await post(me, 'offer_withdrawn', {
+        coins: o.price,
+        body: { listing: String(o.listing), cardId: l[0]?.card_id ?? null, price: o.price },
+      }, db)
+      return { ok: true, coins: o.price }
+    })
+    json(res, 200, out.gone ? { ok: false, gone: true } : out)
+  }
+
   /** Offers on my listings, and my own bids. */
   async function offers(req, res, bucket) {
     if (guard(req, res, `mq:${bucket}`, 90)) return
@@ -777,6 +814,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       if (path === '/api/market/unlist') { await unlist(req, res, bucket); return true }
       if (path === '/api/market/offer') { await offer(req, res, bucket); return true }
       if (path === '/api/market/offers') { await offers(req, res, bucket); return true }
+      if (path === '/api/market/withdraw') { await withdraw(req, res, bucket); return true }
       if (path === '/api/market/answer') { await answer(req, res, bucket); return true }
       if (path === '/api/market/mail') { await mail(req, res, bucket); return true }
       return false

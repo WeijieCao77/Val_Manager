@@ -509,6 +509,8 @@ VCT 的零头，不是三成。
 
 交易区货架显示别人最新的 400 张（`SHELF`），自己挂的牌不计入窗口、永远显示；回复里带 `total`（全站在售总数），页面会标出来。
 
+报价可以由买家自己撤回（`POST /api/market/withdraw {offer}`）：托管的金币以 `offer_withdrawn` 信件退回，挂牌不动、不计入卖家的「没反馈」，撤回后可以再出价。`check_market.ts` 覆盖这一路。
+
 | 文件 | 职责 |
 | --- | --- |
 | `src/engine/telemetry.ts` | 浏览器端：匿名 ID、会话、活跃计时、批量上报 |

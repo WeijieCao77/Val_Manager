@@ -22,6 +22,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-03',
+    title: '交易区：出了价可以自己撤回',
+    changes: [
+      { kind: '新增', text: '「我出的价」每一条多了「撤回」。卖家一直不回复时不用再等三天，撤回后金币退到信箱，挂牌照旧、不算卖家没反馈，之后还能再出价。' },
+    ],
+  },
+  {
+    date: '2026-09-03',
     title: 'AI 俱乐部怎么成长：按位置练、累了会休息、只重点培养年轻人',
     changes: [
       { kind: '调整', text: 'AI 俱乐部按位置重点训练，一个项目练到涨为止，累了会休息，不再永远练最低的那项。' },

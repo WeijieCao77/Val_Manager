@@ -25,11 +25,11 @@ export async function owed(sql) {
   const rows = await sql`
     with lost as (
       select buyer_h, sum(price)::int as due
-      from card_offers where status in ('expired', 'declined')
+      from card_offers where status in ('expired', 'declined', 'withdrawn')
       group by buyer_h),
     back as (
       select to_h as buyer_h, sum(coins)::int as got
-      from card_mail where kind in ('offer_expired', 'offer_declined', 'outbid')
+      from card_mail where kind in ('offer_expired', 'offer_declined', 'offer_withdrawn', 'outbid')
       group by to_h)
     select l.buyer_h, l.due, coalesce(b.got, 0) as got
     from lost l left join back b on b.buyer_h = l.buyer_h

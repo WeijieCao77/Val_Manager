@@ -15,7 +15,7 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, myOffers, unlistCard,
+  answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, myOffers, unlistCard, withdrawOffer,
 } from '../../engine/market'
 import type { Gate, Listing, Offer } from '../../engine/market'
 import { takeServer } from '../../engine/account'
@@ -128,6 +128,17 @@ export default function Market() {
     setBusy(false)
     if (!r?.ok) { toast('这个报价已经失效了。'); void refresh(); return }
     toast(accept ? `成交，${money(o.price)} 金币会到你的信箱。` : '已拒绝。对方的金币退回给他。')
+    void refresh()
+  }
+
+  // the buyer's side of 撤回: a bid the seller has not answered is his to
+  // take back, and the coins come home the same way everything else does
+  const takeBack = async (o: Offer) => {
+    setBusy(true)
+    const r = await withdrawOffer(o.id)
+    setBusy(false)
+    if (!r?.ok) { toast('这个报价已经不在了。'); void refresh(); return }
+    toast(`已撤回，${money(o.price)} 金币会回到你的信箱。`)
     void refresh()
   }
 
@@ -245,10 +256,11 @@ export default function Market() {
                 <span className="tiny faint"> · 卖家 {o.who} · 挂 {money(o.ask)}</span>
               </div>
               <span className="mono">{money(o.price)}</span>
+              <button className="sm ghost" disabled={busy} onClick={() => void takeBack(o)}>撤回</button>
             </div>
           ))}
           <p className="tiny faint" style={{ marginBottom: 0 }}>
-            这些金币已经从你身上扣掉、由服务器托管。买到了就换成卡，被拒或者 {days} 天没人理会自动退回。
+            这些金币已经从你身上扣掉、由服务器托管。买到了就换成卡；被拒、你自己撤回，或者 {days} 天没人理，都退回信箱。
           </p>
         </Panel>
       )}

@@ -80,6 +80,7 @@ export function mailLine(m: MailItem): string {
     case 'outbid': return `${nameOf(String(m.body?.cardId ?? ''))} 被别人买走了，你的 ${m.coins} 金币退回`
     case 'offer_declined': return `对方拒绝了你的报价，${m.coins} 金币退回`
     case 'offer_expired': return `报价过期或挂牌撤回，${m.coins} 金币退回`
+    case 'offer_withdrawn': return `你撤回了对 ${nameOf(String(m.body?.cardId ?? ''))} 的报价，${m.coins} 金币退回`
     case 'offer_made': return `${who} 对你的 ${nameOf(String(m.body?.cardId ?? ''))} 出价 ${m.body?.price}（挂 ${m.body?.ask}）`
     case 'listing_pulled': return `${nameOf(m.cardId ?? '')} 已撤回`
     case 'listing_expired': return `${nameOf(m.cardId ?? '')} 连续三次没回复报价，已自动下架并退回`

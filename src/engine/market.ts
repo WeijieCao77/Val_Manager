@@ -110,3 +110,5 @@ export const cancelSwap = (swap: string) => post<Record<string, unknown>>('swap_
 export const bidOn = (listing: string, price: number) => post<WithState>('offer', { listing, price })
 export const answerOffer = (offer: string, accept: boolean) =>
   post<Record<string, unknown>>('answer', { offer, accept })
+/** Take my own bid back; the coins come home through the inbox. */
+export const withdrawOffer = (offer: string) => post<Record<string, unknown>>('withdraw', { offer })
