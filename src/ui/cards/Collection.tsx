@@ -82,10 +82,10 @@ export default function Collection() {
               </div>
             )
           })}
-          {!allSets && sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).length === 0 && (
-            <p className="empty">还没有哪支队快集齐。点「看全部」看每支队差多少。</p>
-          )}
         </div>
+        {!allSets && sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).length === 0 && (
+          <p className="empty">还没有哪支队快集齐。点「看全部」看每支队差多少。</p>
+        )}
       </Panel>
 
       <Panel
