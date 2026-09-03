@@ -1,0 +1,2689 @@
+{
+ "BABYBAY": {
+  "page": null,
+  "titles": []
+ },
+ "artzin": {
+  "page": "Artzin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "aspas": {
+  "page": "Aspas",
+  "country": "Brazil",
+  "titles": [
+   {
+    "year": 2022,
+    "kind": "champions",
+    "event": "VALORANT Champions 2022"
+   }
+  ]
+ },
+ "Asuna": {
+  "page": "Asuna",
+  "country": "United States",
+  "titles": []
+ },
+ "bang": {
+  "page": "Bang",
+  "country": "United States",
+  "titles": []
+ },
+ "basic": {
+  "page": "Basic",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Bati": {
+  "page": "Bati",
+  "country": "Portugal",
+  "titles": []
+ },
+ "blowz": {
+  "page": "Blowz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "brawk": {
+  "page": "Brawk",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2025,
+    "kind": "champions",
+    "event": "VALORANT Champions 2025"
+   }
+  ]
+ },
+ "C0M": {
+  "page": "C0M",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2023,
+    "kind": "champions",
+    "event": "VALORANT Champions 2023"
+   }
+  ]
+ },
+ "cauanzin": {
+  "page": "Cauanzin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "cortezia": {
+  "page": "Cortezia",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Cryocells": {
+  "page": "Cryocells",
+  "country": "United States",
+  "titles": []
+ },
+ "Dantedeu5": {
+  "page": "Dantedeu5",
+  "country": "Argentina",
+  "titles": []
+ },
+ "Darker": {
+  "page": "Darker",
+  "country": "Colombia",
+  "titles": []
+ },
+ "DaviH": {
+  "page": "DaviH",
+  "country": "Portugal",
+  "titles": []
+ },
+ "eeiu": {
+  "page": "Eeiu",
+  "country": "Canada",
+  "titles": []
+ },
+ "erde": {
+  "page": "Erde",
+  "country": "Chile",
+  "titles": []
+ },
+ "Ethan": {
+  "page": "Ethan",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2023,
+    "kind": "champions",
+    "event": "VALORANT Champions 2023"
+   },
+   {
+    "year": 2025,
+    "kind": "champions",
+    "event": "VALORANT Champions 2025"
+   }
+  ]
+ },
+ "heat": {
+  "page": "Heat",
+  "country": "Brazil",
+  "titles": []
+ },
+ "jawgemo": {
+  "page": "Jawgemo",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2023,
+    "kind": "champions",
+    "event": "VALORANT Champions 2023"
+   }
+  ]
+ },
+ "Jerrwin": {
+  "page": "Jerrwin",
+  "country": "Canada",
+  "titles": []
+ },
+ "johnqt": {
+  "page": "Johnqt",
+  "country": "Morocco",
+  "titles": []
+ },
+ "JonahP": {
+  "page": "JonahP",
+  "country": "Canada",
+  "titles": []
+ },
+ "keiko": {
+  "page": "Keiko",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "kiNgg": {
+  "page": "KiNgg",
+  "country": "Chile",
+  "titles": []
+ },
+ "koalanoob": {
+  "page": "Koalanoob",
+  "country": "Canada",
+  "titles": []
+ },
+ "leaf": {
+  "page": "Leaf",
+  "country": "United States",
+  "titles": []
+ },
+ "Less": {
+  "page": "Less",
+  "country": "Brazil",
+  "titles": [
+   {
+    "year": 2022,
+    "kind": "champions",
+    "event": "VALORANT Champions 2022"
+   }
+  ]
+ },
+ "lukxo": {
+  "page": "Lukxo",
+  "country": "Brazil",
+  "titles": []
+ },
+ "mada": {
+  "page": "Mada",
+  "country": "Canada",
+  "titles": [
+   {
+    "year": 2025,
+    "kind": "champions",
+    "event": "VALORANT Champions 2025"
+   }
+  ]
+ },
+ "Marved": {
+  "page": "Marved",
+  "country": "Canada",
+  "titles": []
+ },
+ "Mazino": {
+  "page": "Mazino",
+  "country": "Chile",
+  "titles": []
+ },
+ "mwzera": {
+  "page": "Mwzera",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Neon": {
+  "page": "Neon",
+  "country": "Philippines",
+  "titles": []
+ },
+ "OXY": {
+  "page": "OXY",
+  "country": "United States",
+  "titles": []
+ },
+ "Reduxx": {
+  "page": "Reduxx",
+  "country": "United States",
+  "titles": []
+ },
+ "saadhak": {
+  "page": "Saadhak",
+  "country": "Argentina",
+  "titles": [
+   {
+    "year": 2022,
+    "kind": "champions",
+    "event": "VALORANT Champions 2022"
+   }
+  ]
+ },
+ "Sato": {
+  "page": "Sato",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Shyy": {
+  "page": "Shyy",
+  "country": "Chile",
+  "titles": []
+ },
+ "skuba": {
+  "page": "Skuba",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2025,
+    "kind": "champions",
+    "event": "VALORANT Champions 2025"
+   }
+  ]
+ },
+ "tex": {
+  "page": "Tex",
+  "country": "United States",
+  "titles": []
+ },
+ "Timotino": {
+  "page": "Timotino",
+  "country": "Canada",
+  "titles": []
+ },
+ "tkzin": {
+  "page": "Tkzin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "trent": {
+  "page": "Trent",
+  "country": "United States",
+  "titles": []
+ },
+ "valyn": {
+  "page": "Valyn",
+  "country": "United States",
+  "titles": []
+ },
+ "Verno": {
+  "page": "Verno",
+  "country": "United States",
+  "titles": []
+ },
+ "vora": {
+  "page": "Vora",
+  "country": "United States",
+  "titles": []
+ },
+ "zekken": {
+  "page": "Zekken",
+  "country": "United States",
+  "titles": []
+ },
+ "spike": {
+  "page": "SpikeziN",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Alfajer": {
+  "page": "Alfajer",
+  "country": "Turkey",
+  "titles": []
+ },
+ "ara": {
+  "page": "Ara",
+  "country": "Romania",
+  "titles": []
+ },
+ "bao": {
+  "page": "Bao",
+  "country": "Lithuania",
+  "titles": []
+ },
+ "benjyfishy": {
+  "page": "Benjyfishy",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "Boaster": {
+  "page": "Boaster",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "Boo": {
+  "page": "Boo",
+  "country": "Lithuania",
+  "titles": []
+ },
+ "Chronicle": {
+  "page": "Chronicle",
+  "country": "Russia",
+  "titles": []
+ },
+ "Cloud": {
+  "page": "Cloud",
+  "country": "Russia",
+  "titles": []
+ },
+ "crashies": {
+  "page": "Crashies",
+  "country": "United States",
+  "titles": []
+ },
+ "Crewen": {
+  "page": "Crewen",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Demon1": {
+  "page": "Demon1",
+  "country": "United States",
+  "titles": [
+   {
+    "year": 2023,
+    "kind": "champions",
+    "event": "VALORANT Champions 2023"
+   }
+  ]
+ },
+ "Derke": {
+  "page": "Derke",
+  "country": "Finland",
+  "titles": []
+ },
+ "Desmo": {
+  "page": "Desmo",
+  "country": "Denmark",
+  "titles": []
+ },
+ "dgzin": {
+  "page": "Dgzin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Eggsterr": {
+  "page": "Eggsterr",
+  "country": "United States",
+  "titles": []
+ },
+ "FireBallOps": {
+  "page": "FireBallOps",
+  "country": "United States",
+  "titles": []
+ },
+ "Flickless": {
+  "page": "Flickless",
+  "country": "Belgium",
+  "titles": []
+ },
+ "GLYPH": {
+  "page": "GLYPH",
+  "country": "Philippines",
+  "titles": []
+ },
+ "Jackk": {
+  "page": "Jackk",
+  "country": "United States",
+  "titles": []
+ },
+ "Jamppi": {
+  "page": "Jamppi",
+  "country": "Finland",
+  "titles": []
+ },
+ "Jesse": {
+  "page": "Jesse",
+  "country": "Czech Republic",
+  "titles": []
+ },
+ "KROSTALY": {
+  "page": "KROSTALY",
+  "country": "Turkey",
+  "titles": []
+ },
+ "kaajak": {
+  "page": "Kaajak",
+  "country": "Poland",
+  "titles": []
+ },
+ "kamo": {
+  "page": "Kamo",
+  "country": "Poland",
+  "titles": []
+ },
+ "keznit": {
+  "page": "Keznit",
+  "country": "Chile",
+  "titles": []
+ },
+ "koshmaras": {
+  "page": "Koshmaras",
+  "country": "Lithuania",
+  "titles": []
+ },
+ "Lar0k": {
+  "page": "Lar0k",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Loita": {
+  "page": "Loita",
+  "country": "Turkey",
+  "titles": []
+ },
+ "lovers rock": {
+  "page": "Lovers rock",
+  "country": "Turkey",
+  "titles": []
+ },
+ "neT": {
+  "page": "NeT",
+  "country": "United States",
+  "titles": []
+ },
+ "nightz": {
+  "page": "Nightz",
+  "country": "United States",
+  "titles": []
+ },
+ "P0PPIN": {
+  "page": "P0PPIN",
+  "country": "United States",
+  "titles": []
+ },
+ "PROFEK": {
+  "page": "PROFEK",
+  "country": "Poland",
+  "titles": []
+ },
+ "Paincakes": {
+  "page": "Paincakes",
+  "country": "United States",
+  "titles": []
+ },
+ "RieNs": {
+  "page": "RieNs",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Rossy": {
+  "page": "Rossy",
+  "country": "United States",
+  "titles": []
+ },
+ "Rosé": {
+  "page": "Rosé",
+  "country": "Turkey",
+  "titles": []
+ },
+ "s0pp": {
+  "page": "S0pp",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Sayonara": {
+  "page": "Sayonara",
+  "country": "Moldova",
+  "titles": []
+ },
+ "sociablEE": {
+  "page": "SociablEE",
+  "country": "Turkey",
+  "titles": []
+ },
+ "supamen": {
+  "page": "Supamen",
+  "country": "United States",
+  "titles": []
+ },
+ "trexx": {
+  "page": "Trexx",
+  "country": "Russia",
+  "titles": []
+ },
+ "v1c": {
+  "page": "V1c",
+  "country": "United States",
+  "titles": []
+ },
+ "Veqaj": {
+  "page": "Veqaj",
+  "country": "France",
+  "titles": []
+ },
+ "westside": {
+  "page": "Westside",
+  "country": "Poland",
+  "titles": []
+ },
+ "Wo0t": {
+  "page": "Wo0t",
+  "country": "Turkey",
+  "titles": []
+ },
+ "xeus": {
+  "page": "Xeus",
+  "country": "Turkey",
+  "titles": []
+ },
+ "yetujey": {
+  "page": "Yetujey",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Zellsis": {
+  "page": "Zellsis",
+  "country": "United States",
+  "titles": []
+ },
+ "zerona": {
+  "page": "Zerona",
+  "country": "Mexico",
+  "titles": []
+ },
+ "LewN": {
+  "page": null,
+  "titles": []
+ },
+ "al0rante": {
+  "page": "Al0rante",
+  "country": "Germany",
+  "titles": []
+ },
+ "audaz": {
+  "page": "Audaz",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Avez": {
+  "page": "Avez",
+  "country": "Egypt",
+  "titles": []
+ },
+ "bipo": {
+  "page": "Bipo",
+  "country": "Italy",
+  "titles": []
+ },
+ "BuZz": {
+  "page": "BuZz",
+  "country": "South Korea",
+  "titles": []
+ },
+ "chloric": {
+  "page": "Chloric",
+  "country": "United States",
+  "titles": []
+ },
+ "CyvOph": {
+  "page": "CyvOph",
+  "country": "France",
+  "titles": []
+ },
+ "d4v41": {
+  "page": "D4v41",
+  "country": "Malaysia",
+  "titles": []
+ },
+ "DH": {
+  "page": "DH",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Dambi": {
+  "page": "Dambi",
+  "country": "South Korea",
+  "titles": []
+ },
+ "dos9": {
+  "page": "Dos9",
+  "country": "Kazakhstan",
+  "titles": []
+ },
+ "ExiT": {
+  "page": "ExiT",
+  "country": "Saudi Arabia",
+  "titles": []
+ },
+ "f0rsakeN": {
+  "page": "F0rsakeN",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "Favian": {
+  "page": "Favian",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Filu": {
+  "page": "Filu",
+  "country": "Poland",
+  "titles": []
+ },
+ "H1ber": {
+  "page": "H1ber",
+  "country": "Finland",
+  "titles": []
+ },
+ "hiro": {
+  "page": "Hiro",
+  "country": "Netherlands",
+  "titles": []
+ },
+ "iZu": {
+  "page": "IZu",
+  "country": "South korea",
+  "titles": []
+ },
+ "invy": {
+  "page": "Invy",
+  "country": "Philippines",
+  "titles": []
+ },
+ "Ivy": {
+  "page": "Ivy",
+  "country": "Colombia",
+  "titles": []
+ },
+ "Izzy": {
+  "page": "Izzy",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Jinggg": {
+  "page": "Jinggg",
+  "country": "Singapore",
+  "titles": []
+ },
+ "Kicks": {
+  "page": "Kicks",
+  "country": "Estonia",
+  "titles": []
+ },
+ "marteen": {
+  "page": "Marteen",
+  "country": "Czech Republic",
+  "titles": []
+ },
+ "Meteor": {
+  "page": "Meteor",
+  "country": "South Korea",
+  "titles": []
+ },
+ "MiniBoo": {
+  "page": "MiniBoo",
+  "country": "Lithuania",
+  "titles": []
+ },
+ "Minny": {
+  "page": "Minny",
+  "country": "Czech Republic",
+  "titles": []
+ },
+ "Munchkin": {
+  "page": "Munchkin",
+  "country": "South Korea",
+  "titles": []
+ },
+ "N4RRATE": {
+  "page": "N4RRATE",
+  "country": "United States",
+  "titles": []
+ },
+ "nAts": {
+  "page": "NAts",
+  "country": "Russia",
+  "titles": []
+ },
+ "NINJA": {
+  "page": "NINJA",
+  "country": "Poland",
+  "titles": []
+ },
+ "nekky": {
+  "page": "Nekky",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Proxh": {
+  "page": "Proxh",
+  "country": "Germany",
+  "titles": []
+ },
+ "purp0": {
+  "page": "Purp0",
+  "country": "Russia",
+  "titles": []
+ },
+ "qpert": {
+  "page": "Qpert",
+  "country": "Serbia",
+  "titles": []
+ },
+ "Rb": {
+  "page": "Rb",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Ruxic": {
+  "page": "Ruxic",
+  "country": "Turkey",
+  "titles": []
+ },
+ "SUYGETSU": {
+  "page": "SUYGETSU",
+  "country": "xx",
+  "titles": []
+ },
+ "seven": {
+  "page": "Seven",
+  "country": "Mexico",
+  "titles": []
+ },
+ "Shao": {
+  "page": "Shao",
+  "country": "xx",
+  "titles": []
+ },
+ "sheydos": {
+  "page": "Sheydos",
+  "country": "Russia",
+  "titles": []
+ },
+ "something": {
+  "page": "Something",
+  "country": "Russia",
+  "titles": []
+ },
+ "Spear": {
+  "page": "Spear",
+  "country": "Turkey",
+  "titles": []
+ },
+ "starxo": {
+  "page": "Starxo",
+  "country": "Poland",
+  "titles": [
+   {
+    "year": 2021,
+    "kind": "champions",
+    "event": "VALORANT Champions 2021"
+   }
+  ]
+ },
+ "stax": {
+  "page": "Stax",
+  "country": "South Korea",
+  "titles": []
+ },
+ "waddle": {
+  "page": "Waddle",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "wayne": {
+  "page": "Wayne",
+  "country": "Singapore",
+  "titles": []
+ },
+ "Xross": {
+  "page": "Xross",
+  "country": "South Korea",
+  "titles": []
+ },
+ "echo": {
+  "page": "Vivii",
+  "country": "Chile",
+  "titles": []
+ },
+ "natz": {
+  "page": null,
+  "titles": []
+ },
+ "Leviathan": {
+  "page": null,
+  "titles": []
+ },
+ "JitBoyS": {
+  "page": null,
+  "titles": []
+ },
+ "Absol": {
+  "page": "Absol",
+  "country": "Japan",
+  "titles": []
+ },
+ "Akame": {
+  "page": "Akame",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Ash": {
+  "page": "Ash (Korean player)",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Autumn": {
+  "page": "Autumn",
+  "country": "South Korea",
+  "titles": []
+ },
+ "BeYN": {
+  "page": "BeYN",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Caedye": {
+  "page": "Caedye",
+  "country": "Japan",
+  "titles": []
+ },
+ "crazyguy": {
+  "page": "Crazyguy",
+  "country": "Vietnam",
+  "titles": []
+ },
+ "eKo": {
+  "page": "EKo",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Efina": {
+  "page": "Efina",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Flicker": {
+  "page": "Flicker",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Foxy9": {
+  "page": "Foxy9",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Francis": {
+  "page": "Francis",
+  "country": "South Korea",
+  "titles": []
+ },
+ "HYUNMIN": {
+  "page": "HYUNMIN",
+  "country": "south korea",
+  "titles": []
+ },
+ "Jemkin": {
+  "page": "Jemkin",
+  "country": "Russia",
+  "titles": []
+ },
+ "Karon": {
+  "page": "Karon",
+  "country": "South Korea",
+  "titles": []
+ },
+ "kellyS": {
+  "page": "KellyS",
+  "country": "Philippines",
+  "titles": []
+ },
+ "Killua": {
+  "page": "Killua",
+  "country": "Thailand",
+  "titles": []
+ },
+ "Kr1stal": {
+  "page": "Kr1stal",
+  "country": "Russia",
+  "titles": []
+ },
+ "Kushy": {
+  "page": "Kushy",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "MaKo": {
+  "page": "MaKo",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Meiy": {
+  "page": "Meiy",
+  "country": "Japan",
+  "titles": []
+ },
+ "Monyet": {
+  "page": "Monyet",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "oonzmlp": {
+  "page": "Oonzmlp",
+  "country": "South Korea",
+  "titles": []
+ },
+ "PatMen": {
+  "page": "PatMen",
+  "country": "Philippines",
+  "titles": []
+ },
+ "primmie": {
+  "page": "Primmie",
+  "country": "Thailand",
+  "titles": []
+ },
+ "SSeeS": {
+  "page": "SSeeS",
+  "country": "Japan",
+  "titles": []
+ },
+ "STYRON": {
+  "page": "STYRON",
+  "country": "Singapore",
+  "titles": []
+ },
+ "seph1roth": {
+  "page": "Seph1roth",
+  "country": "thailand",
+  "titles": []
+ },
+ "skye": {
+  "page": "Skye",
+  "country": "Australia",
+  "titles": []
+ },
+ "SugarZ3ro": {
+  "page": "SugarZ3ro",
+  "country": "Japan",
+  "titles": []
+ },
+ "Sylvan": {
+  "page": "Sylvan",
+  "country": "South Korea",
+  "titles": []
+ },
+ "SyouTa": {
+  "page": "SyouTa",
+  "country": "Japan",
+  "titles": []
+ },
+ "t3xture": {
+  "page": "T3xture",
+  "country": "South Korea",
+  "titles": []
+ },
+ "thyy": {
+  "page": "Thyy",
+  "country": "Thailand",
+  "titles": []
+ },
+ "UdoTan": {
+  "page": "UdoTan",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Xan": {
+  "page": "Xan",
+  "country": "Malaysia",
+  "titles": []
+ },
+ "xavi8k": {
+  "page": "Xavi8k",
+  "country": "Philippines",
+  "titles": []
+ },
+ "Xdll": {
+  "page": "Xdll",
+  "country": "Japan",
+  "titles": []
+ },
+ "xffero": {
+  "page": "Xffero",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "Xiesta": {
+  "page": "Xiesta",
+  "country": "South Korea",
+  "titles": []
+ },
+ "XuNa": {
+  "page": "XuNa",
+  "country": "South Korea",
+  "titles": []
+ },
+ "yatsuka": {
+  "page": "Yatsuka",
+  "country": "Japan",
+  "titles": []
+ },
+ "yong": {
+  "page": "Yong",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Zeus": {
+  "page": "Zeus",
+  "country": "Thailand",
+  "titles": []
+ },
+ "ZynX": {
+  "page": "ZynX",
+  "country": "South Korea",
+  "titles": []
+ },
+ "free1ng": {
+  "page": "Freeing",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Raxcal": {
+  "page": "RaxcaL",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Sharks": {
+  "page": null,
+  "titles": []
+ },
+ "xihe": {
+  "page": null,
+  "titles": []
+ },
+ "zhubibi": {
+  "page": null,
+  "titles": []
+ },
+ "GREEN": {
+  "page": null,
+  "titles": []
+ },
+ "yilai": {
+  "page": null,
+  "titles": []
+ },
+ "FT": {
+  "page": null,
+  "titles": []
+ },
+ "AAAAY": {
+  "page": "AAAAY",
+  "country": "China",
+  "titles": []
+ },
+ "aluba": {
+  "page": "Aluba",
+  "country": "China",
+  "titles": []
+ },
+ "Bai": {
+  "page": "Bai",
+  "country": "China",
+  "titles": []
+ },
+ "bud": {
+  "page": "Bud",
+  "country": "China",
+  "titles": []
+ },
+ "C1ndeR": {
+  "page": "C1ndeR",
+  "country": "South Korea",
+  "titles": []
+ },
+ "CHICHOO": {
+  "page": "CHICHOO",
+  "country": "China",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "cb": {
+  "page": "Cb",
+  "country": "China",
+  "titles": []
+ },
+ "coconut": {
+  "page": "Coconut",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "Deryeon": {
+  "page": "Deryeon",
+  "country": "Singapore",
+  "titles": []
+ },
+ "Erv": {
+  "page": "Erv",
+  "country": "China",
+  "titles": []
+ },
+ "Ezeir": {
+  "page": "Ezeir",
+  "country": "China",
+  "titles": []
+ },
+ "f4ngeer": {
+  "page": "F4ngeer",
+  "country": "Russia",
+  "titles": []
+ },
+ "GuanG": {
+  "page": "GuanG",
+  "country": "China",
+  "titles": []
+ },
+ "happywei": {
+  "page": "Happywei",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "iamgrq": {
+  "page": "Iamgrq",
+  "country": "China",
+  "titles": []
+ },
+ "Jieni7": {
+  "page": "Jieni7",
+  "country": "China",
+  "titles": []
+ },
+ "K1ra": {
+  "page": "K1ra",
+  "country": "China",
+  "titles": []
+ },
+ "Klaus": {
+  "page": "Klaus (Korean player)",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Knight": {
+  "page": "Knight",
+  "country": "China",
+  "titles": []
+ },
+ "Lysoar": {
+  "page": "Lysoar",
+  "country": "China",
+  "titles": []
+ },
+ "nephh": {
+  "page": "Nephh",
+  "country": "Singapore",
+  "titles": []
+ },
+ "NoMan": {
+  "page": "NoMan",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "nobody": {
+  "page": "Nobody",
+  "country": "China",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "qiutiaN": {
+  "page": "QiutiaN",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Rarga": {
+  "page": "Rarga",
+  "country": "Russia",
+  "titles": []
+ },
+ "rushia": {
+  "page": "Rushia",
+  "country": "China",
+  "titles": []
+ },
+ "Scales": {
+  "page": "Scales",
+  "country": "China",
+  "titles": []
+ },
+ "Setrod": {
+  "page": "Setrod",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Shr1mp": {
+  "page": "Shr1mp",
+  "country": "China",
+  "titles": []
+ },
+ "SiuFatBB": {
+  "page": "SiuFatBB",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "slowly": {
+  "page": "Slowly",
+  "country": "China",
+  "titles": []
+ },
+ "Smoggy": {
+  "page": "Smoggy",
+  "country": "China",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "splash": {
+  "page": "Splash",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "Spring": {
+  "page": "Spring",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "stew": {
+  "page": "Stew",
+  "country": "South Korea",
+  "titles": []
+ },
+ "swagzor": {
+  "page": "Swagzor",
+  "country": "Russia",
+  "titles": []
+ },
+ "sword9": {
+  "page": "Sword9",
+  "country": "China",
+  "titles": []
+ },
+ "WsLeo": {
+  "page": "WsLeo",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Xlele": {
+  "page": "Xlele",
+  "country": "China",
+  "titles": []
+ },
+ "yosemite": {
+  "page": "Yosemite",
+  "country": "China",
+  "titles": []
+ },
+ "Zexy": {
+  "page": "Zexy",
+  "country": "South Korea",
+  "titles": []
+ },
+ "ZmjjKK": {
+  "page": "ZmjjKK",
+  "country": "China",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "glacier": {
+  "page": "Attention",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "whzy": {
+  "page": "Whz",
+  "country": "China",
+  "titles": []
+ },
+ "FKEY": {
+  "page": null,
+  "titles": []
+ },
+ "crownfisher": {
+  "page": null,
+  "titles": []
+ },
+ "Verse": {
+  "page": null,
+  "titles": []
+ },
+ "vita": {
+  "page": null,
+  "titles": []
+ },
+ "zaj": {
+  "page": null,
+  "titles": []
+ },
+ "haeyoday": {
+  "page": null,
+  "titles": []
+ },
+ "Abo": {
+  "page": "Abo",
+  "country": "China",
+  "titles": []
+ },
+ "alvinboy": {
+  "page": "Alvinboy",
+  "country": "Canada",
+  "titles": []
+ },
+ "Ange": {
+  "page": "Ange",
+  "country": "Canada",
+  "titles": []
+ },
+ "BerLIN": {
+  "page": "BerLIN",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Boni": {
+  "page": "Boni",
+  "country": "United States",
+  "titles": []
+ },
+ "Coco": {
+  "page": "Coco",
+  "country": "Philippines",
+  "titles": []
+ },
+ "deLb": {
+  "page": "DeLb",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "Derrek": {
+  "page": "Derrek",
+  "country": "United States",
+  "titles": []
+ },
+ "Dynamite": {
+  "page": "Dynamite",
+  "country": "China",
+  "titles": []
+ },
+ "exa": {
+  "page": "Exa",
+  "country": "South Korea",
+  "titles": []
+ },
+ "FengF": {
+  "page": "FengF",
+  "country": "China",
+  "titles": []
+ },
+ "Flex1n": {
+  "page": "Flex1n",
+  "country": "China",
+  "titles": []
+ },
+ "flyuh": {
+  "page": "Flyuh",
+  "country": "United States",
+  "titles": []
+ },
+ "geeza": {
+  "page": "Geeza",
+  "country": "United States",
+  "titles": []
+ },
+ "Haodong": {
+  "page": "Haodong",
+  "country": "China",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "infiltrator": {
+  "page": "Infiltrator",
+  "country": "Vietnam",
+  "titles": []
+ },
+ "jkuro": {
+  "page": "Jkuro",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "Kai": {
+  "page": "Kai",
+  "country": "China",
+  "titles": []
+ },
+ "kumi": {
+  "page": "Kumi",
+  "country": "United States",
+  "titles": []
+ },
+ "Kyu": {
+  "page": "Kyu",
+  "country": "Canada",
+  "titles": []
+ },
+ "Life": {
+  "page": "Life",
+  "country": "China",
+  "titles": []
+ },
+ "lucas": {
+  "page": "Lucas",
+  "country": "China",
+  "titles": []
+ },
+ "LuoK1ng": {
+  "page": "LuoK1ng",
+  "country": "China",
+  "titles": []
+ },
+ "moose": {
+  "page": "Moose",
+  "country": "Canada",
+  "titles": []
+ },
+ "NaturE": {
+  "page": "NaturE",
+  "country": "United States",
+  "titles": []
+ },
+ "NiSMO": {
+  "page": "NiSMO",
+  "country": "Canada",
+  "titles": []
+ },
+ "Nicc": {
+  "page": "Nicc",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Pa1nt": {
+  "page": "Pa1nt",
+  "country": "United States",
+  "titles": []
+ },
+ "payne": {
+  "page": "Payne",
+  "country": "United States",
+  "titles": []
+ },
+ "ra1ny": {
+  "page": "Ra1ny",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "satellite": {
+  "page": "Satellite",
+  "country": "Canada",
+  "titles": []
+ },
+ "Shondex": {
+  "page": "Shondex",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Smoke": {
+  "page": "Smoke",
+  "country": null,
+  "titles": []
+ },
+ "sonofcar": {
+  "page": "Sonofcar",
+  "country": "United States",
+  "titles": []
+ },
+ "Spaz": {
+  "page": "Spaz",
+  "country": "Morocco",
+  "titles": []
+ },
+ "SpiritZ1": {
+  "page": "SpiritZ1",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Spitfires": {
+  "page": "Spitfires",
+  "country": "China",
+  "titles": []
+ },
+ "Viva": {
+  "page": "Viva",
+  "country": "China",
+  "titles": []
+ },
+ "vo0kashu": {
+  "page": "Vo0kashu",
+  "country": "Russia",
+  "titles": []
+ },
+ "welyy": {
+  "page": "Welyy",
+  "country": "Norway",
+  "titles": []
+ },
+ "Yuicaw": {
+  "page": "Yuicaw",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "zander": {
+  "page": "Zander",
+  "country": "Canada",
+  "titles": []
+ },
+ "zhe": {
+  "page": "Zhe",
+  "country": "China",
+  "titles": []
+ },
+ "renz": {
+  "page": "RENZ",
+  "country": "United States",
+  "titles": []
+ },
+ "devy": {
+  "page": null,
+  "titles": []
+ },
+ "b1squw1": {
+  "page": null,
+  "titles": []
+ },
+ "atlas": {
+  "page": "Atlas",
+  "country": "United States",
+  "titles": []
+ },
+ "azury": {
+  "page": "Azury",
+  "country": "Germany",
+  "titles": []
+ },
+ "batujnax": {
+  "page": "Batujnax",
+  "country": "Turkey",
+  "titles": []
+ },
+ "DeadInk": {
+  "page": "DeadInk",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Fit1nho": {
+  "page": "Fit1nho",
+  "country": "Spain",
+  "titles": []
+ },
+ "Fizzy": {
+  "page": "Fizzy",
+  "country": "Portugal",
+  "titles": []
+ },
+ "globeX": {
+  "page": "GlobeX",
+  "country": "Russia",
+  "titles": []
+ },
+ "Guardy": {
+  "page": "Guardy",
+  "country": "Spain",
+  "titles": []
+ },
+ "hezacoil": {
+  "page": "Hezacoil",
+  "country": "Turkey",
+  "titles": []
+ },
+ "ibonata": {
+  "page": "Ibonata",
+  "country": "Turkey",
+  "titles": []
+ },
+ "iluri": {
+  "page": "Iluri",
+  "country": "Finland",
+  "titles": []
+ },
+ "Jady": {
+  "page": "Jady",
+  "country": "Russia",
+  "titles": []
+ },
+ "Jamelinho213": {
+  "page": "Jamelinho213",
+  "country": "France",
+  "titles": []
+ },
+ "jzz": {
+  "page": "Jzz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "kabzi": {
+  "page": "Kabzi",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Kachoww": {
+  "page": "Kachoww",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Kajuks": {
+  "page": "Kajuks",
+  "country": "Lithuania",
+  "titles": []
+ },
+ "kozzy": {
+  "page": "Kozzy",
+  "country": "Romania",
+  "titles": []
+ },
+ "Lime": {
+  "page": "Lime",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "MONSTEERR": {
+  "page": "MONSTEERR",
+  "country": "Czech Republic",
+  "titles": []
+ },
+ "mazin": {
+  "page": "Mazin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "mepeezy": {
+  "page": "Mepeezy",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Muddy": {
+  "page": "Muddy",
+  "country": "Laos",
+  "titles": []
+ },
+ "musashi": {
+  "page": "Musashi",
+  "country": "Germany",
+  "titles": []
+ },
+ "nataNk": {
+  "page": "NataNk",
+  "country": "France",
+  "titles": []
+ },
+ "paTiTek": {
+  "page": "PaTiTek",
+  "country": "Poland",
+  "titles": []
+ },
+ "Palla": {
+  "page": "Palla",
+  "country": "brazil",
+  "titles": []
+ },
+ "reazy": {
+  "page": "Reazy",
+  "country": "Turkey",
+  "titles": []
+ },
+ "samed": {
+  "page": "Samed",
+  "country": "Austria",
+  "titles": []
+ },
+ "Sevire": {
+  "page": "Sevire",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "Slaughter": {
+  "page": "Slaughter",
+  "country": "Turkey",
+  "titles": []
+ },
+ "stallion": {
+  "page": "Stallion",
+  "country": "Canada",
+  "titles": []
+ },
+ "stellar": {
+  "page": "Stellar",
+  "country": "United States",
+  "titles": []
+ },
+ "stonezy": {
+  "page": "Stonezy",
+  "country": "Ukraine",
+  "titles": []
+ },
+ "stunna": {
+  "page": "Stunna",
+  "country": "United States",
+  "titles": []
+ },
+ "TakaS": {
+  "page": "TakaS",
+  "country": "France",
+  "titles": []
+ },
+ "toozy": {
+  "page": "Toozy",
+  "country": "United States",
+  "titles": []
+ },
+ "tuyz": {
+  "page": "Tuyz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Vince": {
+  "page": "Vince",
+  "country": "Germany",
+  "titles": []
+ },
+ "Wolfen": {
+  "page": "Wolfen",
+  "country": "Bulgaria",
+  "titles": []
+ },
+ "wtex": {
+  "page": "Wtex",
+  "country": "Turkey",
+  "titles": []
+ },
+ "XXiF": {
+  "page": "XXiF",
+  "country": "Canada",
+  "titles": []
+ },
+ "Zanatsu": {
+  "page": "Zanatsu",
+  "country": "Brazil",
+  "titles": []
+ },
+ "zeek": {
+  "page": "Zeek",
+  "country": "Poland",
+  "titles": [
+   {
+    "year": 2021,
+    "kind": "champions",
+    "event": "VALORANT Champions 2021"
+   }
+  ]
+ },
+ "Zyppan": {
+  "page": "Zyppan",
+  "country": "Sweden",
+  "titles": []
+ },
+ "Kada": {
+  "page": "KAdavra",
+  "country": "France",
+  "titles": []
+ },
+ "MAGNUM": {
+  "page": "Magnum",
+  "country": "Czech Republic",
+  "titles": []
+ },
+ "sh1n": {
+  "page": "Shin",
+  "country": "France",
+  "titles": []
+ },
+ "Sayu": {
+  "page": null,
+  "titles": []
+ },
+ "Ady": {
+  "page": null,
+  "titles": []
+ },
+ "Karaage": {
+  "page": null,
+  "titles": []
+ },
+ "Satwoshi": {
+  "page": null,
+  "titles": []
+ },
+ "yuki": {
+  "page": null,
+  "titles": []
+ },
+ "coldfish": {
+  "page": null,
+  "titles": []
+ },
+ "Chaos": {
+  "page": null,
+  "titles": []
+ },
+ "Aace": {
+  "page": "Aace",
+  "country": "Japan",
+  "titles": []
+ },
+ "Akeman": {
+  "page": "Akeman",
+  "country": "China",
+  "titles": []
+ },
+ "Allen": {
+  "page": "Allen",
+  "country": "Japan",
+  "titles": []
+ },
+ "Anthem": {
+  "page": "Anthem",
+  "country": "Japan",
+  "titles": []
+ },
+ "BRIAN": {
+  "page": "BRIAN",
+  "country": "Japan",
+  "titles": []
+ },
+ "Banger": {
+  "page": "Banger",
+  "country": "South Korea",
+  "titles": []
+ },
+ "CLZ": {
+  "page": "CLZ",
+  "country": "Japan",
+  "titles": []
+ },
+ "Dep": {
+  "page": "Dep",
+  "country": "Japan",
+  "titles": []
+ },
+ "doma": {
+  "page": "Doma",
+  "country": "Croatia",
+  "titles": []
+ },
+ "flora": {
+  "page": "Flora",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Frxeez": {
+  "page": "Frxeez",
+  "country": "Japan",
+  "titles": []
+ },
+ "fukukeN": {
+  "page": "FukukeN",
+  "country": "Japan",
+  "titles": []
+ },
+ "GangPin": {
+  "page": "GangPin",
+  "country": "Korea",
+  "titles": []
+ },
+ "gyen": {
+  "page": "Gyen",
+  "country": "Japan",
+  "titles": []
+ },
+ "Hals": {
+  "page": "Hals",
+  "country": "Japan",
+  "titles": []
+ },
+ "Jremy": {
+  "page": "Jremy",
+  "country": "Philippines",
+  "titles": []
+ },
+ "kAyle": {
+  "page": "KAyle",
+  "country": "South Korea",
+  "titles": []
+ },
+ "kamyk": {
+  "page": "Kamyk",
+  "country": "Poland",
+  "titles": []
+ },
+ "Kippei": {
+  "page": "Kippei",
+  "country": "Japan",
+  "titles": []
+ },
+ "Krst1Ng": {
+  "page": "Krst1Ng",
+  "country": "China",
+  "titles": []
+ },
+ "Layla": {
+  "page": "Layla",
+  "country": "Vietnam",
+  "titles": []
+ },
+ "Luca": {
+  "page": "Luca",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "margaret": {
+  "page": "Margaret",
+  "country": "South Korea",
+  "titles": []
+ },
+ "MeatPieN": {
+  "page": "MeatPieN",
+  "country": "Japan",
+  "titles": []
+ },
+ "Minty": {
+  "page": "Minty",
+  "country": "Japan",
+  "titles": []
+ },
+ "Misaya": {
+  "page": "Misaya",
+  "country": "Japan",
+  "titles": []
+ },
+ "monk": {
+  "page": "Monk",
+  "country": "China",
+  "titles": []
+ },
+ "Moothie": {
+  "page": "Moothie",
+  "country": "South Korea",
+  "titles": []
+ },
+ "oitaN": {
+  "page": "OitaN",
+  "country": "Japan",
+  "titles": []
+ },
+ "Pa1ze": {
+  "page": "Pa1ze",
+  "country": "Denmark",
+  "titles": []
+ },
+ "Persia": {
+  "page": "Persia",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Pkm": {
+  "page": "Pkm",
+  "country": "South Korea",
+  "titles": []
+ },
+ "popogachi": {
+  "page": "Popogachi",
+  "country": "Japan",
+  "titles": []
+ },
+ "runneR": {
+  "page": "RunneR",
+  "country": "North Macedonia",
+  "titles": []
+ },
+ "SID": {
+  "page": "SID",
+  "country": "south korea",
+  "titles": []
+ },
+ "Seoldam": {
+  "page": "Seoldam",
+  "country": "South Korea",
+  "titles": []
+ },
+ "sibeastw0w": {
+  "page": "Sibeastw0w",
+  "country": "Russia",
+  "titles": []
+ },
+ "Tonk": {
+  "page": "Tonk",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "UNFAKE": {
+  "page": "UNFAKE",
+  "country": "Poland",
+  "titles": []
+ },
+ "Ying": {
+  "page": "Ying",
+  "country": "China",
+  "titles": []
+ },
+ "Yoshiii": {
+  "page": "Yoshiii",
+  "country": "Philippines",
+  "titles": []
+ },
+ "yuran": {
+  "page": "Yuran",
+  "country": "Japan",
+  "titles": []
+ },
+ "JoXJo": {
+  "page": "JoxJo",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Folykiki": {
+  "page": null,
+  "titles": []
+ },
+ "Pink": {
+  "page": null,
+  "titles": []
+ },
+ "Ben1Ley": {
+  "page": null,
+  "titles": []
+ },
+ "Z1yan": {
+  "page": null,
+  "titles": []
+ },
+ "nnono": {
+  "page": null,
+  "titles": []
+ },
+ "Ayu": {
+  "page": null,
+  "titles": []
+ },
+ "p1katong": {
+  "page": null,
+  "titles": []
+ },
+ "maofish": {
+  "page": null,
+  "titles": []
+ },
+ "Yunni": {
+  "page": null,
+  "titles": []
+ },
+ "M1ng929": {
+  "page": null,
+  "titles": []
+ },
+ "Ye": {
+  "page": null,
+  "titles": []
+ },
+ "Apathy": {
+  "page": null,
+  "titles": []
+ },
+ "Ugly": {
+  "page": null,
+  "titles": []
+ },
+ "Ending": {
+  "page": null,
+  "titles": []
+ },
+ "Leav3u": {
+  "page": null,
+  "titles": []
+ },
+ "grubinho": {
+  "page": null,
+  "titles": []
+ },
+ "5CM": {
+  "page": "5CM",
+  "country": "China",
+  "titles": []
+ },
+ "AcMe": {
+  "page": "AcMe",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Au1": {
+  "page": "Au1",
+  "country": "China",
+  "titles": []
+ },
+ "ComeBack": {
+  "page": "ComeBack",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Croudy": {
+  "page": "Croudy",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Crws": {
+  "page": "Crws",
+  "country": "Thailand",
+  "titles": []
+ },
+ "Dannyy": {
+  "page": "Dannyy",
+  "country": "China",
+  "titles": []
+ },
+ "Dingwei": {
+  "page": "Dingwei",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Eren": {
+  "page": "Eren",
+  "country": "China",
+  "titles": []
+ },
+ "Guran": {
+  "page": "Guran",
+  "country": "China",
+  "titles": []
+ },
+ "Inspire": {
+  "page": "Inspire",
+  "country": "United States",
+  "titles": []
+ },
+ "JessieVash": {
+  "page": "JessieVash",
+  "country": "Philippines",
+  "titles": []
+ },
+ "jowa": {
+  "page": "Jowa",
+  "country": "Canada",
+  "titles": []
+ },
+ "Juicy": {
+  "page": "Juicy",
+  "country": "Singapore",
+  "titles": []
+ },
+ "KovaQ": {
+  "page": "KovaQ",
+  "country": "Switzerland",
+  "titles": []
+ },
+ "Lakia": {
+  "page": "Lakia",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Levius": {
+  "page": "Levius",
+  "country": "China",
+  "titles": []
+ },
+ "MrFaliN": {
+  "page": "MrFaliN",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Nana": {
+  "page": "Nana",
+  "country": "Egypt",
+  "titles": []
+ },
+ "nerve": {
+  "page": "Nerve",
+  "country": "United States",
+  "titles": []
+ },
+ "OBONE": {
+  "page": "OBONE",
+  "country": "China",
+  "titles": []
+ },
+ "penny": {
+  "page": "Penny",
+  "country": "Canada",
+  "titles": []
+ },
+ "Potter": {
+  "page": "Potter",
+  "country": null,
+  "titles": []
+ },
+ "PxS": {
+  "page": "PxS",
+  "country": "United States",
+  "titles": []
+ },
+ "S1Mon": {
+  "page": "S1Mon",
+  "country": "Taiwan",
+  "titles": [
+   {
+    "year": 2024,
+    "kind": "champions",
+    "event": "VALORANT Champions 2024"
+   }
+  ]
+ },
+ "sScary": {
+  "page": "SScary",
+  "country": "Thailand",
+  "titles": []
+ },
+ "Satoshi": {
+  "page": "Satoshi",
+  "country": "China",
+  "titles": []
+ },
+ "silentzz": {
+  "page": "Silentzz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Xeppaa": {
+  "page": "Xeppaa",
+  "country": "United States",
+  "titles": []
+ },
+ "Youjun": {
+  "page": "Youjun",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Yoyo": {
+  "page": "Yoyo",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "BerserX": {
+  "page": "Berserx",
+  "country": "Indonesia",
+  "titles": []
+ },
+ "heybay": {
+  "page": "HeiB",
+  "country": "Hong Kong",
+  "titles": []
+ },
+ "NagZ": {
+  "page": "Nagzet",
+  "country": "Chile",
+  "titles": []
+ },
+ "turkish": {
+  "page": null,
+  "titles": []
+ },
+ "Kring": {
+  "page": null,
+  "titles": []
+ },
+ "Luid": {
+  "page": null,
+  "titles": []
+ },
+ "aztex": {
+  "page": null,
+  "titles": []
+ },
+ "sanoj": {
+  "page": null,
+  "titles": []
+ },
+ "peixeh": {
+  "page": null,
+  "titles": []
+ },
+ "Bruxo": {
+  "page": null,
+  "titles": []
+ },
+ "Stwz1": {
+  "page": null,
+  "titles": []
+ },
+ "taka": {
+  "page": null,
+  "titles": []
+ },
+ "nevoy": {
+  "page": null,
+  "titles": []
+ },
+ "alym": {
+  "page": "Alym",
+  "country": "Kyrgyzstan",
+  "titles": []
+ },
+ "baha": {
+  "page": "Baha",
+  "country": "Turkey",
+  "titles": []
+ },
+ "bdog": {
+  "page": "Bdog",
+  "country": "United States",
+  "titles": []
+ },
+ "benG": {
+  "page": "BenG",
+  "country": "Chile",
+  "titles": []
+ },
+ "Biank": {
+  "page": "Biank",
+  "country": "China",
+  "titles": []
+ },
+ "Brinks": {
+  "page": "Brinks",
+  "country": "Brazil",
+  "titles": []
+ },
+ "cNed": {
+  "page": "CNed",
+  "country": "Turkey",
+  "titles": [
+   {
+    "year": 2021,
+    "kind": "champions",
+    "event": "VALORANT Champions 2021"
+   }
+  ]
+ },
+ "d3mur": {
+  "page": "D3mur",
+  "country": "Turkey",
+  "titles": []
+ },
+ "Dark3st": {
+  "page": "Dark3st",
+  "country": "United States",
+  "titles": []
+ },
+ "FFs": {
+  "page": "FFs",
+  "country": "Macao",
+  "titles": []
+ },
+ "forbanz": {
+  "page": "Forbanz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "frz": {
+  "page": "Frz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "gobera": {
+  "page": "Gobera",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Governor": {
+  "page": "Governor",
+  "country": "United States",
+  "titles": []
+ },
+ "GuhRVN": {
+  "page": "GuhRVN",
+  "country": "Brazil",
+  "titles": []
+ },
+ "havoc": {
+  "page": "Havoc",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Hermes": {
+  "page": "Hermes",
+  "country": "South Korea",
+  "titles": []
+ },
+ "jakee": {
+  "page": "Jakee",
+  "country": "United States",
+  "titles": []
+ },
+ "KiTae": {
+  "page": "KiTae",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Kolosha": {
+  "page": "Kolosha",
+  "country": "Ukraine",
+  "titles": []
+ },
+ "Leare": {
+  "page": "Leare",
+  "country": "United Kingdom",
+  "titles": []
+ },
+ "liazzi": {
+  "page": "Liazzi",
+  "country": "Brazil",
+  "titles": []
+ },
+ "mta": {
+  "page": "Mta",
+  "country": "Chile",
+  "titles": []
+ },
+ "Okeanos": {
+  "page": "Okeanos",
+  "country": "Vietnam",
+  "titles": []
+ },
+ "pANcada": {
+  "page": "PANcada",
+  "country": "Brazil",
+  "titles": [
+   {
+    "year": 2022,
+    "kind": "champions",
+    "event": "VALORANT Champions 2022"
+   }
+  ]
+ },
+ "prozin": {
+  "page": "Prozin",
+  "country": "Brazil",
+  "titles": []
+ },
+ "raafa": {
+  "page": "Raafa",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Rimuru": {
+  "page": "Rimuru",
+  "country": "Philippines",
+  "titles": []
+ },
+ "Septem7": {
+  "page": "Septem7",
+  "country": "China",
+  "titles": []
+ },
+ "skz": {
+  "page": "Skz",
+  "country": "Brazil",
+  "titles": []
+ },
+ "sturNN": {
+  "page": "SturNN",
+  "country": "Turkey",
+  "titles": []
+ },
+ "sw": {
+  "page": "Sw",
+  "country": "Brazil",
+  "titles": []
+ },
+ "szimpli": {
+  "page": "Szimpli",
+  "country": "Hungary",
+  "titles": []
+ },
+ "TenTen": {
+  "page": "TenTen",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Urango": {
+  "page": "Urango",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Virtyy": {
+  "page": "Virtyy",
+  "country": "Dominican Republic",
+  "titles": []
+ },
+ "xenom": {
+  "page": "Xenom",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Youze": {
+  "page": "Youze",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "qck": {
+  "page": "AmbitioN",
+  "country": "Brazil",
+  "titles": []
+ },
+ "RgLMeister": {
+  "page": "RgLM",
+  "country": "Brazil",
+  "titles": []
+ },
+ "Rico": {
+  "page": null,
+  "titles": []
+ },
+ "XIV": {
+  "page": null,
+  "titles": []
+ },
+ "Taegeuk": {
+  "page": null,
+  "titles": []
+ },
+ "YJ": {
+  "page": null,
+  "titles": []
+ },
+ "rsd": {
+  "page": null,
+  "titles": []
+ },
+ "Beom": {
+  "page": null,
+  "titles": []
+ },
+ "CabezA": {
+  "page": "CabezA",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Cloudy": {
+  "page": "Cloudy",
+  "country": "Cambodia",
+  "titles": []
+ },
+ "elllement": {
+  "page": "Elllement",
+  "country": "Serbia",
+  "titles": []
+ },
+ "INPA": {
+  "page": "INPA",
+  "country": "South Korea",
+  "titles": []
+ },
+ "JaXe": {
+  "page": "JaXe",
+  "country": "South Korea",
+  "titles": []
+ },
+ "JaebiN": {
+  "page": "JaebiN",
+  "country": "South Korea",
+  "titles": []
+ },
+ "KEN": {
+  "page": "KEN",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Kally": {
+  "page": "Kally",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Ramgi": {
+  "page": "Ramgi",
+  "country": "south korea",
+  "titles": []
+ },
+ "RedLight": {
+  "page": "RedLight",
+  "country": "South Korea",
+  "titles": []
+ },
+ "shu": {
+  "page": "Shu",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "W1nner": {
+  "page": "W1nner",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "Wolverine": {
+  "page": "Wolverine",
+  "country": "South Korea",
+  "titles": []
+ },
+ "XyuS": {
+  "page": "XyuS",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "YHchen": {
+  "page": "YHchen",
+  "country": "Taiwan",
+  "titles": []
+ },
+ "ZiXuan": {
+  "page": "ZiXuan",
+  "country": "China",
+  "titles": []
+ },
+ "ANNYEON": {
+  "page": "Annyeon",
+  "country": "South Korea",
+  "titles": []
+ },
+ "Ray": {
+  "page": "Ray4c",
+  "country": "Indonesia",
+  "titles": []
+ }
+}

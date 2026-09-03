@@ -19,6 +19,14 @@ rate — so in-game ratings track how these players really perform.
 Output  src/data/world.json
 """
 import json, math, os, re, sys
+
+# The build has to come out the same twice. It did not: two runs of the same
+# script on the same caches disagreed on 313 players' overall by a point,
+# because set iteration order follows Python's per-process hash seed and a
+# handful of draws downstream follow that order. Pin the seed and re-exec
+# before anything else is imported or computed.
+if os.environ.get("PYTHONHASHSEED") != "0":
+    os.execve(sys.executable, [sys.executable, *sys.argv], {**os.environ, "PYTHONHASHSEED": "0"})
 from collections import defaultdict
 from datetime import date
 
@@ -344,6 +352,8 @@ CHALLENGERS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_challengers.json
 TENURE_CACHE = os.path.join(ROOT, "scripts", "cache", "liquipedia_tenure.json")
 CAREER_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_career.json")
 SEASONS_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_seasons.json")
+PROFILES_CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_profiles.json")
+TITLES_CACHE = os.path.join(ROOT, "scripts", "cache", "lp_titles.json")
 VLR_STATS_2026 = os.path.join(ROOT, "scripts", "cache", "vlr_stats2026.json")
 VLR_STATS_ALL = os.path.join(ROOT, "scripts", "cache", "vlr_stats_all.json")
 RIB_CLUTCH = os.path.join(ROOT, "scripts", "cache", "rib_clutch.json")
@@ -821,6 +831,87 @@ def main():
                      if not k.startswith("_") and not v.get("miss")})
     # three seasons broken out by year and stage beats one flattened average
     profiles, stage, t1_rounds = season_profiles()
+    # The event tables only hold VCT events, so a player whose whole 2026 was
+    # China Evolution Series has no 2026 in his profile at all and is rated
+    # on the seasons before — S1Mon on his EDG years, with nothing said about
+    # the tier-two season he is actually playing. His line from vlr's 2026
+    # table IS that season; it goes into the profile with this year's weight,
+    # translated like any other sub-tier line unless the club is a partner.
+    T1_TAGS = {tag for lst in TIER1.values() for tag, _ in lst}
+    sc = load_json(SEASONS_CACHE)
+    covered = set()
+    for eid, rws in (sc.get("stats") or {}).items():
+        if (sc.get("events") or {}).get(eid, {}).get("year") == SEASON_YEAR:
+            covered.update(x["ign"].lower() for x in rws)
+    # vlr publishes no Rating for the China Evolution Series rows, and Rating
+    # carries 0.42 of every attribute, so without it that season would enter
+    # the profile with nothing said about how the player actually fragged.
+    # It is estimated from what the same table does publish — K/D, KPR, APR,
+    # ACS — by least squares over every 2026 row that has a Rating, and the
+    # fit is printed so a bad one is visible.
+    fit_rows = [r for r in rows if r["ign"] in known and r.get("R") is not None
+                and all(r.get(k) is not None for k in ("kd", "kpr", "apr", "acs"))]
+    R_FIT = None
+    if len(fit_rows) >= 50:
+        X = [[1.0, r["kd"], r["kpr"], r["apr"], r["acs"] / 100] for r in fit_rows]
+        y = [r["R"] for r in fit_rows]
+        n = len(X[0])
+        A = [[sum(X[i][a] * X[i][b] for i in range(len(X))) for b in range(n)] for a in range(n)]
+        v = [sum(X[i][a] * y[i] for i in range(len(X))) for a in range(n)]
+        for c in range(n):                       # Gaussian elimination
+            piv = max(range(c, n), key=lambda i: abs(A[i][c]))
+            A[c], A[piv], v[c], v[piv] = A[piv], A[c], v[piv], v[c]
+            for i in range(n):
+                if i != c and A[c][c]:
+                    f = A[i][c] / A[c][c]
+                    A[i] = [a - f * b for a, b in zip(A[i], A[c])]
+                    v[i] -= f * v[c]
+        R_FIT = [v[i] / A[i][i] for i in range(n)]
+        pred = [sum(c * x for c, x in zip(R_FIT, xi)) for xi in X]
+        ss = sum((a - b) ** 2 for a, b in zip(y, pred))
+        tot = sum((a - sum(y) / len(y)) ** 2 for a in y)
+        print(f"rating fit: R ~ {R_FIT[0]:.2f} + {R_FIT[1]:.2f} K/D + {R_FIT[2]:.2f} KPR + {R_FIT[3]:.2f} APR "
+              f"+ {R_FIT[4]:.2f} ACS/100  (R² {1 - ss / tot:.2f}, {len(fit_rows)} rows)")
+
+    def r_estimate(r):
+        if R_FIT is None or any(r.get(k) is None for k in ("kd", "kpr", "apr", "acs")):
+            return None
+        return sum(c * x for c, x in zip(R_FIT, [1.0, r["kd"], r["kpr"], r["apr"], r["acs"] / 100]))
+
+    folded = []
+    for r in rows:
+        if r["ign"] not in known or r["ign"].lower() in covered or not r.get("rnd"):
+            continue
+        sub_tier = r["tag"] not in T1_TAGS
+        line = profiles.get(r["ign"])
+        # Only a player with a rated VCT profile to fold INTO. A profile that
+        # never had a Rating would get its only one from this handful of
+        # rounds and then outrank a six-thousand-round career (coldfish went
+        # 73 -> 60 that way); a player with no profile at all is rated on his
+        # career already, and 45 sub-tier rounds are no reason to change that.
+        if not line or line.get("R") is None:
+            continue
+        if r.get("R") is None:
+            est = r_estimate(r)
+            if est is not None:
+                r = {**r, "R": round(est, 3)}
+        w_old = line.get("rnd") or 0
+        w_new = r["rnd"] * YEAR_WEIGHT[SEASON_YEAR]
+        for k in STAT_KEYS:
+            v = r.get(k)
+            if v is None or line.get(k) is None:
+                continue          # each stat keeps to the rounds that carry it
+            if k == "kast" and v > 1:
+                v /= 100
+            if sub_tier and k in SUBTIER_TO_VCT:
+                v *= SUBTIER_TO_VCT[k]
+            line[k] = (line[k] * w_old + v * w_new) / (w_old + w_new)
+        line["rnd"] = w_old + w_new
+        profiles[r["ign"]] = line
+        folded.append((r["ign"], "sub" if sub_tier else "t1", int(r["rnd"]), r.get("R")))
+    if folded:
+        print(f"seasons: {len(folded)} players' {SEASON_YEAR} came only from the season table and was folded in: "
+              + ", ".join(f"{i}({t},{n},R{rr})" for i, t, n, rr in sorted(folded, key=lambda x: -x[2])[:6]))
     profiles, stage, t1_rounds = CiDict(profiles), CiDict(stage), CiDict(t1_rounds)
     if profiles:
         print(f"seasons: recency-weighted profiles for {len(profiles)} players, "
@@ -851,6 +942,52 @@ def main():
         are blended by how much VCT there is to go on.
         """
         return clamp(t1_rounds.get(ign, 0.0) / TIER1_SAMPLE, 0.0, 1.0)
+
+    # ---- 冠军底蕴 --------------------------------------------------------
+    #
+    # A title is the one thing about a player the stat line cannot carry:
+    # five men won Champions 2024 and a sixth held the roster together, and
+    # none of that is in anyone's ACS. So a Champions winner carries +3 and a
+    # Masters winner +2 for the two seasons after the title, two thirds of it
+    # in the third season, a third in the fourth, capped at +5 for the ones
+    # who keep winning. Champions rosters come from Liquipedia's infobox,
+    # which names every registered member (vlr's placements list only the
+    # ones who played, and so leave Haodong out); Masters winners come from
+    # vlr's placements, which is where those records are. A page about a
+    # different person with the same handle is refused on nationality.
+    TITLE_VALUE = {"champions": 3.0, "masters": 2.0}
+    TITLE_FADE = {0: 1.0, 1: 1.0, 2: 0.67, 3: 0.33}
+    TITLE_CAP = 5.0
+    lp_titles = CiDict(load_json(TITLES_CACHE))
+    vlr_prof = CiDict(load_json(PROFILES_CACHE))
+    INTL_MASTERS = re.compile(r"^(Champions Tour \d{4}: (Masters|LOCK//IN) \S+"
+                              r"|Valorant Masters \S+ \d{4}"
+                              r"|Valorant Champions Tour Stage \d: Masters \S+)")
+    titled = {}
+
+    def titles_for(ign, nat):
+        won = {}
+        rec = lp_titles.get(ign) or {}
+        if rec.get("titles") and same_person({"country": rec.get("country")}, nat):
+            for t in rec["titles"]:
+                won[(t["year"], t["kind"])] = t["event"]
+        for e in (vlr_prof.get(ign) or {}).get("events") or []:
+            if e.get("place") != "1st" or not e.get("year"):
+                continue
+            name = str(e.get("event") or "")
+            kind = ("champions" if re.match(r"^Valorant Champions \d{4}$", name)
+                    else "masters" if INTL_MASTERS.match(name) else None)
+            if kind:
+                won.setdefault((int(e["year"]), kind), name)
+        return won
+
+    def title_credit(ign, nat):
+        won = titles_for(ign, nat)
+        total = min(TITLE_CAP, sum(TITLE_VALUE[k] * TITLE_FADE.get(SEASON_YEAR - y, 0.0)
+                                   for (y, k) in won))
+        if won:
+            titled[ign] = (round(total, 2), sorted(won.values()))
+        return total
 
     # First translate, then rank. Doing it the other way round would leave the
     # 30th-percentile anchor below drawn from a pool that is itself inflated.
@@ -1035,6 +1172,8 @@ def main():
         # so a small international sample nudges rather than decides
         stage_w = big_rounds / (big_rounds + SHRINK_ROUNDS)
         stage_bonus = round(clamp((lift - 1) * 26 * stage_w, -4, 5), 2) if lift is not None else 0.0
+        # and the titles ride in the same term, for the same reason
+        stage_bonus = round(stage_bonus + title_credit(ign, r["nat"]), 2)
         ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
@@ -1309,7 +1448,9 @@ def main():
             "reputation": int(clamp(round(rating * (1.0 if tier == 1 else 0.72)), 20, 99)),
             "roster": [p["id"] for p in squad],
             "coach": coach,
-            "facilities": int(clamp(round(rng.norm(rating - (5 if tier == 1 else 18), 8)), 20, 95)),
+            # 94, not 95: 95 is the ceiling the 顶级设施 achievement is for,
+            # and a club that opens there has been handed it (T1 did, at 86)
+            "facilities": int(clamp(round(rng.norm(rating - (5 if tier == 1 else 18), 8)), 20, 94)),
         })
         return True
 
