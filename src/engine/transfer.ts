@@ -1,5 +1,5 @@
 import { Rng, clamp, hashStr } from './rng'
-import { expectedSalary, marketValue, refreshValue } from './player'
+import { contractLength, expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, ensureCaller } from './world'
 import { squadOf, wageBill } from './roster'
 import { SQUAD_ROLE_CN, defaultContract } from './types'
@@ -29,8 +29,8 @@ export function rosterBlock(state: GameState, teamId: string): string | null {
 export const TRANSFER_WINDOWS: [number, number][] = [
   [0, 20],    // 季前
   [63, 90],   // the break before Masters I and its Swiss round — the group asked for a mid-spring market
-  [179, 206], // the break before Masters II and its Swiss round
-  [339, 363], // 休赛期
+  [165, 198], // the break before Masters II and its Swiss round
+  [323, 363], // 休赛期
 ]
 
 /** The last day of the window that is open on this day, or null. */
@@ -337,7 +337,7 @@ export function doTransfer(
         .sort((a, b) => b.overall - a.overall)[0]
       if (cover) {
         cover.teamId = from.id
-        cover.contractYears = 2
+        cover.contractYears = contractLength(cover, new Rng(hashStr(`cover:${state.seed}:${state.year}:${state.day}:${cover.id}`)), squadOf(state, from.id))
         cover.salary = expectedSalary(cover, from.tier)
         from.roster.push(cover.id)
         state.news.push({
@@ -515,8 +515,11 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
         .sort((a, b) => b.overall - a.overall)[0]
       if (target) {
         const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.15))
-        const yrs = rng.int(1, 3)
-        const terms = defaultContract(salary, yrs)
+        // The length comes from the stagger rule, not a die. Three AI
+        // signing paths rolled their own years, and once the windows grew
+        // to the real calendar's length the extra deals stacked up on the
+        // same expiry: eleven clubs with four contracts ending together.
+        const terms = defaultContract(salary, contractLength(target, rng, squad))
         if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
           if (doTransfer(state, target, team.id, 0, terms)) {
             agents.splice(agents.indexOf(target), 1)
@@ -557,7 +560,7 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       if (fee > room) continue
       if (!clubAcceptsFee(target, fee, rng)) continue
       const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.2))
-      const terms = defaultContract(salary, rng.int(2, 3))
+      const terms = defaultContract(salary, Math.max(2, contractLength(target, rng, squad)))
       if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
         doTransfer(state, target, team.id, fee, terms)
       }
@@ -712,7 +715,8 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     if (fee > room) continue
 
     const terms: Contract = {
-      ...defaultContract(Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.25)), rng.int(2, 3)),
+      ...defaultContract(Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.25)),
+        Math.max(2, contractLength(target, rng, squadOf(state, team.id)))),
       promisedRole: target.overall >= (need?.strength ?? 0) + 8 ? 'star' : 'starter',
     }
     if (!playerAcceptsTerms(state, target, team, terms, rng).ok) continue

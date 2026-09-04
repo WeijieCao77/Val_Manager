@@ -56,6 +56,16 @@ export const POINTS_NOTE =
 export const INTERNATIONAL_START = INTERNATIONAL_OPEN
 
 export type EventKey = 'masters1' | 'masters2' | 'champions'
+
+/**
+ * Why a side opens in the Swiss round, in the player's words. It used to say
+ * 「从瑞士轮打起（1 号种子）」 — the seed among the eight Swiss teams — and a
+ * manager who had just finished second read it as the event's top seed
+ * being made to play a qualifier: 「为什么一号种子要从瑞士轮打起？」. The
+ * regional place is the fact that explains it.
+ */
+const swissHow = (place: number): string =>
+  place > 0 ? `赛区第 ${place} 名，先打瑞士轮——只有赛区冠军直接进季后赛` : '先打瑞士轮——只有赛区冠军直接进季后赛'
 const EVENT_KEYS: EventKey[] = ['masters1', 'masters2', 'champions']
 
 export interface Qualified {
@@ -80,8 +90,9 @@ export function qualifiedEvent(state: GameState): Qualified | null {
   for (const key of EVENT_KEYS) {
     const comp = state.comps[key]
     if (!comp || comp.champion || !comp.teams.includes(me.id)) continue
+    const feeder = key === 'champions' ? null : state.comps[compKey(key === 'masters1' ? 'kickoff' : 'stage1', me.region)]
     const how = comp.byes?.includes(me.id) ? '赛区冠军，直接进季后赛'
-      : comp.swissSeeds?.includes(me.id) ? `从瑞士轮打起（${comp.swissSeeds.indexOf(me.id) + 1} 号种子）`
+      : comp.swissSeeds?.includes(me.id) ? swissHow((feeder?.finished.indexOf(me.id) ?? -1) + 1)
         : key === 'champions' ? (championsField(state)[me.region].indexOf(me.id) < 2 ? 'Stage 2 前 2，直接晋级' : '全年积分名额') : '拿到了参赛名额'
     return { key, name: comp.name, city: comp.city ?? hostCity(state, key), year: state.year, teamId: me.id, how }
   }
@@ -133,7 +144,7 @@ export function upcomingInternational(state: GameState): Upcoming | null {
       if (idx < 0) continue
       const place = feeder.teams.length - feeder.finished.length + idx + 1
       if (place > 3) return null
-      return { key: ev.key, name: ev.name, day: start, swiss: true, how: `本赛段第 ${place} 名，从瑞士轮打起` }
+      return { key: ev.key, name: ev.name, day: start, swiss: true, how: swissHow(place) }
     }
     if (ev.key === 'champions') {
       const field = championsField(state)[me.region]
@@ -146,7 +157,7 @@ export function upcomingInternational(state: GameState): Upcoming | null {
       return { key: ev.key, name: ev.name, day: start + 8, swiss: false, how: '赛区冠军，直接进季后赛' }
     }
     if (swiss.includes(state.myTeam)) {
-      return { key: ev.key, name: ev.name, day: start, swiss: true, how: `从瑞士轮打起（${swiss.indexOf(state.myTeam) + 1} 号种子）` }
+      return { key: ev.key, name: ev.name, day: start, swiss: true, how: swissHow(feeder.finished.indexOf(state.myTeam) + 1) }
     }
     return null
   }
@@ -182,7 +193,7 @@ export function qualification(state: GameState): QualStatus | null {
         event: comp.name, tone: r.l >= 2 ? 'warn' : 'info',
         headline: r.w >= 2 ? `${comp.name} 瑞士轮 ${r.w}-${r.l}，已经晋级季后赛。`
           : r.l >= 2 ? `${comp.name} 瑞士轮 ${r.w}-${r.l}，止步瑞士轮。`
-            : `${comp.name} 瑞士轮 ${r.w}-${r.l}（${seed} 号种子）：再赢 ${2 - r.w} 场进季后赛，再输 ${2 - r.l} 场出局。`,
+            : `${comp.name} 瑞士轮 ${r.w}-${r.l}（瑞士轮 ${seed} 号种子）：再赢 ${2 - r.w} 场进季后赛，再输 ${2 - r.l} 场出局。`,
         lines: [],
       }
     }

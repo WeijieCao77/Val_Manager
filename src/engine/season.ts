@@ -40,9 +40,10 @@ import {
  * final on a Sunday, the Masters draw on Tuesday, Stage 1 opening the day
  * after the Masters final. A manager wrote that it was 「拥挤」 — no time to
  * do business between competitions — and the sport itself does not play
- * like that. So the year is the whole year now, and the four weeks it gained
- * are breaks: a fortnight before each Masters and ten days before Champions,
- * with the market open through the breaks that lead into the Masters.
+ * like that. So the year is the whole year now, and the stages are shaped
+ * like the real ones: a league plays twice a week for five weeks, then a
+ * fortnight of playoffs, then three to four weeks off before the Masters,
+ * with the market open through the break that leads into it.
  */
 export const SEASON_DAYS = 364
 
@@ -57,11 +58,11 @@ export const STAGES: StageDef[] = [
   { key: 'preseason', name: '季前准备', start: 0, end: 20 },
   { key: 'kickoff', name: 'Kickoff', start: 21, end: 62 },
   { key: 'masters1', name: 'Masters I', start: 63, end: 98 },
-  { key: 'stage1', name: 'Stage 1', start: 99, end: 178 },
-  { key: 'masters2', name: 'Masters II', start: 179, end: 214 },
-  { key: 'stage2', name: 'Stage 2', start: 215, end: 294 },
-  { key: 'champions', name: 'Champions', start: 295, end: 338 },
-  { key: 'offseason', name: '休赛期', start: 339, end: SEASON_DAYS - 1 },
+  { key: 'stage1', name: 'Stage 1', start: 99, end: 164 },
+  { key: 'masters2', name: 'Masters II', start: 165, end: 214 },
+  { key: 'stage2', name: 'Stage 2', start: 215, end: 280 },
+  { key: 'champions', name: 'Champions', start: 281, end: 322 },
+  { key: 'offseason', name: '休赛期', start: 323, end: SEASON_DAYS - 1 },
 ]
 
 /**
@@ -71,7 +72,7 @@ export const STAGES: StageDef[] = [
  * eight days after its Swiss round.
  */
 export const INTERNATIONAL_OPEN: Record<'masters1' | 'masters2' | 'champions', number> = {
-  masters1: 76, masters2: 192, champions: 306,
+  masters1: 76, masters2: 184, champions: 296,
 }
 
 export const stageAt = (day: number): StageKey =>
@@ -138,23 +139,23 @@ export function setupSeason(state: GameState, notes?: string[]): void {
     // quarter-final against a club you had never played, and the standings
     // stayed empty all the way through because knockouts do not build a table.
     const kc = makeComp(state, 'kickoff', `${region} Kickoff`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(kc, 'kickoff', 24, 52, 3, rng, '小组赛', 5))
+    state.fixtures.push(...scheduleRegularSeason(kc, 'kickoff', 24, 38, 3, rng, '小组赛', 5))
 
     // ---- Stage 1 & Stage 2: full round robin, playoffs seeded from the table
     const s1 = makeComp(state, 'stage1', `VCT ${region} · Stage 1`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', 100, 168, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', 100, 135, 3, rng))
 
     const s2 = makeComp(state, 'stage2', `VCT ${region} · Stage 2`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 216, 284, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 216, 251, 3, rng))
 
     // ---- Challengers: two splits, running alongside the tier-1 calendar
     // even a two-club Challengers league is playable now that small leagues cycle
     if (t2.length >= 2) {
       const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 148, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 112, 3, rng, '常规赛'))
 
       const c2 = makeComp(state, 'challengers2', `Challengers ${region} · 第二赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 216, 282, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 216, 256, 3, rng, '常规赛'))
     }
   }
   seedMarket(state, notes)

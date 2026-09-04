@@ -84,11 +84,15 @@ export function scheduleRegularSeason(
   // as long as a full stage
   if (!odd && rounds.length > targetGames) rounds = rounds.slice(0, targetGames)
   if (!rounds.length) return []
+  // Rounds spread evenly over the window, to the day. A whole-number step
+  // used to round eleven rounds over five weeks down to one game every three
+  // days, or up to one every six — a league that plays Thursday and Sunday
+  // lands on a 3-4-3-4 rhythm, which only a fractional step can produce.
   const span = Math.max(1, endDay - startDay)
-  const step = Math.max(2, Math.floor(span / rounds.length))
+  const step = Math.max(2, span / Math.max(1, rounds.length - 1))
   const out: Fixture[] = []
   rounds.forEach((pairs, i) => {
-    const day = startDay + i * step
+    const day = startDay + Math.round(i * step)
     pairs.forEach(([a, b]) => {
       out.push(makeFixture(day, stage, comp.key, a, b, bo, `${labelPrefix} 第${i + 1}轮`))
     })
