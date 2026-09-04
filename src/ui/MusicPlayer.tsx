@@ -120,8 +120,27 @@ export default function MusicPlayer() {
     a.volume = p.vol
     a.muted = p.muted
     a.loop = p.loop === 'one'
-    if (!p.off) load(p.track, true)
+    // The game's own chunks and pictures go first. The music waits for the
+    // page to finish loading and a moment more, so a multi-megabyte file is
+    // not fetched alongside the bundle on a phone connection — with the
+    // file competing from the first byte, the song was reported as
+    // stuttering. A page whose load event never comes (one slow picture is
+    // enough) still gets its music a few seconds in. A tap before any of
+    // this starts it at once, through the gesture effect below.
+    let timer = 0
+    const begin = () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('load', onLoad)
+      if (!prefsRef.current.off && a.paused) load(prefsRef.current.track, true)
+    }
+    const onLoad = () => { window.clearTimeout(timer); timer = window.setTimeout(begin, 1500) }
+    if (!p.off) {
+      if (document.readyState === 'complete') onLoad()
+      else { window.addEventListener('load', onLoad); timer = window.setTimeout(begin, 5000) }
+    }
     return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('load', onLoad)
       a.removeEventListener('play', onPlay)
       a.removeEventListener('pause', onPause)
       a.removeEventListener('ended', onEnded)
@@ -129,21 +148,22 @@ export default function MusicPlayer() {
     }
   }, [el, load, patch, tryPlay])
 
-  // refused: the first gesture anywhere on the page is the one we were waiting for
+  // Should be playing and is not: the next gesture anywhere on the page is
+  // the one we were waiting for — a phone refuses every play() that cannot
+  // be traced to a tap, so the tap has to do the playing itself. Not a tap
+  // on the window's own buttons: those know what they want, and a play
+  // button that had already been played by this listener would read as a
+  // pause and turn the music off. Gone once playback is under way.
   useEffect(() => {
-    if (!blocked || prefs.off) return
-    const a = el()
-    const go = () => {
-      a.play().then(() => {
-        setBlocked(false)
-        stop()
-      }).catch(() => { /* still not allowed: keep listening */ })
+    if (prefs.off || playing) return
+    const go = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest('.bgm')) return
+      if (!prefsRef.current.off) load(prefsRef.current.track, true)
     }
     const evs: (keyof WindowEventMap)[] = ['click', 'keydown', 'touchend']
-    const stop = () => evs.forEach((e) => window.removeEventListener(e, go, true))
     evs.forEach((e) => window.addEventListener(e, go, true))
-    return stop
-  }, [blocked, prefs.off, el])
+    return () => evs.forEach((e) => window.removeEventListener(e, go, true))
+  }, [prefs.off, playing, load])
 
   useEffect(() => { const a = el(); a.volume = prefs.vol; a.muted = prefs.muted }, [prefs.vol, prefs.muted, el])
   useEffect(() => { el().loop = prefs.loop === 'one' }, [prefs.loop, el])
@@ -178,12 +198,14 @@ export default function MusicPlayer() {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
     const ms = navigator.mediaSession
     const set = (k: MediaSessionAction, f: (() => void) | null) => { try { ms.setActionHandler(k, f) } catch { /* unsupported action */ } }
-    set('play', toggle)
-    set('pause', toggle)
+    // idempotent, unlike the button: the OS repeats itself, and a 'play'
+    // arriving while already playing must not read as a pause
+    set('play', () => { if (el().paused) toggle() })
+    set('pause', () => { if (!el().paused) toggle() })
     set('previoustrack', TRACKS.length > 1 ? () => step(-1) : null)
     set('nexttrack', TRACKS.length > 1 ? () => step(1) : null)
     return () => { set('play', null); set('pause', null); set('previoustrack', null); set('nexttrack', null) }
-  }, [toggle, step])
+  }, [toggle, step, el])
 
   const loop = LOOPS[prefs.loop]
   const many = TRACKS.length > 1

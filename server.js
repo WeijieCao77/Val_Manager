@@ -91,6 +91,7 @@ const TYPES = {
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
   '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
 }
 
 // ---------------------------------------------------------------- database
