@@ -2,13 +2,17 @@
 """
 Turn a NetEase Cloud Music download (.ncm) into a track for public/music.
 
-    python3 scripts/ncm_to_mp3.py "~/Music/网易云音乐/VALORANT,Grabbitz - Die For You.ncm" die-for-you
+    python3 scripts/ncm_to_aac.py "~/Music/网易云音乐/VALORANT,Grabbitz - Die For You.ncm" die-for-you
 
-writes public/music/die-for-you.mp3 (160k, 44.1kHz, tags stripped) and
-prints the line to add to src/data/music.ts. Needs ffmpeg on the PATH and
-the `cryptography` package. The .ncm container is the download format of
-the owner's own library; this only unwraps it, the way the desktop app does
-when it plays the file.
+writes public/music/die-for-you.m4a and prints the line to add to
+src/data/music.ts. AAC-LC at 96k through Apple's encoder (ffmpeg's aac_at,
+macOS only): about the quality of a 160k mp3 at half the bytes, which is
+what a phone on a slow connection needs — the 160k mp3s this started with
+were reported as stuttering. The moov atom is moved to the front so the
+browser can start playing before the file has finished arriving. Needs
+ffmpeg on the PATH and the `cryptography` package. The .ncm container is the
+download format of the owner's own library; this only unwraps it, the way
+the desktop app does when it plays the file.
 """
 import base64
 import json
@@ -75,15 +79,16 @@ def main() -> None:
     meta = unwrap(src, raw)
     title = meta.get('musicName', slug)
     artist = ' · '.join(a[0] for a in meta.get('artist', []))
-    mp3 = os.path.join(outdir, f'{slug}.mp3')
+    m4a = os.path.join(outdir, f'{slug}.m4a')
     subprocess.run([
         'ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', raw, '-vn',
-        '-ar', '44100', '-b:a', '160k', '-map_metadata', '-1', '-id3v2_version', '3',
-        '-metadata', f'title={title}', '-metadata', f'artist={artist}', mp3,
+        '-ar', '44100', '-c:a', 'aac_at', '-aac_at_mode', 'cvbr', '-b:a', '96k',
+        '-movflags', '+faststart', '-map_metadata', '-1',
+        '-metadata', f'title={title}', '-metadata', f'artist={artist}', m4a,
     ], check=True)
     os.remove(raw)
-    print(f'{mp3}  {os.path.getsize(mp3) / 1e6:.1f} MB  {meta.get("duration", 0) // 1000}s')
-    print(f"  {{ id: '{slug}', title: '{title}', artist: '{artist}', file: 'music/{slug}.mp3?v=1' }},")
+    print(f'{m4a}  {os.path.getsize(m4a) / 1e6:.1f} MB  {meta.get("duration", 0) // 1000}s')
+    print(f"  {{ id: '{slug}', title: '{title}', artist: '{artist}', file: 'music/{slug}.m4a?v=2' }},")
 
 
 if __name__ == '__main__':
