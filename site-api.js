@@ -333,8 +333,8 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     // the two other ways a card leaves an account: handed to a friend, or
     // swapped — 「我抽到过他，现在没了」 is answered here or nowhere
     const gifts = await sql`
-      select id, card_id, claimed, made, from_h = ${h} as sent
-      from card_gifts where from_h = ${h} or to_h = ${h} order by made desc limit 20`
+      select id, card_id, claimed, sent as at, from_h = ${h} as outgoing
+      from card_gifts where from_h = ${h} or to_h = ${h} order by sent desc limit 20`
     const swaps = await sql`
       select id, give_id, give_level, want_id, status, made, settled, from_h = ${h} as mine
       from card_swaps where from_h = ${h} or to_h = ${h} order by made desc limit 20`
@@ -350,7 +350,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       owned: Object.entries(a.owned ?? {}).map(([cardId, v]) => ({
         cardId, card: ign(cardId), level: v?.level ?? 0, dupes: v?.dupes ?? 0,
       })),
-      gifts: gifts.map((g) => ({ id: String(g.id), card: ign(g.card_id), cardId: g.card_id, sent: g.sent, claimed: g.claimed, made: g.made })),
+      gifts: gifts.map((g) => ({ id: String(g.id), card: ign(g.card_id), cardId: g.card_id, outgoing: g.outgoing, sent: g.at, claimed: g.claimed })),
       swaps: swaps.map((w) => ({
         id: String(w.id), mine: w.mine, give: ign(w.give_id), giveLevel: w.give_level, want: ign(w.want_id),
         status: w.status, made: w.made, settled: w.settled,
