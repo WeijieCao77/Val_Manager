@@ -37,6 +37,7 @@ import type { UnlockItem } from './ui/Unlocked'
 import { whenUnlocked } from './engine/profile'
 import { ENDINGS } from './engine/endings'
 import Dossier from './ui/Dossier'
+import ThemeToggle from './ui/ThemeToggle'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -267,6 +268,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   return (
     <GameCtx.Provider value={ctxValue}>
       <div className="app">
+        <a className="skip-link" href="#main">跳到主内容</a>
         <header className="topbar">
           <button
             className="brand as-link"
@@ -286,20 +288,20 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           <div className="chip">{dateLabel(game)}</div>
           <div className="chip">{stageName(game.stage)}</div>
           <div className="spacer" />
-          <div className="chip" title="可用资金">💰 <b>{money(game.finances.balance)}</b></div>
+          <div className="chip" title="可用资金" aria-label="可用资金"><span aria-hidden="true">💰</span> <b>{money(game.finances.balance)}</b></div>
           <div
             className={`chip actions${actionsLeft(game) === 0 ? ' spent' : ''}`}
             title={`本回合 ${actionsForTurn(game)} 点行动力（赛季中每天 2 点，空档期每周 4 点）。\n报价、问价、商务、约战、教练组、挂牌解约等对外事务各花 1 点；\n首发、战术、训练安排不花点数。`}
           >
-            ⚡ 行动力
+            <span aria-hidden="true">⚡</span> 行动力
             <b style={{ marginLeft: 4 }}>{actionsLeft(game)}/{actionsForTurn(game)}</b>
           </div>
-          <div className="chip" title="董事会信任度">
-            🏛 <b>{Math.round(game.boardConfidence)}%</b>
+          <div className="chip" title="董事会信任度" aria-label="董事会信任度">
+            <span aria-hidden="true">🏛</span> <b>{Math.round(game.boardConfidence)}%</b>
           </div>
           {scrim && (
             <div className="chip small muted" title="已约训练赛">
-              🎯 {scrim.day - game.day <= 0 ? '今天' : `${scrim.day - game.day}天后`}训练赛
+              <span aria-hidden="true">🎯</span> {scrim.day - game.day <= 0 ? '今天' : `${scrim.day - game.day}天后`}训练赛
             </div>
           )}
           {next && (
@@ -328,9 +330,16 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
                 </div>
               )
             })}
+            {/* The ground switch lives at the foot of the rail, where a
+                sidebar keeps its settings, rather than in the HUD — the bar
+                is full of numbers a decision needs, and at 1280px a long club
+                name already used the last of its room. */}
+            <div className="nav-foot">
+              <ThemeToggle compact />
+            </div>
           </nav>
 
-          <main className="main" ref={mainRef}>
+          <main className="main" id="main" ref={mainRef}>
             {/* rendered directly rather than through the map above: an arrow in
                 that object would be a new component type on every render, and
                 the dossier would lose its search box mid-word */}

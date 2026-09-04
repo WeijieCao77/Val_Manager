@@ -76,6 +76,9 @@ export const EVENTS = new Set([
   'unlock',
   // the site account, which is opt-in and therefore worth watching
   'account',
+  // switching the page's ground — dark, light or cream. session_start
+  // carries which one a session ran on; this is the moment of choosing.
+  'theme',
   'error',
 ])
 

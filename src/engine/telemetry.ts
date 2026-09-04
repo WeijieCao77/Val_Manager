@@ -58,6 +58,11 @@ let disabled = false
 
 const now = () => Date.now()
 
+/** the same key ui/theme.ts writes; read raw here so the engine never imports the ui */
+const themeNow = (): string => {
+  try { return localStorage.getItem('valmgr.theme') ?? 'dark' } catch { return 'dark' }
+}
+
 function readId(): string {
   try {
     let v = localStorage.getItem(ID_KEY)
@@ -318,6 +323,9 @@ export function startTelemetry(): void {
     // a first-ever id sitting next to an existing save means the id churned
     new_id: freshId,
     had_save: hadSave,
+    // which ground the page is drawn on — the light themes were asked for by
+    // people the black page made dizzy, and this is whether they found them
+    theme: themeNow(),
   })
 
   heartbeat = setInterval(tick, HEARTBEAT_MS)
@@ -337,6 +345,7 @@ export function startTelemetry(): void {
         deepDay = 0; deepYear = 0; simMax = 0; turnsSent = -1
         track('session_start', {
           ref: null, host: location.hostname, w: window.innerWidth, h: window.innerHeight,
+          theme: themeNow(),
         })
       }
       lastActivity = now()

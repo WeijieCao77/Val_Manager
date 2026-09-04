@@ -41,7 +41,7 @@ export default function RetireCard({ note, onClose }: { note: RetireNote; onClos
           <img
             src={faceUrl(d.img, d.v)}
             alt={note.ign}
-            style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10, background: '#1b2836' }}
+            style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10, background: 'var(--panel-3)' }}
           />
         )}
         <div style={{ flex: 1 }}>

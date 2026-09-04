@@ -29,7 +29,7 @@ export default function RoundRibbon({
   const width = rounds.length * (w + gap) + labelW
   const height = laneH * 2 + (compact ? 1 : 15)
 
-  const IDLE = '#1b2836'
+  const IDLE = 'var(--well)'
 
   // where the sides switch: after round 12, then every OT round pair
   const halfAt = rounds.findIndex((r) => r.n === 13)
@@ -46,7 +46,7 @@ export default function RoundRibbon({
           const x = i * (w + gap)
           // the side the WINNER was playing colours the cell, as vlr does
           const winnerAttacked = r.winner === 'A' ? r.aAttack : !r.aAttack
-          const c = winnerAttacked ? 'var(--warn)' : '#5fa8d3'
+          const c = winnerAttacked ? 'var(--warn)' : 'var(--def)'
           const winY = mineWon ? 0 : laneH
           return (
             <g key={i}>
@@ -163,7 +163,7 @@ const sample = (end: RoundLog['end'], attack: boolean) => (
   <svg width={16} height={16} style={{ display: 'block' }}>
     <rect
       x={0} y={0} width={16} height={16} rx={2}
-      fill={attack ? 'var(--warn)' : '#5fa8d3'}
+      fill={attack ? 'var(--warn)' : 'var(--def)'}
     />
     <EndMark end={end} x={8} y={8} />
   </svg>
@@ -177,7 +177,7 @@ export function RibbonLegend() {
         进攻方拿下
       </span>
       <span className="row" style={{ gap: 5, alignItems: 'center' }}>
-        <i style={{ width: 12, height: 12, background: '#5fa8d3', borderRadius: 2, display: 'inline-block' }} />
+        <i style={{ width: 12, height: 12, background: 'var(--def)', borderRadius: 2, display: 'inline-block' }} />
         防守方拿下
       </span>
       <span className="row" style={{ gap: 5, alignItems: 'center' }}>{sample('elim', true)} 团灭</span>

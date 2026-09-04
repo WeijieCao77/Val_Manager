@@ -16,6 +16,7 @@ import MailBox from './cards/MailBox'
 import Credit from './Credit'
 import Support from './Support'
 import Changelog from './Changelog'
+import ThemeToggle from './ThemeToggle'
 import {
   act as actOnServer, createAccount, dayOf, flushAccount, fetchDay, loadAccount, retryPending,
   saveAccount, serverNow, whenStale,
@@ -327,6 +328,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   return (
     <CardCtx.Provider value={ctx}>
       <div className="app cardmode">
+        <a className="skip-link" href="#main">跳到主内容</a>
         <header className="topbar">
           {/* 开 in the accent, 瓦包 in the gold this mode uses — the same
               two-tone split the career's mark has. The English keeps the .by
@@ -347,6 +349,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           <MailBox />
           <div className="spacer" />
           {!cloud && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
+          <ThemeToggle compact />
           <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
         </header>
 
@@ -362,7 +365,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           ))}
         </nav>
 
-        <div className="cm-body" ref={mainRef}>
+        <div className="cm-body" id="main" ref={mainRef}>
           {fresh && tab === 'account' && (
             <div className="panel" style={{ borderColor: 'var(--accent-line)', marginBottom: 14 }}>
               <div className="panel-body">

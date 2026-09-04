@@ -1,34 +1,48 @@
 /*
  * VAL MANAGER — design tokens
  *
- * Single-theme by choice: the subject's world (agent select, broadcast
- * overlays, tactical maps) is a dark one, so the page commits to it rather
- * than shipping a washed-out light mode.
+ * Three grounds, one game. The dark one is the subject's own — agent select,
+ * broadcast overlays, tactical maps — and it stays the default. The two light
+ * ones exist because a manager plays for hours and a black page makes some
+ * people dizzy: 浅色 is the stat sheet (white panels on a cool grey), 米色 is
+ * the notebook (cream, a step below white, warmer). Every colour in the
+ * interface is one of the tokens below; the only literals left in the
+ * components are the cards, which are physical objects and look the same
+ * under any light.
  *
  * Accent and semantics are kept strictly apart. #FF4655 is Valorant's red and
  * belongs to the brand, primary actions and "your team" — nothing else. Wins,
  * warnings and deficits get their own hues so a loss never reads as branding.
+ * On the light grounds every one of these is deepened until it clears 4.5:1
+ * on a panel — the bright dark-theme values sit at 2:1 on white.
  */
 :root {
+  color-scheme: dark;
+
   /* neutrals — biased toward the accent's navy, never a flat grey */
   --bg:        #0e1620;
   --bg-rail:   #121c27;
   --panel:     #16202c;
   --panel-2:   #1e2b39;
   --panel-3:   #26364a;
+  /* a recessed track: the empty part of a bar, the diagonal of a matrix */
+  --well:      #101a25;
   --line:      #263344;
   --line-soft: #1d2836;
+  /* a border under the pointer */
+  --line-hi:   #3c536b;
 
   --text:      #ece8e1;
   --muted:     #8299b1;
-  /* was #55697f — the hints that matter most were set in it, and on a desktop
-     monitor it read as disabled text */
-  --faint:     #6a7f96;
+  /* was #55697f, then #6a7f96 — the hints that matter most are set in it,
+     and it kept reading as disabled text. 4.6:1 on a panel now. */
+  --faint:     #7389a1;
 
   /* brand accent — reserved for identity, primary actions, own club */
   --accent:      #ff4655;
   --accent-hot:  #ff6371;
   --accent-wash: rgba(255, 70, 85, .10);
+  --accent-wash-2: rgba(255, 70, 85, .16);
   /* --panel under --accent-wash, flattened: a sticky cell has to be opaque or
      the rows scrolling beneath it show through the tint */
   --panel-me: #2d2430;
@@ -41,7 +55,15 @@
   --win-wash: rgba(61, 214, 140, .12);
   --warn:     #e8b23a;
   --warn-wash:rgba(232, 178, 58, .12);
+  --on-warn:  #1b1305;
   --loss:     #8497ab;
+  /* the defending side, in the round strip and the map graph */
+  --def:      #5fa8d3;
+  /* the card game's metal, where its wordmark wears it */
+  --gold:     #f0c14b;
+  /* ink that stays legible on a tinted cell — the dressing-room matrix */
+  --pos-ink:  #a9f0cc;
+  --neg-ink:  #ffb3ba;
 
   /* role identity */
   --duelist:   #ff5a63;
@@ -49,6 +71,16 @@
   --controller:#8b7bff;
   --sentinel:  #3dd68c;
   --flex:      #8ea2b8;
+  --on-role:   #0e1620;
+
+  /* depth — a shadow is a dark-room trick; under daylight it goes soft */
+  --scrim:       rgba(5, 10, 16, .78);
+  --scrim-soft:  rgba(5, 10, 16, .62);
+  --shadow-pop:  0 26px 72px rgba(0, 0, 0, .62);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, .58);
+  --shadow-fab:  0 6px 20px rgba(0, 0, 0, .45);
+  --shadow-up:   0 -8px 20px rgba(0, 0, 0, .45);
+  --shadow-edge: rgba(0, 0, 0, .35);
 
   --radius: 3px;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
@@ -64,6 +96,115 @@
   --t-tiny: 12px;
   --t-label: 10.5px;
 }
+/* ------------------------------------------------------------- 浅色
+   The stat sheet. Panels are white on a cool grey so they keep their edges;
+   the text is the dark theme's navy turned up to ink. Every coloured word is
+   deepened to clear 4.5:1 on white — the neon greens and ambers that carry on
+   black are 2:1 here and simply vanish. */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg:        #eef1f5;
+  --bg-rail:   #e6eaf0;
+  --panel:     #ffffff;
+  --panel-2:   #f3f5f8;
+  --panel-3:   #e6ebf1;
+  --well:      #e3e8ee;
+  --line:      #d5dce5;
+  --line-soft: #e4e9ef;
+  --line-hi:   #aab8c8;
+
+  --text:      #16202b;
+  --muted:     #4e6378;
+  --faint:     #596c81;
+
+  --accent:      #d92a39;
+  --accent-hot:  #c11f2d;
+  --accent-wash: rgba(217, 42, 57, .08);
+  --accent-wash-2: rgba(217, 42, 57, .14);
+  --accent-line: rgba(217, 42, 57, .38);
+  --panel-me:  #fbeaec;
+
+  --win:      #117a4a;
+  --win-wash: rgba(17, 122, 74, .10);
+  --warn:     #9a6205;
+  --warn-wash:rgba(154, 98, 5, .10);
+  --on-warn:  #ffffff;
+  --loss:     #5c7086;
+  --def:      #266b9f;
+  --gold:     #8f6a05;
+  --pos-ink:  #0f6b41;
+  --neg-ink:  #a11c28;
+
+  --duelist:   #d02335;
+  --initiator: #8f6a00;
+  --controller:#5f4de0;
+  --sentinel:  #117551;
+  --flex:      #5c7086;
+  --on-role:   #ffffff;
+
+  --scrim:       rgba(23, 34, 48, .50);
+  --scrim-soft:  rgba(23, 34, 48, .36);
+  --shadow-pop:  0 20px 56px rgba(23, 34, 48, .22);
+  --shadow-card: 0 14px 40px rgba(23, 34, 48, .18);
+  --shadow-fab:  0 4px 14px rgba(23, 34, 48, .14);
+  --shadow-up:   0 -6px 18px rgba(23, 34, 48, .12);
+  --shadow-edge: rgba(23, 34, 48, .10);
+}
+
+/* ------------------------------------------------------------- 米色
+   The notebook. The same sheet printed on cream: a step below white, so it
+   throws less light back at a tired eye, and warm, so the greys are browns.
+   This is the one to hand someone who said the black page made them dizzy. */
+[data-theme="cream"] {
+  color-scheme: light;
+  --bg:        #f1eadc;
+  --bg-rail:   #e9e1d0;
+  --panel:     #faf6ec;
+  --panel-2:   #f1eadb;
+  --panel-3:   #e5dcc7;
+  --well:      #e6dcc8;
+  --line:      #d6cbb3;
+  --line-soft: #e3d9c4;
+  --line-hi:   #b3a486;
+
+  --text:      #2a2318;
+  --muted:     #63594a;
+  --faint:     #6b6252;
+
+  --accent:      #cf2a38;
+  --accent-hot:  #b81f2c;
+  --accent-wash: rgba(207, 42, 56, .08);
+  --accent-wash-2: rgba(207, 42, 56, .14);
+  --accent-line: rgba(207, 42, 56, .38);
+  --panel-me:  #f6e4de;
+
+  --win:      #17734a;
+  --win-wash: rgba(23, 115, 74, .10);
+  --warn:     #946008;
+  --warn-wash:rgba(148, 96, 8, .10);
+  --on-warn:  #ffffff;
+  --loss:     #6b6558;
+  --def:      #266b9f;
+  --gold:     #8a6607;
+  --pos-ink:  #146b41;
+  --neg-ink:  #a11c28;
+
+  --duelist:   #c9202f;
+  --initiator: #8c6600;
+  --controller:#5f4de0;
+  --sentinel:  #177650;
+  --flex:      #6b6558;
+  --on-role:   #ffffff;
+
+  --scrim:       rgba(42, 35, 24, .50);
+  --scrim-soft:  rgba(42, 35, 24, .36);
+  --shadow-pop:  0 20px 56px rgba(42, 35, 24, .22);
+  --shadow-card: 0 14px 40px rgba(42, 35, 24, .18);
+  --shadow-fab:  0 4px 14px rgba(42, 35, 24, .14);
+  --shadow-up:   0 -6px 18px rgba(42, 35, 24, .12);
+  --shadow-edge: rgba(42, 35, 24, .10);
+}
+
 /* a real monitor has the room */
 @media (min-width: 1100px) {
   :root { --t-body: 15px; --t-small: 14px; --t-tiny: 12.5px; --t-label: 11px; }
@@ -117,10 +258,10 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 7px 14px;
-  transition: background .12s ease, border-color .12s ease;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-button:hover:not(:disabled) { background: var(--panel-3); border-color: #35495f; }
-button:active:not(:disabled) { background: #2c3e52; }
+button:hover:not(:disabled) { background: var(--panel-3); border-color: var(--line-hi); }
+button:active:not(:disabled) { background: var(--line); }
 button:disabled { opacity: .38; cursor: not-allowed; }
 
 button.primary {
@@ -154,7 +295,7 @@ button.warn {
   background: var(--warn-wash); border-color: var(--warn); color: var(--warn);
   font-weight: 650;
 }
-button.warn:hover:not(:disabled) { background: var(--warn); color: #1b1305; }
+button.warn:hover:not(:disabled) { background: var(--warn); color: var(--on-warn); }
 button.ghost { background: transparent; }
 button.ghost:hover:not(:disabled) { background: var(--panel-2); }
 button.sm { padding: 4px 9px; font-size: var(--t-small); }
@@ -168,7 +309,12 @@ input, select, textarea {
   padding: 7px 10px;
   width: 100%;
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+/* the ring replaces the outline rather than removing it — a field with the
+   caret in it has to be findable from across the room */
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash-2);
+}
 input[type=range] { padding: 0; accent-color: var(--accent); }
 input[type=checkbox] { accent-color: var(--accent); }
 select { cursor: pointer; }
@@ -181,7 +327,10 @@ a { color: var(--accent); }
 /* the HUD rail — match status always in view, like a broadcast lower third */
 .topbar {
   display: flex; align-items: center; gap: 14px;
-  padding: 0 16px; height: 54px; flex-shrink: 0;
+  padding: 0 16px; min-height: 54px; flex-shrink: 0;
+  /* one row when it fits; a long club name on a narrow desktop wraps the
+     numbers onto a second row instead of pushing them off the right edge */
+  flex-wrap: wrap; row-gap: 4px;
   background: var(--bg-rail);
   border-bottom: 1px solid var(--line);
 }
@@ -197,6 +346,7 @@ a { color: var(--accent); }
   border-radius: 2px; padding: 4px 11px; font-size: var(--t-small);
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   color: var(--muted);
+  transition: border-color .15s ease, color .15s ease;
 }
 .chip b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
 .chip.own { border-color: var(--accent-line); background: var(--accent-wash); }
@@ -207,6 +357,24 @@ a { color: var(--accent); }
   width: 164px; flex-shrink: 0;
   background: var(--bg-rail); border-right: 1px solid var(--line);
   padding: 8px 0; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.nav > div { flex: none; }
+/* the foot of the rail: pushed to the bottom when there is room, after the
+   list when there is not */
+.nav-foot {
+  position: sticky; bottom: 0; margin-top: auto;
+  padding: 10px 10px 8px;
+  background: var(--bg-rail); border-top: 1px solid var(--line-soft);
+}
+.nav-foot .seg.theme { display: flex; width: 100%; }
+.nav-foot .seg.theme button { flex: 1; justify-content: center; padding: 5px 2px; gap: 5px; }
+/* `.nav button` paints every button in the rail as a block row; the two
+   forms of the switch need to be told apart from it by specificity */
+.nav .nav-foot .theme-cycle { display: none; width: 100%; justify-content: center; padding: 6px 0; }
+@media (max-width: 720px) {
+  .nav .nav-foot .seg.theme { display: none; }
+  .nav .nav-foot .theme-cycle { display: inline-flex; }
 }
 .nav button {
   display: block; width: 100%; text-align: left;
@@ -214,6 +382,7 @@ a { color: var(--accent); }
   border-radius: 0; padding: 9px 16px; color: var(--muted); font-size: var(--t-body);
 }
 .nav button:hover { background: var(--panel); color: var(--text); }
+.nav button { transition: background .15s ease, color .15s ease; }
 .nav button.active {
   color: var(--text); border-left-color: var(--accent);
   background: var(--panel); font-weight: 650;
@@ -272,6 +441,7 @@ a { color: var(--accent); }
   input:not([type=range]):not([type=checkbox]), select, textarea { font-size: 16px; }
   .nav { width: 54px; }
   .nav button { padding: 11px 4px; text-align: center; font-size: var(--t-tiny); }
+  .nav-foot { padding: 8px 6px; }
   .nav .nav-group { display: none; }
 
   /* The HUD does not fit one row on a phone, and hiding money and action
@@ -324,7 +494,7 @@ a { color: var(--accent); }
   th.sticky-name, td.sticky-name {
     position: sticky; left: var(--pick-w); z-index: 3;
     background: var(--panel);
-    box-shadow: 6px 0 8px rgba(0, 0, 0, .35);
+    box-shadow: 6px 0 8px var(--shadow-edge);
   }
   /* tables with no pinned checkbox column start their name column at the edge */
   th.sticky-name.at-left, td.sticky-name.at-left { left: 0; }
@@ -335,7 +505,7 @@ a { color: var(--accent); }
   th.sticky-act, td.sticky-act {
     position: sticky; right: 0; z-index: 2;
     background: var(--panel);
-    box-shadow: -6px 0 8px rgba(0, 0, 0, .35);
+    box-shadow: -6px 0 8px var(--shadow-edge);
     padding-left: 6px; padding-right: 6px;
   }
   /* the starting five's tint has to reach the pinned button column too, or a
@@ -345,7 +515,10 @@ a { color: var(--accent); }
      and the numbers to its left stay readable */
   td.sticky-act .row { flex-direction: column; gap: 4px; align-items: stretch; }
   td.sticky-act button { width: 100%; }
-  .hide-m { display: none; }
+  /* !important because a later single-class rule (.seg, .row) otherwise
+     wins the display property back — and a phone saw the three-way ground
+     switch AND its one-button stand-in side by side */
+  .hide-m { display: none !important; }
 }
 
 /* ---------------------------------------------------------------- tables */
@@ -366,7 +539,7 @@ tbody tr:hover { background: var(--panel-2); }
 .team-card .tiny { white-space: nowrap; }
 
 tr.me { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
-tr.me:hover { background: rgba(255, 70, 85, .16); }
+tr.me:hover { background: var(--accent-wash-2); }
 tr.clickable { cursor: pointer; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
 .table-wrap { overflow-x: auto; }
@@ -374,7 +547,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 /* ---------------------------------------------------------------- bits */
 .role {
   display: inline-block; padding: 1px 7px; border-radius: 2px;
-  font-size: var(--t-tiny); font-weight: 700; color: #0e1620; letter-spacing: .02em;
+  font-size: var(--t-tiny); font-weight: 700; color: var(--on-role); letter-spacing: .02em;
 }
 .tag {
   display: inline-block; padding: 1px 7px; border-radius: 2px;
@@ -403,11 +576,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 .trait[data-good="y"] {
   background: var(--win-wash); color: var(--win);
-  box-shadow: inset 0 0 0 1px rgba(61, 214, 140, .45);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--win) 45%, transparent);
 }
 .trait[data-good="n"] {
   background: var(--warn-wash); color: var(--warn);
-  box-shadow: inset 0 0 0 1px rgba(232, 178, 58, .45);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
 /* result pill — W/L legible as shape and colour, not just a letter */
@@ -416,8 +589,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   width: 19px; height: 19px; border-radius: 2px;
   font-size: var(--t-tiny); font-weight: 800; font-family: var(--mono);
 }
-.pill.w { background: var(--win-wash); color: var(--win); box-shadow: inset 0 0 0 1px rgba(61,214,140,.4); }
-.pill.l { background: rgba(132,151,171,.12); color: var(--loss); box-shadow: inset 0 0 0 1px rgba(132,151,171,.3); }
+.pill.w { background: var(--win-wash); color: var(--win); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--win) 40%, transparent); }
+.pill.l { background: color-mix(in srgb, var(--loss) 12%, transparent); color: var(--loss); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--loss) 30%, transparent); }
 
 .ovr {
   display: inline-flex; align-items: center; justify-content: center;
@@ -427,10 +600,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   font-variant-numeric: tabular-nums;
 }
 .ovr.elite { background: var(--accent-wash); border-color: var(--accent-line); color: var(--accent-hot); }
-.ovr.good  { background: var(--warn-wash); border-color: rgba(232,178,58,.4); color: var(--warn); }
-.ovr.ok    { background: var(--win-wash); border-color: rgba(61,214,140,.35); color: var(--win); }
+.ovr.good  { background: var(--warn-wash); border-color: color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); }
+.ovr.ok    { background: var(--win-wash); border-color: color-mix(in srgb, var(--win) 35%, transparent); color: var(--win); }
 
-.bar { height: 4px; background: #101a25; border-radius: 2px; overflow: hidden; min-width: 54px; flex: 1; }
+.bar { height: 4px; background: var(--well); border-radius: 2px; overflow: hidden; min-width: 54px; flex: 1; }
 .bar > i { display: block; height: 100%; border-radius: 2px; }
 
 .stat { display: flex; flex-direction: column; gap: 2px; }
@@ -469,14 +642,14 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 
 /* ---------------------------------------------------------------- modal */
 .modal-bg {
-  position: fixed; inset: 0; background: rgba(5, 10, 16, .8);
+  position: fixed; inset: 0; background: var(--scrim);
   display: flex; align-items: flex-start; justify-content: center;
   padding: 36px 16px; z-index: 50; overflow-y: auto;
 }
 .modal {
   background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--radius); width: 100%; max-width: 780px;
-  box-shadow: 0 26px 72px rgba(0, 0, 0, .62);
+  box-shadow: var(--shadow-pop);
 }
 .modal-head {
   display: flex; align-items: center; gap: 12px;
@@ -499,7 +672,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   padding: 10px; cursor: pointer; text-align: left;
   transition: border-color .12s ease, background .12s ease;
 }
-.team-card:hover { border-color: #3c536b; }
+.team-card:hover { border-color: var(--line-hi); }
 .team-card.sel { border-color: var(--accent); background: var(--accent-wash); }
 .team-card .n { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
 
@@ -582,7 +755,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   background: var(--panel-2); border: 1px solid var(--accent-line);
   border-left: 2px solid var(--accent);
   padding: 10px 18px; border-radius: var(--radius); z-index: 100;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, .58); max-width: 90vw;
+  box-shadow: var(--shadow-card); max-width: 90vw;
 }
 
 .empty { padding: 28px; text-align: center; color: var(--faint); font-size: var(--t-small); }
@@ -593,7 +766,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   border-radius: var(--radius); padding: 12px; text-align: left;
   display: block; width: 100%;
 }
-.origin-card:hover { border-color: #3c536b; }
+.origin-card:hover { border-color: var(--line-hi); }
 .origin-card.sel { border-color: var(--accent); background: var(--accent-wash); }
 
 .team-card.locked { opacity: .42; cursor: not-allowed; }
@@ -639,7 +812,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   border-radius: var(--radius); overflow: hidden; text-align: left;
 }
 .bracket-tie.own { border-color: var(--accent-line); }
-.bracket-tie.clickable:hover { border-color: #3c536b; }
+.bracket-tie.clickable:hover { border-color: var(--line-hi); }
 .bracket-side {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 9px; font-size: var(--t-small); color: var(--muted);
@@ -663,8 +836,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .bond-grid td, .bond-grid th { text-align: center; padding: 7px 10px; }
 .bond-grid thead th { font-size: 11px; color: var(--muted); font-weight: 500; }
 .bond-grid tbody th { font-size: 12px; font-weight: 600; }
-.bond-grid .bond-self { background: #0d151e; color: #2c3b4c; }
-.bond-grid .bond-mirror { background: #0a1017; }
+.bond-grid .bond-self { background: var(--well); color: var(--line); }
+.bond-grid .bond-mirror { background: var(--bg); }
 .bond-key { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
 
 /* a clickable line per recent match, scrims included */
@@ -673,7 +846,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   padding: 5px 8px; background: none; border: 0; border-radius: var(--radius);
   color: var(--text); cursor: pointer; text-align: left;
 }
-.recent-row:hover { background: #101a25; }
+.recent-row:hover { background: var(--panel-2); }
 
 /* the day's budget: always on screen, and unmistakable when it runs out */
 .chip.actions { border-color: var(--accent-line); background: var(--accent-wash); }
@@ -682,13 +855,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 /* first-run walkthrough: dim the app, spotlight one nav item at a time */
 .tour-bg {
   position: fixed; inset: 0; z-index: 90;
-  background: rgba(4, 9, 14, .72); backdrop-filter: blur(1.5px);
+  background: var(--scrim); backdrop-filter: blur(1.5px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .tour-card {
   background: var(--panel); border: 1px solid var(--accent-line);
   border-radius: var(--radius); padding: 20px 22px; max-width: 430px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+  box-shadow: var(--shadow-card);
 }
 .tour-card.anchored { margin-left: min(240px, 18vw); }
 .tour-bg.pass-nav { pointer-events: none; }
@@ -733,15 +906,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 /* guided trial day: dim the app, keep exactly one control live */
 .tut-bg {
   position: fixed; inset: 0; z-index: 90;
-  background: rgba(4, 9, 14, .78);
+  background: var(--scrim);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-.tut-bg.gated { pointer-events: none; background: rgba(4, 9, 14, .62); }
+.tut-bg.gated { pointer-events: none; background: var(--scrim-soft); }
 .tut-bg.gated .tut-card { pointer-events: auto; }
 .tut-card {
   background: var(--panel); border: 1px solid var(--accent-line);
   border-radius: var(--radius); padding: 20px 22px; max-width: 440px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+  box-shadow: var(--shadow-card);
 }
 /* anchored to a corner so the highlighted control stays visible */
 .tut-card.side { position: fixed; right: 24px; bottom: 24px; margin: 0; }
@@ -764,7 +937,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
     border: none; border-top: 1px solid var(--line);
     border-radius: 0;
     padding: 8px 10px; margin: 0;
-    box-shadow: 0 -8px 20px rgba(0, 0, 0, .45);
+    box-shadow: var(--shadow-up);
     flex-wrap: nowrap; gap: 8px;
   }
   .advance-main { flex: 1; padding: 12px 10px; font-size: 15px; }
@@ -1004,7 +1177,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 /* ---- the mode's own shell -------------------------------------------- */
 
 .cardmode { display: flex; flex-direction: column; height: 100%; }
-.cardmode .topbar .brand span { color: #f0c14b; }
+.cardmode .topbar .brand span { color: var(--gold); }
 
 .cm-tabs {
   display: flex; gap: 2px; overflow-x: auto;
@@ -1020,6 +1193,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   padding: 10px 14px;
   color: var(--muted); white-space: nowrap;
 }
+.cm-tab { transition: color .15s ease, border-color .15s ease; }
 .cm-tab:hover:not(:disabled) { background: transparent; color: var(--text); }
 .cm-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 650; }
 
@@ -1061,6 +1235,19 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   display: flex; flex-direction: column; align-items: center;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 20px;
+}
+/* The reveal is a dark room whatever the page outside is — a lightbox is,
+   and the metals were painted for one. The dark tokens are declared again
+   here so the buttons and hints inside it stay legible under a light theme. */
+.pack-stage {
+  color-scheme: dark;
+  --text: #ece8e1; --muted: #8299b1; --faint: #7389a1;
+  --panel: #16202c; --panel-2: #1e2b39; --panel-3: #26364a;
+  --line: #263344; --line-soft: #1d2836; --line-hi: #3c536b;
+  --accent: #ff4655; --accent-hot: #ff6371;
+  --accent-wash: rgba(255, 70, 85, .10); --accent-line: rgba(255, 70, 85, .34);
+  --warn: #e8b23a; --win: #3dd68c;
+  color: var(--text);
 }
 .pack-reveal { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; }
 /* the buttons ride the bottom edge while the strip scrolls under them, so
@@ -1276,7 +1463,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   padding: 9px 14px; border-radius: 999px;
   background: var(--panel); color: var(--muted);
   border: 1px solid var(--line);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  box-shadow: var(--shadow-fab);
   font-size: var(--t-small); font-weight: 600; line-height: 1;
   cursor: pointer;
   transition: color .15s, border-color .15s, transform .15s;
@@ -1289,14 +1476,14 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 
 .support-veil {
   position: fixed; inset: 0; z-index: 54;
-  background: rgba(5, 10, 16, .74);
+  background: var(--scrim);
 }
 .support-card {
   position: fixed; z-index: 55;
   right: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px));
   background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 16px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+  box-shadow: var(--shadow-card);
   display: flex; flex-direction: column; gap: 12px;
   max-height: calc(100vh - 32px); overflow-y: auto;
 }
@@ -1674,6 +1861,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   position: relative; z-index: 1;
 }
 .home-region img { width: 46px; height: 46px; object-fit: contain; opacity: .95; }
+/* VCT EMEA ships black and was repainted white for the dark ground; on a
+   light one it vanishes, so it goes back to ink there */
+[data-theme] .home-region img[src*="EMEA"] { filter: invert(1) brightness(.2); }
 .home-region span {
   font-size: 11px; letter-spacing: .08em; color: var(--muted); white-space: nowrap;
 }
@@ -1938,7 +2128,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   font-family: inherit;
 }
 .acct-row input.mono { font-family: var(--mono); letter-spacing: .02em; }
-.acct-row input:focus { outline: none; border-color: var(--accent-line); }
+.acct-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash-2); }
 .acct-row button { white-space: nowrap; }
 .acct-sep {
   display: flex; align-items: center; gap: 10px;
@@ -1968,7 +2158,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   background: var(--panel); border: 1px solid var(--warn);
   border-left-width: 3px;
   border-radius: var(--radius); padding: 13px 14px;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, .6);
+  box-shadow: var(--shadow-card);
   animation: unlock-in .26s cubic-bezier(.2, .8, .3, 1);
 }
 .unlock.hard { border-color: var(--accent); }
@@ -2018,7 +2208,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   display: flex; flex-direction: column; gap: 4px;
   background: var(--panel); border: 1px solid var(--warn);
   border-left-width: 3px; border-radius: var(--radius);
-  padding: 11px 15px; box-shadow: 0 14px 40px rgba(0, 0, 0, .6);
+  padding: 11px 15px; box-shadow: var(--shadow-card);
 }
 .save-warn b { color: var(--warn); font-size: var(--t-body); }
 .save-warn span { color: var(--muted); font-size: var(--t-small); line-height: 1.7; }
@@ -2050,3 +2240,77 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .club-set.done { border-color: var(--accent-line); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
 .club-set-crest { width: 20px; height: 20px; border-radius: 4px; background: center / contain no-repeat, var(--panel); flex: none; }
 .club-set-mark { color: var(--accent); font-weight: 700; margin-left: auto; }
+
+
+/* ---------------------------------------------------------------- polish
+
+   The small rules a page is judged by before anyone reads a word of it. */
+
+/* a tap is a tap: no 300ms wait for a second one, and no grey flash under it */
+button, a, [role="button"], input[type=range], input[type=checkbox], label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+/* a heading never leaves one word alone on its last line */
+h1, h2, h3 { text-wrap: balance; }
+/* the game scrolls inside <main>; the page behind it must not bounce, and a
+   phone must not pull-to-refresh a career it has not saved yet */
+.main, .cm-body { overscroll-behavior-y: contain; }
+.modal-bg, .support-card, .pack-stage, .nav { overscroll-behavior: contain; }
+/* on a light ground grey-scale antialiasing thins the strokes; let the
+   platform pick — subpixel on the monitors that have it */
+[data-theme] body { -webkit-font-smoothing: auto; }
+
+/* keyboard users get straight to the page; everyone else never sees this */
+.skip-link {
+  position: absolute; left: 12px; top: -48px; z-index: 200;
+  padding: 8px 14px; border-radius: var(--radius);
+  background: var(--accent); color: #fff; font-weight: 650;
+  text-decoration: none; transition: top .15s ease;
+}
+.skip-link:focus-visible { top: 10px; outline-offset: 3px; }
+
+@media (max-width: 720px) {
+  /* a thumb needs 44px; the rail's labels were 38 */
+  .nav button { min-height: 44px; }
+  /* the pinned bar sits above the home indicator, not under it */
+  .advance-bar { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .advance-spacer { height: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------------------------------------------------------------- 配色
+
+   The switch between the three grounds. Quiet on purpose — the accent is for
+   the primary action, and this is not one — so the chosen ground is a raised
+   panel, and each button carries a swatch of what it names. */
+.seg.theme { flex: none; }
+.seg.theme button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; font-size: var(--t-small);
+}
+.seg.theme.compact button { padding: 5px 9px; }
+.seg.theme button.on { background: var(--panel-3); color: var(--text); font-weight: 650; }
+.seg.theme button:hover:not(.on) { background: var(--panel-2); color: var(--text); }
+.sw {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .2);
+}
+/* the swatches are the grounds themselves, so they never change with the page */
+[data-t="dark"]  .sw { background: #0e1620; box-shadow: inset 0 0 0 1px #4a5f78; }
+[data-t="light"] .sw { background: #ffffff; box-shadow: inset 0 0 0 1px #b9c4d1; }
+[data-t="cream"] .sw { background: #f1eadc; box-shadow: inset 0 0 0 1px #c9bca0; }
+
+/* the one-button form for a phone's top bar: shows the current ground, steps
+   to the next one on tap */
+.theme-cycle {
+  display: none; align-items: center; gap: 5px;
+  padding: 4px 8px; min-height: 30px;
+  font-size: var(--t-tiny); color: var(--muted);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.theme-cycle:hover:not(:disabled) { color: var(--text); }
+.only-m { display: none; }
+@media (max-width: 720px) {
+  .theme-cycle.only-m { display: inline-flex; }
+}

@@ -141,9 +141,9 @@ export default function MapVeto({
                 borderRadius: 8, overflow: 'hidden', position: 'relative',
                 border: chosen
                   ? '2px solid var(--accent)'
-                  : '1px solid ' + (clickable ? 'var(--accent-line)' : '#2a3644'),
+                  : '1px solid ' + (clickable ? 'var(--accent-line)' : 'var(--line)'),
                 opacity: banned ? 0.55 : 1,
-                background: '#131c26',
+                background: 'var(--panel-2)',
               }}
             >
               <div style={{ position: 'relative' }}>

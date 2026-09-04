@@ -229,7 +229,7 @@ function Performance({
     setPicked((cur) =>
       cur.includes(pid) ? cur.filter((x) => x !== pid) : [...cur, pid].slice(-2))
 
-  const PALETTE = ['var(--accent)', '#5fa8d3']
+  const PALETTE = ['var(--accent)', 'var(--def)']
   const series = mode === 'team'
     ? [
         { label: game.teams[teamA]?.tag ?? 'A', color: PALETTE[0], values: avgPerf(aIds.map((id) => map.lines[id])) },

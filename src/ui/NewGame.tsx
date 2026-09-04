@@ -16,6 +16,7 @@ import type { GameState, Region } from '../engine/types'
 import { freeTeamChoice, readProfile } from '../engine/profile'
 import { money, OvrBadge, Bar, Crest } from './common'
 import Credit from './Credit'
+import ThemeToggle from './ThemeToggle'
 
 export default function NewGame({ onHome,
   onStart, canContinue, onContinue,
@@ -145,7 +146,11 @@ export default function NewGame({ onHome,
           the wordmark in the top bar — which is the home link everywhere else
           — is not on the page at all, and a player who opened /manager
           directly had no route to the front page. */}
-      <button className="ng-home" onClick={onHome}>← 返回首页</button>
+      <div className="row" style={{ marginBottom: 14 }}>
+        <button className="ng-home" style={{ marginBottom: 0 }} onClick={onHome}>← 返回首页</button>
+        <div className="spacer" style={{ flex: 1 }} />
+        <ThemeToggle compact />
+      </div>
       <h1>VCT<span className="r">电竞经理</span></h1>
       <p className="muted" style={{ marginTop: 0, marginBottom: 24 }}>
         无畏契约电竞经理 · 执掌一支战队，征战 VCT 四大赛区与次级联赛

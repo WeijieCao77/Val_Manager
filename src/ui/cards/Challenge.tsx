@@ -316,7 +316,7 @@ export default function Challenge() {
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5,
                 background: 'var(--panel)', border: '1px solid var(--line)',
                 borderRadius: 3, marginTop: 3, overflow: 'hidden',
-                boxShadow: '0 12px 30px rgba(0,0,0,.5)',
+                boxShadow: 'var(--shadow-card)',
               }}>
                 {matches.map((c) => (
                   <button

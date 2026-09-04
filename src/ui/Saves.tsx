@@ -3,6 +3,7 @@ import { ask } from './confirm'
 import { useGame } from './ctx'
 import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
+import ThemeToggle from './ThemeToggle'
 
 export default function Saves() {
   const { game, toast, startTutorial, loadSlot, commit } = useGame()
@@ -37,6 +38,20 @@ export default function Saves() {
 
   return (
     <>
+      {/* The one setting that is about the screen rather than the save. It
+          lives here because this is the screen the game already calls 系统,
+          and it is what somebody the black page made dizzy will go looking
+          for. The top bar has the same switch in a smaller coat. */}
+      <Panel title="界面配色">
+        <div className="row wrap" style={{ gap: 14, alignItems: 'center' }}>
+          <ThemeToggle />
+          <span className="small muted" style={{ flex: '1 1 260px' }}>
+            黑底看久了发晕的话，换<b>浅色</b>或<b>米色</b>；米色更柔和一些。
+            只记在这台设备上，不跟存档走，随时可以换回来。
+          </span>
+        </div>
+      </Panel>
+
       <Panel title="新手引导">
         <p className="small muted" style={{ marginTop: 0 }}>
           第一次进入游戏时会有一段引导：先讲清楚基本机制，然后用一个<b>模拟的一天</b>

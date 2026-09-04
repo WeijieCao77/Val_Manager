@@ -30,7 +30,7 @@ export default function Schedule() {
                 className="tag"
                 style={{
                   borderColor: active ? 'var(--accent)' : undefined,
-                  color: active ? 'var(--accent)' : done ? '#4a5c70' : undefined,
+                  color: active ? 'var(--accent)' : done ? 'var(--faint)' : undefined,
                   fontWeight: active ? 700 : 400,
                 }}
                 title={`第 ${s.start}–${s.end} 天`}

@@ -23,6 +23,7 @@ import Support from './Support'
 import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
 import WeChat from './WeChat'
+import ThemeToggle from './ThemeToggle'
 
 /**
  * The account panel is loaded when it is opened, not when the page is.
@@ -111,6 +112,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           猪之家<span>游戏</span>
         </div>
         <div className="spacer" />
+        <ThemeToggle compact />
         <button
           className="home-id"
           onClick={() => setAcct(true)}

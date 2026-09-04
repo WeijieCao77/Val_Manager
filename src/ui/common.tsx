@@ -129,7 +129,7 @@ export function AgentIcon({
       loading="lazy"
       width={size}
       height={size}
-      style={{ width: size, height: size, borderRadius: 4, background: '#1b2836', display: 'block' }}
+      style={{ width: size, height: size, borderRadius: 4, background: 'var(--panel-3)', display: 'block' }}
     />
   )
 }
@@ -279,12 +279,12 @@ export function MultiRadar({
       {[0.25, 0.5, 0.75, 1].map((g) => (
         <polygon
           key={g} points={axes.map((_, i) => pt(i, g).join(',')).join(' ')}
-          fill="none" stroke="#263344" strokeWidth={1}
+          fill="none" stroke="var(--line)" strokeWidth={1}
         />
       ))}
       {axes.map((_, i) => {
         const [x, y] = pt(i, 1)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#263344" />
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--line)" />
       })}
       {series.map((s) => (
         <polygon
@@ -303,10 +303,10 @@ export function MultiRadar({
         const [x, y] = pt(i, 1.2)
         return (
           <g key={l}>
-            <text x={x} y={y - 6} fill="#7d93ab" fontSize={11} fontWeight={600}
+            <text x={x} y={y - 6} fill="var(--muted)" fontSize={11} fontWeight={600}
               textAnchor="middle" dominantBaseline="middle">{l}</text>
             <text x={x} y={y + 7} fontSize={10} textAnchor="middle" dominantBaseline="middle"
-              fontFamily="var(--mono)" fill={series[0]?.color ?? '#55697f'}>
+              fontFamily="var(--mono)" fill={series[0]?.color ?? 'var(--faint)'}>
               {Math.round(series[0]?.values[i] ?? 0)}
               {series[1] ? (
                 <tspan fill={series[1].color}> / {Math.round(series[1].values[i])}</tspan>
@@ -339,12 +339,12 @@ export function Radar({ values, labels, size = 210 }: {
         <polygon
           key={g}
           points={values.map((_, i) => pt(i, g).join(',')).join(' ')}
-          fill="none" stroke="#2b3a49" strokeWidth={1}
+          fill="none" stroke="var(--line)" strokeWidth={1}
         />
       ))}
       {values.map((_, i) => {
         const [x, y] = pt(i, 1)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#2b3a49" strokeWidth={1} />
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--line)" strokeWidth={1} />
       })}
       <polygon points={poly} fill="rgba(255,70,85,.28)" stroke="var(--accent)" strokeWidth={2} />
       {values.map((v, i) => {
@@ -355,7 +355,7 @@ export function Radar({ values, labels, size = 210 }: {
         const [x, y] = pt(i, 1.2)
         return (
           <text
-            key={l} x={x} y={y} fill="#8ea2b8" fontSize={10}
+            key={l} x={x} y={y} fill="var(--muted)" fontSize={10}
             textAnchor="middle" dominantBaseline="middle"
           >
             {l}

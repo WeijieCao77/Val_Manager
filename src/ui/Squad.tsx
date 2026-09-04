@@ -114,7 +114,7 @@ export default function Squad() {
       : `rgba(61, 214, 140, ${0.06 + t * 0.34})`
   }
   const bondFg = (v: number) =>
-    Math.abs(v) < 18 ? 'var(--muted)' : v < 0 ? '#ffb3ba' : '#a9f0cc'
+    Math.abs(v) < 18 ? 'var(--muted)' : v < 0 ? 'var(--neg-ink)' : 'var(--pos-ink)'
 
   return (
     <>

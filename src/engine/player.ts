@@ -108,10 +108,14 @@ export function ageDrift(p: Player): number {
   return -1.6
 }
 
+/** The role's colour as a CSS token, so it follows the page's ground: the
+ *  yellow that reads on black is invisible on white, and styles.css holds a
+ *  deepened set for the light themes. */
 export const roleColor = (role: string): string =>
   ({
-    决斗者: '#ff4655', 先锋: '#f6c445', 控场: '#7b6cff', 哨卫: '#3ad6a0', 自由人: '#8ea2b8',
-  })[role] ?? '#8ea2b8'
+    决斗者: 'var(--duelist)', 先锋: 'var(--initiator)', 控场: 'var(--controller)',
+    哨卫: 'var(--sentinel)', 自由人: 'var(--flex)',
+  })[role] ?? 'var(--flex)'
 
 /** VLR-style composite rating, calibrated so an average starter sits at ~1.00. */
 export const ratingOf = (s: { kills: number; deaths: number; assists: number; rounds: number }) => {
