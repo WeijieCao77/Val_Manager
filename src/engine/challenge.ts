@@ -395,8 +395,10 @@ export const revealed = (used: number): number =>
  * screenshots from the group were a map you could name unguessed and a
  * crest you could read through it. Each miss buys a real step (6 → 10 → 17
  * → 28 → 48, a factor of 1.68), and the last guess is made on the picture
- * as it is. Relative to the frame rather than in pixels, so a phone and a
- * desktop are equally hard.
+ * as it is. Relative to the frame rather than in pixels, and the frame is
+ * the same shape on every screen (FRAME_ASPECT in Challenge.tsx), so a phone
+ * and a desktop are equally hard — counted across a frame as wide as the
+ * card, six cells were one row of colour on a desktop and four on a phone.
  */
 export const detail = (used: number): number =>
   used >= CHALLENGE_TRIES - 1 ? Infinity : Math.round(6 * 1.68 ** used)

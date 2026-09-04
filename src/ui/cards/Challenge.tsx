@@ -113,6 +113,20 @@ function coarsen(src: HTMLCanvasElement, cells: number): HTMLCanvasElement {
 }
 
 /**
+ * The frame's shape, and how wide it may grow.
+ *
+ * Detail is counted in cells across the frame, so the frame has to be the
+ * same shape on every screen or the same count is a different puzzle. It
+ * used to be 210px tall and as wide as the card: a 9:2 strip on a desktop,
+ * about 8:5 on a phone. Six cells across was one row of colour on the
+ * desktop — a horizontal gradient, nothing to see — and four rows on the
+ * phone, where a face already had a shape. 16:10 is what the phone was
+ * getting; on a desktop the frame stops growing at 480px and sits centred.
+ */
+const FRAME_ASPECT = [16, 10] as const
+const FRAME_MAX = 480
+
+/**
  * The frame at this many cells of detail.
  *
  * Three of the four kinds are square — faces 192², agents 128², crests 256²
@@ -225,12 +239,14 @@ export default function Challenge() {
   useEffect(() => {
     const c = canvas.current
     if (!c || !pic) return
-    const w = c.clientWidth || 600
-    const h = 210
-    // device pixels, or the answer is soft even once it is in the clear
+    // device pixels, or the answer is soft even once it is in the clear — and
+    // a whole number of 16-pixel columns, so the frame is exactly 16:10 and a
+    // given detail makes the same grid of cells on every screen
     const dpr = Math.min(2, window.devicePixelRatio || 1)
-    c.width = Math.round(w * dpr)
-    c.height = Math.round(h * dpr)
+    const [aw, ah] = FRAME_ASPECT
+    const w = Math.max(aw, Math.round(((c.clientWidth || FRAME_MAX) * dpr) / aw) * aw)
+    c.width = w
+    c.height = (w / aw) * ah
     const ctx = c.getContext('2d')
     if (!ctx) return
     paintPuzzle(ctx, pic, c.width, c.height, zoom, cells)
@@ -257,10 +273,13 @@ export default function Challenge() {
           没猜中退一半。
         </p>
 
-        {/* The subject — see paintPuzzle for why it is drawn the way it is. */}
+        {/* The subject — see paintPuzzle for why it is drawn the way it is,
+            and FRAME_ASPECT for why the box is this shape everywhere. */}
         <div style={{
-          position: 'relative', height: 210, borderRadius: 4, overflow: 'hidden',
-          background: 'var(--panel-2)', marginBottom: 12,
+          position: 'relative', width: `min(100%, ${FRAME_MAX}px)`,
+          aspectRatio: `${FRAME_ASPECT[0]} / ${FRAME_ASPECT[1]}`,
+          borderRadius: 4, overflow: 'hidden',
+          background: 'var(--panel-2)', margin: '0 auto 12px',
           display: answerRow.img ? undefined : 'grid', placeItems: 'center',
         }}>
           {/* the answer always has a picture — answerPool sees to that — but a
