@@ -25,6 +25,7 @@ export const CHANGELOG: ChangeEntry[] = [
     title: '网页有背景音乐了',
     changes: [
       { kind: '新增', text: '进来会放 VALORANT 的歌，一共五首：Die For You、When the World Ends、Ticking Away、SUPERPOWER、La Lumière。左下角的小浮窗能暂停、切歌、调音量、选循环方式，也能收成一张小唱片；关掉之后下次进来就不放。' },
+      { kind: '调整', text: '手机上收起后的小唱片放到右下角那列圆按钮的最上面，不再压着左下的内容。' },
     ],
   },
   {

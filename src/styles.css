@@ -2514,6 +2514,13 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
   .bgm { left: 10px; bottom: 10px; max-width: calc(100vw - 20px); }
   /* the rail on the left, the advance bar along the bottom: sit past both */
   [data-shell] .bgm { left: 60px; bottom: 74px; max-width: calc(100vw - 70px); }
+  /* Folded, the record joins the column of round buttons on the right —
+     the top slot, 48px above the rules button like each of those is above
+     the next — instead of sitting on the page's text at the bottom-left.
+     The open window stays at the left, where there is room for it. */
+  .bgm.shut { left: auto; right: 10px; bottom: 154px; }
+  [data-shell] .bgm.shut { left: auto; bottom: 196px; }
+  .bgm-pill { width: 40px; height: 40px; padding: 4px; }
   /* two rows: the record and the name, then the buttons */
   .bgm.open {
     flex-direction: column; align-items: stretch; gap: 4px;
