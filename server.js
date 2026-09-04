@@ -90,6 +90,7 @@ const TYPES = {
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.mp3': 'audio/mpeg',
 }
 
 // ---------------------------------------------------------------- database
@@ -587,6 +588,8 @@ createServer((req, res) => {
     // agent portraits and map banners change about as often as the game does —
     // a week of cache costs nothing and saves ~400KB of revalidation churn
     || file.includes(`${sep}agents${sep}`) || file.includes(`${sep}maps${sep}`)
+    // the background music is four megabytes and its URL carries a version
+    || file.includes(`${sep}music${sep}`)
   const head = {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
     'Cache-Control': hashed ? 'public, max-age=31536000, immutable'
@@ -618,7 +621,30 @@ createServer((req, res) => {
       return
     }
   }
+  // A media player asks for a file in pieces — the first few kilobytes to
+  // read the header, then wherever the listener drags to — and Safari will
+  // not play audio at all from a server that answers a range request with
+  // the whole file. Honoured for everything; it costs nothing.
+  const size = statSync(file).size
+  head['Accept-Ranges'] = 'bytes'
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '')
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]))
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1
+    if (start >= size || start > end) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` }).end()
+      return
+    }
+    head['Content-Range'] = `bytes ${start}-${end}/${size}`
+    head['Content-Length'] = String(end - start + 1)
+    res.writeHead(206, head)
+    if (req.method === 'HEAD') { res.end(); return }
+    createReadStream(file, { start, end }).pipe(res)
+    return
+  }
+  head['Content-Length'] = String(size)
   res.writeHead(200, head)
+  if (req.method === 'HEAD') { res.end(); return }
   createReadStream(file).pipe(res)
 }).on('clientError', (_err, socket) => {
   if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')

@@ -22,6 +22,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-04',
+    title: '网页有背景音乐了',
+    changes: [
+      { kind: '新增', text: '进来会放 VALORANT 的《Die For You》。左下角的小浮窗能暂停、调音量、切歌、选循环方式，也能收成一张小唱片；关掉之后下次进来就不放。' },
+    ],
+  },
+  {
+    date: '2026-09-04',
     title: '选手常用英雄的图标终于显示了，名字也是中文——顺带修好了一个看不见的大问题',
     changes: [
       { kind: '修复', text: '选手详情和资料库里「常用英雄」的图标在线上一直是破图、名字是英文小写。数据里存的是 vlr 的小写写法，服务器认大小写，图片就找不到了。' },

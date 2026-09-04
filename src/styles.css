@@ -2434,3 +2434,93 @@ tr.other td .club span { color: var(--faint); }
 
 /* a picked map chip: the familiarity number stays readable on the red */
 button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); }
+
+/* ---------------------------------------------------------------- background music
+
+   A small window in the free corner. The right side is already a stack of
+   buttons; bottom-left is where the unlock card drops in for a moment and
+   leaves, so a permanent thing can live there. In a career the rail owns
+   that corner — the theme toggle sits at its foot — so the window steps past
+   the rail. Above the match modals, so a long series can be turned down
+   without closing the report; under the tutorial veil and the update notice. */
+.bgm {
+  position: fixed; left: 16px; bottom: 16px; z-index: 65;
+  display: flex; align-items: center; gap: 10px;
+  max-width: calc(100vw - 32px);
+}
+.bgm.open {
+  padding: 5px 8px 5px 5px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line);
+  box-shadow: var(--shadow-fab);
+}
+/* only while the career shell is up: the 新游戏 and 存档 screens have no rail */
+[data-shell] .bgm { left: 178px; }
+.bgm-row { display: contents; }
+
+/* the record: a physical object, the same under any light */
+.bgm-vinyl {
+  display: block; width: 100%; height: 100%; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, var(--accent) 0 26%, rgba(0, 0, 0, 0) 27%),
+    radial-gradient(circle at 50% 50%, #0b0b0d 0 31%, rgba(0, 0, 0, 0) 32%),
+    repeating-radial-gradient(circle at 50% 50%, #27272d 0 1.5px, #141418 1.5px 3.5px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), inset 0 0 6px rgba(0, 0, 0, .6);
+}
+.bgm-vinyl.spin { animation: bgm-spin 2.4s linear infinite; }
+@keyframes bgm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .bgm-vinyl.spin { animation: none; } }
+
+.bgm-disc, .bgm-pill {
+  flex: none; width: 40px; height: 40px; padding: 4px; border-radius: 50%;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.bgm-disc:hover:not(:disabled), .bgm-pill:hover:not(:disabled) { border-color: var(--accent-line); }
+.bgm-pill { width: 46px; height: 46px; padding: 5px; background: var(--panel); box-shadow: var(--shadow-fab); }
+.bgm-meta { display: flex; flex-direction: column; min-width: 0; width: 118px; line-height: 1.3; }
+.bgm-title {
+  font-size: var(--t-small); font-weight: 650; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bgm-sub {
+  font-size: var(--t-tiny); color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bgm-ctl, .bgm-vol { display: flex; align-items: center; gap: 2px; flex: none; }
+.bgm-ib {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 30px; height: 30px; padding: 0; border-radius: 50%;
+  background: transparent; border-color: transparent; color: var(--muted);
+}
+.bgm-ib:hover:not(:disabled) { color: var(--text); background: var(--panel-3); border-color: transparent; }
+.bgm-ib:disabled { opacity: .3; }
+.bgm-ib svg { width: 18px; height: 18px; }
+.bgm-ib.main { width: 34px; height: 34px; background: var(--accent); border-color: var(--accent); color: #fff; }
+.bgm-ib.main:hover:not(:disabled) { background: var(--accent-hot); border-color: var(--accent-hot); color: #fff; }
+.bgm-ib.fold svg { width: 16px; height: 16px; }
+.bgm-loop {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  padding: 4px 9px 4px 7px; margin-left: 2px; border-radius: 999px;
+  font-size: var(--t-tiny); font-weight: 600; color: var(--muted);
+  background: transparent; white-space: nowrap;
+}
+.bgm-loop svg { width: 14px; height: 14px; }
+.bgm-loop.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-wash); }
+.bgm-loop.on:hover:not(:disabled) { background: var(--accent-wash-2); border-color: var(--accent-line); }
+.bgm-vol { padding-left: 6px; border-left: 1px solid var(--line-soft); }
+.bgm-vol input[type=range] { width: 78px; margin: 0 4px 0 2px; }
+.bgm button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  .bgm { left: 10px; bottom: 10px; max-width: calc(100vw - 20px); }
+  /* the rail on the left, the advance bar along the bottom: sit past both */
+  [data-shell] .bgm { left: 60px; bottom: 74px; max-width: calc(100vw - 70px); }
+  /* two rows: the record and the name, then the buttons */
+  .bgm.open {
+    flex-direction: column; align-items: stretch; gap: 4px;
+    border-radius: 14px; padding: 6px; min-width: 236px;
+  }
+  .bgm-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .bgm-row.bot { justify-content: space-between; }
+  .bgm-meta { flex: 1; width: auto; }
+  .bgm-vol input[type=range] { width: 64px; }
+}

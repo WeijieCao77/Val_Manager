@@ -19,6 +19,7 @@ const CardMode = lazy(() => import('./ui/CardMode'))
 const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
 import UpdateNudge from './ui/UpdateNudge'
+import MusicPlayer from './ui/MusicPlayer'
 
 type Mode = 'home' | 'career' | 'cards'
 const PATHS: Record<Mode, string> = { home: '/', career: '/manager', cards: '/cards' }
@@ -63,6 +64,8 @@ export default function App() {
     <>
       <UpdateNudge />
       <Suspense fallback={loading}>{page}</Suspense>
+      {/* under every page, so it keeps playing across the three */}
+      <MusicPlayer />
     </>
   )
 }
