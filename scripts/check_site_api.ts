@@ -192,6 +192,21 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   check('没有的账号就说没有', (none.body as { why?: string }).why === '找不到这个账号', JSON.stringify(none.body))
 }
 
+// ---- 后台按名字搜卡 -----------------------------------------------------
+{
+  const r0 = await call('/api/admin/cards?q=zmjjkk')
+  check(r0.code === 404, '不带 token 搜卡是 404', `code ${r0.code}`)
+  const r = await call('/api/admin/cards?q=zmjjkk', { token: TOKEN })
+  const b = r.body as { ok: boolean; cards: { id: string; name: string; rarityCn: string; rating: number }[] }
+  check(b.ok === true && b.cards.some((c) => c.id === 'p:P200') && b.cards.every((c) => /zmjjkk/i.test(c.name)),
+    '搜 zmjjkk 找到 p:P200，本体和传奇卡都在', JSON.stringify(b.cards?.slice(0, 3)))
+  check(b.cards.length > 1 && b.cards[0].rating >= b.cards[1].rating, '强的排前面', '')
+  const club = await call('/api/admin/cards?q=EDG', { token: TOKEN })
+  check(((club.body as { cards: unknown[] }).cards ?? []).length > 0, '按战队缩写也搜得到', '')
+  const none = await call('/api/admin/cards?q=', { token: TOKEN })
+  check(((none.body as { cards: unknown[] }).cards ?? []).length === 0, '空搜索给空列表', '')
+}
+
 // ---- every admin route this module owns has to be reachable ------------
 //
 // /api/admin/grant shipped unreachable once: the route existed, the module

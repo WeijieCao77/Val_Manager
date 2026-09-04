@@ -45,6 +45,14 @@ export const dashboardHtml = () => `<!doctype html>
     width:100%; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); border-radius:3px; padding:7px 9px; font:inherit;
   }
+  /* the card picker's hits, and the account read-out under the code */
+  .pick-list button { display:block; width:100%; text-align:left; background:var(--panel-2);
+    color:var(--text); border:1px solid var(--line); border-radius:3px; padding:6px 9px;
+    margin-top:4px; font:inherit; cursor:pointer; }
+  .pick-list button:hover { border-color:var(--accent); }
+  .acct { font-size:12px; color:var(--muted); line-height:1.7; margin-top:8px;
+    border-top:1px solid var(--line); padding-top:8px; }
+  .acct b { color:var(--text); }
   .panel h2 {
     font-size:11px; letter-spacing:.14em; text-transform:uppercase;
     color:var(--muted); margin:0 0 10px; font-weight:700;
@@ -129,7 +137,11 @@ export const dashboardHtml = () => `<!doctype html>
   <h2>给玩家发东西</h2>
   <div class="wx-row">
     <div class="wx-side">
-      <input type="text" id="gWho" placeholder="8 位对战码，或者完整的账号 ID">
+      <div class="row" style="gap:8px">
+        <input type="text" id="gWho" placeholder="8 位对战码，或者完整的账号 ID">
+        <button id="gLook" type="button" title="按对战码看这个账号：段位、卡、金币、最近做了什么">查账号</button>
+      </div>
+      <div id="gAcct" class="acct" style="display:none"></div>
       <p class="why" style="margin:6px 0 10px">
         <b>优先用对战码</b>（玩家在「好友」页能复制）。账号 ID 也认，但那串是他登录用的，
         能不经手就不经手。
@@ -148,6 +160,12 @@ export const dashboardHtml = () => `<!doctype html>
         </select>
         <input type="number" id="gCount" value="1" min="1" max="50" style="width:80px" title="几个">
         <input type="number" id="gCoins" placeholder="金币（可空）" style="width:130px">
+      </div>
+      <div style="margin-top:8px">
+        <input type="text" id="gCardQ" autocomplete="off" spellcheck="false"
+          placeholder="发一张指定的卡：搜选手 ID / 真名 / 战队缩写，比如 ZmjjKK（可空）">
+        <div id="gCardList" class="pick-list"></div>
+        <div id="gCardPick" class="muted" style="font-size:12px;margin-top:4px"></div>
       </div>
       <input type="text" id="gNote" maxlength="80" placeholder="附言，玩家会看到（可空）" style="margin-top:8px">
       <div class="row" style="margin-top:10px">
@@ -530,6 +548,7 @@ $('#gSend').onclick = async () => {
         pack: $('#gPack').value || null,
         count: Number($('#gCount').value) || 1,
         coins: Number($('#gCoins').value) || 0,
+        cardId: gCard ? gCard.id : null,
         note: $('#gNote').value || null,
       }),
     })
@@ -541,10 +560,86 @@ $('#gSend').onclick = async () => {
     // shipped, and 「HTTP 200」 was a useless thing to be told about it.
     if (!j) throw new Error(/^\s*</.test(text) ? '这个接口没接上（服务器返回的是页面，不是数据）' : ('HTTP ' + r.status))
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
-    $('#gMsg').textContent = '已发给 ' + j.to + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    const what = []
+    if (j.sent?.cardId && gCard) what.push(gCard.name + ' 一张')
+    if (j.sent?.pack) what.push(($('#gPack').selectedOptions[0]?.textContent || j.sent.pack) + ' × ' + j.sent.count)
+    if (Number($('#gCoins').value)) what.push($('#gCoins').value + ' 金币')
+    $('#gMsg').textContent = '已发给 ' + j.to + '：' + what.join('、') + ' · ' + new Date().toLocaleTimeString('zh-CN')
     $('#gCoins').value = ''; $('#gNote').value = ''
+    gCard = null; drawCard()
   } catch (e) {
     $('#gMsg').textContent = '没发出去：' + e.message
+  }
+}
+
+// ---- 发一张指定的卡 -----------------------------------------------------
+//
+// The owner knows the player as ZmjjKK, not as p:P200. A search box over the
+// card set, a list of hits, one click to choose; the id rides along with the
+// next 发放 and is cleared after it.
+let gCard = null
+let gCardTimer = null
+function drawCard() {
+  $('#gCardPick').innerHTML = gCard
+    ? '要发的卡：<b>' + esc(gCard.name) + '</b>（' + esc(gCard.rarityCn) + ' ' + gCard.rating
+      + (gCard.club ? ' · ' + esc(gCard.club) : '') + '，' + esc(gCard.id) + '）'
+      + ' <button type="button" id="gCardClear" style="margin-left:6px">不发了</button>'
+    : ''
+  const x = $('#gCardClear')
+  if (x) x.onclick = () => { gCard = null; drawCard() }
+}
+$('#gCardQ').oninput = () => {
+  clearTimeout(gCardTimer)
+  const q = $('#gCardQ').value.trim()
+  if (!q) { $('#gCardList').innerHTML = ''; return }
+  gCardTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/admin/cards?q=' + encodeURIComponent(q), { headers: auth() })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
+      $('#gCardList').innerHTML = j.cards.length
+        ? j.cards.map((c) => '<button type="button" data-id="' + esc(c.id) + '">'
+            + esc(c.name) + ' · ' + esc(c.rarityCn) + ' ' + c.rating
+            + (c.club ? ' · ' + esc(c.club) : '') + (c.real ? ' · ' + esc(c.real) : '')
+            + (c.legend ? ' · ' + esc(c.legend) : '') + (c.kind === 'coach' ? ' · 教练' : '')
+            + '</button>').join('')
+        : '<div class="muted" style="font-size:12px;margin-top:4px">没有对得上的卡</div>'
+      for (const b of $('#gCardList').querySelectorAll('button')) {
+        b.onclick = () => {
+          gCard = j.cards.find((c) => c.id === b.dataset.id) || null
+          $('#gCardList').innerHTML = ''
+          $('#gCardQ').value = ''
+          drawCard()
+        }
+      }
+    } catch (e) {
+      $('#gCardList').innerHTML = '<div class="muted" style="font-size:12px">搜不了：' + esc(e.message) + '</div>'
+    }
+  }, 250)
+}
+
+// ---- 按对战码看一个账号 -------------------------------------------------
+$('#gLook').onclick = async () => {
+  const who = $('#gWho').value.trim()
+  const box = $('#gAcct')
+  box.style.display = ''
+  if (!/^[0-9a-fA-F]{8}$/.test(who)) { box.textContent = '查账号要用 8 位对战码'; return }
+  box.textContent = '查询中…'
+  try {
+    const r = await fetch('/api/admin/account?code=' + who, { headers: auth() })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
+    const when = (t) => (t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '—')
+    const owns = gCard ? (j.owned || []).some((o) => o.cardId === gCard.id) : null
+    box.innerHTML = '<b>' + esc(j.who) + '</b> · ' + esc(j.ladderName || '') + ' · ' + j.wins + '胜' + j.losses + '负'
+      + ' · ' + j.cards + ' 张卡 · ' + j.coins + ' 金币 · 抽了 ' + j.pulls + ' 次'
+      + (j.suspect ? ' · <b>已标可疑</b>' : '')
+      + (j.untaken ? ' · 信箱里还有 ' + j.untaken + ' 件没收' : '')
+      + (gCard ? '<br>' + (owns ? '他已经有 ' : '他还没有 ') + '<b>' + esc(gCard.name) + '</b>' : '')
+      + '<br>建号 ' + when(j.created) + ' · 最后保存 ' + when(j.saved)
+      + '<div style="margin-top:4px">' + (j.log || []).slice(0, 8).map((e) => esc(when(e.at) + '  ' + e.text)).join('<br>') + '</div>'
+  } catch (e) {
+    box.textContent = '查不到：' + e.message
   }
 }
 

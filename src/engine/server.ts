@@ -14,8 +14,9 @@ export {
   masterPoints, oppBumpFor, canPlay, spendPlay, STAMINA_COST,
 } from './gacha'
 export type { GachaState } from './gacha'
+export { rankName } from './gacha'
 export { applyMail, escrowCard, restoreCard, mailLine } from './inbox'
 export type { MailItem } from './inbox'
-export { cardById, isPlayerCard, SALVAGE } from './cards'
+export { cardById, isPlayerCard, SALVAGE, PLAYER_CARDS, COACH_CARDS, RARITY_CN } from './cards'
 export { progressOf } from '../../progress.js'
 export { answerFor, kindFor, imgOf } from './challenge'

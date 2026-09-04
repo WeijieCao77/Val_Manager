@@ -297,6 +297,28 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
    * here. Written for 「挂了一张金卡消失了」 — the answer was in three
    * tables and there was no way to read them but a database console.
    */
+  /**
+   * Search the card set by what the owner knows — an in-game ID, a real
+   * name, a club tag — so a card can be sent without knowing that ZmjjKK is
+   * p:P200. Twenty at most, strongest first.
+   */
+  async function cards(res, url) {
+    const q = String(url.searchParams.get('q') ?? '').trim().toLowerCase()
+    if (!q) { json(res, 200, { ok: true, cards: [] }); return }
+    const all = [...(engine?.PLAYER_CARDS ?? []), ...(engine?.COACH_CARDS ?? [])]
+    const text = (c) => [c.ign ?? c.name, c.realName, c.clubTag, c.id, c.legend?.title]
+      .filter(Boolean).join(' ').toLowerCase()
+    const hits = all.filter((c) => text(c).includes(q)).sort((a, b) => b.rating - a.rating).slice(0, 20)
+    json(res, 200, {
+      ok: true,
+      cards: hits.map((c) => ({
+        id: c.id, name: c.ign ?? c.name, real: c.realName ?? null, club: c.clubTag ?? null,
+        rating: c.rating, rarity: c.rarity, rarityCn: engine?.RARITY_CN?.[c.rarity] ?? c.rarity,
+        kind: c.kind, legend: c.legend?.title ?? null,
+      })),
+    })
+  }
+
   async function account(res, url) {
     const code = String(url.searchParams.get('code') ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(code)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
@@ -346,6 +368,10 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       rev: a.rev, created: a.created, seen: a.seen, saved: a.saved,
       ladderSeen: a.ladder_seen, ladderAt: a.ladder_at,
       ladder: a.ladder ?? null,
+      ladderName: a.ladder && engine?.rankName
+        ? engine.rankName(Number(a.ladder.div) || 0, Number(a.ladder.stars) || 0, Number(a.ladder.points) || 0)
+        : null,
+      wins: Number(a.ladder?.wins) || 0, losses: Number(a.ladder?.losses) || 0,
       log: Array.isArray(a.log) ? a.log : [],
       owned: Object.entries(a.owned ?? {}).map(([cardId, v]) => ({
         cardId, card: ign(cardId), level: v?.level ?? 0, dupes: v?.dupes ?? 0,
@@ -382,6 +408,15 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         }
         if (req.method !== 'GET') { json(res, 405, { ok: false }); return true }
         await account(res, url)
+        return true
+      }
+      if (path === '/api/admin/cards') {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'GET') { json(res, 405, { ok: false }); return true }
+        await cards(res, url)
         return true
       }
       if (path === '/api/site/wechat') { await status(res); return true }
