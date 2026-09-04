@@ -300,10 +300,18 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
   async function account(res, url) {
     const code = String(url.searchParams.get('code') ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(code)) { json(res, 200, { ok: false, why: '填 8 位对战码' }); return }
+    // The ladder and the account's own log ride along: the first question
+    // the owner gets asked about an account is 「段位怎么变了」, and the
+    // server's copy of the ladder — with its best division and the last
+    // sixty things that happened — is the only thing that can answer it.
     const acc = await sql`
-      select id_hash, name, suspect,
+      select id_hash, name, suspect, rev, created, seen, saved, ladder_seen, ladder_at,
              (state->>'coins')::int as coins, (state->>'pulls')::int as pulls,
-             (select count(*)::int from jsonb_object_keys(coalesce(state->'cards', '{}'::jsonb))) as cards
+             (select count(*)::int from jsonb_object_keys(coalesce(state->'cards', '{}'::jsonb))) as cards,
+             state->'ladder' as ladder,
+             case when jsonb_typeof(state->'log') = 'array'
+                  then (select jsonb_agg(x) from (select x from jsonb_array_elements(state->'log') x limit 30) t)
+                  else null end as log
       from card_accounts where left(id_hash, 8) = ${code} limit 2`
     if (!acc.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
     if (acc.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
@@ -328,6 +336,10 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       ok: true,
       who: `${shown.name} #${shown.tag}`, code: code.toUpperCase(), suspect: !!a.suspect,
       coins: a.coins, pulls: a.pulls, cards: a.cards,
+      rev: a.rev, created: a.created, seen: a.seen, saved: a.saved,
+      ladderSeen: a.ladder_seen, ladderAt: a.ladder_at,
+      ladder: a.ladder ?? null,
+      log: Array.isArray(a.log) ? a.log : [],
       listings: listings.map((l) => ({
         id: String(l.id), card: ign(l.card_id), cardId: l.card_id, level: l.level, ask: l.ask,
         status: l.status, created: l.created, closed: l.closed, ignored: l.ignored,
