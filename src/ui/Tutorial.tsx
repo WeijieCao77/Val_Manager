@@ -225,26 +225,35 @@ export default function Tutorial({
     }
   }, [arrived, step.navigate, i])
 
+  // steps that wait for a real action advance themselves
+  const satisfied = step.done ? step.done(game, ui) : false
+  const last = i === STEPS.length - 1
+  // Once the trial day has been advanced there is a day's report on screen,
+  // and the lit advance bar and the veil were sitting on top of it. The last
+  // step gets out of the way: no spotlight, no veil, just the card in the
+  // corner waiting for 完成.
+  const spot = last && satisfied ? undefined : step.spot
+
   // spotlight the one control that stays live. Re-run when a modal opens or
   // closes too: the player-detail step lights an element that only exists
   // once the modal is on screen.
   useEffect(() => {
     const lit: Element[] = []
-    if (step.spot) {
-      for (const el of document.querySelectorAll(step.spot)) {
+    if (spot) {
+      for (const el of document.querySelectorAll(spot)) {
         el.classList.add('tut-lit')
         lit.push(el)
       }
       // the target is often below the fold — bring it into view, or the
       // manager is told to click something they cannot see
       const first = lit.find((el) => !el.classList.contains('modal-bg'))
-      first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // on a phone the card is a bottom sheet, so the target goes to the top
+      // of the screen rather than under it
+      first?.scrollIntoView({ behavior: 'smooth', block: window.innerWidth <= 720 ? 'start' : 'center' })
     }
     return () => { for (const el of lit) el.classList.remove('tut-lit') }
-  }, [i, step.spot, screen, playerOpen])
+  }, [i, spot, screen, playerOpen])
 
-  // steps that wait for a real action advance themselves
-  const satisfied = step.done ? step.done(game, ui) : false
   useEffect(() => {
     if (step.done && satisfied) {
       const t = window.setTimeout(() => setI((x) => Math.min(x + 1, STEPS.length - 1)), 450)
@@ -266,11 +275,11 @@ export default function Tutorial({
     onDone()
   }
 
-  const last = i === STEPS.length - 1
   const canNext = (!step.done || satisfied) && arrived
 
   return (
-    <div className={`tut-bg${step.spot ? ' gated' : ''}`}>
+    <>
+      {!(last && satisfied) && <div className={`tut-bg${spot ? ' gated' : ''}`} />}
       <div className={`tut-card${step.spot ? ' side' : ''}`}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span className="tiny faint">{i + 1} / {STEPS.length}</span>
@@ -290,7 +299,7 @@ export default function Tutorial({
               ⤷ {step.hint ?? '按提示操作后自动继续'}
             </span>
           ) : last ? (
-            <button className="primary sm" onClick={finish}>完成，开始正式的第一天</button>
+            <button className="primary sm" onClick={finish}>看完报告后点这里：完成，开始正式的第一天</button>
           ) : (
             <button className="primary sm" disabled={!canNext}
               onClick={() => setI(i + 1)}>下一步</button>
@@ -299,6 +308,6 @@ export default function Tutorial({
           <button className="sm ghost" onClick={finish}>跳过引导</button>
         </div>
       </div>
-    </div>
+    </>
   )
 }

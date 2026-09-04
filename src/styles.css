@@ -915,17 +915,23 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .tut-bg {
   position: fixed; inset: 0; z-index: 90;
   background: var(--scrim);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .tut-bg.gated { pointer-events: none; background: var(--scrim-soft); }
-.tut-bg.gated .tut-card { pointer-events: auto; }
+/* The card is a sibling of the veil, not a child: the spotlit control sits
+   at z-index 95 to clear the veil, and a card inside the veil's stacking
+   context could never get above it — a lit panel the height of the screen
+   covered the card to its last line. Above both, then, and centred on its
+   own. */
 .tut-card {
+  position: fixed; z-index: 96;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: calc(100% - 40px); max-width: 440px;
   background: var(--panel); border: 1px solid var(--accent-line);
-  border-radius: var(--radius); padding: 20px 22px; max-width: 440px;
+  border-radius: var(--radius); padding: 20px 22px;
   box-shadow: var(--shadow-card);
 }
 /* anchored to a corner so the highlighted control stays visible */
-.tut-card.side { position: fixed; right: 24px; bottom: 24px; margin: 0; }
+.tut-card.side { left: auto; top: auto; transform: none; right: 24px; bottom: 24px; margin: 0; width: auto; }
 .tut-lit {
   position: relative; z-index: 95; pointer-events: auto !important;
   box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(255, 70, 85, .4);
@@ -936,7 +942,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .modal-bg.tut-lit { position: fixed; box-shadow: none; }
 .topbar .chip.tut-lit { z-index: 95; }
 @media (max-width: 720px) {
-  .tut-card.side { right: 10px; left: 10px; bottom: 10px; max-width: none; }
+  /* Above the pinned advance bar, not on it: the last step asks for a press
+     on a button the card was covering, and 跳过引导 was the only way out.
+     Tighter padding and type too — the card is a bottom sheet here, and
+     every pixel it takes is a pixel of the thing it is pointing at. */
+  .tut-card.side {
+    right: 8px; left: 8px; max-width: none; width: auto;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px;
+  }
+  .tut-card.side h3 { font-size: var(--t-body); margin: 6px 0 6px !important; }
+  .tut-card.side p { font-size: var(--t-small) !important; line-height: 1.65 !important; margin-bottom: 10px !important; }
 }
 
 /* Advancing time is the one always-needed control; on a phone it rides the
