@@ -1070,6 +1070,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   white-space: nowrap;
 }
 .s-lg .cf-kind { font-size: 11px; margin-top: 4px; }
+/* two positions stack, one per line, so the block stays narrower than the
+   gutter beside the portrait; a size down on the small card, where the gutter
+   is narrowest */
+.cf-kind.two { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.s-sm .cf-kind.two { font-size: 8px; }
 .cf-plus {
   font-size: 9.5px; font-weight: 800; font-style: normal;
   color: #7a2018;
@@ -1097,7 +1102,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   background: rgba(255, 255, 255, .22);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
 }
-.s-sm .cf-photo { width: 52px; height: 52px; margin-top: 25px; }
+/* 33 rather than 25: the second position line reaches 45px down, and the
+   circle's edge at that height sits 30px in from the left with this margin */
+.s-sm .cf-photo { width: 52px; height: 52px; margin-top: 33px; }
 .s-lg .cf-photo { width: 104px; height: 104px; margin-top: 34px; }
 .cf-noface {
   display: grid; place-items: center;
@@ -1684,7 +1691,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
  * to grow the card rather than clip it), the bottom block is pushed to the
  * bottom edge so the shorter variants keep the same outline, and the
  * photograph fills whatever is left. */
-.cardface.s-sm { min-height: 166px; }
+.cardface.s-sm { min-height: 174px; }
 .cardface.s-md { min-height: 212px; }
 .cardface.s-lg { min-height: 281px; }
 .cf-attrs, .cf-foot { margin-top: auto; }
@@ -2048,6 +2055,16 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   align-items: center; justify-content: center;
 }
 .market-box input { width: 100%; font: inherit; padding: 2px 4px; }
+/* On a phone the shelf is two columns that fill the screen, the way the squad
+   grid is — a row of 122px boxes left a third of the width empty and read as
+   the cards huddling on the left. The card takes its column up to the same
+   150px cap the squad uses. */
+@media (max-width: 720px) {
+  .market-shelf { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .market-box { width: auto; }
+  .market-box .cardface { width: 100%; max-width: 150px; }
+  .market-box .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+}
 
 .preset-box {
   flex: 1 1 150px; min-width: 140px;

@@ -185,14 +185,18 @@ export default function CardFace({
             even when the man covers both — 「UI 看起来就感觉是放错了一样」 —
             and the roster is full of players who cover two. */}
         <span
-          className="cf-kind"
+          className={`cf-kind${isPlayerCard(card) && card.roles.length > 1 ? ' two' : ''}`}
           title={isPlayerCard(card) ? card.roles.join(' / ') : undefined}
         >
           {isPlayerCard(card)
-            // two fit next to the rating at 9px on a 96px card; a third would
-            // run into the crest, so it becomes a 「+」 and the tooltip says
-            ? card.roles.slice(0, 2).map((r) => r.slice(0, 2)).join('·')
-              + (card.roles.length > 2 ? '+' : '')
+            // One line per position, never two on a line: 「决斗·控场+」 side by
+            // side was 45px wide and ran into the portrait on the 96px card,
+            // where the gutter beside the circle is 20. Stacked, each line is
+            // two characters and clears it. A third position becomes a 「+」
+            // on the second line and the tooltip names it.
+            ? card.roles.slice(0, 2).map((r, i) => (
+                <span key={r}>{r.slice(0, 2)}{i === 1 && card.roles.length > 2 ? '+' : ''}</span>
+              ))
             : card.spec ? '分析' : '教练'}
         </span>
       </div>
