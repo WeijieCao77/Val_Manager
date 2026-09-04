@@ -19,6 +19,7 @@ import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import MidReview from './ui/MidReview'
 import RetireCard from './ui/RetireCard'
+import QualifyPoster from './ui/QualifyPoster'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame, packState } from './engine/save'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
@@ -38,7 +39,7 @@ import { whenUnlocked } from './engine/profile'
 import { ENDINGS } from './engine/endings'
 import Dossier from './ui/Dossier'
 import ThemeToggle from './ui/ThemeToggle'
-import { upcomingInternational } from './engine/qualify'
+import { nextInEvent, qualifiedEvent, upcomingInternational } from './engine/qualify'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -265,6 +266,9 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   // an international we are already booked for, before its draw exists
   const up = upcomingInternational(game)
   const upFirst = up && (!next || up.day < next.day)
+  // and inside an event whose draw has not reached us yet
+  const inEv = nextInEvent(game)
+  const inEvFirst = !upFirst && inEv && (!next || inEv.day < next.day)
 
   const Screen = ({
     dashboard: Dashboard,
@@ -324,6 +328,11 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
             <div className="chip small muted" title={`${up.name}：${up.how}。对阵要等四个赛区都打完才抽。`}>
               下一场：{up.name}
               <span className="faint"> · 约{up.day - game.day}天后 · 对手待定</span>
+            </div>
+          ) : inEvFirst ? (
+            <div className="chip small muted" title={`${inEv.comp.name} ${inEv.round}，对手等上一轮打完才知道`}>
+              下一场：{inEv.round}
+              <span className="faint"> · {inEv.day - game.day <= 0 ? '今天' : `${inEv.day - game.day}天后`} · 对手待定</span>
             </div>
           ) : next && (
             <div className="chip small muted" title="下一场正式比赛">
@@ -431,6 +440,22 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
             <RetireCard
               note={note}
               onClose={() => { note.seen = true; commit() }}
+            />
+          )
+        })()}
+        {(() => {
+          // the poster for a booked international: once per event, after any
+          // farewell, never over a match, a verdict or the tour
+          if (live || game.gameOver || game.midReview || tour) return null
+          if ((game.retireFeed ?? []).some((n) => !n.seen && (n.clubId === game.myTeam || n.star))) return null
+          const q = qualifiedEvent(game)
+          if (!q) return null
+          const k = `${q.year}:${q.key}`
+          if ((game.postersSeen ?? []).includes(k)) return null
+          return (
+            <QualifyPoster
+              q={q} club={myTeam.name} tag={myTeam.tag}
+              onClose={() => { (game.postersSeen ??= []).push(k); commit() }}
             />
           )
         })()}

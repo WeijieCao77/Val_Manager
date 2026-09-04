@@ -19,6 +19,7 @@ const CardMode = lazy(() => import('./ui/CardMode'))
 const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
 import UpdateNudge from './ui/UpdateNudge'
+import DomainNotice from './ui/DomainNotice'
 import MusicPlayer from './ui/MusicPlayer'
 
 type Mode = 'home' | 'career' | 'cards'
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <>
       <UpdateNudge />
+      <DomainNotice />
       <Suspense fallback={loading}>{page}</Suspense>
       {/* under every page, so it keeps playing across the three */}
       <MusicPlayer />

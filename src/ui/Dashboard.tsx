@@ -8,7 +8,7 @@ import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
-import { upcomingInternational } from '../engine/qualify'
+import { nextInEvent, upcomingInternational } from '../engine/qualify'
 import type { ScrimFormat } from '../engine/season'
 import { poolFor } from '../engine/match'
 import { sortStandings } from '../engine/league'
@@ -43,6 +43,8 @@ export default function Dashboard() {
   const next = nextRealFixtureFor(game, game.myTeam)
   const up = upcomingInternational(game)
   const upFirst = up && (!next || up.day < next.day)
+  const inEv = nextInEvent(game)
+  const inEvFirst = !upFirst && inEv && (!next || inEv.day < next.day)
 
   const handleReports = (reports: DayReport[], fromDay: number) => {
     const pending = reports.map((r) => r.pendingMine).filter(Boolean)[0]
@@ -322,6 +324,22 @@ export default function Dashboard() {
               </div>
               <p className="tiny faint center" style={{ margin: '10px 0 0' }}>
                 已锁定：{up.how}。对阵要等四个赛区都打完才抽，抽出来会写进赛程。
+              </p>
+            </>
+          ) : inEvFirst ? (
+            <>
+              <div className="score-line" style={{ padding: '6px 0 14px' }}>
+                <div className="t a" title={game.teams[game.myTeam]?.name}>{game.teams[game.myTeam]?.tag}</div>
+                <div className="s muted" style={{ fontSize: 20 }}>vs</div>
+                <div className="t muted">待定</div>
+              </div>
+              <div className="row small muted wrap" style={{ gap: 10, justifyContent: 'center' }}>
+                <span className="tag t1">{inEv.comp.name}</span>
+                <span className="tag">{inEv.round}</span>
+                <span className="tag">{fmtDay(inEv.day, game.year)}（{inEv.day - game.day} 天后）</span>
+              </div>
+              <p className="tiny faint center" style={{ margin: '10px 0 0' }}>
+                对手要等上一轮打完才知道；日期是定好的。
               </p>
             </>
           ) : next ? (

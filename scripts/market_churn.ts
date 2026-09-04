@@ -2,7 +2,7 @@
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { windowOpen } from '../src/engine/transfer'
 
 const g = createNewGame(WORLD_TEAMS[0].id, 'x', 4, createManager('t', 24, 'grassroots'))
@@ -12,7 +12,7 @@ const listed = () => Object.values(g.players).filter((p) => p.listed && p.teamId
 let peak = 0
 const spells: number[] = []
 const since = new Map<string, number>()
-for (let d = 0; d < 336; d++) {
+for (let d = 0; d < SEASON_DAYS; d++) {
   advanceDay(g, {})
   const now = new Set(listed().map((p) => p.id))
   for (const id of now) if (!since.has(id)) since.set(id, d)

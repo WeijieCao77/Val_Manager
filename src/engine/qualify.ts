@@ -9,11 +9,12 @@
  *
  * Pure: reads the state, writes nothing.
  */
-import { PLAYOFF_CUT, championsField, compKey, mastersField } from './season'
+import { INTERNATIONAL_OPEN, PLAYOFF_CUT, championsField, compKey, mastersField } from './season'
 import { sortStandings } from './league'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from './endings'
 import { swissRecord } from './bracket'
-import type { GameState, StageKey } from './types'
+import { hostCity } from './hosts'
+import type { Competition, Fixture, GameState, StageKey } from './types'
 
 export interface QualStatus {
   /** the event this stage leads to */
@@ -51,9 +52,40 @@ export function qualifyRule(stage: StageKey): string {
 export const POINTS_NOTE =
   '冠军积分：Kickoff 前 4 名 6/4/3/2；Stage 1、Stage 2 前 8 名 9/7/5/4/3/3/2/2；Masters 前 6 名 12/9/7/5/4/4。'
 
-/** The day each international opens on, at the earliest. Mirrors season.ts. */
-export const INTERNATIONAL_START: Record<'masters1' | 'masters2' | 'champions', number> = {
-  masters1: 66, masters2: 172, champions: 278,
+/** The day each international opens on, at the earliest. */
+export const INTERNATIONAL_START = INTERNATIONAL_OPEN
+
+export type EventKey = 'masters1' | 'masters2' | 'champions'
+const EVENT_KEYS: EventKey[] = ['masters1', 'masters2', 'champions']
+
+export interface Qualified {
+  key: EventKey
+  name: string
+  city: string
+  year: number
+  teamId: string
+  /** how we got in, in the player's words */
+  how: string
+}
+
+/**
+ * The international the club has a place at this season, from the moment
+ * the place is certain until the event is over — the poster's subject.
+ */
+export function qualifiedEvent(state: GameState): Qualified | null {
+  const me = state.teams[state.myTeam]
+  if (!me || me.tier !== 1) return null
+  const up = upcomingInternational(state)
+  if (up) return { key: up.key, name: up.name, city: hostCity(state, up.key), year: state.year, teamId: me.id, how: up.how }
+  for (const key of EVENT_KEYS) {
+    const comp = state.comps[key]
+    if (!comp || comp.champion || !comp.teams.includes(me.id)) continue
+    const how = comp.byes?.includes(me.id) ? '赛区冠军，直接进季后赛'
+      : comp.swissSeeds?.includes(me.id) ? `从瑞士轮打起（${comp.swissSeeds.indexOf(me.id) + 1} 号种子）`
+        : key === 'champions' ? (championsField(state)[me.region].indexOf(me.id) < 2 ? 'Stage 2 前 2，直接晋级' : '全年积分名额') : '拿到了参赛名额'
+    return { key, name: comp.name, city: comp.city ?? hostCity(state, key), year: state.year, teamId: me.id, how }
+  }
+  return null
 }
 
 export interface Upcoming {
@@ -263,4 +295,117 @@ export function qualification(state: GameState): QualStatus | null {
     ? `常规赛第 ${place}（${rec}），在季后赛区内（前 ${cut}）。`
     : `常规赛第 ${place}（${rec}），距季后赛区（第 ${cut} 名 ${gapTeam?.name}）${gap > 0 ? `差 ${gap} 场胜利` : '只差净胜'}。`
   return { event: feed.event, tone: place <= cut ? 'info' : 'warn', headline, lines }
+}
+
+// ---------------------------------------------------------------- inside an event
+
+/** One round of an event that exists on the calendar whether or not its
+ *  fixtures have been drawn yet. */
+export interface EventRound {
+  /** the fixture label's round name, e.g. 瑞士轮 第2轮 or 胜者组决赛 */
+  name: string
+  day: number
+  /** true when its fixtures already exist */
+  drawn: boolean
+}
+
+/** Days between waves — the same number season.ts schedules with. */
+const GAP = 2
+
+/**
+ * Every round of an international, dated.
+ *
+ * The draw only exists round by round, but the calendar does not: the Swiss
+ * plays on three days two apart, the playoffs on six. A club that has just
+ * gone 2–0 knows exactly which day its playoff opens even though nobody knows
+ * against whom. Dated from the event's first fixture.
+ */
+export function eventRounds(state: GameState, comp: Competition): EventRound[] {
+  const own = state.fixtures.filter((f) => f.comp === comp.key)
+  if (!own.length) return []
+  const first = Math.min(...own.map((f) => f.day))
+  const rounds: { key: string; name: string; offset: number }[] = []
+  if (comp.format === 'masters') {
+    for (let r = 1; r <= 3; r++) rounds.push({ key: `${r}:瑞士轮 第${r}轮`, name: `瑞士轮 第${r}轮`, offset: (r - 1) * GAP })
+  } else if (comp.format === 'champions') {
+    const names = ['开局赛', '胜者赛 / 败者赛', '决胜赛']
+    names.forEach((n, i) => rounds.push({ key: `${i + 1}:小组赛`, name: `小组赛 ${n}`, offset: i * GAP }))
+  }
+  const base = rounds.length * GAP
+  const po = comp.format === 'champions' || comp.format === 'masters' || (comp.seeds ?? []).length >= 8
+    ? ['胜者组第一轮', '胜者组第二轮 / 败者组第一轮', '胜者组决赛 / 败者组第二轮', '败者组半决赛', '败者组决赛', '总决赛']
+    : ['胜者组第一轮', '胜者组决赛 / 败者组第一轮', '败者组决赛', '总决赛']
+  const waveOffset = comp.format === 'champions' ? 3 : 0
+  po.forEach((n, i) => rounds.push({ key: `${waveOffset + i + 1}:${n.split(' / ')[0]}`, name: n, offset: base + i * GAP }))
+  return rounds.map((r) => ({
+    name: r.name, day: first + r.offset,
+    drawn: comp.format === 'masters' && r.key.includes('瑞士轮')
+      ? own.some((f) => f.label.startsWith(`SW:${r.key.split(':')[0]}:`))
+      : own.some((f) => f.label.startsWith(`KO:${r.key.split(':')[0]}:`)),
+  }))
+}
+
+/** The club's next appearance in an event whose draw has not reached it yet. */
+export interface NextIn { comp: Competition; day: number; round: string }
+
+/**
+ * Where the club plays next inside an event, when no fixture says so.
+ *
+ * The draw arrives one wave at a time, so a side that has just qualified
+ * from the Swiss round, or won an upper-bracket match while the other tie is
+ * still being played, has no fixture and — until now — no next match at all:
+ * the top bar counted down to a league game weeks away. The round is known
+ * from the format; only the opponent is not.
+ */
+export function nextInEvent(state: GameState): NextIn | null {
+  const me = state.myTeam
+  for (const key of ['masters1', 'masters2', 'champions'] as const) {
+    const comp = state.comps[key]
+    if (!comp || comp.champion || !comp.teams.includes(me)) continue
+    if (state.fixtures.some((f) => f.comp === key && !f.played && (f.teamA === me || f.teamB === me))) return null
+    if (comp.finished.includes(me)) continue
+    const rounds = eventRounds(state, comp)
+    const at = (name: string) => rounds.find((r) => r.name.split(' / ').includes(name) || r.name === name)
+    const mine = state.fixtures.filter((f) => f.comp === key && f.played && (f.teamA === me || f.teamB === me))
+    const last = mine[mine.length - 1]
+    const won = (f: Fixture) => (f.result!.mapsWonA > f.result!.mapsWonB) === (f.teamA === me)
+    if (!comp.bracketStarted) {
+      if (comp.format === 'masters') {
+        if (comp.byes?.includes(me)) { const r = at('胜者组第一轮'); return r ? { comp, day: r.day, round: '季后赛 胜者组第一轮' } : null }
+        const rec = swissRecord(comp, me)
+        if (rec.l >= 2) continue
+        if (rec.w >= 2) { const r = at('胜者组第一轮'); return r ? { comp, day: r.day, round: '季后赛 胜者组第一轮' } : null }
+        const n = rec.w + rec.l + 1
+        const r = at(`瑞士轮 第${n}轮`)
+        return r ? { comp, day: r.day, round: `瑞士轮 第${n}轮` } : null
+      }
+      // Champions groups: the next group wave, or the playoffs once through
+      const g = mine.filter((f) => /^KO:\d+:[A-D]组/.test(f.label))
+      const lastG = g[g.length - 1]
+      if (!lastG) { const r = rounds[0]; return r ? { comp, day: r.day, round: '小组赛 开局赛' } : null }
+      const name = lastG.label.split(':')[2].replace(/^[A-D]组 /, '')
+      if (name === '胜者赛' && won(lastG)) { const r = at('胜者组第一轮'); return r ? { comp, day: r.day, round: '季后赛 胜者组第一轮' } : null }
+      if (name === '决胜赛') { if (!won(lastG)) continue; const r = at('胜者组第一轮'); return r ? { comp, day: r.day, round: '季后赛 胜者组第一轮' } : null }
+      if (name === '败者赛' && !won(lastG)) continue
+      const next = name === '开局赛' ? (won(lastG) ? '胜者赛' : '败者赛') : '决胜赛'
+      const r = rounds.find((x) => x.name.includes(next))
+      return r ? { comp, day: r.day, round: `小组赛 ${next}` } : null
+    }
+    // the playoffs: the next round follows from the last result
+    const NEXT: Record<string, [string, string]> = {
+      胜者组第一轮: ['胜者组第二轮', '败者组第一轮'], 胜者组第二轮: ['胜者组决赛', '败者组第二轮'],
+      胜者组决赛: ['总决赛', '败者组决赛'], 败者组第一轮: ['败者组第二轮', ''], 败者组第二轮: ['败者组半决赛', ''],
+      败者组半决赛: ['败者组决赛', ''], 败者组决赛: ['总决赛', ''],
+    }
+    const ko = mine.filter((f) => f.label.startsWith('KO:') && !/[A-D]组/.test(f.label))
+    const lastK = ko[ko.length - 1]
+    if (!lastK) { const r = at('胜者组第一轮'); return r ? { comp, day: r.day, round: '季后赛 胜者组第一轮' } : null }
+    const name = lastK.label.split(':')[2]
+    const nxt = NEXT[name]?.[won(lastK) ? 0 : 1]
+    if (!nxt) continue
+    const r = at(nxt)
+    return r ? { comp, day: r.day, round: `季后赛 ${nxt}` } : null
+    void last
+  }
+  return null
 }

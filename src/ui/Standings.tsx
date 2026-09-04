@@ -161,7 +161,7 @@ export default function Standings() {
               )}
             </Panel>
           ) : (
-            <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
+            <Panel key={c.key} title={`${c.name}（国际赛事${c.city ? ` · ${c.city}` : ''}）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
               <Bracket comp={c} />
               {!!c.champion && c.finished.length > 0 && (
                 <details style={{ marginTop: 12 }}>

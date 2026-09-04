@@ -732,6 +732,8 @@ export interface Competition {
   groups?: string[][]
   /** prize money and championship points have been handed out */
   awarded?: boolean
+  /** where an international is played — see qualify.ts hostCity */
+  city?: string
 }
 
 export interface NewsItem {
@@ -856,6 +858,8 @@ export interface GameState {
   }
   /** career-long honours for the managed club */
   honours: { year: number; title: string }[]
+  /** qualification posters already shown, as `${year}:${event}` */
+  postersSeen?: string[]
   /**
    * How many international titles the player's club has taken, and so how hard
    * the rest of the world is chasing. Every Masters or Champions trophy raises

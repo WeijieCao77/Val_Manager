@@ -2,7 +2,7 @@
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
-import { advanceDay, setupSeason, stageName } from '../src/engine/season'
+import { advanceDay, setupSeason, stageName, SEASON_DAYS } from '../src/engine/season'
 import { agendaFor, screenLocked } from '../src/engine/agenda'
 
 const me = WORLD_TEAMS.find((t) => t.tag === 'EDG')!
@@ -12,7 +12,7 @@ setupSeason(g)
 
 let objectives = 0, judged = 0
 let prevStage = g.stage
-for (let i = 0; i < 336; i++) {
+for (let i = 0; i < SEASON_DAYS; i++) {
   const r = advanceDay(g)
   if (r.stageChanged) {
     const lock = screenLocked('transfers', g)

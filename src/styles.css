@@ -2432,6 +2432,64 @@ tr.other td .club span { color: var(--faint); }
   .update-body { flex-basis: 100%; }
 }
 
+/* ---------------------------------------------------------------- qualification poster
+
+   The moment the season is built around, marked the way a broadcast marks
+   it: a slanted accent band, the crest large across its lower edge, the
+   event and its city. Above the page and the match modals (50), under the
+   tutorial veil (96) and the update notice. */
+.poster-bg {
+  position: fixed; inset: 0; z-index: 70; background: var(--scrim);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+}
+.poster {
+  position: relative; overflow: hidden; width: min(440px, 100%);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-pop); padding: 22px 26px 26px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  animation: poster-in .5s cubic-bezier(.2, .8, .3, 1);
+}
+.poster-band {
+  position: absolute; inset: 0 0 auto 0; height: 128px;
+  background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 62%, #000));
+  clip-path: polygon(0 0, 100% 0, 100% 64%, 0 100%);
+}
+.poster-eyebrow { position: relative; color: #fff; font-size: var(--t-small); letter-spacing: .2em; margin-bottom: 14px; }
+.poster-crest {
+  position: relative; width: 168px; height: 168px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--panel); border: 1px solid var(--line);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 16%, transparent), var(--shadow-card);
+}
+.poster-crest img { width: 128px; height: 128px; object-fit: contain; }
+.poster-club { font-size: var(--t-h2); font-weight: 700; margin-top: 14px; }
+.poster-tag { color: var(--muted); font-weight: 500; }
+.poster-title { margin: 0; font-size: 26px; line-height: 1.25; text-wrap: balance; }
+.poster-city { color: var(--accent); font-size: 20px; letter-spacing: .12em; margin-top: 2px; }
+.poster-how { color: var(--muted); font-size: var(--t-body); margin: 6px 0 14px; text-wrap: balance; }
+@keyframes poster-in {
+  from { transform: scale(.94) translateY(12px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .poster { animation: none; } }
+
+/* ---------------------------------------------------------------- domain notice
+
+   Same shape as the update nudge: a visitor on www or the railway address
+   with something stored there is told, once, how to carry it over. */
+.domain-notice {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 86; max-width: min(620px, calc(100vw - 20px));
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--accent-line);
+  border-left: 3px solid var(--accent); border-radius: var(--radius);
+  padding: 9px 12px; box-shadow: var(--shadow-card);
+  animation: unlock-in .26s cubic-bezier(.2, .8, .3, 1);
+}
+.domain-notice .update-body { flex-basis: 100%; }
+.domain-notice code { font-size: var(--t-body); color: var(--text); }
+
 /* a picked map chip: the familiarity number stays readable on the red */
 button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); }
 

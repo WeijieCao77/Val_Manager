@@ -16,7 +16,7 @@
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 
 const SEASONS = 5
 const RUNS = 6
@@ -68,7 +68,7 @@ const per = (k: string) => {
   const v = tally[k] ?? []
   const total = v.reduce((a, b) => a + b, 0)
   const days = (tally['天数'] ?? []).reduce((a, b) => a + b, 0)
-  return { total, perSeason: total / (days / 336), lo: Math.min(...v), hi: Math.max(...v) }
+  return { total, perSeason: total / (days / SEASON_DAYS), lo: Math.min(...v), hi: Math.max(...v) }
 }
 const sacked = (tally['__sacked'] ?? []).filter((n) => n > 0).length
 console.log(`${RUNS} runs x ${SEASONS} seasons`)

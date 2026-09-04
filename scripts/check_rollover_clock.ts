@@ -11,7 +11,7 @@
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, SEASON_DAYS, setupSeason } from '../src/engine/season'
 import { makeOffer, enquireAbout } from '../src/engine/transfer'
 import { pitchSponsor } from '../src/engine/commercial'
 import { Rng } from '../src/engine/rng'
@@ -55,7 +55,7 @@ const mark = Object.values(g.players)
   .sort((a, b) => b.overall - a.overall)[0]
 const off = makeOffer(g, mark.id, g.myTeam, 100_000,
   { salary: mark.salary, years: 2, signingBonus: 0, bonusShare: 0, releaseClause: 0 } as never)!
-check('the bid straddles the boundary', (off.respondOn ?? 0) > 335, `答复日 ${off.respondOn}`)
+check('the bid straddles the boundary', (off.respondOn ?? 0) >= SEASON_DAYS, `答复日 ${off.respondOn}`)
 
 // 3) an enquiry, an injury and a listing that straddle it too
 enquireAbout(g, Object.values(g.players).filter((p) => p.teamId && p.teamId !== g.myTeam)[5].id)

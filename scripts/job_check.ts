@@ -2,7 +2,7 @@
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
-import { advanceDay, acceptJob, setupSeason } from '../src/engine/season'
+import { advanceDay, acceptJob, setupSeason, SEASON_DAYS } from '../src/engine/season'
 
 // a mid-table tier-1 club, the kind a new manager can actually get
 const mid = [...WORLD_TEAMS].filter((t) => t.tier === 1).sort((a, b) => a.rating - b.rating)[6]
@@ -14,7 +14,7 @@ console.log(`\u6267\u6559 ${mid.name}\uff08\u58f0\u671b ${g.teams[start].reputat
 
 const seen = new Set<string>()
 let moved = ''
-for (let i = 0; i < 336 * 4 && !g.gameOver; i++) {
+for (let i = 0; i < SEASON_DAYS * 4 && !g.gameOver; i++) {
   advanceDay(g, {})
   for (const o of g.jobOffers ?? []) {
     if (seen.has(o.teamId)) continue

@@ -19,7 +19,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, continuePastFive, settleAtFive, setupSeason } from '../src/engine/season'
+import { advanceDay, continuePastFive, settleAtFive, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { FINAL_YEAR, MID_YEAR, tenureCn } from '../src/engine/endings'
 import type { GameState } from '../src/engine/types'
 
@@ -44,7 +44,7 @@ function atSeasonEnd(year: number): GameState {
   const g = createNewGame(me.id, '审计', 20260831)
   setupSeason(g)
   g.year = year
-  g.day = 335
+  g.day = SEASON_DAYS - 1
   return g
 }
 
@@ -53,7 +53,7 @@ function atSeasonEnd(year: number): GameState {
   const g = atSeasonEnd(MID_YEAR)
   const r = advanceDay(g, { autoScrims: true })
   check('2030 赛季末提出五年之约', g.midReview === true)
-  check('提出时冻结在赛季末', r.seasonEnded === true && g.day === 336)
+  check('提出时冻结在赛季末', r.seasonEnded === true && g.day === SEASON_DAYS)
   check('digest 里说了这件事', r.notes.some((n) => n.includes('之期已到')))
   check('五年就叫五年', tenureCn(MID_YEAR) === '五')
 
@@ -67,8 +67,8 @@ function atSeasonEnd(year: number): GameState {
 
   // and the next season end must not ask again
   advanceDay(g, { autoScrims: true })
-  check('继续之后赛季正常翻篇', g.year === MID_YEAR + 1 && g.day < 336)
-  const g2 = { ...g, day: 335 } as GameState
+  check('继续之后赛季正常翻篇', g.year === MID_YEAR + 1 && g.day < SEASON_DAYS)
+  const g2 = { ...g, day: SEASON_DAYS - 1 } as GameState
   advanceDay(g2, { autoScrims: true })
   check('只问这一次', g2.midReview !== true)
 }

@@ -19,7 +19,7 @@
 import { createNewGame, autoStarters } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { squadOf } from '../src/engine/roster'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { LISTED_COST, LOYALTY_NEW, loyaltyOf, yearlyGain } from '../src/engine/loyalty'
 import { trustOf } from '../src/engine/trust'
 import type { GameState } from '../src/engine/types'
@@ -49,7 +49,7 @@ const before = { loyalty: loyaltyOf(stayer), trust: trustOf(stayer) }
 const worldBefore = Object.values(g.players).map((p) => loyaltyOf(p))
 
 for (let s = 0; s < SEASONS; s++) {
-  for (let d = 0; d < 336; d++) {
+  for (let d = 0; d < SEASON_DAYS; d++) {
     g.boardConfidence = 85; g.onNotice = false; g.missedStreak = 0
     if (g.finances.balance < 5_000_000) g.finances.balance = 20_000_000
     advanceDay(g, { autoScrims: true })

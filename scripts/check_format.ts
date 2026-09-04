@@ -35,7 +35,7 @@ let guard = 0
 // that club's chair, the helper must already name the event; from the fourth
 // place's chair it must not.
 let sealed: { day: number; third: ReturnType<typeof upcomingInternational>; fourth: ReturnType<typeof upcomingInternational> } | null = null
-while (g.day < 318 && guard++ < 600) {
+while (g.day < 345 && guard++ < 600) {
   advanceDay(g)
   const kc = g.comps['kickoff:China']
   if (!sealed && kc?.bracketStarted && !kc.champion && kc.finished.length === kc.teams.length - 2) {

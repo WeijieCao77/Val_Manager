@@ -3,7 +3,7 @@ import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { createManager } from '../src/engine/manager'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { notableBonds, squadHarmony, bondBetween } from '../src/engine/bonds'
 
 // take the weakest tier-1 club so we lose plenty and the room actually sours
@@ -12,7 +12,7 @@ const g = createNewGame(worst.id, 'x', 4, createManager('t', 24, 'grassroots'))
 setupSeason(g)
 console.log(`执教 ${worst.name}（联赛垫底），初始默契 ${squadHarmony(g, g.myTeam).toFixed(0)}`)
 
-for (let d = 0; d < 336 && !g.gameOver; d++) {
+for (let d = 0; d < SEASON_DAYS && !g.gameOver; d++) {
   advanceDay(g, {})
   if (g.day % 84 === 0) console.log(`  第 ${String(g.day).padStart(3)} 天  全队默契 ${squadHarmony(g, g.myTeam).toFixed(0)}`)
 }

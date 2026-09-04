@@ -11,6 +11,27 @@ import type {
   EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, StageKey, Team,
 } from './types'
 
+/**
+ * How differently a side can turn up from one map to the next.
+ *
+ * Rounds were independent draws around a fixed strength, and twenty-four
+ * independent draws hide nothing: the higher-rated side won 77% of series
+ * against a club 3-5 rating points below it, 86% against one 6-9 below,
+ * and a club that assembled a strong five never lost again — 「一旦组成一个
+ * 强队就根本没有输的可能性」. Two dials moved. Each side's strength on a map
+ * carries a draw of this spread for the whole map, so a weaker side's good
+ * day is a whole map rather than a round; and the round curve (ROUND_SENS
+ * below) is flatter, so a strength gap decides a map less completely. Just
+ * widening the swing made maps lopsided — 46% of them 13-5 or worse — which
+ * is why most of the change is in the curve: 3-5 below now wins 30% of
+ * series, 6-9 below 20%, and one map in four is a 13-5, as in the real
+ * thing. Measured with scratch scripts over three seasons; the smoke test
+ * still holds the K/D calibration.
+ */
+const MAP_SWING = 6
+/** the strength gap, in rating points, that moves a round from 50% to 73% */
+const ROUND_SENS = 30
+
 /** How much each role tends to take kills / take deaths. */
 // 决斗者 was 1.15 while every real duelist in a fifth slot sat on a default
 // initiator with the off-role penalty; with real agent pools he plays his own
@@ -252,9 +273,9 @@ export function buildLineup(
   // A club that had been stripped to four kept winning, which is what a player
   // meant by "四个人也能打，而且还打赢了对面".
   //
-  // Round odds run through 1/(1+e^(-diff/17)), so ~18 a head puts a four-man
-  // side near 26% a round and a two-man side near 4% — losing 13-1, which is
-  // what being two men down actually looks like.
+  // Round odds run through 1/(1+e^(-diff/30)), so ~18 a head puts a four-man
+  // side near 35% a round and a two-man side near 23% — losing 13-3, which
+  // is what being two men down actually looks like.
   const missing = Math.max(0, 5 - players.length)
   const shortHanded = -missing * 18
 
@@ -589,6 +610,9 @@ export class MapSim {
 
   /** 'first13' is a real map; 'full24' plays both halves out, as scrims do */
   readonly format: 'first13' | 'full24'
+  /** how each side turned up for THIS map — see MAP_SWING */
+  private readonly swingA: number
+  private readonly swingB: number
 
   constructor(map: string, A: Lineup, B: Lineup, rng: Rng, format: 'first13' | 'full24' = 'first13') {
     this.format = format
@@ -596,6 +620,8 @@ export class MapSim {
     this.A = A
     this.B = B
     this.rng = rng
+    this.swingA = rng.norm(0, MAP_SWING)
+    this.swingB = rng.norm(0, MAP_SWING)
     this.ctx = { lines: {}, highlights: [], rounds: [] }
     for (const p of [...A.players, ...B.players]) this.ctx.lines[p.id] = blankLine()
   }
@@ -681,9 +707,9 @@ export class MapSim {
     }
 
     const strA = (aAttack ? this.A.atk : this.A.def) + (pistol ? 0 : BUY_MOD[buyA]) +
-      this.callMod(this.calls.a, aAttack, this.A.style)
+      this.callMod(this.calls.a, aAttack, this.A.style) + this.swingA
     const strB = (aAttack ? this.B.def : this.B.atk) + (pistol ? 0 : BUY_MOD[buyB]) +
-      this.callMod(this.calls.b, !aAttack, this.B.style)
+      this.callMod(this.calls.b, !aAttack, this.B.style) + this.swingB
 
     // trailing side leans on mid-round calling to steady the ship
     const swingA = this.a < this.b ? this.A.midRound * 0.35 : 0
@@ -692,7 +718,7 @@ export class MapSim {
     // sensitivity is deliberately shallow: in real VCT even the strongest side
     // only takes ~60% of rounds off the field over a season
     const diff = strA + swingA - (strB + swingB)
-    const sens = pistol ? 22 : 17
+    const sens = pistol ? ROUND_SENS + 5 : ROUND_SENS
     const p = 1 / (1 + Math.exp(-diff / sens))
     const aWins = rng.chance(p)
 

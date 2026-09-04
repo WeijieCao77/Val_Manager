@@ -14,6 +14,7 @@ import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { mapCn } from './content'
 import { FAM_MATCH, FAM_SCRIM, learnComp } from './comp'
 import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
+import { hostCity } from './hosts'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
 import { titleLoyalty } from './loyalty'
@@ -32,7 +33,18 @@ import {
   mastersSeeds, swissDone, swissNext, swissOutcome, templateDone,
 } from './bracket'
 
-export const SEASON_DAYS = 336
+/**
+ * The year, in days.
+ *
+ * The calendar ran 336 days with one stage hard against the next: Kickoff's
+ * final on a Sunday, the Masters draw on Tuesday, Stage 1 opening the day
+ * after the Masters final. A manager wrote that it was 「拥挤」 — no time to
+ * do business between competitions — and the sport itself does not play
+ * like that. So the year is the whole year now, and the four weeks it gained
+ * are breaks: a fortnight before each Masters and ten days before Champions,
+ * with the market open through the breaks that lead into the Masters.
+ */
+export const SEASON_DAYS = 364
 
 export interface StageDef {
   key: StageKey
@@ -44,13 +56,23 @@ export interface StageDef {
 export const STAGES: StageDef[] = [
   { key: 'preseason', name: '季前准备', start: 0, end: 20 },
   { key: 'kickoff', name: 'Kickoff', start: 21, end: 62 },
-  { key: 'masters1', name: 'Masters I', start: 63, end: 88 },
-  { key: 'stage1', name: 'Stage 1', start: 89, end: 168 },
-  { key: 'masters2', name: 'Masters II', start: 169, end: 194 },
-  { key: 'stage2', name: 'Stage 2', start: 195, end: 274 },
-  { key: 'champions', name: 'Champions', start: 275, end: 310 },
-  { key: 'offseason', name: '休赛期', start: 311, end: SEASON_DAYS - 1 },
+  { key: 'masters1', name: 'Masters I', start: 63, end: 98 },
+  { key: 'stage1', name: 'Stage 1', start: 99, end: 178 },
+  { key: 'masters2', name: 'Masters II', start: 179, end: 214 },
+  { key: 'stage2', name: 'Stage 2', start: 215, end: 294 },
+  { key: 'champions', name: 'Champions', start: 295, end: 338 },
+  { key: 'offseason', name: '休赛期', start: 339, end: SEASON_DAYS - 1 },
 ]
+
+/**
+ * The earliest day each international opens on — the Swiss round of a
+ * Masters, the groups of Champions. Each sits about a fortnight into its
+ * stage, so the stage begins with a break. The playoffs of a Masters start
+ * eight days after its Swiss round.
+ */
+export const INTERNATIONAL_OPEN: Record<'masters1' | 'masters2' | 'champions', number> = {
+  masters1: 76, masters2: 192, champions: 306,
+}
 
 export const stageAt = (day: number): StageKey =>
   STAGES.find((s) => day >= s.start && day <= s.end)?.key ?? 'offseason'
@@ -120,19 +142,19 @@ export function setupSeason(state: GameState, notes?: string[]): void {
 
     // ---- Stage 1 & Stage 2: full round robin, playoffs seeded from the table
     const s1 = makeComp(state, 'stage1', `VCT ${region} · Stage 1`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', 90, 158, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', 100, 168, 3, rng))
 
     const s2 = makeComp(state, 'stage2', `VCT ${region} · Stage 2`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 196, 264, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 216, 284, 3, rng))
 
     // ---- Challengers: two splits, running alongside the tier-1 calendar
     // even a two-club Challengers league is playable now that small leagues cycle
     if (t2.length >= 2) {
       const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 138, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 148, 3, rng, '常规赛'))
 
       const c2 = makeComp(state, 'challengers2', `Challengers ${region} · 第二赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 200, 262, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 216, 282, 3, rng, '常规赛'))
     }
   }
   seedMarket(state, notes)
@@ -200,10 +222,11 @@ function createMasters(state: GameState, stage: StageKey, name: string, feeder: 
   comp.format = 'masters'
   comp.byes = byes
   comp.swissSeeds = swiss
+  comp.city = hostCity(state, stage as 'masters1' | 'masters2')
   state.fixtures.push(...swissNext(state, comp, swiss, day))
   state.news.push({
     day: state.day, kind: 'league', important: true,
-    text: `${name} 参赛名单出炉：${byes.map((t) => state.teams[t]?.name).join('、')} 作为赛区冠军直接进入季后赛；`
+    text: `${name}（${comp.city}）参赛名单出炉：${byes.map((t) => state.teams[t]?.name).join('、')} 作为赛区冠军直接进入季后赛；`
       + `${swiss.map((t) => state.teams[t]?.name).join('、')} 先打瑞士轮。`,
   })
 }
@@ -220,10 +243,11 @@ function createChampions(state: GameState, name: string, day: number): void {
   const comp = makeComp(state, 'champions', name, all)
   comp.format = 'champions'
   comp.groups = groups
+  comp.city = hostCity(state, 'champions')
   state.fixtures.push(...advanceTemplate(state, comp, championsGroups(), null, all, day, 3, 0))
   state.news.push({
     day: state.day, kind: 'league', important: true,
-    text: `${name} 分组出炉：`
+    text: `${name}（${comp.city}）分组出炉：`
       + groups.map((g, i) => `${GROUPS[i]}组 ${g.map((t) => state.teams[t]?.name).join('、')}`).join('；') + '。',
   })
 }
@@ -444,13 +468,13 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 
   // international events unlock as their feeder stages conclude
   const kickoffDone = REGIONS.every((r) => state.comps[compKey('kickoff', r)]?.champion)
-  if (kickoffDone) createMasters(state, 'masters1', MASTERS_1, 'kickoff', Math.max(state.day + 3, 66))
+  if (kickoffDone) createMasters(state, 'masters1', MASTERS_1, 'kickoff', Math.max(state.day + 3, INTERNATIONAL_OPEN.masters1))
 
   const s1Done = REGIONS.every((r) => state.comps[compKey('stage1', r)]?.champion)
-  if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, 172))
+  if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, INTERNATIONAL_OPEN.masters2))
 
   const s2Done = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
-  if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, 278))
+  if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, INTERNATIONAL_OPEN.champions))
 }
 
 /** A competition has just found its champion: report it, then pay out. */

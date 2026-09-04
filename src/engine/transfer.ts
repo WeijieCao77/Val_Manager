@@ -28,9 +28,9 @@ export function rosterBlock(state: GameState, teamId: string): string | null {
 
 export const TRANSFER_WINDOWS: [number, number][] = [
   [0, 20],    // 季前
-  [63, 88],   // Masters I 期间的短窗口 — the group asked for a mid-spring market
-  [169, 194], // Masters II 期间的短窗口
-  [311, 335], // 休赛期
+  [63, 90],   // the break before Masters I and its Swiss round — the group asked for a mid-spring market
+  [179, 206], // the break before Masters II and its Swiss round
+  [339, 363], // 休赛期
 ]
 
 /** The last day of the window that is open on this day, or null. */

@@ -20,7 +20,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 import type { GameState } from '../src/engine/types'
 
@@ -76,7 +76,7 @@ const fresh = (): GameState => {
   // reading them at the end of a season measures nothing at all — which is
   // exactly what the first version of this check did.
   for (let s = 0; s < seasons; s++) {
-    for (let d = 0; d < 336; d++) {
+    for (let d = 0; d < SEASON_DAYS; d++) {
       g.boardConfidence = 85; g.onNotice = false; g.missedStreak = 0
       if (g.finances.balance < 5_000_000) g.finances.balance = 20_000_000
       const played = advanceDay(g, { autoScrims: true }).playedMine

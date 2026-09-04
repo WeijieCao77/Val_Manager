@@ -22,7 +22,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { autosave, loadAutosave, packState, unpackState } from '../src/engine/save'
 import { stripToTheBone } from '../src/engine/match'
 import type { GameState } from '../src/engine/types'
@@ -64,7 +64,7 @@ let peak = 0
 let peakDay = ''
 let peakState: GameState = g
 for (let s = 0; s < seasons; s++) {
-  for (let d = 0; d < 336; d++) {
+  for (let d = 0; d < SEASON_DAYS; d++) {
     // the sack rules and the bank would end most careers long before the
     // fixture list is full, and this is a question about size, not results
     g.boardConfidence = 85; g.onNotice = false; g.missedStreak = 0

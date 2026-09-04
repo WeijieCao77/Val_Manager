@@ -20,7 +20,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason, SEASON_DAYS } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 import type { GameState } from '../src/engine/types'
 
@@ -144,7 +144,7 @@ audit(g, '开局')
  */
 let signings = 0
 for (let s = 0; s < seasons; s++) {
-  for (let d = 0; d < 336; d++) {
+  for (let d = 0; d < SEASON_DAYS; d++) {
     g.boardConfidence = 85; g.onNotice = false; g.missedStreak = 0
     if (g.finances.balance < 5_000_000) g.finances.balance = 20_000_000
 

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useGame } from './ctx'
 import { Panel, fmtDay, Crest } from './common'
 import { STAGES, fixturesFor, stageName } from '../engine/season'
-import { INTERNATIONAL_START, upcomingInternational } from '../engine/qualify'
+import { INTERNATIONAL_START, eventRounds, nextInEvent, upcomingInternational } from '../engine/qualify'
+import { hostCity } from '../engine/hosts'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from '../engine/endings'
 import type { Fixture } from '../engine/types'
 
@@ -86,19 +87,33 @@ export default function Schedule() {
 
     // every international event, whether or not we are in it
     const up = upcomingInternational(game)
+    const inEv = nextInEvent(game)
     for (const ev of INTL) {
       const comp = game.comps[ev.key]
       if (comp) {
         const inIt = comp.teams.includes(me)
         const rows = game.fixtures.filter((f) => f.comp === ev.key).sort((a, b) => a.day - b.day)
           .map((f) => rowOf(f, f.teamA !== me && f.teamB !== me))
+        // the rounds not drawn yet are on the calendar all the same — the
+        // opponent is the only unknown, and our own next round says so
+        if (!comp.champion) {
+          for (const r of eventRounds(game, comp)) {
+            if (r.drawn) continue
+            const ours = inEv?.comp.key === ev.key && inEv.day === r.day
+            rows.push({
+              key: `${ev.key}:${r.name}`, day: r.day, comp: ev.name, round: r.name,
+              a: ours ? me : undefined, other: !ours, pending: ours ? '对手待定' : '待定 vs 待定',
+            })
+          }
+          rows.sort((x, y) => x.day - y.day)
+        }
         groups.push({
-          key: ev.key, title: ev.name, day: rows[0]?.day ?? game.day, dim: !inIt,
+          key: ev.key, title: comp.city ? `${ev.name} · ${comp.city}` : ev.name, day: rows[0]?.day ?? game.day, dim: !inIt,
           note: inIt ? undefined : '本届没有我们，看看别人怎么打。', rows,
         })
       } else if (up?.key === ev.key) {
         groups.push({
-          key: ev.key, title: ev.name, day: up.day,
+          key: ev.key, title: `${ev.name} · ${hostCity(game, ev.key)}`, day: up.day,
           note: `已锁定：${up.how}。对阵要等四个赛区都打完才抽，抽出来会补进这里。`,
           rows: [{ key: ev.key + ':pending', day: up.day, comp: ev.name, round: up.swiss ? '瑞士轮 第1轮' : '季后赛', a: me, pending: '对手待定' }],
         })
@@ -190,14 +205,14 @@ export default function Schedule() {
                           <td className="small muted">{row.round}</td>
                           <td style={{ textAlign: 'right' }} className={r && aWon ? 'pos' : ''} title={a?.name}>
                             <span className="club" style={{ justifyContent: 'flex-end' }}>
-                              <span>{a?.tag}</span>{row.a && <Crest id={row.a} />}</span>
+                              <span>{a?.tag ?? (row.pending && !row.a ? '待定' : '')}</span>{row.a && <Crest id={row.a} />}</span>
                           </td>
                           <td className="center mono">
                             {r ? <b>{r.mapsWonA} : {r.mapsWonB}</b> : <span className="muted">{row.bo ? `BO${row.bo}` : 'vs'}</span>}
                           </td>
                           <td className={r && !aWon ? 'pos' : ''} title={b?.name}>
                             {row.pending
-                              ? <span className="muted">{row.pending}</span>
+                              ? <span className="muted">{row.a ? row.pending : '待定'}</span>
                               : <span className="club">{row.b && <Crest id={row.b} />}<span>{b?.tag}</span></span>}
                           </td>
                           <td className="tiny muted">{f?.played ? '查看 ›' : ''}</td>

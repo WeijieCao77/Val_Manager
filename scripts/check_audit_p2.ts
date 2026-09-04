@@ -283,8 +283,8 @@ const mk = (tag = 'TYL'): GameState => {
 {
   const g = mk()
   g.day = 315
-  check('an open window has an end to stop at', windowEnd(315) === 335, String(windowEnd(315)))
-  check('and a closed day has none', windowEnd(200) === null)
+  check('an open window has an end to stop at', windowEnd(345) === 363, String(windowEnd(345)))
+  check('and a closed day has none', windowEnd(250) === null)
 }
 
 // ---- a scrim teaches the map it is played on, up to a point

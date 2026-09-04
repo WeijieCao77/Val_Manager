@@ -58,7 +58,16 @@ export function cycleDays(state: GameState): number {
       (f.teamA === state.myTeam || f.teamB === state.myTeam))
     .sort((a, b) => a.day - b.day)[0]
   const gap = next ? next.day - state.day : 99
-  return gap >= 7 ? 7 : 1
+  if (gap < 7) return 1
+  // Inside an international the draw arrives one round at a time, so a side
+  // that has just qualified from the Swiss round has no fixture for four days
+  // and was handed a week-long turn with the off-season's budget. The event
+  // is the season's sharpest week; it runs a day at a time.
+  const inEvent = (['masters1', 'masters2', 'champions'] as const).some((k) => {
+    const c = state.comps[k]
+    return !!c && !c.champion && c.teams.includes(state.myTeam) && !c.finished.includes(state.myTeam)
+  })
+  return inEvent ? 1 : 7
 }
 
 function slot(state: GameState): { day: number; used: number } {
