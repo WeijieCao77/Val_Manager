@@ -234,10 +234,11 @@ export function startBracket(
 }
 
 /** Championship-point awards for a completed competition. */
+// the real circuit's shape: a regional top four, a Masters top six
 export const CHAMP_POINTS: Record<string, number[]> = {
-  kickoff: [6, 4, 3, 2, 1, 1],
-  stage1: [9, 7, 5, 4, 3, 2, 1, 1],
-  stage2: [9, 7, 5, 4, 3, 2, 1, 1],
-  masters1: [12, 9, 7, 5],
-  masters2: [12, 9, 7, 5],
+  kickoff: [6, 4, 3, 2],
+  stage1: [9, 7, 5, 4, 3, 3, 2, 2],
+  stage2: [9, 7, 5, 4, 3, 3, 2, 2],
+  masters1: [12, 9, 7, 5, 4, 4],
+  masters2: [12, 9, 7, 5, 4, 4],
 }

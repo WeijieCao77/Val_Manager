@@ -2,6 +2,7 @@ import { squadOf, wageBill } from './roster'
 import { windowOpen, TRANSFER_WINDOWS } from './transfer'
 import { nextFixtureFor, noticeHint, stageName } from './season'
 import { gigWindow } from './commercial'
+import { qualification } from './qualify'
 import type { Activity, GameState, StageKey } from './types'
 
 /** Record something the manager did today. */
@@ -164,12 +165,24 @@ export function agendaFor(state: GameState): AgendaItem[] {
     case 'stage1':
     case 'stage2':
       items.push({ key: 'lineup', tone: 'todo', go: 'squad', text: '赛段进行中，主要工作是轮换阵容、控制体能。' })
-      items.push({ key: 'table', tone: 'info', go: 'standings', text: '关注积分榜，前 8 名才能进季后赛。' })
+      {
+        // where the table leads — the next Masters or Champions, and what we
+        // still need for it — rather than a line that only named the cut
+        const q = qualification(state)
+        items.push({
+          key: 'table', tone: q?.tone === 'warn' ? 'todo' : 'info', go: 'standings',
+          text: q ? `${q.event}：${q.headline}` : '关注积分榜，前 8 名才能进季后赛。',
+        })
+      }
       break
     case 'masters1':
     case 'masters2':
-    case 'champions':
-      items.push({ key: 'intl', tone: 'info', go: 'standings', text: `${stageName(state.stage)} 期间，没有你的比赛时可以安排训练赛。` })
+    case 'champions': {
+      const q = qualification(state)
+      items.push({
+        key: 'intl', tone: 'info', go: 'standings',
+        text: q ? q.headline : `${stageName(state.stage)} 期间，没有你的比赛时可以安排训练赛。`,
+      })
       if (open) {
         items.push({
           key: 'window', tone: 'todo', go: 'transfers',
@@ -177,6 +190,7 @@ export function agendaFor(state: GameState): AgendaItem[] {
         })
       }
       break
+    }
     case 'offseason':
       items.push({ key: 'renew', tone: 'todo', go: 'squad', text: '休赛期：处理续约、清理阵容。' })
       items.push({

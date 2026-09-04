@@ -270,7 +270,7 @@ export default function Training() {
 
         <div className="tiny faint" style={{ margin: '14px 0 6px' }}>加练 · 可与上面并行</div>
         <div className="grid" style={{ gap: 12 }}>
-          <div className="drill-card">
+          <div className="drill-card" data-tut="pair">
             <b>双排练</b>
             <p className="tiny muted">
               两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> <b>经验</b>（满 100 才 +1 属性），

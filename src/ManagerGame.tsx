@@ -418,7 +418,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
         {tour && !game.gameOver && (
-          <Tutorial screen={screen} go={goScreen} onDone={() => setTour(false)} />
+          <Tutorial screen={screen} go={goScreen} playerOpen={!!playerId} onDone={() => setTour(false)} />
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>

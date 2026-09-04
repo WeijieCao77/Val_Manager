@@ -16,11 +16,29 @@
  */
 import { useEffect, useState } from 'react'
 import Rich from './rich'
+import { POINTS_NOTE, qualifyRule } from '../engine/qualify'
 
 interface Line { t: string; d: string }
-interface Section { key: string; title: string; lede: string; up?: Line[]; down?: Line[]; use: string[] }
+interface Section { key: string; title: string; lede: string; up?: Line[]; down?: Line[]; use: string[]; useTitle?: string }
 
 const SECTIONS: Section[] = [
+  {
+    key: 'format',
+    title: '赛制与晋级',
+    lede: '一年六段：Kickoff → Masters I → Stage 1 → Masters II → Stage 2 → Champions，中间夹着休赛期和两个短转会窗。'
+      + '每个赛区的赛段先打循环赛排名，再打季后赛；国际赛事的名额全部从季后赛名次和全年积分里来。'
+      + '积分榜页最上面的「晋级形势」会随时告诉你差什么。',
+    use: [
+      `<b>Kickoff</b>：${qualifyRule('kickoff')}`,
+      `<b>Stage 1</b>：${qualifyRule('stage1')}`,
+      `<b>Stage 2</b>：${qualifyRule('stage2')}`,
+      '<b>Masters</b>（12 队）：4 支赛区冠军直接进季后赛；8 支第 2、3 名先打<b>瑞士轮</b>——三轮 BO3，两胜晋级、两负出局，出 4 队。'
+        + '八强<b>双败淘汰</b>：胜者组输一场掉进败者组，败者组再输才出局；败者组决赛和总决赛 BO5，其余 BO3。',
+      '<b>Champions</b>（16 队）：每赛区 4 队，分 4 个小组（GSL：开局赛、胜者赛、败者赛、决胜赛，每组前 2 出线），八强同样双败淘汰。',
+      POINTS_NOTE,
+    ],
+    useTitle: '每一段怎么打',
+  },
   {
     key: 'bond',
     title: '队友关系（好感度）',
@@ -310,7 +328,7 @@ export default function Rules({ raised = false }: { raised?: boolean }) {
                   </ul>
                 </>
               )}
-              <h4 className="rules-h">它影响什么</h4>
+              <h4 className="rules-h">{s.useTitle ?? '它影响什么'}</h4>
               <ul className="rules-list plain">
                 {s.use.map((l, i) => <li key={i}><Rich text={l} /></li>)}
               </ul>

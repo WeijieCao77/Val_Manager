@@ -27,8 +27,10 @@ while (!g.gameOver && guard++ < 400 && g.stage !== 'offseason') {
 }
 
 let bad = 0
-const finals = g.fixtures.filter(f => f.label.endsWith(':决赛'))
-const semis = g.fixtures.filter(f => f.label.endsWith(':半决赛'))
+// a grand final, a lower final, or the single bracket's final: all BO5
+const finals = g.fixtures.filter(f => /:(总决赛|败者组决赛|决赛)$/.test(f.label))
+// the round before each: the upper final, the lower semi, the single semi
+const semis = g.fixtures.filter(f => /:(胜者组决赛|败者组半决赛|半决赛)$/.test(f.label))
 console.log(`决赛 ${finals.length} 场 · 半决赛 ${semis.length} 场\n`)
 for (const f of finals) {
   const ok = f.bo === 5

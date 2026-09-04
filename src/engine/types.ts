@@ -721,6 +721,15 @@ export interface Competition {
   byes?: string[]
   /** true once the group phase has been converted into a bracket */
   bracketStarted?: boolean
+  /** how the knockout is shaped — see engine/bracket.ts; absent means the
+   *  old single elimination, which older saves and Challengers still run */
+  format?: 'single' | 'double' | 'masters' | 'champions'
+  /** the playoff's seed order, once known */
+  seeds?: string[]
+  /** a Masters' eight Swiss-round teams, seeded */
+  swissSeeds?: string[]
+  /** Champions' four groups of four */
+  groups?: string[][]
   /** prize money and championship points have been handed out */
   awarded?: boolean
 }

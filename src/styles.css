@@ -931,6 +931,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(255, 70, 85, .4);
   border-radius: var(--radius);
 }
+/* a whole modal can be the thing shown: it keeps its fixed placement and
+   loses the ring, which its action row carries instead */
+.modal-bg.tut-lit { position: fixed; box-shadow: none; }
+.topbar .chip.tut-lit { z-index: 95; }
 @media (max-width: 720px) {
   .tut-card.side { right: 10px; left: 10px; bottom: 10px; max-width: none; }
 }
@@ -2339,3 +2343,41 @@ h1, h2, h3 { text-wrap: balance; }
 @media (max-width: 720px) {
   .theme-cycle.only-m { display: inline-flex; }
 }
+
+/* ---------------------------------------------------------------- brackets
+
+   A double elimination is two lanes: the upper bracket over the lower, the
+   grand final at the end of the upper lane. Each lane keeps the same column
+   per wave so a side beaten above is found straight below. */
+.stages { display: flex; flex-direction: column; gap: 14px; }
+.bracket.lanes { flex-direction: column; gap: 10px; overflow-x: auto; }
+.bracket-lane { display: flex; gap: 14px; }
+.bracket-round.group { min-width: 150px; }
+.bracket-side .crest { flex: none; }
+
+/* the Swiss round: a record table beside the rounds */
+.swiss-grid { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.swiss-table {
+  display: flex; flex-direction: column; gap: 2px; min-width: 190px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px;
+}
+.swiss-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 6px; border-radius: 2px; font-size: var(--t-small); color: var(--muted);
+}
+.swiss-row .nm { flex: 1; }
+.swiss-row .sc { font-variant-numeric: tabular-nums; color: var(--text); }
+.swiss-row .st { width: 28px; text-align: right; }
+.swiss-row.through { color: var(--text); }
+.swiss-row.through .st { color: var(--win); }
+.swiss-row.out { opacity: .6; }
+.swiss-row.out .st { color: var(--loss); }
+.swiss-row.me { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
+
+/* the road to the next international, on the standings page */
+.qual { display: flex; flex-direction: column; gap: 8px; }
+.qual .lead { font-size: var(--t-body); font-weight: 650; line-height: 1.6; }
+.qual.good .lead { color: var(--win); }
+.qual.warn .lead { color: var(--warn); }
+.qual p { margin: 0; color: var(--muted); font-size: var(--t-small); line-height: 1.75; }

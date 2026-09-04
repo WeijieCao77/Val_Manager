@@ -119,6 +119,7 @@ export default function Squad() {
   return (
     <>
       <Panel
+        tut="squad-table"
         title={`阵容 · ${squad.length} 人（首发 ${me.starters.length}/5）`}
         actions={
           <div className="row" style={{ gap: 8 }}>

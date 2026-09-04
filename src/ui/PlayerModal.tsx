@@ -260,7 +260,7 @@ export default function PlayerModal(
             </div>
           )}
           {mine && (
-            <div className="row wrap" style={{ gap: 8, marginTop: 14 }}>
+            <div className="row wrap" data-tut="player-actions" style={{ gap: 8, marginTop: 14 }}>
               <button className="primary sm" onClick={() => setRenewing(true)}>续约 / 谈条件</button>
               <button className="sm" onClick={toggleList}>
                 {p.listed ? '取消挂牌' : '挂牌出售'}

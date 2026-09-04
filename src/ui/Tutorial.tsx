@@ -14,6 +14,12 @@ import { FINAL_YEAR, MID_YEAR } from '../engine/endings'
  *
  * Steps that only need explaining (standings, finances) say their piece and
  * move on. Steps that need doing (training, transfers) wait for the doing.
+ *
+ * A navigation step used to be followed straight by the next navigation step,
+ * so the moment somebody clicked 阵容 the card that explained the squad was
+ * gone — people click the lit tab before reading, and the group said so:
+ * 「点到训练后这些字就消失了」. Every screen now gets its own look-around step
+ * after the click, spotlighting the thing on it that matters.
  */
 
 const KEY = 'valmgr.tutorial'
@@ -30,6 +36,9 @@ function markSeen(): void {
   try { localStorage.setItem(KEY, '1') } catch { /* private mode */ }
 }
 
+/** what the shell knows that the save does not */
+interface Ui { playerOpen: boolean }
+
 interface Step {
   screen?: string
   /** true when the manager must click their own way here */
@@ -39,7 +48,7 @@ interface Step {
   title: string
   body: string
   /** when set, the step waits for this to become true instead of showing 下一步 */
-  done?: (g: GameState) => boolean
+  done?: (g: GameState, ui: Ui) => boolean
   hint?: string
 }
 
@@ -62,14 +71,40 @@ const STEPS: Step[] = [
       + '不会影响正式存档。跟着高亮走就行。',
   },
   {
+    screen: 'dashboard', spot: '.chip.actions',
+    title: '行动力：今天能做几件对外的事',
+    body: '顶栏这枚「行动力」是今天的额度。**报价、问价、谈商务、约训练赛、换教练、挂牌解约**这些对外的事各花 1 点；'
+      + '**首发、战术、训练安排不花**。赛季中每天 2 点，空档期每周 4 点，用完就只能推进时间了。',
+  },
+  {
     screen: 'dashboard', spot: '.advance-bar',
-    title: '总览：每天从这里开始',
+    title: '总览：每天从这里结束',
     body: '最上面是待办，这条红色的大按钮是推动时间往前的地方。先别按，我们先去干活。',
   },
   {
     screen: 'squad', navigate: true, spot: '.nav-item[data-key="squad"]',
     title: '阵容：先看看你的人',
-    body: '点开阵容页。这里排首发五人、看能力与合同，下面还有「更衣室」——每两名选手之间的关系。',
+    body: '点开阵容页。',
+  },
+  {
+    screen: 'squad', spot: '[data-tut="squad-table"]',
+    title: '阵容表：首发、能力、合同',
+    body: '最左边的勾是**首发五人**（要凑齐决斗者、先锋、控场、哨卫，还得有一个指挥）。'
+      + '「能力」是综合评分，「合同」是还剩几年，最右边的**续约 / 解约**直接在表里点。'
+      + '再往下是「更衣室」——每两名选手之间的关系。\n\n'
+      + '现在**点任意一名选手的名字**，打开他的详情。',
+    done: (_g, ui) => ui.playerOpen,
+    hint: '点一个名字即可继续',
+  },
+  {
+    screen: 'squad', spot: '.modal-bg, [data-tut="player-actions"]',
+    title: '选手详情：能做的三件事',
+    body: '八项能力和雷达图之外，底下这一排按钮才是操作：'
+      + '**「续约 / 谈条件」**谈新合同，**「挂牌出售」**让别的俱乐部来问价，'
+      + '**「任命为指挥」**把队内指挥交给他——没有指挥的五人组攻防各扣 4 分。\n\n'
+      + '看完点右上角「关闭」。',
+    done: (_g, ui) => !ui.playerOpen,
+    hint: '关闭弹窗即可继续',
   },
   {
     screen: 'training', navigate: true, spot: '.nav-item[data-key="training"]',
@@ -78,11 +113,18 @@ const STEPS: Step[] = [
   },
   {
     screen: 'training', spot: '.drill-group',
-    title: '选一项团队训练',
-    body: '跑图 / 教练复盘 / 练新英雄三选一（双排练可以并行）。'
+    title: '主训练：三选一，一轮七天',
+    body: '跑图 / 教练复盘 / 练新英雄三选一，这是全队的**主训练**。'
+      + '它和下面的**双排练**、每个人的**训练重点**是**并行**的——三样可以同时排，互不占用。\n\n'
       + '随便选一个——比如「跑图」挑一张熟练度低的图。',
     done: (g) => !!g.drill && g.drill.kind !== 'none',
     hint: '选好了会自动继续',
+  },
+  {
+    screen: 'training', spot: '[data-tut="pair"]',
+    title: '双排练：和主训练同时进行',
+    body: '选两个人一起加练：协同、沟通涨经验，两人的**关系 +3~6**——更衣室里有矛盾时靠它修。'
+      + '它不占主训练的位置，可以一起排。',
   },
   {
     screen: 'training', spot: '[data-tut="focus"]',
@@ -97,13 +139,13 @@ const STEPS: Step[] = [
   {
     screen: 'transfers', navigate: true, spot: '.nav-item[data-key="transfers"]',
     title: '转会：想要的人多半不在市场上',
-    body: '点开转会页。「自由人」和「挂牌」是已经在市场上的；'
-      + '真正想要的人要用下面的「问价」按俱乐部去打听。',
+    body: '点开转会页。',
   },
   {
     screen: 'transfers', spot: '[data-tut="enquire"]',
     title: '试着问一个人的价',
-    body: '在「问价」面板里选一支俱乐部，再对他们的某名选手点「问价」。'
+    body: '「自由人」和「挂牌」是已经在市场上的；真正想要的人要用「问价」按俱乐部去打听。'
+      + '在「问价」面板里选一支俱乐部，再对他们的某名选手点「问价」——'
       + '花 1 点行动力、不花钱，几天后告诉你对方俱乐部的真实要价，和选手本人愿不愿意来。',
     done: (g) => (g.enquiries ?? []).length > 0,
     hint: '问完任意一人即可继续',
@@ -111,12 +153,18 @@ const STEPS: Step[] = [
   {
     screen: 'standings', navigate: true, spot: '.nav-item[data-key="standings"]',
     title: '积分榜：董事会看的就是这个',
-    body: '你的赛段目标是按这里的排名算的。达不到会先警告，连续达不到就下课。',
+    body: '点开积分榜。',
+  },
+  {
+    screen: 'standings', spot: '[data-tut="qualify"]',
+    title: '这个赛段通向哪里',
+    body: '最上面这块说的是本赛段**前几名去 Masters 或 Champions**、你现在差什么、去了是几号种子。'
+      + '董事会的赛段目标也按这里的排名算：达不到先警告，连续达不到就下课。',
   },
   {
     screen: 'finance', navigate: true, spot: '.nav-item[data-key="finance"]',
     title: '财务：钱从哪来到哪去',
-    body: '赞助与奖金是收入，薪资是支出。缺钱时去「商务」页接活动或谈赞助——'
+    body: '点开财务页。赞助与奖金是收入，薪资是支出。缺钱时去「商务」页接活动或谈赞助——'
       + '代价是选手的时间。',
   },
   {
@@ -130,8 +178,8 @@ const STEPS: Step[] = [
 ]
 
 export default function Tutorial({
-  screen, go, onDone,
-}: { screen: string; go: (s: string) => void; onDone: () => void }) {
+  screen, go, playerOpen = false, onDone,
+}: { screen: string; go: (s: string) => void; playerOpen?: boolean; onDone: () => void }) {
   const { game, commit } = useGame()
   const [i, setI] = useState(0)
   // the sandbox: everything done during the trial day is rolled back
@@ -161,6 +209,7 @@ export default function Tutorial({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const step = STEPS[i]
+  const ui: Ui = { playerOpen }
 
   // Steps that teach navigation wait for the manager to click the tab
   // themselves; the rest are put on the right screen for them.
@@ -176,7 +225,9 @@ export default function Tutorial({
     }
   }, [arrived, step.navigate, i])
 
-  // spotlight the one control that stays live
+  // spotlight the one control that stays live. Re-run when a modal opens or
+  // closes too: the player-detail step lights an element that only exists
+  // once the modal is on screen.
   useEffect(() => {
     const lit: Element[] = []
     if (step.spot) {
@@ -186,13 +237,14 @@ export default function Tutorial({
       }
       // the target is often below the fold — bring it into view, or the
       // manager is told to click something they cannot see
-      lit[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const first = lit.find((el) => !el.classList.contains('modal-bg'))
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
     return () => { for (const el of lit) el.classList.remove('tut-lit') }
-  }, [i, step.spot, screen])
+  }, [i, step.spot, screen, playerOpen])
 
   // steps that wait for a real action advance themselves
-  const satisfied = step.done ? step.done(game) : false
+  const satisfied = step.done ? step.done(game, ui) : false
   useEffect(() => {
     if (step.done && satisfied) {
       const t = window.setTimeout(() => setI((x) => Math.min(x + 1, STEPS.length - 1)), 450)

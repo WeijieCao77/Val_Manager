@@ -3,6 +3,8 @@ import { useGame } from './ctx'
 import { OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
 import { sortStandings } from '../engine/league'
+import { PLAYOFF_CUT } from '../engine/season'
+import { POINTS_NOTE, qualification } from '../engine/qualify'
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
 import { REGION_CN, REGIONS } from '../engine/types'
@@ -40,7 +42,7 @@ function Table({ comp }: { comp: Competition }) {
           {order.map((id, i) => {
             const r = comp.standings[id]
             if (!r) return null
-            const cut = comp.stage === 'challengers1' || comp.stage === 'challengers2' ? 4 : 8
+            const cut = Math.min(PLAYOFF_CUT[comp.stage] ?? 8, order.length)
             return (
               <tr key={id} className={id === game.myTeam ? 'me' : ''}>
                 <td className="num muted">
@@ -94,6 +96,8 @@ export default function Standings() {
     .filter((p) => p.season.maps >= 8 && p.teamId)
     .sort((a, b) => ratingOf(b.season) - ratingOf(a.season))
     .slice(0, 40)
+  // where this stage leads, for the club's own region only
+  const qual = region === myRegion ? qualification(game) : null
 
   return (
     <>
@@ -115,6 +119,15 @@ export default function Standings() {
 
       {tab === 'leagues' ? (
         <>
+          {qual && (
+            <Panel tut="qualify" title={`晋级形势 · ${qual.event}`} className={qual.tone === 'good' ? 'good' : qual.tone === 'warn' ? 'alert' : ''}>
+              <div className={`qual ${qual.tone}`}>
+                <div className="lead">{qual.headline}</div>
+                {qual.lines.map((l, i) => <p key={i}>{l}</p>)}
+                <p className="tiny faint" style={{ margin: 0 }}>{POINTS_NOTE}</p>
+              </div>
+            </Panel>
+          )}
           {regional.length === 0 && <div className="empty">该赛区本阶段没有进行中的赛事。</div>}
           {regional.map((c) => (
             <Panel
@@ -125,7 +138,9 @@ export default function Standings() {
               <Table comp={c} />
               {c.bracketStarted && (
                 <div style={{ padding: '12px 13px', borderTop: '1px solid var(--line)' }}>
-                  <div className="nav-group" style={{ padding: '0 0 8px' }}>季后赛对阵</div>
+                  <div className="nav-group" style={{ padding: '0 0 8px' }}>
+                    季后赛对阵{c.format === 'double' ? ' · 双败淘汰' : ''}
+                  </div>
                   <Bracket comp={c} />
                 </div>
               )}
@@ -134,7 +149,7 @@ export default function Standings() {
           {international.map((c) => (
             <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
               <Bracket comp={c} />
-              {c.finished.length > 0 && (
+              {!!c.champion && c.finished.length > 0 && (
                 <details style={{ marginTop: 12 }}>
                   <summary className="small muted" style={{ cursor: 'pointer' }}>最终排名</summary>
                   <div className="table-wrap" style={{ marginTop: 8 }}>

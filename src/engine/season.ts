@@ -27,6 +27,10 @@ import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
 import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, Tier } from './types'
 import { track } from './telemetry'
+import {
+  DOUBLE_8, GROUPS, advanceTemplate, championsGroups, championsSeeds, decided, doubleFor,
+  mastersSeeds, swissDone, swissNext, swissOutcome, templateDone,
+} from './bracket'
 
 export const SEASON_DAYS = 336
 
@@ -63,7 +67,7 @@ export function dateLabel(state: GameState): string {
   return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日`
 }
 
-const compKey = (stage: string, region?: Region) => (region ? `${stage}:${region}` : stage)
+export const compKey = (stage: string, region?: Region) => (region ? `${stage}:${region}` : stage)
 
 function makeComp(
   state: GameState, stage: StageKey, name: string, teams: string[],
@@ -134,30 +138,94 @@ export function setupSeason(state: GameState, notes?: string[]): void {
   seedMarket(state, notes)
 }
 
-const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
+export const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
   kickoff: 4, stage1: 8, stage2: 8, challengers1: 4, challengers2: 4,
 }
 
-/** Create an international event once its qualifiers are known. */
-function createInternational(
-  state: GameState, stage: StageKey, name: string, teams: string[], day: number,
-): void {
-  if (state.comps[stage] || teams.length < 2) return
-  const comp = makeComp(state, stage, name, teams)
-  state.fixtures.push(...startBracket(comp, teams, stage, day, 3))
+/** Days between two waves of a bracket, and before the first. */
+const WAVE_GAP = 2
+
+const byPoints = (state: GameState) => (x: string, y: string) =>
+  (state.teams[y]?.champPoints ?? 0) - (state.teams[x]?.champPoints ?? 0)
+  || (state.teams[y]?.rating ?? 0) - (state.teams[x]?.rating ?? 0)
+
+/**
+ * A Masters' twelve: each region's top three from the feeder stage. The four
+ * winners wait in the playoffs; the four seconds and four thirds play the
+ * Swiss, seeded so that round one crosses a second with a third.
+ */
+export function mastersField(state: GameState, feeder: StageKey): { byes: string[]; swiss: string[] } {
+  const byes: string[] = []
+  const seconds: string[] = []
+  const thirds: string[] = []
+  for (const region of REGIONS) {
+    const comp = state.comps[compKey(feeder, region)]
+    if (!comp?.finished.length) continue
+    const [a, b, c] = comp.finished
+    if (a) byes.push(a)
+    if (b) seconds.push(b)
+    if (c) thirds.push(c)
+  }
+  const cmp = byPoints(state)
+  return { byes: byes.sort(cmp), swiss: [...seconds.sort(cmp), ...thirds.sort(cmp)] }
+}
+
+/**
+ * Champions' sixteen, per region and best first: the Stage 2 playoff's top
+ * two go straight in, then the two highest on the season's points among the
+ * rest. Callable before Stage 2 ends — the qualification panel asks it who
+ * is on course.
+ */
+export function championsField(state: GameState): Record<Region, string[]> {
+  const out = {} as Record<Region, string[]>
+  for (const region of REGIONS) {
+    const s2 = state.comps[compKey('stage2', region)]
+    const direct = (s2?.finished ?? []).slice(0, 2)
+    const rest = Object.values(state.teams)
+      .filter((t) => t.region === region && t.tier === 1 && !direct.includes(t.id))
+      .map((t) => t.id)
+      .sort(byPoints(state))
+      .slice(0, 2)
+    out[region] = [...direct, ...rest]
+  }
+  return out
+}
+
+/** A Masters, opened on its Swiss round. */
+function createMasters(state: GameState, stage: StageKey, name: string, feeder: StageKey, day: number): void {
+  if (state.comps[stage]) return
+  const { byes, swiss } = mastersField(state, feeder)
+  if (byes.length + swiss.length < 8) return
+  const comp = makeComp(state, stage, name, [...byes, ...swiss])
+  comp.format = 'masters'
+  comp.byes = byes
+  comp.swissSeeds = swiss
+  state.fixtures.push(...swissNext(state, comp, swiss, day))
   state.news.push({
     day: state.day, kind: 'league', important: true,
-    text: `${name} 参赛名单出炉：${teams.map((t) => state.teams[t]?.name).join('、')}。`,
+    text: `${name} 参赛名单出炉：${byes.map((t) => state.teams[t]?.name).join('、')} 作为赛区冠军直接进入季后赛；`
+      + `${swiss.map((t) => state.teams[t]?.name).join('、')} 先打瑞士轮。`,
   })
 }
 
-function qualifiersFrom(state: GameState, stage: StageKey, perRegion: number): string[] {
-  const out: string[] = []
-  for (const region of REGIONS) {
-    const comp = state.comps[compKey(stage, region)]
-    if (comp?.finished.length) out.push(...comp.finished.slice(0, perRegion))
-  }
-  return out
+/** Champions, opened on its four groups — one team from each region in
+ *  each, seed levels spread so no group holds two regional winners. */
+function createChampions(state: GameState, name: string, day: number): void {
+  if (state.comps.champions) return
+  const field = championsField(state)
+  const groups = GROUPS.map((_, i) =>
+    REGIONS.map((r, j) => field[r][(i + j) % 4]).filter((t): t is string => !!t))
+  const all = groups.flat()
+  if (all.length < 8) return
+  const comp = makeComp(state, 'champions', name, all)
+  comp.format = 'champions'
+  comp.groups = groups
+  state.fixtures.push(...advanceTemplate(state, comp, championsGroups(), null, all, day, 3, 0))
+  state.news.push({
+    day: state.day, kind: 'league', important: true,
+    text: `${name} 分组出炉：`
+      + groups.map((g, i) => `${GROUPS[i]}组 ${g.map((t) => state.teams[t]?.name).join('、')}`).join('；') + '。',
+  })
 }
 
 /**
@@ -259,7 +327,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   }
 }
 
-/** Move every running competition forward: RR → playoffs → next bracket round. */
+/** Move every running competition forward: RR → playoffs → next bracket wave. */
 function progressCompetitions(state: GameState, notes: string[] = []): void {
   for (const comp of Object.values(state.comps)) {
     if (comp.champion) {
@@ -267,18 +335,96 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
       continue
     }
     const own = state.fixtures.filter((f) => f.comp === comp.key)
-    const rr = own.filter((f) => !f.label.startsWith('KO:'))
     const ko = own.filter((f) => f.label.startsWith('KO:'))
+    const when = state.day + WAVE_GAP
 
+    // ---- Masters: the Swiss round, then the eight-team double elimination
+    if (comp.format === 'masters') {
+      const swiss = comp.swissSeeds ?? []
+      if (!comp.bracketStarted) {
+        const more = swissNext(state, comp, swiss, when)
+        if (more.length) { state.fixtures.push(...more); continue }
+        if (!swissDone(state, comp, swiss)) continue
+        const { through, out } = swissOutcome(comp, swiss)
+        comp.finished = out
+        comp.seeds = mastersSeeds(comp.byes ?? [], through)
+        comp.byes = undefined
+        comp.bracketStarted = true
+        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds, when, 3))
+        state.news.push({
+          day: state.day, kind: 'league', important: comp.seeds.includes(state.myTeam),
+          text: `${comp.name} 瑞士轮结束，${through.map((t) => state.teams[t]?.name).join('、')} 晋级季后赛。`,
+        })
+        continue
+      }
+      if (ko.every((f) => f.played)) {
+        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3))
+        if (comp.champion) concludeStage(state, comp, notes)
+      }
+      continue
+    }
+
+    // ---- Champions: four GSL groups, then the same double elimination
+    if (comp.format === 'champions') {
+      const all = (comp.groups ?? []).flat()
+      const groupsT = championsGroups()
+      if (!comp.bracketStarted) {
+        const more = advanceTemplate(state, comp, groupsT, null, all, when, 3, 0)
+        if (more.length) { state.fixtures.push(...more); continue }
+        if (!templateDone(state, comp, groupsT, 0)) continue
+        const firsts: string[] = []
+        const seconds: string[] = []
+        const thirds: string[] = []
+        const fourths: string[] = []
+        for (const g of GROUPS) {
+          const top = decided(state, comp, `${g}组 胜者赛`)
+          const dec = decided(state, comp, `${g}组 决胜赛`)
+          const low = decided(state, comp, `${g}组 败者赛`)
+          if (top) firsts.push(top.w)
+          if (dec) { seconds.push(dec.w); thirds.push(dec.l) }
+          if (low) fourths.push(low.l)
+        }
+        comp.finished = [...thirds, ...fourths]
+        comp.seeds = championsSeeds(firsts, seconds)
+        comp.bracketStarted = true
+        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds, when, 3, groupsT.length))
+        state.news.push({
+          day: state.day, kind: 'league', important: comp.seeds.includes(state.myTeam),
+          text: `${comp.name} 小组赛结束，八强：${comp.seeds.map((t) => state.teams[t]?.name).join('、')}。`,
+        })
+        continue
+      }
+      if (ko.every((f) => f.played)) {
+        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3, groupsT.length))
+        if (comp.champion) concludeStage(state, comp, notes)
+      }
+      continue
+    }
+
+    // ---- regional: the table, then a bracket
+    const rr = own.filter((f) => !f.label.startsWith('KO:'))
     if (!comp.bracketStarted) {
       if (!rr.length) continue
       if (rr.some((f) => !f.played)) continue
       const cut = PLAYOFF_CUT[comp.stage] ?? 8
       const table = sortStandings(comp)
-      const seeds = table.slice(0, Math.min(cut, table.length))
+      // VCT plays its playoffs double elimination — eight from a stage, four
+      // from Kickoff. A short league that cannot fill four falls back to the
+      // single bracket, as Challengers always does.
+      const double = comp.tier === 1 && table.length >= 4
+      const size = double ? (Math.min(cut, table.length) >= 8 ? 8 : 4) : Math.min(cut, table.length)
+      const seeds = table.slice(0, size)
       // teams that missed the playoffs are already ranked, worst last
       comp.finished = table.slice(seeds.length)
-      state.fixtures.push(...startBracket(comp, seeds, comp.stage, state.day + 4, 3))
+      if (double) {
+        comp.format = 'double'
+        comp.seeds = seeds
+        comp.bracketStarted = true
+        const { template, places } = doubleFor(seeds.length)
+        state.fixtures.push(...advanceTemplate(state, comp, template, places, seeds, when, 3))
+      } else {
+        state.fixtures.push(...startBracket(comp, seeds, comp.stage, state.day + 4, 3))
+      }
       state.news.push({
         day: state.day, kind: 'league',
         text: `${comp.name} 常规赛结束，季后赛名单：${seeds.map((s) => state.teams[s]?.name).join('、')}。`,
@@ -288,39 +434,35 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
     }
 
     if (ko.length && ko.every((f) => f.played)) {
-      const next = advanceBracket(state, comp, state.day + 3, 3)
+      const next = comp.format === 'double'
+        ? (() => { const { template, places } = doubleFor((comp.seeds ?? []).length); return advanceTemplate(state, comp, template, places, comp.seeds ?? [], when, 3) })()
+        : advanceBracket(state, comp, state.day + 3, 3)
       state.fixtures.push(...next)
-      if (comp.champion) {
-        if (comp.teams.includes(state.myTeam)) {
-          track('stage_done', {
-            stage: comp.stage, day: state.day,
-            won: comp.champion === state.myTeam,
-            place: comp.finished.indexOf(state.myTeam) + 1,
-          })
-        }
-        settleCompetition(state, comp, notes)
-      }
+      if (comp.champion) concludeStage(state, comp, notes)
     }
   }
 
   // international events unlock as their feeder stages conclude
   const kickoffDone = REGIONS.every((r) => state.comps[compKey('kickoff', r)]?.champion)
-  if (kickoffDone) createInternational(state, 'masters1', MASTERS_1, qualifiersFrom(state, 'kickoff', 2), Math.max(state.day + 3, 66))
+  if (kickoffDone) createMasters(state, 'masters1', MASTERS_1, 'kickoff', Math.max(state.day + 3, 66))
 
   const s1Done = REGIONS.every((r) => state.comps[compKey('stage1', r)]?.champion)
-  if (s1Done) createInternational(state, 'masters2', MASTERS_2, qualifiersFrom(state, 'stage1', 2), Math.max(state.day + 3, 172))
+  if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, 172))
 
   const s2Done = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
-  if (s2Done && !state.comps.champions) {
-    const field: string[] = []
-    for (const region of REGIONS) {
-      const ranked = Object.values(state.teams)
-        .filter((t) => t.region === region && t.tier === 1)
-        .sort((a, b) => b.champPoints - a.champPoints || b.rating - a.rating)
-      field.push(...ranked.slice(0, 4).map((t) => t.id))
-    }
-    createInternational(state, 'champions', CHAMPIONS, field, Math.max(state.day + 4, 278))
+  if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, 278))
+}
+
+/** A competition has just found its champion: report it, then pay out. */
+function concludeStage(state: GameState, comp: Competition, notes: string[]): void {
+  if (comp.teams.includes(state.myTeam)) {
+    track('stage_done', {
+      stage: comp.stage, day: state.day,
+      won: comp.champion === state.myTeam,
+      place: comp.finished.indexOf(state.myTeam) + 1,
+    })
   }
+  settleCompetition(state, comp, notes)
 }
 
 /** Stages the board actually judges you on. */
