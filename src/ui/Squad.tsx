@@ -223,8 +223,13 @@ export default function Squad() {
                     </td>
                     <td className="clickable sticky-name" onClick={() => openPlayer(p.id)}>
                       <b>{p.ign}</b>
+                      {/* The tags beside a name sit on a second line on a phone,
+                          so the pinned name column is only as wide as the
+                          longest name — beside it, 「推定 IGL」 alone cost the
+                          scrolling columns sixty pixels. */}
+                      <span className="name-tags">
                       {p.isIgl && (
-                        <span className="tag" style={{ marginLeft: 6, opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
+                        <span className="tag" style={{ opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
                           title={iglsInSquad.length > 1
                             ? (p.id === caller?.id
                               ? `队里有 ${iglsInSquad.length} 名指挥出身的选手，由指挥属性最高的他实际喊话（${p.attrs.igl}）`
@@ -233,14 +238,15 @@ export default function Squad() {
                           {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
                         </span>
                       )}
-                      {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
-                      {p.retiring && <span className="tag warn" style={{ marginLeft: 6 }} title="已宣布本赛季结束后退役">退役</span>}
+                      {p.listed && <span className="tag warn">挂牌</span>}
+                      {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役">退役</span>}
                       {(p.grievance ?? 0) > 45 && !p.listed && (
-                        <span className="tag warn" style={{ marginLeft: 6 }}
+                        <span className="tag warn"
                           title={`不满 ${Math.round(p.grievance ?? 0)}/100——出场承诺、薪资、被拒的转会都会积累。高不满的选手更容易接受别队报价。`}>
                           想走
                         </span>
                       )}
+                      </span>
                       {p.traits?.length ? (
                         <div className="hide-m" style={{ marginTop: 3 }}>
                           <Traits traits={p.traits} max={3} />

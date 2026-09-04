@@ -523,6 +523,14 @@ a { color: var(--accent); }
 
 /* ---------------------------------------------------------------- tables */
 table { width: 100%; border-collapse: collapse; }
+/* The tags beside a name — IGL, 挂牌, 想走. Inline on a desktop; on a phone
+   they drop to a line under the name, so the pinned name column is only as
+   wide as the longest name and the scrolling columns get the rest. */
+.name-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.name-tags:empty { display: none; }
+@media (max-width: 720px) {
+  .name-tags { display: flex; margin: 3px 0 0; }
+}
 th {
   text-align: left; font-size: var(--t-label); letter-spacing: .11em;
   text-transform: uppercase; color: var(--faint); font-weight: 700;

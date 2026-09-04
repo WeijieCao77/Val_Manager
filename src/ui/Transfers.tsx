@@ -173,7 +173,9 @@ export default function Transfers() {
                         <tr key={e.id}>
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                             <b>{p.ign}</b>
-                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }}>退役</span>}
+                            <span className="name-tags">
+                            {p.retiring && <span className="tag warn">退役</span>}
+                            </span>
                           </td>
                           <td className="small"><Club id={p.teamId} game={game} crest /></td>
                           <td><Roles p={p} /></td>
@@ -229,10 +231,12 @@ export default function Transfers() {
                     <tr key={o.id}>
                       <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                         <b>{p.ign}</b>
-                        {p.listed && <span className="tag warn" style={{ marginLeft: 6 }}>挂牌</span>}
+                        <span className="name-tags">
+                        {p.listed && <span className="tag warn">挂牌</span>}
                         {!!p.grievance && p.grievance > 30 && (
-                          <span className="tag warn" style={{ marginLeft: 6 }}>想走</span>
+                          <span className="tag warn">想走</span>
                         )}
+                        </span>
                       </td>
                       <td className="small muted hide-m">{game.teams[o.toTeam]?.name}</td>
                       <td className="num mono pos">{money(o.fee)}</td>
@@ -390,8 +394,10 @@ export default function Transfers() {
                         <tr key={p.id}>
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                             <b>{p.ign}</b>
-                            {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
-                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
+                            <span className="name-tags">
+                            {p.listed && <span className="tag warn">挂牌</span>}
+                            {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
+                            </span>
                           </td>
                           <td className="small">
                             <span className="clickable" onClick={() => { setAskRole(''); setAskClub(p.teamId!) }}>
