@@ -49,6 +49,7 @@ export const CHANGELOG: ChangeEntry[] = [
       { kind: '新增', text: '进来会放 VALORANT 的歌，一共五首：Die For You、When the World Ends、Ticking Away、SUPERPOWER、La Lumière。左下角的小浮窗能暂停、切歌、调音量、选循环方式，也能收成一张小唱片；关掉之后下次进来就不放。' },
       { kind: '调整', text: '手机上收起后的小唱片放到右下角那列圆按钮的最上面，不再压着左下的内容。' },
       { kind: '调整', text: '有人反馈放歌卡：歌的文件压小了一半（换成 AAC，听感基本不变），而且等页面自己加载完再开始下载。' },
+      { kind: '新增', text: '歌单加了一首：Layla 的 Break In (Strings Remix)。' },
     ],
   },
   {

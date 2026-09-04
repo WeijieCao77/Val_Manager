@@ -23,4 +23,5 @@ export const TRACKS: Track[] = [
   { id: 'ticking-away', title: 'Ticking Away', artist: 'VALORANT · Grabbitz · bbno$', file: 'music/ticking-away.m4a?v=2' },
   { id: 'superpower', title: 'SUPERPOWER', artist: 'VALORANT · KISS OF LIFE · 段宜恩', file: 'music/superpower.m4a?v=2' },
   { id: 'la-lumiere', title: 'La Lumière', artist: 'VALORANT · WILLIM缪维霖 · 贺仙人', file: 'music/la-lumiere.m4a?v=2' },
+  { id: 'break-in', title: 'Break In (Strings Remix)', artist: 'Layla', file: 'music/break-in.m4a?v=1' },
 ]

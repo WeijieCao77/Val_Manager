@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-Turn a NetEase Cloud Music download (.ncm) into a track for public/music.
+Turn a song from the owner's library into a track for public/music.
 
     python3 scripts/ncm_to_aac.py "~/Music/网易云音乐/VALORANT,Grabbitz - Die For You.ncm" die-for-you
+    python3 scripts/ncm_to_aac.py "~/Music/网易云音乐/Layla - Break In-Strings Remix.flac" break-in
 
-writes public/music/die-for-you.m4a and prints the line to add to
-src/data/music.ts. AAC-LC at 96k through Apple's encoder (ffmpeg's aac_at,
+writes public/music/<slug>.m4a and prints the line to add to
+src/data/music.ts. A plain flac/mp3/wav is read as it is, with the title and
+artist from its tags or, when those are empty, from the「歌手 - 歌名」file
+name; a .ncm is unwrapped first. AAC-LC at 96k through Apple's encoder (ffmpeg's aac_at,
 macOS only): about the quality of a 160k mp3 at half the bytes, which is
 what a phone on a slow connection needs — the 160k mp3s this started with
 were reported as stuttering. The moov atom is moved to the front so the
 browser can start playing before the file has finished arriving. Needs
-ffmpeg on the PATH and the `cryptography` package. The .ncm container is the
-download format of the owner's own library; this only unwraps it, the way
-the desktop app does when it plays the file.
+ffmpeg on the PATH and, for .ncm, the `cryptography` package. The .ncm
+container is the download format of the owner's own library; this only
+unwraps it, the way the desktop app does when it plays the file.
 """
 import base64
 import json
@@ -32,6 +35,30 @@ def aes_ecb(key: bytes, data: bytes) -> bytes:
     d = Cipher(algorithms.AES(key), modes.ECB()).decryptor()
     out = d.update(data) + d.finalize()
     return out[:-out[-1]]
+
+
+def is_ncm(src: str) -> bool:
+    with open(src, 'rb') as f:
+        return f.read(8) == b'CTENFDAM'
+
+
+def probe(src: str) -> dict:
+    """title, artist and duration of a plain audio file, from its tags"""
+    out = subprocess.run([
+        'ffprobe', '-v', 'error', '-show_entries', 'format=duration:format_tags=title,artist',
+        '-of', 'json', src,
+    ], check=True, capture_output=True, text=True).stdout
+    fmt = json.loads(out).get('format', {})
+    tags = {k.lower(): v for k, v in fmt.get('tags', {}).items()}
+    stem = os.path.splitext(os.path.basename(src))[0]
+    by, _, name = stem.partition(' - ')
+    title = tags.get('title') or name or stem
+    artist = tags.get('artist') or by
+    return {
+        'musicName': title,
+        'artist': [[a.strip(), ''] for a in artist.replace('/', ',').split(',') if a.strip()],
+        'duration': int(float(fmt.get('duration', 0)) * 1000),
+    }
 
 
 def unwrap(src: str, out: str) -> dict:
@@ -76,7 +103,11 @@ def main() -> None:
     outdir = os.path.join(ROOT, 'public', 'music')
     os.makedirs(outdir, exist_ok=True)
     raw = os.path.join(outdir, f'.{slug}.raw')
-    meta = unwrap(src, raw)
+    if is_ncm(src):
+        meta = unwrap(src, raw)
+    else:
+        os.symlink(os.path.abspath(src), raw)
+        meta = probe(src)
     title = meta.get('musicName', slug)
     artist = ' · '.join(a[0] for a in meta.get('artist', []))
     m4a = os.path.join(outdir, f'{slug}.m4a')
