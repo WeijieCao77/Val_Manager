@@ -309,9 +309,8 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
              (state->>'coins')::int as coins, (state->>'pulls')::int as pulls,
              (select count(*)::int from jsonb_object_keys(coalesce(state->'cards', '{}'::jsonb))) as cards,
              state->'ladder' as ladder,
-             case when jsonb_typeof(state->'log') = 'array'
-                  then (select jsonb_agg(x) from (select x from jsonb_array_elements(state->'log') x limit 30) t)
-                  else null end as log
+             state->'cards' as owned,
+             case when jsonb_typeof(state->'log') = 'array' then state->'log' else null end as log
       from card_accounts where left(id_hash, 8) = ${code} limit 2`
     if (!acc.length) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
     if (acc.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
@@ -331,6 +330,14 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     const mail = await sql`
       select id, kind, card_id, coins, made, taken from card_mail
       where to_h = ${h} order by made desc limit 20`
+    // the two other ways a card leaves an account: handed to a friend, or
+    // swapped — 「我抽到过他，现在没了」 is answered here or nowhere
+    const gifts = await sql`
+      select id, card_id, claimed, made, from_h = ${h} as sent
+      from card_gifts where from_h = ${h} or to_h = ${h} order by made desc limit 20`
+    const swaps = await sql`
+      select id, give_id, give_level, want_id, status, made, settled, from_h = ${h} as mine
+      from card_swaps where from_h = ${h} or to_h = ${h} order by made desc limit 20`
     const shown = displayName(a.name, h)
     json(res, 200, {
       ok: true,
@@ -340,6 +347,14 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       ladderSeen: a.ladder_seen, ladderAt: a.ladder_at,
       ladder: a.ladder ?? null,
       log: Array.isArray(a.log) ? a.log : [],
+      owned: Object.entries(a.owned ?? {}).map(([cardId, v]) => ({
+        cardId, card: ign(cardId), level: v?.level ?? 0, dupes: v?.dupes ?? 0,
+      })),
+      gifts: gifts.map((g) => ({ id: String(g.id), card: ign(g.card_id), cardId: g.card_id, sent: g.sent, claimed: g.claimed, made: g.made })),
+      swaps: swaps.map((w) => ({
+        id: String(w.id), mine: w.mine, give: ign(w.give_id), giveLevel: w.give_level, want: ign(w.want_id),
+        status: w.status, made: w.made, settled: w.settled,
+      })),
       listings: listings.map((l) => ({
         id: String(l.id), card: ign(l.card_id), cardId: l.card_id, level: l.level, ask: l.ask,
         status: l.status, created: l.created, closed: l.closed, ignored: l.ignored,
