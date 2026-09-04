@@ -299,10 +299,25 @@ export default function Market() {
                   if (!card) return null
                   const lo = Math.ceil(l.ask * (1 - HAGGLE))
                   const hi = Math.floor(l.ask * (1 + HAGGLE))
+                  // One card, one level, spares beside it: two copies at two
+                  // levels cannot both be kept. Buying a card you already hold
+                  // higher spends real coins on a spare, so say so on the shelf
+                  // rather than in the mailbox afterwards.
+                  const mine = g.cards[l.cardId]
+                  const lands = !mine ? ''
+                    : l.level > (mine.level ?? 0)
+                      ? `你有 +${mine.level}，买来升到 +${l.level}`
+                      : l.level > 0
+                        ? `你已有 +${mine.level}，买来只当重复卡`
+                        : '你已有，买来是重复卡'
+                  const dear = !!mine && l.level > 0 && l.level <= (mine.level ?? 0)
                   return (
                     <div key={l.id} className="market-box">
                       <CardFace card={card} level={l.level} size="sm" />
                       <div className="tiny mono" style={{ marginTop: 4 }}>{money(l.ask)} 金币</div>
+                      {lands && (
+                        <div className={`tiny ${dear ? 'warn' : 'faint'}`}>{lands}</div>
+                      )}
                       <div className="tiny faint market-seller">{l.seller}</div>
                       <div className="tiny faint" style={{ minHeight: '1.4em' }}>
                         {l.offers > 0 ? `${l.offers} 人出价` : ''}
