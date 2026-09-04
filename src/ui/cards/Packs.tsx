@@ -43,6 +43,9 @@ export default function Packs() {
       paid: payWith,
       gold: out.filter((p) => p.card.rarity === 'gold').length,
       dupes: out.filter((p) => p.dupe).length,
+      // which cards, so 「我抽到过他」 can be checked against something —
+      // the ten ids of a ten-pull are under a hundred bytes
+      cards: out.map((p) => p.card.id).join(','),
     })
     setOpening(out)
     setShown(1)
