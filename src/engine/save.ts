@@ -1,3 +1,4 @@
+import { canonAgents } from './content'
 import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
 import type { GameState } from './types'
@@ -265,7 +266,8 @@ function migrate(state: GameState): GameState {
   for (const p of Object.values(state.players)) {
     p.xp ??= {}
     p.potentialRevisions ??= 0
-    p.agentPool ??= []
+    // pools saved as vlr's slugs come back as proper names — see canonAgent
+    p.agentPool = canonAgents(p.agentPool ?? [])
     p.injuredUntil ??= 0
   }
   repairClocks(state)

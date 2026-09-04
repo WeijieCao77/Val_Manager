@@ -10,7 +10,7 @@ import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { buildLineup, selectLineup, MatchSim, vetoOrder } from '../src/engine/match'
 import { agentFit, agentMod, agentRoleGaps, autoAgents, normalizeAgents, OFF_ROLE } from '../src/engine/agents'
-import { AGENT_ROLE, AGENTS, MAPS, MAP_META, mapCn } from '../src/engine/content'
+import { AGENT_CN, AGENT_ROLE, AGENTS, MAPS, MAP_META, canonAgent, mapCn } from '../src/engine/content'
 import { Rng } from '../src/engine/rng'
 import type { GameState, Role } from '../src/engine/types'
 
@@ -23,6 +23,24 @@ const mk = (): GameState => {
   const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计', 20260828)
   setupSeason(g)
   return g
+}
+
+// ---- every player's recorded agents are the agents the game knows
+//
+// vlr writes 'cypher' and 'kayo'; the icons, the Chinese names and the
+// composition tables are keyed 'Cypher' and 'KAY/O'. 387 real players carried
+// the slugs into the game, so on the server their icons were broken and the
+// match engine believed none of them had ever played anything.
+{
+  const g = mk()
+  const players = Object.values(g.players)
+  const withPool = players.filter((p) => p.agentPool.length)
+  const bad = withPool.filter((p) => p.agentPool.some((a) => !AGENT_CN[a]))
+  check('every recorded agent is a canonical name', bad.length === 0, bad.slice(0, 3).map((p) => `${p.ign}: ${p.agentPool.join(',')}`).join(' | '))
+  check('most players carry a real pool', withPool.length > players.length * 0.5, `${withPool.length}/${players.length}`)
+  check('the slug spellings resolve', canonAgent('cypher') === 'Cypher' && canonAgent('kayo') === 'KAY/O' && canonAgent('KAY/O') === 'KAY/O' && canonAgent('veto') === null)
+  const known = withPool.filter((p) => p.agentPool.some((a) => AGENT_ROLE[a] === p.role)).length
+  check('a real player knows an agent of his own role', known > withPool.length * 0.7, `${known}/${withPool.length}`)
 }
 
 // ---- every map has a Chinese name and a composition

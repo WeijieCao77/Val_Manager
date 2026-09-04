@@ -12,11 +12,16 @@ import type {
 } from './types'
 
 /** How much each role tends to take kills / take deaths. */
+// 决斗者 was 1.15 while every real duelist in a fifth slot sat on a default
+// initiator with the off-role penalty; with real agent pools he plays his own
+// agent at full strength, and 1.15 put the season's top K/D at 1.62 against
+// a real ceiling near 1.5. 1.08 lands it back there — see scripts/smoke.ts.
 const KILL_WEIGHT: Record<Role, number> = {
-  决斗者: 1.15, 自由人: 1.03, 先锋: 0.98, 哨卫: 0.96, 控场: 0.93,
+  决斗者: 1.08, 自由人: 1.03, 先锋: 0.98, 哨卫: 0.96, 控场: 0.93,
 }
+// and an entry player dies for it: 1.28, from 1.25, for the same reason
 const DEATH_WEIGHT: Record<Role, number> = {
-  决斗者: 1.25, 先锋: 1.08, 自由人: 1.0, 控场: 0.9, 哨卫: 0.88,
+  决斗者: 1.28, 先锋: 1.08, 自由人: 1.0, 控场: 0.9, 哨卫: 0.88,
 }
 const ENTRY_WEIGHT: Record<Role, number> = {
   决斗者: 2.0, 先锋: 1.3, 自由人: 1.0, 哨卫: 0.6, 控场: 0.5,

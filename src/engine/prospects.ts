@@ -22,6 +22,7 @@
  *    arrive unproven, seeded from their own id so the same man is the same man
  *    in every career, with a ceiling that closes as they get older.
  */
+import { canonAgents } from './content'
 import RAW from '../data/prospects.json'
 import { Rng, clamp, hashStr } from './rng'
 import { AGENT_ROLE } from './content'
@@ -124,7 +125,7 @@ export function makeProspect(row: ProspectRow, year: number): Player {
     roles: [role],
     flex: false,
     traits: [],
-    agentPool: (row.agents ?? []).slice(0, 4),
+    agentPool: canonAgents(row.agents ?? []).slice(0, 4),
     age,
     ageEstimated: !row.born,
     isIgl: false,

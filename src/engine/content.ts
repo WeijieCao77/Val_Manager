@@ -58,8 +58,31 @@ export const AGENT_CN: Record<string, string> = {
   Vyse: '维斯', Waylay: '幻棱', Yoru: '夜露',
 }
 
+/**
+ * The agent's canonical name from whatever spelling the data carried.
+ *
+ * vlr.gg files a player's agents as slugs — 'cypher', 'kayo' — and every
+ * player with real data reached the game that way. The icon files, the
+ * Chinese names and the composition tables are all keyed by the proper name,
+ * so on a case-sensitive server the icons were broken, the names came out in
+ * English, and the match engine found no player who had ever played anything.
+ * Null for something that is not an agent at all ('veto' was a column).
+ */
+const AGENT_BY_KEY = new Map(Object.keys(AGENT_CN).map((a) => [a.toLowerCase().replace(/[^a-z]/g, ''), a]))
+export const canonAgent = (a: string): string | null =>
+  AGENT_BY_KEY.get(String(a).toLowerCase().replace(/[^a-z]/g, '')) ?? null
+/** A pool cleaned the same way: canonical, deduplicated, junk dropped. */
+export const canonAgents = (list: readonly string[]): string[] => {
+  const out: string[] = []
+  for (const a of list) {
+    const c = canonAgent(a)
+    if (c && !out.includes(c)) out.push(c)
+  }
+  return out
+}
+
 /** An agent as the manager reads it. */
-export const agentCn = (a: string): string => AGENT_CN[a] ?? a
+export const agentCn = (a: string): string => AGENT_CN[a] ?? AGENT_CN[canonAgent(a) ?? ''] ?? a
 
 /**
  * Which job an agent is actually picked for.

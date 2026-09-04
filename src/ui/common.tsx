@@ -3,7 +3,7 @@ import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
 import { analystEdge } from '../engine/staff'
 import { crestUrl } from '../engine/dossier'
-import { AGENT_ROLE, agentCn } from '../engine/content'
+import { AGENT_ROLE, agentCn, canonAgent } from '../engine/content'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
@@ -118,8 +118,10 @@ export const mapImg = (map: string): string => `${assetBase()}maps/${map}.webp`
  * name and the job, so hovering answers what the icon alone cannot.
  */
 export function AgentIcon({
-  name, size = 24, title,
+  name: raw, size = 24, title,
 }: { name: string; size?: number; title?: string }) {
+  // whatever spelling arrived, the file and the tables want the proper name
+  const name = canonAgent(raw) ?? raw
   return (
     <img
       className="agent-icon"

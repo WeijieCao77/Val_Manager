@@ -1,3 +1,4 @@
+import { canonAgents } from './content'
 import raw from '../data/world.json'
 import { dossierOf } from './dossier'
 import { Rng, clamp, hashStr } from './rng'
@@ -169,7 +170,7 @@ export function createNewGame(
       // the agents this player really used, where we have them; otherwise a
       // plausible pool for the roles they cover
       agentPool: rp.agentPool?.length
-        ? [...rp.agentPool]
+        ? canonAgents(rp.agentPool)
         : ((rp.roles as Role[] | undefined) ?? [rp.role as Role])
             .flatMap((r) => pickAgents(r, prng)),
       season: emptyStats(),
