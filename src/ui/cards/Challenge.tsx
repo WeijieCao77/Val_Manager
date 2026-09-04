@@ -127,6 +127,37 @@ const FRAME_ASPECT = [16, 10] as const
 const FRAME_MAX = 480
 
 /**
+ * The colour under everything: the picture's own average.
+ *
+ * Faces, crests and agents are cut-outs on a transparent background — 490
+ * of the 551 faces, every crest, every agent. Painted onto a transparent
+ * canvas, that transparency went into the bitmap. On the page the box's
+ * panel showed through it, so in the dark theme dark hair sank into a dark
+ * ground; but 「复制图片」 hands over the bitmap with its alpha, and pasted
+ * onto a white chat window the silhouette — hair, head, shoulders — stood
+ * out crisp against white, coarsened or not. The light themes gave the same
+ * outline on the page itself, which made 浅 and 米 easier than 深.
+ *
+ * So the frame is painted on an opaque ground first: the picture's own
+ * average colour, weighted by alpha. Fixed per picture, the same on every
+ * theme, and on average the one colour the subject's edge contrasts with
+ * least. What is copied is now exactly what is on the page.
+ */
+function groundOf(pic: HTMLImageElement): string {
+  const n = 16
+  const [, ctx] = blank(n, n)
+  ctx.drawImage(pic, 0, 0, n, n)
+  const d = ctx.getImageData(0, 0, n, n).data
+  let r = 0, g = 0, b = 0, a = 0
+  for (let i = 0; i < d.length; i += 4) {
+    const w = d[i + 3]
+    r += d[i] * w; g += d[i + 1] * w; b += d[i + 2] * w; a += w
+  }
+  if (!a) return '#6b7078'
+  return `rgb(${Math.round(r / a)}, ${Math.round(g / a)}, ${Math.round(b / a)})`
+}
+
+/**
  * The frame at this many cells of detail.
  *
  * Three of the four kinds are square — faces 192², agents 128², crests 256²
@@ -135,13 +166,16 @@ const FRAME_MAX = 480
  * contained on a backdrop of itself blown up past the box and washed out,
  * and then the whole frame is coarsened together: at the opening six cells
  * the strip's edges and the backdrop are one smudge, and they separate only
- * as the misses buy detail.
+ * as the misses buy detail. Everything sits on an opaque ground — see
+ * groundOf — so the bitmap carries no alpha for a copy to expose.
  */
 function paintPuzzle(
   ctx: CanvasRenderingContext2D, pic: HTMLImageElement,
   w: number, h: number, zoom: number, cells: number,
 ) {
   const [frame, f] = blank(w, h)
+  f.fillStyle = groundOf(pic)
+  f.fillRect(0, 0, w, h)
   // backdrop: the picture past the edges of the box, washed to eight cells
   const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
   const [back, b] = blank(w, h)
