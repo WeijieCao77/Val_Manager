@@ -2,7 +2,7 @@ import { squadOf, wageBill } from './roster'
 import { windowOpen, TRANSFER_WINDOWS } from './transfer'
 import { nextFixtureFor, noticeHint, stageName } from './season'
 import { gigWindow } from './commercial'
-import { qualification } from './qualify'
+import { qualification, upcomingInternational } from './qualify'
 import type { Activity, GameState, StageKey } from './types'
 
 /** Record something the manager did today. */
@@ -204,7 +204,9 @@ export function agendaFor(state: GameState): AgendaItem[] {
 
   // ---- the gap between fixtures is a decision too
   const next = nextFixtureFor(state, state.myTeam)
-  const gap = next ? next.day - state.day : 0
+  const up = upcomingInternational(state)
+  const soonest = Math.min(next ? next.day : Infinity, up ? up.day : Infinity)
+  const gap = Number.isFinite(soonest) ? soonest - state.day : 0
   if (gap >= 4) {
     items.push({
       key: 'scrim', tone: 'todo', go: 'dashboard',

@@ -38,6 +38,7 @@ import { whenUnlocked } from './engine/profile'
 import { ENDINGS } from './engine/endings'
 import Dossier from './ui/Dossier'
 import ThemeToggle from './ui/ThemeToggle'
+import { upcomingInternational } from './engine/qualify'
 
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
@@ -249,6 +250,9 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   // the top bar tracks the next competitive match; a scrim gets its own chip
   const next = nextRealFixtureFor(game, game.myTeam)
   const scrim = nextScrimFor(game, game.myTeam)
+  // an international we are already booked for, before its draw exists
+  const up = upcomingInternational(game)
+  const upFirst = up && (!next || up.day < next.day)
 
   const Screen = ({
     dashboard: Dashboard,
@@ -304,7 +308,12 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
               <span aria-hidden="true">🎯</span> {scrim.day - game.day <= 0 ? '今天' : `${scrim.day - game.day}天后`}训练赛
             </div>
           )}
-          {next && (
+          {upFirst ? (
+            <div className="chip small muted" title={`${up.name}：${up.how}。对阵要等四个赛区都打完才抽。`}>
+              下一场：{up.name}
+              <span className="faint"> · 约{up.day - game.day}天后 · 对手待定</span>
+            </div>
+          ) : next && (
             <div className="chip small muted" title="下一场正式比赛">
               下一场：{game.teams[next.teamA === game.myTeam ? next.teamB : next.teamA]?.tag}
               <span className="faint"> · {next.day - game.day <= 0 ? '今天' : `${next.day - game.day}天后`}</span>

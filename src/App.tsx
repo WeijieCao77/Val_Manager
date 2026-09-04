@@ -18,6 +18,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 const CardMode = lazy(() => import('./ui/CardMode'))
 const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
+import UpdateNudge from './ui/UpdateNudge'
 
 type Mode = 'home' | 'career' | 'cards'
 const PATHS: Record<Mode, string> = { home: '/', career: '/manager', cards: '/cards' }
@@ -55,23 +56,13 @@ export default function App() {
   const loading = (
     <div className="wrap" style={{ padding: 40 }}><p className="muted">载入中…</p></div>
   )
-  if (mode === 'home') {
-    return (
-      <Suspense fallback={loading}>
-        <Home onOpen={setMode} />
-      </Suspense>
-    )
-  }
-  if (mode === 'cards') {
-    return (
-      <Suspense fallback={loading}>
-        <CardMode onExit={() => setMode('home')} />
-      </Suspense>
-    )
-  }
+  const page = mode === 'home' ? <Home onOpen={setMode} />
+    : mode === 'cards' ? <CardMode onExit={() => setMode('home')} />
+      : <ManagerGame onHome={() => setMode('home')} />
   return (
-    <Suspense fallback={loading}>
-      <ManagerGame onHome={() => setMode('home')} />
-    </Suspense>
+    <>
+      <UpdateNudge />
+      <Suspense fallback={loading}>{page}</Suspense>
+    </>
   )
 }

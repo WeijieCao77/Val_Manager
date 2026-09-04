@@ -136,6 +136,34 @@ function resolve(src: Src, seeds: string[], ko: Fixture[]): string | null {
  * `comp.champion` and prepends the template's placings to `comp.finished`
  * when the last wave is played.
  */
+/** A round whose loser goes home: the lower bracket, the grand final, a
+ *  group's losers' match or decider. */
+const knocksOut = (name: string): boolean =>
+  isLowerLabel(name) || name === GF || name.endsWith('败者赛') || name.endsWith('决胜赛')
+
+/**
+ * Record who is out so far, best first, as it happens.
+ *
+ * Placings used to be written only when the champion was known, so between
+ * the lower final and the grand final a club beaten into third stood nowhere
+ * — the panel said 「季后赛进行中」 to a side that was already booked for
+ * Masters. The lower bracket eliminates in rising order (7–8th, then 5–6th,
+ * 4th, 3rd, the runner-up), so each wave's losers go in front of the ones
+ * already there and the order is right at every moment.
+ */
+function noteEliminated(comp: Competition, played: Fixture[]): void {
+  const waves = [...new Set(played.map(waveOf))].sort((a, b) => b - a)
+  const fresh: string[] = []
+  for (const w of waves) {
+    for (const f of played) {
+      if (waveOf(f) !== w || !knocksOut(nameOf(f))) continue
+      const l = loserOf(f)
+      if (l && !comp.finished.includes(l) && !fresh.includes(l)) fresh.push(l)
+    }
+  }
+  if (fresh.length) comp.finished = [...fresh, ...comp.finished]
+}
+
 export function advanceTemplate(
   state: GameState, comp: Competition, template: Wave[], places: Src[] | null,
   seeds: string[], day: number, bo: 1 | 3 | 5, offset = 0, stage?: StageKey,
@@ -143,6 +171,7 @@ export function advanceTemplate(
   const ko = koOf(state, comp)
   const mine = ko.filter((f) => waveOf(f) > offset)
   if (mine.some((f) => !f.played)) return []
+  noteEliminated(comp, mine)
   const done = mine.length ? Math.max(...mine.map(waveOf)) - offset : 0
   if (done >= template.length) {
     if (places && !comp.champion) {

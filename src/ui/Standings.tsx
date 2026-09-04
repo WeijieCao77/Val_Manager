@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
 import { sortStandings } from '../engine/league'
-import { PLAYOFF_CUT } from '../engine/season'
+import { PLAYOFF_CUT, STAGES } from '../engine/season'
 import { POINTS_NOTE, qualification } from '../engine/qualify'
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
@@ -88,9 +88,24 @@ export default function Standings() {
   const myRegion = game.teams[game.myTeam]?.region
   const [region, setRegion] = useState(myRegion ?? 'China')
 
-  const comps = Object.values(game.comps).filter((c) => !c.region || c.region === region)
-  const international = Object.values(game.comps).filter((c) => !c.region)
-  const regional = comps.filter((c) => c.region === region)
+  // What is being played now sits on top; what is over sinks. The Masters in
+  // progress used to be the last panel on the page, under three finished
+  // league tables — 「当时正在打的比赛应该提到最上面」.
+  const rank = (c: Competition): number => {
+    if (c.stage === game.stage) return 0
+    const played = game.fixtures.some((f) => f.comp === c.key && f.played)
+    if (played && !c.champion) return 1
+    return c.champion ? 3 : 2
+  }
+  // calendar position; the two Challengers splits straddle Stage 1 and Stage 2
+  const order = (c: Competition): number => {
+    const i = STAGES.findIndex((s) => s.key === c.stage)
+    if (i >= 0) return i
+    return c.stage === 'challengers1' ? 3.5 : c.stage === 'challengers2' ? 5.5 : 9
+  }
+  const shown = Object.values(game.comps)
+    .filter((c) => !c.region || c.region === region)
+    .sort((a, b) => rank(a) - rank(b) || (rank(a) === 3 ? order(b) - order(a) : order(a) - order(b)))
 
   const leaders = Object.values(game.players)
     .filter((p) => p.season.maps >= 8 && p.teamId)
@@ -128,8 +143,8 @@ export default function Standings() {
               </div>
             </Panel>
           )}
-          {regional.length === 0 && <div className="empty">该赛区本阶段没有进行中的赛事。</div>}
-          {regional.map((c) => (
+          {shown.length === 0 && <div className="empty">该赛区本阶段没有进行中的赛事。</div>}
+          {shown.map((c) => c.region ? (
             <Panel
               key={c.key}
               title={`${c.name}${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}
@@ -145,8 +160,7 @@ export default function Standings() {
                 </div>
               )}
             </Panel>
-          ))}
-          {international.map((c) => (
+          ) : (
             <Panel key={c.key} title={`${c.name}（国际赛事）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
               <Bracket comp={c} />
               {!!c.champion && c.finished.length > 0 && (

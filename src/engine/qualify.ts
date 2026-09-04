@@ -51,6 +51,76 @@ export function qualifyRule(stage: StageKey): string {
 export const POINTS_NOTE =
   '冠军积分：Kickoff 前 4 名 6/4/3/2；Stage 1、Stage 2 前 8 名 9/7/5/4/3/3/2/2；Masters 前 6 名 12/9/7/5/4/4。'
 
+/** The day each international opens on, at the earliest. Mirrors season.ts. */
+export const INTERNATIONAL_START: Record<'masters1' | 'masters2' | 'champions', number> = {
+  masters1: 66, masters2: 172, champions: 278,
+}
+
+export interface Upcoming {
+  key: 'masters1' | 'masters2' | 'champions'
+  name: string
+  /** the day its first match can be on — a Swiss round for a 2nd/3rd seed,
+   *  the playoffs about a week later for a regional winner */
+  day: number
+  /** how we got in, in the player's words */
+  how: string
+  /** true when we open in the Swiss round rather than the playoffs */
+  swiss: boolean
+}
+
+/**
+ * The international event the club has already qualified for but which does
+ * not exist yet.
+ *
+ * A Masters is created only once every region's feeder stage has concluded,
+ * which can be days after ours did. In that gap the club knew it was going —
+ * the qualification panel said so — while the top bar counted down to a
+ * league game forty days away and the schedule listed nothing in between.
+ * This names the event and the day it opens, so nothing arrives unannounced.
+ */
+export function upcomingInternational(state: GameState): Upcoming | null {
+  const me = state.teams[state.myTeam]
+  if (!me || me.tier !== 1) return null
+  const order: { key: 'masters1' | 'masters2' | 'champions'; feeder: StageKey; name: string }[] = [
+    { key: 'masters1', feeder: 'kickoff', name: MASTERS_1 },
+    { key: 'masters2', feeder: 'stage1', name: MASTERS_2 },
+    { key: 'champions', feeder: 'stage2', name: CHAMPIONS },
+  ]
+  for (const ev of order) {
+    if (state.comps[ev.key]) continue
+    const feeder = state.comps[compKey(ev.feeder, me.region)]
+    if (!feeder) continue
+    const start = Math.max(state.day + 3, INTERNATIONAL_START[ev.key])
+    if (!feeder.champion) {
+      // The stage is still running, but a place can already be sealed: a
+      // side beaten in the lower final is third whatever the final says.
+      // That is exactly the gap the group hit — out on the 20th, final on
+      // the 22nd, and the page pointing at a league game in April.
+      if (ev.key === 'champions' || !feeder.bracketStarted) continue
+      const idx = feeder.finished.indexOf(state.myTeam)
+      if (idx < 0) continue
+      const place = feeder.teams.length - feeder.finished.length + idx + 1
+      if (place > 3) return null
+      return { key: ev.key, name: ev.name, day: start, swiss: true, how: `本赛段第 ${place} 名，从瑞士轮打起` }
+    }
+    if (ev.key === 'champions') {
+      const field = championsField(state)[me.region]
+      const idx = field.indexOf(state.myTeam)
+      if (idx < 0) return null
+      return { key: ev.key, name: ev.name, day: start, swiss: false, how: idx < 2 ? 'Stage 2 前 2，直接晋级' : '全年积分名额' }
+    }
+    const { byes, swiss } = mastersField(state, ev.feeder)
+    if (byes.includes(state.myTeam)) {
+      return { key: ev.key, name: ev.name, day: start + 8, swiss: false, how: '赛区冠军，直接进季后赛' }
+    }
+    if (swiss.includes(state.myTeam)) {
+      return { key: ev.key, name: ev.name, day: start, swiss: true, how: `从瑞士轮打起（${swiss.indexOf(state.myTeam) + 1} 号种子）` }
+    }
+    return null
+  }
+  return null
+}
+
 export function qualification(state: GameState): QualStatus | null {
   const me = state.teams[state.myTeam]
   if (!me || me.tier !== 1) return null

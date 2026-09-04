@@ -2397,3 +2397,40 @@ h1, h2, h3 { text-wrap: balance; }
 .qual.good .lead { color: var(--win); }
 .qual.warn .lead { color: var(--warn); }
 .qual p { margin: 0; color: var(--muted); font-size: var(--t-small); line-height: 1.75; }
+
+/* an unplayed tie's date, under its two sides */
+.bracket-when {
+  font-size: 10.5px; color: var(--faint); text-align: center;
+  padding: 3px 8px 4px; background: var(--panel); border-top: 1px solid var(--line-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the schedule: somebody else's match for context, and an event we are not in */
+tr.other td { color: var(--faint); }
+tr.other td .club span { color: var(--faint); }
+.sched-dim { opacity: .62; }
+.sched-note { margin-left: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--faint); }
+
+/* ---------------------------------------------------------------- update nudge
+
+   A deploy under an open tab. Top centre, above the page but under modals'
+   scrims, and it asks rather than reloads. */
+.update-nudge {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 85; max-width: min(560px, calc(100vw - 20px));
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 1px solid var(--accent-line);
+  border-left: 3px solid var(--accent); border-radius: var(--radius);
+  padding: 9px 12px; box-shadow: var(--shadow-card);
+  animation: unlock-in .26s cubic-bezier(.2, .8, .3, 1);
+}
+.update-body { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.update-body b { font-size: var(--t-body); }
+.update-body span { font-size: var(--t-small); color: var(--muted); line-height: 1.5; }
+@media (max-width: 720px) {
+  .update-nudge { top: 6px; flex-wrap: wrap; }
+  .update-body { flex-basis: 100%; }
+}
+
+/* a picked map chip: the familiarity number stays readable on the red */
+button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); }

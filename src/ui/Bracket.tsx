@@ -1,5 +1,5 @@
 import { useGame } from './ctx'
-import { Crest } from './common'
+import { Crest, fmtDay } from './common'
 import { GROUPS, isGroupLabel, isLowerLabel, swissRecord, swissRoundOf } from '../engine/bracket'
 import type { Competition, Fixture } from '../engine/types'
 
@@ -66,6 +66,13 @@ function Tie({ f }: { f: Fixture }) {
           <span className="sc mono">{side.score ?? '–'}</span>
         </div>
       ))}
+      {/* a tie still to be played says when — the final everyone is waiting
+          for was a pair of dashes with no date */}
+      {!r && (
+        <div className="bracket-when">
+          {f.day <= game.day ? '今天' : `${fmtDay(f.day, game.year)} · ${f.day - game.day} 天后`} · BO{f.bo}
+        </div>
+      )}
     </button>
   )
 }

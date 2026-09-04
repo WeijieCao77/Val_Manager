@@ -14,6 +14,7 @@
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, championsField } from '../src/engine/season'
+import { upcomingInternational } from '../src/engine/qualify'
 import { REGIONS } from '../src/engine/types'
 import type { Fixture, GameState } from '../src/engine/types'
 
@@ -27,7 +28,27 @@ const me = WORLD_TEAMS.find((t) => t.tag === 'EDG')!
 const g: GameState = createNewGame(me.id, '赛制审计', 4242)
 setupSeason(g)
 let guard = 0
-while (g.day < 318 && guard++ < 600) advanceDay(g)
+// the gap between our Kickoff ending and the Masters draw: the club must
+// already be able to say where it is going
+// Sealed before the final: once the lower final is played, its loser is third
+// and booked for Masters while the champion is still undecided. Asked from
+// that club's chair, the helper must already name the event; from the fourth
+// place's chair it must not.
+let sealed: { day: number; third: ReturnType<typeof upcomingInternational>; fourth: ReturnType<typeof upcomingInternational> } | null = null
+while (g.day < 318 && guard++ < 600) {
+  advanceDay(g)
+  const kc = g.comps['kickoff:China']
+  if (!sealed && kc?.bracketStarted && !kc.champion && kc.finished.length === kc.teams.length - 2) {
+    const place = (id: string) => kc.teams.length - kc.finished.length + kc.finished.indexOf(id) + 1
+    const third = kc.finished.find((id) => place(id) === 3)!
+    const fourth = kc.finished.find((id) => place(id) === 4)!
+    const was = g.myTeam
+    g.myTeam = third; const a = upcomingInternational(g)
+    g.myTeam = fourth; const b = upcomingInternational(g)
+    g.myTeam = was
+    sealed = { day: g.day, third: a, fourth: b }
+  }
+}
 
 const fx = (key: string, prefix: string): Fixture[] =>
   g.fixtures.filter((f) => f.comp === key && f.label.startsWith(prefix))
@@ -121,6 +142,15 @@ for (const r of REGIONS) {
   check('\nMasters I byes are the four Kickoff winners', !!c && winners.every((t) => c.teams.includes(t!) && !swissTeams.has(t!)))
   const seconds = REGIONS.flatMap((r) => (g.comps[`kickoff:${r}`]?.finished ?? []).slice(1, 3))
   check('Masters I Swiss field is the eight 2nd/3rd places', seconds.every((t) => swissTeams.has(t)))
+}
+
+{
+  console.log(`\n=== the gap before the draw (Kickoff China final still to play, day ${sealed?.day}) ===`)
+  check('the lower-final loser is told about Masters I before the final is played',
+    !!sealed?.third && sealed.third.name === 'Masters I' && sealed.third.swiss && sealed.third.day >= 66 && sealed.third.day >= sealed.day + 3,
+    JSON.stringify(sealed?.third))
+  check('the fourth place is told nothing', sealed !== null && sealed.fourth === null, JSON.stringify(sealed?.fourth))
+  check('once the draw exists the placeholder is gone', !!g.comps.masters1 && upcomingInternational(g) === null)
 }
 
 console.log(bad ? `\n${bad} FAILED` : '\nall held')
