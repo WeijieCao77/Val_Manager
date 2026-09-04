@@ -458,3 +458,18 @@ console.log('\n=== 阵容检查 ===')
   const one: Squad = { slots: [Object.keys(g.cards)[0], null, null, null, null], coach: null }
   console.log(`  一人阵容分 ${squadRating(one)}（缺 4 人应大幅扣分）`)
 }
+
+console.log('\n=== 国籍默契：中国台湾 / 中国香港 / 中国澳门 与大陆算同一国籍 ===')
+{
+  // one card from each code, none sharing a club — so the only link left to
+  // find between them is nationality, and it has to be found four times over
+  const pick = (code: string) => PLAYER_CARDS.find((c) => c.nat?.toLowerCase() === code)
+  const four = ['cn', 'tw', 'hk', 'mo'].map(pick)
+  const squad: Squad = { slots: [...four.map((c) => c?.id ?? null), null], coach: null }
+  const report = chemistry(squad)
+  const natLinks = report.links.filter((l) => l.why === 'nat' || l.why === 'club').length
+  const clubs = new Set(four.map((c) => c?.clubId))
+  console.log(`  ${four.map((c) => `${c?.ign}(${c?.nat})`).join(' / ')}，${clubs.size} 家俱乐部`)
+  console.log(`  同国籍连线 ${natLinks}/6  ${natLinks === 6 ? 'ok' : 'FAIL'} 四人两两都应算同一国籍`)
+  if (natLinks !== 6) process.exitCode = 1
+}

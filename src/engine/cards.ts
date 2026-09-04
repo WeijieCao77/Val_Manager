@@ -8,6 +8,7 @@
  * and the reason the pack opening is worth watching. See engine/gacha.ts for
  * what happens once you own one.
  */
+import { natCountry } from './nat'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
 import { DOSSIER, coachDossier, faceUrl, legendPhoto } from './dossier'
@@ -354,7 +355,10 @@ export function chemistry(squad: Squad): ChemReport {
       if (!isPlayerCard(a) || !isPlayerCard(b)) continue
       let why: ChemLink['why'] | null = null
       if (a.clubId && a.clubId === b.clubId) why = 'club'
-      else if (a.nat && a.nat === b.nat) why = 'nat'
+      // by country, not by code: 中国台湾 / 中国香港 / 中国澳门 and the mainland
+      // are one nationality here, as they are everywhere else in the game —
+      // the group noticed a CN–TW pair was scored as strangers
+      else if (a.nat && natCountry(a.nat) === natCountry(b.nat)) why = 'nat'
       else if (a.region === b.region) why = 'region'
       if (!why) continue
       const value = LINK_VALUE[why]

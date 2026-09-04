@@ -1,3 +1,4 @@
+import { natCountry } from './nat'
 import { Rng, clamp, hashStr } from './rng'
 import { ratingOf } from './player'
 import { squadOf } from './roster'
@@ -81,7 +82,8 @@ export function initialBond(state: GameState, aId: string, bId: string): number 
   if (months > 0) v += Math.min(10, Math.sqrt(months) * 1.35)
 
   // sharing a first language is the single biggest divider in a real roster
-  if (a.nat && b.nat && a.nat === b.nat) v += 4
+  // 中国台湾 / 中国香港 / 中国澳门 count as the mainland's country here too
+  if (a.nat && b.nat && natCountry(a.nat) === natCountry(b.nat)) v += 4
   else if (a.nat && b.nat) v -= 2
 
   const ageGap = Math.abs(a.age - b.age)
