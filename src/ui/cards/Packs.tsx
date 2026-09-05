@@ -452,6 +452,15 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
     if (timer.current !== null) window.clearTimeout(timer.current)
   }, [])
 
+  // A horizontal swipe on a phone is also the browser's "go back". While the
+  // seal is on screen the document refuses that gesture (overscroll-behavior,
+  // see .pack-open in styles.css); the pack itself sits away from the screen
+  // edge on narrow screens, where the system gesture zone lives.
+  useEffect(() => {
+    document.documentElement.classList.add('pack-open')
+    return () => document.documentElement.classList.remove('pack-open')
+  }, [])
+
   const tear = () => {
     if (tornRef.current) return
     tornRef.current = true
@@ -492,22 +501,24 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
     setPose({ x: ny * -3.4, y: nx * 6.5 })
   }
 
+  // A thumb on a phone travels in an arc, not a line, so only the sideways
+  // part of the swipe counts and it does not have to go far: the seal opens
+  // once the finger has crossed six tenths of the pack, or is let go past
+  // the middle. It used to want seven tenths while moving and half on
+  // release, which a short, curved swipe never reached — 「有时候滑不动」.
   const move = (e: React.PointerEvent<HTMLDivElement>) => {
     if (torn) return
     poseAt(e.clientX, e.clientY)
     if (!dragging) return
     e.stopPropagation()
-    const next = Math.max(0, Math.min(1, startProgress.current + (e.clientX - startX.current) / (dragWidth.current * .72)))
+    const next = Math.max(0, Math.min(1, startProgress.current + (e.clientX - startX.current) / (dragWidth.current * .55)))
     progressRef.current = next
     setProgress(next)
-    if (next >= .94) tear()
+    if (next >= .9) tear()
   }
 
-  const up = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    if (!dragging || torn) return
-    setDragging(false)
-    if (progressRef.current >= .68) tear()
+  const settle = () => {
+    if (progressRef.current >= .45) tear()
     else {
       progressRef.current = 0
       setProgress(0)
@@ -515,13 +526,21 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
     }
   }
 
+  const up = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    if (!dragging || torn) return
+    setDragging(false)
+    settle()
+  }
+
+  // The browser takes the pointer away when it decides the gesture is its own
+  // — a scroll, or the edge swipe that goes back a page. A swipe already past
+  // the middle still opens the pack rather than snapping shut on the player.
   const cancel = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation()
     if (torn) return
-    progressRef.current = 0
-    setProgress(0)
     setDragging(false)
-    setPose(REST_POSE)
+    settle()
   }
 
   return (

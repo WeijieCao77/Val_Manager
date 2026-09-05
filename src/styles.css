@@ -1296,6 +1296,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 .pack-reveal { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; }
 
+/* While the seal is up, a sideways swipe is a tear, never the browser's
+   "back"; the stage swallows touch gestures so the page under it does not
+   scroll or navigate. */
+html.pack-open, html.pack-open body { overscroll-behavior: none; }
+.pack-stage { touch-action: none; overscroll-behavior: contain; }
+
 /* A pointer-driven foil gate before the first card. */
 .pack-tear-scene {
   position: relative; z-index: 2;
@@ -1536,6 +1542,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   margin-top: 17px; color: #e7ebef; font-size: 14px; font-weight: 720; letter-spacing: .04em;
 }
 .pack-tear-sub { margin-top: 5px; color: #64778a; font-size: 10px; }
+/* On a phone the pack keeps clear of the screen's left edge, where iOS and
+   Android read a rightward swipe as "back": narrower, and the pull tab
+   starts inside the pack instead of poking past it. */
+@media (max-width: 480px) {
+  .pack-wrapper { width: min(300px, 62vw, 46vh); }
+  .pack-tear-track { left: 4px; right: 4px; }
+}
 .pack-tear-scene.torn .pack-wrapper { transition: none; transform: perspective(850px) rotateX(0) rotateY(0); }
 .pack-tear-scene.torn .pack-wrapper::before { animation: pack-track-out .12s ease-out both; }
 .pack-tear-scene.torn .pack-foil-top { animation: pack-top-rip .72s cubic-bezier(.16,.72,.22,1) both; }
