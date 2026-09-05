@@ -162,9 +162,69 @@ export function groundOf(pic: HTMLImageElement): Ground {
  * that was drawn on itself; the ground has been chosen to show it, so for
  * a flat picture the ground is all there is behind it.
  */
+/**
+ * Where the picture sits in the frame, and how much of it is off centre.
+ *
+ * The same answer used to give the same frame to everybody, every time: a
+ * FUT crest at six cells was the same four patches of colour on every
+ * account and every day it came up, and after a while the group knew the
+ * patches. So the picture is nudged off centre by a per-puzzle amount —
+ * the same for one account's puzzle however many times it is redrawn,
+ * different across accounts and days. Only along an axis where the zoomed
+ * picture overflows the box, and by at most PUZZLE_DRIFT of that overflow,
+ * so the box is still covered edge to edge and the subject is still near
+ * the middle: a different four patches, not a harder puzzle. As the misses
+ * pull the zoom back the overflow shrinks, and in the clear there is no
+ * drift at all — the answer is shown whole, as before.
+ */
+export const PUZZLE_DRIFT = 0.3
+
+/**
+ * A puzzle's own nudge, each axis in [-1, 1], from its seed.
+ *
+ * The seed is an FNV hash of the day and the account id, and FNV's last
+ * character only moves the low bits by a few hundred: 2026-09-06 and
+ * 2026-09-07, or two ids a character apart, came out a hundredth apart —
+ * the same frame to the eye. So the seed goes through an avalanche step
+ * first (murmur3's finaliser), and only then is it split into two halves.
+ */
+const avalanche = (x: number): number => {
+  x ^= x >>> 16
+  x = Math.imul(x, 0x85ebca6b)
+  x ^= x >>> 13
+  x = Math.imul(x, 0xc2b2ae35)
+  x ^= x >>> 16
+  return x >>> 0
+}
+
+export const puzzleShift = (seed: number): [number, number] => {
+  const m = avalanche(seed)
+  return [
+    ((m & 0xffff) / 0xffff) * 2 - 1,
+    (((m >>> 16) & 0xffff) / 0xffff) * 2 - 1,
+  ]
+}
+
+/** The drawn rectangle for a picture scaled by `scale` and nudged by `shift`. */
+export function puzzleLayout(
+  picW: number, picH: number, w: number, h: number, scale: number,
+  shift: readonly [number, number] = [0, 0],
+): { x: number; y: number; dw: number; dh: number } {
+  const dw = picW * scale
+  const dh = picH * scale
+  const slackX = Math.max(0, dw - w) / 2
+  const slackY = Math.max(0, dh - h) / 2
+  return {
+    x: (w - dw) / 2 + slackX * PUZZLE_DRIFT * shift[0],
+    y: (h - dh) / 2 + slackY * PUZZLE_DRIFT * shift[1],
+    dw, dh,
+  }
+}
+
 export function paintPuzzle(
   ctx: CanvasRenderingContext2D, pic: HTMLImageElement,
   w: number, h: number, zoom: number, cells: number,
+  shift: readonly [number, number] = [0, 0],
 ) {
   const [frame, f] = blank(w, h)
   const ground = groundOf(pic)
@@ -175,14 +235,16 @@ export function paintPuzzle(
   if (wash > 0.01) {
     const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
     const [back, b] = blank(w, h)
-    b.drawImage(pic, (w - pic.width * cover) / 2, (h - pic.height * cover) / 2, pic.width * cover, pic.height * cover)
+    const bl = puzzleLayout(pic.width, pic.height, w, h, cover, shift)
+    b.drawImage(pic, bl.x, bl.y, bl.dw, bl.dh)
     f.globalAlpha = wash
     f.drawImage(coarsen(back, 8), 0, 0)
     f.globalAlpha = 1
   }
-  // subject: the whole picture, contained
+  // subject: the whole picture, contained, nudged by the puzzle's own drift
   const fit = Math.min(w / pic.width, h / pic.height) * zoom
-  f.drawImage(pic, (w - pic.width * fit) / 2, (h - pic.height * fit) / 2, pic.width * fit, pic.height * fit)
+  const l = puzzleLayout(pic.width, pic.height, w, h, fit, shift)
+  f.drawImage(pic, l.x, l.y, l.dw, l.dh)
   ctx.clearRect(0, 0, w, h)
   ctx.drawImage(coarsen(frame, cells), 0, 0)
 }

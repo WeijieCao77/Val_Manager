@@ -8,7 +8,8 @@ import {
   detail, evaluate, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
-import { FRAME_ASPECT, FRAME_MAX, paintPuzzle } from './puzzle'
+import { FRAME_ASPECT, FRAME_MAX, paintPuzzle, puzzleShift } from './puzzle'
+import { hashStr } from '../../engine/rng'
 
 const MARK_STYLE: Record<HintMark, { bg: string; fg: string; suffix?: string }> = {
   hit: { bg: 'var(--win-wash)', fg: 'var(--win)' },
@@ -115,6 +116,9 @@ export default function Challenge() {
   const show = state.done ? 1 : revealed(used)
   const zoom = 1 + (1 - show) * 1.6
   const cells = state.done ? Infinity : detail(used)
+  // and where in the frame it sits: this account's, this day's nudge, so the
+  // same crest is not the same four patches for everybody — see puzzleShift
+  const shift = useMemo(() => puzzleShift(hashStr(`puzzle:${today}:${g.id}`)), [today, g.id])
 
   // The picture comes from a route that names nothing — POST, no id in the
   // address, a generic file name — and is painted onto a canvas at the
@@ -156,8 +160,8 @@ export default function Challenge() {
     c.height = (w / aw) * ah
     const ctx = c.getContext('2d')
     if (!ctx) return
-    paintPuzzle(ctx, pic, c.width, c.height, zoom, cells)
-  }, [pic, zoom, cells])
+    paintPuzzle(ctx, pic, c.width, c.height, zoom, cells, shift)
+  }, [pic, zoom, cells, shift])
 
   return (
     <>

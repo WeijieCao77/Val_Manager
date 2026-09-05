@@ -23,6 +23,8 @@ import {
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
 import { newGacha, PACKS } from '../src/engine/gacha'
+import { PUZZLE_DRIFT, puzzleLayout, puzzleShift } from '../src/ui/cards/puzzle'
+import { hashStr } from '../src/engine/rng'
 import { AGENT_CN } from '../src/engine/content'
 import type { GachaState } from '../src/engine/gacha'
 
@@ -313,6 +315,42 @@ const dateAt = (n: number): string =>
   check('韩国对中国还是「错」', natCell(cn.id, kr.id).mark === 'miss')
   check('题面上再也没有 TW / HK / MO 三个字母',
     WORLD_PLAYERS.every((p) => !/^(TW|HK|MO)$/.test(natCell(p.id, p.id).value)))
+}
+
+// ---- the picture sits a little off centre, differently per account and day
+{
+  const W = 480, H = 300
+  const shifts = ['A', 'B', 'C', 'D'].map((who) => puzzleShift(hashStr(`puzzle:2026-09-06:VM-${who}`)))
+  check('每个账号的偏移都在 [-1, 1] 里', shifts.every(([x, y]) => x >= -1 && x <= 1 && y >= -1 && y <= 1))
+  const apart = (a: [number, number], b: [number, number]) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]))
+  check('不同账号、同一道题，偏移明显不同（相邻 ID 也至少差 0.15）',
+    apart(shifts[0], shifts[1]) >= 0.15 && apart(shifts[1], shifts[2]) >= 0.15 && apart(shifts[2], shifts[3]) >= 0.15,
+    shifts.map((s) => s.map((v) => v.toFixed(2)).join(',')).join(' | '))
+  const same = puzzleShift(hashStr('puzzle:2026-09-06:VM-A'))
+  check('同一账号同一天，重画多少次都一样', same[0] === shifts[0][0] && same[1] === shifts[0][1])
+  const days = ['2026-09-06', '2026-09-07'].map((d) => puzzleShift(hashStr(`puzzle:${d}:VM-A`)))
+  check('同一账号第二天再遇到同一题，位置明显不一样', apart(days[0], days[1]) >= 0.15, days.map((s) => s.map((v) => v.toFixed(2)).join(',')).join(' | '))
+  // a square crest at the opening zoom, and a map strip: the box stays
+  // covered on every axis the picture overflows, and the drift is bounded
+  const worst: [number, number][] = [[1, 1], [-1, -1], [1, -1], [-1, 1], [0, 0]]
+  const cases: [string, number, number, number][] = [['方形队标', 256, 256, 2.6], ['地图长条', 1820, 400, 2.6], ['头像看清', 192, 192, 1]]
+  for (const [name, pw, ph, zoom] of cases) {
+    const fit = Math.min(W / pw, H / ph) * zoom
+    for (const sh of worst) {
+      const l = puzzleLayout(pw, ph, W, H, fit, sh)
+      const overX = l.dw > W, overY = l.dh > H
+      const covered = (!overX || (l.x <= 0 && l.x + l.dw >= W)) && (!overY || (l.y <= 0 && l.y + l.dh >= H))
+      const centred = puzzleLayout(pw, ph, W, H, fit)
+      const driftX = Math.abs(l.x - centred.x), driftY = Math.abs(l.y - centred.y)
+      const okX = overX ? driftX <= (l.dw - W) / 2 * PUZZLE_DRIFT + 1e-9 : driftX === 0
+      const okY = overY ? driftY <= (l.dh - H) / 2 * PUZZLE_DRIFT + 1e-9 : driftY === 0
+      check(`${name} 偏移 ${sh.join(',')}：画面不露底，偏移不超过溢出部分的 ${PUZZLE_DRIFT * 100}%`, covered && okX && okY,
+        `x ${l.x.toFixed(0)} y ${l.y.toFixed(0)} 尺寸 ${l.dw.toFixed(0)}×${l.dh.toFixed(0)}`)
+    }
+  }
+  const clear = puzzleLayout(192, 192, W, H, Math.min(W / 192, H / 192), [1, 1])
+  const clear0 = puzzleLayout(192, 192, W, H, Math.min(W / 192, H / 192))
+  check('看清之后没有任何偏移，答案完整居中', clear.x === clear0.x && clear.y === clear0.y)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
