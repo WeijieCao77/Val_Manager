@@ -1117,6 +1117,8 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const prevStage = state.stage
   state.day++
   keepBreaks(state)
+  // the main caller has to be someone still here; a deputy steps up if not
+  ensureCaller(state, state.myTeam)
 
   const notes: string[] = []
   const playedMine: Fixture[] = []

@@ -13,6 +13,7 @@ import { logActivity } from '../engine/agenda'
 import { persuadeStay } from '../engine/season'
 import { useAction } from './useAction'
 import { appointIgl } from '../engine/world'
+import { callerOf } from '../engine/roster'
 import { ratingOf } from '../engine/match'
 import { expectedSalary, statLine } from '../engine/player'
 import { askingPrice } from '../engine/transfer'
@@ -30,6 +31,10 @@ export default function PlayerModal(
   if (!p) return null
   const team = p.teamId ? game.teams[p.teamId] : null
   const mine = p.teamId === game.myTeam
+  // the club's named caller, and the IGLs by trade who back him up
+  const teamCaller = p.teamId ? callerOf(game, p.teamId) : undefined
+  const isMain = p.isIgl && teamCaller?.id === p.id
+  const isDeputy = p.isIgl && !!teamCaller && teamCaller.id !== p.id
   const me = game.teams[game.myTeam]
 
   const want = expectedSalary(p, me.tier)
@@ -86,8 +91,9 @@ export default function PlayerModal(
           <Roles p={p} />
           <OvrBadge value={p.overall} />
           {p.isIgl && (
-            <span className="tag" title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '已确认的队内指挥'}>
-              {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+            <span className="tag" title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行'
+              : isMain ? '主指挥：在场上就由他喊话' : isDeputy ? '副指挥：主指挥不在场上时由他喊话' : '已确认的队内指挥'}>
+              {p.iglSource === 'inferred' ? '推定 IGL' : isMain ? '主指挥' : isDeputy ? '副指挥' : 'IGL'}
             </span>
           )}
         </span>
@@ -265,14 +271,16 @@ export default function PlayerModal(
               <button className="sm" onClick={toggleList}>
                 {p.listed ? '取消挂牌' : '挂牌出售'}
               </button>
-              {!p.isIgl && (
+              {/* a deputy can be made the main caller too — with two IGLs
+                  by trade the button used to vanish for both of them */}
+              {!isMain && (
                 <button className="sm" title={`他的指挥属性 ${p.attrs.igl}`} onClick={() => {
                   const msg = appointIgl(game, p.id)
                   commit()
-                  logActivity(game, 'squad', `任命 ${p.ign} 为队内指挥`)
+                  logActivity(game, 'squad', `任命 ${p.ign} 为主指挥`)
                   toast(msg)
                 }}>
-                  任命为指挥
+                  {p.isIgl ? '任命为主指挥' : '任命为指挥'}
                 </button>
               )}
             </div>

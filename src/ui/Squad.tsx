@@ -5,7 +5,7 @@ import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { appointIgl, autoStarters } from '../engine/world'
-import { squadOf } from '../engine/roster'
+import { callerOf, squadOf } from '../engine/roster'
 import { statLine } from '../engine/player'
 import { ratingOf, selectLineup } from '../engine/match'
 import { releasePlayer, squadFloorBlock } from '../engine/transfer'
@@ -97,9 +97,10 @@ export default function Squad() {
     })
   const benchedIgl = squad.find((p) => p.isIgl && !me.starters.includes(p.id))
   // several IGLs by trade can share a squad (buy another club's caller and
-  // his flag comes with him); the best of them is the one actually calling
+  // his flag comes with him); the club's named main caller is the one
+  // actually calling, the rest are deputies
   const iglsInSquad = squad.filter((p) => p.isIgl)
-  const caller = iglsInSquad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  const caller = callerOf(game, game.myTeam)
   const hurtIgl = squad.find((p) => p.isIgl
     && me.starters.includes(p.id) && p.injuredUntil > game.day)
 
@@ -233,10 +234,11 @@ export default function Squad() {
                         <span className="tag" style={{ opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
                           title={iglsInSquad.length > 1
                             ? (p.id === caller?.id
-                              ? `队里有 ${iglsInSquad.length} 名指挥出身的选手，由指挥属性最高的他实际喊话（${p.attrs.igl}）`
-                              : `指挥出身，但队里由指挥属性更高的 ${caller?.ign} 实际喊话——多名指挥不冲突也不叠加`)
+                              ? `主指挥：队里有 ${iglsInSquad.length} 名指挥出身的选手，由他实际喊话（指挥 ${p.attrs.igl}）`
+                              : `副指挥：${caller?.ign} 不在场上时由他喊话——点开他可以任命为主指挥`)
                             : '队内指挥'}>
-                          {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+                          {iglsInSquad.length > 1 ? (p.id === caller?.id ? '主指挥' : '副指挥')
+                            : p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
                         </span>
                       )}
                       {p.listed && <span className="tag warn">挂牌</span>}

@@ -3,7 +3,7 @@ import { ask } from './confirm'
 import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
-import { squadOf } from '../engine/roster'
+import { callerOf, squadOf } from '../engine/roster'
 import { stageName } from '../engine/season'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import type { Role } from '../engine/types'
@@ -189,7 +189,7 @@ export default function Training() {
                 nobody could see — which is what 「安排了两次复盘，只涨了 2
                 点」 was really asking about. */}
             {(() => {
-              const igl = squad.find((p) => p.isIgl)
+              const igl = callerOf(game, game.myTeam)
               if (!igl) {
                 return (
                   <p className="tiny" style={{ color: 'var(--warn)', margin: '0 0 8px' }}>

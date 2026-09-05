@@ -9,7 +9,7 @@ import { ORIGINS } from './manager'
 import type { Manager } from './manager'
 import { freeAgentPool } from './prospects'
 import { WORLD_TEAMS, type RawTeam } from './teams'
-import { squadOf } from './roster'
+import { squadOf, callerOf } from './roster'
 
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
@@ -276,62 +276,78 @@ export const teamsOf = (state: GameState, pred: (t: Team) => boolean) =>
  * move by selling the incumbent. Now it is a decision like naming starters:
  * free of action points, because it is an internal arrangement, not business.
  *
- * The new caller keeps his own igl attribute — a 55-rated stand-in calls like
- * a 55-rated stand-in (about −0.5 to the sim) — but that is far cheaper than
- * calling with nobody, which costs −4 to both halves and −3 mid-round. Taking
- * the armband off a healthy incumbent stings him a little; an injured or
- * benched one is relieved someone is doing the job.
+ * The club names one main caller; the previous one keeps his flag and
+ * becomes a deputy, so a squad with two or three IGLs by trade is a main
+ * and his deputies rather than a shouting match settled by an attribute —
+ * which was also why a deputy could not be made the caller at all: the
+ * button only showed for a man without the flag. Taking the armband off a
+ * healthy starter stings him a little; an injured or benched one is
+ * relieved someone is doing the job. The new caller keeps his own igl
+ * attribute — a 55-rated stand-in calls like a 55-rated stand-in.
  */
 export function appointIgl(state: GameState, playerId: string): string {
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
   if (p.teamId !== state.myTeam) return '只能任命自己队里的选手。'
-  if (p.isIgl) return `${p.ign} 已经是指挥了。`
-  // Every other flag comes off, not just one. A squad can hold several IGLs
-  // by trade (a bought caller keeps his flag), and the loudest of them calls
-  // by default — so an appointment that left a louder voice flagged would be
-  // silently overruled by the very rule it exists to override.
-  const prevs = squadOf(state, state.myTeam).filter((x) => x.isIgl)
-  const prev = prevs.sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
-  for (const x of prevs) {
-    x.isIgl = false
-    x.iglSource = undefined
-    const healthy = x.injuredUntil <= state.day
-    const starting = state.teams[state.myTeam].starters.includes(x.id)
+  const team = state.teams[state.myTeam]
+  const prev = callerOf(state, state.myTeam)
+  if (prev?.id === p.id) return `${p.ign} 已经是主指挥了。`
+  if (prev) {
+    const healthy = prev.injuredUntil <= state.day
+    const starting = team.starters.includes(prev.id)
     if (healthy && starting) {
       // a healthy starter stripped of the calling takes it personally
-      x.morale = Math.max(0, x.morale - 5)
-      x.grievance = Math.min(100, (x.grievance ?? 0) + 6)
+      prev.morale = Math.max(0, prev.morale - 5)
+      prev.grievance = Math.min(100, (prev.grievance ?? 0) + 6)
     }
   }
   p.isIgl = true
   p.iglSource = 'verified'
+  team.igl = p.id
   state.news.push({
     day: state.day, kind: 'club', important: true,
-    text: `${p.ign} 接过队内指挥${prev ? `（此前是 ${prev.ign}）` : ''}。`,
+    text: `${p.ign} 出任主指挥${prev ? `，${prev.ign} 转为副指挥` : ''}。`,
   })
   return prev
-    ? `${p.ign} 接过指挥。${prev.ign} 交出了这个角色${
+    ? `${p.ign} 接过指挥。${prev.ign} 转为副指挥${
       prev.injuredUntil > state.day ? '——他还在养伤，这是明智的安排' : '，心里未必舒服'}。`
     : `${p.ign} 出任队内指挥。`
 }
 
 /**
- * Make sure an AI club has somebody calling.
+ * Make sure a club has somebody calling, and that its main caller is here.
  *
  * Selling your IGL is a decision; for an AI club it was a life sentence — no
  * code path ever appointed a successor, so the club played the rest of its
  * days at the full no-caller penalty. A real club promotes someone within the
- * week. Our own club is exempt: the squad screen warns and offers the
- * appointment, and that decision belongs to the player.
+ * week. Our own club is exempt from that: the squad screen warns and offers
+ * the appointment, and that decision belongs to the player.
+ *
+ * The main caller (team.igl) has to be a flagged man still on the roster.
+ * When he is sold, retired or released, the best deputy steps up — for our
+ * club too, and it says so, since a club is never left without a named
+ * caller while it has a flagged one.
  */
 export function ensureCaller(state: GameState, teamId: string): void {
-  if (teamId === state.myTeam) return
+  const team = state.teams[teamId]
+  if (!team) return
   const squad = squadOf(state, teamId)
-  if (!squad.length || squad.some((p) => p.isIgl)) return
-  const next = squad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
-  next.isIgl = true
-  next.iglSource = 'inferred'
+  if (!squad.length) { team.igl = null; return }
+  if (teamId !== state.myTeam && !squad.some((p) => p.isIgl)) {
+    const next = squad.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+    next.isIgl = true
+    next.iglSource = 'inferred'
+  }
+  if (squad.some((p) => p.id === team.igl && p.isIgl)) return
+  const had = team.igl
+  const best = squad.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  team.igl = best?.id ?? null
+  if (teamId === state.myTeam && had && best) {
+    state.news.push({
+      day: state.day, kind: 'club', important: true,
+      text: `${best.ign} 接过主指挥——原来的指挥已经不在队里了。`,
+    })
+  }
 }
 
 // squadOf / freeAgents / coachOr / wageBill live in roster.ts and WORLD_TEAMS

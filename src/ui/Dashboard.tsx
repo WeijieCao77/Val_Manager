@@ -485,8 +485,9 @@ export default function Dashboard() {
                   <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
                     <td><b>{p.ign}</b>{p.isIgl && (
                       <span className="tag" style={{ marginLeft: 5 }}
-                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '队内指挥'}>
-                        {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
+                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行'
+                          : game.teams[game.myTeam]?.igl === p.id ? '主指挥' : '副指挥：主指挥不在场上时由他喊话'}>
+                        {p.iglSource === 'inferred' ? '推定 IGL' : game.teams[game.myTeam]?.igl === p.id ? '主指挥' : '副指挥'}
                       </span>
                     )}</td>
                     <td><Roles p={p} /></td>

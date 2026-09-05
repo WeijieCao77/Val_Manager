@@ -333,8 +333,11 @@ const GAP = 2
  */
 export function eventRounds(state: GameState, comp: Competition): EventRound[] {
   const own = state.fixtures.filter((f) => f.comp === comp.key)
-  if (!own.length) return []
-  const first = Math.min(...own.map((f) => f.day))
+  // a regional stage's rounds are its playoffs, dated from the first
+  // bracket day, not from the league's opening round months before
+  const dated = comp.format === 'double' ? own.filter((f) => f.label.startsWith('KO:')) : own
+  if (!dated.length) return []
+  const first = Math.min(...dated.map((f) => f.day))
   const rounds: { key: string; name: string; offset: number }[] = []
   if (comp.format === 'masters') {
     for (let r = 1; r <= 3; r++) rounds.push({ key: `${r}:瑞士轮 第${r}轮`, name: `瑞士轮 第${r}轮`, offset: (r - 1) * GAP })
@@ -370,10 +373,16 @@ export interface NextIn { comp: Competition; day: number; round: string }
  */
 export function nextInEvent(state: GameState): NextIn | null {
   const me = state.myTeam
-  for (const key of ['masters1', 'masters2', 'champions'] as const) {
+  // the internationals, and any regional playoff we are in: a side beaten in
+  // the upper final knew it would play the lower final two days on, and the
+  // top bar counted down to a league game nine weeks away all the same
+  const regional = Object.values(state.comps)
+    .filter((c) => c.format === 'double' && c.bracketStarted && !c.champion && c.teams.includes(me))
+    .map((c) => c.key)
+  for (const key of ['masters1', 'masters2', 'champions', ...regional]) {
     const comp = state.comps[key]
     if (!comp || comp.champion || !comp.teams.includes(me)) continue
-    if (state.fixtures.some((f) => f.comp === key && !f.played && (f.teamA === me || f.teamB === me))) return null
+    if (state.fixtures.some((f) => f.comp === key && !f.played && (f.teamA === me || f.teamB === me))) continue
     if (comp.finished.includes(me)) continue
     const rounds = eventRounds(state, comp)
     const at = (name: string) => rounds.find((r) => r.name.split(' / ').includes(name) || r.name === name)
@@ -402,11 +411,16 @@ export function nextInEvent(state: GameState): NextIn | null {
       const r = rounds.find((x) => x.name.includes(next))
       return r ? { comp, day: r.day, round: `小组赛 ${next}` } : null
     }
-    // the playoffs: the next round follows from the last result
-    const NEXT: Record<string, [string, string]> = {
+    // the playoffs: the next round follows from the last result — eight
+    // teams have two more lower rounds than four (Kickoff's bracket)
+    const eight = comp.format !== 'double' || (comp.seeds ?? []).length >= 8
+    const NEXT: Record<string, [string, string]> = eight ? {
       胜者组第一轮: ['胜者组第二轮', '败者组第一轮'], 胜者组第二轮: ['胜者组决赛', '败者组第二轮'],
       胜者组决赛: ['总决赛', '败者组决赛'], 败者组第一轮: ['败者组第二轮', ''], 败者组第二轮: ['败者组半决赛', ''],
       败者组半决赛: ['败者组决赛', ''], 败者组决赛: ['总决赛', ''],
+    } : {
+      胜者组第一轮: ['胜者组决赛', '败者组第一轮'], 胜者组决赛: ['总决赛', '败者组决赛'],
+      败者组第一轮: ['败者组决赛', ''], 败者组决赛: ['总决赛', ''],
     }
     const ko = mine.filter((f) => f.label.startsWith('KO:') && !/[A-D]组/.test(f.label))
     const lastK = ko[ko.length - 1]

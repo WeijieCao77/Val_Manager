@@ -3,7 +3,7 @@ import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
 import { DIAL_SCALE, callBoost, compStyle, famBonus, familiarity, tacticEdge } from './comp'
 import type { CompStyle } from './comp'
-import { coachOr } from './roster'
+import { callerOf, coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'
@@ -235,9 +235,9 @@ export function buildLineup(
 
   // A squad can carry several players who are IGLs by trade — buy another
   // club's caller and his flag comes with him. One voice calls the game: the
-  // best of them, deterministically, not whoever sits first in the roster
-  // array. The others neither stack nor clash; an ex-caller is support.
-  const igl = players.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  // club's named main caller if he is on the server, else the best deputy
+  // who is (callerOf). The others neither stack nor clash.
+  const igl = callerOf(state, team.id, players)
   const iglBonus = igl ? (igl.attrs.igl - 60) * 0.09 : -4
   // attributes say how well they can play together; bonds say whether they are
   const rapport = squadHarmony(state, team.id)

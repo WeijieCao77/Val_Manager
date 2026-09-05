@@ -579,6 +579,13 @@ export interface Team {
   seasonPrize: number
   /** VCT championship points earned this season */
   champPoints: number
+  /**
+   * The designated caller (主指挥). A club can hold two or three IGLs by
+   * trade; this one calls when he is on the server, the others are deputies
+   * who step in when he is not. Settled by ensureCaller; null with nobody
+   * flagged. Older saves lack it and are settled on their next day.
+   */
+  igl?: string | null
 }
 
 /** How a single round played out — drives the broadcast-style round ribbon. */

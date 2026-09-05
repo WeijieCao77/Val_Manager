@@ -83,6 +83,26 @@ export default function Schedule() {
       const k = stageName(comp.stage)
       byStage.set(k, [...(byStage.get(k) ?? []), ...rest.map((f) => rowOf(f, true))].sort((x, y) => x.day - y.day))
     }
+    // The rounds of a regional playoff that have not been drawn are on the
+    // calendar all the same: a side beaten in the upper final is in the
+    // lower final two days on, and the page used to show nothing between
+    // that loss and a league game nine weeks away. Ours says 对手待定; a
+    // round that may or may not be ours says 待定 vs 待定.
+    const inRegional = nextInEvent(game)
+    for (const comp of Object.values(game.comps)) {
+      if (comp.region !== myRegion || comp.format !== 'double' || comp.champion || !comp.bracketStarted) continue
+      const k = stageName(comp.stage)
+      const rows = byStage.get(k) ?? []
+      for (const r of eventRounds(game, comp)) {
+        if (r.drawn) continue
+        const ours = inRegional?.comp.key === comp.key && inRegional.day === r.day
+        rows.push({
+          key: `${comp.key}:${r.name}`, day: r.day, comp: comp.name, round: r.name,
+          a: ours ? me : undefined, other: !ours, pending: ours ? '对手待定' : '待定 vs 待定',
+        })
+      }
+      byStage.set(k, rows.sort((x, y) => x.day - y.day))
+    }
     for (const [title, rows] of byStage) groups.push({ key: title, title, day: rows[0].day, rows })
 
     // every international event, whether or not we are in it

@@ -7,9 +7,9 @@
  * on match day, so the screen's warning condition must treat him as absent.
  */
 import { createNewGame, appointIgl } from '../src/engine/world'
-import { squadOf } from '../src/engine/roster'
+import { callerOf, squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { setupSeason } from '../src/engine/season'
+import { advanceDay, setupSeason } from '../src/engine/season'
 import { selectLineup } from '../src/engine/match'
 
 const me = WORLD_TEAMS.find(t => t.tag === 'TYL')!
@@ -27,11 +27,23 @@ const next = squad.find(p => !p.isIgl && g.teams[g.myTeam].starters.includes(p.i
 const m0 = prev.morale
 
 console.log(appointIgl(g, next.id))
-check('the flag moved', next.isIgl && !prev.isIgl)
-check('exactly one IGL in the squad', squad.filter(p => p.isIgl).length === 1)
+check('the new man is the main caller', next.isIgl && g.teams[g.myTeam].igl === next.id && callerOf(g, g.myTeam)?.id === next.id)
+check('the old caller keeps his flag as a deputy', prev.isIgl && squad.filter(p => p.isIgl).length === 2)
 check('a healthy starting incumbent minds', prev.morale < m0 && (prev.grievance ?? 0) > 0,
   `morale ${m0}->${prev.morale}, grievance ${prev.grievance}`)
-check('re-appointing him answers in a sentence', appointIgl(g, next.id).includes('已经是指挥'))
+check('re-appointing him answers in a sentence', appointIgl(g, next.id).includes('已经是主指挥'))
+// the case the group hit: two IGLs by trade, and the deputy can be made
+// the main caller — the button used to hide for anyone already flagged
+console.log(appointIgl(g, prev.id))
+check('a deputy can be made the main caller', g.teams[g.myTeam].igl === prev.id && callerOf(g, g.myTeam)?.id === prev.id)
+check('on the server, the main calls even if a deputy has the higher attribute', (() => {
+  const keep = [next.attrs.igl, prev.attrs.igl]
+  next.attrs.igl = 99; prev.attrs.igl = 50
+  const ok = callerOf(g, g.myTeam, [prev, next])?.id === prev.id && callerOf(g, g.myTeam, [next])?.id === next.id
+  ;[next.attrs.igl, prev.attrs.igl] = keep
+  return ok
+})())
+console.log(appointIgl(g, next.id))
 
 // injured incumbent: relieved, not aggrieved
 next.injuredUntil = g.day + 14
@@ -44,8 +56,8 @@ check('the reply says the handover was sensible', back.includes('养伤'))
 // the warning's blind spot: injured IGL still in the five plays as no IGL
 prev.injuredUntil = g.day + 14
 const five = selectLineup(g, g.myTeam)
-check('match day fields no caller when the IGL is hurt', !five.some(p => p.isIgl),
-  five.map(p => p.ign).join('/'))
+check('match day has no caller when every IGL is hurt, even one fielded as a filler', !callerOf(g, g.myTeam, five),
+  five.map(p => `${p.ign}${p.isIgl ? '(IGL' + (p.injuredUntil > g.day ? ',伤' : '') + ')' : ''}`).join('/'))
 const uiWarn = !g.teams[g.myTeam].starters.some(id => {
   const x = g.players[id]
   return x?.isIgl && x.injuredUntil <= g.day
@@ -69,12 +81,16 @@ starters[0].isIgl = true; starters[0].attrs.igl = 55
 starters[1].isIgl = true; starters[1].attrs.igl = 88
 starters[2].isIgl = true; starters[2].attrs.igl = 70
 const map = Object.keys(g7.teams[g7.myTeam].mapPrefs)[0]
+g7.teams[g7.myTeam].igl = null   // nobody named: the loudest voice calls
 const withBest = buildLineup(g7, g7.myTeam, map).edge.igl
 starters[1].attrs.igl = 40   // the loudest voice goes quiet
 const withNext = buildLineup(g7, g7.myTeam, map).edge.igl
-check('with three IGLs the best one calls',
+check('with three IGLs and nobody named, the best one calls',
   Math.abs(withBest - (88 - 60) * 0.09) < 1e-9 && Math.abs(withNext - (70 - 60) * 0.09) < 1e-9,
   `88 时加成 ${withBest.toFixed(2)}，他跌到 40 后由 70 接手：${withNext.toFixed(2)}`)
+g7.teams[g7.myTeam].igl = starters[1].id   // named: he calls at 40 even with a 70 beside him
+const withMain = buildLineup(g7, g7.myTeam, map).edge.igl
+check('a named main caller calls over a louder deputy', Math.abs(withMain - (40 - 60) * 0.09) < 1e-9, withMain.toFixed(2))
 
 // ---- an AI club that sells its caller appoints a new one
 const g8 = createNewGame(WORLD_TEAMS.find(t => t.tag === 'WBG')!.id, '审计经理', 20260824)
@@ -99,9 +115,20 @@ const sq9 = squadOf(g9, g9.myTeam)
 for (const p of sq9) p.isIgl = false
 sq9[0].isIgl = true; sq9[0].attrs.igl = 88
 sq9[1].isIgl = true; sq9[1].attrs.igl = 70
+g9.teams[g9.myTeam].igl = sq9[0].id
 appointIgl(g9, sq9[2].id)
-check('appointment strips every other flag',
-  sq9[2].isIgl && !sq9[0].isIgl && !sq9[1].isIgl,
+check('appointment names a main and keeps the others as deputies',
+  sq9[2].isIgl && g9.teams[g9.myTeam].igl === sq9[2].id && sq9[0].isIgl && sq9[1].isIgl
+    && callerOf(g9, g9.myTeam)?.id === sq9[2].id,
   squadOf(g9, g9.myTeam).filter(p => p.isIgl).map(p => p.ign).join('/'))
+// the main is sold: the best deputy steps up on the next day, and says so
+sq9[2].teamId = null
+g9.teams[g9.myTeam].roster = g9.teams[g9.myTeam].roster.filter(id => id !== sq9[2].id)
+g9.teams[g9.myTeam].starters = g9.teams[g9.myTeam].starters.filter(id => id !== sq9[2].id)
+const newsBefore = g9.news.length
+advanceDay(g9)
+check('when the main leaves, the best deputy steps up',
+  g9.teams[g9.myTeam].igl === sq9[0].id && g9.news.slice(newsBefore).some(n => n.text.includes('接过主指挥')),
+  `${g9.teams[g9.myTeam].igl} / ${g9.news.slice(newsBefore).map(n => n.text).join(' | ').slice(0, 80)}`)
 
 process.exit(bad ? 1 : 0)
