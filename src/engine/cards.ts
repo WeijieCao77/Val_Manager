@@ -396,7 +396,19 @@ export function chemistry(squad: Squad): ChemReport {
   return { score, links, misfits, noIgl, coachBonus, notes }
 }
 
-/** The squad's headline number, after levels, role misfits and chemistry. */
+/** A full five with nobody calling gives this much back. */
+export const NO_IGL_PENALTY = 3
+
+/**
+ * The squad's headline number, after levels, role misfits, chemistry — and
+ * whether anyone calls.
+ *
+ * The builder had warned 「阵容里没有指挥，中局决策会吃亏」 since the mode
+ * opened, and nothing behind the warning was true: the number ignored it,
+ * so the arena did too, and 自动组队 — which climbs on this number — would
+ * happily seat five who all wait to be told. A full five without an IGL is
+ * worth three less now, about what a role misfit costs half a man.
+ */
 export function squadRating(squad: Squad, level: (id: string) => number = () => 0): number {
   const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
   if (!cards.length) return 0
@@ -409,5 +421,6 @@ export function squadRating(squad: Squad, level: (id: string) => number = () => 
   const mean = vals.reduce((s, v) => s + v, 0) / cards.length
   // five people who have never met are worth less than the sum of their parts
   const short = (5 - cards.length) * 9
-  return Math.max(0, Math.round(mean + (chem.score - 50) * 0.06 - short))
+  const uncalled = cards.length === 5 && chem.noIgl ? NO_IGL_PENALTY : 0
+  return Math.max(0, Math.round(mean + (chem.score - 50) * 0.06 - short - uncalled))
 }

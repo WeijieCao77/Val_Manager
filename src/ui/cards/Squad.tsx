@@ -144,7 +144,7 @@ export default function SquadScreen() {
           <div className="row" style={{ gap: 8 }}>
             <button
               className="sm"
-              onClick={() => { g.squad = autoSquad(g); commit(true); toast('已按默契和评分自动组队。') }}
+              onClick={() => { g.squad = autoSquad(g); commit(true); toast('已按评分、默契和有没有指挥自动组队。') }}
             >
               自动组队
             </button>

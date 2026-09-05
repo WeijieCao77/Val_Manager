@@ -1642,6 +1642,22 @@ export function personTaken(g: GachaState, cardId: string, exceptSlot = -1): boo
   })
 }
 
+/** Does anyone in these seats call? */
+const hasIgl = (squad: Squad): boolean =>
+  squad.slots.some((id) => { const c = id ? cardById(id) : undefined; return isPlayerCard(c) && c.isIgl })
+
+/**
+ * Is this card's person already in another seat of the five being built?
+ * personTaken asks the same of the account's saved squad, which is not the
+ * one the button is assembling.
+ */
+const personSeated = (squad: Squad, cardId: string, exceptSlot: number): boolean => {
+  const who = cardById(cardId)
+  if (!who) return false
+  return squad.slots.some((other, i) =>
+    i !== exceptSlot && !!other && other !== cardId && personOf(cardById(other)!) === personOf(who))
+}
+
 /**
  * Best available five, for the 自动组队 button.
  *
@@ -1649,6 +1665,15 @@ export function personTaken(g: GachaState, cardId: string, exceptSlot = -1): boo
  * which includes chemistry, so the pass will happily drop a 90 for an 86 who
  * shares a club with three of the others. That is the same trade the mode asks
  * the player to make by hand, so the button should not be making the naive one.
+ *
+ * And a caller, if you own one. The button used to fill five seats by
+ * rating and position and never look at who calls — the collection could
+ * hold three IGLs and the five it built had none, under a builder that
+ * warns about exactly that. The best IGL owned is seated after the greedy
+ * pass, where his position fits or in place of the weakest man, and the
+ * climb may not trade the last one away: a five without a caller is worth
+ * less (squadRating), but the climb is told outright, because a 92 who does
+ * not call would still beat an 86 who does on the number alone.
  */
 export function autoSquad(g: GachaState): Squad {
   const level = (id: string) => g.cards[id]?.level ?? 0
@@ -1667,9 +1692,28 @@ export function autoSquad(g: GachaState): Squad {
     }
   })
 
+  // the best caller owned, into the seat his position fits — the weakest of
+  // those, or the weakest of all if none fits — unless one is seated already
+  const callers = mine.filter((c) => isPlayerCard(c.card) && c.card.isIgl)
+  const caller = callers.find((c) => !used.has(personOf(c.card)))
+  if (caller && isPlayerCard(caller.card) && !hasIgl(squad)) {
+    const roles = caller.card.roles
+    const seats = SQUAD_SLOTS.map((_, i) => i).filter((i) => !personSeated(squad, caller.card.id, i))
+    const fits = seats.filter((i) => SQUAD_SLOTS[i] === '自由人' || roles.includes(SQUAD_SLOTS[i]))
+    const weakest = (idx: number[]) => idx.slice().sort((a, b) => {
+      const ra = squad.slots[a] ? ratingAt(cardById(squad.slots[a]!)?.rating ?? 0, level(squad.slots[a]!)) : -1
+      const rb = squad.slots[b] ? ratingAt(cardById(squad.slots[b]!)?.rating ?? 0, level(squad.slots[b]!)) : -1
+      return ra - rb
+    })[0]
+    const seat = fits.length ? weakest(fits) : weakest(seats)
+    if (seat !== undefined) squad.slots[seat] = caller.card.id
+  }
+
   // only the plausible spares are worth trying: a bronze 55 will never improve
-  // a five that already has a gold in every seat
-  const bench = mine.slice(0, 60).map((c) => c.card.id)
+  // a five that already has a gold in every seat — but every caller is, since
+  // the seat he takes is the one seat the climb cannot empty
+  const bench = [...new Set([...mine.slice(0, 60), ...callers].map((c) => c.card.id))]
+  const keepCaller = callers.length > 0
   let best = squadRating(squad, level)
   for (let pass = 0; pass < 3; pass++) {
     let moved = false
@@ -1681,8 +1725,9 @@ export function autoSquad(g: GachaState): Squad {
       let cur = squad.slots[i]
       for (const id of bench) {
         if (id === cur || squad.slots.includes(id)) continue
-        if (personTaken(g, id, i)) continue
+        if (personSeated(squad, id, i)) continue
         squad.slots[i] = id
+        if (keepCaller && !hasIgl(squad)) { squad.slots[i] = cur; continue }
         const score = squadRating(squad, level)
         if (score > best) { best = score; cur = id; moved = true } else squad.slots[i] = cur
       }
