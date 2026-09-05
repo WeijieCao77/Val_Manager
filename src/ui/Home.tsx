@@ -213,7 +213,8 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         </article>
       </div>
 
-      {/* --------------------------------------------------------- 账号一览 */}
+      {/* ------------------------------------------ 账号一览，和工作室的另一款 */}
+      <div className="home-cards home-row">
       <section className="home-strip">
         <div className="home-stat">
           <span className="k">结局</span>
@@ -238,8 +239,31 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         </p>
       </section>
 
+      {/* The studio's other game. A plain link out, tracked like the two
+          buttons above so the funnel can see whether anyone follows it. */}
+      <a
+        className="home-promo"
+        href="https://www.poxiao.lol"
+        target="_blank"
+        rel="noopener"
+        onClick={() => track('home_go', { go: 'poxiao' })}
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}promo/poxiao.webp`}
+          alt="破晓 · LOL 电竞生涯模拟"
+          loading="lazy"
+        />
+        <div className="home-promo-body">
+          <span className="k">工作室的另一款游戏</span>
+          <h3>破晓<em>LOL 电竞生涯模拟</em></h3>
+          <p>S12 到 S16，五年。一段有限的职业生涯，去终结那个王朝。</p>
+          <span className="home-promo-go">www.poxiao.lol ↗</span>
+        </div>
+      </a>
+      </div>
+
       <footer className="home-foot">
-        <span>猪之家出品 · 小红书/抖音 @点点点点点点点点</span>
+        <span>猪之家出品 · 小红书/抖音 @点点点点点点点点 · @Greenle4f</span>
         <span className="faint">游戏全部免费</span>
       </footer>
 

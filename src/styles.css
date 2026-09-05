@@ -1944,6 +1944,32 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .home-stat .v em { font-style: normal; color: var(--faint); font-size: 12px; font-weight: 500; }
 .home-note { flex-basis: 100%; margin: 4px 0 0; line-height: 1.7; }
 
+/* The strip and the studio's other game share one row, the same two columns
+   as the cards above; the strip's stats keep to its top so the two boxes
+   read as a pair whatever height the promo's picture gives it. */
+.home-row { align-items: start; }
+.home-row .home-strip { align-content: flex-start; }
+.home-promo {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  color: inherit; text-decoration: none;
+  transition: border-color .16s ease, transform .16s ease;
+}
+.home-promo:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+.home-promo img {
+  display: block; width: 100%; height: 150px; object-fit: cover; object-position: center 28%;
+  border-bottom: 1px solid var(--line-soft);
+}
+.home-promo-body { padding: 12px 18px 14px; display: flex; flex-direction: column; gap: 4px; }
+.home-promo-body .k { color: var(--faint); font-size: 11px; letter-spacing: .08em; }
+.home-promo-body h3 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+.home-promo-body h3 em {
+  font-style: normal; font-weight: 500; margin-left: 10px;
+  color: var(--accent); font-size: var(--t-small); letter-spacing: .04em;
+}
+.home-promo-body p { margin: 0; color: var(--muted); font-size: var(--t-small); line-height: 1.7; }
+.home-promo-go { margin-top: 4px; color: var(--accent); font-size: var(--t-small); font-weight: 600; }
+
 .home-foot {
   max-width: 1120px; width: 100%; margin: 6px auto 0;
   display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;

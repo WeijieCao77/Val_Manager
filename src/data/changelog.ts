@@ -22,6 +22,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-06',
+    title: '首页：工作室的另一款游戏《破晓》',
+    changes: [
+      { kind: '新增', text: '<b>首页右下角加了工作室的另一款游戏《破晓》</b>（LOL 电竞生涯模拟，www.poxiao.lol），账号一览挪到左下角。页脚署名加上 @Greenle4f。' },
+    ],
+  },
+  {
+    date: '2026-09-06',
     title: '网页卡死修复；AI 战队像真人一样训练；声望会动了',
     changes: [
       { kind: '修复', text: '<b>开瓦包页面卡在「正在读取卡牌账号」。</b>天梯比赛在数据库事务里又去借第二条连接，四场同时打就把连接池锁死，之后所有请求都排在后面。已改为同一条连接，排行榜和对手池也改成短时缓存，不再每次全表扫描。' },
