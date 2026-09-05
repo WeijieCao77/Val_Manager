@@ -26,12 +26,16 @@ const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'TYL')!.id, '审计经
 setupSeason(g)
 const rng = new Rng(9)
 
-// play deep into the offseason, where the transfer window is open
+// play deep into the offseason, where the transfer window is open: close
+// enough to the boundary that a bid's 7–10 day answer lands past it. This
+// was a literal 328 from the 336-day year, and with the year at 364 the
+// answer to a bid on day 328 fell on day 337, safely inside the season.
+const LATE = SEASON_DAYS - 6
 let guard = 0
-while (!g.gameOver && guard++ < 500 && !(g.stage === 'offseason' && g.day >= 328)) {
+while (!g.gameOver && guard++ < 500 && !(g.stage === 'offseason' && g.day >= LATE)) {
   advanceDay(g, rng)
 }
-check('reached late offseason', g.stage === 'offseason' && g.day >= 328, `day ${g.day}`)
+check('reached late offseason', g.stage === 'offseason' && g.day >= LATE, `day ${g.day} of ${SEASON_DAYS}`)
 
 // 1) the sponsor pitch from the screenshot: written as a fortnight
 pitchSponsor(g)
