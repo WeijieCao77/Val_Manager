@@ -131,8 +131,9 @@ export default function Ladder() {
             <br />
             {master ? (
               <span className="tiny faint">
-                到了大师就不再掉段，改成计分：赢一场 +{20 + Math.max(0, (opp?.rating ?? 80) + bump - 84) * 3}
-                （对手越强给得越多，三连胜再 +8），输一场 −15，分数最低到 0 为止。
+                到了大师就不再掉段，改成计分：赢一场 +20 起，对手评分每高出 84 一分多给 3 分
+                （下一个对手评分 {(opp?.rating ?? 80) + bump}，赢了 +{20 + Math.max(0, (opp?.rating ?? 80) + bump - 84) * 3}），
+                三连胜起再 +8；对上别人的阵容时，对手评分按他的大师分折算。输一场 −15，分数最低到 0 为止。
                 {MASTER_TITLES.slice().reverse().filter((t) => t.at > 0)
                   .map((t) => `${t.at} 分升「${t.name}」`).join('，')}——上不封顶。
               </span>
