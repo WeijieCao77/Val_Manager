@@ -44,7 +44,8 @@ export default function Dossier({
 }) {
   const [q, setQ] = useState('')
   const [region, setRegion] = useState<Region | 'all'>('all')
-  const [role, setRole] = useState<Role | 'all'>('all')
+  // a position, or 'igl' — the in-game callers, whatever they play
+  const [role, setRole] = useState<Role | 'all' | 'igl'>('all')
   const [sort, setSort] = useState<'rating' | 'honours' | 'winnings' | 'age'>('rating')
 
   const rows = useMemo(() => {
@@ -52,7 +53,8 @@ export default function Dossier({
     return BASE_PLAYER_CARDS
       .filter((c) => {
         if (region !== 'all' && c.region !== region) return false
-        if (role !== 'all' && !c.roles.includes(role)) return false
+        if (role === 'igl') { if (!c.isIgl) return false }
+        else if (role !== 'all' && !c.roles.includes(role)) return false
         if (!text) return true
         const hay = `${c.ign} ${c.realName ?? ''} ${c.clubTag ?? ''} ${natName(c.nat)} ${c.nat ?? ''}`
         return hay.toLowerCase().includes(text)
@@ -104,9 +106,10 @@ export default function Dossier({
           <option value="all">全部赛区</option>
           {REGIONS.map((r) => <option key={r} value={r}>{REGION_CN[r]}</option>)}
         </select>
-        <select style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as Role | 'all')}>
+        <select style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as Role | 'all' | 'igl')}>
           <option value="all">全部位置</option>
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          <option value="igl">指挥（IGL）</option>
         </select>
         <div className="seg">
           <button className={sort === 'rating' ? 'on' : ''} onClick={() => setSort('rating')}>能力</button>

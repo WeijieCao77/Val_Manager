@@ -27,7 +27,8 @@ export default function Transfers() {
   // 按位置找人：不先挑俱乐部，而是先说要什么位置
   const [askRole, setAskRole] = useState<string>('')
   const [askMinOvr, setAskMinOvr] = useState<number>(0)
-  const [role, setRole] = useState<Role | 'all'>('all')
+  // a position, or 'igl' — the callers, whatever position they play
+  const [role, setRole] = useState<Role | 'all' | 'igl'>('all')
   const [maxOvr, setMaxOvr] = useState(99)
   const [search, setSearch] = useState('')
   const [target, setTarget] = useState<Player | null>(null)
@@ -59,7 +60,7 @@ export default function Transfers() {
     if (!askRole) return []
     return Object.values(game.players)
       .filter((p) => p.teamId && p.teamId !== game.myTeam)
-      .filter((p) => (p.roles ?? [p.role]).includes(askRole as Role))
+      .filter((p) => (askRole === 'igl' ? p.isIgl : (p.roles ?? [p.role]).includes(askRole as Role)))
       .filter((p) => p.overall >= askMinOvr)
       .filter((p) => askRegion === 'all' || game.teams[p.teamId!]?.region === askRegion)
       .sort((a, b) => b.overall - a.overall)
@@ -77,7 +78,8 @@ export default function Transfers() {
     let list = Object.values(game.players).filter((p) => p.teamId !== game.myTeam)
     if (tab === 'free') list = list.filter((p) => p.teamId === null)
     else if (tab === 'listed') list = list.filter((p) => p.teamId !== null && p.listed)
-    if (role !== 'all') list = list.filter((p) => p.role === role)
+    if (role === 'igl') list = list.filter((p) => p.isIgl)
+    else if (role !== 'all') list = list.filter((p) => p.role === role)
     list = list.filter((p) => p.overall <= maxOvr)
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -341,6 +343,7 @@ export default function Transfers() {
             {ROLES.filter((r) => r !== '自由人').map((r) => (
               <option key={r} value={r}>要一个{r}</option>
             ))}
+            <option value="igl">要一个指挥（IGL）</option>
           </select>
           {askRole && (
             <label className="tiny faint row" style={{ gap: 6, alignItems: 'center' }}>
@@ -369,9 +372,9 @@ export default function Transfers() {
         {askRole ? (
           <div>
             <div className="row wrap" style={{ gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
-              <b>全世界的{askRole}</b>
+              <b>全世界的{askRole === 'igl' ? '指挥（IGL）' : askRole}</b>
               <span className="tag">{roleHits.length} 人{roleHits.length === 40 ? '（只列前 40）' : ''}</span>
-              <span className="tiny faint">按能力排序 · 兼任这个位置的人也在内</span>
+              <span className="tiny faint">按能力排序 · {askRole === 'igl' ? '各个位置的指挥都在内' : '兼任这个位置的人也在内'}</span>
             </div>
             {roleHits.length === 0 ? (
               <p className="tiny faint" style={{ margin: 0 }}>没有符合条件的人，放宽能力下限或换个赛区试试。</p>
@@ -517,9 +520,10 @@ export default function Transfers() {
               <button className={tab === 'listed' ? 'on' : ''} onClick={() => setTab('listed')}>挂牌</button>
               <button className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>全部</button>
             </div>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role | 'all')} style={{ width: 110, padding: '5px 8px', fontSize: 12 }}>
+            <select value={role} onChange={(e) => setRole(e.target.value as Role | 'all' | 'igl')} style={{ width: 110, padding: '5px 8px', fontSize: 12 }}>
               <option value="all">全部位置</option>
               {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              <option value="igl">指挥（IGL）</option>
             </select>
             <input
               value={search} onChange={(e) => setSearch(e.target.value)}
