@@ -395,6 +395,31 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
     !(other.listings as { id: string }[]).some((l) => l.id === old))
 }
 
+// ---- 一个人同时最多挂三张 (2026-09-05) ------------------------------------
+{
+  // the owner's rule: three at once; a sale or a withdrawal frees the seat.
+  // Counted at the moment of listing, so what was up before stays up.
+  const S8 = 'VM-QQQQ-QQQQ-QQQQ-QQQQ-QQQQ'
+  const four = ALL_CARDS.filter((c) => c.kind === 'player' && /^p:P\d{3}$/.test(c.id) && ![GOLD, BRONZE, MYTHIC].includes(c.id)).slice(-4)
+  await account(S8, '挂三张', 0, Object.fromEntries(four.map((c) => [c.id, { id: c.id, dupes: 0 }])))
+  check('上限是三张', MAX_LISTINGS === 3, String(MAX_LISTINGS))
+  const ids: string[] = []
+  for (const c of four.slice(0, 3)) {
+    const r = await call('/api/market/list', { id: S8, cardId: c.id, ask: 1000 })
+    check(`第 ${ids.length + 1} 张挂得上`, r.ok === true, JSON.stringify(r))
+    ids.push(String(r.id))
+  }
+  let r = await call('/api/market/list', { id: S8, cardId: four[3].id, ask: 1000 })
+  check('第 4 张被拒，回复里写着上限', r.full === true && Number(r.max) === MAX_LISTINGS, JSON.stringify(r))
+  const held = (await sql`select state->'cards' as cards from card_accounts where id_hash = ${hashOf(S8)}` as unknown as { cards: Record<string, unknown> }[])[0].cards
+  check('被拒的那张还在账号里', !!held[four[3].id])
+  await call('/api/market/unlist', { id: S8, listing: ids[0] })
+  r = await call('/api/market/list', { id: S8, cardId: four[3].id, ask: 1000 })
+  check('撤回一张之后，第 4 张挂得上', r.ok === true, JSON.stringify(r))
+  const open = (await sql`select count(*)::int as n from card_listings where seller_h = ${hashOf(S8)} and status = 'open'`)[0].n
+  check('此刻正好三张在架上', open === 3, String(open))
+}
+
 // ---- 每一笔托管最后都有人收到 -------------------------------------------
 {
   const open = await sql`

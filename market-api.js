@@ -30,8 +30,16 @@ export const OFFER_DAYS = 3
 export const SHELF = 400
 /** Consecutive ignored offers before the listing gives up. */
 export const IGNORE_LIMIT = 3
-/** Nobody needs more than this on the shelf at once. */
-export const MAX_LISTINGS = 8
+/**
+ * How many listings one seller may have open at once.
+ *
+ * Three, by the owner's rule of 2026-09-05: a shelf is for the card you
+ * want gone, not a shop window. A sale or a withdrawal frees the seat and
+ * the next card can go up; it is counted at the moment of listing, so what
+ * was already up when the cap came down stays up — the count only refuses
+ * a NEW listing while three or more are open.
+ */
+export const MAX_LISTINGS = 3
 
 /**
  * How much of the game an account has to have played before it can trade.

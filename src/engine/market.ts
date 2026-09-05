@@ -78,6 +78,9 @@ export interface WithState { ok: boolean; state?: GachaState; rev?: number; [k: 
 export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string) =>
   post<WithState>('list', { cardId, ask, level, rarity })
 
+/** How many listings one seller may have open at once — mirrored from the server. */
+export const MAX_LISTINGS = 3
+
 /** The least a card may be listed for — SALVAGE, mirrored from the server. */
 export const askFloorOf = (rarity: string): number =>
   ({ mythic: 4000, gold: 700, silver: 200, bronze: 60 } as Record<string, number>)[rarity] ?? 50

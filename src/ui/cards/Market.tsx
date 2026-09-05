@@ -15,7 +15,7 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, myOffers, unlistCard, withdrawOffer,
+  MAX_LISTINGS, answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, myOffers, unlistCard, withdrawOffer,
 } from '../../engine/market'
 import type { Gate, Listing, Offer } from '../../engine/market'
 import { takeServer } from '../../engine/account'
@@ -84,7 +84,7 @@ export default function Market() {
       toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
         : r?.notOwned ? '服务器上还没看到这张卡，稍等一下再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
-          : r?.full ? '挂牌数量到上限了，先撤一个。'
+          : r?.full ? `最多同时挂 ${r.max ?? MAX_LISTINGS} 张，卖掉或撤回一张再挂。`
             : r?.bad ? `价格要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间（最低不能低于分解价）。`
               : '挂不上去，等会儿再试。')
       return
@@ -184,7 +184,18 @@ export default function Market() {
         </Panel>
       )}
 
-      <Panel title="挂一张卡出去" actions={<span className="tiny muted">还价范围 ±10%</span>}>
+      <Panel
+        title="挂一张卡出去"
+        actions={
+          <span className="tiny muted">
+            {/* three at once, by the owner's rule: a shelf is for the card you
+                want gone, not a shop window. Counted by the server at the
+                moment of listing, so anything up before the cap stays up. */}
+            已挂 <b className={mineOnShelf.length >= MAX_LISTINGS ? 'neg' : ''}>{mineOnShelf.length}/{MAX_LISTINGS}</b>
+            {' · '}还价范围 ±10%
+          </span>
+        }
+      >
         <CardPicker
           rows={sellable.map(({ card, owned }) => ({
             card,
@@ -202,11 +213,20 @@ export default function Market() {
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
           />
-          <button className="primary" onClick={() => void doList()} disabled={busy || !sellCard || !ask || !!gate}>
+          <button
+            className="primary" onClick={() => void doList()}
+            disabled={busy || !sellCard || !ask || !!gate || mineOnShelf.length >= MAX_LISTINGS}
+          >
             挂出
           </button>
         </div>
+        {mineOnShelf.length >= MAX_LISTINGS && (
+          <p className="tiny" style={{ color: 'var(--warn)', margin: '6px 0 0' }}>
+            最多同时挂 {MAX_LISTINGS} 张。卖掉或撤回一张，就能再挂。
+          </p>
+        )}
         <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
+          <b>最多同时挂 {MAX_LISTINGS} 张</b>，卖掉或撤回一张就空出一个位子。
           <b>挂出的一刻卡就从你这边拿走了</b>，卖掉换成金币，卖不掉原样退回你的信箱——
           这是为了没人会因为对方不上线而两头落空。有重复的先走重复那张（重复卡是没强化过的）；
           只有一张时连强化等级一起过去。
