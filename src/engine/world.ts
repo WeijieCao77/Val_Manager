@@ -302,7 +302,7 @@ export function appointIgl(state: GameState, playerId: string): string {
     }
   }
   p.isIgl = true
-  p.iglSource = 'verified'
+  p.iglSource = 'appointed'
   team.igl = p.id
   state.news.push({
     day: state.day, kind: 'club', important: true,
@@ -348,6 +348,73 @@ export function ensureCaller(state: GameState, teamId: string): void {
       text: `${best.ign} 接过主指挥——原来的指挥已经不在队里了。`,
     })
   }
+}
+
+/** The world's callers, as a stamp: who is flagged, by id. */
+export const CALLER_STAMP = hashStr(
+  WORLD_PLAYERS.filter((p) => p.isIgl).map((p) => p.id).sort().join(','),
+).toString(36)
+
+/**
+ * Bring a career's callers up to the world's.
+ *
+ * A save carries its own copy of every player, so a correction to who calls
+ * — 「NS 的 IGL 不是 Francis 是 Rb」, lucas and stax added — reached new
+ * careers only. Run when a career is opened, once per change of the world's
+ * caller data (CALLER_STAMP):
+ *
+ *  - a man the world flags is flagged here too, wherever he plays now; he
+ *    joins his club as a deputy unless it has nobody, and an AI club's
+ *    inferred stand-in gives way to him;
+ *  - a man the world no longer flags loses the flag only if the save has
+ *    him as the data's caller at the same club — not the manager's own
+ *    appointment (iglSource 'appointed'), not an AI stand-in, and never at
+ *    the manager's own club, where the arrangement is his to make;
+ *  - every touched club settles its main caller (ensureCaller).
+ *
+ * Returns what changed, in words, for the screen to say.
+ */
+export function syncCallersWithWorld(state: GameState): string[] {
+  if (state.callerSync === CALLER_STAMP) return []
+  const notes: string[] = []
+  const touched = new Set<string>()
+  for (const w of WORLD_PLAYERS) {
+    const p = state.players[w.id]
+    if (!p) continue
+    if (w.isIgl && !p.isIgl && p.iglSource !== 'appointed') {
+      p.isIgl = true
+      p.iglSource = 'verified'
+      if (p.teamId) touched.add(p.teamId)
+      notes.push(`${p.ign} 标为指挥${p.teamId ? `（${state.teams[p.teamId]?.tag ?? ''}）` : ''}`)
+    } else if (!w.isIgl && p.isIgl && p.iglSource !== 'inferred' && p.iglSource !== 'appointed'
+      && p.teamId === w.teamId && p.teamId !== state.myTeam) {
+      p.isIgl = false
+      p.iglSource = undefined
+      if (p.teamId) touched.add(p.teamId)
+      notes.push(`${p.ign} 不再是指挥（${state.teams[p.teamId!]?.tag ?? ''}）`)
+    }
+  }
+  for (const teamId of touched) {
+    const team = state.teams[teamId]
+    if (!team) continue
+    const squad = squadOf(state, teamId)
+    // a real caller has arrived: the stand-in the AI club appointed for want
+    // of one steps back, as a fresh build would have it
+    if (teamId !== state.myTeam && squad.some((p) => p.isIgl && p.iglSource === 'verified')) {
+      for (const p of squad) if (p.isIgl && p.iglSource === 'inferred') { p.isIgl = false; p.iglSource = undefined }
+      const main = squad.find((p) => p.id === team.igl)
+      if (!main?.isIgl) team.igl = null
+    }
+    ensureCaller(state, teamId)
+  }
+  state.callerSync = CALLER_STAMP
+  if (notes.length) {
+    state.news.push({
+      day: state.day, kind: 'club', important: touched.has(state.myTeam),
+      text: `指挥名单按最新数据更新：${notes.join('，')}。`,
+    })
+  }
+  return notes
 }
 
 // squadOf / freeAgents / coachOr / wageBill live in roster.ts and WORLD_TEAMS

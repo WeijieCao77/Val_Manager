@@ -21,6 +21,7 @@ import MidReview from './ui/MidReview'
 import RetireCard from './ui/RetireCard'
 import QualifyPoster from './ui/QualifyPoster'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame, packState } from './engine/save'
+import { syncCallersWithWorld } from './engine/world'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
@@ -191,13 +192,17 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
 
   const start = useCallback((g: GameState) => {
     gameRef.current = g
+    // a career carries its own players: the world's caller corrections
+    // (who is an IGL) are brought into it here, once per change of the data
+    const synced = syncCallersWithWorld(g)
     // Opening a save deliberately — continuing, importing, loading a slot —
     // makes this tab the one that counts, so the cross-tab guard stops
     // treating some other tab's further-along career as the truth.
     claimAutosave(g)
     setScreen('dashboard')
     commit()
-  }, [commit])
+    if (synced.length) toast(`指挥名单按最新数据更新：${synced.slice(0, 3).join('，')}${synced.length > 3 ? ` 等 ${synced.length} 处` : ''}。`)
+  }, [commit, toast])
 
   const ctxValue = useMemo(
     () => ({

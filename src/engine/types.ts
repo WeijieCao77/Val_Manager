@@ -237,7 +237,8 @@ export interface Player {
   age: number
   isIgl: boolean
   /** Whether the caller is confirmed by a source or appointed by the simulation. */
-  iglSource?: 'verified' | 'inferred'
+  /** verified: the data says so; inferred: an AI club's stand-in; appointed: the manager's own choice */
+  iglSource?: 'verified' | 'inferred' | 'appointed'
   attrs: Attrs
   overall: number
   /**
@@ -790,6 +791,8 @@ export interface StageObjective {
 export interface GameState {
   version: number
   seed: number
+  /** the world's caller data this save has been brought up to — see syncCallersWithWorld */
+  callerSync?: string
   /** day index since career start */
   day: number
   year: number
