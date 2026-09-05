@@ -10,7 +10,8 @@ import type { Role } from '../engine/types'
 import { poolFor } from '../engine/match'
 import { logActivity } from '../engine/agenda'
 import {
-  doPhysio, physioBlock, PHYSIO_COST, recommendedTrainingFocus, REST_AT, reviewIglXp,
+  doPhysio, MAP_DECAY_AFTER, MAP_DECAY_FLOOR, MAP_DECAY_PER_WEEK, mapIdleDays, physioBlock, PHYSIO_COST,
+  recommendedTrainingFocus, REST_AT, reviewIglXp,
 } from '../engine/training'
 import { useAction } from './useAction'
 import {
@@ -146,6 +147,7 @@ export default function Training() {
             <p className="tiny muted">
               <b>一周最多两张图</b>，每张熟练度约 <b>+2</b>（上限 95），并把这张图的<b>预案阵容练熟</b>（阵容熟练度 +12）；
               全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
+              四周没练也没打的图会<b>每周回落 {MAP_DECAY_PER_WEEK}</b>（最低 {MAP_DECAY_FLOOR}），带 ↓ 的就是正在掉的。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => {
@@ -166,6 +168,9 @@ export default function Training() {
                       )
                     }}>
                     {mapCn(m)} <span className="tiny faint">{Math.round(me.mapPrefs[m] ?? 50)}</span>
+                    {mapIdleDays(me, m, game.day) >= MAP_DECAY_AFTER && (me.mapPrefs[m] ?? 50) > MAP_DECAY_FLOOR && (
+                      <span className="tiny neg" title={`${Math.floor(mapIdleDays(me, m, game.day) / 7)} 周没练也没打，正在回落`}> ↓</span>
+                    )}
                   </button>
                 )
               })}

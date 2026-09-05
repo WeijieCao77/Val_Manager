@@ -577,6 +577,12 @@ export interface Team {
   sponsors: Sponsor[]
   /** map-by-map comfort, 0-100 */
   mapPrefs: Record<string, number>
+  /**
+   * The day each map was last run, scrimmed or played, so comfort can fade
+   * on a map nobody has touched in a month. Absent in older saves; the
+   * weekly tick starts every map's clock the first time it looks.
+   */
+  mapSeen?: Record<string, number>
   seasonPrize: number
   /** VCT championship points earned this season */
   champPoints: number

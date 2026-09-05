@@ -7,7 +7,7 @@ import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
 import { growLoyalty } from './loyalty'
 import { skillMod } from './manager'
-import { AGENTS, mapCn } from './content'
+import { AGENTS, MAPS, mapCn } from './content'
 import { FAM_DRILL, learnComp } from './comp'
 import { poolFor, sheetFor } from './match'
 import { facilityCost } from './staff'
@@ -179,6 +179,53 @@ function runDuo(state: GameState, team: Team, rng: Rng): void {
  * Each of these moves several things at once, which is the point: a team does
  * not improve by everyone grinding one stat in isolation.
  */
+// ---------------------------------------------------------------- map comfort
+
+/**
+ * Comfort fades on a map nobody has touched.
+ *
+ * It only ever went up: a map run to 90 in preseason stayed at 90 through
+ * two pool rotations and a whole year of never being picked, so by year
+ * three a club knew every map perfectly and the drill had nothing left to
+ * do. A month without a session, a scrim or a match on it and the number
+ * starts to slide — slowly, a point a fortnight or so, and never below the
+ * neutral 50 a fresh map starts at. Every club, ours included; the AI's
+ * map weeks are chosen on the pool's weakest maps, so it keeps its pool up
+ * the way a real team does and lets the benched maps go, as we all do.
+ */
+export const MAP_DECAY_AFTER = 28
+export const MAP_DECAY_PER_WEEK = 0.6
+export const MAP_DECAY_FLOOR = 50
+
+/** Note that a map was run, scrimmed or played today. */
+export function markMapSeen(team: Team, map: string, day: number): void {
+  team.mapSeen = { ...(team.mapSeen ?? {}), [map]: day }
+}
+
+/** How many days since the club last touched this map; 0 when unknown. */
+export const mapIdleDays = (team: Team, map: string, day: number): number =>
+  team.mapSeen?.[map] == null ? 0 : Math.max(0, day - team.mapSeen[map])
+
+function mapDecay(state: GameState, team: Team, notes: string[] | null): void {
+  team.mapSeen ??= {}
+  const started: string[] = []
+  for (const m of MAPS) {
+    const seen = team.mapSeen[m]
+    // the clock starts the first time the tick looks at a map, so an older
+    // save is not docked a year of neglect on the day it loads
+    if (seen == null) { team.mapSeen[m] = state.day; continue }
+    const idle = state.day - seen
+    if (idle < MAP_DECAY_AFTER) continue
+    const before = team.mapPrefs[m] ?? MAP_DECAY_FLOOR
+    if (before <= MAP_DECAY_FLOOR) continue
+    team.mapPrefs[m] = Math.max(MAP_DECAY_FLOOR, Math.round((before - MAP_DECAY_PER_WEEK) * 10) / 10)
+    if (notes && idle < MAP_DECAY_AFTER + 7) started.push(mapCn(m))
+  }
+  if (notes && started.length) {
+    notes.push(`🗺 ${started.join('、')} 已经四周没练也没打，熟练度开始回落（每周 −${MAP_DECAY_PER_WEEK}，最低 ${MAP_DECAY_FLOOR}）。`)
+  }
+}
+
 /**
  * Run the confirmed plan once its seven days are up.
  *
@@ -274,6 +321,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
         // kept as a float: rounding every week swallowed the whole bonus, since
         // +2.0 and +2.4 both land on +2 and the remainder never carried forward
         team.mapPrefs[map] = Math.round(clamp(before + gain(2.35) * mapEdge, 0, 95) * 10) / 10
+        markMapSeen(team, map, state.day)
         // and the sheet planned for this map is what the week rehearses —
         // the five agents, not just the map. See engine/comp.ts.
         const fam = learnComp(state, map, sheetFor(state, state.myTeam, map).agents, FAM_DRILL)
@@ -440,6 +488,7 @@ export function aiClubWeek(state: GameState, team: Team, rng: Rng): void {
     case 'map': {
       for (const map of new Set([drill.map, drill.map2].filter((m): m is string => !!m))) {
         team.mapPrefs[map] = Math.round(clamp((team.mapPrefs[map] ?? 50) + gain(2.35), 0, 95) * 10) / 10
+        markMapSeen(team, map, state.day)
       }
       for (const p of squad) {
         drilled(p, 'teamwork', gain(9))
@@ -653,6 +702,8 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
     // and the club's week: the drill, and the treatment room. Ours runs its
     // own through drillTick and the physio button.
     if (!isMine) aiClubWeek(state, team, rng)
+    // then the maps nobody touched this month slip a little
+    mapDecay(state, team, isMine ? notes : null)
   }
   // the week has been settled, so commercial time starts over
   state.commercialDays = {}

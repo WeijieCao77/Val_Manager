@@ -20,11 +20,13 @@ import {
 import { cycleDays } from '../src/engine/actions'
 import { nextInEvent } from '../src/engine/qualify'
 import {
-  AI_FACILITY_RESERVE, AI_PHYSIO_AT, AI_PHYSIO_RESERVE, AI_TEAM_SESSION_EVERY, aiClubWeek, aiDrillFor, aiFacilityUpgrade, PHYSIO_COST,
+  AI_FACILITY_RESERVE, AI_PHYSIO_AT, AI_PHYSIO_RESERVE, AI_TEAM_SESSION_EVERY, aiClubWeek, aiDrillFor, aiFacilityUpgrade,
+  MAP_DECAY_AFTER, MAP_DECAY_FLOOR, MAP_DECAY_PER_WEEK, markMapSeen, PHYSIO_COST, weeklyTick,
 } from '../src/engine/training'
 import { askingPrice, clubAcceptsFee, makeOffer, resolveDueOffers } from '../src/engine/transfer'
 import { expectedSalary } from '../src/engine/player'
 import { poolFor } from '../src/engine/match'
+import { MAPS } from '../src/engine/content'
 import { Rng } from '../src/engine/rng'
 import { defaultContract } from '../src/engine/types'
 import type { Competition, GameState, Player, Team } from '../src/engine/types'
@@ -39,6 +41,7 @@ const mk = (tag = 'EDG', seed = 20260905): GameState => {
   setupSeason(g)
   return g
 }
+const MAPS_OFF_POOL = (g: GameState) => MAPS.filter((m) => !poolFor(g).includes(m))
 const ai = (g: GameState, pick?: (t: Team) => boolean) =>
   Object.values(g.teams).find((t) => t.id !== g.myTeam && (!pick || pick(t)))!
 
@@ -234,6 +237,42 @@ const ai = (g: GameState, pick?: (t: Team) => boolean) =>
   broke.budget = AI_FACILITY_RESERVE[2]
   check('a club at its reserve does not build', aiFacilityUpgrade(g2, broke) === 0)
   check("the manager's own club is never built for him", aiFacilityUpgrade(g2, g2.teams[g2.myTeam]) === 0)
+}
+
+// ---- comfort fades on a map nobody has touched for a month
+{
+  const g = mk()
+  const me = g.teams[g.myTeam]
+  const rng = new Rng(8)
+  const pool = poolFor(g)
+  const idle = pool[0]
+  const played = pool[1]
+  me.mapPrefs[idle] = 80
+  me.mapPrefs[played] = 80
+  me.mapPrefs[pool[2]] = MAP_DECAY_FLOOR - 5
+  // the clock starts on the first weekly look; nothing fades for four weeks
+  g.day = 7
+  weeklyTick(g, rng)
+  check('the first weekly look starts every map\'s clock without docking anything', me.mapPrefs[idle] === 80 && me.mapSeen?.[idle] === 7)
+  for (let d = 14; d <= MAP_DECAY_AFTER; d += 7) { g.day = d; weeklyTick(g, rng) }
+  check('nothing fades inside the month', me.mapPrefs[idle] === 80, `${me.mapPrefs[idle]}`)
+  // a map played this week is kept sharp; the untouched one slips
+  const notes: string[] = []
+  g.day = MAP_DECAY_AFTER + 7
+  markMapSeen(me, played, g.day - 1)
+  notes.push(...weeklyTick(g, rng))
+  check('a map untouched for five weeks loses its weekly step', Math.abs(me.mapPrefs[idle] - (80 - MAP_DECAY_PER_WEEK)) < 1e-9, `${me.mapPrefs[idle]}`)
+  check('a map played this week does not', me.mapPrefs[played] === 80, `${me.mapPrefs[played]}`)
+  check('and the manager is told the week it starts', notes.some((n) => n.includes('开始回落')), notes.filter((n) => n.includes('回落')).join(' | '))
+  check('a map already at neutral is left alone', me.mapPrefs[pool[2]] === MAP_DECAY_FLOOR - 5)
+  for (let w = 0; w < 80; w++) { g.day += 7; weeklyTick(g, rng) }
+  check('the slide stops at neutral, never below', me.mapPrefs[idle] === MAP_DECAY_FLOOR, `${me.mapPrefs[idle]}`)
+  // every club fades the same way, so the world does not end up knowing every map perfectly
+  const foe = ai(g, (t) => t.tier === 1)
+  const benched = MAPS_OFF_POOL(g)
+  check('an AI club\'s benched maps have all faded to neutral by then',
+    benched.length > 0 && benched.every((m) => (foe.mapPrefs[m] ?? 50) <= MAP_DECAY_FLOOR + 1e-9),
+    benched.map((m) => `${m} ${foe.mapPrefs[m]}`).join(', '))
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

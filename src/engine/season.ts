@@ -20,7 +20,7 @@ import { trustAfterMatch } from './trust'
 import { titleLoyalty } from './loyalty'
 import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
-import { aiFacilityUpgrade, applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
+import { aiFacilityUpgrade, applyMatchFatigue, drillTick, markMapSeen, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
 import { CHAMPIONS_2025, drawRules } from './ruleset'
@@ -1437,6 +1437,7 @@ export function commitFixture(
         // are for.
         const room = clamp((SCRIM_MAP_CEIL - before) / SCRIM_MAP_TAPER, 0, 1)
         t.mapPrefs[scrimMap] = clamp(before + rng.range(0.6, 1.0) * room, 0, 95)
+        markMapSeen(t, scrimMap, state.day)
         if (teamId === state.myTeam && Math.round(t.mapPrefs[scrimMap]) > Math.round(before)) {
           notes.push(`🗺 ${mapCn(scrimMap)} 熟练度提升到 ${Math.round(t.mapPrefs[scrimMap])}。`)
         }
@@ -1457,6 +1458,14 @@ export function commitFixture(
   applyMatchStats(state, result)
   applyMatchFatigue(state, f.teamA, result.maps.length, rng, notes, result.lineups?.a)
   applyMatchFatigue(state, f.teamB, result.maps.length, rng, notes, result.lineups?.b)
+  // playing a map keeps it sharp, for both sides — comfort only fades on
+  // maps a club neither runs nor plays
+  for (const m of result.maps) {
+    for (const teamId of [f.teamA, f.teamB]) {
+      const t = state.teams[teamId]
+      if (t) markMapSeen(t, m.map, state.day)
+    }
+  }
 
   // A veto and an agent sheet belong to the match they were made for; leaving
   // them behind would silently apply last week's plan to next week's opponent.
@@ -2159,6 +2168,11 @@ function rebaseSeasonClock(state: GameState, shift: number): void {
   // room for a season ("理疗室不能点了")
   if (state.physioOn) {
     for (const k of Object.keys(state.physioOn)) state.physioOn[k] -= shift
+  }
+  // a map last run on day 300 was run 64 days before the new year's day 0
+  for (const t of Object.values(state.teams)) {
+    if (!t.mapSeen) continue
+    for (const k of Object.keys(t.mapSeen)) t.mapSeen[k] -= shift
   }
   // the turn budget re-mints itself whenever its day is in the future or past
   state.actions = undefined
