@@ -228,28 +228,42 @@ export default function Packs() {
                     }}
                   />
                 </div>
-                <div className="tiny faint" style={{ marginBottom: 8, lineHeight: 1.6 }}>
-                  {s.ready.length
-                    ? `有 ${s.ready.length} 档奖励可以领`
-                    : s.next
-                      ? `再收 ${s.next.need} 张到 ${Math.round(s.next.at * 100)}%：${s.next.label}`
-                      : '全部收齐了'}
+                {/* The reward lives on its own line, next to the words that
+                    announce it. It used to be a third button on the buy row,
+                    and the box clips (overflow: hidden, for the glow in the
+                    corner) — four boxes across a desktop are ~230px each,
+                    and 打开 + 花 2600 金币 + 领奖 was wider than that, so the
+                    one button that gives something away was the one you could
+                    not see. Same for the struck price on the featured box. */}
+                <div className="row" style={{ gap: 6, marginBottom: 8, minHeight: 22 }}>
+                  <span className="tiny faint" style={{ lineHeight: 1.6 }}>
+                    {s.ready.length
+                      ? `有 ${s.ready.length} 档奖励可以领`
+                      : s.next
+                        ? `再收 ${s.next.need} 张到 ${Math.round(s.next.at * 100)}%：${s.next.label}`
+                        : '全部收齐了'}
+                  </span>
+                  {s.ready.length > 0 && (
+                    <button
+                      className="sm warn" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}
+                      onClick={() => void takeSeries(s.region)}
+                    >
+                      领奖
+                    </button>
+                  )}
                 </div>
-                <div className="row" style={{ gap: 6 }}>
+                <div className="row wrap" style={{ gap: 6 }}>
                   <button className="primary sm" onClick={() => void open(s.pack, 'pack')} disabled={busy || own < 1}>
                     打开（{own}）
                   </button>
                   <button
-                    className="sm"
+                    className="sm" style={{ whiteSpace: 'nowrap' }}
                     onClick={() => void open(s.pack, 'coins')}
                     disabled={busy || g.coins < price}
                   >
                     花 {price} 金币
                     {hot && <s className="faint" style={{ marginLeft: 4 }}>{def.cost}</s>}
                   </button>
-                  {s.ready.length > 0 && (
-                    <button className="sm warn" onClick={() => void takeSeries(s.region)}>领奖</button>
-                  )}
                 </div>
               </div>
             )
