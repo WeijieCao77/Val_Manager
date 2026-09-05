@@ -71,10 +71,10 @@ export default function Changelog({ raised = false }: { raised?: boolean }) {
             </p>
 
             <div className="log-list">
-              {CHANGELOG.map((entry) => (
+              {[...CHANGELOG.filter((e) => e.pinned), ...CHANGELOG.filter((e) => !e.pinned)].map((entry) => (
                 <section key={entry.date + entry.title}>
                   <header>
-                    <b>{entry.title}</b>
+                    <b>{entry.pinned && <span className="tag" style={{ marginRight: 6 }}>置顶</span>}{entry.title}</b>
                     <span className="tiny faint mono">{entry.date}</span>
                   </header>
                   <ul>

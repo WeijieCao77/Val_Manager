@@ -17,6 +17,12 @@ export interface ChangeEntry {
   date: string
   title: string
   changes: { kind: ChangeKind; text: string }[]
+  /**
+   * Shown first whatever its date. The list stays in date order here so
+   * LATEST — what re-lights the dot on the button — is still the newest
+   * entry, not the pinned one.
+   */
+  pinned?: boolean
 }
 
 export const CHANGELOG: ChangeEntry[] = [
@@ -52,6 +58,7 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-06',
     title: '首页：工作室的另一款游戏《破晓》',
+    pinned: true,
     changes: [
       { kind: '新增', text: '<b>首页右下角加了工作室的另一款游戏《破晓》</b>（LOL 电竞生涯模拟，www.poxiao.lol），账号一览挪到左下角。页脚署名加上 @Greenle4f。' },
     ],
