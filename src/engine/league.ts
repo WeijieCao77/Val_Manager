@@ -100,6 +100,31 @@ export function scheduleRegularSeason(
   return out
 }
 
+/**
+ * Spread rounds that have not been played over new days, in their order.
+ *
+ * The same to-the-day spacing as scheduleRegularSeason, applied to what is
+ * left of a league: the rounds keep their pairings and their order, only
+ * the days move. Used to hold the break after a Masters (keepBreaks in
+ * season.ts). If the window is too short for a game every second day the
+ * tail runs past `endDay`; the playoffs are made from whenever the last
+ * round is played, so they follow.
+ */
+export function respaceRounds(unplayed: Fixture[], startDay: number, endDay: number): void {
+  const rounds = new Map<string, Fixture[]>()
+  for (const f of [...unplayed].sort((a, b) => a.day - b.day)) {
+    rounds.set(f.label, [...(rounds.get(f.label) ?? []), f])
+  }
+  const n = rounds.size
+  if (!n) return
+  const step = Math.max(2, Math.max(1, endDay - startDay) / Math.max(1, n - 1))
+  let i = 0
+  for (const fs of rounds.values()) {
+    const day = startDay + Math.round(i++ * step)
+    for (const f of fs) f.day = day
+  }
+}
+
 /** Order a table: wins, then map diff, then round diff. */
 export function sortStandings(comp: Competition): string[] {
   return Object.values(comp.standings)

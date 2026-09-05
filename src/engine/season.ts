@@ -5,7 +5,7 @@ import {
 import type { MatchResult } from './types'
 import {
   CHAMP_POINTS, advanceBracket, applyResultToStandings, makeFixture, newStandings,
-  resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket,
+  resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket, respaceRounds
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
@@ -43,9 +43,32 @@ import {
  * like that. So the year is the whole year now, and the stages are shaped
  * like the real ones: a league plays twice a week for five weeks, then a
  * fortnight of playoffs, then three to four weeks off before the Masters,
- * with the market open through the break that leads into it.
+ * with the market open through the break that leads into it — and three
+ * weeks off after the Masters before the next league starts (see
+ * LEAGUE_DAYS, and keepBreaks for the rule that holds it whatever happens).
  */
 export const SEASON_DAYS = 364
+
+/**
+ * The days each regional regular season is spread over.
+ *
+ * A Masters ends on day 92 and Masters II on 200 (Swiss round on the
+ * INTERNATIONAL_OPEN day, playoffs eight days later, a round every two
+ * days), so the leagues after them open on 112 and 220: twenty days off,
+ * about what the real circuit gives. Stage 1 used to open on 100 — eight
+ * days after the Masters final — and, before the year was the whole year,
+ * on 89, the day after it.
+ */
+export const LEAGUE_DAYS: Record<'kickoff' | 'stage1' | 'stage2' | 'challengers1' | 'challengers2', [number, number]> = {
+  kickoff: [24, 38],
+  stage1: [112, 147],
+  stage2: [220, 255],
+  challengers1: [28, 112],
+  challengers2: [216, 256],
+}
+
+/** Days between an international's last match and the next league's first. */
+export const BREAK_AFTER_INTERNATIONAL = 14
 
 export interface StageDef {
   key: StageKey
@@ -139,23 +162,23 @@ export function setupSeason(state: GameState, notes?: string[]): void {
     // quarter-final against a club you had never played, and the standings
     // stayed empty all the way through because knockouts do not build a table.
     const kc = makeComp(state, 'kickoff', `${region} Kickoff`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(kc, 'kickoff', 24, 38, 3, rng, '小组赛', 5))
+    state.fixtures.push(...scheduleRegularSeason(kc, 'kickoff', ...LEAGUE_DAYS.kickoff, 3, rng, '小组赛', 5))
 
     // ---- Stage 1 & Stage 2: full round robin, playoffs seeded from the table
     const s1 = makeComp(state, 'stage1', `VCT ${region} · Stage 1`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', 100, 135, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', ...LEAGUE_DAYS.stage1, 3, rng))
 
     const s2 = makeComp(state, 'stage2', `VCT ${region} · Stage 2`, t1, region, 1)
-    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', 216, 251, 3, rng))
+    state.fixtures.push(...scheduleRegularSeason(s2, 'stage2', ...LEAGUE_DAYS.stage2, 3, rng))
 
     // ---- Challengers: two splits, running alongside the tier-1 calendar
     // even a two-club Challengers league is playable now that small leagues cycle
     if (t2.length >= 2) {
       const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', 28, 112, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', ...LEAGUE_DAYS.challengers1, 3, rng, '常规赛'))
 
       const c2 = makeComp(state, 'challengers2', `Challengers ${region} · 第二赛段`, t2, region, 2)
-      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', 216, 256, 3, rng, '常规赛'))
+      state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', ...LEAGUE_DAYS.challengers2, 3, rng, '常规赛'))
     }
   }
   seedMarket(state, notes)
@@ -476,6 +499,39 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 
   const s2Done = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
   if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, INTERNATIONAL_OPEN.champions))
+}
+
+/**
+ * A league does not start on the heels of a Masters.
+ *
+ * The league's rounds are laid down on fixed days when the season is set
+ * up; a Masters is generated round by round as it is played, its Swiss
+ * round when every Kickoff has a champion and each later round when the
+ * one before is done. Nothing tied the two together. A manager's schedule
+ * read 「4/1 Masters I 败者组决赛」 over 「4/1 VCT China · Stage 1 第1轮」:
+ * his season had been set up on the old calendar, Stage 1 from day 89,
+ * and the Masters bracket had since grown into the shape it has now,
+ * ending on 92. Even a new season had only eight days between the two.
+ *
+ * So, every morning: if a Masters has a match scheduled — played or not —
+ * the league that follows it may not open within BREAK_AFTER_INTERNATIONAL
+ * days of the latest one, and its unplayed rounds are spread again from
+ * that day to the end of the league's window. LEAGUE_DAYS gives twenty
+ * days on a season set up today, so this fires only for a season set up
+ * before the calendar changed, and it repairs that one on the next 推进.
+ */
+function keepBreaks(state: GameState): void {
+  for (const [intl, next] of [['masters1', 'stage1'], ['masters2', 'stage2']] as const) {
+    const days = state.fixtures.filter((f) => f.comp === intl).map((f) => f.day)
+    if (!days.length) continue
+    const floor = Math.max(...days) + BREAK_AFTER_INTERNATIONAL
+    for (const region of REGIONS) {
+      const rr = state.fixtures.filter((f) =>
+        f.comp === compKey(next, region) && !f.played && !f.label.startsWith('KO:'))
+      if (!rr.length || Math.min(...rr.map((f) => f.day)) >= floor) continue
+      respaceRounds(rr, floor, Math.max(floor, LEAGUE_DAYS[next][1]))
+    }
+  }
 }
 
 /** A competition has just found its champion: report it, then pay out. */
@@ -1060,6 +1116,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const rng = new Rng(hashStr(`day:${state.seed}:${state.year}:${state.day}`))
   const prevStage = state.stage
   state.day++
+  keepBreaks(state)
 
   const notes: string[] = []
   const playedMine: Fixture[] = []
