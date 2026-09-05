@@ -24,6 +24,9 @@ import { TRACKS } from '../data/music'
 export type Loop = 'all' | 'one' | 'off'
 const KEY = 'valmgr.music'
 
+/** Where the player sits, in CSS pixels from the top-left, once it has been dragged. */
+interface Pos { x: number; y: number }
+
 interface Prefs {
   /** 0..1 */
   vol: number
@@ -34,8 +37,26 @@ interface Prefs {
   off: boolean
   /** the window is unfolded (false: just the disc) */
   open: boolean
+  /** absent until the first drag: the stylesheet's corner until then */
+  pos?: Pos
 }
 const DEFAULTS: Prefs = { vol: 0.35, muted: false, loop: 'all', track: 0, off: false, open: true }
+
+/** The gap the player keeps from the screen's edge. */
+const EDGE = 12
+/** A press that travels less than this is a tap, not a drag. */
+const TAP = 6
+
+const clampPos = (p: Pos, w: number, h: number): Pos => ({
+  x: Math.min(Math.max(EDGE, p.x), Math.max(EDGE, window.innerWidth - w - EDGE)),
+  y: Math.min(Math.max(EDGE, p.y), Math.max(EDGE, window.innerHeight - h - EDGE)),
+})
+
+/** Against whichever side is nearer, like a phone's floating button. */
+const snapPos = (p: Pos, w: number, h: number): Pos => clampPos({
+  x: p.x + w / 2 < window.innerWidth / 2 ? EDGE : window.innerWidth - w - EDGE,
+  y: p.y,
+}, w, h)
 
 const readPrefs = (): Prefs => {
   try {
@@ -49,6 +70,9 @@ const readPrefs = (): Prefs => {
       track: typeof p.track === 'number' && p.track >= 0 && p.track < TRACKS.length ? Math.floor(p.track) : 0,
       off: p.off === true,
       open: p.open !== false,
+      pos: p.pos && typeof p.pos.x === 'number' && typeof p.pos.y === 'number'
+        && Number.isFinite(p.pos.x) && Number.isFinite(p.pos.y)
+        ? { x: p.pos.x, y: p.pos.y } : undefined,
     }
   } catch { return DEFAULTS }
 }
@@ -211,15 +235,85 @@ export default function MusicPlayer() {
   const many = TRACKS.length > 1
   const pct = Math.round(prefs.vol * 100)
 
+  // The player goes where it is put. It sat in the bottom-left corner, over
+  // whatever the page had there — the group asked for the phone's floating
+  // button: drag it anywhere by the record, let go and it settles against
+  // the nearer side. A press that does not travel is still a tap (open,
+  // play, pause); the position is remembered with the other preferences;
+  // opening the panel or turning the phone keeps it on screen.
+  const root = useRef<HTMLDivElement | null>(null)
+  const [live, setLive] = useState<Pos | undefined>(undefined)
+  const drag = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null)
+  const dragged = useRef(false)
+  const pos = live ?? prefs.pos
+
+  const settle = useCallback((p: Pos) => {
+    const r = root.current?.getBoundingClientRect()
+    const s = snapPos(p, r?.width ?? 46, r?.height ?? 46)
+    setLive(undefined)
+    patch({ pos: s })
+  }, [patch])
+
+  const onDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const r = root.current?.getBoundingClientRect()
+    if (!r) return
+    drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, moved: false }
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* an old browser: the drag still works while the pointer stays on the button */ }
+  }, [])
+  const onMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    const dx = e.clientX - d.sx
+    const dy = e.clientY - d.sy
+    if (!d.moved && Math.hypot(dx, dy) < TAP) return
+    d.moved = true
+    const r = root.current?.getBoundingClientRect()
+    setLive(clampPos({ x: d.ox + dx, y: d.oy + dy }, r?.width ?? 46, r?.height ?? 46))
+  }, [])
+  const onUp = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    drag.current = null
+    if (!d.moved) return
+    // the click that follows this release must not open or pause anything
+    dragged.current = true
+    window.setTimeout(() => { dragged.current = false }, 0)
+    const r = root.current?.getBoundingClientRect()
+    settle({ x: r?.left ?? d.ox, y: r?.top ?? d.oy })
+  }, [settle])
+  const tapped = useCallback((fn: () => void) => () => { if (!dragged.current) fn() }, [])
+
+  // a moved player stays on screen when it opens, closes, or the window changes
+  useEffect(() => {
+    if (!prefs.pos) return
+    const fix = () => {
+      const r = root.current?.getBoundingClientRect()
+      if (!r) return
+      const s = snapPos({ x: r.left, y: r.top }, r.width, r.height)
+      if (Math.abs(s.x - r.left) > 0.5 || Math.abs(s.y - r.top) > 0.5) patch({ pos: s })
+    }
+    fix()
+    window.addEventListener('resize', fix)
+    return () => window.removeEventListener('resize', fix)
+  }, [prefs.open, prefs.pos, patch])
+
+  const placed = pos ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' } as const : undefined
+  const handle = {
+    onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp,
+    style: { touchAction: 'none', cursor: 'grab' } as const,
+  }
+
   if (!prefs.open) {
     return (
-      <div className="bgm shut">
+      <div className="bgm shut" ref={root} style={placed}>
         <button
           type="button"
           className="bgm-pill"
-          onClick={() => patch({ open: true })}
+          onClick={tapped(() => patch({ open: true }))}
+          {...handle}
           aria-label={`背景音乐：${track.title}${playing ? '，正在播放' : '，已暂停'}。展开`}
-          title={`${track.title} · ${playing ? '播放中' : '已暂停'}`}
+          title={`${track.title} · ${playing ? '播放中' : '已暂停'} · 按住拖动`}
         >
           <i className={`bgm-vinyl${playing ? ' spin' : ''}`} aria-hidden="true" />
         </button>
@@ -228,12 +322,13 @@ export default function MusicPlayer() {
   }
 
   return (
-    <div className="bgm open" role="region" aria-label="背景音乐">
+    <div className="bgm open" role="region" aria-label="背景音乐" ref={root} style={placed}>
       <div className="bgm-row top">
       <button
         type="button"
         className="bgm-disc"
-        onClick={toggle}
+        onClick={tapped(toggle)}
+        {...handle}
         aria-label={playing ? '暂停' : '播放'}
         title={playing ? '暂停' : '播放'}
       >
