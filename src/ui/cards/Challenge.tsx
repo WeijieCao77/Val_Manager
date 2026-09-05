@@ -8,6 +8,7 @@ import {
   detail, evaluate, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
+import { FRAME_ASPECT, FRAME_MAX, paintPuzzle } from './puzzle'
 
 const MARK_STYLE: Record<HintMark, { bg: string; fg: string; suffix?: string }> = {
   hit: { bg: 'var(--win-wash)', fg: 'var(--win)' },
@@ -60,134 +61,6 @@ function rankMatches<T extends { id: string; name: string; hint: string }>(all: 
     if (s) scored.push([s, c])
   }
   return scored.sort((a, b) => b[0] - a[0]).map(([, c]) => c).slice(0, 8)
-}
-
-const blank = (w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] => {
-  const k = document.createElement('canvas')
-  k.width = Math.max(1, Math.round(w))
-  k.height = Math.max(1, Math.round(h))
-  const ctx = k.getContext('2d')!
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  return [k, ctx]
-}
-
-/**
- * A picture reduced to `cells` columns of colour.
- *
- * Shrunk to that many pixels across and grown back, so what comes out is the
- * average colour of each patch and nothing finer. This replaces a canvas
- * blur, which softened edges and kept every large shape — a crest blown up
- * to twice the frame stayed readable through 22px of it, and a map's hard
- * top and bottom edges showed at any radius. It also leaned on the canvas
- * filter, which Safari before 18 does not have, and an unfiltered draw is
- * the answer in the clear.
- *
- * Both directions go a factor of two at a time: one jump down aliases and
- * keeps fine detail as speckle instead of averaging it away, and one jump up
- * from a handful of pixels draws bilinear diamonds around every cell.
- */
-function coarsen(src: HTMLCanvasElement, cells: number): HTMLCanvasElement {
-  const w = src.width
-  const h = src.height
-  if (!Number.isFinite(cells) || cells >= w) return src
-  const tw = Math.max(1, Math.round(cells))
-  const th = Math.max(1, Math.round((cells * h) / w))
-  let cur = src
-  while (cur.width / 2 > tw) {
-    const [k, ctx] = blank(Math.ceil(cur.width / 2), Math.ceil(cur.height / 2))
-    ctx.drawImage(cur, 0, 0, k.width, k.height)
-    cur = k
-  }
-  const [tiny, tctx] = blank(tw, th)
-  tctx.drawImage(cur, 0, 0, tw, th)
-  cur = tiny
-  while (cur.width * 2 < w) {
-    const [k, ctx] = blank(cur.width * 2, cur.height * 2)
-    ctx.drawImage(cur, 0, 0, k.width, k.height)
-    cur = k
-  }
-  const [out, octx] = blank(w, h)
-  octx.drawImage(cur, 0, 0, w, h)
-  return out
-}
-
-/**
- * The frame's shape, and how wide it may grow.
- *
- * Detail is counted in cells across the frame, so the frame has to be the
- * same shape on every screen or the same count is a different puzzle. It
- * used to be 210px tall and as wide as the card: a 9:2 strip on a desktop,
- * about 8:5 on a phone. Six cells across was one row of colour on the
- * desktop — a horizontal gradient, nothing to see — and four rows on the
- * phone, where a face already had a shape. 16:10 is what the phone was
- * getting; on a desktop the frame stops growing at 480px and sits centred.
- */
-const FRAME_ASPECT = [16, 10] as const
-const FRAME_MAX = 480
-
-/**
- * The colour under everything: the picture's own average.
- *
- * Faces, crests and agents are cut-outs on a transparent background — 490
- * of the 551 faces, every crest, every agent. Painted onto a transparent
- * canvas, that transparency went into the bitmap. On the page the box's
- * panel showed through it, so in the dark theme dark hair sank into a dark
- * ground; but 「复制图片」 hands over the bitmap with its alpha, and pasted
- * onto a white chat window the silhouette — hair, head, shoulders — stood
- * out crisp against white, coarsened or not. The light themes gave the same
- * outline on the page itself, which made 浅 and 米 easier than 深.
- *
- * So the frame is painted on an opaque ground first: the picture's own
- * average colour, weighted by alpha. Fixed per picture, the same on every
- * theme, and on average the one colour the subject's edge contrasts with
- * least. What is copied is now exactly what is on the page.
- */
-function groundOf(pic: HTMLImageElement): string {
-  const n = 16
-  const [, ctx] = blank(n, n)
-  ctx.drawImage(pic, 0, 0, n, n)
-  const d = ctx.getImageData(0, 0, n, n).data
-  let r = 0, g = 0, b = 0, a = 0
-  for (let i = 0; i < d.length; i += 4) {
-    const w = d[i + 3]
-    r += d[i] * w; g += d[i + 1] * w; b += d[i + 2] * w; a += w
-  }
-  if (!a) return '#6b7078'
-  return `rgb(${Math.round(r / a)}, ${Math.round(g / a)}, ${Math.round(b / a)})`
-}
-
-/**
- * The frame at this many cells of detail.
- *
- * Three of the four kinds are square — faces 192², agents 128², crests 256²
- * — and only a map is a 4.55:1 strip, so a frame that cropped or letterboxed
- * gave the kind away from across the room. The picture is drawn whole and
- * contained on a backdrop of itself blown up past the box and washed out,
- * and then the whole frame is coarsened together: at the opening six cells
- * the strip's edges and the backdrop are one smudge, and they separate only
- * as the misses buy detail. Everything sits on an opaque ground — see
- * groundOf — so the bitmap carries no alpha for a copy to expose.
- */
-function paintPuzzle(
-  ctx: CanvasRenderingContext2D, pic: HTMLImageElement,
-  w: number, h: number, zoom: number, cells: number,
-) {
-  const [frame, f] = blank(w, h)
-  f.fillStyle = groundOf(pic)
-  f.fillRect(0, 0, w, h)
-  // backdrop: the picture past the edges of the box, washed to eight cells
-  const cover = Math.max(w / pic.width, h / pic.height) * (zoom + 0.4)
-  const [back, b] = blank(w, h)
-  b.drawImage(pic, (w - pic.width * cover) / 2, (h - pic.height * cover) / 2, pic.width * cover, pic.height * cover)
-  f.globalAlpha = 0.75
-  f.drawImage(coarsen(back, 8), 0, 0)
-  f.globalAlpha = 1
-  // subject: the whole picture, contained
-  const fit = Math.min(w / pic.width, h / pic.height) * zoom
-  f.drawImage(pic, (w - pic.width * fit) / 2, (h - pic.height * fit) / 2, pic.width * fit, pic.height * fit)
-  ctx.clearRect(0, 0, w, h)
-  ctx.drawImage(coarsen(frame, cells), 0, 0)
 }
 
 export default function Challenge() {
