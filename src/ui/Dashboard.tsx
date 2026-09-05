@@ -1,5 +1,6 @@
 import { ask } from './confirm'
-import { DRAW_KIND_CN, markWatched, unwatchedDraws } from '../engine/draw'
+import { DRAW_KIND_CN, drawById } from '../engine/draw'
+import { finishDraw } from '../engine/season'
 import { useRef, useState } from 'react'
 import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
@@ -60,9 +61,10 @@ export default function Dashboard() {
     // otherwise the turn reports what it did rather than dropping every note
     // but the last one into a toast
     if (pending) { playLive(pending); return }
-    // a Masters pick that is ours to make: the clock has stopped on it
-    const decision = reports.map((r) => r.pendingDecision).filter(Boolean)[0]
-    if (decision) { openDraw(decision); return }
+    // a draw that is ours to hold — reveal, skip, or pick: the clock has
+    // stopped on it, and the ceremony opens by itself
+    const draw = reports.map((r) => r.pendingDraw).filter(Boolean)[0]
+    if (draw) { openDraw(draw); return }
 
     // A turn that did nothing should not stop you to say so. In-season a turn
     // is one day, and 54% of a season's 203 turns produced a digest whose only
@@ -312,34 +314,26 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* The draws of the 2026 rulebook: a ceremony to watch, or a pick to
-          make. A pure ceremony never blocks the clock — its result is locked
-          and the fixtures exist — so it can be entered or skipped; the pick
-          is the one thing here that waits for you. */}
-      {(game.pendingDecisionDrawId || unwatchedDraws(game).length > 0) && (
-        <Panel title="赛事抽签" className={game.pendingDecisionDrawId ? 'alert' : ''}>
-          {game.pendingDecisionDrawId && (
-            <div className="row wrap" style={{ gap: 8, padding: '4px 0 8px', alignItems: 'center' }}>
-              <b style={{ flex: '1 1 200px' }}>等待你选择八强对手——四个赛区冠军按抽出的顺序挑选瑞士轮晋级队，轮到我们了。</b>
-              <button className="primary sm" onClick={() => openDraw(game.pendingDecisionDrawId!)}>去选择</button>
+      {/* A draw that is ours to hold. It opens by itself when the clock
+          reaches it, and the clock does not move until it is drawn or
+          skipped; this panel is where it is found again after being closed. */}
+      {game.pendingDrawId && (() => {
+        const d = drawById(game, game.pendingDrawId)
+        const comp = d && game.comps[d.competitionKey]
+        const n = d?.phase?.match(/swiss-r(\d)/)?.[1]
+        return d ? (
+          <Panel title="赛事抽签 · 等你来抽" className="alert">
+            <div className="row wrap" style={{ gap: 8, padding: '4px 0', alignItems: 'center' }}>
+              <span style={{ flex: '1 1 240px' }}>
+                <b>{comp?.name ?? d.competitionKey} · {DRAW_KIND_CN[d.kind]}{n ? ` 第 ${n} 轮` : ''}</b>
+                <span className="small muted"> · {d.kind === 'masters-playoff-pick' ? '轮到你选八强对手' : '抽完对阵才会写进赛程'}，抽签结束前赛季不会推进。</span>
+              </span>
+              <button className="primary sm" onClick={() => openDraw(d.id)}>{d.kind === 'masters-playoff-pick' ? '去选择' : '进入抽签'}</button>
+              <button className="sm ghost" onClick={() => { finishDraw(game, d, true); commit(); toast(d.kind === 'masters-playoff-pick' ? '交给了教练组。' : '抽签结果已揭晓，对阵写进了赛程。') }}>快进跳过</button>
             </div>
-          )}
-          {unwatchedDraws(game).map((d) => {
-            const comp = game.comps[d.competitionKey]
-            const n = d.phase?.match(/swiss-r(\d)/)?.[1]
-            return (
-              <div key={d.id} className="row wrap" style={{ gap: 8, padding: '5px 0', borderBottom: '1px solid var(--line-soft)', alignItems: 'center' }}>
-                <span style={{ flex: '1 1 200px' }}>
-                  <b>{comp?.name ?? d.competitionKey}</b>
-                  <span className="small muted"> · {DRAW_KIND_CN[d.kind]}{n ? ` 第 ${n} 轮` : ''} · {fmtDay(d.day, game.year)}</span>
-                </span>
-                <button className="sm primary" onClick={() => openDraw(d.id)}>进入抽签</button>
-                <button className="sm ghost" onClick={() => { markWatched(d); commit() }}>快速完成</button>
-              </div>
-            )
-          })}
-        </Panel>
-      )}
+          </Panel>
+        ) : null
+      })()}
 
       <div className="grid c2">
         <Panel title="下一场比赛">

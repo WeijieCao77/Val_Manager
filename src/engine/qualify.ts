@@ -344,8 +344,10 @@ export function eventRounds(state: GameState, comp: Competition): EventRound[] {
   // a regional stage's rounds are its playoffs, dated from the first
   // bracket day, not from the league's opening round months before
   const dated = comp.format === 'double' || comp.format === 'triple' ? own.filter((f) => f.label.startsWith('KO:')) : own
-  if (!dated.length) return []
-  const first = Math.min(...dated.map((f) => f.day))
+  // before its draw is held a bracket has no ties yet, but its first day
+  // is known — the calendar shows every round as 待定 vs 待定 from it
+  if (!dated.length && comp.plannedStart == null) return []
+  const first = dated.length ? Math.min(...dated.map((f) => f.day)) : comp.plannedStart!
   const rounds: { key: string; name: string; offset: number }[] = []
   if (comp.format === 'masters') {
     for (let r = 1; r <= 3; r++) rounds.push({ key: `${r}:瑞士轮 第${r}轮`, name: `瑞士轮 第${r}轮`, offset: (r - 1) * GAP })

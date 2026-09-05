@@ -17,7 +17,8 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { SEASON_DAYS, advanceDay, setupSeason } from '../src/engine/season'
+import { SEASON_DAYS, advanceDay, finishDraw, setupSeason } from '../src/engine/season'
+import { eventRounds } from '../src/engine/qualify'
 import { CHAMPIONS_2025, setCurrentRuleset } from '../src/engine/ruleset'
 import { readFileSync } from 'node:fs'
 import { WORLD_PLAYERS } from '../src/engine/world'
@@ -62,12 +63,24 @@ for (let i = 0; i < N; i++) {
   setupSeason(g)
   console.log(`\n${team.tag} seed ${seed} (${g.rulesetId})`)
 
-  // ---- Kickoff, before a ball is played
+  // ---- Kickoff, before a ball is played: the draw is held but not written
+  const myRegion = g.teams[g.myTeam].region
+  {
+    const kc = g.comps[`kickoff:${myRegion}`]
+    const ev = drawsOf(g, kc.key).find((d) => d.kind === 'kickoff-bracket')!
+    check(!ev.consumed && g.pendingDrawId === ev.id && !g.fixtures.some((f) => f.comp === kc.key), `${myRegion}: our Kickoff draw waits for us — no tie written yet`)
+    check(eventRounds(g, kc).length === 9 && eventRounds(g, kc)[0].day === kc.plannedStart, 'the nine rounds are on the calendar from the planned first day, all undrawn')
+    const day = g.day
+    const r = advanceDay(g)
+    check(g.day === day && r.pendingDraw === ev.id, 'the clock does not move until it is held')
+    finishDraw(g, ev)
+    check(ev.consumed && ev.watched && !g.pendingDrawId, 'finishing it writes the ties and releases the clock')
+  }
   for (const region of REGIONS) {
     const kc = g.comps[`kickoff:${region}`]
     const ev = drawsOf(g, kc.key).find((d) => d.kind === 'kickoff-bracket')!
     const seeds = ev.outcome.seeds ?? []
-    check(kc.format === 'triple' && seeds.length === 12 && new Set(seeds).size === 12, `${region} Kickoff: twelve seeds drawn, each once`)
+    check(kc.format === 'triple' && seeds.length === 12 && new Set(seeds).size === 12 && ev.consumed, `${region} Kickoff: twelve seeds drawn, each once${region === myRegion ? '' : ' (held in the background)'}`)
     const real = CHAMPIONS_2025.filter((t) => kc.teams.includes(t))
     check(real.length === 4 && real.every((t) => kc.byes?.includes(t)), `${region}: first-year byes are the Champions 2025 sides (${real.map((t) => tag(g, t)).join('/')})`)
     const wave1 = g.fixtures.filter((f) => f.comp === kc.key)
@@ -201,7 +214,7 @@ for (let i = 0; i < N; i++) {
     check(ko.length === 14 && !!c.champion && c.finished.length === 16, `Champions: fourteen playoff ties, a champion (${tag(g, c.champion!)}), sixteen placings`)
     check(gd.steps.every((st) => !st.note || st.note.includes('顺延')) && gd.log.length === 4, 'Champions: every forced placement carries its reason')
   }
-  check(g.stage === 'offseason' && !g.pendingDecisionDrawId, `season ${g.year} reached the off-season with nothing pending`)
+  check(g.stage === 'offseason' && !g.pendingDrawId, `season ${g.year} reached the off-season with nothing pending`)
   check(g.day >= SEASON_DAYS - 1 || g.stage === 'offseason', 'the year ran its course')
 
   // ---- the same seed draws the same thing
@@ -220,6 +233,10 @@ for (let i = 0; i < N; i++) {
     let guard = 0
     while (g.stage === 'offseason' && guard++ < 60) advanceDay(g)
     check(g.year === 2027 && (g.lastChampionsTeams ?? []).length === 16, `rolled into ${g.year} remembering ${g.lastChampionsTeams?.length} Champions sides`)
+    // the new year's Kickoff draw of our region waits for us; skip it so the byes are written
+    const waiting = g.pendingDrawId
+    while (g.pendingDrawId) finishDraw(g, g.draws!.find((d) => d.id === g.pendingDrawId)!, true)
+    check(!!waiting, 'the new season opened on our Kickoff draw, waiting to be held')
     for (const region of REGIONS) {
       const kc = g.comps[`kickoff:${region}`]
       const want = champs.filter((t) => g.teams[t]?.region === region && kc.teams.includes(t))
@@ -234,11 +251,20 @@ for (let i = 0; i < N; i++) {
   setupSeason(g)
   let guard = 0
   let stopped: string | undefined
-  while (guard++ < 600 && g.day < SEASON_DAYS - 1) {
+  let held = 0
+  while (guard++ < 900 && g.day < SEASON_DAYS - 1) {
     const r = advanceDay(g)
-    if (r.pendingDecision) { stopped = r.pendingDecision; break }
+    if (r.pendingDraw) {
+      const ev = g.draws!.find((d) => d.id === r.pendingDraw)!
+      if (ev.kind === 'masters-playoff-pick' && pickerNow(ev) === g.myTeam) { stopped = r.pendingDraw; break }
+      // a ceremony of ours: draw it ball by ball, as a player would
+      while (ev.revealed < ev.steps.length) { const { revealNext } = await import('../src/engine/draw'); revealNext(ev) }
+      finishDraw(g, ev); held++
+      continue
+    }
     if (r.seasonEnded) break
   }
+  console.log(`  held ${held} of our own draws ball by ball on the way`)
   console.log('\nthe manager\'s own pick')
   if (!stopped) {
     console.log('  (PRX was not a region champion this run — no pick fell to the manager; the auto path is covered above)')

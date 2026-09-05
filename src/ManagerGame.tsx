@@ -199,7 +199,7 @@ export default function ManagerGame({ onHome, ruleset = 'vct-2025' }: { onHome: 
     // (who is an IGL) are brought into it here, once per change of the data
     const synced = syncCallersWithWorld(g)
     // a save closed on a pick it was waiting for opens back onto it
-    if (g.pendingDecisionDrawId) setDrawId(g.pendingDecisionDrawId)
+    if (g.pendingDrawId) setDrawId(g.pendingDrawId)
     // Opening a save deliberately — continuing, importing, loading a slot —
     // makes this tab the one that counts, so the cross-tab guard stops
     // treating some other tab's further-along career as the truth.

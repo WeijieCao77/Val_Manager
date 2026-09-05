@@ -158,6 +158,7 @@ export default function Standings() {
                 <p className="tiny faint" style={{ padding: '9px 13px', margin: 0 }}>
                   三败淘汰：十二队，输三场出局。胜者组、中段组、败者组各有一场决赛，三个冠军就是本赛区去 Masters 的三个名额（依次为第 1、2、3 种子）。
                   上届 Champions 的四队轮空到胜者组第二轮，其余八队抽签进入首轮。
+                  {!c.seeds?.length && '签表还没抽——抽签在总览页弹出，抽完对阵才会出现在这里。'}
                 </p>
               ) : c.grouped && c.groups ? (
                 <div className="grid c2" style={{ gap: 0 }}>

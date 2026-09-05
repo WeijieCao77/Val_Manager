@@ -746,6 +746,8 @@ export interface Competition {
   drawIds?: string[]
   /** a stage whose league phase is two drawn groups (vct-2026) */
   grouped?: boolean
+  /** the day its first drawn round is played, known before the draw is held */
+  plannedStart?: number
   /** prize money and championship points have been handed out */
   awarded?: boolean
   /** where an international is played — see qualify.ts hostCity */
@@ -805,8 +807,8 @@ export interface GameState {
   rulesetId?: 'vct-2025' | 'vct-2026'
   /** every draw held in this career — see engine/draw.ts */
   draws?: import('./draw').DrawEvent[]
-  /** a draw waiting on the manager's choice; the clock stops on it */
-  pendingDecisionDrawId?: string
+  /** a draw the manager has to hold — reveal or skip, or pick — before the clock moves */
+  pendingDrawId?: string
   /** last season's Champions field, for this year's Kickoff byes */
   lastChampionsTeams?: string[]
   /** day index since career start */

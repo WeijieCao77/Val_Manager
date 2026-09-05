@@ -90,7 +90,10 @@ export default function Schedule() {
     // round that may or may not be ours says 待定 vs 待定.
     const inRegional = nextInEvent(game)
     for (const comp of Object.values(game.comps)) {
-      if (comp.region !== myRegion || (comp.format !== 'double' && comp.format !== 'triple') || comp.champion || !comp.bracketStarted) continue
+      if (comp.region !== myRegion || (comp.format !== 'double' && comp.format !== 'triple') || comp.champion) continue
+      // a bracket whose draw has not been held has no ties, but its days are
+      // known — every round shows as 待定 vs 待定 until the balls are out
+      if (!comp.bracketStarted && comp.plannedStart == null) continue
       const k = stageName(comp.stage)
       const rows = byStage.get(k) ?? []
       for (const r of eventRounds(game, comp)) {

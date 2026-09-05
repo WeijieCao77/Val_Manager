@@ -15,9 +15,9 @@
  */
 import { useGame } from './ctx'
 import { Crest, Modal, fmtDay } from './common'
-import { DRAW_KIND_CN, choosePick, drawById, markWatched, pickerNow, revealAll, revealNext } from '../engine/draw'
+import { DRAW_KIND_CN, choosePick, drawById, pickerNow, revealNext } from '../engine/draw'
 import type { DrawEvent } from '../engine/draw'
-import { settlePendingPick } from '../engine/season'
+import { finishDraw } from '../engine/season'
 import { swissRecord } from '../engine/bracket'
 import { REGION_CN } from '../engine/types'
 import type { Competition } from '../engine/types'
@@ -36,17 +36,31 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
   const title = `${comp.name}${comp.city ? ` · ${comp.city}` : ''} · ${DRAW_KIND_CN[ev.kind]}${n ? ` 第 ${n} 轮` : ''}`
   const tagOf = (id: string) => game.teams[id]?.tag ?? '—'
 
-  const next = () => { revealNext(ev); commit() }
-  const all = () => { revealAll(ev); commit() }
-  const close = () => { if (!isPick || ev.status === 'complete') markWatched(ev); commit(); onClose() }
+  // the last ball out finishes the draw: its ties go into the schedule
+  // then and there, and the clock is released
+  const next = () => {
+    revealNext(ev)
+    if (ev.revealed >= ev.steps.length && !isPick) finishDraw(game, ev)
+    commit()
+  }
+  const all = () => {
+    if (isPick) finishDraw(game, ev, true); else finishDraw(game, ev)
+    commit()
+    toast(isPick ? '交给了教练组。' : '对阵已写进赛程。')
+  }
+  const close = () => {
+    if (!ev.consumed) toast('抽签还没抽完，赛季会等着——总览页可以再进来。')
+    commit()
+    onClose()
+  }
   const choose = (cand: string) => {
     const msg = choosePick(game, ev, comp, game.myTeam, cand, '主教练亲自点的')
-    settlePendingPick(game)
+    finishDraw(game, ev)
     commit()
     toast(msg)
   }
   const delegate = () => {
-    settlePendingPick(game, true)
+    finishDraw(game, ev, true)
     commit()
     toast('交给了教练组。')
   }
@@ -90,11 +104,11 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
       {myTurn && <Choice ev={ev} comp={comp} onChoose={choose} onDelegate={delegate} />}
       <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
         {!allOut && <button className="primary" onClick={next}>抽下一签</button>}
-        {!allOut && <button onClick={all}>全部揭晓</button>}
-        {allOut && !myTurn && <button className="primary" onClick={close}>关闭</button>}
-        {!allOut && <button className="ghost" onClick={close}>先关掉，稍后再看</button>}
+        {!ev.consumed && !myTurn && <button onClick={all}>快进跳过</button>}
+        {ev.consumed && <button className="primary" onClick={close}>关闭</button>}
+        {!ev.consumed && <button className="ghost" onClick={close}>先关掉，稍后再抽</button>}
         <span className="tiny faint" style={{ alignSelf: 'center' }}>
-          {ev.revealed}/{ev.steps.length} 签 · 结果在抽签举行时就已锁定，看与不看都一样
+          {ev.revealed}/{ev.steps.length} 签 · {ev.consumed ? '对阵已写进赛程' : '抽完（或跳过）对阵才会写进赛程，赛季在等这一步'}
         </span>
       </div>
       {ev.log.length > 0 && allOut && (
