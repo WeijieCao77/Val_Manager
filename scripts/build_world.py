@@ -35,6 +35,9 @@ ROOT = os.path.dirname(HERE)
 RAW = os.path.join(ROOT, "data-raw")
 SRC = os.path.join(RAW, "vlr_vct2026_players.txt")
 BIRTHS = os.path.join(RAW, "liquipedia_players.json")
+# birthdates read off a player page by hand (号角 / The Spike), when Liquipedia
+# has none or names a different person — these win over everything
+VERIFIED = os.path.join(RAW, "births_verified.json")
 COACHES = os.path.join(RAW, "liquipedia_coaches.json")
 VLRAPI = os.path.join(RAW, "vlrapi_teams.json")
 AGENTS_F = os.path.join(RAW, "parsebot_agents.json")
@@ -117,16 +120,37 @@ COUNTRY_OF = {
 }
 
 
-def same_person(lp_entry, nat):
-    """Does this Liquipedia page describe the player vlr says it does?"""
+def _name_key(name):
+    """A real name reduced to what two sources can agree on."""
+    return re.sub(r"[^0-9a-z\u4e00-\u9fff\uac00-\ud7af\u3040-\u30ff\u0400-\u04ff]", "",
+                  str(name or "").lower())
+
+
+def same_person(lp_entry, nat, real=None):
+    """Does this Liquipedia page describe the player vlr says it does?
+
+    A flag is weak evidence. vlr shows a residence or a second passport for a
+    good many players — a Turkish-Dutch caller under NL, a Hong Kong player
+    under CN, a Korean-American under KR — and a strict country match threw
+    fourteen real birthdates away for a draw from the age distribution (the
+    group's 「年轻队员年龄推算错误」). A real name both sites agree on
+    outranks the flag; a record verified by hand (births_verified.json)
+    outranks everything.
+    """
     if not lp_entry:
         return False
+    if lp_entry.get("verified"):
+        return True
     lc = str(lp_entry.get("country") or "").strip().lower()
     want = COUNTRY_OF.get(str(nat or "").strip().lower())
     # unknown on either side is not evidence of a mismatch, only of ignorance
     if not lc or not want:
         return True
-    return lc == want
+    if lc == want:
+        return True
+    a = _name_key(lp_entry.get("real"))
+    b = _name_key(real)
+    return bool(a and b and len(a) >= 4 and (a in b or b in a))
 
 
 def deal_contract_years(squad):
@@ -796,7 +820,26 @@ def main():
         print(f"号角: +{added} players entered by hand ({', '.join(hand)})")
     raw_births = load_json(BIRTHS)
     raw_births.update(hand_births)
+    verified = load_json(VERIFIED).get("players") or {}
+    for ign, rec in verified.items():
+        raw_births[ign] = {"birth": rec.get("birth"), "real": rec.get("realName") or rec.get("real"),
+                           "country": rec.get("country"), "verified": True}
+    if verified:
+        print(f"verified: {len(verified)} birthdates entered by hand")
     births = ci_alias(raw_births)
+    # The year a player first shows up in vlr's event record. When nobody
+    # publishes a birthdate this is the best guess there is: players with a
+    # known birthdate were a median 18 at their first recorded event (n=403,
+    # per-year medians below; 2020 is where vlr's record starts, so that
+    # cohort is older than it looks). Against the known players it misses by
+    # 1.8 years on average where a draw from the age distribution missed by
+    # 2.3 — and, which is the point, it never makes a 2025 debutant 26.
+    DEBUT_AGE = {2020: 19, 2021: 18, 2022: 17, 2023: 17, 2024: 18, 2025: 19, 2026: 20}
+    first_event = {}
+    for ign_p, prof in (load_json(PROFILES_CACHE) or {}).items():
+        years = [e.get("year") for e in (prof.get("events") or []) if e.get("year")]
+        if years:
+            first_event[ign_p.lower()] = min(years)
     wrong_person = []
     vlr_names = challengers_real_names()
     coaches = load_json(COACHES)
@@ -1291,7 +1334,7 @@ def main():
         ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
-        if lp and not same_person(lp, r["nat"]):
+        if lp and not same_person(lp, r["nat"], (vlr_prof.get(ign) or {}).get("real") or vlr_names.get(ign)):
             # a real page about a different real person is worse than no page
             wrong_person.append((ign, r["nat"], lp.get("country")))
             lp = {}
@@ -1302,9 +1345,15 @@ def main():
             # Some infoboxes give a year and nothing else ("1999-??-??"). That
             # is real knowledge and beats a draw from the age distribution — but
             # it is not a date, so it must not be published as one.
+            # The draw is taken whether or not it is used, so the rolls after
+            # it (headroom, form, morale, loyalty) stay where every save has
+            # them; a player with a real birthdate never drew, and still does not.
+            drawn = int(clamp(round(rng.norm(23.2, 2.7)), 17, 33))
             m = re.match(r"^(\d{4})", str(raw_birth or ""))
+            debut = first_event.get(ign.lower())
             age = (SEASON_YEAR - int(m.group(1)) if m
-                   else int(clamp(round(rng.norm(23.2, 2.7)), 17, 33)))
+                   else DEBUT_AGE.get(debut, 18) + (SEASON_YEAR - debut) if debut
+                   else drawn)
         else:
             ages_known += 1
         age = int(clamp(age, 15, 40))

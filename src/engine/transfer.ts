@@ -67,14 +67,24 @@ export function askingPrice(p: Player): number {
   return Math.round((base * contractPull * listed) / 1000) * 1000
 }
 
-/** Would the club sell at this fee? */
+/**
+ * Would the club sell at this fee?
+ *
+ * The price the screen prints is the price. It used to take 1.15× the asking
+ * price to be sure of a yes, and the asking price itself was a 60% coin flip
+ * — so a bid at exactly the number on the modal was refused four times in
+ * ten with a note saying the club's price was "about" the number just bid.
+ * The group read that as the game refusing for some hidden reason (a
+ * five-man squad was the guess). Under the asking price the odds slide down
+ * to nothing at seventy percent, as before.
+ */
 export function clubAcceptsFee(p: Player, fee: number, rng: Rng): boolean {
   const ask = askingPrice(p)
   if (ask <= 0) return true
   const ratio = fee / ask
-  if (ratio >= 1.15) return true
+  if (ratio >= 1) return true
   if (ratio < 0.7) return false
-  return rng.chance((ratio - 0.7) / 0.5)
+  return rng.chance((ratio - 0.7) / 0.3)
 }
 
 const ROLE_ORDER: SquadRole[] = ['bench', 'rotation', 'starter', 'star']
@@ -1003,10 +1013,18 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     }
   }
   if (p.teamId) {
+    // A club that cannot let him go says so before it talks money. The fee
+    // was judged first, so a five-man club with nobody left to sign refused
+    // with a line about its price — and a bid at that price was refused with
+    // the same line. Name the real block, and name both numbers.
+    if (!canSell(state, p)) {
+      offer.status = 'rejected'
+      return `${state.teams[p.teamId]?.name} 没有放人——${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
+    }
     if (!clubAcceptsFee(p, offer.fee, rng)) {
       offer.status = 'rejected'
       const ask = askingPrice(p)
-      return `${state.teams[p.teamId]?.name} 拒绝了报价，他们的心理价位在 $${ask.toLocaleString()} 左右。`
+      return `${state.teams[p.teamId]?.name} 拒绝了报价：出价 $${offer.fee.toLocaleString()} 低于他们的要价 $${ask.toLocaleString()}。`
     }
   }
   const terms = offer.terms ?? defaultContract(offer.salary, offer.years)

@@ -44,7 +44,15 @@ const store = new Map<string, string>()
  * room to spare. Raising this number is a decision about somebody's phone, not
  * a formality — measure what grew first.
  */
-const BUDGET_KB = 1_500
+// 1,500 until 2026-09-05. That day every AI club began to train the way the
+// manager's squad does — experience on several attributes per man, map
+// comfort in tenths at seventy-eight clubs — and a two-season save that had
+// been sitting at 1,498 KB grew by the ~35 KB that state costs (measured:
+// players 691 → 726 KB). The state is bounded (eight bars a player, thirteen
+// maps a club) and the shrink below still handles a storage that refuses, so
+// the budget moved by the amount explained rather than the growth being
+// hidden by truncating what the AI knows.
+const BUDGET_KB = 1_600
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {

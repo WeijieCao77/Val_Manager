@@ -666,7 +666,10 @@ function OfferModal({
 
   const upfront = fee + terms.signingBonus
   const afford = upfront <= game.finances.balance
-  const feeOk = !player.teamId || fee >= ask * 0.85
+  // the engine's own line: at the asking price the club sells, under seventy
+  // percent of it the club will not talk, in between the odds slide
+  const feeOk = !player.teamId || fee >= ask
+  const feeHopeless = !!player.teamId && fee < ask * 0.7
 
   return (
     <Modal title={`向 ${player.ign} 报价`} onClose={onClose}>
@@ -681,12 +684,14 @@ function OfferModal({
 
       {player.teamId && (
         <div style={{ marginBottom: 14 }}>
-          <label className="small muted">转会费（对方要价约 {moneyFull(ask)}）</label>
+          <label className="small muted">转会费（对方要价 {moneyFull(ask)}，出到这个数就会放人）</label>
           <input
             type="number" value={fee} min={0} step={10000}
             onChange={(e) => setFee(Math.max(0, Number(e.target.value)))}
           />
-          {!feeOk && <div className="tiny neg">低于对方心理价位，很可能被拒绝。</div>}
+          {feeHopeless
+            ? <div className="tiny neg">不到要价的七成，对方不会考虑。</div>
+            : !feeOk && <div className="tiny neg">低于对方要价，有可能被拒绝——差得越多越可能。</div>}
           {player.contract?.noPoach && (
             <div className="tiny neg">该选手合同含转会限制条款，原俱乐部可以直接拒绝。</div>
           )}

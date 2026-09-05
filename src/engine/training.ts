@@ -9,9 +9,10 @@ import { growLoyalty } from './loyalty'
 import { skillMod } from './manager'
 import { AGENTS, mapCn } from './content'
 import { FAM_DRILL, learnComp } from './comp'
-import { sheetFor } from './match'
+import { poolFor, sheetFor } from './match'
+import { facilityCost } from './staff'
 import { ATTR_KEYS } from './types'
-import type { Attrs, GameState, Player, Team } from './types'
+import type { Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
 
 /**
  * The neutral point of the form scale.
@@ -109,7 +110,10 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
     clamp(headroom / 12, 0.25, 1.6) * available * talent * chasing
 
-  p.xp[attr] = (p.xp[attr] ?? 0) + gain
+  // kept to a hundredth: the bar is a hundred to the point, and a float's
+  // sixteen characters on every attribute of every player is what tipped a
+  // two-season save over its budget once the whole league trained this way
+  p.xp[attr] = Math.round(((p.xp[attr] ?? 0) + gain) * 100) / 100
   p.fatigue = clamp(p.fatigue + rng.range(5, 11), 0, 100)
 
   if ((p.xp[attr] ?? 0) >= 100) {
@@ -133,9 +137,9 @@ function addXp(p: Player, k: keyof Attrs, amount: number): boolean {
     p.xp[k] = Math.min(p.xp[k] ?? 0, 99)
     return false
   }
-  p.xp[k] = (p.xp[k] ?? 0) + amount
+  p.xp[k] = Math.round(((p.xp[k] ?? 0) + amount) * 100) / 100
   if ((p.xp[k] ?? 0) < 100) return false
-  p.xp[k] = (p.xp[k] ?? 0) - 100
+  p.xp[k] = Math.round(((p.xp[k] ?? 0) - 100) * 100) / 100
   p.attrs[k] = clamp(p.attrs[k] + 1, 20, 99)
   recomputeOverall(p)
   refreshValue(p)
@@ -269,7 +273,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
         const before = team.mapPrefs[map] ?? 50
         // kept as a float: rounding every week swallowed the whole bonus, since
         // +2.0 and +2.4 both land on +2 and the remainder never carried forward
-        team.mapPrefs[map] = clamp(before + gain(2.35) * mapEdge, 0, 95)
+        team.mapPrefs[map] = Math.round(clamp(before + gain(2.35) * mapEdge, 0, 95) * 10) / 10
         // and the sheet planned for this map is what the week rehearses —
         // the five agents, not just the map. See engine/comp.ts.
         const fam = learnComp(state, map, sheetFor(state, state.myTeam, map).agents, FAM_DRILL)
@@ -342,6 +346,194 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
     default:
       break
   }
+}
+
+// ---------------------------------------------------------------- AI clubs
+
+/**
+ * The rest of a club's week, for the seventy-seven clubs the manager does
+ * not run.
+ *
+ * They trained — one focus per player, the same plan the training screen
+ * recommends — and did nothing else: no map week, no tape, nobody learning
+ * a position the five was missing, nobody on the physio table, the same
+ * building for ten years. Everything on the manager's training screen was
+ * a lever only he could pull, so by the third season a club run by hand
+ * walked over a league that had stood still — 「玩到后面只是单方面的碾压」.
+ *
+ * So a club now runs the same three-way choice every week, picked the way
+ * a sensible coach would: a hole in the five gets a learner on it, an
+ * uncomfortable pool gets run, otherwise the coach takes them through the
+ * tape — with a map week every third week regardless, because the pool
+ * turns over and real teams run maps. The numbers are the manager's own
+ * drills' numbers at the club's own coaching and facilities; nothing here
+ * is a rate he cannot reach. Pair work is left out: an AI room's bonds do
+ * not decay, so there is nothing for it to mend.
+ */
+const CORE: Role[] = ['决斗者', '先锋', '控场', '哨卫']
+
+/** Weeks between a club's team sessions: 1 is every week. */
+export const AI_TEAM_SESSION_EVERY = 2
+/** A club books the table for anyone this tired, if it can pay. */
+export const AI_PHYSIO_AT = 68
+/** What a club keeps in the bank before it spends on treatment. */
+export const AI_PHYSIO_RESERVE: Record<number, number> = { 1: 600_000, 2: 120_000 }
+/** What a club keeps in the bank after a winter's building work. */
+export const AI_FACILITY_RESERVE: Record<number, number> = { 1: 1_200_000, 2: 250_000 }
+
+/** The multipliers an AI club's drills run at: its coach and its building. */
+function aiRates(team: Team): { dev: number; review: number } {
+  const coachDev = (coachOr(team, 'development') - 55) / 100
+  const coachTac = (coachOr(team, 'tactics') - 55) / 100
+  const facility = (team.facilities - 55) / 130
+  return { dev: 1 + coachDev + facility, review: 1 + coachTac }
+}
+
+/**
+ * What this club would run this week. Exported so a check can ask the
+ * same question the tick does.
+ */
+export function aiDrillFor(state: GameState, team: Team): TeamDrill {
+  const five = team.starters
+    .map((id) => state.players[id])
+    .filter((p): p is Player => !!p)
+  if (!five.length) return { kind: 'none' }
+  // a five missing one of the four jobs pays for it on every map
+  // (compositionScore in match.ts); the fix is a learner, as it is for us
+  const covered = new Set(five.flatMap((p) => (p.roles?.length ? p.roles : [p.role])))
+  const missing = CORE.find((r) => !covered.has(r))
+  if (missing) {
+    const fit = (p: Player) => p.attrs.awareness + p.attrs.utility + (p.flex ? 20 : 0)
+    const learner = five
+      .filter((p) => p.injuredUntil <= state.day && !p.isIgl && (p.rolePro?.[missing] ?? 0) < 100)
+      .sort((a, b) => fit(b) - fit(a))[0]
+    if (learner) return { kind: 'agent', playerId: learner.id, role: missing }
+  }
+  const pool = poolFor(state)
+  const weak = pool.slice().sort((a, b) => (team.mapPrefs[a] ?? 50) - (team.mapPrefs[b] ?? 50))
+  const low = team.mapPrefs[weak[0]] ?? 50
+  const mean = pool.reduce((s, m) => s + (team.mapPrefs[m] ?? 50), 0) / Math.max(1, pool.length)
+  const week = Math.floor(state.day / 7)
+  if (low < 62 || mean < 70 || week % 3 === 0) return { kind: 'map', map: weak[0], map2: weak[1] }
+  return { kind: 'review' }
+}
+
+export function aiClubWeek(state: GameState, team: Team, rng: Rng): void {
+  const squad = squadOf(state, team.id).filter((p) => p.injuredUntil <= state.day)
+  if (!squad.length) return
+  const rates = aiRates(team)
+  const gain = (base: number) => base * rates.dev * rng.range(0.8, 1.2)
+  // the same bounded push a title provokes on a club's individual sessions
+  // applies to its team sessions: a club chasing a champion coaches its
+  // youth harder in everything it does, and only its youth
+  const drilled = (p: Player, k: keyof Attrs, amount: number) =>
+    addXp(p, k, amount * aiGrowthMultiplier(state, p, team))
+  // A club does not run a team session every week of the year. The
+  // off-season is the squad being rebuilt, and a week the room is worn out
+  // is a week the session is called off — the load management the manager
+  // does by hand when he rests his five. Both are also what keeps a league
+  // of clubs drilling from arriving at its ceilings all at once.
+  const worn = squad.reduce((s, p) => s + p.fatigue, 0) / squad.length > 60
+  const off = Math.floor(state.day / 7) % AI_TEAM_SESSION_EVERY !== 0
+  const drill = state.stage === 'offseason' || worn || off ? { kind: 'none' } as TeamDrill : aiDrillFor(state, team)
+  switch (drill.kind) {
+    case 'map': {
+      for (const map of new Set([drill.map, drill.map2].filter((m): m is string => !!m))) {
+        team.mapPrefs[map] = Math.round(clamp((team.mapPrefs[map] ?? 50) + gain(2.35), 0, 95) * 10) / 10
+      }
+      for (const p of squad) {
+        drilled(p, 'teamwork', gain(9))
+        drilled(p, 'awareness', gain(5))
+        p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      }
+      break
+    }
+    case 'review': {
+      for (const p of squad) {
+        drilled(p, 'awareness', gain(6) * rates.review)
+        if (p.isIgl) {
+          const learning = clamp((90 - p.attrs.igl) / 18, 0.15, 1.5)
+          drilled(p, 'igl', REVIEW_IGL_BASE * rates.dev * rates.review * learning * rng.range(0.8, 1.2))
+        }
+        drilled(p, 'communication', gain(3))
+        p.fatigue = clamp(p.fatigue - rng.range(1, 4), 0, 100)
+      }
+      break
+    }
+    case 'agent': {
+      const p = state.players[drill.playerId]
+      if (!p || p.teamId !== team.id) break
+      const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
+      const before = p.rolePro?.[drill.role] ?? 0
+      const now = clamp(before + gain(2.6) * aptitude, 0, 100)
+      p.rolePro = { ...(p.rolePro ?? {}), [drill.role]: now }
+      drilled(p, 'utility', gain(4))
+      p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      const earned = Math.floor(now / 34) - Math.floor(before / 34)
+      for (let i = 0; i < earned; i++) {
+        const pool = AGENTS[drill.role].filter((a) => !p.agentPool.includes(a))
+        if (pool.length) p.agentPool = [...p.agentPool, rng.pick(pool)]
+      }
+      if (now >= 100 && before < 100) {
+        const roles = p.roles?.length ? p.roles : [p.role]
+        if (!roles.includes(drill.role)) {
+          p.roles = [...roles, drill.role]
+          p.flex = true
+        }
+        state.news.push({
+          day: state.day, kind: 'player',
+          text: `${team.tag} 的 ${p.ign} 练成了${drill.role}，现在可以兼任这个位置。`,
+        })
+      }
+      break
+    }
+    default:
+      break
+  }
+
+  // The physio room, at the same price we pay and on the same once-a-week
+  // rule, for whoever is tired enough to be a risk — two a week, and never
+  // below the reserve a club of that size keeps. Fatigue is the whole
+  // injury model's gate, and it was a lever only the manager could pull.
+  const reserve = AI_PHYSIO_RESERVE[team.tier] ?? AI_PHYSIO_RESERVE[1]
+  let sessions = 0
+  const tired = squadOf(state, team.id)
+    .filter((p) => p.fatigue >= AI_PHYSIO_AT || (p.injuredUntil > state.day && p.injuredUntil - state.day >= 7))
+    .sort((a, b) => b.fatigue - a.fatigue)
+  for (const p of tired) {
+    if (sessions >= 2) break
+    const last = state.physioOn?.[p.id]
+    if (last !== undefined && last <= state.day && state.day - last < 7) continue
+    if (team.budget - PHYSIO_COST < reserve) break
+    team.budget -= PHYSIO_COST
+    state.physioOn = { ...(state.physioOn ?? {}), [p.id]: state.day }
+    p.fatigue = clamp(p.fatigue - 35, 0, 100)
+    if (p.injuredUntil > state.day) {
+      const left = p.injuredUntil - state.day
+      const cut = Math.max(2, Math.round(left * 0.3))
+      p.injuredUntil = Math.max(state.day + 1, p.injuredUntil - cut)
+    }
+    sessions++
+  }
+}
+
+/**
+ * A winter's building work, at the same price list we pay from. Up to two
+ * levels a year for a club that can afford them and still keep its reserve;
+ * returns how many it bought, for the news.
+ */
+export function aiFacilityUpgrade(state: GameState, team: Team): number {
+  if (team.id === state.myTeam) return 0
+  const reserve = AI_FACILITY_RESERVE[team.tier] ?? AI_FACILITY_RESERVE[1]
+  let bought = 0
+  while (bought < 2 && team.facilities < 90) {
+    const cost = facilityCost(team.facilities)
+    if (team.budget - cost < reserve) break
+    team.budget -= cost
+    team.facilities = clamp(team.facilities + 1, 0, 95)
+    bought++
+  }
+  return bought
 }
 
 /** Weekly tick: training, condition, morale drift, injury rolls. */
@@ -458,6 +650,9 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       const care = isMine ? skillMod(state.manager, 'medical', 0.008) : 1
       p.fatigue = clamp(p.fatigue - (p.fatigue * 0.30 + 5) * care, 0, 100)
     }
+    // and the club's week: the drill, and the treatment room. Ours runs its
+    // own through drillTick and the physio button.
+    if (!isMine) aiClubWeek(state, team, rng)
   }
   // the week has been settled, so commercial time starts over
   state.commercialDays = {}

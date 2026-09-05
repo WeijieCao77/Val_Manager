@@ -20,7 +20,7 @@ import { trustAfterMatch } from './trust'
 import { titleLoyalty } from './loyalty'
 import { resolveApproaches, resolveStaffOffers } from './staff'
 import { defaultContract, resolveApplications } from './career'
-import { applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
+import { aiFacilityUpgrade, applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
 import { CHAMPIONS_2025, drawRules } from './ruleset'
@@ -358,6 +358,17 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   // a trophy is the shared history that loyalty is made of, and the AI's
   // champions get to keep their core for the same reason ours do.
   if (comp.champion) titleLoyalty(state, comp.champion, !comp.region)
+
+  // a trophy is news about the club, whoever's club it is
+  if (champ) {
+    const worth = comp.stage === 'champions' ? CLUB_REP.champions
+      : comp.region ? CLUB_REP.regional : CLUB_REP.international
+    champ.reputation = clamp(champ.reputation + worth, 20, 99)
+    if (comp.stage === 'champions') {
+      const second = state.teams[comp.finished[1] ?? '']
+      if (second) second.reputation = clamp(second.reputation + CLUB_REP.regional, 20, 99)
+    }
+  }
 
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })
@@ -903,12 +914,19 @@ function setObjective(state: GameState, notes: string[]): void {
   // over ten careers that got the manager sacked six times in three seasons
   // while averaging third of twelve, which is not a failure by any reading.
   //
-  // A favourite is asked to stay a favourite; everyone else is asked for a
-  // real but survivable step up. Beating the brief is still what moves your
-  // reputation, so there is no less to play for.
+  // A favourite is asked to stay a favourite; the top half is asked for a
+  // real but survivable step up; the bottom half is asked for one place.
+  // The step used to be a quarter of the table for everyone, which asked the
+  // weakest side of twelve for ninth and the tenth-rated for eighth — the
+  // playoff line — and the group read it as the board demanding playoffs of
+  // a squad rated last in the region. Beating the brief is still what moves
+  // your reputation, so there is no less to play for.
+  const half = Math.ceil(size / 2)
   const target = place <= 2
     ? clamp(place, 1, 2)
-    : clamp(Math.ceil(place * 0.75), 2, Math.max(1, size - 2))
+    : place <= half
+      ? clamp(Math.ceil(place * 0.75), 2, Math.max(1, size - 1))
+      : clamp(place - 1, half, Math.max(1, size - 1))
   const text =
     target === 1 ? '董事会要求：拿下本赛段冠军。'
       : target <= Math.ceil(size / 4) ? `董事会要求：本赛段进入前 ${target} 名。`
@@ -951,6 +969,13 @@ function settleObjective(state: GameState, endedStage: StageKey, notes: string[]
     const raw = obj.met ? (1 + (obj.placeAtLeast - place) * 0.5) * growth : -1.5
     const delta = raw > 0 ? damped(state.manager.reputation, raw) : raw
     state.manager.reputation = clamp(state.manager.reputation + delta, 5, 96)
+  }
+
+  // and the club's: a brief beaten is talked about, one missed is too
+  const me = state.teams[state.myTeam]
+  if (me) {
+    const swingRep = obj.met ? 0.5 + (obj.placeAtLeast - place) * 0.5 : -0.75
+    me.reputation = clamp(me.reputation + swingRep, 20, 99)
   }
 
   const msg = obj.met
@@ -1081,6 +1106,74 @@ export function damped(current: number, gain: number): number {
 
 /** What lifting a trophy is worth to the manager's own name. */
 export const TITLE_REP_WORTH = { regional: 2.5, international: 6 } as const
+
+/**
+ * A club's standing, and what moves it.
+ *
+ * Nothing did. A club opened with reputation equal to its rating and kept
+ * it for the rest of the save — a Challengers side that went up and won its
+ * league sat in the fifties for years, a relegated VCT side rotted in the
+ * second division at 70-something. Sponsorship, streaming, job offers and
+ * who takes your call all read this number, so the world could not change
+ * around the manager. Now every club is pulled toward what its league and
+ * its season say it deserves, and the big moments move it on the day.
+ */
+export const CLUB_REP = {
+  /** where a club settles if it is average for its league */
+  base: { 1: 66, 2: 44 } as Record<number, number>,
+  /** how far toward its deserved level a club moves each winter */
+  pull: 0.35,
+  /** on the day: a trophy, going up, going down */
+  regional: 2, international: 4, champions: 6, promoted: 5, relegated: -6,
+} as const
+
+/**
+ * What a season says a club should be worth, for the league it played in.
+ *
+ * Strength carries most of it, the table adds the rest: a champion is asked
+ * about, a bottom-two side is not. `order` is the region's final order in
+ * the club's own league.
+ */
+export function deservedReputation(team: Team, order: string[]): number {
+  const n = order.length
+  const i = order.indexOf(team.id)
+  let place = 0
+  if (n > 1 && i >= 0) {
+    place = i === 0 ? 8 : i === 1 ? 5 : i < 4 ? 2 : i >= n - 2 ? -4 : 0
+    if (team.tier === 2) place *= 0.75
+  }
+  return clamp(CLUB_REP.base[team.tier] + (team.rating - 68) * 0.9 + place, 20, 99)
+}
+
+/**
+ * The winter settlement: every club moves a third of the way to the level
+ * its league and its season deserve. Called before Ascension swaps tiers,
+ * so a side is judged in the league it actually played.
+ */
+export function settleClubReputation(state: GameState, notes: string[]): void {
+  for (const region of REGIONS) {
+    for (const tier of [1, 2] as const) {
+      const clubs = Object.values(state.teams).filter((t) => t.region === region && t.tier === tier)
+      if (!clubs.length) continue
+      // the league order: the second Challengers split's finish for tier 2
+      // (that is the one Ascension reads), champ points for VCT
+      const chal = tier === 2 ? state.comps[compKey('challengers2', region)] : undefined
+      const order = chal?.finished.length
+        ? [...chal.finished, ...clubs.filter((t) => !chal.finished.includes(t.id)).map((t) => t.id)]
+        : clubs.map((t) => t.id).sort(byPoints(state))
+      for (const t of clubs) {
+        const before = t.reputation
+        const target = deservedReputation(t, order)
+        t.reputation = clamp(before + (target - before) * CLUB_REP.pull, 20, 99)
+        if (t.id === state.myTeam && Math.round(t.reputation) !== Math.round(before)) {
+          const up = t.reputation > before
+          notes.push(`${up ? '📈' : '📉'} 俱乐部声望 ${Math.round(before)} → ${Math.round(t.reputation)}：${
+            up ? '这个赛季的成绩和实力配得上更高的位置' : '按这个赛季的实力和排名，外界对俱乐部的看法在降温'}。`)
+        }
+      }
+    }
+  }
+}
 
 /**
  * Clubs coming after the manager.
@@ -1791,6 +1884,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     return
   }
 
+  // ---- what the season did to every club's name, judged in the league it played
+  settleClubReputation(state, notes)
+
   // ---- Ascension: each region's Challengers champion swaps with the weakest tier-1 side
   for (const region of REGIONS) {
     const chal = state.comps[compKey('challengers2', region)]
@@ -1805,6 +1901,10 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     promoted.league = `VCT ${region}`
     relegated.tier = 2
     relegated.league = `Challengers ${region}`
+    // going up is the biggest thing that can happen to a club's name in a
+    // year; going down is the second biggest
+    promoted.reputation = clamp(promoted.reputation + CLUB_REP.promoted, 20, 99)
+    relegated.reputation = clamp(relegated.reputation + CLUB_REP.relegated, 20, 99)
 
     // Sponsorship follows the league you play in. Without this a promoted club
     // kept its Challengers deals and picked up VCT running costs the same
@@ -1990,6 +2090,19 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     })
   }
   ensureMinimumRosters(state, rng)
+
+  // ---- the winter's building work at every other club
+  const built: string[] = []
+  for (const t of Object.values(state.teams)) {
+    const before = t.facilities
+    if (aiFacilityUpgrade(state, t)) built.push(`${t.tag}（${before}→${t.facilities}）`)
+  }
+  if (built.length) {
+    state.news.push({
+      day: state.day, kind: 'league',
+      text: `🏗️ 休赛期升级训练设施：${built.slice(0, 8).join('、')}` + (built.length > 8 ? ` 等 ${built.length} 家` : '') + '。',
+    })
+  }
 
   // ---- team ratings follow the squads they now have
   for (const t of Object.values(state.teams)) {

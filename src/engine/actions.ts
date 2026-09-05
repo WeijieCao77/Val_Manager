@@ -1,3 +1,5 @@
+import { nextInEvent, upcomingInternational } from './qualify'
+import { SEASON_DAYS } from './season'
 import type { GameState } from './types'
 
 /**
@@ -53,11 +55,21 @@ export const ACTION_CN: Record<ActionKind, string> = {
 export function cycleDays(state: GameState): number {
   // the trial day is a day, whatever the calendar would otherwise say
   if (state.tutorialDay) return 1
+  // The next thing the clock will stop for. A fixture of ours, first — but
+  // also a round whose DATE is known while its tie is not: a playoff wave
+  // that waits on the other bracket, a Swiss round, an international a side
+  // has just qualified for. Those arrive as fixtures mid-turn, and the turn
+  // stops the day they are played. The button used to promise seven days over
+  // a gap the calendar already showed as four; now it reads the same calendar
+  // the schedule screen does. See engine/qualify.ts for where a round comes
+  // from before it is drawn.
   const next = state.fixtures
     .filter((f) => !f.played && f.comp !== 'scrim' &&
       (f.teamA === state.myTeam || f.teamB === state.myTeam))
     .sort((a, b) => a.day - b.day)[0]
-  const gap = next ? next.day - state.day : 99
+  const known = [next?.day, nextInEvent(state)?.day, upcomingInternational(state)?.day]
+    .filter((d): d is number => d != null && d > state.day)
+  const gap = known.length ? Math.min(...known) - state.day : 99
   if (gap < 7) return 1
   // Inside an international the draw arrives one round at a time, so a side
   // that has just qualified from the Swiss round has no fixture for four days
@@ -67,7 +79,10 @@ export function cycleDays(state: GameState): number {
     const c = state.comps[k]
     return !!c && !c.champion && c.teams.includes(state.myTeam) && !c.finished.includes(state.myTeam)
   })
-  return inEvent ? 1 : 7
+  if (inEvent) return 1
+  // and the season's last week is however many days of it are left: the
+  // rollover ends the turn, so the button says so rather than "7"
+  return Math.max(1, Math.min(7, SEASON_DAYS - state.day))
 }
 
 function slot(state: GameState): { day: number; used: number } {

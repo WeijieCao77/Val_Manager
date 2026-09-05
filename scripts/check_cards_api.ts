@@ -265,6 +265,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   // found live, an hour after the board went up: rank 24 had pasted their
   // account id into the name box, and the board was publishing their password
   await mk('VM-5555-5555-5555-5555-5555', 'VM-9DJ0-X6C7-8EP', 5, 1500, 50)
+  api.invalidate()   // the board is cached for twenty seconds; this reseeded it
   const after = await call('/api/card/top', {}, 'board3')
   const rows2 = after.body.rows as { name: string; hidden: boolean; why?: string; points: number }[]
   const leaked = rows2.find((x) => x.points === 1500)!
@@ -282,6 +283,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
 {
   rateHits.clear()
   await db.exec('delete from card_accounts')
+  api.invalidate()
   const squadOf = (ids: string[]) => ({ slots: ids, coach: 'C-bonkar' })
   const withCards = (ids: string[]) =>
     // the same shape the game actually saves — OwnedCard, with `level`. The

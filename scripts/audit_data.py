@@ -269,6 +269,11 @@ def main() -> int:
     # case-insensitively and this check has to as well, or it reports a real
     # birthdate as a fabricated one.
     births = load(RAW / "liquipedia_players.json")
+    # a birthdate read by hand off 号角 / The Spike is a source too, and it
+    # wins over Liquipedia in the build (data-raw/births_verified.json)
+    for ign_v, rec_v in ((load(RAW / "births_verified.json") or {}).get("players") or {}).items():
+        births[ign_v] = {"birth": rec_v.get("birth"), "real": rec_v.get("realName"),
+                         "country": rec_v.get("country"), "verified": True}
     births_ci = {str(k).lower(): v for k, v in births.items()}
     tenure = load(CACHE / "vlr_tenure.json")
 
@@ -425,14 +430,28 @@ def main() -> int:
         "ch": "switzerland", "rs": "serbia", "ro": "romania", "gr": "greece",
         "cz": "czech republic", "hu": "hungary", "sk": "slovakia", "ie": "ireland",
     }
+    # A flag is weak evidence on its own (2026-09-05): vlr shows a residence
+    # or a second passport for a good many players, and the strict match threw
+    # fourteen real birthdates away. The same rule as build_world.same_person:
+    # a real name both sites agree on outranks the flag, and a record verified
+    # by hand (data-raw/births_verified.json) outranks everything.
+    def name_key(name):
+        return re.sub(r"[^0-9a-z\u4e00-\u9fff\uac00-\ud7af\u3040-\u30ff\u0400-\u04ff]", "",
+                      str(name or "").lower())
+    verified_births = {k.lower() for k in ((load(RAW / "births_verified.json") or {}).get("players") or {})}
     borrowed = []
     for p_ in players:
         e = births.get(p_["ign"]) or births_ci.get(p_["ign"].lower()) or {}
         if not e or e.get("miss") or not p_.get("birth"):
             continue
+        if p_["ign"].lower() in verified_births:
+            continue
         lc = str(e.get("country") or "").strip().lower()
         want = C2N.get(str(p_.get("nat") or "").strip().lower())
         if lc and want and lc != want:
+            a, b = name_key(e.get("real")), name_key(p_.get("realName"))
+            if a and b and len(a) >= 4 and (a in b or b in a):
+                continue
             borrowed.append((p_["ign"], p_.get("nat"), e.get("country")))
     check("no player wears another player's identity", not borrowed,
           f"{len(borrowed)}: {borrowed[:5]}")

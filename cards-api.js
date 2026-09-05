@@ -532,7 +532,13 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
               out = { ok: true, result: { mail: taken } }
             } else {
               const env = { now, today, seed: freshSeed() }
-              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me)
+              // On the transaction's own connection. It used to go through the
+              // pool, so a match held one connection and asked for a second;
+              // four matches at once held all four and each waited for a fifth
+              // that could never come, and every request after them queued
+              // behind the deadlock until the process was restarted (2026-09-05,
+              // 「网页卡了」 — the card page stuck on 正在读取卡牌账号).
+              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, db)
               out = engine.runAction(g, action, args, env)
             }
             const total = g.ladder.wins + g.ladder.losses
@@ -595,7 +601,50 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       if (id) mine = hash(id)
     } catch { /* an anonymous look at the board is fine */ }
     try {
-      const rows = await sql`
+      const rows = await topRows(mine)
+      json(res, 200, {
+        ok: true,
+        rows: rows.map((r) => ({
+          rank: r.rk,
+          ...displayName(r.name, r.id_hash),
+          div: r.div, points: r.points, stars: r.stars,
+          wins: r.wins, losses: r.losses,
+          me: !!mine && r.id_hash === mine,
+        })),
+      })
+    } catch (err) {
+      console.warn('cards: top failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
+  /**
+   * The board is the same scan as the rival pool, and it was run for every
+   * look at the ladder tab. Twenty seconds is fresher than anyone can tell
+   * and a hundredth of the load.
+   */
+  const TOP_TTL = 20_000
+  let topCache = null
+  async function topRows(mine) {
+    // a player who has just played waits for his own write (CardMode's
+    // commit), so a board built before that write must not be handed back
+    // to him: one indexed lookup says whether his row moved since
+    let stale = !topCache || Date.now() - topCache.at > TOP_TTL
+    if (!stale && mine) {
+      const own = await sql`select ladder_at from card_accounts where id_hash = ${mine}`
+      const at = own[0]?.ladder_at ? new Date(own[0].ladder_at).getTime() : 0
+      if (at > topCache.at - 1000) stale = true
+    }
+    if (stale) topCache = { at: Date.now(), rows: await rankedRows() }
+    const rows = topCache.rows
+    const hundred = rows.filter((r) => r.rk <= 100)
+    if (!mine || hundred.some((r) => r.id_hash === mine)) return hundred
+    const own = rows.find((r) => r.id_hash === mine)
+    return own ? [...hundred, own] : hundred
+  }
+
+  async function rankedRows() {
+      return sql`
         with ranked as (
           select
             id_hash, name,
@@ -623,25 +672,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
         )
         select rk, id_hash, name, div, points, stars, wins, losses
         from placed
-        -- one query either way: an empty string never matches a sha256, so
-        -- the caller's own row joins the top hundred without a second shape
-        where rk <= 100 or id_hash = ${mine ?? ''}
-        order by rk
-        limit 101`
-      json(res, 200, {
-        ok: true,
-        rows: rows.map((r) => ({
-          rank: r.rk,
-          ...displayName(r.name, r.id_hash),
-          div: r.div, points: r.points, stars: r.stars,
-          wins: r.wins, losses: r.losses,
-          me: !!mine && r.id_hash === mine,
-        })),
-      })
-    } catch (err) {
-      console.warn('cards: top failed', err.message)
-      json(res, 500, { ok: false })
-    }
+        order by rk`
   }
 
   /**
@@ -700,8 +731,36 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
    * account the 体力 clock has caught is left out: nobody should have to
    * play a five that was typed in.
    */
-  async function rivalPool(div, mine) {
-    return sql`
+  /**
+   * The candidates near a division, from a short-lived cache.
+   *
+   * The query below parses every account's state to find the fives with a
+   * full squad, which is a scan of the whole table and most of its bytes —
+   * one to three seconds and a whole vCPU at the sizes the board has reached.
+   * Every ladder match ran it, inside its transaction. Now a division's
+   * candidates are fetched at most once every thirty seconds, forty of them,
+   * and a match picks from that; the caller is excluded when the list is
+   * used rather than in the query, so one cache serves everybody.
+   */
+  const RIVAL_TTL = 30_000
+  const rivalCache = new Map()
+  async function rivalPool(div, mine, db = sql) {
+    const hit = rivalCache.get(div)
+    const rows = hit && Date.now() - hit.at < RIVAL_TTL
+      ? hit.rows
+      : await rivalRows(div, db).then((r) => { rivalCache.set(div, { at: Date.now(), rows: r }); return r })
+    const others = rows.filter((r) => r.id_hash !== mine)
+    // the query ordered by distance to the division, then by chance; keep
+    // the distance and reshuffle the chance for each caller
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      if (Math.abs(others[i].div - div) === Math.abs(others[j].div - div)) [others[i], others[j]] = [others[j], others[i]]
+    }
+    return others.slice(0, 12)
+  }
+
+  async function rivalRows(div, db = sql) {
+    return db`
       with pool as (
         select
           id_hash, name, state->'squad' as squad, state->'cards' as cards,
@@ -716,16 +775,15 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
           and (select count(*) from jsonb_array_elements(state->'squad'->'slots') e
                where jsonb_typeof(e) = 'string') = 5
           and not suspect
-          and id_hash <> ${mine}
       )
       select id_hash, name, squad, cards, div, points
       from pool
       order by abs(div - ${div}), random()
-      limit 12`
+      limit 40`
   }
 
-  async function pickRival(div, mine) {
-    const rows = await rivalPool(div, mine)
+  async function pickRival(div, mine, db = sql) {
+    const rows = await rivalPool(div, mine, db)
     const fives = rows.map(squadOf).filter((x) => x.slots.filter(Boolean).length === 5)
     return fives.length ? fives[Math.floor(Math.random() * fives.length)] : null
   }
@@ -934,6 +992,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
   }
 
   return {
+    /** Forget the cached board and rival pools — for tests that reseed the table. */
+    invalidate() { topCache = null; rivalCache.clear() },
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }

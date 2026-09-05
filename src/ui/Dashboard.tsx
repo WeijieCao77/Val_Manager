@@ -304,8 +304,8 @@ export default function Dashboard() {
         <div className="advance-note">
           {cycleDays(game) > 1 ? (
             <>
-              <b>现在是空档期，一回合 = 7 天，行动力 4 点</b>——转会窗多半开着，
-              这是做买卖的时候。中途遇到正式比赛会自动停下（训练赛自动打完）。
+              <b>现在是空档期，一回合 = {cycleDays(game)} 天，行动力 4 点</b>——转会窗多半开着，
+              这是做买卖的时候。{cycleDays(game) < 7 ? '这回合到赛季结束就停。' : '中途遇到正式比赛会自动停下（训练赛自动打完）。'}
             </>
           ) : (
             <>比赛期间一天一回合，行动力 2 点——
