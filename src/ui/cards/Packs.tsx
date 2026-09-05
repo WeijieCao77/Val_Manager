@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
@@ -10,6 +10,7 @@ import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/g
 import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
+import { playPackCue } from '../packAudio'
 
 /** What the server says came out of a pack, resolved back to cards. */
 interface PulledWire { cardId: string; dupe: boolean; salvage: number }
@@ -302,9 +303,9 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children }: { children: React.ReactNode }) {
+function Flip({ children, revealed }: { children: React.ReactNode; revealed: boolean }) {
   return (
-    <div className="flip">
+    <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
         <div className="flip-face flip-back"><CardBack /></div>
         <div className="flip-face flip-front">{children}</div>
@@ -326,14 +327,27 @@ function PackStage({
   pulled: Pulled[]; shown: number
   onNext: () => void; onDone: () => void; onSellAll: () => void
 }) {
-  // A single-card pack has nothing to summarise: showing a "strip" of one card
-  // under the card you are already looking at reads as a bug. So one card goes
-  // straight to its own reveal with the buttons under it, and a multi-card
-  // pack flips through and then lays them all out.
+  const [unsealed, setUnsealed] = useState(false)
+  const [faceUp, setFaceUp] = useState(false)
   const single = pulled.length === 1
-  const finished = single || shown > pulled.length
+  const finished = shown > pulled.length
   const current = pulled[Math.min(shown, pulled.length) - 1]
   const dupes = pulled.filter((p) => p.dupe).length
+  const last = shown === pulled.length
+
+  const advanceReveal = () => {
+    if (!unsealed || finished || !current) return
+    if (!faceUp) {
+      setFaceUp(true)
+      playPackCue('reveal')
+      return
+    }
+    // One-card packs end on the revealed card so the collect action stays in
+    // view. Multi-packs continue to the next mystery back, then to the strip.
+    if (single && last) return
+    setFaceUp(false)
+    onNext()
+  }
 
   const actions = (
     <div className="pack-actions">
@@ -347,36 +361,61 @@ function PackStage({
   )
 
   return (
-    <div className="pack-stage" onClick={finished ? undefined : onNext}>
-      {(current?.card.rarity === 'gold' || current?.card.rarity === 'mythic') && (
-        <div key={shown} className={`pack-glow${current.card.rarity === 'mythic' ? ' holo' : ''}`} />
-      )}
-      <div className="pack-reveal">
-        {(!finished || single) && current && (
+    <div className="pack-stage" onClick={advanceReveal}>
+      {!unsealed && <PackTearGate count={pulled.length} onOpen={() => setUnsealed(true)} />}
+      {unsealed && <div className="pack-reveal">
+        {!finished && current && (
           <>
-            <Flip key={`${current.card.id}-${shown}`}>
-              <CardFace card={current.card} size="lg" />
-            </Flip>
-            <div className="row" style={{ gap: 8, flexDirection: 'column' }}>
-              <span
-                className={`tag ${current.card.rarity === 'mythic' ? 'holo'
-                  : current.card.rarity === 'gold' ? 't1' : 't2'}`}
-              >
-                {RARITY_CN[current.card.rarity]}
+            <div
+              key={`${current.card.id}-${shown}`}
+              className={`pack-card-focus rarity-${current.card.rarity}${faceUp ? ' revealed' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-label={faceUp
+                ? last ? '当前卡已翻开' : '查看下一张卡背'
+                : `翻开第 ${shown} 张卡`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  advanceReveal()
+                }
+              }}
+            >
+              <span className="pack-rarity-motes" aria-hidden="true">
+                {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
-              {isPlayerCard(current.card) && current.card.legend && (
-                <span className="small" style={{ color: '#e9dcff', textAlign: 'center' }}>
-                  <b>{current.card.legend.title}</b>
-                  <br />
-                  <span className="tiny muted">{current.card.legend.note}</span>
-                </span>
-              )}
-              {current.dupe && <span className="tiny muted">重复 · 可分解 {current.salvage} 金币</span>}
+              <Flip revealed={faceUp}>
+                <CardFace card={current.card} size="lg" />
+              </Flip>
             </div>
-            {single ? actions : <div className="pack-hint">{shown}/{pulled.length} · 点任意位置继续</div>}
+            <div className="pack-card-meta-slot">
+              {faceUp && <div className="pack-card-meta row" style={{ gap: 8, flexDirection: 'column' }}>
+                <span className={`tag ${current.card.rarity === 'mythic' ? 'holo'
+                  : current.card.rarity === 'gold' ? 't1' : 't2'}`}
+                >
+                  {RARITY_CN[current.card.rarity]}
+                </span>
+                {isPlayerCard(current.card) && current.card.legend && (
+                  <span className="small" style={{ color: '#e9dcff', textAlign: 'center' }}>
+                    <b>{current.card.legend.title}</b>
+                    <br />
+                    <span className="tiny muted">{current.card.legend.note}</span>
+                  </span>
+                )}
+                {current.dupe && <span className="tiny muted">重复 · 可分解 {current.salvage} 金币</span>}
+              </div>}
+            </div>
+            {single && faceUp ? actions : (
+              <div className="pack-hint" aria-live="polite">
+                {shown}/{pulled.length} · {!faceUp
+                  ? '点击卡背翻开'
+                  : last ? '再点一次查看全部' : '再点一次查看下一张卡背'}
+              </div>
+            )}
           </>
         )}
-        {finished && !single && (
+        {finished && (
           <>
             <div className="pack-strip">
               {pulled.map((p, i) => (
@@ -388,7 +427,167 @@ function PackStage({
             {actions}
           </>
         )}
+      </div>}
+    </div>
+  )
+}
+
+const REST_POSE = { x: -2.2, y: -4.5 }
+
+/** A real pointer-driven foil seal before the first card is revealed. */
+function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) {
+  const [progress, setProgress] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const [torn, setTorn] = useState(false)
+  const [pose, setPose] = useState(REST_POSE)
+  const startX = useRef(0)
+  const startProgress = useRef(0)
+  const dragWidth = useRef(1)
+  const packRect = useRef<DOMRect | null>(null)
+  const progressRef = useRef(0)
+  const tornRef = useRef(false)
+  const timer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+  }, [])
+
+  const tear = () => {
+    if (tornRef.current) return
+    tornRef.current = true
+    progressRef.current = 1
+    setProgress(1)
+    setDragging(false)
+    setTorn(true)
+    setPose({ x: 0, y: 0 })
+    playPackCue('tear')
+    if ('vibrate' in navigator) navigator.vibrate([18, 28, 35])
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    timer.current = window.setTimeout(() => {
+      playPackCue('reveal')
+      onOpen()
+    }, reduced ? 80 : 1000)
+  }
+
+  const down = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (torn) return
+    e.stopPropagation()
+    // capture keeps the drag alive past the pack's edge; a browser that refuses
+    // it still gets the drag while the pointer stays over the pack
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* no capture: see above */ }
+    startX.current = e.clientX
+    startProgress.current = progress
+    const rect = e.currentTarget.getBoundingClientRect()
+    packRect.current = rect
+    dragWidth.current = rect.width
+    setDragging(true)
+    playPackCue('grab')
+  }
+
+  const poseAt = (clientX: number, clientY: number) => {
+    const rect = packRect.current
+    if (!rect) return
+    const nx = Math.max(-1, Math.min(1, (clientX - rect.left) / rect.width * 2 - 1))
+    const ny = Math.max(-1, Math.min(1, (clientY - rect.top) / rect.height * 2 - 1))
+    setPose({ x: ny * -3.4, y: nx * 6.5 })
+  }
+
+  const move = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (torn) return
+    poseAt(e.clientX, e.clientY)
+    if (!dragging) return
+    e.stopPropagation()
+    const next = Math.max(0, Math.min(1, startProgress.current + (e.clientX - startX.current) / (dragWidth.current * .72)))
+    progressRef.current = next
+    setProgress(next)
+    if (next >= .94) tear()
+  }
+
+  const up = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    if (!dragging || torn) return
+    setDragging(false)
+    if (progressRef.current >= .68) tear()
+    else {
+      progressRef.current = 0
+      setProgress(0)
+      setPose(REST_POSE)
+    }
+  }
+
+  const cancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    if (torn) return
+    progressRef.current = 0
+    setProgress(0)
+    setDragging(false)
+    setPose(REST_POSE)
+  }
+
+  return (
+    <div className={`pack-tear-scene${torn ? ' torn' : ''}`}>
+      <div className="pack-tear-aura" aria-hidden="true" />
+      <div className="pack-tear-kicker">新卡包已送达</div>
+      <div
+        className={`pack-wrapper${dragging ? ' dragging' : ''}`}
+        style={{
+          '--tear': progress,
+          '--pack-rx': `${pose.x}deg`,
+          '--pack-ry': `${pose.y}deg`,
+          '--pack-lift': `${-progress * 2}px`,
+          '--foil-light-x': `${Math.max(20, Math.min(80, 50 + pose.y * 4))}%`,
+        } as React.CSSProperties}
+        role="button"
+        tabIndex={0}
+        aria-label="向右划开卡包"
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={cancel}
+        onPointerEnter={(e) => { packRect.current = e.currentTarget.getBoundingClientRect() }}
+        onPointerLeave={() => { if (!dragging && !torn) setPose(REST_POSE) }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            tear()
+          }
+        }}
+      >
+        <div className="pack-depth" aria-hidden="true">
+          <span className="pack-backplate" />
+          <span className="pack-side pack-side-left" />
+          <span className="pack-side pack-side-right" />
+          <span className="pack-side pack-side-bottom" />
+        </div>
+        <div className="pack-card-emerge" aria-hidden="true"><CardBack /></div>
+        <div className="pack-foil pack-foil-top" aria-hidden="true">
+          <span className="pack-crimp" />
+          <span className="pack-serial">VM // SEALED</span>
+        </div>
+        <div className="pack-foil pack-foil-body" aria-hidden="true">
+          <span className="pack-volume" />
+          <span className="pack-edge-seam pack-edge-seam-left" />
+          <span className="pack-edge-seam pack-edge-seam-right" />
+          <span className="pack-crosshair" />
+          <span className="pack-wordmark">VAL<br />MANAGER</span>
+          <span className="pack-edition">PLAYER ARCHIVE</span>
+          <span className="pack-count"><b>{String(count).padStart(2, '0')}</b> FILE{count === 1 ? '' : 'S'}</span>
+          <span className="pack-classified">机密档案 · 单次启封</span>
+          <span className="pack-bottom-code">TACTICAL SERIES　/　01</span>
+          <span className="pack-bottom-crimp" />
+        </div>
+        <div className="pack-tear-track" aria-hidden="true">
+          <span className="pack-tear-cut" />
+          <span className="pack-tear-tab">››</span>
+        </div>
+        <div className="pack-foil-shards" aria-hidden="true">
+          {Array.from({ length: 7 }, (_, i) => <i key={i} />)}
+        </div>
       </div>
+      <div className="pack-tear-instruction" aria-live="polite">
+        {torn ? '封条已破坏' : progress > 0 ? '继续向右划' : '按住封条，向右划开'}
+      </div>
+      <div className="pack-tear-sub">鼠标、触屏均可操作 · 键盘按 Enter</div>
     </div>
   )
 }

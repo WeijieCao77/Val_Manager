@@ -271,8 +271,30 @@ function CoachBody({ card, size, footer }: { card: CoachCard; size: string; foot
 export function CardBack() {
   return (
     <div className="cardback">
-      <div className="cb-mark">开瓦包</div>
-      <div className="cb-sub">VAL CARDS</div>
+      <span className="cb-frame" aria-hidden="true" />
+      <span className="cb-coordinate cb-coordinate-left" aria-hidden="true">04　12　08</span>
+      <span className="cb-coordinate cb-coordinate-right" aria-hidden="true">N° 001</span>
+      <div className="cb-topline">
+        <span>VM // PLAYER ARCHIVE</span>
+        <b>ACTIVE</b>
+      </div>
+      <div className="cb-core" aria-hidden="true">
+        <span className="cb-orbit cb-orbit-outer" />
+        <span className="cb-orbit cb-orbit-inner" />
+        <span className="cb-axis cb-axis-x" />
+        <span className="cb-axis cb-axis-y" />
+        <span className="cb-emblem" />
+        <span className="cb-core-dot" />
+      </div>
+      <div className="cb-identity">
+        <div className="cb-mark">开瓦包</div>
+        <div className="cb-sub">TACTICAL CARD SYSTEM</div>
+      </div>
+      <div className="cb-footer">
+        <span>VAL MANAGER</span>
+        <span className="cb-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+        <b>SEALED</b>
+      </div>
     </div>
   )
 }
