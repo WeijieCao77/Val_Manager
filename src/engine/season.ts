@@ -23,7 +23,7 @@ import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
-import { drawRules } from './ruleset'
+import { CHAMPIONS_2025, drawRules } from './ruleset'
 import {
   createPlayoffPick, drawChampionsGroups, drawChampionsPlayoffs, drawKickoffBracket, drawStageGroups,
   drawStageReshuffle, drawSwissRound, drawsOf, resolvePicks, resetDrawSeq,
@@ -423,14 +423,18 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
 function openKickoffDraw(state: GameState, comp: Competition, region: Region): void {
   void region
   const t1 = comp.teams
-  const last = (state.lastChampionsTeams ?? []).filter((id) => t1.includes(id)).slice(0, 4)
+  // last year's Champions field from the save; in a career's first season,
+  // the real Champions 2025 field from the records
+  const firstYear = !(state.lastChampionsTeams?.length)
+  const source = firstYear ? CHAMPIONS_2025 : state.lastChampionsTeams ?? []
+  const last = source.filter((id) => t1.includes(id)).slice(0, 4)
   const byRep = t1.slice().sort((a, b) => (state.teams[b]?.reputation ?? 0) - (state.teams[a]?.reputation ?? 0))
   const byes = last.slice()
   for (const id of byRep) if (byes.length < 4 && !byes.includes(id)) byes.push(id)
   const first = t1.filter((id) => !byes.includes(id))
   const ev = drawKickoffBracket(state, comp, byes, first)
-  if (last.length < 4) ev.log.unshift(last.length ? `上届 Champions 只有 ${last.length} 队仍在本赛区，其余轮空位按俱乐部声望补足`
-    : '本赛区没有上届 Champions 记录（生涯第一年），四个轮空位按俱乐部声望确定')
+  ev.log.unshift(firstYear ? `轮空位给 2025 Champions 的参赛队：${last.map((t) => state.teams[t]?.tag).join('、')}` : `轮空位给上届 Champions 的参赛队：${last.map((t) => state.teams[t]?.tag).join('、')}`)
+  if (last.length < 4) ev.log.unshift(`上届 Champions 只有 ${last.length} 队仍在本赛区，其余轮空位按俱乐部声望补足`)
   if (comp.region && comp.region !== state.teams[state.myTeam]?.region) ev.watched = true
   comp.format = 'triple'
   comp.seeds = ev.outcome.seeds

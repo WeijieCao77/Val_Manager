@@ -14,14 +14,15 @@
  *
  * The one that surprises people most is 忠诚度, which does not move at all.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { currentRuleset } from '../engine/ruleset'
 import Rich from './rich'
 import { POINTS_NOTE, qualifyRule } from '../engine/qualify'
 
 interface Line { t: string; d: string }
 interface Section { key: string; title: string; lede: string; up?: Line[]; down?: Line[]; use: string[]; useTitle?: string }
 
-const SECTIONS: Section[] = [
+const buildSections = (drawn: boolean): Section[] => [
   {
     key: 'format',
     title: '赛制与晋级',
@@ -29,12 +30,14 @@ const SECTIONS: Section[] = [
       + '每个赛区的赛段先打循环赛排名，再打季后赛；国际赛事的名额全部从季后赛名次和全年积分里来。'
       + '积分榜页最上面的「晋级形势」会随时告诉你差什么。',
     use: [
-      `<b>Kickoff</b>：${qualifyRule('kickoff')}`,
-      `<b>Stage 1</b>：${qualifyRule('stage1')}`,
-      `<b>Stage 2</b>：${qualifyRule('stage2')}`,
+      `<b>Kickoff</b>：${qualifyRule('kickoff', drawn)}`,
+      `<b>Stage 1</b>：${qualifyRule('stage1', drawn)}`,
+      `<b>Stage 2</b>：${qualifyRule('stage2', drawn)}`,
       '<b>Masters</b>（12 队）：4 支赛区冠军直接进季后赛；8 支第 2、3 名先打<b>瑞士轮</b>——三轮 BO3，两胜晋级、两负出局，出 4 队。'
+        + (drawn ? '瑞士轮每轮抽签：首轮二号种子对不同赛区的三号种子，之后按战绩分池，第三轮不重赛；瑞士轮打完，四个赛区冠军抽顺序、依次挑八强对手（轮到你的队就由你选）。' : '')
         + '八强<b>双败淘汰</b>：胜者组输一场掉进败者组，败者组再输才出局；败者组决赛和总决赛 BO5，其余 BO3。',
-      '<b>Champions</b>（16 队）：每赛区 4 队，分 4 个小组（GSL：开局赛、胜者赛、败者赛、决胜赛，每组前 2 出线），八强同样双败淘汰。',
+      '<b>Champions</b>（16 队）：每赛区 4 队，分 4 个小组（GSL：开局赛、胜者赛、败者赛、决胜赛，每组前 2 出线），八强同样双败淘汰。'
+        + (drawn ? '分组按四档抽签，每组四个赛区各一队；小组赛后再抽八强，小组第一对不同组的小组第二，同组的两队分在不同半区。' : ''),
       POINTS_NOTE,
     ],
     useTitle: '每一段怎么打',
@@ -265,6 +268,8 @@ const SECTIONS: Section[] = [
 ]
 
 export default function Rules({ raised = false }: { raised?: boolean }) {
+  // the rulebook of the address this career is played at
+  const SECTIONS = useMemo(() => buildSections(currentRuleset() === 'vct-2026'), [])
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState(SECTIONS[0].key)
 

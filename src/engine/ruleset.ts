@@ -41,3 +41,18 @@ export const drawRules = (state: Pick<GameState, 'rulesetId'>): boolean => rules
 let current: RulesetId = 'vct-2025'
 export const setCurrentRuleset = (id: RulesetId): void => { current = id }
 export const currentRuleset = (): RulesetId => current
+
+/**
+ * Who played Champions 2025, by club id — the sides that sit out the first
+ * round of the 2026 Kickoff. Read off records.json (event 2283, "Valorant
+ * Champions 2025": every player with a placing there, and the club he
+ * played it for), so a career's first season uses the real byes; from the
+ * second season on it is the save's own Champions field. check_draws holds
+ * this list against the records.
+ */
+export const CHAMPIONS_2025: string[] = [
+  'T1', 'T2', 'T3', 'T4',      // NRG, G2, MIBR, SEN
+  'T13', 'T14', 'T16', 'T18',  // TH, FNC, GX, TL
+  'T24', 'T25', 'T28', 'T32',  // PRX, T1, KRX, RRQ
+  'T36', 'T37', 'T42', 'T46',  // EDG, XLG, BLG, DRG
+]

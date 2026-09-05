@@ -18,7 +18,9 @@
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { SEASON_DAYS, advanceDay, setupSeason } from '../src/engine/season'
-import { setCurrentRuleset } from '../src/engine/ruleset'
+import { CHAMPIONS_2025, setCurrentRuleset } from '../src/engine/ruleset'
+import { readFileSync } from 'node:fs'
+import { WORLD_PLAYERS } from '../src/engine/world'
 import { drawsOf, choosePick, pickerNow } from '../src/engine/draw'
 import { REGIONS } from '../src/engine/types'
 import type { GameState, Fixture } from '../src/engine/types'
@@ -31,6 +33,19 @@ const loserOf = (f: Fixture) => (f.result!.mapsWonA > f.result!.mapsWonB ? f.tea
 const nameOf = (f: Fixture) => f.label.split(':')[2] ?? ''
 
 setCurrentRuleset('vct-2026')
+
+// ---- the Champions 2025 field the first Kickoff uses is what the records say
+{
+  const rec = JSON.parse(readFileSync(new URL('../src/data/records.json', import.meta.url), 'utf8')) as { players: Record<string, { ev?: [string, string, string, string][] }> }
+  const names = new Set<string>()
+  for (const p of Object.values(rec.players)) for (const e of p.ev ?? []) if (String(e[0]) === '2283') names.add(e[2])
+  const byName = new Map(WORLD_TEAMS.map((t) => [t.name, t.id]))
+  const ids = [...names].map((n) => byName.get(n) ?? WORLD_TEAMS.find((t) => n.toLowerCase().startsWith(t.name.toLowerCase()) || t.name.toLowerCase().startsWith(n.toLowerCase()))?.id).filter((x): x is string => !!x)
+  console.log('Champions 2025 in the records')
+  check(ids.length === 16 && ids.every((id) => CHAMPIONS_2025.includes(id)) && CHAMPIONS_2025.every((id) => ids.includes(id)),
+    `sixteen sides, and CHAMPIONS_2025 names exactly them (${ids.length} matched)`)
+  void WORLD_PLAYERS
+}
 
 function playSeason(g: GameState): void {
   let guard = 0
@@ -53,8 +68,8 @@ for (let i = 0; i < N; i++) {
     const ev = drawsOf(g, kc.key).find((d) => d.kind === 'kickoff-bracket')!
     const seeds = ev.outcome.seeds ?? []
     check(kc.format === 'triple' && seeds.length === 12 && new Set(seeds).size === 12, `${region} Kickoff: twelve seeds drawn, each once`)
-    const byRep = kc.teams.slice().sort((a, b) => g.teams[b].reputation - g.teams[a].reputation).slice(0, 4)
-    check(byRep.every((t) => kc.byes?.includes(t)), `${region}: first-year byes are the four best-regarded (${byRep.map((t) => tag(g, t)).join('/')})`)
+    const real = CHAMPIONS_2025.filter((t) => kc.teams.includes(t))
+    check(real.length === 4 && real.every((t) => kc.byes?.includes(t)), `${region}: first-year byes are the Champions 2025 sides (${real.map((t) => tag(g, t)).join('/')})`)
     const wave1 = g.fixtures.filter((f) => f.comp === kc.key)
     check(wave1.length === 4 && wave1.every((f) => !kc.byes?.includes(f.teamA) && !kc.byes?.includes(f.teamB)), `${region}: four opening ties, no bye side in them`)
   }

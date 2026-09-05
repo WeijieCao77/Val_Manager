@@ -96,8 +96,11 @@ export default function Schedule() {
       for (const r of eventRounds(game, comp)) {
         if (r.drawn) continue
         const ours = inRegional?.comp.key === comp.key && inRegional.day === r.day
+        // our own row names the round we are actually in — a side on a bye
+        // is in 胜者组第二轮, not in the wave's 「胜者组第二轮 / 中段组第一轮」
         rows.push({
-          key: `${comp.key}:${r.name}`, day: r.day, comp: comp.name, round: r.name,
+          key: `${comp.key}:${r.name}`, day: r.day, comp: comp.name,
+          round: ours ? inRegional!.round.replace(/^季后赛 /, '') : r.name,
           a: ours ? me : undefined, other: !ours, pending: ours ? '对手待定' : '待定 vs 待定',
         })
       }
