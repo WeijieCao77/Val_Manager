@@ -811,6 +811,9 @@ def main():
     agent_pools = load_json(AGENTS_F)
     ov = load_json(OVERRIDES)
     ov_igl = ov.get("igl", {})
+    # players the owner has struck from the database, by ign: left out of the
+    # world entirely, not made free agents (KovaQ came back that way once)
+    dropped = {str(n).lower() for n in (ov.get("drop") or [])}
     ov_roles = ov.get("roles", {})
     for key, fixed in (ov.get("coaches") or {}).items():
         coaches[key] = {**coaches.get(key, {}), **fixed}
@@ -1372,6 +1375,8 @@ def main():
 
     def emit(p, team_id, tier, region):
         nonlocal kept_ids
+        if p["ign"].lower() in dropped:
+            return
         pid = prev_pid.get(p["ign"].lower())
         if pid and pid in issued_p and pid not in {r["id"] for r in out_players}:
             kept_ids += 1
@@ -1498,21 +1503,26 @@ def main():
         override_key = tag if tag in ov_igl else display if display in ov_igl else None
         named = ov_igl.get(override_key) if override_key else lp.get("igl")
         explicitly_unknown = override_key is not None and not named
-        igl = None
-        if named:
-            igl = next((p for p in squad if p["ign"].lower() == str(named).lower()), None)
-            if igl is None:
+        # an override may name two callers (TEC: Haodong and lucas); every
+        # name that is on the roster is flagged
+        names = named if isinstance(named, list) else [named] if named else []
+        igls = []
+        for name in names:
+            found = next((p for p in squad if p["ign"].lower() == str(name).lower()), None)
+            if found is not None:
+                igls.append(found)
+            else:
                 # The infobox named someone this club does not field. That is a
                 # conflict between two scraped facts, not an absence, and the
                 # build used to resolve it by quietly guessing — which is how
                 # JDG ended up calling through jkuro when Liquipedia said
                 # coconut (who plays elsewhere) and BerLIN actually calls.
-                stale_igl.append((tag, str(named)))
-        if igl is None and not explicitly_unknown:
-            igl = max(squad, key=lambda p: p["attrs"]["igl"] +
-                      (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
+                stale_igl.append((tag, str(name)))
+        if not igls and not explicitly_unknown:
+            igls = [max(squad, key=lambda p: p["attrs"]["igl"] +
+                        (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))]
             guessed_igl.append(tag)
-        if igl is not None:
+        for igl in igls:
             igl["isIgl"] = True
             igl["iglSource"] = "verified" if named else "inferred"
             igl["attrs"]["igl"] = int(clamp(igl["attrs"]["igl"] + 12, 40, 99))

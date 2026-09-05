@@ -202,15 +202,18 @@ def main() -> int:
     # to call — Boaster priced at 71 on an 87-rated FNATIC until this rule.
     weak_callers = []
     for t in teams:
-        caller = next((P[r] for r in t["roster"] if r in P and P[r].get("isIgl")), None)
-        if caller and caller["attrs"]["igl"] < min(t["rating"], 96) - 2:
-            weak_callers.append((t["tag"], t["rating"], caller["ign"], caller["attrs"]["igl"]))
+        for caller in (P[r] for r in t["roster"] if r in P and P[r].get("isIgl")):
+            if caller["attrs"]["igl"] < min(t["rating"], 96) - 2:
+                weak_callers.append((t["tag"], t["rating"], caller["ign"], caller["attrs"]["igl"]))
     check("a designated caller calls at his club's level", not weak_callers,
           str(weak_callers[:4]))
 
+    # one caller, unless the hand-verified table says a club has none (None)
+    # or names two (a list — TEC calls through Haodong and lucas)
     unknown_igl = {tag for tag, name in ov_igl.items() if name is None}
+    expected_igl = {tag: len(name) for tag, name in ov_igl.items() if isinstance(name, list)}
     bad_igl_counts = [(tag, n) for tag, n in igl_counts
-                      if n != (0 if tag in unknown_igl else 1)]
+                      if n != (0 if tag in unknown_igl else expected_igl.get(tag, 1))]
     check("one IGL per club unless the source explicitly says unknown",
           not bad_igl_counts, str(bad_igl_counts[:5]))
 
@@ -346,9 +349,10 @@ def main() -> int:
         t = by_tag.get(tag)
         if not t:
             continue
-        caller = next((P[r]["ign"] for r in t["roster"] if r in P and P[r].get("isIgl")), None)
-        if caller != want:
-            lost_igl.append((tag, want, caller))
+        callers = sorted(P[r]["ign"] for r in t["roster"] if r in P and P[r].get("isIgl"))
+        wanted = sorted(want) if isinstance(want, list) else [want] if want else []
+        if callers != wanted:
+            lost_igl.append((tag, want, callers))
     check("every hand-verified IGL state survives into the world", not lost_igl, str(lost_igl[:4]))
 
     lost_coaches = []
