@@ -77,6 +77,113 @@ export const DOUBLE_4: Wave[] = [
   [{ name: GF, slots: [{ a: W(UBF, 0), b: W(LBF, 0), bo: 5 }] }],
 ]
 
+/**
+ * The 2026 Kickoff: twelve sides, three lives each.
+ *
+ * Eight drawn into the opening round, four (last year's Champions sides)
+ * drawn into the second round's byes. A first loss drops a side into the
+ * middle bracket, a second into the lower, a third sends it home. There is
+ * no grand final: the upper, middle and lower brackets each end in a final
+ * of their own, and their winners are the region's three Masters seeds in
+ * that order. Thirty ties over nine waves; the three finals are BO5.
+ *
+ * Seeds: the eight opening-round sides in slot order, then the four byes.
+ * Sides that wait a wave — the upper semi-final losers, the upper final's
+ * loser — wait; a real bracket has such gaps too.
+ */
+export const KU1 = '胜者组第一轮'
+export const KU2 = '胜者组第二轮'
+export const KUSF = '胜者组半决赛'
+export const KUF = '胜者组决赛'
+export const KM1 = '中段组第一轮'
+export const KM2 = '中段组第二轮'
+export const KM3 = '中段组第三轮'
+export const KM4 = '中段组第四轮'
+export const KMSF = '中段组半决赛'
+export const KMF = '中段组决赛'
+export const KL1 = '败者组第一轮'
+export const KL2 = '败者组第二轮'
+export const KL3 = '败者组第三轮'
+export const KL4 = '败者组第四轮'
+export const KL5 = '败者组第五轮'
+export const KLSF = '败者组半决赛'
+export const KLF = '败者组决赛'
+
+export const TRIPLE_12: Wave[] = [
+  [{ name: KU1, slots: [{ a: S(1), b: S(2) }, { a: S(3), b: S(4) }, { a: S(5), b: S(6) }, { a: S(7), b: S(8) }] }],
+  [
+    { name: KU2, slots: [{ a: W(KU1, 0), b: S(9) }, { a: W(KU1, 1), b: S(10) }, { a: W(KU1, 2), b: S(11) }, { a: W(KU1, 3), b: S(12) }] },
+    { name: KM1, slots: [{ a: L(KU1, 0), b: L(KU1, 1) }, { a: L(KU1, 2), b: L(KU1, 3) }] },
+  ],
+  [
+    { name: KUSF, slots: [{ a: W(KU2, 0), b: W(KU2, 1) }, { a: W(KU2, 2), b: W(KU2, 3) }] },
+    { name: KM2, slots: [{ a: L(KU2, 0), b: L(KU2, 1) }, { a: L(KU2, 2), b: L(KU2, 3) }] },
+    { name: KL1, slots: [{ a: L(KM1, 0), b: L(KM1, 1) }] },
+  ],
+  [
+    { name: KUF, slots: [{ a: W(KUSF, 0), b: W(KUSF, 1), bo: 5 }] },
+    { name: KM3, slots: [{ a: W(KM1, 0), b: W(KM2, 1) }, { a: W(KM1, 1), b: W(KM2, 0) }] },
+    { name: KL2, slots: [{ a: L(KM2, 0), b: L(KM2, 1) }] },
+  ],
+  [
+    { name: KM4, slots: [{ a: W(KM3, 0), b: L(KUSF, 1) }, { a: W(KM3, 1), b: L(KUSF, 0) }] },
+    { name: KL3, slots: [{ a: W(KL1, 0), b: W(KL2, 0) }, { a: L(KM3, 0), b: L(KM3, 1) }] },
+  ],
+  [
+    { name: KMSF, slots: [{ a: W(KM4, 0), b: W(KM4, 1) }] },
+    { name: KL4, slots: [{ a: W(KL3, 0), b: W(KL3, 1) }, { a: L(KM4, 0), b: L(KM4, 1) }] },
+  ],
+  [
+    { name: KMF, slots: [{ a: L(KUF, 0), b: W(KMSF, 0), bo: 5 }] },
+    { name: KL5, slots: [{ a: W(KL4, 0), b: W(KL4, 1) }] },
+  ],
+  [{ name: KLSF, slots: [{ a: W(KL5, 0), b: L(KMSF, 0) }] }],
+  [{ name: KLF, slots: [{ a: W(KLSF, 0), b: L(KMF, 0), bo: 5 }] }],
+]
+/** Placings: the three finals' winners, then the lower bracket's fallen from the last out. */
+export const TRIPLE_12_PLACES: Src[] = [
+  W(KUF, 0), W(KMF, 0), W(KLF, 0), L(KLF, 0), L(KLSF, 0), L(KL5, 0),
+  L(KL4, 0), L(KL4, 1), L(KL3, 0), L(KL3, 1), L(KL2, 0), L(KL1, 0),
+]
+/** The rounds that end a Kickoff bracket lane — the winners qualify. */
+export const isMiddleLabel = (name: string): boolean => name.startsWith('中段组')
+
+/**
+ * A 2026 stage's playoff: eight from the two groups. Seeds in the order
+ * [Alpha 1st, Omega 1st, Alpha 2nd, Omega 2nd, Alpha 3rd, Omega 3rd,
+ * Alpha 4th, Omega 4th]. The group winners sit out the opening round; the
+ * seconds and thirds cross groups in it; the fourths start in the lower
+ * bracket against the opening round's losers. From there the shape is the
+ * eight-team double elimination. Lower final and final are BO5.
+ */
+export const STAGE_8: Wave[] = [
+  [{ name: UB1, slots: [{ a: S(3), b: S(6) }, { a: S(4), b: S(5) }] }],
+  [
+    { name: UB2, slots: [{ a: S(1), b: W(UB1, 1) }, { a: S(2), b: W(UB1, 0) }] },
+    { name: LB1, slots: [{ a: S(8), b: L(UB1, 0) }, { a: S(7), b: L(UB1, 1) }] },
+  ],
+  [
+    { name: UBF, slots: [{ a: W(UB2, 0), b: W(UB2, 1) }] },
+    { name: LB2, slots: [{ a: L(UB2, 0), b: W(LB1, 1) }, { a: L(UB2, 1), b: W(LB1, 0) }] },
+  ],
+  [{ name: LBSF, slots: [{ a: W(LB2, 0), b: W(LB2, 1) }] }],
+  [{ name: LBF, slots: [{ a: L(UBF, 0), b: W(LBSF, 0), bo: 5 }] }],
+  [{ name: GF, slots: [{ a: W(UBF, 0), b: W(LBF, 0), bo: 5 }] }],
+]
+export const STAGE_8_PLACES: Src[] = [
+  W(GF, 0), L(GF, 0), L(LBF, 0), L(LBSF, 0), L(LB2, 0), L(LB2, 1), L(LB1, 0), L(LB1, 1),
+]
+
+/**
+ * A Masters' eight after the pick: seeds in pairs, [champion, its pick] ×
+ * 4 in the order chosen, so the quarter-finals are the pairs made and ties
+ * 1–2 and 3–4 share a half. From the second wave on it is DOUBLE_8.
+ */
+export const MASTERS_8: Wave[] = [
+  [{ name: UB1, slots: [{ a: S(1), b: S(2) }, { a: S(3), b: S(4) }, { a: S(5), b: S(6) }, { a: S(7), b: S(8) }] }],
+  ...DOUBLE_8.slice(1),
+]
+
 /** Where a template's teams finish, best first: the winner of the last named
  *  slot, then its loser, then the losers of each earlier lower-bracket round
  *  from the latest back. */
@@ -194,6 +301,36 @@ export function advanceTemplate(
   return out
 }
 
+/**
+ * Where a side plays next in a templated bracket, before the tie exists:
+ * the wave (1-based, before `offset` is added) and round whose slot is fed
+ * by its last result — or by its seed, before it has played. Null when it
+ * is out or the template has nothing more for it.
+ */
+export function projectNext(
+  template: Wave[], seeds: string[], ko: Fixture[], me: string,
+): { wave: number; name: string } | null {
+  const mine = ko.filter((f) => (f.teamA === me || f.teamB === me)).sort((a, b) => waveOf(a) - waveOf(b))
+  const last = mine[mine.length - 1]
+  if (last && !last.played) return null
+  const feeds = (src: Src): boolean => {
+    if ('seed' in src) return !last && seeds[src.seed - 1] === me
+    const [name, idx] = 'w' in src ? src.w : src.l
+    if (!last || nameOf(last) !== name) return false
+    const same = ko.filter((x) => nameOf(x) === name)
+    if (same.indexOf(last) !== idx) return false
+    return 'w' in src ? winnerOf(last) === me : loserOf(last) === me
+  }
+  for (let w = 0; w < template.length; w++) {
+    for (const round of template[w]) {
+      for (const slot of round.slots) {
+        if (feeds(slot.a) || feeds(slot.b)) return { wave: w + 1, name: round.name }
+      }
+    }
+  }
+  return null
+}
+
 /** Has every wave of a template been played? */
 export function templateDone(state: GameState, comp: Competition, template: Wave[], offset = 0): boolean {
   const mine = koOf(state, comp).filter((f) => waveOf(f) > offset)
@@ -216,6 +353,11 @@ export const championsGroups = (): Wave[] =>
 /** The template a competition's playoff runs on, by its field. */
 export const doubleFor = (n: number): { template: Wave[]; places: Src[] } =>
   n >= 8 ? { template: DOUBLE_8, places: DOUBLE_8_PLACES } : { template: DOUBLE_4, places: DOUBLE_4_PLACES }
+
+/** The vct-2026 templates: a triple-elimination Kickoff, a grouped stage's eight, a Masters' picked eight. */
+export const tripleTemplate = (): { template: Wave[]; places: Src[] } => ({ template: TRIPLE_12, places: TRIPLE_12_PLACES })
+export const stageTemplate = (): { template: Wave[]; places: Src[] } => ({ template: STAGE_8, places: STAGE_8_PLACES })
+export const mastersTemplate = (): { template: Wave[]; places: Src[] } => ({ template: MASTERS_8, places: DOUBLE_8_PLACES })
 
 // ---------------------------------------------------------------- Swiss
 

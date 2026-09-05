@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useGame } from './ctx'
 import { OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
-import { sortStandings } from '../engine/league'
+import { groupTable, sortStandings } from '../engine/league'
+import { DRAW_KIND_CN, drawsOf } from '../engine/draw'
 import { PLAYOFF_CUT, STAGES } from '../engine/season'
 import { POINTS_NOTE, qualification } from '../engine/qualify'
 import { ratingOf } from '../engine/match'
@@ -10,11 +11,14 @@ import { statLine } from '../engine/player'
 import { REGION_CN, REGIONS } from '../engine/types'
 import type { Competition } from '../engine/types'
 
-function Table({ comp }: { comp: Competition }) {
+function Table({ comp, members, cut: cutOverride }: { comp: Competition; members?: string[]; cut?: number }) {
   const { game, openPlayer } = useGame()
   void openPlayer
   const concluded = !!comp.champion && comp.finished.length > 0
-  const order = concluded ? comp.finished : sortStandings(comp)
+  // a drawn group is its own table: the competition's rows, its members only
+  const order = members
+    ? (concluded ? comp.finished.filter((id) => members.includes(id)) : groupTable(comp, members))
+    : concluded ? comp.finished : sortStandings(comp)
   const hasPlayed = Object.values(comp.standings).some((r) => r.w + r.l > 0)
 
   // where each club went out, so a strong regular season that ended early reads
@@ -42,7 +46,7 @@ function Table({ comp }: { comp: Competition }) {
           {order.map((id, i) => {
             const r = comp.standings[id]
             if (!r) return null
-            const cut = Math.min(PLAYOFF_CUT[comp.stage] ?? 8, order.length)
+            const cut = Math.min(cutOverride ?? PLAYOFF_CUT[comp.stage] ?? 8, order.length)
             return (
               <tr key={id} className={id === game.myTeam ? 'me' : ''}>
                 <td className="num muted">
@@ -150,19 +154,39 @@ export default function Standings() {
               title={`${c.name}${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}
               flush
             >
-              <Table comp={c} />
+              {c.format === 'triple' ? (
+                <p className="tiny faint" style={{ padding: '9px 13px', margin: 0 }}>
+                  三败淘汰：十二队，输三场出局。胜者组、中段组、败者组各有一场决赛，三个冠军就是本赛区去 Masters 的三个名额（依次为第 1、2、3 种子）。
+                  上届 Champions 的四队轮空到胜者组第二轮，其余八队抽签进入首轮。
+                </p>
+              ) : c.grouped && c.groups ? (
+                <div className="grid c2" style={{ gap: 0 }}>
+                  {c.groups.map((g, i) => (
+                    <div key={i}>
+                      <div className="nav-group" style={{ padding: '8px 13px 4px' }}>{c.groupNames?.[i] ?? ['Alpha', 'Omega'][i]} 组 · 前 4 进季后赛</div>
+                      <Table comp={c} members={g} cut={4} />
+                    </div>
+                  ))}
+                </div>
+              ) : c.grouped ? (
+                <div className="empty">分组要等 {c.stage === 'stage1' ? 'Kickoff' : 'Stage 1'} 打完抽签才定。</div>
+              ) : (
+                <Table comp={c} />
+              )}
               {c.bracketStarted && (
                 <div style={{ padding: '12px 13px', borderTop: '1px solid var(--line)' }}>
                   <div className="nav-group" style={{ padding: '0 0 8px' }}>
-                    季后赛对阵{c.format === 'double' ? ' · 双败淘汰' : ''}
+                    {c.format === 'triple' ? '签表 · 三败淘汰' : `季后赛对阵${c.format === 'double' ? ' · 双败淘汰' : ''}`}
                   </div>
                   <Bracket comp={c} />
                 </div>
               )}
+              <DrawHistory comp={c} />
             </Panel>
           ) : (
             <Panel key={c.key} title={`${c.name}（国际赛事${c.city ? ` · ${c.city}` : ''}）${c.champion ? ` · 冠军 ${game.teams[c.champion]?.name}` : ''}`}>
               <Bracket comp={c} />
+              <DrawHistory comp={c} />
               {!!c.champion && c.finished.length > 0 && (
                 <details style={{ marginTop: 12 }}>
                   <summary className="small muted" style={{ cursor: 'pointer' }}>最终排名</summary>
@@ -232,5 +256,40 @@ export default function Standings() {
         </Panel>
       )}
     </>
+  )
+}
+
+/**
+ * The draws a competition ran, kept where the bracket is: the pots, every
+ * ball in order with any forced placement's reason, and who chose whom.
+ * A draw not yet watched can be opened from here too.
+ */
+function DrawHistory({ comp }: { comp: Competition }) {
+  const { game, openDraw } = useGame()
+  const draws = drawsOf(game, comp.key)
+  if (!draws.length) return null
+  return (
+    <details style={{ margin: '10px 13px 12px' }}>
+      <summary className="small muted" style={{ cursor: 'pointer' }}>抽签记录（{draws.length}）</summary>
+      {draws.map((d) => {
+        const n = d.phase?.match(/swiss-r(\d)/)?.[1]
+        return (
+          <div key={d.id} style={{ margin: '8px 0 0', paddingTop: 8, borderTop: '1px solid var(--line-soft)' }}>
+            <div className="row wrap" style={{ gap: 8, alignItems: 'center' }}>
+              <b className="small">{DRAW_KIND_CN[d.kind]}{n ? ` 第 ${n} 轮` : ''}</b>
+              <span className="tiny faint">{d.status === 'complete' ? '已完成' : d.status === 'awaiting-choice' ? '等待选择' : '未看完'}</span>
+              <button className="sm ghost" onClick={() => openDraw(d.id)}>{d.watched ? '回看' : '进入抽签'}</button>
+            </div>
+            <p className="tiny muted" style={{ margin: '4px 0' }}>{d.rule}</p>
+            <ul className="tiny muted" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
+              {d.log.map((l, i) => <li key={i}>{l}</li>)}
+              {d.steps.filter((st) => st.note).map((st, i) => (
+                <li key={`n${i}`}>{game.teams[st.team]?.tag} → {st.slot}：{st.note}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+    </details>
   )
 }

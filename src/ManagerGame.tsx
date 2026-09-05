@@ -15,6 +15,7 @@ import Finances from './ui/Finances'
 import Saves from './ui/Saves'
 import PlayerModal from './ui/PlayerModal'
 import MatchModal from './ui/MatchModal'
+import DrawCeremony from './ui/DrawCeremony'
 import MatchLive from './ui/MatchLive'
 import GameOver from './ui/GameOver'
 import MidReview from './ui/MidReview'
@@ -63,7 +64,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
  * behind them. Split out of the shell so `/` and `/cards` never download any
  * of it — see App.tsx, which owns the URL and lazy-loads this.
  */
-export default function ManagerGame({ onHome }: { onHome: () => void }) {
+export default function ManagerGame({ onHome, ruleset = 'vct-2025' }: { onHome: () => void; ruleset?: 'vct-2025' | 'vct-2026' }) {
   const gameRef = useRef<GameState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
@@ -85,6 +86,8 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
   const [playerRenew, setPlayerRenew] = useState(false)
   const [fixture, setFixture] = useState<Fixture | null>(null)
   const [live, setLive] = useState<Fixture | null>(null)
+  // the draw ceremony on screen, if any — see ui/DrawCeremony
+  const [drawId, setDrawId] = useState<string | null>(null)
   // Anything that unlocks anywhere in the career shows up here, whichever
   // screen you were on when it happened.
   const [unlocks, setUnlocks] = useState<UnlockItem[]>([])
@@ -195,6 +198,8 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
     // a career carries its own players: the world's caller corrections
     // (who is an IGL) are brought into it here, once per change of the data
     const synced = syncCallersWithWorld(g)
+    // a save closed on a pick it was waiting for opens back onto it
+    if (g.pendingDecisionDrawId) setDrawId(g.pendingDecisionDrawId)
     // Opening a save deliberately — continuing, importing, loading a slot —
     // makes this tab the one that counts, so the cross-tab guard stops
     // treating some other tab's further-along career as the truth.
@@ -219,6 +224,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
       playLive: setLive,
       go: goScreen,
       startTutorial: () => setTour(true),
+      openDraw: setDrawId,
     }),
     // gameRef is stable; bump() drives re-renders, so recompute on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,7 +303,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
         <header className="topbar">
           <button
             className="brand as-link"
-            title="回到首页 · 猪之家出品 · 小红书/抖音 @点点点点点点点点"
+            title={`回到首页 · 猪之家出品 · 小红书/抖音 @点点点点点点点点${ruleset === 'vct-2026' ? ' · 测试版：VCT 2026 赛制（抽签版），存档与正式版分开' : ''}`}
             onClick={onHome}
           >
             VCT<span>电竞经理</span>
@@ -423,6 +429,7 @@ export default function ManagerGame({ onHome }: { onHome: () => void }) {
           />
         )}
         {fixture && <MatchModal fixture={fixture} onClose={() => setFixture(null)} />}
+        {drawId && <DrawCeremony drawId={drawId} onClose={() => setDrawId(null)} />}
         {live && (
           <MatchLive
             key={live.id}

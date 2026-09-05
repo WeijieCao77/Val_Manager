@@ -21,6 +21,8 @@ export interface GameCtxValue {
   go: (screen: string) => void
   /** replay the guided trial day without reloading the page */
   startTutorial: () => void
+  /** open a draw's ceremony — reveal it, or make the pick it is waiting on */
+  openDraw: (id: string) => void
 }
 
 export const GameCtx = createContext<GameCtxValue | null>(null)

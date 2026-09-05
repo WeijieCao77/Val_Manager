@@ -569,7 +569,13 @@ createServer((req, res) => {
   // with HTTP 200 and a page, which is how a broken deploy looks fine.
   if (path.startsWith('/api/')) { json(res, 404, { ok: false, why: 'no such route' }); return }
 
-  let file = join(ROOT, normalize(path).replace(/^(\.\.[/\\])+/, ''))
+  // The build's asset URLs are relative, so a page served at /manager/test
+  // asks for /manager/assets/… and /manager/faces/… — one directory up from
+  // the page, which is where './assets' points from two segments deep.
+  // Anything under /manager/ that is not the test page itself is the same
+  // file at the root.
+  const served = path.startsWith('/manager/') && path !== '/manager/test' ? path.slice('/manager'.length) : path
+  let file = join(ROOT, normalize(served).replace(/^(\.\.[/\\])+/, ''))
   if (!file.startsWith(ROOT)) {
     res.writeHead(403).end('Forbidden')
     return

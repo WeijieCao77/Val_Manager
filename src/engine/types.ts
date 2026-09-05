@@ -731,13 +731,21 @@ export interface Competition {
   bracketStarted?: boolean
   /** how the knockout is shaped — see engine/bracket.ts; absent means the
    *  old single elimination, which older saves and Challengers still run */
-  format?: 'single' | 'double' | 'masters' | 'champions'
+  format?: 'single' | 'double' | 'masters' | 'champions' | 'triple'
   /** the playoff's seed order, once known */
   seeds?: string[]
   /** a Masters' eight Swiss-round teams, seeded */
   swissSeeds?: string[]
-  /** Champions' four groups of four */
+  /** Champions' four groups of four; under vct-2026 also a stage's Alpha and Omega */
   groups?: string[][]
+  /** names of the groups, in `groups` order — ['Alpha', 'Omega'], ['A', 'B', 'C', 'D'] */
+  groupNames?: string[]
+  /** the seed pots the groups were drawn from, for the record */
+  seedPots?: string[][]
+  /** the draws this competition ran, in order — see engine/draw.ts */
+  drawIds?: string[]
+  /** a stage whose league phase is two drawn groups (vct-2026) */
+  grouped?: boolean
   /** prize money and championship points have been handed out */
   awarded?: boolean
   /** where an international is played — see qualify.ts hostCity */
@@ -793,6 +801,14 @@ export interface GameState {
   seed: number
   /** the world's caller data this save has been brought up to — see syncCallersWithWorld */
   callerSync?: string
+  /** which rulebook this career plays by — see engine/ruleset.ts; absent is vct-2025 */
+  rulesetId?: 'vct-2025' | 'vct-2026'
+  /** every draw held in this career — see engine/draw.ts */
+  draws?: import('./draw').DrawEvent[]
+  /** a draw waiting on the manager's choice; the clock stops on it */
+  pendingDecisionDrawId?: string
+  /** last season's Champions field, for this year's Kickoff byes */
+  lastChampionsTeams?: string[]
   /** day index since career start */
   day: number
   year: number

@@ -10,6 +10,7 @@ import type { Manager } from './manager'
 import { freeAgentPool } from './prospects'
 import { WORLD_TEAMS, type RawTeam } from './teams'
 import { squadOf, callerOf } from './roster'
+import { currentRuleset } from './ruleset'
 
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
@@ -238,6 +239,7 @@ export function createNewGame(
     honours: [],
     lastResults: [],
     boardConfidence: 62,
+    rulesetId: currentRuleset(),
   }
 
   for (const id of Object.keys(teams)) {
@@ -338,9 +340,13 @@ export function ensureCaller(state: GameState, teamId: string): void {
     next.isIgl = true
     next.iglSource = 'inferred'
   }
+  const flagged = squad.filter((p) => p.isIgl)
+  // an AI club with one caller needs no pointer — callerOf falls back to
+  // him — and seventy-odd pointers were a kilobyte on every save
+  if (teamId !== state.myTeam && flagged.length <= 1) { delete team.igl; return }
   if (squad.some((p) => p.id === team.igl && p.isIgl)) return
   const had = team.igl
-  const best = squad.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  const best = flagged.sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
   team.igl = best?.id ?? null
   if (teamId === state.myTeam && had && best) {
     state.news.push({

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { RULESET_CN, currentRuleset } from '../engine/ruleset'
 import { ask } from './confirm'
 import { createNewGame, WORLD_PLAYERS } from '../engine/world'
 import { WORLD_TEAMS } from '../engine/teams'
@@ -338,6 +339,12 @@ export default function NewGame({ onHome,
             )}
           </div>
           <div className="panel-body">
+            {currentRuleset() === 'vct-2026' && (
+              <p className="small" style={{ marginTop: 0, color: 'var(--warn)' }}>
+                <b>测试版 · {RULESET_CN['vct-2026']}</b>：Kickoff 抽签进十二队三败淘汰，Stage 1/2 抽 Alpha、Omega 两组，
+                Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。这里的存档和正式版分开，互不影响。
+              </p>
+            )}
             <p className="small muted" style={{ marginTop: 0 }}>
               每点 +{POINT_STEP}，上限 {SKILL_MAX}。<b>8 点不够样样精通</b>——
               可以把两项拉满，也可以摊平但都不突出。出身决定你从哪开始，天赋决定你走向哪。

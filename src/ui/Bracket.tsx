@@ -1,6 +1,6 @@
 import { useGame } from './ctx'
 import { Crest, fmtDay } from './common'
-import { GROUPS, isGroupLabel, isLowerLabel, swissRecord, swissRoundOf } from '../engine/bracket'
+import { GROUPS, isGroupLabel, isLowerLabel, isMiddleLabel, swissRecord, swissRoundOf } from '../engine/bracket'
 import type { Competition, Fixture } from '../engine/types'
 
 /**
@@ -86,14 +86,16 @@ function Lanes({ fixtures, byes }: { fixtures: Fixture[]; byes?: string[] }) {
   const { game } = useGame()
   const waves = [...new Set(fixtures.map(waveOf))].sort((a, b) => a - b)
   const col = (f: Fixture) => waves.indexOf(waveOf(f))
-  const upper = fixtures.filter((f) => !isLowerLabel(nameOf(f)))
+  // a Kickoff under the 2026 rulebook has a third lane between the two
+  const upper = fixtures.filter((f) => !isLowerLabel(nameOf(f)) && !isMiddleLabel(nameOf(f)))
+  const middle = fixtures.filter((f) => isMiddleLabel(nameOf(f)))
   const lower = fixtures.filter((f) => isLowerLabel(nameOf(f)))
   const lane = (list: Fixture[]) => {
     const byCol = new Map<number, Fixture[]>()
     for (const f of list) byCol.set(col(f), [...(byCol.get(col(f)) ?? []), f])
     return waves.map((_, i) => byCol.get(i) ?? [])
   }
-  const rows = lower.length ? [lane(upper), lane(lower)] : [lane(upper)]
+  const rows = [lane(upper), ...(middle.length ? [lane(middle)] : []), ...(lower.length ? [lane(lower)] : [])]
   return (
     <div className="bracket lanes">
       {rows.map((cols, ri) => (

@@ -1,4 +1,5 @@
 import { ask } from './confirm'
+import { DRAW_KIND_CN, markWatched, unwatchedDraws } from '../engine/draw'
 import { useRef, useState } from 'react'
 import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
@@ -29,7 +30,7 @@ import { statLine } from '../engine/player'
 import type { DayReport } from '../engine/season'
 
 export default function Dashboard() {
-  const { game, commit, toast, openPlayer, openMatch, playLive, go } = useGame()
+  const { game, commit, toast, openPlayer, openMatch, playLive, go, openDraw } = useGame()
   const act = useAction()
   const [busy, setBusy] = useState(false)
   // set when a turn starts, read when its reports come back
@@ -59,6 +60,9 @@ export default function Dashboard() {
     // otherwise the turn reports what it did rather than dropping every note
     // but the last one into a toast
     if (pending) { playLive(pending); return }
+    // a Masters pick that is ours to make: the clock has stopped on it
+    const decision = reports.map((r) => r.pendingDecision).filter(Boolean)[0]
+    if (decision) { openDraw(decision); return }
 
     // A turn that did nothing should not stop you to say so. In-season a turn
     // is one day, and 54% of a season's 203 turns produced a digest whose only
@@ -307,6 +311,35 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* The draws of the 2026 rulebook: a ceremony to watch, or a pick to
+          make. A pure ceremony never blocks the clock — its result is locked
+          and the fixtures exist — so it can be entered or skipped; the pick
+          is the one thing here that waits for you. */}
+      {(game.pendingDecisionDrawId || unwatchedDraws(game).length > 0) && (
+        <Panel title="赛事抽签" className={game.pendingDecisionDrawId ? 'alert' : ''}>
+          {game.pendingDecisionDrawId && (
+            <div className="row wrap" style={{ gap: 8, padding: '4px 0 8px', alignItems: 'center' }}>
+              <b style={{ flex: '1 1 200px' }}>等待你选择八强对手——四个赛区冠军按抽出的顺序挑选瑞士轮晋级队，轮到我们了。</b>
+              <button className="primary sm" onClick={() => openDraw(game.pendingDecisionDrawId!)}>去选择</button>
+            </div>
+          )}
+          {unwatchedDraws(game).map((d) => {
+            const comp = game.comps[d.competitionKey]
+            const n = d.phase?.match(/swiss-r(\d)/)?.[1]
+            return (
+              <div key={d.id} className="row wrap" style={{ gap: 8, padding: '5px 0', borderBottom: '1px solid var(--line-soft)', alignItems: 'center' }}>
+                <span style={{ flex: '1 1 200px' }}>
+                  <b>{comp?.name ?? d.competitionKey}</b>
+                  <span className="small muted"> · {DRAW_KIND_CN[d.kind]}{n ? ` 第 ${n} 轮` : ''} · {fmtDay(d.day, game.year)}</span>
+                </span>
+                <button className="sm primary" onClick={() => openDraw(d.id)}>进入抽签</button>
+                <button className="sm ghost" onClick={() => { markWatched(d); commit() }}>快速完成</button>
+              </div>
+            )
+          })}
+        </Panel>
+      )}
 
       <div className="grid c2">
         <Panel title="下一场比赛">

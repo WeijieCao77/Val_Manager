@@ -3,8 +3,17 @@ import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
 import type { GameState } from './types'
 
-const PREFIX = 'valmanager:save:'
-const INDEX = 'valmanager:index'
+/**
+ * Where saves live. /manager/test plays the 2026 rulebook with its draws
+ * and keeps its careers apart from /manager's, under a namespace of their
+ * own: a tester's career never overwrites the one at the main address, and
+ * the main address never shows a career the old engine cannot run.
+ */
+let NAMESPACE = ''
+export function setSaveNamespace(ns: string): void { NAMESPACE = ns ? `${ns}:` : '' }
+export const saveNamespace = (): string => NAMESPACE.replace(/:$/, '')
+const prefix = () => `valmanager:${NAMESPACE}save:`
+const indexKey = () => `valmanager:${NAMESPACE}index`
 export const SAVE_VERSION = 1
 
 /**
@@ -90,14 +99,14 @@ export interface SaveMeta {
 
 const readIndex = (): SaveMeta[] => {
   try {
-    return JSON.parse(localStorage.getItem(INDEX) ?? '[]') as SaveMeta[]
+    return JSON.parse(localStorage.getItem(indexKey()) ?? '[]') as SaveMeta[]
   } catch {
     return []
   }
 }
 
 const writeIndex = (list: SaveMeta[]) => {
-  localStorage.setItem(INDEX, JSON.stringify(list))
+  localStorage.setItem(indexKey(), JSON.stringify(list))
 }
 
 export function listSaves(): SaveMeta[] {
@@ -113,7 +122,7 @@ export function saveGame(slot: string, state: GameState): SaveMeta {
     day: state.day,
     savedAt: new Date().toISOString(),
   }
-  localStorage.setItem(PREFIX + slot, packState(state))
+  localStorage.setItem(prefix() + slot, packState(state))
   // The data write is the one that can fail for size; if the small index write
   // fails after it, the save would exist but never be listed — a player wrote
   // exactly that riddle to the group chat. listSaves() self-heals the index,
@@ -139,18 +148,18 @@ function healIndex(): SaveMeta[] {
   // dropping it at adoption is not enough — it has to be swept out of indices
   // that already have it.
   const raw = readIndex()
-  const idx = raw.filter((m) => PREFIX + m.slot !== OWNER)
+  const idx = raw.filter((m) => prefix() + m.slot !== owner())
   const known = new Set(idx.map((m) => m.slot))
   let changed = idx.length !== raw.length
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-    if (!key?.startsWith(PREFIX)) continue
-    const slot = key.slice(PREFIX.length)
+    if (!key?.startsWith(prefix())) continue
+    const slot = key.slice(prefix().length)
     if (known.has(slot)) continue
     // The which-tab-is-ahead marker lives under the same prefix, so this
     // adopted it as a save called 「autosave:owner」 — a phantom row on the
     // front page of every career, offering to load three numbers.
-    if (key === OWNER) continue
+    if (key === owner()) continue
     try {
       const st = JSON.parse(localStorage.getItem(key) ?? '') as GameState
       // ...and anything else under this prefix that is not a career
@@ -208,7 +217,7 @@ function unwindTutorial(state: GameState): GameState {
 }
 
 export function loadGame(slot: string): GameState | null {
-  const raw = localStorage.getItem(PREFIX + slot)
+  const raw = localStorage.getItem(prefix() + slot)
   if (!raw) return null
   try {
     const state = unpackState(raw)
@@ -219,7 +228,7 @@ export function loadGame(slot: string): GameState | null {
 }
 
 export function deleteSave(slot: string): void {
-  localStorage.removeItem(PREFIX + slot)
+  localStorage.removeItem(prefix() + slot)
   writeIndex(readIndex().filter((m) => m.slot !== slot))
 }
 
@@ -347,7 +356,7 @@ export function importSave(text: string): GameState {
 
 const AUTOSAVE = 'autosave'
 export const loadAutosave = () => loadGame(AUTOSAVE)
-export const hasAutosave = () => localStorage.getItem(PREFIX + AUTOSAVE) !== null
+export const hasAutosave = () => localStorage.getItem(prefix() + AUTOSAVE) !== null
 
 /**
  * Which tab wrote the autosave last, and how far along it was.
@@ -363,21 +372,21 @@ export const hasAutosave = () => localStorage.getItem(PREFIX + AUTOSAVE) !== nul
  * tab has written a state that is further along than the one being saved.
  * Same tab, equal progress, or a career that has moved on — all write freely.
  */
-const OWNER = `${PREFIX}${AUTOSAVE}:owner`
+const owner = () => `${prefix()}${AUTOSAVE}:owner`
 const SESSION = Math.random().toString(36).slice(2, 10)
 
 interface Owner { by: string; year: number; day: number }
 
 const readOwner = (): Owner | null => {
   try {
-    const raw = localStorage.getItem(OWNER)
+    const raw = localStorage.getItem(owner())
     return raw ? (JSON.parse(raw) as Owner) : null
   } catch { return null }
 }
 
 const writeOwner = (state: GameState): void => {
   try {
-    localStorage.setItem(OWNER, JSON.stringify(
+    localStorage.setItem(owner(), JSON.stringify(
       { by: SESSION, year: state.year, day: state.day } satisfies Owner))
   } catch { /* the save itself matters more than the marker */ }
 }

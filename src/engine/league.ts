@@ -111,9 +111,12 @@ export function scheduleRegularSeason(
  * round is played, so they follow.
  */
 export function respaceRounds(unplayed: Fixture[], startDay: number, endDay: number): void {
+  // Alpha's and Omega's round 3 are one round on one day: the group suffix
+  // is not part of the round
+  const roundOf = (f: Fixture) => f.label.replace(/ · .*$/, '')
   const rounds = new Map<string, Fixture[]>()
   for (const f of [...unplayed].sort((a, b) => a.day - b.day)) {
-    rounds.set(f.label, [...(rounds.get(f.label) ?? []), f])
+    rounds.set(roundOf(f), [...(rounds.get(roundOf(f)) ?? []), f])
   }
   const n = rounds.size
   if (!n) return
@@ -123,6 +126,33 @@ export function respaceRounds(unplayed: Fixture[], startDay: number, endDay: num
     const day = startDay + Math.round(i++ * step)
     for (const f of fs) f.day = day
   }
+}
+
+/**
+ * One drawn group's single round robin — five rounds for six sides —
+ * spread over the same window as the other group's, so Alpha and Omega
+ * play the same days. Labels carry the group so the schedule can say which.
+ */
+export function scheduleGroupSeason(
+  comp: Competition, group: string[], groupName: string, stage: StageKey,
+  startDay: number, endDay: number, bo: 1 | 3 | 5, rng: Rng,
+): Fixture[] {
+  const rounds = roundRobin(group, rng)
+  if (!rounds.length) return []
+  const span = Math.max(1, endDay - startDay)
+  const step = Math.max(2, span / Math.max(1, rounds.length - 1))
+  const out: Fixture[] = []
+  rounds.forEach((pairs, i) => {
+    const day = startDay + Math.round(i * step)
+    for (const [a, b] of pairs) out.push(makeFixture(day, stage, comp.key, a, b, bo, `常规赛 第${i + 1}轮 · ${groupName}`))
+  })
+  return out
+}
+
+/** A group's table: the competition's standings restricted to its members. */
+export function groupTable(comp: Competition, group: string[]): string[] {
+  const set = new Set(group)
+  return sortStandings(comp).filter((id) => set.has(id))
 }
 
 /** Order a table: wins, then map diff, then round diff. */

@@ -43,7 +43,7 @@ const tagOf = (g: ReturnType<typeof createNewGame>, id: string | null | undefine
   const notes = syncCallersWithWorld(g)
   console.log('  ' + notes.join('，'))
   check('Francis is no longer NS\'s caller', !francis.isIgl)
-  check('Rb is, and NS calls through him', rb.isIgl && rb.iglSource === 'verified' && g.teams[rb.teamId!].igl === rb.id, `NS main ${tagOf(g, rb.teamId)} ${g.players[g.teams[rb.teamId!].igl!]?.ign}`)
+  check('Rb is, and NS calls through him', rb.isIgl && rb.iglSource === 'verified' && callerOf(g, rb.teamId!)?.id === rb.id, `NS caller ${callerOf(g, rb.teamId!)?.ign} (${tagOf(g, rb.teamId)})`)
   check('lucas and Haodong are flagged at TEC and the stand-in stepped back',
     lucas.isIgl && haodong.isIgl && !standIn.isIgl && [lucas.id, haodong.id].includes(tec.igl!),
     `TEC main ${g.players[tec.igl!]?.ign}, stand-in ${standIn.ign} ${standIn.isIgl}`)

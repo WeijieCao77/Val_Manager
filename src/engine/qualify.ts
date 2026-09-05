@@ -10,9 +10,11 @@
  * Pure: reads the state, writes nothing.
  */
 import { INTERNATIONAL_OPEN, PLAYOFF_CUT, championsField, compKey, mastersField } from './season'
+import { drawRules } from './ruleset'
 import { sortStandings } from './league'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from './endings'
-import { swissRecord } from './bracket'
+import { swissRecord, MASTERS_8, STAGE_8, TRIPLE_12, projectNext
+} from './bracket'
 import { hostCity } from './hosts'
 import type { Competition, Fixture, GameState, StageKey } from './types'
 
@@ -35,14 +37,20 @@ const feederOf = (stage: StageKey): { event: string; next: 'masters1' | 'masters
         : null
 
 /** How a regional stage feeds its international, in the player's words. */
-export function qualifyRule(stage: StageKey): string {
+export function qualifyRule(stage: StageKey, drawn = false): string {
   switch (stage) {
     case 'kickoff':
-      return `小组赛前 4 进季后赛（双败淘汰）。季后赛前 3 名去 ${MASTERS_1}：第 1 名直接进季后赛，第 2、3 名先打瑞士轮。`
+      return drawn
+        ? `十二队三败淘汰，输三场出局。胜者组、中段组、败者组各决出一个冠军，就是去 ${MASTERS_1} 的三个名额：胜者组冠军直接进季后赛，另外两个先打瑞士轮。`
+        : `小组赛前 4 进季后赛（双败淘汰）。季后赛前 3 名去 ${MASTERS_1}：第 1 名直接进季后赛，第 2、3 名先打瑞士轮。`
     case 'stage1':
-      return `常规赛前 8 进季后赛（双败淘汰）。季后赛前 3 名去 ${MASTERS_2}：第 1 名直接进季后赛，第 2、3 名先打瑞士轮。`
+      return drawn
+        ? `Alpha、Omega 两组各 6 队单循环，每组前 4 进季后赛（双败淘汰，组第一轮空到胜者组第二轮）。季后赛前 3 名去 ${MASTERS_2}：第 1 名直接进季后赛，第 2、3 名先打瑞士轮。`
+        : `常规赛前 8 进季后赛（双败淘汰）。季后赛前 3 名去 ${MASTERS_2}：第 1 名直接进季后赛，第 2、3 名先打瑞士轮。`
     case 'stage2':
-      return `常规赛前 8 进季后赛（双败淘汰）。季后赛前 2 名直接去 ${CHAMPIONS}，赛区另外 2 个名额按全年冠军积分排。`
+      return drawn
+        ? `分组按 Stage 1 名次重抽后再打一次两组单循环，每组前 4 进季后赛。季后赛前 2 名直接去 ${CHAMPIONS}，赛区另外 2 个名额按全年冠军积分排。`
+        : `常规赛前 8 进季后赛（双败淘汰）。季后赛前 2 名直接去 ${CHAMPIONS}，赛区另外 2 个名额按全年冠军积分排。`
     default:
       return ''
   }
@@ -335,7 +343,7 @@ export function eventRounds(state: GameState, comp: Competition): EventRound[] {
   const own = state.fixtures.filter((f) => f.comp === comp.key)
   // a regional stage's rounds are its playoffs, dated from the first
   // bracket day, not from the league's opening round months before
-  const dated = comp.format === 'double' ? own.filter((f) => f.label.startsWith('KO:')) : own
+  const dated = comp.format === 'double' || comp.format === 'triple' ? own.filter((f) => f.label.startsWith('KO:')) : own
   if (!dated.length) return []
   const first = Math.min(...dated.map((f) => f.day))
   const rounds: { key: string; name: string; offset: number }[] = []
@@ -346,9 +354,11 @@ export function eventRounds(state: GameState, comp: Competition): EventRound[] {
     names.forEach((n, i) => rounds.push({ key: `${i + 1}:小组赛`, name: `小组赛 ${n}`, offset: i * GAP }))
   }
   const base = rounds.length * GAP
-  const po = comp.format === 'champions' || comp.format === 'masters' || (comp.seeds ?? []).length >= 8
-    ? ['胜者组第一轮', '胜者组第二轮 / 败者组第一轮', '胜者组决赛 / 败者组第二轮', '败者组半决赛', '败者组决赛', '总决赛']
-    : ['胜者组第一轮', '胜者组决赛 / 败者组第一轮', '败者组决赛', '总决赛']
+  const po = comp.format === 'triple'
+    ? TRIPLE_12.map((wave) => wave.map((r) => r.name).join(' / '))
+    : comp.format === 'champions' || comp.format === 'masters' || (comp.seeds ?? []).length >= 8
+      ? ['胜者组第一轮', '胜者组第二轮 / 败者组第一轮', '胜者组决赛 / 败者组第二轮', '败者组半决赛', '败者组决赛', '总决赛']
+      : ['胜者组第一轮', '胜者组决赛 / 败者组第一轮', '败者组决赛', '总决赛']
   const waveOffset = comp.format === 'champions' ? 3 : 0
   po.forEach((n, i) => rounds.push({ key: `${waveOffset + i + 1}:${n.split(' / ')[0]}`, name: n, offset: base + i * GAP }))
   return rounds.map((r) => ({
@@ -377,7 +387,7 @@ export function nextInEvent(state: GameState): NextIn | null {
   // the upper final knew it would play the lower final two days on, and the
   // top bar counted down to a league game nine weeks away all the same
   const regional = Object.values(state.comps)
-    .filter((c) => c.format === 'double' && c.bracketStarted && !c.champion && c.teams.includes(me))
+    .filter((c) => (c.format === 'double' || c.format === 'triple') && c.bracketStarted && !c.champion && c.teams.includes(me))
     .map((c) => c.key)
   for (const key of ['masters1', 'masters2', 'champions', ...regional]) {
     const comp = state.comps[key]
@@ -410,6 +420,16 @@ export function nextInEvent(state: GameState): NextIn | null {
       const next = name === '开局赛' ? (won(lastG) ? '胜者赛' : '败者赛') : '决胜赛'
       const r = rounds.find((x) => x.name.includes(next))
       return r ? { comp, day: r.day, round: `小组赛 ${next}` } : null
+    }
+    // under the 2026 rulebook every bracket is a template, and the template
+    // says where a side goes next — Kickoff's three lanes included
+    if (drawRules(state) && (comp.bracketStarted || comp.format === 'triple')) {
+      const tpl = comp.format === 'triple' ? TRIPLE_12 : comp.grouped ? STAGE_8 : MASTERS_8
+      const all = state.fixtures.filter((f) => f.comp === key && f.label.startsWith('KO:') && !/^KO:\d+:[A-D]组/.test(f.label))
+      const nxt = projectNext(tpl, comp.seeds ?? [], all, me)
+      if (!nxt) continue
+      const r = at(nxt.name)
+      return r ? { comp, day: r.day, round: `${comp.format === 'triple' ? '' : '季后赛 '}${nxt.name}` } : null
     }
     // the playoffs: the next round follows from the last result — eight
     // teams have two more lower rounds than four (Kickoff's bracket)

@@ -5,7 +5,7 @@ import {
 import type { MatchResult } from './types'
 import {
   CHAMP_POINTS, advanceBracket, applyResultToStandings, makeFixture, newStandings,
-  resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket, respaceRounds
+  resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket, respaceRounds, groupTable, scheduleGroupSeason
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
@@ -23,6 +23,12 @@ import { defaultContract, resolveApplications } from './career'
 import { applyMatchFatigue, drillTick, seasonRollover, weeklyTick } from './training'
 import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
+import { drawRules } from './ruleset'
+import {
+  createPlayoffPick, drawChampionsGroups, drawChampionsPlayoffs, drawKickoffBracket, drawStageGroups,
+  drawStageReshuffle, drawSwissRound, drawsOf, resolvePicks, resetDrawSeq,
+} from './draw'
+import type { DrawEvent } from './draw'
 import { importBlock } from './imports'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
@@ -30,7 +36,7 @@ import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, T
 import { track } from './telemetry'
 import {
   DOUBLE_8, GROUPS, advanceTemplate, championsGroups, championsSeeds, decided, doubleFor,
-  mastersSeeds, swissDone, swissNext, swissOutcome, templateDone,
+  mastersSeeds, swissDone, swissNext, swissOutcome, templateDone, MASTERS_8, TRIPLE_12, TRIPLE_12_PLACES, STAGE_8, STAGE_8_PLACES, swissRoundOf, SWISS_ROUNDS, swissRecord
 } from './bracket'
 
 /**
@@ -152,10 +158,29 @@ export function setupSeason(state: GameState, notes?: string[]): void {
   state.fixtures = []
   state.comps = {}
   const rng = new Rng(hashStr(`season:${state.seed}:${state.year}`))
+  resetDrawSeq(0)
 
   for (const region of REGIONS) {
     const t1 = tier1Of(state, region)
     const t2 = tier2Of(state, region)
+
+    // ---- vct-2026: Kickoff drawn as a twelve-team triple elimination; the
+    // two stages are shells until their groups are drawn (see openStage1Draw)
+    if (drawRules(state) && t1.length === 12) {
+      const kc = makeComp(state, 'kickoff', `${region} Kickoff`, t1, region, 1)
+      openKickoffDraw(state, kc, region)
+      const s1 = makeComp(state, 'stage1', `VCT ${region} · Stage 1`, t1, region, 1)
+      s1.grouped = true
+      const s2 = makeComp(state, 'stage2', `VCT ${region} · Stage 2`, t1, region, 1)
+      s2.grouped = true
+      if (t2.length >= 2) {
+        const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
+        state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', ...LEAGUE_DAYS.challengers1, 3, rng, '常规赛'))
+        const c2 = makeComp(state, 'challengers2', `Challengers ${region} · 第二赛段`, t2, region, 2)
+        state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', ...LEAGUE_DAYS.challengers2, 3, rng, '常规赛'))
+      }
+      continue
+    }
 
     // ---- Kickoff: a short group phase, then a top-four knockout.
     // A bare bracket meant the very first fixture of a career was a
@@ -247,7 +272,7 @@ function createMasters(state: GameState, stage: StageKey, name: string, feeder: 
   comp.byes = byes
   comp.swissSeeds = swiss
   comp.city = hostCity(state, stage as 'masters1' | 'masters2')
-  state.fixtures.push(...swissNext(state, comp, swiss, day))
+  state.fixtures.push(...(drawRules(state) ? nextSwissDraw(state, comp, day) : swissNext(state, comp, swiss, day)))
   state.news.push({
     day: state.day, kind: 'league', important: true,
     text: `${name}（${comp.city}）参赛名单出炉：${byes.map((t) => state.teams[t]?.name).join('、')} 作为赛区冠军直接进入季后赛；`
@@ -260,14 +285,26 @@ function createMasters(state: GameState, stage: StageKey, name: string, feeder: 
 function createChampions(state: GameState, name: string, day: number): void {
   if (state.comps.champions) return
   const field = championsField(state)
-  const groups = GROUPS.map((_, i) =>
+  let groups = GROUPS.map((_, i) =>
     REGIONS.map((r, j) => field[r][(i + j) % 4]).filter((t): t is string => !!t))
-  const all = groups.flat()
+  let all = groups.flat()
   if (all.length < 8) return
   const comp = makeComp(state, 'champions', name, all)
   comp.format = 'champions'
-  comp.groups = groups
   comp.city = hostCity(state, 'champions')
+  if (drawRules(state) && all.length === 16) {
+    // four pots — the four regions' first seeds, seconds, first and second
+    // points qualifiers — drawn into A–D with one side per region per group
+    const pots = [0, 1, 2, 3].map((k) => REGIONS.map((r) => field[r][k]).filter((t): t is string => !!t))
+    const ev = drawChampionsGroups(state, comp, pots)
+    groups = ev.outcome.groups ?? groups
+    all = groups.flat()
+    comp.teams = all
+    comp.groupNames = ['A', 'B', 'C', 'D']
+    comp.seedPots = pots
+    ev.consumed = true
+  }
+  comp.groups = groups
   state.fixtures.push(...advanceTemplate(state, comp, championsGroups(), null, all, day, 3, 0))
   state.news.push({
     day: state.day, kind: 'league', important: true,
@@ -375,8 +412,142 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   }
 }
 
+// ---------------------------------------------------------------- vct-2026 draws
+
+/**
+ * Kickoff's draw: last year's Champions sides sit out the opening round —
+ * in a career's first season, with no Champions of its own to look back
+ * on, the region's four best-regarded clubs take those byes, and the draw
+ * says so — and the other eight are drawn into the four opening ties.
+ */
+function openKickoffDraw(state: GameState, comp: Competition, region: Region): void {
+  void region
+  const t1 = comp.teams
+  const last = (state.lastChampionsTeams ?? []).filter((id) => t1.includes(id)).slice(0, 4)
+  const byRep = t1.slice().sort((a, b) => (state.teams[b]?.reputation ?? 0) - (state.teams[a]?.reputation ?? 0))
+  const byes = last.slice()
+  for (const id of byRep) if (byes.length < 4 && !byes.includes(id)) byes.push(id)
+  const first = t1.filter((id) => !byes.includes(id))
+  const ev = drawKickoffBracket(state, comp, byes, first)
+  if (last.length < 4) ev.log.unshift(last.length ? `上届 Champions 只有 ${last.length} 队仍在本赛区，其余轮空位按俱乐部声望补足`
+    : '本赛区没有上届 Champions 记录（生涯第一年），四个轮空位按俱乐部声望确定')
+  if (comp.region && comp.region !== state.teams[state.myTeam]?.region) ev.watched = true
+  comp.format = 'triple'
+  comp.seeds = ev.outcome.seeds
+  comp.byes = byes
+  comp.bracketStarted = true
+  state.fixtures.push(...advanceTemplate(state, comp, TRIPLE_12, TRIPLE_12_PLACES, comp.seeds ?? [], LEAGUE_DAYS.kickoff[0], 3))
+  ev.consumed = true
+  state.news.push({
+    day: state.day, kind: 'league', important: t1.includes(state.myTeam),
+    text: `${comp.name} 抽签完成：${byes.map((t) => state.teams[t]?.name).join('、')} 轮空至胜者组第二轮，其余八队抽入首轮。`,
+  })
+}
+
+/** Stage 1's groups, drawn from the Kickoff placings the day it ends. */
+function openStage1Draw(state: GameState, region: Region, placings: string[]): void {
+  const comp = state.comps[compKey('stage1', region)]
+  if (!comp || !comp.grouped || comp.groups) return
+  const pots: string[][] = []
+  for (let i = 0; i + 1 < placings.length && pots.length < 6; i += 2) pots.push([placings[i], placings[i + 1]])
+  const ev = drawStageGroups(state, comp, pots)
+  openGroups(state, comp, ev, pots, 'stage1', LEAGUE_DAYS.stage1)
+}
+
+/** Stage 2's groups: Stage 1's reshuffled by the three swap pools. */
+function openStage2Draw(state: GameState, s1: Competition): void {
+  if (!s1.region || !s1.groups) return
+  const comp = state.comps[compKey('stage2', s1.region)]
+  if (!comp || !comp.grouped || comp.groups) return
+  const alpha = groupTable(s1, s1.groups[0])
+  const omega = groupTable(s1, s1.groups[1])
+  const ev = drawStageReshuffle(state, comp, alpha, omega)
+  openGroups(state, comp, ev, [[...alpha.slice(0, 2), ...omega.slice(0, 2)], [...alpha.slice(2, 4), ...omega.slice(2, 4)], [...alpha.slice(4, 6), ...omega.slice(4, 6)]], 'stage2', LEAGUE_DAYS.stage2)
+}
+
+function openGroups(
+  state: GameState, comp: Competition, ev: DrawEvent, pots: string[][],
+  stage: 'stage1' | 'stage2', days: [number, number],
+): void {
+  const groups = ev.outcome.groups ?? []
+  if (comp.region && comp.region !== state.teams[state.myTeam]?.region) ev.watched = true
+  comp.groups = groups
+  comp.groupNames = ['Alpha', 'Omega']
+  comp.seedPots = pots
+  const rng = new Rng(hashStr(`season:${state.seed}:${state.year}:${comp.key}:groups`))
+  groups.forEach((g, i) => {
+    state.fixtures.push(...scheduleGroupSeason(comp, g, comp.groupNames![i], stage, days[0], days[1], 3, rng))
+  })
+  ev.consumed = true
+  state.news.push({
+    day: state.day, kind: 'league', important: comp.teams.includes(state.myTeam),
+    text: `${comp.name} 分组抽签完成——Alpha：${groups[0]?.map((t) => state.teams[t]?.tag).join('、')}；Omega：${groups[1]?.map((t) => state.teams[t]?.tag).join('、')}。`,
+  })
+}
+
+/**
+ * The next Swiss round of a Masters, drawn: round one crosses the second
+ * seeds with third seeds of other regions; two and three pair by record,
+ * three without a rematch.
+ */
+function nextSwissDraw(state: GameState, comp: Competition, day: number): Fixture[] {
+  const sw = state.fixtures.filter((f) => f.comp === comp.key && f.label.startsWith('SW:'))
+  if (sw.some((f) => !f.played)) return []
+  const round = sw.length ? Math.max(...sw.map(swissRoundOf)) : 0
+  if (round >= SWISS_ROUNDS) return []
+  const swiss = comp.swissSeeds ?? []
+  const played = new Set<string>()
+  for (const f of sw) { played.add(`${f.teamA}|${f.teamB}`); played.add(`${f.teamB}|${f.teamA}`) }
+  let pools: { name: string; teams: string[] }[]
+  if (round === 0) {
+    pools = [{ name: '二号种子', teams: swiss.slice(0, 4) }, { name: '三号种子', teams: swiss.slice(4) }]
+  } else {
+    const rec = (id: string) => swissRecord(comp, id)
+    const alive = swiss.filter((id) => rec(id).w < 2 && rec(id).l < 2)
+    const keys = [...new Set(alive.map((id) => `${rec(id).w}-${rec(id).l}`))].sort()
+    pools = keys.map((k) => ({ name: `${k} 池`, teams: alive.filter((id) => `${rec(id).w}-${rec(id).l}` === k) }))
+  }
+  if (!pools.some((p) => p.teams.length >= 2)) return []
+  const ev = drawSwissRound(state, comp, round + 1, pools, played)
+  ev.consumed = true
+  return (ev.outcome.pairs ?? []).map(([a, b]) =>
+    makeFixture(day, comp.stage, comp.key, a, b, 3, `SW:${round + 1}:瑞士轮 第${round + 1}轮`))
+}
+
+/**
+ * A Masters' quarter-finals once the pick is complete: the pairs made, in
+ * the order they were made, into the eight-team bracket.
+ */
+export function openMastersPlayoffs(state: GameState, comp: Competition, ev: DrawEvent, day: number): void {
+  if (ev.consumed || ev.status !== 'complete') return
+  comp.seeds = (ev.outcome.pairs ?? []).flat()
+  comp.byes = undefined
+  comp.bracketStarted = true
+  state.fixtures.push(...advanceTemplate(state, comp, MASTERS_8, doubleFor(8).places, comp.seeds, day, 3))
+  ev.consumed = true
+  state.news.push({
+    day: state.day, kind: 'league', important: comp.seeds.includes(state.myTeam),
+    text: `${comp.name} 八强对阵确定：${(ev.outcome.pairs ?? []).map(([a, b]) => `${state.teams[a]?.tag} vs ${state.teams[b]?.tag}`).join('，')}。`,
+  })
+}
+
+/**
+ * The pick the manager was asked for has been made (or handed to the
+ * coaches): finish the AI's picks and, if that ends it, open the bracket.
+ * Called by the screen after a choice, so the quarter-finals are on the
+ * page at once rather than after the next 推进.
+ */
+export function settlePendingPick(state: GameState, auto = false): void {
+  const ev = (state.draws ?? []).find((d) => d.kind === 'masters-playoff-pick' && !d.consumed)
+  if (!ev) return
+  const comp = state.comps[ev.competitionKey]
+  if (!comp) return
+  if (ev.status !== 'complete' && !resolvePicks(state, ev, comp, auto)) return
+  openMastersPlayoffs(state, comp, ev, state.day + WAVE_GAP)
+}
+
 /** Move every running competition forward: RR → playoffs → next bracket wave. */
-function progressCompetitions(state: GameState, notes: string[] = []): void {
+function progressCompetitions(state: GameState, notes: string[] = [], autoPick = false): void {
   for (const comp of Object.values(state.comps)) {
     if (comp.champion) {
       settleCompetition(state, comp, notes)
@@ -389,6 +560,24 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
     // ---- Masters: the Swiss round, then the eight-team double elimination
     if (comp.format === 'masters') {
       const swiss = comp.swissSeeds ?? []
+      if (!comp.bracketStarted && drawRules(state)) {
+        const more = nextSwissDraw(state, comp, when)
+        if (more.length) { state.fixtures.push(...more); continue }
+        if (!swissDone(state, comp, swiss)) continue
+        const { through, out } = swissOutcome(comp, swiss)
+        let pick = drawsOf(state, comp.key).find((d) => d.kind === 'masters-playoff-pick')
+        if (!pick) {
+          comp.finished = out
+          pick = createPlayoffPick(state, comp, comp.byes ?? [], through)
+          state.news.push({
+            day: state.day, kind: 'league', important: [...(comp.byes ?? []), ...through].includes(state.myTeam),
+            text: `${comp.name} 瑞士轮结束，${through.map((t) => state.teams[t]?.name).join('、')} 晋级。四个赛区冠军按抽出的顺序选择八强对手：${pick.pickOrder?.map((t) => state.teams[t]?.tag).join(' → ')}。`,
+          })
+        }
+        if (pick.status !== 'complete' && !resolvePicks(state, pick, comp, autoPick)) continue
+        openMastersPlayoffs(state, comp, pick, when)
+        continue
+      }
       if (!comp.bracketStarted) {
         const more = swissNext(state, comp, swiss, when)
         if (more.length) { state.fixtures.push(...more); continue }
@@ -406,8 +595,21 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
         continue
       }
       if (ko.every((f) => f.played)) {
-        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3))
+        state.fixtures.push(...advanceTemplate(state, comp, drawRules(state) ? MASTERS_8 : DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3))
         if (comp.champion) concludeStage(state, comp, notes)
+      }
+      continue
+    }
+
+    // ---- Kickoff under vct-2026: the triple elimination, wave by wave; the
+    // day it ends, the region's Stage 1 groups are drawn from its placings
+    if (comp.format === 'triple') {
+      if (ko.every((f) => f.played)) {
+        state.fixtures.push(...advanceTemplate(state, comp, TRIPLE_12, TRIPLE_12_PLACES, comp.seeds ?? [], when, 3))
+        if (comp.champion) {
+          concludeStage(state, comp, notes)
+          if (comp.region) openStage1Draw(state, comp.region, comp.finished)
+        }
       }
       continue
     }
@@ -433,9 +635,18 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
           if (low) fourths.push(low.l)
         }
         comp.finished = [...thirds, ...fourths]
-        comp.seeds = championsSeeds(firsts, seconds)
+        if (drawRules(state)) {
+          // drawn: each group winner against a runner-up from another group,
+          // a group's two sides in different halves
+          const groupOf = (t: string) => (comp.groups ?? []).findIndex((g) => g.includes(t))
+          const ev = drawChampionsPlayoffs(state, comp, firsts, seconds, groupOf)
+          comp.seeds = (ev.outcome.pairs ?? []).flat()
+          ev.consumed = true
+        } else {
+          comp.seeds = championsSeeds(firsts, seconds)
+        }
         comp.bracketStarted = true
-        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds, when, 3, groupsT.length))
+        state.fixtures.push(...advanceTemplate(state, comp, drawRules(state) ? MASTERS_8 : DOUBLE_8, doubleFor(8).places, comp.seeds, when, 3, groupsT.length))
         state.news.push({
           day: state.day, kind: 'league', important: comp.seeds.includes(state.myTeam),
           text: `${comp.name} 小组赛结束，八强：${comp.seeds.map((t) => state.teams[t]?.name).join('、')}。`,
@@ -443,7 +654,7 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
         continue
       }
       if (ko.every((f) => f.played)) {
-        state.fixtures.push(...advanceTemplate(state, comp, DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3, groupsT.length))
+        state.fixtures.push(...advanceTemplate(state, comp, drawRules(state) ? MASTERS_8 : DOUBLE_8, doubleFor(8).places, comp.seeds ?? [], when, 3, groupsT.length))
         if (comp.champion) concludeStage(state, comp, notes)
       }
       continue
@@ -451,6 +662,24 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 
     // ---- regional: the table, then a bracket
     const rr = own.filter((f) => !f.label.startsWith('KO:'))
+    if (!comp.bracketStarted && comp.grouped && comp.groups) {
+      if (!rr.length || rr.some((f) => !f.played)) continue
+      // eight from the two tables: winners sit out the opening round,
+      // seconds and thirds cross groups in it, fourths start in the lower
+      const [alpha, omega] = comp.groups.map((g) => groupTable(comp, g))
+      const seeds = [alpha[0], omega[0], alpha[1], omega[1], alpha[2], omega[2], alpha[3], omega[3]].filter(Boolean)
+      comp.format = 'double'
+      comp.seeds = seeds
+      comp.bracketStarted = true
+      comp.finished = [alpha[4], omega[4], alpha[5], omega[5]].filter(Boolean)
+      state.fixtures.push(...advanceTemplate(state, comp, STAGE_8, STAGE_8_PLACES, seeds, when, 3))
+      state.news.push({
+        day: state.day, kind: 'league',
+        text: `${comp.name} 小组赛结束，季后赛八强：${seeds.map((s) => state.teams[s]?.name).join('、')}。`,
+        important: seeds.includes(state.myTeam),
+      })
+      continue
+    }
     if (!comp.bracketStarted) {
       if (!rr.length) continue
       if (rr.some((f) => !f.played)) continue
@@ -483,10 +712,16 @@ function progressCompetitions(state: GameState, notes: string[] = []): void {
 
     if (ko.length && ko.every((f) => f.played)) {
       const next = comp.format === 'double'
-        ? (() => { const { template, places } = doubleFor((comp.seeds ?? []).length); return advanceTemplate(state, comp, template, places, comp.seeds ?? [], when, 3) })()
+        ? (() => {
+          const { template, places } = comp.grouped ? { template: STAGE_8, places: STAGE_8_PLACES } : doubleFor((comp.seeds ?? []).length)
+          return advanceTemplate(state, comp, template, places, comp.seeds ?? [], when, 3)
+        })()
         : advanceBracket(state, comp, state.day + 3, 3)
       state.fixtures.push(...next)
-      if (comp.champion) concludeStage(state, comp, notes)
+      if (comp.champion) {
+        concludeStage(state, comp, notes)
+        if (comp.grouped && comp.stage === 'stage1') openStage2Draw(state, comp)
+      }
     }
   }
 
@@ -919,6 +1154,8 @@ export interface DayReport {
   seasonEnded: boolean
   /** set when the manager's own match was left for them to play */
   pendingMine?: Fixture
+  /** a draw is waiting on the manager's choice of opponent (vct-2026) */
+  pendingDecision?: string
 }
 
 export interface AdvanceOpts {
@@ -933,6 +1170,8 @@ export interface AdvanceOpts {
    * a turn covers several days; the scoreboard is still there to open.
    */
   autoScrims?: boolean
+  /** a Masters pick that falls to the manager is made by the coaches (headless runs) */
+  autoResolveDrawDecisions?: boolean
 }
 
 /** Each fixture gets its own stream, so a result never depends on play order. */
@@ -1113,6 +1352,18 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       playedMine: [], notes: [], seasonEnded: false,
     }
   }
+  // A Masters pick that is the manager's to make: the clock waits for it,
+  // as it does for the five-year verdict — unless a headless run has asked
+  // for the coaches to make it.
+  if (state.pendingDecisionDrawId) {
+    if (opts.autoResolveDrawDecisions) settlePendingPick(state, true)
+    if (state.pendingDecisionDrawId) {
+      return {
+        day: state.day, stage: state.stage, stageChanged: false,
+        playedMine: [], notes: [], seasonEnded: false, pendingDecision: state.pendingDecisionDrawId,
+      }
+    }
+  }
   const rng = new Rng(hashStr(`day:${state.seed}:${state.year}:${state.day}`))
   const prevStage = state.stage
   state.day++
@@ -1206,7 +1457,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     if (isMine) playedMine.push(f)
   }
 
-  if (!pendingMine) progressCompetitions(state, notes)
+  if (!pendingMine) progressCompetitions(state, notes, !!opts.autoResolveDrawDecisions)
 
   // ---- commercial work booked for today, then any new approach
   runGigsToday(state, notes)
@@ -1243,7 +1494,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     seasonEnded = true
   }
 
-  return { day: state.day, stage: state.stage, stageChanged, playedMine, notes, seasonEnded, pendingMine }
+  return { day: state.day, stage: state.stage, stageChanged, playedMine, notes, seasonEnded, pendingMine, pendingDecision: state.pendingDecisionDrawId }
 }
 
 /**
@@ -1683,6 +1934,11 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   state.year += 1
   state.day = 0
   state.stage = 'preseason'
+  // next year's Kickoff byes are this year's Champions field; the draws of
+  // the year before last are let go so a save does not grow without bound
+  state.lastChampionsTeams = state.comps.champions?.teams ?? state.lastChampionsTeams
+  state.draws = (state.draws ?? []).filter((d) => d.year >= state.year - 1)
+  state.pendingDecisionDrawId = undefined
   setupSeason(state, notes)
 }
 
@@ -1842,7 +2098,7 @@ export function advanceToNextMatch(
   for (let i = 0; i < maxDays; i++) {
     const r = advanceDay(state, opts)
     reports.push(r)
-    if (r.playedMine.length || r.pendingMine || r.seasonEnded) break
+    if (r.playedMine.length || r.pendingMine || r.pendingDecision || r.seasonEnded) break
     const next = nextFixtureFor(state, state.myTeam)
     if (next && next.day === state.day + 1) break
   }

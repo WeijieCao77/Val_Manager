@@ -1,4 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { setSaveNamespace } from './engine/save'
+import { setCurrentRuleset } from './engine/ruleset'
 
 /**
  * Three places to be, and the URL is the only thing that decides which.
@@ -22,13 +24,19 @@ import UpdateNudge from './ui/UpdateNudge'
 import DomainNotice from './ui/DomainNotice'
 import MusicPlayer from './ui/MusicPlayer'
 
-type Mode = 'home' | 'career' | 'cards'
-const PATHS: Record<Mode, string> = { home: '/', career: '/manager', cards: '/cards' }
+type Mode = 'home' | 'career' | 'career-test' | 'cards'
+const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-test': '/manager/test', cards: '/cards' }
 
+/**
+ * /manager/test is the career on the 2026 rulebook with its draws (see
+ * engine/ruleset.ts), with saves of its own; /manager is the career as it
+ * has always played. Same bundle, one flag.
+ */
 const modeOf = (): Mode => {
   if (typeof location === 'undefined') return 'home'
   const p = location.pathname.replace(/\/+$/, '')
   if (p.endsWith('/cards')) return 'cards'
+  if (p.endsWith('/manager/test')) return 'career-test'
   if (p.endsWith('/manager')) return 'career'
   return 'home'
 }
@@ -40,6 +48,11 @@ export default function App() {
   // else is the career. That way a refresh keeps you where you were, the back
   // button works, and there is exactly one way in.
   const [mode, setModeRaw] = useState<Mode>(modeOf)
+  // the address decides the rulebook new careers get and where saves live;
+  // set before the career shell mounts, so its first read of storage is the
+  // right namespace
+  if (mode === 'career-test') { setSaveNamespace('test'); setCurrentRuleset('vct-2026') }
+  else { setSaveNamespace(''); setCurrentRuleset('vct-2025') }
   const setMode = useCallback((m: Mode) => {
     try {
       const to = PATHS[m]
@@ -60,7 +73,7 @@ export default function App() {
   )
   const page = mode === 'home' ? <Home onOpen={setMode} />
     : mode === 'cards' ? <CardMode onExit={() => setMode('home')} />
-      : <ManagerGame onHome={() => setMode('home')} />
+      : <ManagerGame key={mode} onHome={() => setMode('home')} ruleset={mode === 'career-test' ? 'vct-2026' : 'vct-2025'} />
   return (
     <>
       <UpdateNudge />

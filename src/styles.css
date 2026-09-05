@@ -2589,3 +2589,29 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
   .bgm-meta { flex: 1; width: auto; }
   .bgm-vol input[type=range] { width: 64px; }
 }
+
+/* ---- the draw ceremony ----------------------------------------------- */
+
+.draw-grid { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(200px, 1.4fr) minmax(180px, 1.3fr); gap: 14px; }
+@media (max-width: 720px) { .draw-grid { grid-template-columns: 1fr; } }
+.draw-pot { margin-bottom: 10px; }
+.draw-ball {
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px; margin-bottom: 3px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); font-size: var(--t-small);
+}
+.draw-ball.out { opacity: .38; text-decoration: line-through; }
+.draw-ball.me { border-color: var(--accent); }
+.draw-steps { max-height: 360px; overflow-y: auto; padding-right: 4px; }
+.draw-step {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 5px 8px;
+  border-bottom: 1px solid var(--line-soft); font-size: var(--t-small);
+}
+.draw-step.latest { background: var(--warn-wash); border-radius: 4px; animation: draw-in .45s ease-out; }
+.draw-step.me b { color: var(--accent); }
+@keyframes draw-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .draw-step.latest { animation: none; } }
+.draw-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.draw-group { border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; background: var(--panel-2); }
+.draw-slot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 3px 0; font-size: var(--t-small); min-height: 24px; }
+.draw-slot .club.me span { color: var(--accent); font-weight: 700; }
+.draw-choice { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 5px; background: var(--panel-2); }

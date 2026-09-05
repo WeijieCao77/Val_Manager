@@ -21,6 +21,14 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-06',
+    title: '测试版：VCT 2026 赛制与赛事抽签，在 /manager/test 试玩',
+    changes: [
+      { kind: '新增', text: '<b>经理模式多了一个测试版</b>，地址是 <b>vctgames.com/manager/test</b>，按 VCT 2026 的真实赛制来：Kickoff 是十二队三败淘汰，上届 Champions 四队轮空、其余八队抽签进首轮；Stage 1 按 Kickoff 名次分六档抽成 Alpha、Omega 两组各打五轮；Masters 瑞士轮每轮都抽签（首轮二号种子对不同赛区的三号种子，第三轮不重赛），瑞士轮打完四个赛区冠军抽顺序、依次挑八强对手——<b>轮到你的队就由你来选</b>，也可以交给教练组；Stage 2 按三个交换池重抽分组；Champions 抽四档小组（每组四个赛区各一队）、小组赛后再抽八强。每次抽签都有仪式：进去一签一签揭，或者一键揭完，结果在抽签举行时就锁定了，看不看、读不读档都一样。' },
+      { kind: '调整', text: '测试版的存档和正式版 /manager 分开存，互不影响；正式版赛制不变。试玩里发现问题请在群里说。' },
+    ],
+  },
+  {
     date: '2026-09-05',
     title: '经理模式的存档也会跟上指挥名单的改动',
     changes: [
