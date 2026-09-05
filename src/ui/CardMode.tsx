@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { ComponentType } from 'react'
 import { CardCtx } from './cards/ctx'
 import Packs from './cards/Packs'
+import Pity from './cards/Pity'
 import Challenge from './cards/Challenge'
 import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
@@ -381,7 +382,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           )}
           {tab === 'dossier' ? <Dossier playerId={dossierId} onOpen={setDossierId} />
             : tab === 'account' ? <AccountScreen onSignOut={signOut} />
-            : Screen ? <Screen /> : <Packs />}
+            : Screen ? <>{tab === 'packs' && <Pity />}<Screen /></> : <Packs />}
           <Credit />
         </div>
 
