@@ -1,7 +1,7 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
-import { callBoost, compStyle, famBonus, familiarity, tacticEdge } from './comp'
+import { DIAL_SCALE, callBoost, compStyle, famBonus, familiarity, tacticEdge } from './comp'
 import type { CompStyle } from './comp'
 import { coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
@@ -285,7 +285,7 @@ export function buildLineup(
   const def = common + te.tacticsDef + styleDef + (avg('awareness') - 65) * 0.05 + 1.6
 
   const midRound =
-    (t.adaptability - 50) * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05 +
+    (t.adaptability - 50) * DIAL_SCALE * 0.05 + (igl ? (igl.attrs.igl - 60) * 0.06 : -3) + (avg('clutch') - 65) * 0.05 +
     te.styleMid + te.matchupMid
 
   const edge: EdgeBreakdown = {

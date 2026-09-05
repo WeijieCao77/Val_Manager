@@ -152,14 +152,27 @@ export interface TacticEdge {
  * `avgUtility` is the five's mean 道具 attribute — a full utility budget in
  * the hands of people who cannot use it is smoke on the wrong side.
  */
+/**
+ * What a dial is worth was set against a round curve of 17 strength points
+ * per step; the curve is 30 now (ROUND_SENS in match.ts — a rating gap
+ * decides a map less completely), and the same edge in points moves a round
+ * by that much less. The dials are scaled back up so that what the sliders
+ * are worth in map points did not quietly halve with it: 顺着打 against
+ * 逆着打 on the same five had fallen from over six map points to three or
+ * four, which is the bar check_tactics holds. Only the dials — the shape's
+ * own worth and the matchups at neutral dials stay as they were, so an AI
+ * club, whose dials are always neutral, plays exactly as before.
+ */
+export const DIAL_SCALE = 30 / 17
+
 export function tacticEdge(
   t: Tactics, style: CompStyle, oppStyle: CompStyle, avgUtility: number,
 ): TacticEdge {
   const d = DIAL[style]
   const b = BASE[style]
-  const pace = t.pace - 50
-  const agg = t.aggression - 50
-  const util = t.utility - 50
+  const pace = (t.pace - 50) * DIAL_SCALE
+  const agg = (t.aggression - 50) * DIAL_SCALE
+  const util = (t.utility - 50) * DIAL_SCALE
 
   const tacticsAtk = pace * 0.035 * d.paceAtk + agg * 0.028 * d.aggAtk
   const tacticsDef = -pace * 0.022 * d.paceDef - agg * 0.015 * d.aggDef
@@ -180,7 +193,7 @@ export function tacticEdge(
       // an aggressive defence against two duelists gets run over; a reader
       // of the game gets the trades back
       matchupDef = -agg * 0.03
-      matchupMid = (t.adaptability - 50) * 0.02
+      matchupMid = (t.adaptability - 50) * DIAL_SCALE * 0.02
       break
     case 'control':
       // a smoke war: the side with more utility, and the side that does not
