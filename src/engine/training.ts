@@ -23,6 +23,9 @@ import type { Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
  * to this.
  */
 export const FORM_BASE = 70
+/** where morale drifts back to, and how much of the gap closes each week */
+export const MORALE_BASE = 72
+export const MORALE_PULL = 0.12
 
 /** The shared load-management line used by both automatic plans. */
 export const REST_AT = 45
@@ -658,7 +661,15 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
       // measured it against 70; so does this.
       const pull = (FORM_BASE - p.form) * 0.06
       p.form = clamp(p.form + pull + rng.range(-3.5, 3.5), 30, 99)
-      p.morale = clamp(p.morale + rng.range(-2, 2), 10, 100)
+      // Morale settles too. It was a random walk — ±1~5 a match, ±2 a week,
+      // nothing pulling it anywhere — so over one season the AI clubs' team
+      // averages ran from 20 to 100 (standard deviation 21 by day 270), and a
+      // side that lost its first month played the rest of the year at 40
+      // morale, which is -5% rating, which is why it kept losing. That is the
+      // 「后期别的队伍跟人机一样」the group reports. A twelfth of the gap a
+      // week means a club winning three in four settles near 84 and one
+      // losing three in four near 60: still a real edge, no longer a spiral.
+      p.morale = clamp(p.morale + (MORALE_BASE - p.morale) * MORALE_PULL + rng.range(-2, 2), 10, 100)
 
       // fatigue and heavy schedules cause injuries
       // 体能: fewer injuries under a manager who manages load

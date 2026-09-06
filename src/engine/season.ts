@@ -1,6 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import {
-  activePool, applyMatchStats, poolFor, poolPhaseOf, pruneMatchDetail, simulateMatch, stripRoundLogs,
+  activePool, applyMatchStats, expectedShare, poolFor, poolPhaseOf, pruneMatchDetail, simulateMatch, stripRoundLogs,
 } from './match'
 import type { MatchResult } from './types'
 import {
@@ -320,10 +320,11 @@ function createChampions(state: GameState, name: string, day: number): void {
 /**
  * Hand out the prizes when a competition ends.
  *
- * The board reacts to how we finished — a bottom-third finish at Masters costs
- * 7 confidence — and that reaction used to happen off-screen: the only line
- * written was who won the thing. Our own finish and what it cost now go into
- * the turn's digest.
+ * The board reacts to how we finished — a bottom-third finish at Masters by a
+ * side the ratings had higher costs 7 confidence — and that reaction used to
+ * happen off-screen: the only line written was who won the thing. Our own
+ * finish and what it cost now go into the turn's digest. The stage we were
+ * briefed on is left to settleObjective, so the board never says two things.
  */
 export function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
   if (comp.awarded || !comp.champion) return
@@ -414,15 +415,35 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   if (comp.champion !== state.myTeam && comp.teams.includes(state.myTeam)) {
     const place = comp.finished.indexOf(state.myTeam)
     if (place >= 0) {
-      const share = place / Math.max(1, comp.finished.length - 1)
-      const swing = share < 0.34 ? 5 : share > 0.7 ? -7 : 0
-      state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
       const rank = `${comp.name} 第 ${place + 1} 名（共 ${comp.finished.length} 队）`
-      notes.push(
-        swing > 0 ? `🏅 ${rank}，董事会满意（信任 +${swing}）。`
-          : swing < 0 ? `📉 ${rank}，董事会不满（信任 ${swing}）。`
-            : `🏁 ${rank}。`,
-      )
+      const obj = state.objective
+      if (obj && !obj.settled && judgedCompKey(state, obj.stage) === comp.key) {
+        // The stage the board briefed us on is judged once, against the brief,
+        // when the stage ends (settleObjective). This block used to judge it a
+        // second time by raw share of the table, and the two disagreed: a side
+        // asked for「不低于第 10 名」that finished 9th of 12 read「✅ 目标达成，
+        // 董事会满意」and「📉 董事会不满（信任 -7）」in the same digest.
+        notes.push(`🏁 ${rank}。董事会的要求是前 ${obj.placeAtLeast}，赛段结束时按这个评价。`)
+      } else {
+        // An event nobody briefed us on — Masters, Champions, Ascension. The
+        // board reads it against the field: a top-third finish is good news
+        // from anywhere, a bottom-third finish is only bad news when the
+        // clubs' ratings said we should have done better. The fourth seed
+        // going out in the group stage is what a fourth seed does.
+        const byRating = comp.teams.slice()
+          .sort((a, b) => (state.teams[b]?.rating ?? 0) - (state.teams[a]?.rating ?? 0))
+        const seed = Math.max(0, byRating.indexOf(state.myTeam))
+        const share = place / Math.max(1, comp.finished.length - 1)
+        const under = place - seed
+        const swing = share < 0.34 ? 5 : share > 0.7 && under >= 2 ? -7 : 0
+        state.boardConfidence = clamp(state.boardConfidence + swing, 0, 100)
+        notes.push(
+          swing > 0 ? `🏅 ${rank}，董事会满意（信任 +${swing}）。`
+            : swing < 0 ? `📉 ${rank}，按实力本该在第 ${seed + 1} 名上下，董事会不满（信任 ${swing}）。`
+              : share > 0.7 ? `🏁 ${rank}——以队伍实力这在预期之内，董事会没有意见。`
+                : `🏁 ${rank}。`,
+        )
+      }
     }
   }
 }
@@ -1217,7 +1238,7 @@ function offerJobs(state: GameState, notes: string[]): void {
     notes.push(`📩 ${t.name} 向你发出了执教邀请。`)
     state.news.push({
       day: state.day, kind: 'club', important: true,
-      text: `📩 ${t.name} 向你发出执教邀请（声望 ${t.reputation}）。`,
+      text: `📩 ${t.name} 向你发出执教邀请（声望 ${Math.round(t.reputation)}）。`,
     })
   }
 }
@@ -1477,10 +1498,12 @@ export function commitFixture(
 
   const aWon = result.mapsWonA > result.mapsWonB
   for (const [teamId, won] of [[f.teamA, aWon], [f.teamB, !aWon]] as [string, boolean][]) {
-    for (const pid of played(state, f, teamId, result)) {
+    const ids = played(state, f, teamId, result)
+    for (const pid of ids) {
       const p = state.players[pid]
       if (p) p.morale = clamp(p.morale + (won ? rng.range(1, 5) : -rng.range(1, 5)), 10, 100)
     }
+    formFromResult(state, ids, result)
   }
 
   if (isMine) {
@@ -1499,6 +1522,43 @@ export function commitFixture(
     important: isMine,
   })
   progressCompetitions(state, notes)
+}
+
+/**
+ * Move each man's form by how he played against what his ability predicted.
+ *
+ * Official matches never touched form: only scrims and the weekly drift did,
+ * so across a season the clubs' average form sat within three points of 70
+ * and 状态 was noise nobody could act on (scripts/check_form_morale.ts). Now
+ * a night above his expected share of the damage lifts it, a night below
+ * lowers it, up to a point and a half either way. Zero-sum within the side
+ * by construction, so a club's average form is not moved by winning or
+ * losing — that is morale's job, and keeping the two apart is what keeps the
+ * AI clubs on a level footing with the managed one.
+ */
+function formFromResult(state: GameState, ids: string[], result: MatchResult): void {
+  const rows = ids
+    .map((id) => state.players[id])
+    .filter((p): p is Player => !!p)
+    .map((p) => {
+      let acs = 0
+      let maps = 0
+      for (const m of result.maps) {
+        const l = m.lines[p.id]
+        if (l) { acs += l.acs; maps++ }
+      }
+      return { p, acs: maps ? acs / maps : 0, exp: expectedShare(p), maps }
+    })
+    .filter((r) => r.maps > 0)
+  if (rows.length < 2) return
+  const acsSum = rows.reduce((s, r) => s + r.acs, 0)
+  const expSum = rows.reduce((s, r) => s + r.exp, 0)
+  if (acsSum <= 0 || expSum <= 0) return
+  const scale = acsSum / expSum
+  for (const r of rows) {
+    const residual = r.acs - r.exp * scale
+    r.p.form = clamp(r.p.form + clamp(residual / 30, -1.5, 1.5), 30, 99)
+  }
 }
 
 export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport {

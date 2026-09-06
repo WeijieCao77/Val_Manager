@@ -379,3 +379,75 @@ export function analystEdge(state: GameState, spec: AnalystSpec): number {
   const m = (state.staff ?? []).find((x) => x.role === 'analyst' && x.spec === spec)
   return m ? Math.max(0, m.tactics - 45) / 45 : 0
 }
+
+// ---------------------------------------------------------------- promotion
+
+/** What a head coach of this grade asks for a year, before any role discount. */
+const headPay = (c: { tactics: number; development: number; motivation: number }): number => {
+  const grade = (c.tactics + c.development + c.motivation) / 3
+  return Math.round(40_000 + Math.pow(Math.max(0, grade - 40), 2) * 120)
+}
+
+/**
+ * Promote an assistant to head coach.
+ *
+ * Asked for in the group —「可以出一个助教升任主教练，主教练降级助教的功能」.
+ * The two are the same profession at different levels (the hiring copy has
+ * said so all along), so moving between them is an internal decision rather
+ * than a transfer: no sign-on fee, nobody to wait for. The outgoing head
+ * coach stays on as an assistant, exactly as he does when an outsider takes
+ * his job, and the promoted man is paid what a head coach of his grade asks —
+ * or what he already earns, if that is more.
+ */
+export function promoteToHead(state: GameState, name: string): string {
+  const team = state.teams[state.myTeam]
+  if (!team) return '找不到俱乐部。'
+  const member = state.staff?.find((s) => s.name === name)
+  if (!member) return '找不到这名成员。'
+  if (member.role !== 'assistant') return `${name} 是${ROLE_CN[member.role]}，不是助理教练。`
+
+  const old = team.coach
+  const salary = Math.max(member.salary, headPay(member))
+  team.coach = {
+    name: member.name, tactics: member.tactics, development: member.development,
+    motivation: member.motivation, salary,
+  }
+  const rest = (state.staff ?? []).filter((s) => s.name !== name)
+  if (old) {
+    rest.push({
+      name: old.name, role: 'assistant',
+      tactics: old.tactics, development: old.development, motivation: old.motivation,
+      // the club's founding coach was never on the books; as an assistant he
+      // is paid the way the hiring path pays a displaced head coach
+      salary: old.salary ?? Math.round(salary * 0.4), years: 1,
+    })
+  }
+  state.staff = rest
+  const pay = `年薪 ${Math.round(salary / 1000)}K`
+  return old
+    ? `${name} 升任主教练（${pay}），${old.name} 转为助理教练。`
+    : `${name} 升任主教练（${pay}）。`
+}
+
+/**
+ * Move the head coach down to assistant.
+ *
+ * The seat is then empty: training and the match-day tactics bonus fall back
+ * to the squad's own level (coachOr), which the 教练组 panel has always said
+ * is what happens with nobody in it. He keeps his pay — a demotion is not a
+ * pay cut, and a pay cut is a separate conversation (解约).
+ */
+export function demoteHead(state: GameState): string {
+  const team = state.teams[state.myTeam]
+  if (!team) return '找不到俱乐部。'
+  const old = team.coach
+  if (!old) return '现在没有主教练。'
+  if (state.staff?.some((s) => s.name === old.name)) return `${old.name} 已经在教练组里了。`
+  state.staff = [...(state.staff ?? []), {
+    name: old.name, role: 'assistant',
+    tactics: old.tactics, development: old.development, motivation: old.motivation,
+    salary: old.salary ?? Math.round(headPay(old) * ROLE_PAY.assistant), years: 1,
+  }]
+  team.coach = null
+  return `${old.name} 降为助理教练。俱乐部暂时没有主教练，训练与战术加成按队伍整体水平计算——可以从助教里升任一人。`
+}

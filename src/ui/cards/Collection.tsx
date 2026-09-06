@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
-import { clubSets, collection, upgradeCost } from '../../engine/gacha'
+import { collection, upgradeCost } from '../../engine/gacha'
+import { clubSets } from '../../engine/clubSets'
 import { crestUrl } from '../../engine/dossier'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
@@ -67,7 +68,7 @@ export default function Collection() {
         }
       >
         <p className="tiny muted" style={{ marginTop: 0 }}>
-          一支俱乐部的选手卡全部到手就算集齐（5–7 张，按它在卡池里的人数；彩卡是同一个人的另一晚，不算第二张）。
+          一支俱乐部的选手卡全部到手就算集齐（5–7 张，按它在卡池里的人数；彩卡是同一个人的另一晚，不算第二张，但只有彩卡也算有了这个人）。
         </p>
         <div className="club-sets">
           {(allSets ? sets : sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).slice(0, 24)).map((x) => {

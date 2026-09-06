@@ -388,6 +388,14 @@ export default function ManagerGame({ onHome, ruleset = 'vct-2025' }: { onHome: 
               ? <Dossier playerId={dossierId} onOpen={setDossierId} />
               : <Screen />}
             <Credit />
+            {/* Room to scroll the last row clear of the corner buttons. The
+                support, changelog and rules buttons are fixed to the
+                bottom-right, and the rightmost column of a table that ends
+                the page — the 报价 buttons in the hiring list — sat under
+                them once the page was scrolled to the end:「由于右边按钮导致
+                划到底的时候点不到签约」. Blank space below the credit line,
+                only ever seen at the very bottom. */}
+            <div aria-hidden="true" style={{ height: 180 }} />
           </main>
         </div>
 

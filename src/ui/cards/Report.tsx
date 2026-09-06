@@ -1,8 +1,10 @@
 import CardFace from '../Card'
-import { cardById } from '../../engine/cards'
+import { cardById, isPlayerCard } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
+import { ATTR_CN } from '../../engine/types'
+import type { Attrs, Role } from '../../engine/types'
 import type { ArenaLine, ArenaResult } from '../../engine/arena'
-import type { Squad } from '../../engine/cards'
+import type { PlayerCard, Squad } from '../../engine/cards'
 
 /**
  * The scoreboard after a card match.
@@ -65,12 +67,12 @@ export default function MatchReport({
                 won={!result.win}
               />
               <div className="grid c2" style={{ alignItems: 'start', marginTop: 4 }}>
-                <Board title="我方数据" lines={result.lines} mvp={result.mvpCard} />
-                <Board title="对方数据" lines={them.lines} mvp={them.mvpCard} />
+                <Board title="我方数据" lines={result.lines} mvp={result.mvpCard} level={level} />
+                <Board title="对方数据" lines={them.lines} mvp={them.mvpCard} level={theirLevel} />
               </div>
             </>
           ) : (
-            <Board title="" lines={result.lines} mvp={result.mvpCard} />
+            <Board title="" lines={result.lines} mvp={result.mvpCard} level={level} />
           )}
 
           {!!result.result.highlights.length && (
@@ -166,7 +168,39 @@ function SquadRow({
   )
 }
 
-function Board({ title, lines, mvp }: { title: string; lines: ArenaLine[]; mvp: string | null }) {
+/**
+ * The one stat each position is on the server for, and the number on the
+ * card that drives it.
+ *
+ * The group asked how anyone is supposed to see what a card's numbers do in
+ * a match. Not with a breakdown — this is a light game, and a list of ± terms
+ * is a homework sheet nobody can practise for — but by putting the stat a
+ * duelist is judged on next to the number that earns it: first kills beside
+ * 枪法, assists beside 道具, survival beside 意识, clutches beside 残局. Read
+ * off the card's own position, not the seat it sits in, so a man in the
+ * 自由人 seat is still judged as what he is.
+ */
+const SPOT: Record<Exclude<Role, '自由人'>, { label: string; attr: keyof Attrs; stat: (l: ArenaLine) => string }> = {
+  决斗者: { label: '首杀', attr: 'aim', stat: (l) => (l.firstKills == null ? '–' : String(l.firstKills)) },
+  先锋: { label: '助攻', attr: 'utility', stat: (l) => String(l.assists) },
+  控场: {
+    label: '存活', attr: 'awareness',
+    stat: (l) => (l.rounds ? `${Math.round(100 * (1 - l.deaths / l.rounds))}%` : '–'),
+  },
+  哨卫: { label: '残局', attr: 'clutch', stat: (l) => (l.clutches == null ? '–' : String(l.clutches)) },
+}
+
+/** A flex player is judged on whichever of the four he is best at. */
+function spotFor(card: PlayerCard) {
+  if (card.role !== '自由人') return SPOT[card.role]
+  const best = (Object.keys(SPOT) as (keyof typeof SPOT)[])
+    .sort((a, b) => card.attrs[SPOT[b].attr] - card.attrs[SPOT[a].attr])[0]
+  return SPOT[best]
+}
+
+function Board({ title, lines, mvp, level }: {
+  title: string; lines: ArenaLine[]; mvp: string | null; level: (id: string) => number
+}) {
   return (
     <div>
       {title && <div className="tiny faint" style={{ marginBottom: 4 }}>{title}</div>}
@@ -175,13 +209,14 @@ function Board({ title, lines, mvp }: { title: string; lines: ArenaLine[]; mvp: 
           <thead>
             <tr>
               <th>选手</th><th className="right">K</th><th className="right">D</th>
-              <th className="right">A</th><th className="right">ACS</th>
+              <th className="right">A</th><th className="right">ACS</th><th>位置亮点</th>
             </tr>
           </thead>
           <tbody>
             {lines.map((l) => {
               const card = cardById(l.cardId)
               if (!card) return null
+              const spot = isPlayerCard(card) ? spotFor(card) : null
               return (
                 <tr key={l.cardId} className={l.cardId === mvp ? 'me' : ''}>
                   <td>
@@ -192,6 +227,16 @@ function Board({ title, lines, mvp }: { title: string; lines: ArenaLine[]; mvp: 
                   <td className="right mono">{l.deaths}</td>
                   <td className="right mono">{l.assists}</td>
                   <td className="right mono">{l.acs}</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>
+                    {spot && isPlayerCard(card) && (
+                      <>
+                        {spot.label} {spot.stat(l)}
+                        <span className="tiny faint" style={{ marginLeft: 6 }}>
+                          {ATTR_CN[spot.attr]} {Math.min(99, card.attrs[spot.attr] + level(l.cardId))}
+                        </span>
+                      </>
+                    )}
+                  </td>
                 </tr>
               )
             })}

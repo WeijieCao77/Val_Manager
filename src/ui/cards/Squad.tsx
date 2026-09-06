@@ -148,6 +148,23 @@ export default function SquadScreen() {
             >
               自动组队
             </button>
+            {/* One click, no dialog —「卡组里加一个一键清空当前配置的功能」.
+                Clearing five seats one modal at a time was the only way to
+                start a five from nothing. The saved presets are untouched,
+                so a wrong click costs a 「读」. */}
+            <button
+              className="sm ghost"
+              title="五个位置和教练一起清空；存过的配置不受影响"
+              onClick={() => {
+                if (!g.squad.slots.some(Boolean) && !g.squad.coach) { toast('卡组已经是空的。'); return }
+                for (let i = 0; i < g.squad.slots.length; i++) setSlot(g, i, null)
+                g.squad.coach = null
+                commit(true)
+                toast('已清空当前卡组。存过的配置还在，随时可以读回来。')
+              }}
+            >
+              清空卡组
+            </button>
           </div>
         }
       >

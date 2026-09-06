@@ -362,7 +362,7 @@ export default function Transfers() {
             <option value="">选择俱乐部…</option>
             {askClubs.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.tag} · {t.name} — {t.tier === 2 ? '次级' : 'VCT'} · 声望 {t.reputation}
+                {t.tag} · {t.name} — {t.tier === 2 ? '次级' : 'VCT'} · 声望 {Math.round(t.reputation)}
               </option>
             ))}
           </select>
@@ -444,7 +444,7 @@ export default function Transfers() {
             <div>
               <div className="row wrap" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}>
                 <b>{club?.name}</b>
-                <span className="tag">声望 {club?.reputation}</span>
+                <span className="tag">声望 {club ? Math.round(club.reputation) : "?"}</span>
                 <span className="tag">{roster.length} 人</span>
               </div>
               <div className="table-wrap">

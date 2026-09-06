@@ -353,7 +353,7 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
         },
         { label: '首字母', value: g.tag.slice(0, 1), mark: same(g.tag[0], a.tag[0]) },
         { label: '评分', value: String(g.rating), mark: num(g.rating, a.rating, 2) },
-        { label: '声望', value: String(g.reputation), mark: num(g.reputation, a.reputation, 4) },
+        { label: '声望', value: String(Math.round(g.reputation)), mark: num(g.reputation, a.reputation, 4) },
       ],
     }
   }

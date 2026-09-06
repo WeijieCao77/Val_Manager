@@ -51,9 +51,33 @@ const CHEM_RATING = 0.12
  * scripts/check_club_balance.ts is the measurement.
  */
 const SPREAD = 0.5
+/**
+ * Attributes are squeezed less than the overall. At 0.5 the whole five a level
+ * up was worth two points of win rate and the best coach against the worst
+ * under two (scripts/check_coach_effect.ts, 2026-09-06) — 「每一个小数值」did
+ * nothing a player could see. 0.6 on the attributes keeps the overall, which
+ * is what decides most of a map, at 0.5, and lets the individual numbers show
+ * in the scoreboard. check_club_balance is the guard that the contest is kept.
+ */
+const SPREAD_ATTR = 0.6
 const PIVOT_ATTR = 70
 const PIVOT_OVERALL = 80
-const squeeze = (x: number, pivot: number) => clamp(Math.round(pivot + (x - pivot) * SPREAD), 1, 99)
+const squeeze = (x: number, pivot: number, spread = SPREAD) =>
+  clamp(Math.round(pivot + (x - pivot) * spread), 1, 99)
+
+/**
+ * What a coach's other two numbers do on the server.
+ *
+ * 战术 has always been read by the match engine. 培养 and 激励 were not — in a
+ * mode with no season there is nobody to develop and no dressing room to
+ * lift — so two thirds of a coach card were decoration and a 55 coached the
+ * same match as a 94. Now 培养 is what a coach gets out of the same cards
+ * (a level per ten points above 70, at most two) and 激励 is the nerve in the
+ * late rounds (clutch, which the engine reads for kills, deaths and mid-round
+ * swings). Both read the card's own number, before the squeeze.
+ */
+const devLift = (development: number): number => clamp(Math.floor((development - 70) / 10), 0, 2)
+const nerve = (motivation: number): number => Math.round((motivation - 70) * 0.35)
 
 export interface ArenaSquad extends Squad {
   /** display name for the assembled club */
@@ -71,19 +95,24 @@ export interface ArenaSquad extends Squad {
  * from the world player and never read the card it came from. Levels had the
  * same problem in miniature.
  */
-function levelled(p: Player, card: PlayerCard, level: number, misfit: boolean): Player {
-  const bump = Math.max(0, level)
+function levelled(
+  p: Player, card: PlayerCard, level: number, misfit: boolean,
+  /** what the coach adds on top of the card's own level, and to its nerve */
+  coach: { lift: number; nerve: number } = { lift: 0, nerve: 0 },
+): Player {
+  const bump = Math.max(0, level) + coach.lift
   const attrs = { ...card.attrs }
   for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
     attrs[k] = clamp(Math.round(attrs[k] + bump), 1, 99)
   }
+  attrs.clutch = clamp(attrs.clutch + coach.nerve, 1, 99)
   return {
     ...p,
     attrs,
     // A card standing in a role it does not cover is worse at it. The engine
     // already punishes the resulting hole in the composition; this is the
     // separate cost of the individual being out of position.
-    overall: clamp(ratingAt(card.rating, bump) - (misfit ? 5 : 0), 1, 99),
+    overall: clamp(ratingAt(card.rating, Math.max(0, level)) + coach.lift - (misfit ? 5 : 0), 1, 99),
     traits: p.traits ? [...p.traits] : p.traits,
     // cards arrive rested and confident: the card mode has no season to tire
     // anyone out, and form drift would make the same squad a different squad
@@ -141,6 +170,10 @@ function seatSquad(
   // and the 2023 FNATIC Derke in the same five. The engine is the last word,
   // so the second copy is dropped here and the side plays short.
   const seated = new Set<string>()
+  const coachCard = squad.coach ? cardById(squad.coach) : undefined
+  const coaching = isCoachCard(coachCard)
+    ? { lift: devLift(coachCard.development), nerve: nerve(coachCard.motivation) }
+    : { lift: 0, nerve: 0 }
 
   squad.slots.forEach((cardId, i) => {
     if (!cardId) return
@@ -152,7 +185,7 @@ function seatSquad(
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
-    const clone = levelled(src, card, level(cardId), misfit)
+    const clone = levelled(src, card, level(cardId), misfit, coaching)
     // Chemistry lands in two places, and it has to land hard.
     //
     // Routed through teamwork and communication alone it was worth about a
@@ -171,7 +204,7 @@ function seatSquad(
     clone.overall = clamp(Math.round(clone.overall + (chem.score - 50) * CHEM_RATING), 1, 99)
     // and then the whole thing, chemistry included, comes in toward the middle
     for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
-      clone.attrs[k] = squeeze(clone.attrs[k], PIVOT_ATTR)
+      clone.attrs[k] = squeeze(clone.attrs[k], PIVOT_ATTR, SPREAD_ATTR)
     }
     clone.overall = squeeze(clone.overall, PIVOT_OVERALL)
     state.players[id] = { ...clone, id, teamId }
@@ -179,7 +212,6 @@ function seatSquad(
     roster.push(id)
   })
 
-  const coachCard = squad.coach ? cardById(squad.coach) : undefined
   const mapPrefs: Record<string, number> = {}
   for (const m of Object.keys(state.teams[WORLD_TEAMS[0].id].mapPrefs)) mapPrefs[m] = 50
 
@@ -198,9 +230,9 @@ function seatSquad(
       ? {
         name: coachCard.name,
         // the coach comes in toward the middle like the players do
-        tactics: squeeze(coachCard.tactics, PIVOT_ATTR),
-        development: squeeze(coachCard.development, PIVOT_ATTR),
-        motivation: squeeze(coachCard.motivation, PIVOT_ATTR),
+        tactics: squeeze(coachCard.tactics, PIVOT_ATTR, SPREAD_ATTR),
+        development: squeeze(coachCard.development, PIVOT_ATTR, SPREAD_ATTR),
+        motivation: squeeze(coachCard.motivation, PIVOT_ATTR, SPREAD_ATTR),
       }
       : null,
     facilities: 60,
@@ -233,6 +265,10 @@ export interface ArenaLine {
   assists: number
   acs: number
   maps: number
+  /** the role stats the report reads against the card's numbers */
+  firstKills?: number
+  clutches?: number
+  rounds?: number
 }
 
 /**
@@ -311,12 +347,17 @@ function linesFor(
     for (const [pid, l] of Object.entries(m.lines)) {
       const cardId = cardOf[pid]
       if (!cardId) continue
-      const t = (totals[cardId] ??= { kills: 0, deaths: 0, assists: 0, acs: 0, maps: 0 })
+      const t = (totals[cardId] ??= {
+        kills: 0, deaths: 0, assists: 0, acs: 0, maps: 0, firstKills: 0, clutches: 0, rounds: 0,
+      })
       t.kills += l.kills
       t.deaths += l.deaths
       t.assists += l.assists
       t.acs += l.acs
       t.maps++
+      t.firstKills! += l.firstKills
+      t.clutches! += l.clutches
+      t.rounds! += l.rounds
     }
   }
   return {

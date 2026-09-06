@@ -166,7 +166,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
 
           {m && (
             <p className="tiny faint" style={{ lineHeight: 1.8 }}>
-              {m.name}，{m.age} 岁，{origin?.label}。最终声望 {m.reputation}，
+              {m.name}，{m.age} 岁，{origin?.label}。最终声望 {Math.round(m.reputation)}，
               账面资金 {money(game.finances.balance)}。
             </p>
           )}

@@ -376,6 +376,16 @@ function Scoreboard({
                     <td>
                       <b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
+                      {/* form now moves with nights like this one and decides
+                          part of the next scoreboard; a man running hot or
+                          cold is worth seeing on the sheet, not only in the
+                          squad table */}
+                      {p.form >= 82 && (
+                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态火热 ${Math.round(p.form)}：打得比预期好，击杀也会更多`}>🔥</span>
+                      )}
+                      {p.form <= 58 && (
+                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态低迷 ${Math.round(p.form)}：最近打得不如预期，击杀会变少`}>🧊</span>
+                      )}
                       {mapBest === p.id && (
                         <span
                           className="tag"

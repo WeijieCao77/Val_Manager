@@ -207,7 +207,7 @@ export default function Career() {
                       {t.tier === 2 && <span className="tag" style={{ marginLeft: 5 }}>次级</span>}
                     </td>
                     <td className="small muted">{t.region}</td>
-                    <td className="num mono">{t.reputation}</td>
+                    <td className="num mono">{Math.round(t.reputation)}</td>
                     <td className="num mono">{money(managerSalaryFor(t as Team, m.reputation))}</td>
                     <td className="small">
                       <span style={{

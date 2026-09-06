@@ -193,7 +193,7 @@ export default function Dashboard() {
                   <span className="dot" />
                   <span>
                     <b>{t.name}</b>
-                    <span className="tag" style={{ marginLeft: 6 }}>声望 {t.reputation}</span>
+                    <span className="tag" style={{ marginLeft: 6 }}>声望 {Math.round(t.reputation)}</span>
                     <span className="tag" style={{ marginLeft: 4 }}>{t.tier === 1 ? '一级联赛' : '次级联赛'}</span>
                     <div className="tiny faint" style={{ marginTop: 3 }}>
                       {o.pitch} · {o.expiresOn - game.day} 天内答复

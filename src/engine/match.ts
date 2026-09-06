@@ -83,6 +83,33 @@ export function effectiveRating(p: Player, day?: number): number {
   return p.overall * (1 + form + morale + fatigue + hurt)
 }
 
+/**
+ * The kill share a player's ability alone predicts.
+ *
+ * The gun carries most of it and the role a little (see allocateRound). Kept
+ * as its own function because the season reads it back: form moves by how a
+ * man's night compared with this, not with the team mean — the star out-frags
+ * the mean every night because he is the star, and reading that as form would
+ * count his ability twice, the exact thing FORM_BASE was introduced to stop.
+ */
+export const expectedShare = (p: Player): number =>
+  (42 + (p.attrs.aim * 0.55 + p.attrs.reaction * 0.3 + p.attrs.clutch * 0.15) * 0.78) * KILL_WEIGHT[p.role]
+
+/**
+ * How much of the scoreboard a player's day takes.
+ *
+ * Form used to be worth 4% of kill share across its whole range and morale
+ * nothing at all, so a man at 45 morale fragged exactly like the same man at
+ * 85 and the group read 状态 and 士气 as decoration. The ratio that already
+ * scales his strength scales his share of the kills, squared: hot (form 90,
+ * morale 90) is about +18% kills, cold (55/45) about −16%. Kills are shared
+ * within the side, so the team's total is untouched — this is who gets them.
+ */
+export const stateFactor = (p: Player): number => {
+  const r = effectiveRating(p) / Math.max(1, p.overall)
+  return r * r
+}
+
 /** Pick the 5 who actually play: honour the chosen starters, fill gaps with the best fit. */
 export function selectLineup(state: GameState, teamId: string): Player[] {
   const team = state.teams[teamId]
@@ -501,8 +528,7 @@ function allocateRound(
       // Real scoreboards do not look like that (happywei 221 ACS to stax's
       // 176), so the gun carries more of it now and the role a little less.
       const kw = killers.map(
-        (p) => (42 + (p.attrs.aim * 0.55 + p.attrs.reaction * 0.3 + p.attrs.clutch * 0.15) * 0.78) *
-          KILL_WEIGHT[p.role] * (0.9 + p.form / 500) * (p.id === focusId ? 1.55 : 1),
+        (p) => expectedShare(p) * stateFactor(p) * (p.id === focusId ? 1.55 : 1),
       )
       const dw = vPool.map(
         (p) => (120 - p.attrs.awareness * 0.35 - p.attrs.clutch * 0.2) * DEATH_WEIGHT[p.role],

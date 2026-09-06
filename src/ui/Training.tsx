@@ -15,9 +15,9 @@ import {
 } from '../engine/training'
 import { useAction } from './useAction'
 import {
-  analystMarket, approachForCoach, askingSalary, clearedCoaches, employedCoaches,
-  facilityCost, offerToStaff, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus, staffMarket,
-  staffRaw, staffShare, upgradeFacility,
+  analystMarket, approachForCoach, askingSalary, clearedCoaches, demoteHead, employedCoaches,
+  facilityCost, offerToStaff, promoteToHead, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus,
+  staffMarket, staffRaw, staffShare, upgradeFacility,
 } from '../engine/staff'
 import type { Attrs, StaffRole } from '../engine/types'
 
@@ -36,6 +36,14 @@ export default function Training() {
   const [bidOn, setBidOn] = useState<string | null>(null)
   const [bidPay, setBidPay] = useState(0)
   const [bidYears, setBidYears] = useState(2)
+  // Every coach in the world is in these lists now, not the top twenty —
+  // 「挖别队的主教练里没有所有的教练可以挖，比如 TEC 的 AfteR 就没有」was the
+  // cap, not a rule — so a search box does what the cap was doing for length.
+  const [staffQ, setStaffQ] = useState('')
+  const hit = (...xs: string[]) => {
+    const t = staffQ.trim().toLowerCase()
+    return !t || xs.some((x) => x.toLowerCase().includes(t))
+  }
   const [duoPick, setDuoPick] = useState<string[]>(
     game.duo ? [game.duo.a, game.duo.b] : [],
   )
@@ -485,6 +493,20 @@ export default function Training() {
             <>
               <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
                 <b>{me.coach.name}</b>
+                <button
+                  className="sm ghost"
+                  title="他留在教练组当助理教练；主教练位置空出来，可以从助教里升任"
+                  onClick={async () => {
+                    const head = me.coach
+                    if (!head) return
+                    if (!(await ask(`确定让 ${head.name} 降为助理教练？俱乐部会暂时没有主教练。`))) return
+                    toast(demoteHead(game))
+                    logActivity(game, 'squad', `${head.name} 降为助理教练`)
+                    commit()
+                  }}
+                >
+                  降为助教
+                </button>
               </div>
               {([['战术', me.coach.tactics], ['培养', me.coach.development],
                  ['激励', me.coach.motivation]] as const).map(([label, v]) => (
@@ -544,6 +566,23 @@ export default function Training() {
                     培 +{staffShare(m, 'development').toFixed(1)}
                   </span>
                   <span className="tiny mono">{money(m.salary)}</span>
+                  {m.role === 'assistant' && (
+                    <button
+                      className="sm"
+                      title={me.coach
+                        ? `升任主教练，${me.coach.name} 转为助理教练；薪资按主教练身价重谈，只升不降`
+                        : '升任主教练；薪资按主教练身价重谈，只升不降'}
+                      onClick={async () => {
+                        const swap = me.coach ? `${me.coach.name} 会转为助理教练。` : ''
+                        if (!(await ask(`确定让 ${m.name} 升任主教练？${swap}`))) return
+                        toast(promoteToHead(game, m.name))
+                        logActivity(game, 'squad', `${m.name} 升任主教练`)
+                        commit()
+                      }}
+                    >
+                      升任主教练
+                    </button>
+                  )}
                   <button className="sm ghost" onClick={async () => {
                     if (!(await ask(`确定与 ${m.name} 解约？`))) return
                     toast(releaseStaff(game, m.name)); commit()
@@ -588,6 +627,13 @@ export default function Training() {
                     ))}
                   </div>
                 )}
+                <input
+                  className="sm"
+                  style={{ width: 170 }}
+                  placeholder="搜教练 / 俱乐部"
+                  value={staffQ}
+                  onChange={(e) => setStaffQ(e.target.value)}
+                />
               </div>
               <p className="tiny faint" style={{ marginTop: 0 }}>
                 {role === 'analyst' ? (
@@ -610,8 +656,9 @@ export default function Training() {
                 // the coaches whose clubs have already said yes, priced as head
                 // coaches — the rows below look themselves up in here
                 const cleared = clearedCoaches(game)
+                const rows = employedCoaches(game).filter(({ team, coach }) => hit(coach.name, team.name, team.tag))
                 return (
-                <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <div className="table-wrap" style={{ maxHeight: 360, overflowY: 'auto' }}>
                   <table>
                     <thead>
                       <tr>
@@ -621,7 +668,10 @@ export default function Training() {
                       </tr>
                     </thead>
                     <tbody>
-                      {employedCoaches(game).slice(0, 20).map(({ team, coach, ask }) => {
+                      {rows.length === 0 && (
+                        <tr><td colSpan={7} className="tiny faint">没有叫这个名字的主教练或俱乐部。</td></tr>
+                      )}
+                      {rows.map(({ team, coach, ask }) => {
                         const pending = (game.staffApproaches ?? [])
                           .find((a) => a.teamId === team.id && !a.answer)
                         const granted = (game.staffApproaches ?? [])
@@ -707,7 +757,7 @@ export default function Training() {
                 </div>
                 )
               })() : (
-              <div className="table-wrap" style={{ maxHeight: 250, overflowY: 'auto' }}>
+              <div className="table-wrap" style={{ maxHeight: 360, overflowY: 'auto' }}>
                 <table>
                   <thead>
                     <tr>
@@ -719,7 +769,7 @@ export default function Training() {
                     {(role === 'analyst'
                       ? analystMarket(game)
                       : [...clearedCoaches(game), ...staffMarket(game)]
-                    ).slice(0, 20).map((c) => {
+                    ).filter((c) => hit(c.name, c.from)).map((c) => {
                       const ask = askingSalary(c, role)
                       const bidding = bidOn === c.name
                       return (
