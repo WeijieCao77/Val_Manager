@@ -3,14 +3,19 @@ import { useCards } from './ctx'
 import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
 import {
-  PACKS, PACK_ORDER, QUESTS, HARD_PITY, SOFT_PITY,
+  PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
+import type { Card } from '../../engine/cards'
 import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 import { playPackCue } from '../packAudio'
+import CardTilt from './CardTilt'
+import PackPouch from './PackPouch'
+import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
+import type { PackPosition } from './positionPackDesign'
 
 /** What the server says came out of a pack, resolved back to cards. */
 interface PulledWire { cardId: string; dupe: boolean; salvage: number }
@@ -18,6 +23,7 @@ interface PulledWire { cardId: string; dupe: boolean; salvage: number }
 export default function Packs() {
   const { g, today, act, toast } = useCards()
   const [opening, setOpening] = useState<Pulled[] | null>(null)
+  const [openingKind, setOpeningKind] = useState<PackKind | null>(null)
   const [shown, setShown] = useState(0)
   const [busy, setBusy] = useState(false)
 
@@ -49,6 +55,7 @@ export default function Packs() {
       cards: out.map((p) => p.card.id).join(','),
     })
     setOpening(out)
+    setOpeningKind(kind)
     setShown(1)
   }
 
@@ -185,6 +192,27 @@ export default function Packs() {
         </div>
       </Panel>
 
+      {POSITION_PACK_KINDS.some((k) => (g.packs[k] ?? 0) > 0) && (
+        <Panel title="位置奖励包" actions={<span className="tiny muted">小游戏打出来的</span>}>
+          <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
+            一张能打这个位置的选手卡，不卖，只能在「小游戏」里打出来。包装和卡背按位置各一套。
+          </p>
+          <div className="pack-shelf">
+            {POSITION_PACK_KINDS.filter((k) => (g.packs[k] ?? 0) > 0).map((kind) => {
+              const def = PACKS[kind]
+              const own = g.packs[kind] ?? 0
+              return (
+                <div key={kind} className="pack-box">
+                  <h4>{def.name}<span className="pack-own"> ×{own}</span></h4>
+                  <p>{def.blurb}</p>
+                  <button className="primary sm" onClick={() => void open(kind, 'pack')} disabled={busy || own < 1}>打开（{own}）</button>
+                </div>
+              )
+            })}
+          </div>
+        </Panel>
+      )}
+
       <Panel
         title="赛区系列"
         actions={<span className="tiny muted">四个赛区，分开收集</span>}
@@ -276,6 +304,7 @@ export default function Packs() {
         <PackStage
           pulled={opening}
           shown={shown}
+          position={openingKind ? packPosition(openingKind) ?? undefined : undefined}
           // ceiling is length + 1, not length: `finished` is `shown >
           // pulled.length`, so clamping at length meant the last card of a
           // multi-card pack could never be got past — the reveal sat on 3/3
@@ -303,12 +332,12 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children, revealed }: { children: React.ReactNode; revealed: boolean }) {
+function Flip({ children, revealed, kind, position }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition }) {
   return (
     <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
-        <div className="flip-face flip-back"><CardBack /></div>
-        <div className="flip-face flip-front">{children}</div>
+        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} /><span className="card-specular" /></div>
+        <div className="flip-face flip-front" aria-hidden={!revealed}>{children}<span className="card-specular" /></div>
       </div>
     </div>
   )
@@ -317,18 +346,20 @@ function Flip({ children, revealed }: { children: React.ReactNode; revealed: boo
 /**
  * The reveal.
  *
- * Cards come out worst-first and one tap at a time, because the whole point of
- * a ten-pull is the last card. Tapping again skips ahead; nobody should have
- * to sit through an animation twice.
+ * Keep the server's shuffled order stable throughout the reveal and summary.
+ * A rare card can be first, in the middle, or last.
  */
-function PackStage({
-  pulled, shown, onNext, onDone, onSellAll,
+export function PackStage({
+  pulled, shown, onNext, onDone, onSellAll, position,
 }: {
   pulled: Pulled[]; shown: number
+  /** Position of the reward source, not the first role on a multi-role player. */
+  position?: PackPosition
   onNext: () => void; onDone: () => void; onSellAll: () => void
 }) {
   const [unsealed, setUnsealed] = useState(false)
   const [faceUp, setFaceUp] = useState(false)
+  const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
   const single = pulled.length === 1
   const finished = shown > pulled.length
   const current = pulled[Math.min(shown, pulled.length) - 1]
@@ -362,7 +393,7 @@ function PackStage({
 
   return (
     <div className="pack-stage" onClick={advanceReveal}>
-      {!unsealed && <PackTearGate count={pulled.length} onOpen={() => setUnsealed(true)} />}
+      {!unsealed && <PackTearGate position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (
           <>
@@ -385,9 +416,11 @@ function PackStage({
               <span className="pack-rarity-motes" aria-hidden="true">
                 {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
-              <Flip revealed={faceUp}>
-                <CardFace card={current.card} size="lg" />
-              </Flip>
+              <CardTilt>
+                <Flip position={position} kind={current.card.kind} revealed={faceUp}>
+                  <CardFace card={current.card} size="lg" />
+                </Flip>
+              </CardTilt>
             </div>
             <div className="pack-card-meta-slot">
               {faceUp && <div className="pack-card-meta row" style={{ gap: 8, flexDirection: 'column' }}>
@@ -432,10 +465,10 @@ function PackStage({
   )
 }
 
-const REST_POSE = { x: -2.2, y: -4.5 }
+const REST_POSE = { x: 4, y: -20 }
 
 /** A real pointer-driven foil seal before the first card is revealed. */
-function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) {
+function PackTearGate({ count, kind, position, onOpen }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void }) {
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [torn, setTorn] = useState(false)
@@ -475,7 +508,7 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
     timer.current = window.setTimeout(() => {
       playPackCue('reveal')
       onOpen()
-    }, reduced ? 80 : 1000)
+    }, reduced ? 80 : 1450)
   }
 
   const down = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -498,7 +531,8 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
     if (!rect) return
     const nx = Math.max(-1, Math.min(1, (clientX - rect.left) / rect.width * 2 - 1))
     const ny = Math.max(-1, Math.min(1, (clientY - rect.top) / rect.height * 2 - 1))
-    setPose({ x: ny * -3.4, y: nx * 6.5 })
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    setPose({ x: REST_POSE.x - ny * 5, y: REST_POSE.y + nx * 10 })
   }
 
   // A thumb on a phone travels in an arc, not a line, so only the sideways
@@ -544,17 +578,13 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
   }
 
   return (
-    <div className={`pack-tear-scene${torn ? ' torn' : ''}`}>
+    <div className={`pack-tear-scene pack-tear-${kind}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
       <div className="pack-tear-aura" aria-hidden="true" />
-      <div className="pack-tear-kicker">新卡包已送达</div>
+      <div className="pack-tear-kicker">{position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}</div>
       <div
         className={`pack-wrapper${dragging ? ' dragging' : ''}`}
         style={{
           '--tear': progress,
-          '--pack-rx': `${pose.x}deg`,
-          '--pack-ry': `${pose.y}deg`,
-          '--pack-lift': `${-progress * 2}px`,
-          '--foil-light-x': `${Math.max(20, Math.min(80, 50 + pose.y * 4))}%`,
         } as React.CSSProperties}
         role="button"
         tabIndex={0}
@@ -572,39 +602,20 @@ function PackTearGate({ count, onOpen }: { count: number; onOpen: () => void }) 
           }
         }}
       >
-        <div className="pack-depth" aria-hidden="true">
-          <span className="pack-backplate" />
-          <span className="pack-side pack-side-left" />
-          <span className="pack-side pack-side-right" />
-          <span className="pack-side pack-side-bottom" />
-        </div>
-        <div className="pack-card-emerge" aria-hidden="true"><CardBack /></div>
-        <div className="pack-foil pack-foil-top" aria-hidden="true">
-          <span className="pack-crimp" />
-          <span className="pack-serial">VM // SEALED</span>
-        </div>
-        <div className="pack-foil pack-foil-body" aria-hidden="true">
-          <span className="pack-volume" />
-          <span className="pack-edge-seam pack-edge-seam-left" />
-          <span className="pack-edge-seam pack-edge-seam-right" />
-          <span className="pack-crosshair" />
-          <span className="pack-wordmark">VAL<br />MANAGER</span>
-          <span className="pack-edition">PLAYER ARCHIVE</span>
-          <span className="pack-count"><b>{String(count).padStart(2, '0')}</b> FILE{count === 1 ? '' : 'S'}</span>
-          <span className="pack-classified">机密档案 · 单次启封</span>
-          <span className="pack-bottom-code">TACTICAL SERIES　/　01</span>
-          <span className="pack-bottom-crimp" />
+        <PackPouch position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
+        <div className="pack-card-emerge" aria-hidden="true">
+          {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
+            <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />
+          ))}
+          <CardBack kind={kind} position={position} />
         </div>
         <div className="pack-tear-track" aria-hidden="true">
           <span className="pack-tear-cut" />
-          <span className="pack-tear-tab">››</span>
-        </div>
-        <div className="pack-foil-shards" aria-hidden="true">
-          {Array.from({ length: 7 }, (_, i) => <i key={i} />)}
+          <span className="pack-tear-tab">→</span>
         </div>
       </div>
       <div className="pack-tear-instruction" aria-live="polite">
-        {torn ? '封条已破坏' : progress > 0 ? '继续向右划' : '按住封条，向右划开'}
+        {torn ? '好戏，即将上场' : progress > 0 ? '继续向右划' : '按住封条，向右划开'}
       </div>
       <div className="pack-tear-sub">鼠标、触屏均可操作 · 键盘按 Enter</div>
     </div>

@@ -4,6 +4,7 @@ import { CardCtx } from './cards/ctx'
 import Packs from './cards/Packs'
 import Pity from './cards/Pity'
 import Challenge from './cards/Challenge'
+import Minigames from './cards/Minigames'
 import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
 import Ladder from './cards/Ladder'
@@ -86,9 +87,10 @@ function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
   )
 }
 
-const TABS = [
+const TABS: { key: string; label: string; beta?: boolean }[] = [
   { key: 'packs', label: '抽卡' },
   { key: 'challenge', label: '挑战' },
+  { key: 'minigames', label: '小游戏', beta: true },
   { key: 'squad', label: '卡组' },
   { key: 'collection', label: '收藏' },
   { key: 'ladder', label: '天梯' },
@@ -311,6 +313,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const Screen = ({
     packs: Packs,
     challenge: Challenge,
+    minigames: Minigames,
     squad: SquadScreen,
     collection: Collection,
     ladder: Ladder,
@@ -362,6 +365,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
               onClick={() => { setTab(t.key); if (t.key !== 'dossier') setDossierId(null) }}
             >
               {t.label}
+              {t.beta && <span className="tag warn" style={{ marginLeft: 4, fontSize: 9, padding: '0 4px', verticalAlign: 'middle' }}>beta</span>}
             </button>
           ))}
         </nav>

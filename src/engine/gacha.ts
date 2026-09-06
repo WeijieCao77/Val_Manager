@@ -9,6 +9,7 @@
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
 import { REGION_CN } from './types'
+import type { Role } from './types'
 import {
   ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, MAX_LEVEL, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
@@ -16,6 +17,8 @@ import {
 } from './cards'
 import type { Card, CoachCard, PlayerCard, Rarity, Squad } from './cards'
 import { newChallenge } from './challenge'
+import { MINI_CN, MINI_COINS, MINI_PAYS_PACK, newMinigame } from './minigame'
+import type { MiniGame, MinigameState, Tier } from './minigame'
 import type { ChallengeState } from './challenge'
 
 export const GACHA_VERSION = 1
@@ -41,6 +44,11 @@ export type PackKind =
   | 'scout' | 'elite' | 'ten' | 'coach'
   // one per series — same three cards, drawn only from that region
   | 'cn' | 'pac' | 'ame' | 'emea'
+  // one per position — a single card that plays it; paid by the 位置小游戏, never sold
+  | 'duelist' | 'initiator' | 'controller' | 'sentinel'
+
+/** the positions a pack can be dealt from; 自由人 is not a pool, it is the absence of one */
+export type PackPosition = Extract<Role, '决斗者' | '先锋' | '控场' | '哨卫'>
 
 export interface PackDef {
   kind: PackKind
@@ -70,8 +78,8 @@ export interface PackDef {
    * one" never was.
    */
   shop?: boolean
-  /** coach packs deal from a different deck; a series deals from one region */
-  pool: 'player' | 'coach' | Series
+  /** coach packs deal from a different deck; a series deals from one region; a position from its players */
+  pool: 'player' | 'coach' | Series | PackPosition
 }
 
 /**
@@ -130,7 +138,40 @@ export const PACKS: Record<PackKind, PackDef> = {
     // nights were played by players
     cost: 1200, draws: 1, mythic: 0, gold: 0.12, silver: 0.42, shop: true,
   },
+  // The position packs. One card that plays the position, a little kinder
+  // than a 试训包 because it was earned in a game rather than bought, and no
+  // 彩卡: five of these a day is the ceiling and a legend behind a reaction
+  // test would be the wrong kind of lottery. Never in the shop.
+  duelist: {
+    kind: 'duelist', name: '决斗包', pool: '决斗者',
+    blurb: '一张能打决斗者的选手卡。首杀反应打出来的。',
+    cost: 0, draws: 1, mythic: 0, gold: 0.05, silver: 0.32, shop: false,
+  },
+  initiator: {
+    kind: 'initiator', name: '先锋包', pool: '先锋',
+    blurb: '一张能打先锋的选手卡。侦察报点打出来的。',
+    cost: 0, draws: 1, mythic: 0, gold: 0.05, silver: 0.32, shop: false,
+  },
+  controller: {
+    kind: 'controller', name: '控场包', pool: '控场',
+    blurb: '一张能打控场的选手卡。控场的小游戏还在做。',
+    cost: 0, draws: 1, mythic: 0, gold: 0.05, silver: 0.32, shop: false,
+  },
+  sentinel: {
+    kind: 'sentinel', name: '哨位包', pool: '哨卫',
+    blurb: '一张能打哨卫的选手卡。舒尔特方格打出来的。',
+    cost: 0, draws: 1, mythic: 0, gold: 0.05, silver: 0.32, shop: false,
+  },
 }
+
+/** the position packs, in the order the screens show them */
+export const POSITION_PACK_KINDS: readonly PackKind[] = ['duelist', 'initiator', 'controller', 'sentinel']
+export const packPosition = (kind: PackKind): PackPosition | null => {
+  const pool = PACKS[kind].pool
+  return pool === '决斗者' || pool === '先锋' || pool === '控场' || pool === '哨卫' ? pool : null
+}
+/** which pack each 位置小游戏 pays */
+export const MINI_PACK: Record<MiniGame, PackKind> = { aim: 'duelist', recon: 'initiator', schulte: 'sentinel' }
 
 /**
  * Which series a pack belongs to, for the collection screen.
@@ -498,6 +539,8 @@ export interface GachaState {
   daily: DailyState
   /** 每日挑战 — see engine/challenge.ts */
   challenge?: ChallengeState
+  /** 位置小游戏 — see engine/minigame.ts */
+  minigame?: MinigameState
   /** how many series milestones have been collected, per region */
   series?: Partial<Record<Series, number>>
   /** 好友对战房 — see FriendRec */
@@ -672,6 +715,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     pulls: 0,
     ladder: { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 },
     challenge: newChallenge(),
+    minigame: newMinigame(),
     cup: null,
     daily: {
       claimed: null, streak: 0, questDay: null, picked: [], progress: {}, taken: [],
@@ -724,7 +768,19 @@ const seriesPool = (region: Series) => ({
   bronze: bySeries(PLAYER_CARDS.filter((c) => c.rarity === 'bronze'), region),
 })
 
+const rolePool = (role: PackPosition) => ({
+  // no legends: see the position packs above
+  mythic: [] as PlayerCard[],
+  gold: PLAYER_CARDS.filter((c) => c.rarity === 'gold' && c.roles.includes(role)),
+  silver: PLAYER_CARDS.filter((c) => c.rarity === 'silver' && c.roles.includes(role)),
+  bronze: PLAYER_CARDS.filter((c) => c.rarity === 'bronze' && c.roles.includes(role)),
+})
+
 const POOLS = {
+  决斗者: rolePool('决斗者'),
+  先锋: rolePool('先锋'),
+  控场: rolePool('控场'),
+  哨卫: rolePool('哨卫'),
   player: {
     mythic: LEGEND_CARDS,
     gold: PLAYER_CARDS.filter((c) => c.rarity === 'gold'),
@@ -743,6 +799,24 @@ const POOLS = {
   },
 } as const
 
+/**
+ * What a finished 位置小游戏 pays: the position's pack on 金 and 银, coins on
+ * top of it on 金, a few coins in place of it on 铜. Called by the server's
+ * minigame_finish once the transcript has been judged — see engine/minigame.ts.
+ */
+export function awardMinigame(g: GachaState, game: MiniGame, tier: Tier): { pack: PackKind | null; coins: number } {
+  const pack = MINI_PAYS_PACK[tier] ? MINI_PACK[game] : null
+  const coins = MINI_COINS[tier]
+  if (pack) {
+    g.packs[pack] = (g.packs[pack] ?? 0) + 1
+    g.minigame ??= newMinigame()
+    g.minigame.won = (g.minigame.won ?? 0) + 1
+  }
+  if (coins) g.coins += coins
+  note(g, `${MINI_CN[game]} ${tier}档${pack ? `，${PACKS[pack].name} +1` : ''}${coins ? `，+${coins} 金币` : ''}`)
+  return { pack, coins }
+}
+
 export interface Pulled {
   card: Card
   /** already owned, so this copy stacks as a duplicate */
@@ -755,8 +829,7 @@ export interface Pulled {
  * Deal one pack.
  *
  * Mutates the account: spends the pack (or the coins), advances pity, and
- * files what came out. Returns the cards in the order they should be revealed
- * — worst first, so the flip that matters is the last one.
+ * files what came out. Returns a shuffled reveal order, independent of rarity.
  */
 export function openPack(
   g: GachaState, kind: PackKind, payWith: 'pack' | 'coins', today?: string,
@@ -801,7 +874,7 @@ export function openPack(
     }
     metals.push(metal)
   }
-  // honour the pack's promise on the last card, which is the one being watched
+  // Honour the pack's guarantee before shuffling the reveal order.
   if (def.floor) {
     const bestAt = metals.reduce(
       (b, m, i) => (rarityRank(m) > rarityRank(metals[b]) ? i : b), 0)
@@ -810,13 +883,10 @@ export function openPack(
       if (def.floor === 'gold') g.pity = 0
     }
   }
-  // worst first, so the card that matters is the last one turned over. Note
-  // this is REVEAL order, not roll order — the floor counter above ran in roll
-  // order, so a run measured off the reveal can look one pack longer than it was.
-  metals.sort((a, b) => rarityRank(a) - rarityRank(b))
-
   const out: Pulled[] = []
-  for (const metal of metals) {
+  // Pity is settled in roll order above. Fisher–Yates only changes reveal order,
+  // including the slot occupied by a guaranteed card; the seed advances below.
+  for (const metal of rng.shuffle(metals)) {
     const list: readonly Card[] = pool[metal].length ? pool[metal] : pool.bronze
     const card = rng.pick(list)
     const had = g.cards[card.id]
@@ -1807,6 +1877,8 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.daily.staminaAt ??= 0
   // accounts made before the daily challenge existed have never played one
   g.challenge ??= newChallenge()
+  // accounts made before the 位置小游戏 existed have a full day of plays
+  g.minigame ??= newMinigame()
   // an existing collection already sits somewhere on the series ladder; nothing
   // is marked claimed, so whatever it has already earned is waiting on the shelf
   g.series ??= {}
@@ -1828,7 +1900,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'cup', 'daily', 'challenge', 'series', 'mail', 'log', 'seed',
+  'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

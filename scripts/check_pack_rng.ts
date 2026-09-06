@@ -22,6 +22,7 @@
  */
 import { newGacha, openPack, PACKS, PACK_ORDER } from '../src/engine/gacha'
 import type { PackKind } from '../src/engine/gacha'
+import { rarityRank } from '../src/engine/cards'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }) = {
@@ -115,6 +116,25 @@ for (const kind of PACK_ORDER) {
   reloaded.coins = 1e9; reloaded.packs.ten = 1; reloaded.seed = snapshot
   const again = openPack(reloaded, 'ten', 'pack').map((c) => c.card.id).join()
   check(first === again, '同一个 seed 开出同一包（确定性还在）')
+}
+
+// Multi-card packs can start with a rare card and then reveal a lower tier.
+// Guarantees still hold, and no slot is reserved for the best card.
+for (const kind of PACK_ORDER.filter(k => PACKS[k].draws > 1)) {
+  const def = PACKS[kind]
+  const goldSlots = new Set<number>()
+  let descending = 0
+  for (let i = 0; i < 250; i++) {
+    const g = newGacha(`VM-ORDER-${kind}-${i}`, '乱序检查', '2026-09-01')
+    g.packs[kind] = 1
+    const out = openPack(g, kind, 'pack')
+    check(out.length === def.draws, `${kind} 乱序后张数不变`)
+    if (def.floor) check(out.some(p => rarityRank(p.card.rarity) >= rarityRank(def.floor!)), `${kind} 整包保底仍生效`)
+    out.forEach((p, slot) => { if (p.card.rarity === 'gold') goldSlots.add(slot) })
+    if (out.some((p, slot) => slot > 0 && rarityRank(out[slot - 1].card.rarity) > rarityRank(p.card.rarity))) descending++
+  }
+  check(descending > 0, `${kind} 允许高等级先出现、低等级后出现`)
+  check(goldSlots.size === def.draws, `${kind} 金卡可以出现在每个位置`, `出现过 ${goldSlots.size}/${def.draws} 个位置`)
 }
 
 console.log(bad ? `\n${bad} 项不通过` : '\n全部通过')

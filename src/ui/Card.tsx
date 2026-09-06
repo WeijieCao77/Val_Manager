@@ -5,6 +5,9 @@ import { crestUrl } from '../engine/dossier'
 import { FLAG_AS, natName } from '../engine/nat'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
 import { isCoachCard, isPlayerCard } from '../engine/cards'
+import { POSITION_PACKS, positionPackStyle } from './cards/positionPackDesign'
+import type { PackPosition } from './cards/positionPackDesign'
+import { COACH_CREST } from './cards/coachCrest'
 
 
 /**
@@ -261,39 +264,54 @@ function CoachBody({ card, size, footer }: { card: CoachCard; size: string; foot
   )
 }
 
-/**
- * The back of a card, for the moment before it turns over.
- *
- * Deliberately says nothing about what is on the other side — no metal, no
- * rating, no colour that could give a gold away early. The whole value of the
- * flip is that you cannot tell yet.
- */
-export function CardBack() {
+/** Shared collection crest: a trophy and five leaves for a starting five. */
+export function CollectionCrest() {
   return (
-    <div className="cardback">
+    <svg className="collection-crest" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+      <path d="M43 33h34v18c0 15-8 23-17 23S43 66 43 51V33Z" fill="currentColor" />
+      <path d="M43 39H32v8c0 10 6 16 16 16m29-24h11v8c0 10-6 16-16 16M60 74v12m-14 5h28" stroke="currentColor" strokeWidth="4" />
+      <path d="m60 41 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z" fill="var(--crest-cutout, #ece8e1)" />
+      <g stroke="currentColor" strokeWidth="1.5">
+        <path d="M49 103C22 94 13 70 20 48M71 103c27-9 36-33 29-55" />
+      </g>
+      <g fill="currentColor">
+        <path d="M20 62C9 60 8 49 11 43c8 3 12 10 9 19Zm0 14C8 75 5 66 7 59c9 1 15 8 13 17Zm6 13C14 93 8 83 8 77c10-2 17 3 18 12Zm10 10c-9 7-19 1-22-5 8-5 17-3 22 5Zm13 5c-5 10-16 9-22 4 5-7 15-9 22-4Z" />
+        <path d="M20 62C9 60 8 49 11 43c8 3 12 10 9 19Zm0 14C8 75 5 66 7 59c9 1 15 8 13 17Zm6 13C14 93 8 83 8 77c10-2 17 3 18 12Zm10 10c-9 7-19 1-22-5 8-5 17-3 22 5Zm13 5c-5 10-16 9-22 4 5-7 15-9 22-4Z" transform="translate(120 0) scale(-1 1)" />
+        <path d="m60 8 2 5 6 1-4 4 1 5-5-2-5 2 1-5-4-4 6-1Z" />
+      </g>
+    </svg>
+  )
+}
+
+export function CoachCrest() {
+  return <svg className="collection-crest" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+    {COACH_CREST.map(({ d, width }) => <path key={d} d={d} stroke="currentColor" strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />)}
+  </svg>
+}
+
+/** Collection-specific print; only the surrounding aura signals rarity. */
+export function PositionCrest({ position }: { position: PackPosition }) {
+  return <svg className="collection-crest" viewBox="0 0 120 120" fill="currentColor" aria-hidden="true">
+    {POSITION_PACKS[position].paths.map(d => <path key={d} d={d} />)}
+  </svg>
+}
+
+export function CardBack({ kind = 'player', position }: { kind?: Card['kind']; position?: PackPosition }) {
+  const coach = kind === 'coach'
+  const design = !coach && position ? POSITION_PACKS[position] : undefined
+  return (
+    <div className={`cardback${coach ? ' cardback-coach' : design ? ' cardback-position' : ''}`} style={positionPackStyle(design ? position : undefined)}>
       <span className="cb-frame" aria-hidden="true" />
-      <span className="cb-coordinate cb-coordinate-left" aria-hidden="true">04　12　08</span>
-      <span className="cb-coordinate cb-coordinate-right" aria-hidden="true">N° 001</span>
-      <div className="cb-topline">
-        <span>VM // PLAYER ARCHIVE</span>
-        <b>ACTIVE</b>
-      </div>
-      <div className="cb-core" aria-hidden="true">
-        <span className="cb-orbit cb-orbit-outer" />
-        <span className="cb-orbit cb-orbit-inner" />
-        <span className="cb-axis cb-axis-x" />
-        <span className="cb-axis cb-axis-y" />
-        <span className="cb-emblem" />
-        <span className="cb-core-dot" />
-      </div>
+      <div className="cb-topline">VAL MANAGER</div>
+      <div className="cb-core">{coach ? <CoachCrest /> : design && position ? <PositionCrest position={position} /> : <CollectionCrest />}</div>
       <div className="cb-identity">
-        <div className="cb-mark">开瓦包</div>
-        <div className="cb-sub">TACTICAL CARD SYSTEM</div>
+        <div className="cb-mark">{coach ? '教练组' : design ? design.label === '哨位' ? '哨位' : `${design.label}位` : '开瓦包'}</div>
+        <div className="cb-sub">{coach ? '电竞教练收藏卡' : design ? `${design.english} · 位置收藏卡` : '电竞选手收藏卡'}</div>
       </div>
       <div className="cb-footer">
-        <span>VAL MANAGER</span>
-        <span className="cb-bars" aria-hidden="true"><i /><i /><i /><i /></span>
-        <b>SEALED</b>
+        <span aria-hidden="true">★</span>
+        <span>{coach ? '胜负之间，自有章法' : design ? design.footer : '为你的首发而来'}</span>
+        <span aria-hidden="true">★</span>
       </div>
     </div>
   )

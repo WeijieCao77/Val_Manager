@@ -24,14 +24,19 @@
  * lets scripts/check_authority.ts drive every action without a database.
  */
 import {
-  canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
+  awardMinigame, canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES, STAMINA_COST,
 } from './gacha'
+import {
+  judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
+} from './minigame'
+import type { MiniGame } from './minigame'
 import type { GachaState, PackKind, QuestKey, Series } from './gacha'
 import { playArenaMatch, playRivalMatch } from './arena'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, guessChallenge } from './challenge'
+import { hashStr } from './rng'
 import { cardById, isPlayerCard, personOf, squadRating } from './cards'
 import type { Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
@@ -56,6 +61,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
+  'minigame_start', 'minigame_finish',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -239,6 +245,33 @@ function dispatch(
     case 'mail_seen': {
       markMailSeen(g)
       return { ok: true }
+    }
+    // ---- 位置小游戏: the server opens the round and judges it — engine/minigame.ts
+    case 'minigame_start': {
+      const game = str(a.game, 12) as MiniGame
+      if (!MINI_GAMES.includes(game)) return { ok: false, why: '没有这个小游戏' }
+      const m = (g.minigame ??= newMinigame())
+      refreshMinigame(m, env.today)
+      if (m.plays >= MINIGAME_DAILY) return { ok: false, why: `今天的 ${MINIGAME_DAILY} 次都用完了，明天再来` }
+      // starting again abandons the round in progress; the play it spent stays spent,
+      // or a bad seed could be rerolled for free
+      m.plays += 1
+      const seed = hashStr(`${g.seed}:${env.seed}:${env.now}:${game}:${m.plays}`) >>> 0
+      m.live = { game, seed, startedAt: env.now }
+      return { ok: true, result: { game, seed, startedAt: env.now, playsLeft: MINIGAME_DAILY - m.plays } }
+    }
+    case 'minigame_finish': {
+      const m = g.minigame
+      const live = m?.live
+      if (!m || !live) return { ok: false, why: '没有进行中的小游戏' }
+      const elapsed = env.now - live.startedAt
+      m.live = null
+      if (elapsed > MINIGAME_TTL_MS) return { ok: false, why: '这局放太久了，已经作废' }
+      const verdict = judgeMinigame(live.game, live.seed, a.transcript, elapsed)
+      if (!verdict.ok) return { ok: false, why: verdict.why }
+      const reward = awardMinigame(g, live.game, verdict.tier)
+      m.best[live.game] = Math.max(m.best[live.game] ?? 0, verdict.score)
+      return { ok: true, result: { game: live.game, tier: verdict.tier, score: verdict.score, summary: verdict.summary, detail: verdict.detail, reward, playsLeft: MINIGAME_DAILY - m.plays } }
     }
     default:
       return { ok: false, why: '没有这个操作' }
