@@ -11,7 +11,7 @@
  * deploy, which is exactly when nobody would notice it had vanished.
  */
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { battleCode } from './cards-api.js'
+import { battleCode, STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
 
 /**
  * Every pack the game has. A grant naming anything else is refused rather than
@@ -228,14 +228,14 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         select id_hash, name, created, ladder_seen,
                coalesce((state->'ladder'->>'wins')::int, 0) as wins,
                coalesce((state->'ladder'->>'losses')::int, 0) as losses,
-               floor((15 + extract(epoch from (now() - created)) / 3000) / 2) as ceiling
+               floor((${STAMINA_MAX}::int + extract(epoch from (now() - created)) / ${STAMINA_POINT_SEC}::int) / 2) as ceiling
         from card_accounts
         where suspect
           and state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
           and state->'ladder'->>'losses' ~ '^[0-9]{1,7}$'
         order by (coalesce((state->'ladder'->>'wins')::int, 0)
                 + coalesce((state->'ladder'->>'losses')::int, 0))
-               - floor((15 + extract(epoch from (now() - created)) / 3000) / 2) desc
+               - floor((${STAMINA_MAX}::int + extract(epoch from (now() - created)) / ${STAMINA_POINT_SEC}::int) / 2) desc
         limit 100`
       json(res, 200, {
         ok: true,

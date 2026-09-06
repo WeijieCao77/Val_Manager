@@ -35,6 +35,15 @@ async function loadEngine() {
 }
 export const engine = await loadEngine()
 
+/**
+ * The 体力 arithmetic the honesty checks run on, taken from the engine so the
+ * SQL and the meter can never disagree. They did: 15 points and 50 minutes
+ * were typed into four files, and the day the meter moved to 20 and 30 the
+ * ceiling would have gone on judging players by the old clock.
+ */
+export const STAMINA_MAX = engine.STAMINA_MAX ?? 20
+export const STAMINA_POINT_SEC = Math.round((engine.STAMINA_REGEN_MS ?? 30 * 60 * 1000) / 1000)
+
 export const CARD_SCHEMA = `
 create table if not exists card_accounts (
   id_hash  text primary key,
@@ -51,8 +60,9 @@ create index if not exists card_seen_idx on card_accounts (seen desc);
 -- is a template literal and one would end it.)
 alter table card_accounts add column if not exists saved timestamptz;
 -- The ladder total this account has been SEEN at, and when. Growth between two
--- saves is bounded by 体力: 15 banked, one point back every 50 minutes, two a
--- ladder match. A save that outruns that clock did not come from playing.
+-- saves is bounded by 体力: a full meter banked, one point back every so
+-- often (the engine's numbers), two a ladder match. A save that outruns that
+-- clock did not come from playing.
 alter table card_accounts add column if not exists ladder_seen int;
 alter table card_accounts add column if not exists ladder_at timestamptz;
 alter table card_accounts add column if not exists suspect boolean not null default false;
@@ -76,7 +86,7 @@ where ladder_at is null
   and pardon_at is null
   and coalesce((state->'ladder'->>'wins')::int, 0)
     + coalesce((state->'ladder'->>'losses')::int, 0)
-    > 10 + floor((15 + extract(epoch from (now() - created)) / 3000) / 2)
+    > 10 + floor((${STAMINA_MAX} + extract(epoch from (now() - created)) / ${STAMINA_POINT_SEC}) / 2)
   and state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
   and state->'ladder'->>'losses' ~ '^[0-9]{1,7}$';
 update card_accounts set saved = seen where saved is null;

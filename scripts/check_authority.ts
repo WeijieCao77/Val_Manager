@@ -194,7 +194,7 @@ console.log('\n天梯：')
   const squad = { slots: ids.slice(0, 5), coach: null }
   let played = 0
   let coinsBefore = (await stored(A)).coins
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < Math.floor(STAMINA_MAX / STAMINA_COST.ladder) + 2; i++) {
     r = await act(A, 'ladder', {}, { squad })
     if (!r.ok) break
     played++
@@ -210,7 +210,7 @@ console.log('\n天梯：')
   }
   check(`一管体力打 ${Math.floor(STAMINA_MAX / STAMINA_COST.ladder)} 场就停`, played === Math.floor(STAMINA_MAX / STAMINA_COST.ladder), `${played} 场`)
   check('停下来的原因是体力', !r.ok && /体力/.test(r.why ?? ''), r.why)
-  r = await act(A, 'ladder', {}, { squad, daily: { stamina: 15, staminaAt: 0 } })
+  r = await act(A, 'ladder', {}, { squad, daily: { stamina: STAMINA_MAX, staminaAt: 0 } })
   check('客户端说自己体力满了也没用', !r.ok && /体力/.test(r.why ?? ''), r.why)
   const s = await stored(A)
   check('战绩就是打了的那几场', s.ladder.wins + s.ladder.losses === played)

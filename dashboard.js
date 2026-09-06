@@ -6,6 +6,8 @@
  * panel names the decision it supports, because a number nobody would act on
  * is a number that should not be on the screen.
  */
+import { STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
+
 export const dashboardHtml = () => `<!doctype html>
 <html lang="zh">
 <head>
@@ -334,8 +336,8 @@ function render(d) {
   ].map(([label, n]) => '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
 
   // Saves whose match count does not fit in the hours the account has existed.
-  // The ceiling is arithmetic, not suspicion: 15 体力 banked, one point every
-  // 50 minutes, 2 a match. Reported so it can be looked at — the one honest
+  // The ceiling is arithmetic, not suspicion: a full 体力 meter banked, one
+  // point per interval, 2 a match. Reported so it can be looked at — the one honest
   // way to trip it is a long stretch played offline and only then connected.
   const overRows = (cm.overplayed || []).map((r) =>
     '<tr><td>' + esc(r.name || '无名经理')
@@ -452,8 +454,8 @@ function render(d) {
     })() +
     panel('开瓦包 · 场次对不上账',
       table(['玩家', '声称场次', '最多可能', '超出', '建号至今'], overRows),
-      '存档在浏览器里，是可以改的——这一格不是抓人，是算术：体力每 50 分钟回 1 点、'
-      + '最多存 15 点、天梯一场 2 点，所以一天最多打 14 场左右。建号时间是服务器写的，'
+      '存档在浏览器里，是可以改的——这一格不是抓人，是算术：体力每 ' + Math.round(STAMINA_POINT_SEC / 60) + ' 分钟回 1 点、'
+      + '最多存 ' + STAMINA_MAX + ' 点、天梯一场 2 点，所以一天最多打 ' + Math.floor((STAMINA_MAX + 86400 / STAMINA_POINT_SEC) / 2) + ' 场左右。建号时间是服务器写的，'
       + '玩家改不了，拿它去对玩家能改的场次，超出多少一目了然。'
       + '空的就是没人对不上。有一种情况会误伤：一直在「仅本机」模式下玩了很久、'
       + '最近才联网，那样建号时间是新的而场次是旧的——所以这里只报，不做任何处理。') +

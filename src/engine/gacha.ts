@@ -185,7 +185,7 @@ export const MYTHIC_FLOOR = 1200
  * promotion, a cup title — are not capped, because those are already once-a-day
  * things and taking them away twice would just be mean.
  */
-export const STAMINA_MAX = 15
+export const STAMINA_MAX = 20
 /**
  * A ladder match, the cup's ticket — one payment for the whole bracket — and
  * a card swap with a friend, charged to each side when they act.
@@ -201,9 +201,12 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * One every 50 minutes, cap 15: a ladder match every 100 minutes sustained,
- * seven in a row from a full meter, 12.5 hours to fill it, and 28.8 points a
- * day if you check in through the day.
+ * One every 30 minutes, cap 20 (2026-09-06, the owner's call): a ladder match
+ * every hour sustained, ten in a row from a full meter, 10 hours to fill it,
+ * and 48 points a day if you check in through the day.
+ *
+ * Before that, one every 50 minutes with a cap of 15: a match every 100
+ * minutes, seven from a full meter, 12.5 hours to fill, 28.8 points a day.
  *
  * It was one every two hours, chosen to hold the daily ceiling at six matches.
  * That reasoning ignored that nobody is awake for 24 hours — eight of those
@@ -220,7 +223,7 @@ export type PlayKind = keyof typeof STAMINA_COST
  * than once, which is the behaviour worth paying for. The wait a player
  * actually feels, one ladder match, goes from two hours to 1h40m.
  */
-export const STAMINA_REGEN_MS = 50 * 60 * 1000
+export const STAMINA_REGEN_MS = 30 * 60 * 1000
 
 /**
  * "50 分钟" / "1 小时" — the interval in the largest whole unit that fits it.

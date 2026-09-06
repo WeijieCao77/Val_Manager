@@ -11,6 +11,8 @@
  */
 
 /** Everything at once, so the dashboard is a single round trip. */
+import { STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
+
 export async function overview(sql, days = 30) {
   const since = `${days} days`
 
@@ -444,9 +446,9 @@ export async function overview(sql, days = 30) {
      * is the design, and an anti-cheat pass on a browser game is theatre. But
      * `created` is set by the server on insert and is the one number a player
      * cannot touch, so it can be checked against one they can: 体力 refills a
-     * point every 50 minutes, caps at 15, and a ladder match costs 2. That
-     * fixes a ceiling of about 14 matches a day, and anything far past it did
-     * not come from playing.
+     * point every so often, caps at a full meter, and a ladder match costs 2
+     * (the engine's numbers, imported above). That fixes a daily ceiling, and
+     * anything far past it did not come from playing.
      *
      * Reported, not enforced. There is one honest way to trip it — playing a
      * long time offline in 仅本机 and only then connecting, which stamps a
@@ -463,8 +465,8 @@ export async function overview(sql, days = 30) {
         a.name, a.id_hash, a.created,
         v.wins, v.losses, (v.wins + v.losses) as played,
         round(extract(epoch from now() - a.created) / 3600)::int as hours,
-        -- 15 banked at the start, then one point every 50 minutes, 2 a match
-        floor((15 + extract(epoch from now() - a.created) / 3000) / 2)::int as ceiling
+        -- a full meter banked at the start, then one point per interval, 2 a match
+        floor((${STAMINA_MAX}::int + extract(epoch from now() - a.created) / ${STAMINA_POINT_SEC}::int) / 2)::int as ceiling
       from acc a,
         lateral (select
           case when a.state->'ladder'->>'wins' ~ '^[0-9]{1,9}$'
@@ -473,9 +475,9 @@ export async function overview(sql, days = 30) {
                then (a.state->'ladder'->>'losses')::int else 0 end as losses
         ) v
       where v.wins + v.losses
-            > floor((15 + extract(epoch from now() - a.created) / 3000) / 2)
+            > floor((${STAMINA_MAX}::int + extract(epoch from now() - a.created) / ${STAMINA_POINT_SEC}::int) / 2)
       order by (v.wins + v.losses)
-             - floor((15 + extract(epoch from now() - a.created) / 3000) / 2) desc
+             - floor((${STAMINA_MAX}::int + extract(epoch from now() - a.created) / ${STAMINA_POINT_SEC}::int) / 2) desc
       limit 20`
       // The only query here that reads a table another module owns. Everything
       // in this file is fetched in one Promise.all, so one rejection is the
