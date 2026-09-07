@@ -27,6 +27,14 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-07',
+    title: '国内不开代理打不开 vctgames.com：原因找到了，正在换线路',
+    changes: [
+      { kind: '修复', text: '<b>手机直连打不开 vctgames.com，开了代理的设备却能开。</b>不是域名被封，是服务商分给这个域名的那一个 IP 在国内被封了——<b>www.vctgames.com</b> 和 <b>val-manager-production.up.railway.app</b> 用的是别的 IP，一直能开。域名正在迁到 Cloudflare 走它的线路，迁好后 vctgames.com 就能直接开。' },
+      { kind: '修复', text: '<b>从 www 或 railway.app 网址进来的新访客，以前会被自动跳到 vctgames.com</b>——这几天等于被跳到一个打不开的地方。现在会先试一下 vctgames.com 从你这里能不能连上，连得上才跳，连不上就留在能开的这个网址。存档只认网址，换网址前记得把生涯存档导出、把账号 ID 存好。' },
+    ],
+  },
+  {
     date: '2026-09-06',
     title: '开瓦包：位置小游戏（beta）上线，打过了给一张对应位置的卡',
     changes: [

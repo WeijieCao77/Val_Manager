@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * The game answers on three hostnames and the browser keeps a separate
@@ -10,8 +10,17 @@ import { useState } from 'react'
  * the career exports to a file and imports on the other side, the card game
  * only needs its ID typed in. Nothing is moved for them — a redirect would
  * have stranded exactly the data this is about.
+ *
+ * Both only happen once the real address has answered from here. On
+ * 2026-09-07 the edge IP behind vctgames.com was blocked from mainland China
+ * while www and the railway.app address still opened — and this file was
+ * bouncing every new visitor from the doors that worked to the one that did
+ * not. So the real address is probed first; if it does not answer within a
+ * few seconds, this address is the door, and nothing is said.
  */
 const CANONICAL = 'vctgames.com'
+/** how long the real address gets to answer before this one keeps the visitor */
+const PROBE_MS = 4000
 
 const offHost = (): boolean => {
   const h = location.hostname
@@ -31,11 +40,22 @@ const cardId = (): string | null => {
 export default function DomainNotice() {
   const [gone, setGone] = useState(false)
   const [copied, setCopied] = useState(false)
-  if (!offHost() || gone) return null
-  if (!hasLocalData()) {
-    location.replace(`https://${CANONICAL}${location.pathname}${location.search}`)
-    return null
-  }
+  const [reachable, setReachable] = useState(false)
+  useEffect(() => {
+    if (!offHost()) return
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), PROBE_MS)
+    // an opaque cross-origin fetch: it resolves when the address answers at
+    // all and rejects when the network never gets there, which is the question
+    fetch(`https://${CANONICAL}/api/card/day`, { mode: 'no-cors', cache: 'no-store', signal: ctl.signal })
+      .then(() => {
+        if (!hasLocalData()) location.replace(`https://${CANONICAL}${location.pathname}${location.search}`)
+        else setReachable(true)
+      }, () => { /* unreachable from here — this address is the door, say nothing */ })
+      .finally(() => clearTimeout(timer))
+    return () => { clearTimeout(timer); ctl.abort() }
+  }, [])
+  if (!offHost() || gone || !reachable) return null
   const id = cardId()
   return (
     <div className="domain-notice" role="status">

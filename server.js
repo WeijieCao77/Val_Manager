@@ -31,6 +31,7 @@ import { makeMarketApi } from './market-api.js'
 import { overview, prune, storage } from './stats.js'
 import { ROLLUP_SCHEMA, history, rollup } from './rollup.js'
 import { dashboardHtml } from './dashboard.js'
+import { bucketOf } from './client-ip.js'
 
 // A rejected promise is logged and life goes on: the analytics side-car and
 // the odd lost client are where those come from, and none of it is worth
@@ -247,27 +248,9 @@ function readBody(req, limit) {
   })
 }
 
-/**
- * Only for rate limiting, and only in memory.
- *
- * Railway sits behind a proxy, so the socket address is the proxy's. The
- * forwarded header is what distinguishes callers. It is hashed to a short
- * bucket key immediately and never stored, logged, or written anywhere.
- */
-function bucketOf(req) {
-  // The client controls the LEFT end of X-Forwarded-For — anyone can prepend a
-  // made-up address and get a fresh rate-limit bucket on every request, which
-  // is to say no rate limit at all. The proxy appends the peer it actually saw
-  // to the right, so that is the only entry worth reading.
-  const chain = String(req.headers['x-forwarded-for'] || '').split(',').map((x) => x.trim()).filter(Boolean)
-  const raw = chain[chain.length - 1] || req.socket.remoteAddress || '?'
-  let h = 2166136261
-  for (let i = 0; i < raw.length; i++) {
-    h ^= raw.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return (h >>> 0).toString(36)
-}
+// Which caller a request belongs to, for the rate limiter — see client-ip.js
+// for why the rightmost forwarded hop is the only one worth reading, and why
+// Cloudflare's CF-Connecting-IP is read instead when that hop is Cloudflare.
 
 // ---------------------------------------------------------------- routes
 
