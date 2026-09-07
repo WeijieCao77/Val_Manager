@@ -2302,7 +2302,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
       // offseason emergency signings go on the record like any other move
       state.news.push({
         day: state.day, kind: 'transfer',
-        text: `${team.name} 免费签下自由人 ${target.ign}（${target.overall}）。`,
+        text: `${team.name} 免转会费签下自由人 ${target.ign}（${target.overall}）。`,
       })
     }
     if (team.roster.length < 5) short.push(team.name)

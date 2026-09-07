@@ -433,7 +433,7 @@ export function doTransfer(
     kind: 'transfer',
     text: (fee > 0
       ? `${to.name} 以 $${fee.toLocaleString()} 的转会费从 ${from?.name ?? '自由市场'} 签下 ${p.ign}（${p.overall}）。`
-      : `${to.name} 免费签下自由人 ${p.ign}（${p.overall}）。`)
+      : `${to.name} 免转会费签下自由人 ${p.ign}（${p.overall}）。`)
       + (watched ? ' 你此前正在接触这名选手。' : ''),
     important: to.id === state.myTeam || from?.id === state.myTeam || watched,
   })
