@@ -537,6 +537,24 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // offer exists — a bid is never made with money the account does not hold
     const who = await nameOf(me)
     const out = await tx(async (db) => {
+      // Bids on one listing take turns: the row lock holds a second bid
+      // until the first has committed, and the second then reads the top
+      // the first just set. Without it two equal first bids both went in
+      // and the LATER one stood — first come, first served is the rule.
+      const locked = await db`
+        select id, status, ends, buyout from card_listings where id = ${l.id} for update`
+      if (!locked.length || locked[0].status !== 'open') return { gone: true }
+      if (auction) {
+        if (endsAt(locked[0]) <= Date.now()) return { gone: true }
+        const cur = await db`
+          select buyer_h, price from card_offers
+          where listing = ${l.id} and status = 'open'
+          order by price desc, made asc limit 1`
+        const curTop = cur[0] ?? null
+        if (curTop && curTop.buyer_h === me) return { leading: true, price: curTop.price }
+        const floor = minBid(l.ask, curTop?.price ?? null)
+        if (bid < floor && !(l.buyout != null && bid >= l.buyout)) return { low: true, min: floor }
+      }
       for (let attempt = 0; attempt < 3; attempt++) {
         const row = await db`select state, rev from card_accounts where id_hash = ${me}`
         if (!row.length) return { broke: true }
@@ -590,6 +608,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if (out.broke) { json(res, 200, { ok: false, broke: true }); return }
     if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
     if (out.gone) { json(res, 200, { ok: false, gone: true }); return }
+    if (out.low) { json(res, 200, { ok: false, low: true, min: out.min }); return }
+    if (out.leading) { json(res, 200, { ok: false, leading: true, price: out.price }); return }
     json(res, 200, out)
   }
 
