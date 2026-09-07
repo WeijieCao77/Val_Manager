@@ -55,6 +55,8 @@ export interface Listing {
   bids: number
   /** the least the next bid may be */
   min: number
+  /** how many hours the seller put it up for */
+  hours?: number
 }
 
 export interface Offer {
@@ -93,14 +95,16 @@ export interface WithState { ok: boolean; state?: GachaState; rev?: number; [k: 
  * the game itself would pay for the card — nobody sane sells below salvage, so
  * the floor costs a real seller nothing and closes the alt-account funnel.
  */
-export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string, buyout: number | null = null) =>
-  post<WithState>('list', { cardId, ask, level, rarity, buyout })
+export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string, buyout: number | null = null, hours = AUCTION_HOURS) =>
+  post<WithState>('list', { cardId, ask, level, rarity, buyout, hours })
 
 /** How many listings one seller may have open at once — mirrored from the server. */
 export const MAX_LISTINGS = 3
 /** The auction, mirrored from the server: a day on the clock, five percent a step,
  *  ten minutes' grace at the end, and a buy-now price at least a fifth over the start. */
 export const AUCTION_HOURS = 24
+/** the seller picks how long it runs, from these */
+export const AUCTION_HOURS_CHOICES = [2, 4, 6, 8, 12, 24]
 export const BID_STEP = 0.05
 export const SNIPE_MINUTES = 10
 export const BUYOUT_MIN = 1.2

@@ -133,6 +133,8 @@ create index if not exists listing_seller_idx on card_listings (seller_h);
 -- the old make-an-offer listings, run out on the old rules. (No backticks.)
 alter table card_listings add column if not exists ends timestamptz;
 alter table card_listings add column if not exists buyout int;
+-- how many hours the seller put it up for (2..24, chosen at listing)
+alter table card_listings add column if not exists hours int not null default 24;
 create index if not exists listing_ends_idx on card_listings (ends) where status = 'open';
 
 create table if not exists card_offers (

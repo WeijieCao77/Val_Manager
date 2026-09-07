@@ -24,7 +24,7 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  AUCTION_HOURS, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SNIPE_MINUTES,
+  AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SNIPE_MINUTES,
   answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, minBidOf, myOffers, unlistCard, withdrawOffer,
 } from '../../engine/market'
 import type { Gate, Listing, Offer } from '../../engine/market'
@@ -59,6 +59,15 @@ const left = (ends: number | null | undefined, now: number, exact = false): stri
 }
 const nowrap = { whiteSpace: 'nowrap' } as const
 
+/** the length the seller chose last time, so a regular does not re-pick it on every listing */
+const HOURS_KEY = 'valmgr.market.hours'
+const rememberedHours = (): number => {
+  try {
+    const v = Number(localStorage.getItem(HOURS_KEY))
+    return AUCTION_HOURS_CHOICES.includes(v) ? v : AUCTION_HOURS
+  } catch { return AUCTION_HOURS }
+}
+
 export default function Market() {
   const { g, commit, toast, cloud } = useCards()
   const level = (id: string) => levelOf(g, id)
@@ -76,6 +85,7 @@ export default function Market() {
   const [sellCard, setSellCard] = useState('')
   const [ask, setAsk] = useState('')
   const [buyout, setBuyout] = useState('')
+  const [hours, setHours] = useState<number>(rememberedHours)
   const [bidOpen, setBidOpen] = useState<Listing | null>(null)
   const [bidPrice, setBidPrice] = useState('')
   // the clock the countdowns read; the server's idea of now, carried forward
@@ -125,7 +135,7 @@ export default function Market() {
     setBusy(true)
     // taken off this side only after the server has the listing, so a failed
     // request can never eat the card
-    const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity, now2)
+    const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity, now2, hours)
     setBusy(false)
     if (!r?.ok) {
       toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
@@ -133,6 +143,7 @@ export default function Market() {
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? `最多同时挂 ${r.max ?? MAX_LISTINGS} 张，卖掉或撤回一张再挂。`
             : r?.badBuyout ? `一口价要在 ${money(Number(r.min ?? 0))} ~ 500,000 之间，不想设就留空。`
+            : r?.badHours ? `拍卖时长要在 ${r.min} ~ ${r.max} 小时之间。`
             : r?.bad ? `起拍价要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间（最低不能低于分解价）。`
               : '挂不上去，等会儿再试。')
       return
@@ -141,7 +152,8 @@ export default function Market() {
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
     setSellCard(''); setAsk(''); setBuyout('')
-    toast(`${nameOf(sellCard)} 已挂出，起拍 ${money(price)}${now2 != null ? `，一口价 ${money(now2)}` : ''}。${AUCTION_HOURS} 小时后按最高价成交，没人出价原样退回。`)
+    try { localStorage.setItem(HOURS_KEY, String(hours)) } catch { /* fine */ }
+    toast(`${nameOf(sellCard)} 已挂出，起拍 ${money(price)}${now2 != null ? `，一口价 ${money(now2)}` : ''}。${hours} 小时后按最高价成交，没人出价原样退回。`)
     void refresh()
   }
 
@@ -262,7 +274,7 @@ export default function Market() {
                 want gone, not a shop window. Counted by the server at the
                 moment of listing, so anything up before the cap stays up. */}
             已挂 <b className={mineOnShelf.length >= MAX_LISTINGS ? 'neg' : ''}>{mineOnShelf.length}/{MAX_LISTINGS}</b>
-            {' · '}{AUCTION_HOURS} 小时竞拍
+            {' · '}竞拍
           </span>
         }
       >
@@ -290,6 +302,14 @@ export default function Market() {
             value={buyout}
             onChange={(e) => setBuyout(e.target.value)}
           />
+          <select
+            className="sm" aria-label="拍卖时长" title="拍多久：到时最高价成交"
+            style={{ flex: '0 0 auto', width: 'auto' }}
+            value={hours}
+            onChange={(e) => setHours(Number(e.target.value))}
+          >
+            {AUCTION_HOURS_CHOICES.map((h) => <option key={h} value={h}>拍 {h} 小时</option>)}
+          </select>
           <button
             className="primary" onClick={() => void doList()}
             disabled={busy || !sellCard || !ask || !!gate || mineOnShelf.length >= MAX_LISTINGS}
@@ -303,8 +323,8 @@ export default function Market() {
           </p>
         )}
         <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
-          <b>竞拍 {AUCTION_HOURS} 小时，到时最高价成交</b>，谁出得高卖给谁，你不用选。
-          没人出价原样退回信箱；<b>有人出价之后就不能撤回了</b>。
+          <b>拍多久自己定（{AUCTION_HOURS_CHOICES[0]} ~ {AUCTION_HOURS_CHOICES[AUCTION_HOURS_CHOICES.length - 1]} 小时），到时最高价成交</b>，谁出得高卖给谁，你不用选。
+          时间短出手快，时间长看到的人多。没人出价原样退回信箱；<b>有人出价之后就不能撤回了</b>。
           一口价可以不填，填了就是「谁按这个价出，立刻成交」，至少要起拍价的 {BUYOUT_MIN} 倍。
           <b>最多同时挂 {MAX_LISTINGS} 张</b>；挂出的一刻卡就从你这边拿走了。
           有重复的先走重复那张（重复卡是没强化过的），只有一张时连强化等级一起过去。

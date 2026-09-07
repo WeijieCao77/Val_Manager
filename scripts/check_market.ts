@@ -28,8 +28,8 @@ const MYTHIC = idOf('mythic'), BRONZE = idOf('bronze'), GOLD = idOf('gold')
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { displayName } = await import('../names.js')
 const {
-  AUCTION_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS, SALVAGE_FLOOR, SHELF,
-  SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
+  AUCTION_HOURS, AUCTION_MIN_HOURS, AUCTION_MAX_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS,
+  SALVAGE_FLOOR, SHELF, SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -86,7 +86,9 @@ const endsIn = async (lid: string, minutes: number) =>
   sql`update card_listings set ends = now() + make_interval(mins => ${minutes}) where id = ${lid}::bigint`
 
 await account(SELLER, '卖家', 100, { 'p:P1': { id: 'p:P1', level: 3, dupes: 0 } })
-await account(BUYER, '买家', 5000, {})
+// enough for every bid this file makes without collecting refunds in between
+const BUYER_COINS = 20000
+await account(BUYER, '买家', BUYER_COINS, {})
 await account(OTHER, '路人', 5000, {})
 
 const inbox = async (id: string) =>
@@ -127,7 +129,7 @@ r = await call('/api/market/offer', { id: SELLER, listing: LID, price: 1000 })
 check('不能给自己的挂牌出价', r.self === true, JSON.stringify(r))
 r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1000 })
 check('按起拍价出第一口可以', r.ok === true && r.price === 1000, JSON.stringify(r))
-check('出价的一刻，金币就从服务器的账号里扣走了', await coinsOf(BUYER) === 5000 - 1000, String(await coinsOf(BUYER)))
+check('出价的一刻，金币就从服务器的账号里扣走了', await coinsOf(BUYER) === BUYER_COINS - 1000, String(await coinsOf(BUYER)))
 r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1200 })
 check('自己领先时不能再加', r.leading === true, JSON.stringify(r))
 const sm = await inbox(SELLER)
@@ -143,7 +145,7 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   const back = await inbox(BUYER)
   const ob = back.find((m) => m.kind === 'overbid')
   check('被压过的那一刻，前一个人的金币立刻退回信箱', ob?.coins === 1000 && Number(ob?.body?.by) === 1050, JSON.stringify(back.map((m) => [m.kind, m.coins])))
-  check('领了之后金币到账', await coinsOf(BUYER) === 5000, String(await coinsOf(BUYER)))
+  check('领了之后金币到账', await coinsOf(BUYER) === BUYER_COINS, String(await coinsOf(BUYER)))
   const s2 = await inbox(SELLER)
   check('之后的每一口不再骚扰卖家', !s2.some((m) => m.kind === 'offer_made'), JSON.stringify(s2.map((m) => m.kind)))
   const view = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; best: number; min: number; bids: number; offers: number; bid: boolean }[]
@@ -172,7 +174,7 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('买家看到自己领先的一口，带着截止时间', !!my && typeof my.ends === 'number', JSON.stringify(q.outbound))
   r = await call('/api/market/withdraw', { id: BUYER, offer: my.id })
   check('竞拍的出价撤不回', r.binding === true, JSON.stringify(r))
-  check('金币还在托管里', await coinsOf(BUYER) === 5000 - 1103, String(await coinsOf(BUYER)))
+  check('金币还在托管里', await coinsOf(BUYER) === BUYER_COINS - 1103, String(await coinsOf(BUYER)))
 }
 
 // ---- the last minutes stretch --------------------------------------------
@@ -217,7 +219,7 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   const om = await inbox(OTHER)
   check('结算时没人被退第二次钱', om.length === 0, JSON.stringify(om.map((m) => [m.kind, m.coins])))
   check('路人的钱早在被压过时就退了，一分不少', await coinsOf(OTHER) === 5000, String(await coinsOf(OTHER)))
-  check('买家的钱正好少了成交价', await coinsOf(BUYER) === 5000 - 1500, String(await coinsOf(BUYER)))
+  check('买家的钱正好少了成交价', await coinsOf(BUYER) === BUYER_COINS - 1500, String(await coinsOf(BUYER)))
 }
 
 // ---- 一口价 -----------------------------------------------------------------
@@ -243,6 +245,36 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('卖家马上收到 1500', sm3.some((m) => m.kind === 'sold' && m.coins === 1500), JSON.stringify(sm3.map((m) => [m.kind, m.coins])))
   x = await call('/api/market/offer', { id: OTHER, listing: l2, price: 1500 })
   check('成交之后再出价，牌已经不在了', x.gone === true, JSON.stringify(x))
+}
+
+// ---- 拍多久卖家自己定 ---------------------------------------------------------
+{
+  const S9 = 'VM-TTTT-TTTT-TTTT-TTTT-TTTT'
+  await account(S9, '卖九', 0, { 'p:P21': { id: 'p:P21', dupes: 0 }, 'p:P22': { id: 'p:P22', dupes: 0 }, 'p:P23': { id: 'p:P23', dupes: 0 } })
+  let x = await call('/api/market/list', { id: S9, cardId: 'p:P21', ask: 1000, hours: 1 })
+  check(`短于 ${AUCTION_MIN_HOURS} 小时挂不了`, x.badHours === true && x.min === AUCTION_MIN_HOURS && x.max === AUCTION_MAX_HOURS, JSON.stringify(x))
+  x = await call('/api/market/list', { id: S9, cardId: 'p:P21', ask: 1000, hours: 30 })
+  check(`长于 ${AUCTION_MAX_HOURS} 小时也挂不了`, x.badHours === true, JSON.stringify(x))
+  x = await call('/api/market/list', { id: S9, cardId: 'p:P21', ask: 1000, hours: 2 })
+  const two = (Number(x.ends) - Date.now()) / 3_600_000
+  check('挂 2 小时就是 2 小时后截止', x.ok === true && x.hours === 2 && two > 1.95 && two <= 2.05, `${two.toFixed(2)} h`)
+  const short = String(x.id)
+  x = await call('/api/market/list', { id: S9, cardId: 'p:P22', ask: 1000 })
+  const dflt = (Number(x.ends) - Date.now()) / 3_600_000
+  check(`没说多久就是 ${AUCTION_HOURS} 小时（老客户端）`, x.ok === true && x.hours === AUCTION_HOURS && dflt > AUCTION_HOURS - 0.05, `${dflt.toFixed(2)} h`)
+  const row = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; hours: number }[]
+  check('货架上带着各自的时长', row.find((l) => l.id === short)!.hours === 2 && row.find((l) => l.id === String(x.id))!.hours === AUCTION_HOURS)
+  // the stretch cap follows the listing's own length: two hours, plus the hour
+  await sql`update card_listings set created = now() - make_interval(hours => 2, mins => 55) where id = ${short}::bigint`
+  await endsIn(short, 3)
+  await inbox(BUYER)
+  x = await call('/api/market/offer', { id: BUYER, listing: short, price: 1000 })
+  const capped = (new Date((await listingRow(short)).ends!).getTime() - Date.now()) / 60000
+  check('2 小时的拍卖顺延到头是「2 小时加 1 小时」', x.ok === true && capped > 4.5 && capped < 5.5, `${capped.toFixed(2)} 分钟`)
+  await endsIn(short, -1)
+  await call('/api/market/browse', { id: BUYER })
+  check('到时照样结算', (await listingRow(short)).status === 'sold')
+  await inbox(BUYER); await inbox(S9)
 }
 
 // ---- 到时没人出价，卡回家 ------------------------------------------------------

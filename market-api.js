@@ -36,8 +36,12 @@
  */
 import { createHash } from 'node:crypto'
 
-/** How long a listing takes bids before the top one wins. */
+/** How long a listing takes bids before the top one wins — the seller's choice, within these. */
 export const AUCTION_HOURS = 24
+export const AUCTION_MIN_HOURS = 2
+export const AUCTION_MAX_HOURS = 24
+/** the choices the listing form offers; any whole number of hours in range is accepted */
+export const AUCTION_HOURS_CHOICES = [2, 4, 6, 8, 12, 24]
 /** The least a bid must climb over the one it beats. */
 export const BID_STEP = 0.05
 /** A bid this close to the end pushes the end back by this much. */
@@ -342,7 +346,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // `offers` is the bids still standing (one, in an auction — the beaten
     // one is settled at once), `bids` everyone who has bid on it at all
     const own = mine ? await sql`
-      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout,
+      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
              (select count(*)::int from card_offers o
@@ -354,7 +358,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       where l.status = 'open' and l.seller_h = ${mine}
       order by l.ends asc nulls last, l.created desc` : []
     const others = await sql`
-      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout,
+      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
              (select count(*)::int from card_offers o
@@ -375,7 +379,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     json(res, 200, {
       ok: true,
       haggle: HAGGLE,
-      hours: AUCTION_HOURS, step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
+      hours: AUCTION_HOURS, hoursMin: AUCTION_MIN_HOURS, hoursMax: AUCTION_MAX_HOURS, hoursChoices: AUCTION_HOURS_CHOICES,
+      step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
       now: Date.now(),
       gate: young,
       total,
@@ -386,7 +391,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         offers: r.offers, best: r.best ?? null, bid: r.bid,
         // the auction: when it closes, the buy-now price, how many have bid,
         // and the least the next bid may be. `ends` null is an old listing.
-        ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers,
+        ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers, hours: r.hours ?? AUCTION_HOURS,
         min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
       })),
     })
@@ -421,6 +426,13 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       return
     }
     const buyout = rawBuyout
+    // how long it runs: the seller's choice, whole hours, within the range;
+    // a client from before the choice existed sends nothing and gets a day
+    const hours = b?.hours == null || b?.hours === '' ? AUCTION_HOURS : Math.round(Number(b.hours))
+    if (!Number.isFinite(hours) || hours < AUCTION_MIN_HOURS || hours > AUCTION_MAX_HOURS) {
+      json(res, 200, { ok: false, badHours: true, min: AUCTION_MIN_HOURS, max: AUCTION_MAX_HOURS })
+      return
+    }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const open = await sql`
@@ -453,11 +465,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
           where id_hash = ${me} and rev = ${row[0].rev} returning rev`
         if (!w.length) continue
         const r = await db`
-          insert into card_listings (seller_h, card_id, level, ask, buyout, ends)
-          values (${me}, ${cardId}, ${esc.level}, ${ask}, ${buyout},
-                  now() + make_interval(hours => ${AUCTION_HOURS}))
+          insert into card_listings (seller_h, card_id, level, ask, buyout, hours, ends)
+          values (${me}, ${cardId}, ${esc.level}, ${ask}, ${buyout}, ${hours},
+                  now() + make_interval(hours => ${hours}))
           returning id, ends`
-        return { ok: true, id: String(r[0].id), ends: endsAt(r[0]), state: stored(g), rev: w[0].rev }
+        return { ok: true, id: String(r[0].id), ends: endsAt(r[0]), hours, state: stored(g), rev: w[0].rev }
       }
       return { busy: true }
     })
@@ -618,10 +630,10 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         const stretched = await db`
           update card_listings set ends = least(
               now() + make_interval(mins => ${SNIPE_MINUTES}),
-              created + make_interval(hours => ${AUCTION_HOURS}, mins => ${SNIPE_CAP_MINUTES}))
+              created + make_interval(hours => card_listings.hours, mins => ${SNIPE_CAP_MINUTES}))
           where id = ${l.id} and status = 'open'
             and ends < now() + make_interval(mins => ${SNIPE_MINUTES})
-            and ends < created + make_interval(hours => ${AUCTION_HOURS}, mins => ${SNIPE_CAP_MINUTES})
+            and ends < created + make_interval(hours => card_listings.hours, mins => ${SNIPE_CAP_MINUTES})
           returning ends`
         const ends = stretched.length ? endsAt(stretched[0]) : endsAt(l)
         // the seller hears about the first bid; the rest is on the shelf
