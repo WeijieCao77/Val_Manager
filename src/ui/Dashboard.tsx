@@ -110,7 +110,12 @@ export default function Dashboard() {
           for (let i = 0; i < span; i++) {
             // over a multi-day turn, practice matches play themselves so the
             // week actually runs; a competitive fixture still stops for you
-            reports.push(advanceDay(game, { deferMine: true, autoScrims: span > 1 }))
+            // The tutorial's trial day is a sandbox rolled back at its end, so a
+            // draw waiting on the manager is held by the coaches there — the
+            // last step says 「推进」 and the day has to move (2026-09-07: a new
+            // career opened onto the Kickoff draw and the tour at once, and the
+            // draw kept 31 December from ending).
+            reports.push(advanceDay(game, { deferMine: true, autoScrims: span > 1, autoResolveDrawDecisions: !!game.tutorialDay }))
             const last = reports[reports.length - 1]
             if (last.pendingMine || last.seasonEnded) break
           }
@@ -317,7 +322,7 @@ export default function Dashboard() {
       {/* A draw that is ours to hold. It opens by itself when the clock
           reaches it, and the clock does not move until it is drawn or
           skipped; this panel is where it is found again after being closed. */}
-      {game.pendingDrawId && (() => {
+      {game.pendingDrawId && !game.tutorialDay && (() => {
         const d = drawById(game, game.pendingDrawId)
         const comp = d && game.comps[d.competitionKey]
         const n = d?.phase?.match(/swiss-r(\d)/)?.[1]

@@ -198,8 +198,10 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     // a career carries its own players: the world's caller corrections
     // (who is an IGL) are brought into it here, once per change of the data
     const synced = syncCallersWithWorld(g)
-    // a save closed on a pick it was waiting for opens back onto it
-    if (g.pendingDrawId) setDrawId(g.pendingDrawId)
+    // a save closed on a pick it was waiting for opens back onto it — unless
+    // the tour is about to run, which the ceremony would sit on top of; the
+    // tour's end opens it then
+    if (g.pendingDrawId && tutorialSeen()) setDrawId(g.pendingDrawId)
     // Opening a save deliberately — continuing, importing, loading a slot —
     // makes this tab the one that counts, so the cross-tab guard stops
     // treating some other tab's further-along career as the truth.
@@ -484,7 +486,12 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
           <GameOver onRestart={() => { gameRef.current = null; bump() }} />
         )}
         {tour && !game.gameOver && (
-          <Tutorial screen={screen} go={goScreen} playerOpen={!!playerId} onDone={() => setTour(false)} />
+          <Tutorial screen={screen} go={goScreen} playerOpen={!!playerId} onDone={() => {
+            setTour(false)
+            // the real save is back now; a draw it was holding opens at last
+            const g = gameRef.current
+            if (g?.pendingDrawId) setDrawId(g.pendingDrawId)
+          }} />
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>

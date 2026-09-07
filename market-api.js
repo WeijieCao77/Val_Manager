@@ -220,26 +220,48 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    * old-rule listings run out over three days beside the new ones.
    */
   async function retireLegacy() {
-    return tx(async (db) => {
-      const rows = await db`
-        update card_listings set status = 'pulled', closed = now()
-        where status = 'open' and ends is null
-        returning id, seller_h, card_id, level`
-      let offers = 0
-      for (const l of rows) {
-        await post(l.seller_h, 'listing_retired', {
-          cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
-        }, db)
-        const back = await db`
-          update card_offers set status = 'expired', settled = now()
-          where listing = ${l.id} and status = 'open' returning buyer_h, price`
-        for (const o of back) {
-          await post(o.buyer_h, 'offer_expired', { coins: o.price, body: { listing: String(l.id) } }, db)
-          offers++
-        }
+    // In batches, each its own transaction, and never waiting on a row
+    // somebody else holds: the first run took every old listing in one
+    // transaction, met a player's sweep coming the other way, and Postgres
+    // killed it for deadlock — 1,287 rows rolled back and nothing retired.
+    // A batch that still deadlocks is simply tried again.
+    let listings = 0
+    let offers = 0
+    let stalls = 0
+    for (;;) {
+      let took = 0
+      try {
+        took = await tx(async (db) => {
+          const rows = await db`
+            select id, seller_h, card_id, level from card_listings
+            where status = 'open' and ends is null
+            order by id limit 50 for update skip locked`
+          for (const l of rows) {
+            const closed = await db`
+              update card_listings set status = 'pulled', closed = now()
+              where id = ${l.id} and status = 'open' returning id`
+            if (!closed.length) continue
+            listings++
+            await post(l.seller_h, 'listing_retired', {
+              cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
+            }, db)
+            const back = await db`
+              update card_offers set status = 'expired', settled = now()
+              where listing = ${l.id} and status = 'open' returning buyer_h, price`
+            for (const o of back) {
+              await post(o.buyer_h, 'offer_expired', { coins: o.price, body: { listing: String(l.id) } }, db)
+              offers++
+            }
+          }
+          return rows.length
+        })
+      } catch (err) {
+        if (err?.code === '40P01' && stalls++ < 20) continue   // deadlock: try the batch again
+        throw err
       }
-      return { ok: true, listings: rows.length, offers }
-    })
+      if (!took) break
+    }
+    return { ok: true, listings, offers, retried: stalls }
   }
 
   /**

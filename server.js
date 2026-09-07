@@ -437,6 +437,27 @@ function compressed(file, enc) {
 }
 
 createServer((req, res) => {
+  // One request must never take the process down: a throw inside this
+  // handler is answered with a 500 and logged, and the server goes on. The
+  // process-level handler above is for the state nobody reasoned about —
+  // an exception from a callback with no request to answer.
+  try {
+    handle(req, res)
+  } catch (err) {
+    console.error('request failed:', req.method, req.url, err?.stack || err?.message)
+    if (!res.headersSent) {
+      try { res.writeHead(500, { 'Content-Type': 'text/plain' }) } catch { /* nothing sane left to send */ }
+    }
+    try { res.end('Server error') } catch { /* socket already gone */ }
+  }
+}).on('clientError', (_err, socket) => {
+  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
+}).listen(PORT, () => {
+  console.log(`VAL MANAGER serving ${ROOT} on :${PORT}`)
+  console.log(`analytics: ${sql ? 'on' : 'off'}, ${EVENTS.size} event names accepted`)
+})
+
+function handle(req, res) {
   // A malformed escape — GET /% is enough — makes decodeURIComponent throw,
   // and an uncaught throw in the request handler takes the whole process with
   // it. One anonymous request would have stopped the game for everybody.
@@ -446,6 +467,14 @@ createServer((req, res) => {
     url = new URL(req.url || '/', `http://${req.headers.host || 'x'}`)
     path = decodeURIComponent(url.pathname)
   } catch {
+    res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Bad request')
+    return
+  }
+  // A path that decodes to a control character — GET /%0A/ is enough — went
+  // on into a Location header and Node threw on the header, which was an
+  // uncaught exception, which exited the process (2026-09-07). No file and
+  // no route has one; refuse it here so nothing downstream has to think.
+  if (/[\u0000-\u001f\u007f]/.test(path)) {
     res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Bad request')
     return
   }
@@ -531,7 +560,9 @@ createServer((req, res) => {
   // for every app route rather than one hard-coded name — a visitor typing the
   // trailing slash gets a blank page otherwise, and typing it is normal.
   if (path.length > 1 && path.endsWith('/')) {
-    res.writeHead(301, { Location: path.replace(/\/+$/, '') || '/' }).end()
+    // the encoded pathname, as the client sent it: a decoded one can carry
+    // characters a header may not
+    res.writeHead(301, { Location: url.pathname.replace(/\/+$/, '') || '/' }).end()
     return
   }
 
@@ -636,9 +667,4 @@ createServer((req, res) => {
   res.writeHead(200, head)
   if (req.method === 'HEAD') { res.end(); return }
   createReadStream(file).pipe(res)
-}).on('clientError', (_err, socket) => {
-  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
-}).listen(PORT, () => {
-  console.log(`VAL MANAGER serving ${ROOT} on :${PORT}`)
-  console.log(`analytics: ${sql ? 'on' : 'off'}, ${EVENTS.size} event names accepted`)
-})
+}
