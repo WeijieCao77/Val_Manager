@@ -14,8 +14,9 @@
  *
  * The one that surprises people most is 忠诚度, which does not move at all.
  */
-import { useEffect, useMemo, useState } from 'react'
-import { currentRuleset } from '../engine/ruleset'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { currentRuleset, drawRules } from '../engine/ruleset'
+import { GameCtx } from './ctx'
 import Rich from './rich'
 import { POINTS_NOTE, qualifyRule } from '../engine/qualify'
 
@@ -268,8 +269,12 @@ const buildSections = (drawn: boolean): Section[] => [
 ]
 
 export default function Rules({ raised = false }: { raised?: boolean }) {
-  // the rulebook of the address this career is played at
-  const SECTIONS = useMemo(() => buildSections(currentRuleset() === 'vct-2026'), [])
+  // the rulebook of the career on screen — a save from before the draws
+  // keeps the classic flow, so its rules page must say so; with no career
+  // loaded yet, the one new careers get
+  const ctx = useContext(GameCtx)
+  const drawn = ctx ? drawRules(ctx.game) : currentRuleset() === 'vct-2026'
+  const SECTIONS = useMemo(() => buildSections(drawn), [drawn])
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState(SECTIONS[0].key)
 

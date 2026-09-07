@@ -28,6 +28,14 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-07',
+    title: '经理：抽签版赛制正式上线；赛程「近期全部」可以按赛区筛',
+    changes: [
+      { kind: '新增', text: '<b>新开的生涯都按 VCT 2026 赛制（抽签版）打</b>，之前只在测试地址能玩的抽签搬进了正式版：Kickoff 抽签进十二队三败淘汰，Stage 1/2 抽 Alpha、Omega 两组，Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。轮到你的抽签会停下来等你亲手抽，也可以快进交给教练组。抽签版上线前开的存档还是经典赛制，打到底都不变；规则页按你这份存档的赛制显示。' },
+      { kind: '新增', text: '<b>赛程页「近期全部」多了一个赛区下拉</b>：选一个赛区只看那边这十天的比赛，国际赛事按参赛双方的赛区算。默认还是全部。' },
+    ],
+  },
+  {
+    date: '2026-09-07',
     title: '国内不开代理打不开 vctgames.com：原因找到了，正在换线路',
     changes: [
       { kind: '修复', text: '<b>手机直连打不开 vctgames.com，开了代理的设备却能开。</b>不是域名被封，是服务商分给这个域名的那一个 IP 在国内被封了——<b>www.vctgames.com</b> 和 <b>val-manager-production.up.railway.app</b> 用的是别的 IP，一直能开。域名正在迁到 Cloudflare 走它的线路，迁好后 vctgames.com 就能直接开。' },

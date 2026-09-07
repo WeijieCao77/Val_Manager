@@ -15,8 +15,9 @@
  *    their quarter-final opponents, Champions groups drawn from four pots
  *    with one side per region and a drawn quarter-final. See engine/draw.ts.
  *
- * Careers started at /manager/test play `vct-2026`; /manager plays
- * `vct-2025` until the owner flips it.
+ * Every career started from 2026-09-07 plays `vct-2026`, at /manager and at
+ * the old beta address /manager/test alike; the ones saved before then carry
+ * no rulebook name and stay on `vct-2025` to the end.
  */
 import type { GameState } from './types'
 
@@ -33,10 +34,12 @@ export const rulesetOf = (state: Pick<GameState, 'rulesetId'>): RulesetId => sta
 export const drawRules = (state: Pick<GameState, 'rulesetId'>): boolean => rulesetOf(state) === 'vct-2026'
 
 /**
- * The rulebook new careers are created with, set by the shell for the
- * address it is serving: /manager/test names vct-2026, /manager the old
- * one. A module-level setting rather than an argument threaded through
- * every screen that can start a game.
+ * The rulebook new careers are created with. The shell sets vct-2026 before
+ * the career mounts; this module-level default is what a headless script
+ * gets unless it says otherwise (most of the audit still plays the classic
+ * flow it was written against — check_draws and smoke cover the draws). A
+ * setting rather than an argument threaded through every screen that can
+ * start a game.
  */
 let current: RulesetId = 'vct-2025'
 export const setCurrentRuleset = (id: RulesetId): void => { current = id }

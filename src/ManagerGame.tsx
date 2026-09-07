@@ -64,7 +64,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
  * behind them. Split out of the shell so `/` and `/cards` never download any
  * of it — see App.tsx, which owns the URL and lazy-loads this.
  */
-export default function ManagerGame({ onHome, ruleset = 'vct-2025' }: { onHome: () => void; ruleset?: 'vct-2025' | 'vct-2026' }) {
+export default function ManagerGame({ onHome, testSaves = false }: { onHome: () => void; testSaves?: boolean }) {
   const gameRef = useRef<GameState | null>(null)
   const [, bump] = useReducer((x: number) => x + 1, 0)
   const [screen, setScreen] = useState('dashboard')
@@ -303,7 +303,7 @@ export default function ManagerGame({ onHome, ruleset = 'vct-2025' }: { onHome: 
         <header className="topbar">
           <button
             className="brand as-link"
-            title={`回到首页 · 猪之家出品 · 小红书/抖音 @点点点点点点点点${ruleset === 'vct-2026' ? ' · 测试版：VCT 2026 赛制（抽签版），存档与正式版分开' : ''}`}
+            title={`回到首页 · 猪之家出品 · 小红书/抖音 @点点点点点点点点${testSaves ? ' · 测试存档区：这里的存档与正式版分开' : ''}`}
             onClick={onHome}
           >
             VCT<span>电竞经理</span>

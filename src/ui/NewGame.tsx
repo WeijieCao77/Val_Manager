@@ -340,9 +340,9 @@ export default function NewGame({ onHome,
           </div>
           <div className="panel-body">
             {currentRuleset() === 'vct-2026' && (
-              <p className="small" style={{ marginTop: 0, color: 'var(--warn)' }}>
-                <b>测试版 · {RULESET_CN['vct-2026']}</b>：Kickoff 抽签进十二队三败淘汰，Stage 1/2 抽 Alpha、Omega 两组，
-                Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。这里的存档和正式版分开，互不影响。
+              <p className="small muted" style={{ marginTop: 0 }}>
+                <b>{RULESET_CN['vct-2026']}</b>：Kickoff 抽签进十二队三败淘汰，Stage 1/2 抽 Alpha、Omega 两组，
+                Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。轮到你的抽签会停下来等你亲手抽。
               </p>
             )}
             <p className="small muted" style={{ marginTop: 0 }}>

@@ -8,7 +8,13 @@ import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, setupSeason, SEASON_DAYS, stageName } from '../src/engine/season'
 import { statLine } from '../src/engine/player'
 import { ratingOf } from '../src/engine/match'
+import { setCurrentRuleset } from '../src/engine/ruleset'
 import type { GameState } from '../src/engine/types'
+
+// RULESET=vct-2026 plays the season under the draw rulebook; the default is
+// the classic flow the rest of the audit was written against
+const rulesetEnv = process.env.RULESET
+if (rulesetEnv === 'vct-2025' || rulesetEnv === 'vct-2026') setCurrentRuleset(rulesetEnv)
 
 const seasons = Number(process.argv[2] ?? 1)
 const me = WORLD_TEAMS.find((t) => t.tag === 'EDG')!
@@ -30,7 +36,8 @@ for (let s = 0; s < seasons; s++) {
   const yearStart = state.year
   while (state.year === yearStart) {
     const before = state.fixtures.filter((f) => f.played).length
-    const r = advanceDay(state)
+    // a draw that waits for the manager would stop the season; headless, the coaches draw
+    const r = advanceDay(state, { autoResolveDrawDecisions: true })
     matches += state.fixtures.filter((f) => f.played).length - before
     if (r.stageChanged) {
       console.log(`  day ${String(state.day).padStart(3)} → ${stageName(state.stage)}`)

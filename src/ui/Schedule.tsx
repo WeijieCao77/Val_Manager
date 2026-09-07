@@ -5,7 +5,8 @@ import { STAGES, fixturesFor, stageName } from '../engine/season'
 import { INTERNATIONAL_START, eventRounds, nextInEvent, upcomingInternational } from '../engine/qualify'
 import { hostCity } from '../engine/hosts'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from '../engine/endings'
-import type { Fixture } from '../engine/types'
+import { REGIONS, REGION_CN } from '../engine/types'
+import type { Fixture, Region } from '../engine/types'
 
 /**
  * The calendar, from the club's side.
@@ -20,6 +21,12 @@ import type { Fixture } from '../engine/types'
  * of a playoff we are out of, every international event (greyed when we are
  * not in it — it is still the week everyone watches), and a placeholder row
  * for the event we are booked into before its draw.
+ *
+ * 近期全部 is every match in the world within ten days, which in a league
+ * week is forty-odd rows from four regions — the one you wanted to see was
+ * somewhere in the middle. So it takes a region: a regional competition is
+ * its own region's, an international match belongs to the region of either
+ * side in it.
  */
 
 interface Row {
@@ -46,8 +53,16 @@ const INTL: { key: 'masters1' | 'masters2' | 'champions'; name: string }[] = [
 export default function Schedule() {
   const { game, openMatch } = useGame()
   const [scope, setScope] = useState<'mine' | 'all'>('mine')
+  const [region, setRegion] = useState<Region | 'all'>('all')
   const me = game.myTeam
   const myRegion = game.teams[me]?.region
+
+  const inRegion = (f: Fixture): boolean => {
+    if (region === 'all') return true
+    const comp = game.comps[f.comp]
+    if (comp?.region) return comp.region === region
+    return game.teams[f.teamA]?.region === region || game.teams[f.teamB]?.region === region
+  }
 
   const rowOf = (f: Fixture, other = false): Row => ({
     key: f.id, day: f.day, comp: game.comps[f.comp]?.name ?? f.comp,
@@ -56,7 +71,7 @@ export default function Schedule() {
 
   const groups: Group[] = []
   if (scope === 'all') {
-    const list = game.fixtures.slice().sort((a, b) => a.day - b.day).filter((f) => Math.abs(f.day - game.day) <= 10)
+    const list = game.fixtures.slice().sort((a, b) => a.day - b.day).filter((f) => Math.abs(f.day - game.day) <= 10 && inRegion(f))
     const byStage = new Map<string, Row[]>()
     for (const f of list) {
       const k = stageName(f.stage)
@@ -187,14 +202,27 @@ export default function Schedule() {
       <Panel
         title="赛程"
         actions={
-          <div className="seg">
-            <button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>本队</button>
-            <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>近期全部</button>
+          <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+            {scope === 'all' && (
+              <select className="sm" aria-label="赛区" value={region} style={{ width: 'auto', flex: '0 0 auto' }}
+                onChange={(e) => setRegion(e.target.value as Region | 'all')}>
+                <option value="all">全部赛区</option>
+                {REGIONS.map((r) => <option key={r} value={r}>{REGION_CN[r]}</option>)}
+              </select>
+            )}
+            <div className="seg">
+              <button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>本队</button>
+              <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>近期全部</button>
+            </div>
           </div>
         }
         flush
       >
-        {groups.length === 0 && <div className="empty">暂无赛程。</div>}
+        {groups.length === 0 && (
+          <div className="empty">
+            {scope === 'all' && region !== 'all' ? `这十天没有${REGION_CN[region]}的比赛。` : '暂无赛程。'}
+          </div>
+        )}
         {groups.map((g) => (
           <div key={g.key} className={g.dim ? 'sched-dim' : ''}>
             <div className="nav-group" style={{ padding: '10px 14px 4px' }}>
