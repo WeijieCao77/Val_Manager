@@ -41,17 +41,16 @@ const nameOf = (id: string) => {
   return c ? (isPlayerCard(c) ? c.ign : c.name) : id
 }
 
-/** How long an auction has left, in words. */
+/** How long an auction has left, in words short enough for a 122px tile. */
 const left = (ends: number | null | undefined, now: number): string => {
   if (ends == null) return ''
   const ms = ends - now
   if (ms <= 0) return '结算中'
   const m = Math.ceil(ms / 60000)
   if (m < 60) return `剩 ${m} 分钟`
-  const h = Math.floor(m / 60)
-  const rest = m % 60
-  return `剩 ${h} 小时${rest ? ` ${rest} 分` : ''}`
+  return `剩 ${Math.round(m / 60)} 小时`
 }
+const nowrap = { whiteSpace: 'nowrap' } as const
 
 export default function Market() {
   const { g, commit, toast, cloud } = useCards()
@@ -426,30 +425,38 @@ export default function Market() {
                   return (
                     <div key={l.id} className="market-box">
                       <CardFace card={card} level={l.level} size="sm" />
-                      <div className="tiny mono" style={{ marginTop: 4 }}>
+                      {/* one fact a line, none of them allowed to wrap: the
+                          tile is 122px and 「起拍 10,000 金币」 broke mid-word */}
+                      <div className="tiny mono" style={{ marginTop: 4, ...nowrap }}>
                         {auction && l.best != null
                           ? <>当前 <b>{money(l.best)}</b></>
-                          : <>{auction ? '起拍 ' : ''}{money(l.ask)} 金币</>}
+                          : <>{auction ? '起拍 ' : ''}{money(l.ask)}</>}
                       </div>
-                      {auction && l.buyout != null && (
-                        <div className="tiny faint">一口价 {money(l.buyout)}</div>
-                      )}
+                      <div className="tiny faint" style={{ minHeight: '1.4em', ...nowrap }}>
+                        {auction && l.buyout != null ? `一口价 ${money(l.buyout)}` : ''}
+                      </div>
                       {lands && (
                         <div className={`tiny ${dear ? 'warn' : 'faint'}`}>{lands}</div>
                       )}
                       <div className="tiny faint market-seller">{l.seller}</div>
-                      <div className="tiny faint" style={{ minHeight: '1.4em' }}>
-                        {auction
-                          ? `${l.bids > 0 ? `${l.bids} 人出价 · ` : ''}${left(l.ends, now)}`
-                          : (l.offers > 0 ? `${l.offers} 人出价 · 旧规则` : '旧规则')}
+                      <div className="tiny faint row wrap" style={{ minHeight: '1.4em', gap: '0 6px', justifyContent: 'center' }}>
+                        {auction ? (
+                          <>
+                            {l.bids > 0 && <span style={nowrap}>{l.bids} 人出价</span>}
+                            <span style={nowrap}>{left(l.ends, now)}</span>
+                          </>
+                        ) : <span style={nowrap}>旧规则</span>}
                       </div>
                       <div className="grow" />
                       {l.bid ? (
                         <span className="tag t1" style={{ marginTop: 5 }}>{auction ? '你领先' : '已出价'}</span>
                       ) : (
-                        <div className="row" style={{ gap: 5, marginTop: 5 }}>
+                        <div className="row wrap" style={{ gap: 4, marginTop: 5 }}>
+                          {/* side by side where the tile is wide enough (a phone's
+                              two-column shelf), stacked in the 122px desktop tile */}
                           <button
                             className="sm"
+                            style={{ flex: '1 1 48px', minHeight: 26 }}
                             disabled={busy || !!gate}
                             title={gate ? `开够 ${gate.need} 抽才能出价` : undefined}
                             onClick={() => { setBidOpen(l); setBidPrice(String(min)) }}
@@ -459,6 +466,7 @@ export default function Market() {
                           {auction && l.buyout != null && (
                             <button
                               className="sm primary"
+                              style={{ flex: '1 1 56px', minHeight: 26 }}
                               disabled={busy || !!gate}
                               title={`按一口价 ${money(l.buyout)} 立刻买下`}
                               onClick={() => void buyNow(l)}

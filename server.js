@@ -380,7 +380,7 @@ const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
 }))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
-  readBody, json, normalizeId, displayName, rateLimited, engine,
+  readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk,
 }))
 let _marketApi = null
 

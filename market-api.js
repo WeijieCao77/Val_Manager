@@ -116,7 +116,7 @@ export const askFloor = (rarity) => Math.max(MIN_ASK, SALVAGE_FLOOR[rarity] ?? M
 
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
-export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine }) {
+export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine, token, tokenFrom, tokenOk }) {
   /** The account as it is written: never with the id in it. */
   const stored = (state) => { const { id, ...rest } = state; void id; return rest }
   const guard = (req, res, bucket, max) => {
@@ -210,6 +210,35 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
           }, db)
         }
       }
+    })
+  }
+
+  /**
+   * Take every listing from before the auctions off the shelf at once: the
+   * card goes home to its seller, every offer standing on it goes home to
+   * its bidder. The owner's call on 2026-09-07, rather than letting 1,263
+   * old-rule listings run out over three days beside the new ones.
+   */
+  async function retireLegacy() {
+    return tx(async (db) => {
+      const rows = await db`
+        update card_listings set status = 'pulled', closed = now()
+        where status = 'open' and ends is null
+        returning id, seller_h, card_id, level`
+      let offers = 0
+      for (const l of rows) {
+        await post(l.seller_h, 'listing_retired', {
+          cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
+        }, db)
+        const back = await db`
+          update card_offers set status = 'expired', settled = now()
+          where listing = ${l.id} and status = 'open' returning buyer_h, price`
+        for (const o of back) {
+          await post(o.buyer_h, 'offer_expired', { coins: o.price, body: { listing: String(l.id) } }, db)
+          offers++
+        }
+      }
+      return { ok: true, listings: rows.length, offers }
     })
   }
 
@@ -1007,6 +1036,16 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       if (path === '/api/market/offers') { await offers(req, res, bucket); return true }
       if (path === '/api/market/withdraw') { await withdraw(req, res, bucket); return true }
       if (path === '/api/market/answer') { await answer(req, res, bucket); return true }
+      if (path === '/api/market/retire_legacy') {
+        // the owner's token, or a 404 like every other admin route: an
+        // endpoint that admits it exists is one somebody comes back to
+        let url
+        try { url = new URL(req.url || '/', 'http://x') } catch { url = new URL('http://x/') }
+        const given = tokenFrom ? tokenFrom(req, url) : null
+        if (!token || !tokenOk || !tokenOk(given, token)) { json(res, 404, { ok: false }); return true }
+        json(res, 200, await retireLegacy())
+        return true
+      }
       if (path === '/api/market/mail') { await mail(req, res, bucket); return true }
       return false
     },

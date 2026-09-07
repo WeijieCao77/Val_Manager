@@ -48,6 +48,9 @@ const api = makeMarketApi(sql, {
   readBody: (req: { body: string }) => Promise.resolve(req.body),
   json: (res: Res, code: number, body: Record<string, unknown>) => { res.code = code; res.body = body },
   normalizeId, displayName, rateLimited: () => false, engine,
+  token: 'devtoken',
+  tokenFrom: (req: { headers?: { authorization?: string } }) => (req.headers?.authorization ?? '').replace(/^Bearer\s+/i, ''),
+  tokenOk: (given: string, expected: string) => given === expected,
 } as never)
 // the inbox is collected through the card api now — the server applies it
 const cardsApi = makeCardApi(sql, {
@@ -56,11 +59,11 @@ const cardsApi = makeCardApi(sql, {
   rateLimited: () => false,
 } as never)
 
-const call = async (path: string, body: unknown) => {
+const call = async (path: string, body: unknown, headers: Record<string, string> = {}) => {
   const res: Res = { code: 0, body: {} }
   const which = path.startsWith('/api/card/') ? cardsApi : api
-  await which.route({ body: JSON.stringify(body), method: 'POST' } as never, res as never, path, 't')
-  return res.body
+  await which.route({ body: JSON.stringify(body), method: 'POST', headers } as never, res as never, path, 't')
+  return Object.assign(res.body, { _code: res.code })
 }
 
 const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
@@ -338,6 +341,39 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   await inbox(BUYER); await inbox(S7)
 }
 
+// ---- 改版前的挂牌一次全退 (2026-09-07) ---------------------------------------
+{
+  const S8 = 'VM-RRRR-RRRR-RRRR-RRRR-RRRR'
+  await account(S8, '旧牌二', 0, {})
+  const a = String((await sql`
+    insert into card_listings (seller_h, card_id, level, ask) values (${hashOf(S8)}, 'p:P11', 2, 1000) returning id`)[0].id)
+  const b = String((await sql`
+    insert into card_listings (seller_h, card_id, level, ask) values (${hashOf(S8)}, 'p:P12', 0, 1000) returning id`)[0].id)
+  await inbox(BUYER)
+  const before = await coinsOf(BUYER)
+  await call('/api/market/offer', { id: BUYER, listing: a, price: 1000 })
+  check('旧牌上还挂着一个报价', await coinsOf(BUYER) === before - 1000)
+  const live = String((await call('/api/market/list', { id: S8 === S8 ? OTHER : OTHER, cardId: 'p:P13', ask: 1000 })).id ?? '')
+  void live
+  let x = await call('/api/market/retire_legacy', {})
+  check('没带 token 是 404', x._code === 404, JSON.stringify(x))
+  x = await call('/api/market/retire_legacy', {}, { authorization: 'Bearer wrong' })
+  check('错的 token 也是 404', x._code === 404, JSON.stringify(x))
+  x = await call('/api/market/retire_legacy', {}, { authorization: 'Bearer devtoken' })
+  check('对的 token：两张旧牌下架，一个报价退回', x.ok === true && x.listings === 2 && x.offers === 1, JSON.stringify(x))
+  check('两张旧牌都关了', (await listingRow(a)).status === 'pulled' && (await listingRow(b)).status === 'pulled')
+  const home = await inbox(S8)
+  check('卡回到卖家信箱，等级也在', home.filter((m) => m.kind === 'listing_retired').length === 2
+    && home.some((m) => m.cardId === 'p:P11' && m.level === 2), JSON.stringify(home.map((m) => [m.kind, m.cardId, m.level])))
+  const rb = await inbox(BUYER)
+  check('托管的报价退了钱', rb.some((m) => m.kind === 'offer_expired' && m.coins === 1000) && await coinsOf(BUYER) === before,
+    JSON.stringify(rb.map((m) => [m.kind, m.coins])))
+  const view = (await call('/api/market/browse', { id: BUYER })).listings as { ends: number | null; mine: boolean }[]
+  check('货架上不再有旧规则的牌', view.every((l) => l.ends != null), String(view.filter((l) => l.ends == null).length))
+  x = await call('/api/market/retire_legacy', {}, { authorization: 'Bearer devtoken' })
+  check('再跑一次没东西可退', x.ok === true && x.listings === 0 && x.offers === 0, JSON.stringify(x))
+}
+
 // ---- 挂牌价不能低于分解价 ------------------------------------------------
 //
 // A flat floor made the market a better alt-account funnel than the gifting it
@@ -469,7 +505,7 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
     select l.id from card_listings l
     where l.status in ('sold', 'pulled', 'expired')
       and not exists (select 1 from card_mail m
-        where m.kind in ('sold', 'listing_pulled', 'listing_expired', 'unsold')
+        where m.kind in ('sold', 'listing_pulled', 'listing_expired', 'unsold', 'listing_retired')
           and m.to_h = l.seller_h)`
   check('每一个已结束的挂牌都给卖家留了信', closedNoMail.length === 0,
     JSON.stringify(closedNoMail.map((x: { id: string }) => String(x.id))))
