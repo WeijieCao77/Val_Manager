@@ -284,7 +284,11 @@ console.log('\n交易区：')
   check('出价成功，金币从服务器的账号里扣走', r.body.ok === true && (await stored(B)).coins === 50000 - l.ask, `${(await stored(B)).coins}`)
   const offers = (await call('/api/market/offers', { id: A })).body.inbound as { id: string }[]
   r = await call('/api/market/answer', { id: A, offer: offers[0].id, accept: true })
-  check('卖家接受', r.body.ok === true)
+  check('卖家不能自己拍板，竞拍到时才成交', r.body.auction === true, JSON.stringify(r.body))
+  await sql`update card_listings set ends = now() - make_interval(secs => 1) where seller_h = ${hashOf(A)} and status = 'open'`
+  r = await call('/api/market/browse', { id: B })
+  check('到时结算', r.body.ok === true
+    && ((await sql`select status from card_listings where seller_h = ${hashOf(A)}` as unknown as { status: string }[])[0].status === 'sold'))
   const ca = (await stored(A)).coins
   let m = await act(A, 'mail_take')
   check('卖家收信：金币到账', m.ok && (await stored(A)).coins === ca + l.ask, `${ca} → ${(await stored(A)).coins}`)

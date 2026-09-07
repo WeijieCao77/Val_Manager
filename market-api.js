@@ -2,17 +2,31 @@
  * The trading post.
  *
  * The rule that makes it safe is that both sides pay in when they act and
- * collect afterwards. Listing escrows the CARD; making an offer escrows the
- * COINS. Whatever happens next — sold, declined, expired, withdrawn — every
- * escrow ends up as a row in card_mail for somebody to collect. Neither side
- * can be left holding nothing because the other one never came back, which is
- * the failure mode a market between asynchronous players actually has.
+ * collect afterwards. Listing escrows the CARD; bidding escrows the COINS.
+ * Whatever happens next — sold, outbid, unsold, withdrawn — every escrow
+ * ends up as a row in card_mail for somebody to collect. Neither side can be
+ * left holding nothing because the other one never came back, which is the
+ * failure mode a market between asynchronous players actually has.
  *
- * The clock does the rest, and it is checked lazily rather than by a job: an
- * offer nobody answers for three days is withdrawn and the coins go home, and
- * a listing whose seller has ignored three offers in a row comes off the shelf
- * and the card goes home. Both are settled the moment anyone looks at the
- * market, so the state a player sees is always already correct.
+ * Since 2026-09-07 a listing is an AUCTION: a starting price, a day on the
+ * clock, and the top bid wins when the clock runs out — the seller has no
+ * say in who. The make-an-offer market it replaces let the seller pick any
+ * bid, and the group used that in two ways: a card listed cheap that its
+ * seller never sold, with a dozen people's coins locked on it for three
+ * days; and a card sold to a friend under a higher bid, which is the gift
+ * funnel with extra steps. Under the hammer neither works — a cheap start
+ * just sells cheap, and the only way to get the card to a friend is for the
+ * friend to outbid everyone. A bid must climb at least five percent over the
+ * last, the bidder it beats gets the coins back at once, a bid in the last
+ * ten minutes pushes the end back ten minutes, and a bid is binding: neither
+ * side can take it back. An optional buy-now price ends the auction on the
+ * spot for anyone who pays it.
+ *
+ * The clock is checked lazily rather than by a job: an auction past its end
+ * is settled the moment anyone looks at the market, so the state a player
+ * sees is always already correct. Listings from before the change have no
+ * `ends` and run out on the old rules — offers within ten percent, the
+ * seller answering, three days before an unanswered offer goes home.
  *
  * The collection is the server's now — see engine/actions.ts — so the seller
  * really does own the card: it is taken out of the server's copy of the
@@ -22,13 +36,24 @@
  */
 import { createHash } from 'node:crypto'
 
-/** How far an offer may sit from the asking price, either way. */
+/** How long a listing takes bids before the top one wins. */
+export const AUCTION_HOURS = 24
+/** The least a bid must climb over the one it beats. */
+export const BID_STEP = 0.05
+/** A bid this close to the end pushes the end back by this much. */
+export const SNIPE_MINUTES = 10
+/** A buy-now price, if the seller sets one, is at least this much of the start. */
+export const BUYOUT_MIN = 1.2
+/** The least the next bid may be: the start until somebody bids, a step over the top after. */
+export const minBid = (ask, top) => (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
+
+/** (old listings only) How far an offer may sit from the asking price, either way. */
 export const HAGGLE = 0.10
-/** An offer the seller never answers. */
+/** (old listings only) An offer the seller never answers. */
 export const OFFER_DAYS = 3
 /** How many other people's listings the shelf shows, newest first. */
 export const SHELF = 400
-/** Consecutive ignored offers before the listing gives up. */
+/** (old listings only) Consecutive ignored offers before the listing gives up. */
 export const IGNORE_LIMIT = 3
 /**
  * How many listings one seller may have open at once.
@@ -129,10 +154,32 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function sweep() {
     await tx(async (db) => {
+      // auctions whose time is up: the top bid wins, or the card goes home
+      const ended = await db`
+        select id, seller_h, card_id, level from card_listings
+        where status = 'open' and ends is not null and ends <= now()`
+      for (const l of ended) {
+        const top = await db`
+          select id, buyer_h, price from card_offers
+          where listing = ${l.id} and status = 'open'
+          order by price desc, made asc limit 1`
+        if (top.length) { await settle(db, l, top[0]); continue }
+        const closed = await db`
+          update card_listings set status = 'expired', closed = now()
+          where id = ${l.id} and status = 'open' returning id`
+        if (closed.length) {
+          await post(l.seller_h, 'unsold', {
+            cardId: l.card_id, level: l.level, body: { listing: String(l.id) },
+          }, db)
+        }
+      }
+      // old-style listings: an offer nobody answered goes home after three days
       const stale = await db`
-        update card_offers set status = 'expired', settled = now()
-        where status = 'open' and made < now() - make_interval(days => ${OFFER_DAYS})
-        returning id, listing, buyer_h, price`
+        update card_offers o set status = 'expired', settled = now()
+        from card_listings l
+        where o.listing = l.id and l.ends is null
+          and o.status = 'open' and o.made < now() - make_interval(days => ${OFFER_DAYS})
+        returning o.id, o.listing, o.buyer_h, o.price`
       for (const o of stale) {
         // the coins go home
         await post(o.buyer_h, 'offer_expired', {
@@ -179,10 +226,47 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     return pulls >= TRADE_PULLS ? null : { need: TRADE_PULLS, have: Math.max(0, Math.floor(pulls)) }
   }
 
-  const nameOf = async (h) => {
-    const r = await sql`select name from card_accounts where id_hash = ${h}`
+  const nameOf = async (h, db = sql) => {
+    const r = await db`select name from card_accounts where id_hash = ${h}`
     const shown = displayName(r[0]?.name, h)
     return `${shown.name} #${shown.tag}`
+  }
+
+  /** When an auction closes, as milliseconds; null for an old-style listing. */
+  const endsAt = (l) => (l.ends ? new Date(l.ends).getTime() : null)
+
+  /**
+   * Hand the card to a bid and the coins to the seller — the one place they
+   * change hands. Inside the caller's transaction; false if somebody else
+   * closed the listing first, in which case the bid's coins go straight home.
+   */
+  async function settle(db, l, o) {
+    const won = await db`
+      update card_offers set status = 'accepted', settled = now()
+      where id = ${o.id} and status = 'open' returning id`
+    if (!won.length) return false
+    const closed = await db`
+      update card_listings set status = 'sold', closed = now()
+      where id = ${l.id} and status = 'open' returning id`
+    if (!closed.length) {
+      await db`update card_offers set status = 'expired', settled = now() where id = ${o.id}`
+      await post(o.buyer_h, 'offer_expired', { coins: o.price, body: { listing: String(l.id) } }, db)
+      return false
+    }
+    const [sellerName, buyerName] = [await nameOf(l.seller_h, db), await nameOf(o.buyer_h, db)]
+    await post(o.buyer_h, 'bought', {
+      cardId: l.card_id, level: l.level, body: { price: o.price, who: sellerName },
+    }, db)
+    await post(l.seller_h, 'sold', {
+      coins: o.price, body: { cardId: l.card_id, price: o.price, who: buyerName },
+    }, db)
+    // every other bid still open on it goes home (an old-style listing can
+    // hold several; an auction settles the beaten one the moment it is beaten)
+    const rest = await db`
+      update card_offers set status = 'expired', settled = now()
+      where listing = ${l.id} and status = 'open' returning buyer_h, price`
+    for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: { cardId: l.card_id } }, db)
+    return true
   }
 
   /** The shelf. */
@@ -202,27 +286,33 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // buyer's, with the card still in escrow: 「挂了一张金卡消失了，也没有
     // 别人报价」. The window is wider too, and the reply says how many are
     // open in total so the page can say so.
+    // `offers` is the bids still standing (one, in an auction — the beaten
+    // one is settled at once), `bids` everyone who has bid on it at all
     const own = mine ? await sql`
-      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created,
+      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
+             (select count(*)::int from card_offers o
+               where o.listing = l.id and o.status in ('open', 'outbid', 'accepted')) as bids,
              (select max(o.price)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as best,
              false as bid
       from card_listings l
       where l.status = 'open' and l.seller_h = ${mine}
-      order by l.created desc` : []
+      order by l.ends asc nulls last, l.created desc` : []
     const others = await sql`
-      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created,
+      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
+             (select count(*)::int from card_offers o
+               where o.listing = l.id and o.status in ('open', 'outbid', 'accepted')) as bids,
              (select max(o.price)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as best,
              exists (select 1 from card_offers o
                where o.listing = l.id and o.status = 'open' and o.buyer_h = ${mine}) as bid
       from card_listings l
       where l.status = 'open' and l.seller_h <> ${mine}
-      order by l.created desc
+      order by l.ends asc nulls last, l.created desc
       limit ${SHELF}`
     const rows = [...own, ...others]
     const total = (await sql`select count(*)::int as n from card_listings where status = 'open'`)[0].n
@@ -232,6 +322,8 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     json(res, 200, {
       ok: true,
       haggle: HAGGLE,
+      hours: AUCTION_HOURS, step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
+      now: Date.now(),
       gate: young,
       total,
       shelf: SHELF,
@@ -239,6 +331,10 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
         seller: names[r.seller_h], mine: r.seller_h === mine,
         offers: r.offers, best: r.best ?? null, bid: r.bid,
+        // the auction: when it closes, the buy-now price, how many have bid,
+        // and the least the next bid may be. `ends` null is an old listing.
+        ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers,
+        min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
       })),
     })
   }
@@ -264,6 +360,14 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       json(res, 200, { ok: false, bad: true, min: floor, max: MAX_ASK })
       return
     }
+    // a buy-now price is optional; set, it must be a real step above the start
+    const rawBuyout = b?.buyout == null || b?.buyout === '' ? null : Math.round(Number(b.buyout))
+    const buyoutFloor = Math.ceil(ask * BUYOUT_MIN)
+    if (rawBuyout != null && (!Number.isFinite(rawBuyout) || rawBuyout < buyoutFloor || rawBuyout > MAX_ASK)) {
+      json(res, 200, { ok: false, badBuyout: true, min: buyoutFloor, max: MAX_ASK })
+      return
+    }
+    const buyout = rawBuyout
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const open = await sql`
@@ -296,9 +400,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
           where id_hash = ${me} and rev = ${row[0].rev} returning rev`
         if (!w.length) continue
         const r = await db`
-          insert into card_listings (seller_h, card_id, level, ask)
-          values (${me}, ${cardId}, ${esc.level}, ${ask}) returning id`
-        return { ok: true, id: String(r[0].id), state: stored(g), rev: w[0].rev }
+          insert into card_listings (seller_h, card_id, level, ask, buyout, ends)
+          values (${me}, ${cardId}, ${esc.level}, ${ask}, ${buyout},
+                  now() + make_interval(hours => ${AUCTION_HOURS}))
+          returning id, ends`
+        return { ok: true, id: String(r[0].id), ends: endsAt(r[0]), state: stored(g), rev: w[0].rev }
       }
       return { busy: true }
     })
@@ -319,6 +425,13 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const lid = rowId(b?.listing)
     if (!lid) { json(res, 400, { ok: false, bad: true }); return }
     const out = await tx(async (db) => {
+      // a bid is binding on the seller too: once somebody has put coins on
+      // an auction, the card is theirs to win and cannot be taken back
+      const bound = await db`
+        select count(*)::int as n from card_offers o join card_listings l on l.id = o.listing
+        where l.id = ${lid}::bigint and l.seller_h = ${me} and l.status = 'open'
+          and l.ends is not null and o.status = 'open'`
+      if ((bound[0]?.n ?? 0) > 0) return { bound: true }
       const rows = await db`
         update card_listings set status = 'pulled', closed = now()
         where id = ${lid}::bigint and seller_h = ${me} and status = 'open'
@@ -332,10 +445,18 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       for (const o of back) await post(o.buyer_h, 'offer_expired', { coins: o.price }, db)
       return { ok: true, refunded: back.length }
     })
+    if (out.bound) { json(res, 200, { ok: false, bound: true }); return }
     json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
-  /** Bid. The coins leave your side now and come back if it does not go through. */
+  /**
+   * Bid. The coins leave your side now and come back if it does not go through.
+   *
+   * On an auction a bid has to clear the last one by a step, beats it on the
+   * spot — the coins of the bidder it beats go home in the same transaction —
+   * and if it lands in the last minutes it buys everyone a few more. A bid at
+   * the buy-now price is a sale. An old-style listing keeps its ±10% offer.
+   */
   async function offer(req, res, bucket) {
     if (guard(req, res, `mo:${bucket}`, 40)) return
     await sweep()
@@ -348,23 +469,41 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const lid = rowId(b?.listing)
     if (!lid) { json(res, 400, { ok: false, bad: true }); return }
     const rows = await sql`
-      select id, seller_h, card_id, ask from card_listings
+      select id, seller_h, card_id, level, ask, ends, buyout from card_listings
       where id = ${lid}::bigint and status = 'open'`
     if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
     const l = rows[0]
     if (l.seller_h === me) { json(res, 200, { ok: false, self: true }); return }
-    const lo = Math.ceil(l.ask * (1 - HAGGLE))
-    const hi = Math.floor(l.ask * (1 + HAGGLE))
-    if (!Number.isFinite(price) || price < lo || price > hi) {
-      json(res, 200, { ok: false, range: true, lo, hi })
-      return
+    const auction = !!l.ends
+    if (auction && endsAt(l) <= Date.now()) { json(res, 200, { ok: false, gone: true }); return }
+    const topRow = await sql`
+      select id, buyer_h, price from card_offers
+      where listing = ${l.id} and status = 'open'
+      order by price desc, made asc limit 1`
+    const top = topRow[0] ?? null
+    let bid = price
+    if (auction) {
+      if (top && top.buyer_h === me) { json(res, 200, { ok: false, leading: true, price: top.price }); return }
+      const min = minBid(l.ask, top?.price ?? null)
+      if (!Number.isFinite(bid) || bid < min) { json(res, 200, { ok: false, low: true, min }); return }
+      // at or over the buy-now price is the buy-now price: nobody pays more
+      // than the seller asked to end it
+      if (l.buyout != null && bid >= l.buyout) bid = l.buyout
+      else if (bid > MAX_ASK) { json(res, 200, { ok: false, low: true, min, max: MAX_ASK }); return }
+    } else {
+      const lo = Math.ceil(l.ask * (1 - HAGGLE))
+      const hi = Math.floor(l.ask * (1 + HAGGLE))
+      if (!Number.isFinite(bid) || bid < lo || bid > hi) {
+        json(res, 200, { ok: false, range: true, lo, hi })
+        return
+      }
+      const dup = await sql`
+        select count(*)::int as n from card_offers
+        where listing = ${l.id} and buyer_h = ${me} and status = 'open'`
+      if ((dup[0]?.n ?? 0) > 0) { json(res, 200, { ok: false, already: true }); return }
     }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
-    const dup = await sql`
-      select count(*)::int as n from card_offers
-      where listing = ${l.id} and buyer_h = ${me} and status = 'open'`
-    if ((dup[0]?.n ?? 0) > 0) { json(res, 200, { ok: false, already: true }); return }
     // the coins leave the server's copy of the account, here, before the
     // offer exists — a bid is never made with money the account does not hold
     const who = await nameOf(me)
@@ -373,22 +512,55 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         const row = await db`select state, rev from card_accounts where id_hash = ${me}`
         if (!row.length) return { broke: true }
         const g = engine.migrateGacha(row[0].state, id)
-        if (g.coins < price) return { broke: true }
-        g.coins -= price
+        if (g.coins < bid) return { broke: true }
+        g.coins -= bid
         const w = await db`
           update card_accounts set state = ${db.json(stored(g))}, rev = rev + 1, saved = now()
           where id_hash = ${me} and rev = ${row[0].rev} returning rev`
         if (!w.length) continue
-        await db`insert into card_offers (listing, buyer_h, price) values (${l.id}, ${me}, ${price})`
-        await post(l.seller_h, 'offer_made', {
-          body: { listing: String(l.id), cardId: l.card_id, price, ask: l.ask, who },
-        }, db)
-        return { ok: true, state: stored(g), rev: w[0].rev }
+        const ins = await db`
+          insert into card_offers (listing, buyer_h, price) values (${l.id}, ${me}, ${bid}) returning id`
+        if (!auction) {
+          await post(l.seller_h, 'offer_made', {
+            body: { listing: String(l.id), cardId: l.card_id, price: bid, ask: l.ask, who },
+          }, db)
+          return { ok: true, state: stored(g), rev: w[0].rev }
+        }
+        // the listing may have been settled or its top bid changed between
+        // the read above and now; beat whatever is open and older than us
+        const beaten = await db`
+          update card_offers set status = 'outbid', settled = now()
+          where listing = ${l.id} and status = 'open' and id <> ${ins[0].id}
+          returning buyer_h, price`
+        for (const o of beaten) {
+          await post(o.buyer_h, 'overbid', {
+            coins: o.price, body: { listing: String(l.id), cardId: l.card_id, price: o.price, by: bid },
+          }, db)
+        }
+        if (l.buyout != null && bid >= l.buyout) {
+          const sold = await settle(db, l, { id: ins[0].id, buyer_h: me, price: bid })
+          return sold ? { ok: true, bought: true, price: bid, state: stored(g), rev: w[0].rev } : { gone: true }
+        }
+        // a bid in the last minutes gives everyone a few more
+        const stretched = await db`
+          update card_listings set ends = now() + make_interval(mins => ${SNIPE_MINUTES})
+          where id = ${l.id} and status = 'open'
+            and ends < now() + make_interval(mins => ${SNIPE_MINUTES})
+          returning ends`
+        const ends = stretched.length ? endsAt(stretched[0]) : endsAt(l)
+        // the seller hears about the first bid; the rest is on the shelf
+        if (!top) {
+          await post(l.seller_h, 'offer_made', {
+            body: { listing: String(l.id), cardId: l.card_id, price: bid, ask: l.ask, who },
+          }, db)
+        }
+        return { ok: true, price: bid, ends, state: stored(g), rev: w[0].rev }
       }
       return { busy: true }
     })
     if (out.broke) { json(res, 200, { ok: false, broke: true }); return }
     if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
+    if (out.gone) { json(res, 200, { ok: false, gone: true }); return }
     json(res, 200, out)
   }
 
@@ -413,6 +585,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const oid = rowId(b?.offer)
     if (!oid) { json(res, 400, { ok: false, bad: true }); return }
     const out = await tx(async (db) => {
+      // a bid on an auction is binding: it is the price the card sells for
+      // unless somebody beats it, and beating it is the only way out
+      const bound = await db`
+        select l.ends from card_offers o join card_listings l on l.id = o.listing
+        where o.id = ${oid}::bigint and o.buyer_h = ${me} and o.status = 'open'`
+      if (bound.length && bound[0].ends) return { binding: true }
       const rows = await db`
         update card_offers set status = 'withdrawn', settled = now()
         where id = ${oid}::bigint and buyer_h = ${me} and status = 'open'
@@ -426,6 +604,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       }, db)
       return { ok: true, coins: o.price }
     })
+    if (out.binding) { json(res, 200, { ok: false, binding: true }); return }
     json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
@@ -439,12 +618,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
     const inbound = await sql`
-      select o.id, o.price, o.made, o.buyer_h, l.id as listing, l.card_id, l.ask, l.ignored
+      select o.id, o.price, o.made, o.buyer_h, l.id as listing, l.card_id, l.ask, l.ignored, l.ends, l.buyout
       from card_offers o join card_listings l on l.id = o.listing
       where l.seller_h = ${me} and o.status = 'open' and l.status = 'open'
       order by o.price desc`
     const outbound = await sql`
-      select o.id, o.price, o.made, o.status, l.card_id, l.ask, l.seller_h, l.status as lstatus
+      select o.id, o.price, o.made, o.status, l.id as listing, l.card_id, l.ask, l.seller_h, l.status as lstatus, l.ends, l.buyout
       from card_offers o join card_listings l on l.id = o.listing
       where o.buyer_h = ${me} and o.status = 'open'
       order by o.made desc`
@@ -458,10 +637,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
         id: String(r.id), listing: String(r.listing), cardId: r.card_id,
         ask: r.ask, price: r.price, who: names[r.buyer_h],
         madeAt: new Date(r.made).getTime(), ignored: r.ignored,
+        ends: endsAt(r), buyout: r.buyout ?? null,
       })),
       outbound: outbound.map((r) => ({
-        id: String(r.id), cardId: r.card_id, ask: r.ask, price: r.price,
+        id: String(r.id), listing: String(r.listing), cardId: r.card_id, ask: r.ask, price: r.price,
         who: names[r.seller_h], madeAt: new Date(r.made).getTime(),
+        ends: endsAt(r), buyout: r.buyout ?? null,
       })),
     })
   }
@@ -485,11 +666,13 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const oid = rowId(b?.offer)
     if (!oid) { json(res, 400, { ok: false, bad: true }); return }
     const got = await sql`
-      select o.id, o.buyer_h, o.price, l.id as listing, l.seller_h, l.card_id, l.level, l.status
+      select o.id, o.buyer_h, o.price, l.id as listing, l.seller_h, l.card_id, l.level, l.status, l.ends
       from card_offers o join card_listings l on l.id = o.listing
       where o.id = ${oid}::bigint and o.status = 'open'`
     if (!got.length || got[0].seller_h !== me) { json(res, 200, { ok: false, gone: true }); return }
     const o = got[0]
+    // an auction settles itself; the seller neither picks nor refuses
+    if (o.ends) { json(res, 200, { ok: false, auction: true }); return }
     if (!take) {
       const out = await tx(async (db) => {
         const done = await db`

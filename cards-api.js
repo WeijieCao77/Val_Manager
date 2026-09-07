@@ -128,6 +128,12 @@ create table if not exists card_listings (
 );
 create index if not exists listing_open_idx on card_listings (created desc) where status = 'open';
 create index if not exists listing_seller_idx on card_listings (seller_h);
+-- A timed auction (2026-09-07): bids close at ends and the top bid wins, with
+-- buyout as an optional price that ends it at once. Rows without an ends are
+-- the old make-an-offer listings, run out on the old rules. (No backticks.)
+alter table card_listings add column if not exists ends timestamptz;
+alter table card_listings add column if not exists buyout int;
+create index if not exists listing_ends_idx on card_listings (ends) where status = 'open';
 
 create table if not exists card_offers (
   id       bigserial primary key,

@@ -113,20 +113,24 @@ console.log('\n出价：')
   check('好的数据库上出价成功并扣款', r.body.ok === true && (await stored(B)).coins === 4000)
 }
 
-// ---- accepting: if the mail cannot be written, the sale did not happen
+// ---- the hammer: if the mail cannot be written, the sale did not happen
+//
+// An auction settles itself when its time is up, inside the sweep that runs
+// before any read of the market — so the read is what has to fail whole.
 console.log('\n成交：')
 {
   const offer = String((await sql`select id from card_offers where status = 'open'` as unknown as { id: number }[])[0].id)
+  await sql`update card_listings set ends = now() - make_interval(secs => 1) where id = ${listing}::bigint`
   const broken = makeMarketApi(failing(sql, /insert into card_mail/), deps as never)
   let threw = false
-  try { await call(broken, '/api/market/answer', { id: A, offer, accept: true }) } catch { threw = true }
+  try { await call(broken, '/api/market/browse', { id: A }) } catch { threw = true }
   const o = (await sql`select status from card_offers where id = ${offer}::bigint` as unknown as { status: string }[])[0]
   const l = (await sql`select status from card_listings where id = ${listing}::bigint` as unknown as { status: string }[])[0]
   check('邮件写不进去时整个请求失败', threw)
-  check('报价和挂牌都还是 open，没有一半成交', o.status === 'open' && l.status === 'open', `${o.status}/${l.status}`)
-  const r = await call(market, '/api/market/answer', { id: A, offer, accept: true })
+  check('出价和挂牌都还是 open，没有一半成交', o.status === 'open' && l.status === 'open', `${o.status}/${l.status}`)
+  const r = await call(market, '/api/market/browse', { id: A })
   const mail = (await sql`select kind, to_h from card_mail order by id` as unknown as { kind: string; to_h: string }[])
-  check('好的数据库上成交，买卖双方都有邮件', r.body.ok === true
+  check('好的数据库上到时成交，买卖双方都有邮件', r.body.ok === true
     && mail.some((m) => m.kind === 'bought' && m.to_h === hashOf(B))
     && mail.some((m) => m.kind === 'sold' && m.to_h === hashOf(A)))
 }

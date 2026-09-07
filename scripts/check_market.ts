@@ -6,12 +6,16 @@
  * A market between players who are never online at the same time has one real
  * failure mode: somebody acts, the other side never comes back, and a card or
  * a pile of coins is stranded. So both sides pay in when they act and collect
- * afterwards — listing escrows the CARD, offering escrows the COINS — and every
+ * afterwards — listing escrows the CARD, bidding escrows the COINS — and every
  * outcome has to end with the escrow in somebody's inbox.
  *
- * That is what most of this file checks. The rest is the arithmetic the group
- * asked for: ±10% haggling, three days before an unanswered offer is withdrawn,
- * three ignored offers before the listing comes down.
+ * Since 2026-09-07 a listing is an auction: a start price, a day on the
+ * clock, the top bid wins and the seller has no say. A bid must clear the
+ * last by a step, the beaten bidder is refunded at once, a late bid stretches
+ * the clock, a bid is binding both ways, and a buy-now price ends it on the
+ * spot. Listings from before the change (no `ends`) still run out on the old
+ * rules — ±10% offers, the seller answering, three days before an unanswered
+ * offer goes home — and that path is checked here too.
  */
 process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
@@ -24,7 +28,8 @@ const MYTHIC = idOf('mythic'), BRONZE = idOf('bronze'), GOLD = idOf('gold')
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { displayName } = await import('../names.js')
 const {
-  HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS, SALVAGE_FLOOR, SHELF, TRADE_PULLS, askFloor, makeMarketApi,
+  AUCTION_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS, SALVAGE_FLOOR, SHELF,
+  SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -69,6 +74,13 @@ const account = (id: string, name: string, coins: number, cards: Record<string, 
   pulls = TRADE_PULLS) =>
   sql`insert into card_accounts (id_hash, name, state) values (${hashOf(id)}, ${name},
     ${JSON.stringify({ coins, cards, pulls })})`
+const coinsOf = async (id: string) => (await sql`select (state->>'coins')::int as coins
+  from card_accounts where id_hash = ${hashOf(id)}`)[0].coins as number
+const listingRow = async (lid: string) => (await sql`
+  select status, ignored, ends, buyout from card_listings where id = ${lid}::bigint`)[0] as
+  { status: string; ignored: number; ends: string | Date | null; buyout: number | null }
+const endsIn = async (lid: string, minutes: number) =>
+  sql`update card_listings set ends = now() + make_interval(mins => ${minutes}) where id = ${lid}::bigint`
 
 await account(SELLER, '卖家', 100, { 'p:P1': { id: 'p:P1', level: 3, dupes: 0 } })
 await account(BUYER, '买家', 5000, {})
@@ -76,12 +88,17 @@ await account(OTHER, '路人', 5000, {})
 
 const inbox = async (id: string) =>
   ((await call('/api/card/act', { id, action: 'mail_take', args: {}, client: {} })).result as
-    { mail: { kind: string; cardId: string | null; coins: number; level: number }[] }).mail
+    { mail: { kind: string; cardId: string | null; coins: number; level: number; body?: Record<string, unknown> }[] }).mail
 
 // ---- listing ------------------------------------------------------------
 let r = await call('/api/market/list', { id: SELLER, cardId: 'p:P1', ask: 1000, level: 3 })
 check('挂得上去（哪怕只有一张，不是重复卡）', r.ok === true, JSON.stringify(r))
 const LID = String(r.id)
+{
+  const ends = Number(r.ends)
+  const hours = (ends - Date.now()) / 3_600_000
+  check(`挂出去就是 ${AUCTION_HOURS} 小时的竞拍`, hours > AUCTION_HOURS - 0.05 && hours <= AUCTION_HOURS + 0.05, hours.toFixed(2))
+}
 
 r = await call('/api/market/list', { id: SELLER, cardId: 'p:P9', ask: 1000 })
 check('没有的卡挂不上去', r.notOwned === true, JSON.stringify(r))
@@ -93,169 +110,151 @@ r = await call('/api/market/list', { id: SELLER, cardId: 'p:P1', ask: 5 })
 check('价格有下限', r.bad === true, JSON.stringify(r))
 
 const shelf = await call('/api/market/browse', { id: BUYER })
-const one = (shelf.listings as { id: string; ask: number; seller: string; cardId: string }[])[0]
+const one = (shelf.listings as { id: string; ask: number; seller: string; cardId: string; ends: number | null; min: number; best: number | null; bids: number }[])[0]
 check('买家看得到这张挂牌', one?.id === LID && one.ask === 1000, JSON.stringify(one))
 check('卖家名字带出来，而且是过滤过的', /卖家 #/.test(one?.seller ?? ''), one?.seller)
-check('公示还价范围', shelf.haggle === HAGGLE, String(shelf.haggle))
+check('货架上写着截止时间、起拍就是第一口的最低价', typeof one.ends === 'number' && one.min === 1000 && one.best === null && one.bids === 0, JSON.stringify(one))
+check('回复里公示规则', shelf.hours === AUCTION_HOURS && shelf.step === BID_STEP && shelf.snipe === SNIPE_MINUTES && shelf.buyoutMin === BUYOUT_MIN,
+  JSON.stringify([shelf.hours, shelf.step, shelf.snipe, shelf.buyoutMin]))
 
-// ---- haggling, ±10% -----------------------------------------------------
-r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 800 })
-check('低于 −10% 的报价被拒', r.range === true && r.lo === 900, JSON.stringify(r))
-r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1200 })
-check('高于 +10% 的报价也被拒', r.range === true && r.hi === 1100, JSON.stringify(r))
+// ---- bidding: a step at a time, the beaten one refunded at once -----------
+r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 900 })
+check('低于起拍价的出价被拒，回复里写着最低', r.low === true && r.min === 1000, JSON.stringify(r))
 r = await call('/api/market/offer', { id: SELLER, listing: LID, price: 1000 })
 check('不能给自己的挂牌出价', r.self === true, JSON.stringify(r))
-r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 900 })
-check('刚好 −10% 可以', r.ok === true, JSON.stringify(r))
-check('出价的一刻，金币就从服务器的账号里扣走了',
-  Number((await sql`select state->>'coins' as coins from card_accounts where id_hash = ${hashOf(BUYER)}` as unknown as { coins: string }[])[0].coins) === 5000 - 900)
-r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 950 })
-check('同一个人不能在一张牌上挂两个报价', r.already === true, JSON.stringify(r))
-
-// the seller is told
+r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1000 })
+check('按起拍价出第一口可以', r.ok === true && r.price === 1000, JSON.stringify(r))
+check('出价的一刻，金币就从服务器的账号里扣走了', await coinsOf(BUYER) === 5000 - 1000, String(await coinsOf(BUYER)))
+r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1200 })
+check('自己领先时不能再加', r.leading === true, JSON.stringify(r))
 const sm = await inbox(SELLER)
-check('卖家收到「有人出价」的通知', sm.some((m) => m.kind === 'offer_made'),
-  JSON.stringify(sm.map((m) => m.kind)))
+check('卖家收到「有人出价」的通知', sm.some((m) => m.kind === 'offer_made'), JSON.stringify(sm.map((m) => m.kind)))
 
-// ---- a second bidder, then a sale --------------------------------------
+check('下一口的最低价是当前最高再加一步', minBid(1000, 1000) === 1050 && minBid(1000, 1050) === 1103 && minBid(1000, null) === 1000,
+  `${minBid(1000, 1000)} / ${minBid(1000, 1050)}`)
+r = await call('/api/market/offer', { id: OTHER, listing: LID, price: 1040 })
+check('第二个人加得不够一步，被拒', r.low === true && r.min === 1050, JSON.stringify(r))
 r = await call('/api/market/offer', { id: OTHER, listing: LID, price: 1050 })
-check('第二个人也能出价', r.ok === true, JSON.stringify(r))
-
-const mine = await call('/api/market/offers', { id: SELLER })
-const inb = mine.inbound as { id: string; price: number; who: string }[]
-check('卖家看得到两个报价，价高的在前', inb.length === 2 && inb[0].price === 1050,
-  JSON.stringify(inb.map((x) => x.price)))
-
-r = await call('/api/market/answer', { id: SELLER, offer: inb[0].id, accept: true })
-check('成交', r.ok === true && r.price === 1050, JSON.stringify(r))
-
-const bm = await inbox(OTHER)
-const gotCard = bm.find((m) => m.kind === 'bought')
-check('买到的人收到卡，强化等级一起带过来', gotCard?.cardId === 'p:P1' && gotCard.level === 3,
-  JSON.stringify(gotCard))
-const sm2 = await inbox(SELLER)
-check('卖家收到钱', sm2.some((m) => m.kind === 'sold' && m.coins === 1050),
-  JSON.stringify(sm2.map((m) => [m.kind, m.coins])))
-const bm2 = await inbox(BUYER)
-check('没抢到的人，钱原路退回', bm2.some((m) => m.kind === 'outbid' && m.coins === 900),
-  JSON.stringify(bm2.map((m) => [m.kind, m.coins])))
-
-const after = await call('/api/market/browse', { id: BUYER })
-check('卖掉之后就从货架上消失了', (after.listings as unknown[]).length === 0)
-
-// ---- 三天没回复，报价自动撤回 -------------------------------------------
+check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.stringify(r))
 {
-  await account('VM-DDDD-DDDD-DDDD-DDDD-DDDD', '卖二', 0, { 'p:P2': { id: 'p:P2', dupes: 0 } })
-  const S2 = 'VM-DDDD-DDDD-DDDD-DDDD-DDDD'
-  const l2 = String((await call('/api/market/list', { id: S2, cardId: 'p:P2', ask: 1000 })).id)
-  await call('/api/market/offer', { id: BUYER, listing: l2, price: 1000 })
-  await inbox(BUYER); await inbox(S2)
-  // the clock, moved by hand
-  await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1})
-            where status = 'open'`
-  const seen = await call('/api/market/browse', { id: BUYER })   // any read sweeps
-  void seen
   const back = await inbox(BUYER)
-  check(`${OFFER_DAYS} 天没人理，报价自动撤回，金币退回`,
-    back.some((m) => m.kind === 'offer_expired' && m.coins === 1000),
-    JSON.stringify(back.map((m) => [m.kind, m.coins])))
-  const still = await sql`select ignored, status from card_listings where id = ${l2}::bigint`
-  check('这次算卖家一次「没反馈」', still[0].ignored === 1 && still[0].status === 'open',
-    JSON.stringify(still[0]))
-
-  // three in a row and it comes off the shelf
-  for (let i = 0; i < IGNORE_LIMIT; i++) {
-    await call('/api/market/offer', { id: BUYER, listing: l2, price: 1000 })
-    await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1})
-              where status = 'open'`
-    await call('/api/market/browse', { id: BUYER })
-  }
-  const gone = await sql`select status from card_listings where id = ${l2}::bigint`
-  check(`连续 ${IGNORE_LIMIT} 次没反馈，挂牌自动下架`, gone[0].status === 'expired', gone[0].status)
-  const home = await inbox(S2)
-  check('下架之后卡回到卖家手里',
-    home.some((m) => m.kind === 'listing_expired' && m.cardId === 'p:P2'),
-    JSON.stringify(home.map((m) => [m.kind, m.cardId])))
-  const refund = await inbox(BUYER)
-  check('那几次报价的钱也都退了',
-    refund.filter((m) => m.kind === 'offer_expired').length >= 1,
-    JSON.stringify(refund.map((m) => [m.kind, m.coins])))
+  const ob = back.find((m) => m.kind === 'overbid')
+  check('被压过的那一刻，前一个人的金币立刻退回信箱', ob?.coins === 1000 && Number(ob?.body?.by) === 1050, JSON.stringify(back.map((m) => [m.kind, m.coins])))
+  check('领了之后金币到账', await coinsOf(BUYER) === 5000, String(await coinsOf(BUYER)))
+  const s2 = await inbox(SELLER)
+  check('之后的每一口不再骚扰卖家', !s2.some((m) => m.kind === 'offer_made'), JSON.stringify(s2.map((m) => m.kind)))
+  const view = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; best: number; min: number; bids: number; offers: number; bid: boolean }[]
+  const row = view.find((l) => l.id === LID)!
+  check('货架上：当前最高 1050，下一口至少 1103，两人出过价，站着的只有一口', row.best === 1050 && row.min === 1103 && row.bids === 2 && row.offers === 1, JSON.stringify(row))
+  check('被压过的人不再标「已出价」', row.bid === false)
+  const lead = (await call('/api/market/browse', { id: OTHER })).listings as { id: string; bid: boolean }[]
+  check('领先的人标着「已出价」', lead.find((l) => l.id === LID)!.bid === true)
+  r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1103 })
+  check('被压过的人可以再出', r.ok === true && r.price === 1103, JSON.stringify(r))
 }
 
-// ---- 拒绝报价，不算「没反馈」 -------------------------------------------
+// ---- binding: nobody backs out ---------------------------------------------
+{
+  const mine = await call('/api/market/offers', { id: SELLER })
+  const inb = mine.inbound as { id: string; price: number; ends: number | null }[]
+  check('卖家看到的是当前最高一口，带着截止时间', inb.length === 1 && inb[0].price === 1103 && typeof inb[0].ends === 'number', JSON.stringify(inb))
+  r = await call('/api/market/answer', { id: SELLER, offer: inb[0].id, accept: true })
+  check('卖家不能自己拍板成交', r.auction === true, JSON.stringify(r))
+  r = await call('/api/market/answer', { id: SELLER, offer: inb[0].id, accept: false })
+  check('也不能拒绝', r.auction === true, JSON.stringify(r))
+  r = await call('/api/market/unlist', { id: SELLER, listing: LID })
+  check('有人出价之后卖家撤不了牌', r.bound === true, JSON.stringify(r))
+  const q = await call('/api/market/offers', { id: BUYER })
+  const my = (q.outbound as { id: string; price: number; ends: number | null }[]).find((o) => o.price === 1103)!
+  check('买家看到自己领先的一口，带着截止时间', !!my && typeof my.ends === 'number', JSON.stringify(q.outbound))
+  r = await call('/api/market/withdraw', { id: BUYER, offer: my.id })
+  check('竞拍的出价撤不回', r.binding === true, JSON.stringify(r))
+  check('金币还在托管里', await coinsOf(BUYER) === 5000 - 1103, String(await coinsOf(BUYER)))
+}
+
+// ---- the last minutes stretch --------------------------------------------
+{
+  await endsIn(LID, 3)
+  const before = new Date((await listingRow(LID)).ends!).getTime()
+  r = await call('/api/market/offer', { id: OTHER, listing: LID, price: 1200 })
+  check('最后几分钟里有人出价，出得上', r.ok === true, JSON.stringify(r))
+  const after = new Date((await listingRow(LID)).ends!).getTime()
+  const gained = (after - before) / 60000
+  check(`截止顺延到 ${SNIPE_MINUTES} 分钟后`, gained > SNIPE_MINUTES - 3.2 && gained < SNIPE_MINUTES - 2.8 && Number(r.ends) === after, `${gained.toFixed(2)} 分钟`)
+  await endsIn(LID, 60)
+  const far = new Date((await listingRow(LID)).ends!).getTime()
+  r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1300 })
+  check('离截止还远的出价不动时钟', r.ok === true && new Date((await listingRow(LID)).ends!).getTime() === far, JSON.stringify(r))
+}
+
+// ---- the hammer: time up, the top bid takes the card --------------------------
+{
+  await inbox(OTHER); await inbox(BUYER); await inbox(SELLER)
+  await endsIn(LID, -1)
+  const seen = await call('/api/market/browse', { id: OTHER })   // any read settles
+  check('到时之后货架上没有它了', !(seen.listings as { id: string }[]).some((l) => l.id === LID))
+  check('挂牌记为已卖出', (await listingRow(LID)).status === 'sold')
+  const bm = await inbox(BUYER)
+  const got = bm.find((m) => m.kind === 'bought')
+  check('最高价的人收到卡，强化等级一起带过来', got?.cardId === 'p:P1' && got.level === 3 && Number(got.body?.price) === 1300, JSON.stringify(got))
+  const sm2 = await inbox(SELLER)
+  check('卖家收到成交价', sm2.some((m) => m.kind === 'sold' && m.coins === 1300), JSON.stringify(sm2.map((m) => [m.kind, m.coins])))
+  const om = await inbox(OTHER)
+  check('结算时没人被退第二次钱', om.length === 0, JSON.stringify(om.map((m) => [m.kind, m.coins])))
+  check('路人的钱早在被压过时就退了，一分不少', await coinsOf(OTHER) === 5000, String(await coinsOf(OTHER)))
+  check('买家的钱正好少了成交价', await coinsOf(BUYER) === 5000 - 1300, String(await coinsOf(BUYER)))
+}
+
+// ---- 一口价 -----------------------------------------------------------------
+{
+  const S2 = 'VM-DDDD-DDDD-DDDD-DDDD-DDDD'
+  await account(S2, '卖二', 0, { 'p:P2': { id: 'p:P2', dupes: 0 } })
+  let x = await call('/api/market/list', { id: S2, cardId: 'p:P2', ask: 1000, buyout: 1100 })
+  check(`一口价低于起拍价的 ${BUYOUT_MIN} 倍，挂不了`, x.badBuyout === true && x.min === 1200, JSON.stringify(x))
+  x = await call('/api/market/list', { id: S2, cardId: 'p:P2', ask: 1000, buyout: 1500 })
+  check('一口价够高就挂得上', x.ok === true, JSON.stringify(x))
+  const l2 = String(x.id)
+  const row = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; buyout: number | null }[]
+  check('货架上写着一口价', row.find((l) => l.id === l2)!.buyout === 1500)
+  await inbox(BUYER)
+  const before = await coinsOf(BUYER)
+  x = await call('/api/market/offer', { id: BUYER, listing: l2, price: 2000 })
+  check('出到一口价以上就是一口价成交，只收一口价', x.ok === true && x.bought === true && x.price === 1500, JSON.stringify(x))
+  check('扣的是 1500 不是 2000', await coinsOf(BUYER) === before - 1500, String(await coinsOf(BUYER)))
+  check('挂牌立刻记为卖出', (await listingRow(l2)).status === 'sold')
+  const bm = await inbox(BUYER)
+  check('卡马上到买家信箱', bm.some((m) => m.kind === 'bought' && m.cardId === 'p:P2'), JSON.stringify(bm.map((m) => m.kind)))
+  const sm3 = await inbox(S2)
+  check('卖家马上收到 1500', sm3.some((m) => m.kind === 'sold' && m.coins === 1500), JSON.stringify(sm3.map((m) => [m.kind, m.coins])))
+  x = await call('/api/market/offer', { id: OTHER, listing: l2, price: 1500 })
+  check('成交之后再出价，牌已经不在了', x.gone === true, JSON.stringify(x))
+}
+
+// ---- 到时没人出价，卡回家 ------------------------------------------------------
 {
   const S3 = 'VM-EEEE-EEEE-EEEE-EEEE-EEEE'
-  await account(S3, '卖三', 0, { 'p:P3': { id: 'p:P3', dupes: 0 } })
-  const l3 = String((await call('/api/market/list', { id: S3, cardId: 'p:P3', ask: 1000 })).id)
-  await call('/api/market/offer', { id: BUYER, listing: l3, price: 1000 })
-  const q = await call('/api/market/offers', { id: S3 })
-  const oid = (q.inbound as { id: string }[])[0].id
-  const d = await call('/api/market/answer', { id: S3, offer: oid, accept: false })
-  check('可以拒绝报价', d.declined === true, JSON.stringify(d))
-  const st = await sql`select ignored, status from card_listings where id = ${l3}::bigint`
-  check('拒绝也是一种回复，不计入「没反馈」', st[0].ignored === 0 && st[0].status === 'open',
-    JSON.stringify(st[0]))
-  const rb = await inbox(BUYER)
-  check('被拒之后钱退回来', rb.some((m) => m.kind === 'offer_declined' && m.coins === 1000),
-    JSON.stringify(rb.map((m) => [m.kind, m.coins])))
+  await account(S3, '卖三', 0, { 'p:P3': { id: 'p:P3', dupes: 0, level: 2 } })
+  const l3 = String((await call('/api/market/list', { id: S3, cardId: 'p:P3', ask: 1000, level: 2 })).id)
+  await endsIn(l3, -1)
+  await call('/api/market/browse', { id: BUYER })
+  check('到时没人出价，挂牌结束', (await listingRow(l3)).status === 'expired')
+  const home = await inbox(S3)
+  check('卡原样退回卖家，等级也在', home.some((m) => m.kind === 'unsold' && m.cardId === 'p:P3' && m.level === 2), JSON.stringify(home))
+  const late = await call('/api/market/offer', { id: BUYER, listing: l3, price: 1000 })
+  check('过了时再出价，出不了', late.gone === true, JSON.stringify(late))
 }
 
-// ---- 自己撤回挂牌 --------------------------------------------------------
+// ---- 没人出价时卖家可以撤 ------------------------------------------------------
 {
   const S4 = 'VM-FFFF-FFFF-FFFF-FFFF-FFFF'
   await account(S4, '卖四', 0, { 'p:P4': { id: 'p:P4', dupes: 0, level: 5 } })
   const l4 = String((await call('/api/market/list', { id: S4, cardId: 'p:P4', ask: 2000, level: 5 })).id)
-  await call('/api/market/offer', { id: BUYER, listing: l4, price: 2000 })
-  await inbox(BUYER)
-  const u = await call('/api/market/unlist', { id: S4, listing: l4 })
-  check('可以自己撤回挂牌', u.ok === true && u.refunded === 1, JSON.stringify(u))
-  const home = await inbox(S4)
-  check('撤回后卡回来，等级也在',
-    home.some((m) => m.kind === 'listing_pulled' && m.cardId === 'p:P4' && m.level === 5),
-    JSON.stringify(home))
-  const rb = await inbox(BUYER)
-  check('挂在上面的报价，钱也退了', rb.some((m) => m.kind === 'offer_expired' && m.coins === 2000))
   const nope = await call('/api/market/unlist', { id: BUYER, listing: l4 })
   check('别人撤不了你的挂牌', nope.gone === true, JSON.stringify(nope))
-}
-
-// ---- 买家自己撤回报价 ----------------------------------------------------
-// 「如果卖家一直不同意报价钱就卡在那了」——三天的钟对一个不再上线的卖家太长。
-{
-  const S7 = 'VM-WWWW-WWWW-WWWW-WWWW-WWWW'
-  await account(S7, '卖七', 0, { 'p:P7': { id: 'p:P7', dupes: 0 } })
-  const l7 = String((await call('/api/market/list', { id: S7, cardId: 'p:P7', ask: 1000 })).id)
-  const coinsOf = async (id: string) => (await sql`select (state->>'coins')::int as coins
-    from card_accounts where id_hash = ${hashOf(id)}`)[0].coins as number
-  await inbox(BUYER)
-  const before = await coinsOf(BUYER)
-  await call('/api/market/offer', { id: BUYER, listing: l7, price: 1000 })
-  check('出价后金币先被托管', await coinsOf(BUYER) === before - 1000)
-  const q = await call('/api/market/offers', { id: BUYER })
-  const mine = (q.outbound as { id: string; price: number }[]).find((o) => o.price === 1000)!
-  const nope = await call('/api/market/withdraw', { id: OTHER, offer: mine.id })
-  check('别人撤不了你的报价', nope.gone === true, JSON.stringify(nope))
-  const w = await call('/api/market/withdraw', { id: BUYER, offer: mine.id })
-  check('买家可以自己撤回报价', w.ok === true && w.coins === 1000, JSON.stringify(w))
-  const again = await call('/api/market/withdraw', { id: BUYER, offer: mine.id })
-  check('同一个报价撤不了第二次', again.gone === true, JSON.stringify(again))
-  const rb = await inbox(BUYER)
-  check('撤回的金币回到信箱', rb.some((m) => m.kind === 'offer_withdrawn' && m.coins === 1000),
-    JSON.stringify(rb.map((m) => [m.kind, m.coins])))
-  check('领了之后金币到账', await coinsOf(BUYER) === before, `${await coinsOf(BUYER)} vs ${before}`)
-  const st = await sql`select ignored, status from card_listings where id = ${l7}::bigint`
-  check('挂牌还在，也不算卖家「没反馈」', st[0].status === 'open' && st[0].ignored === 0, JSON.stringify(st[0]))
-  const sq = await call('/api/market/offers', { id: S7 })
-  check('卖家那边这个报价消失了', !(sq.inbound as { id: string }[]).some((o) => o.id === mine.id))
-  const acc = await call('/api/market/answer', { id: S7, offer: mine.id, accept: true })
-  check('卖家再想接受也接受不了', acc.gone === true, JSON.stringify(acc))
-  const shelf = await call('/api/market/browse', { id: BUYER })
-  const row = (shelf.listings as { id: string; bid: boolean; offers: number }[]).find((l) => l.id === l7)!
-  check('货架上不再标「已出价」', row.bid === false && row.offers === 0, JSON.stringify(row))
-  const re = await call('/api/market/offer', { id: BUYER, listing: l7, price: 950 })
-  check('撤回之后可以再出一次', re.ok === true, JSON.stringify(re))
-  const bad = await call('/api/market/withdraw', { id: BUYER, offer: 'abc' })
-  check('乱写的报价编号回 400', bad.bad === true, JSON.stringify(bad))
+  const u = await call('/api/market/unlist', { id: S4, listing: l4 })
+  check('没人出价时可以自己撤回挂牌', u.ok === true && u.refunded === 0, JSON.stringify(u))
+  const home = await inbox(S4)
+  check('撤回后卡回来，等级也在', home.some((m) => m.kind === 'listing_pulled' && m.cardId === 'p:P4' && m.level === 5), JSON.stringify(home))
 }
 
 // ---- 没钱不能出价 --------------------------------------------------------
@@ -265,6 +264,78 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   const l5 = String((await call('/api/market/list', { id: S5, cardId: 'p:P5', ask: 100000 })).id)
   const poor = await call('/api/market/offer', { id: BUYER, listing: l5, price: 100000 })
   check('金币不够就出不了价', poor.broke === true, JSON.stringify(poor))
+  const bad = await call('/api/market/withdraw', { id: BUYER, offer: 'abc' })
+  check('乱写的报价编号回 400', bad.bad === true, JSON.stringify(bad))
+}
+
+// ---- 改版前挂出的牌，按旧规则走完 -----------------------------------------------
+{
+  // an old listing has no `ends`: offers within ±10%, the seller answers,
+  // three days before an unanswered offer goes home, three of those and the
+  // listing comes down. Planted straight into the table, as the old code left it.
+  const S6 = 'VM-PPPP-PPPP-PPPP-PPPP-PPPP'
+  await account(S6, '旧牌', 0, {})
+  const old = String((await sql`
+    insert into card_listings (seller_h, card_id, level, ask) values (${hashOf(S6)}, 'p:P6', 1, 1000) returning id`)[0].id)
+  const view = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; ends: number | null; min: number }[]
+  check('旧牌在货架上没有截止时间，最低价就是标价', view.find((l) => l.id === old)!.ends === null && view.find((l) => l.id === old)!.min === 1000)
+  let x = await call('/api/market/offer', { id: BUYER, listing: old, price: 800 })
+  check('旧牌：低于 −10% 的报价被拒', x.range === true && x.lo === 900, JSON.stringify(x))
+  x = await call('/api/market/offer', { id: BUYER, listing: old, price: 1200 })
+  check('旧牌：高于 +10% 也被拒', x.range === true && x.hi === 1100, JSON.stringify(x))
+  x = await call('/api/market/offer', { id: BUYER, listing: old, price: 900 })
+  check('旧牌：−10% 可以', x.ok === true, JSON.stringify(x))
+  x = await call('/api/market/offer', { id: BUYER, listing: old, price: 950 })
+  check('旧牌：同一个人不能挂两个报价', x.already === true, JSON.stringify(x))
+  x = await call('/api/market/offer', { id: OTHER, listing: old, price: 1050 })
+  check('旧牌：第二个人也能出价，两个报价并存', x.ok === true, JSON.stringify(x))
+  const q = await call('/api/market/offers', { id: BUYER })
+  const mine = (q.outbound as { id: string; price: number; ends: number | null }[]).find((o) => o.price === 900)!
+  check('旧牌的报价没有截止时间', mine.ends === null, JSON.stringify(mine))
+  x = await call('/api/market/withdraw', { id: BUYER, offer: mine.id })
+  check('旧牌的报价买家可以撤回', x.ok === true && x.coins === 900, JSON.stringify(x))
+  await inbox(BUYER)
+  const inb = (await call('/api/market/offers', { id: S6 })).inbound as { id: string; price: number }[]
+  check('卖家看到剩下的那个报价', inb.length === 1 && inb[0].price === 1050, JSON.stringify(inb))
+  x = await call('/api/market/answer', { id: S6, offer: inb[0].id, accept: true })
+  check('旧牌：卖家可以接受', x.ok === true && x.price === 1050, JSON.stringify(x))
+  const om = await inbox(OTHER)
+  check('旧牌成交后买家收到卡', om.some((m) => m.kind === 'bought' && m.cardId === 'p:P6' && m.level === 1), JSON.stringify(om.map((m) => m.kind)))
+  const s6 = await inbox(S6)
+  check('旧牌成交后卖家收到钱', s6.some((m) => m.kind === 'sold' && m.coins === 1050))
+
+  // the three-day clock only ticks for old listings
+  const old2 = String((await sql`
+    insert into card_listings (seller_h, card_id, level, ask) values (${hashOf(S6)}, 'p:P7', 0, 1000) returning id`)[0].id)
+  await call('/api/market/offer', { id: BUYER, listing: old2, price: 1000 })
+  await inbox(BUYER)
+  await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1}) where status = 'open'`
+  await call('/api/market/browse', { id: BUYER })
+  const back = await inbox(BUYER)
+  check(`旧牌：${OFFER_DAYS} 天没人理，报价退回`, back.some((m) => m.kind === 'offer_expired' && m.coins === 1000), JSON.stringify(back.map((m) => [m.kind, m.coins])))
+  check('旧牌：算卖家一次「没反馈」', (await listingRow(old2)).ignored === 1)
+  for (let i = 0; i < IGNORE_LIMIT; i++) {
+    await call('/api/market/offer', { id: BUYER, listing: old2, price: 1000 })
+    await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1}) where status = 'open'`
+    await call('/api/market/browse', { id: BUYER })
+  }
+  check(`旧牌：连续 ${IGNORE_LIMIT} 次没反馈自动下架`, (await listingRow(old2)).status === 'expired')
+  check('旧牌下架，卡回卖家', (await inbox(S6)).some((m) => m.kind === 'listing_expired' && m.cardId === 'p:P7'))
+  await inbox(BUYER)
+
+  // and a live auction's bid does NOT age out
+  const S7 = 'VM-WWWW-WWWW-WWWW-WWWW-WWWW'
+  await account(S7, '卖七', 0, { 'p:P8': { id: 'p:P8', dupes: 0 } })
+  const l7 = String((await call('/api/market/list', { id: S7, cardId: 'p:P8', ask: 1000 })).id)
+  await call('/api/market/offer', { id: BUYER, listing: l7, price: 1000 })
+  await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1}) where status = 'open'`
+  await call('/api/market/browse', { id: BUYER })
+  const still = await sql`select status from card_offers where listing = ${l7}::bigint`
+  check('竞拍的出价不会因为「三天」而过期', still[0].status === 'open' && (await listingRow(l7)).ignored === 0, JSON.stringify(still))
+  await endsIn(l7, -1)
+  await call('/api/market/browse', { id: BUYER })
+  check('它只在到时结算', (await listingRow(l7)).status === 'sold')
+  await inbox(BUYER); await inbox(S7)
 }
 
 // ---- 挂牌价不能低于分解价 ------------------------------------------------
@@ -313,8 +384,8 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   check('而且告诉他还差多少',
     (shelfNow.gate as { need: number; have: number })?.have === 11, JSON.stringify(shelfNow.gate))
 
-  const anyOpen = (shelfNow.listings as { id: string }[])[0]
-  x = await call('/api/market/offer', { id: NEW, listing: anyOpen.id, price: 60 })
+  const anyOpen = (shelfNow.listings as { id: string; ask: number }[])[0]
+  x = await call('/api/market/offer', { id: NEW, listing: anyOpen.id, price: anyOpen.ask })
   check('新号也出不了价', x.newbie === true, JSON.stringify(x))
 
   // open enough packs and the door opens
@@ -326,50 +397,14 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
   check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))
 }
 
-// ---- 下架那一刻还挂着的报价，钱也要退 ----------------------------------------
-{
-  // Three ignored offers take a listing down. If a FOURTH, fresh offer is
-  // sitting on it at that moment — somebody bid the day before the shelf gave
-  // up — the listing's death used to mark that offer expired without mailing
-  // the coins home. 「出价的金币被卡了」, from the group, 2026-09-03.
-  const S6 = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
-  await account(S6, '卖六', 0, { 'p:P6': { id: 'p:P6', dupes: 0 } })
-  const l6 = String((await call('/api/market/list', { id: S6, cardId: 'p:P6', ask: 1000 })).id)
-  const before = (await sql`select (state->>'coins')::int as coins from card_accounts
-    where id_hash = ${hashOf(OTHER)}`)[0].coins as number
-  for (let i = 0; i < IGNORE_LIMIT; i++) {
-    await call('/api/market/offer', { id: BUYER, listing: l6, price: 1000 })
-    if (i === IGNORE_LIMIT - 1) {
-      // the fresh bid, made before the last ignored one is swept
-      const fresh = await call('/api/market/offer', { id: OTHER, listing: l6, price: 950 })
-      check('路人的新报价挂上去了', fresh.ok === true, JSON.stringify(fresh))
-    }
-    await sql`update card_offers set made = now() - make_interval(days => ${OFFER_DAYS + 1})
-              where status = 'open' and buyer_h = ${hashOf(BUYER)}`
-    await call('/api/market/browse', { id: BUYER })
-  }
-  const dead = await sql`select status from card_listings where id = ${l6}::bigint`
-  check('第三次没反馈，挂牌下架了', dead[0].status === 'expired', dead[0].status)
-  const left = await sql`select status from card_offers
-    where listing = ${l6}::bigint and buyer_h = ${hashOf(OTHER)}`
-  check('路人的报价随之结束', left[0]?.status === 'expired', JSON.stringify(left))
-  const back = await inbox(OTHER)
-  check('下架时还挂着的报价，钱退回了路人',
-    back.some((m) => m.kind === 'offer_expired' && m.coins === 950),
-    JSON.stringify(back.map((m) => [m.kind, m.coins])))
-  const after = (await sql`select (state->>'coins')::int as coins from card_accounts
-    where id_hash = ${hashOf(OTHER)}`)[0].coins as number
-  check('领完信箱，路人的金币一分不少', after === before, `${before} -> ${after}`)
-}
-
 // ---- 自己挂的牌永远看得见，哪怕货架上后来又多了几百张 ------------------------
 {
   // 「我挂了一张金卡消失了，也没有别人报价」(2026-09-03)：货架只取最新的
   // 120 张，「我挂的牌」又是从同一份货架里筛出来的，所以别人一多挂，自己的
   // 老牌就从自己页面上消失了，也从所有买家眼前消失了——卡还在托管里。
-  const S7 = 'VM-KKKK-KKKK-KKKK-KKKK-KKKK'
-  await account(S7, '老牌', 0, { [GOLD]: { id: GOLD, dupes: 0 } })
-  const old = String((await call('/api/market/list', { id: S7, cardId: GOLD, ask: 2000 })).id)
+  const S8 = 'VM-KKKK-KKKK-KKKK-KKKK-KKKK'
+  await account(S8, '老牌', 0, { [GOLD]: { id: GOLD, dupes: 0 } })
+  const old = String((await call('/api/market/list', { id: S8, cardId: GOLD, ask: 2000 })).id)
   // one listing per card id and MAX_LISTINGS per seller, so the flood is
   // many sellers with a few distinct cards each
   const used = new Set([GOLD, BRONZE, MYTHIC])
@@ -385,38 +420,37 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
     }
   }
   check(`货架被灌了 ${listed} 张新牌`, listed === stock.length, `${listed}/${stock.length}`)
-  const seen = await call('/api/market/browse', { id: S7 })
-  const rows = seen.listings as { id: string; mine: boolean }[]
+  const seen = await call('/api/market/browse', { id: S8 })
+  const rows = seen.listings as { id: string; mine: boolean; ends: number | null }[]
   check('自己那张老牌还在自己眼前，标着 mine', rows.some((l) => l.id === old && l.mine), `${rows.length} 张里没有`)
-  check(`别人的只取最新 ${SHELF} 张`, rows.filter((l) => !l.mine).length === SHELF, String(rows.filter((l) => !l.mine).length))
+  check(`别人的只取 ${SHELF} 张`, rows.filter((l) => !l.mine).length === SHELF, String(rows.filter((l) => !l.mine).length))
+  const others = rows.filter((l) => !l.mine && l.ends != null)
+  check('货架按快到期的排在前面', others.every((l, i) => i === 0 || (others[i - 1].ends ?? 0) <= (l.ends ?? 0)))
   check('回复里说了货架上一共有多少张', Number(seen.total) >= stock.length + 1, String(seen.total))
-  const other = await call('/api/market/browse', { id: BUYER })
-  check('买家看不到被挤出窗口的老牌（这是下一步要做的分页，先把事实写下来）',
-    !(other.listings as { id: string }[]).some((l) => l.id === old))
 }
 
 // ---- 一个人同时最多挂三张 (2026-09-05) ------------------------------------
 {
   // the owner's rule: three at once; a sale or a withdrawal frees the seat.
   // Counted at the moment of listing, so what was up before stays up.
-  const S8 = 'VM-QQQQ-QQQQ-QQQQ-QQQQ-QQQQ'
+  const S9 = 'VM-QQQQ-QQQQ-QQQQ-QQQQ-QQQQ'
   const four = ALL_CARDS.filter((c) => c.kind === 'player' && /^p:P\d{3}$/.test(c.id) && ![GOLD, BRONZE, MYTHIC].includes(c.id)).slice(-4)
-  await account(S8, '挂三张', 0, Object.fromEntries(four.map((c) => [c.id, { id: c.id, dupes: 0 }])))
+  await account(S9, '挂三张', 0, Object.fromEntries(four.map((c) => [c.id, { id: c.id, dupes: 0 }])))
   check('上限是三张', MAX_LISTINGS === 3, String(MAX_LISTINGS))
   const ids: string[] = []
   for (const c of four.slice(0, 3)) {
-    const r = await call('/api/market/list', { id: S8, cardId: c.id, ask: 1000 })
+    const r = await call('/api/market/list', { id: S9, cardId: c.id, ask: 1000 })
     check(`第 ${ids.length + 1} 张挂得上`, r.ok === true, JSON.stringify(r))
     ids.push(String(r.id))
   }
-  let r = await call('/api/market/list', { id: S8, cardId: four[3].id, ask: 1000 })
+  let r = await call('/api/market/list', { id: S9, cardId: four[3].id, ask: 1000 })
   check('第 4 张被拒，回复里写着上限', r.full === true && Number(r.max) === MAX_LISTINGS, JSON.stringify(r))
-  const held = (await sql`select state->'cards' as cards from card_accounts where id_hash = ${hashOf(S8)}` as unknown as { cards: Record<string, unknown> }[])[0].cards
+  const held = (await sql`select state->'cards' as cards from card_accounts where id_hash = ${hashOf(S9)}` as unknown as { cards: Record<string, unknown> }[])[0].cards
   check('被拒的那张还在账号里', !!held[four[3].id])
-  await call('/api/market/unlist', { id: S8, listing: ids[0] })
-  r = await call('/api/market/list', { id: S8, cardId: four[3].id, ask: 1000 })
+  await call('/api/market/unlist', { id: S9, listing: ids[0] })
+  r = await call('/api/market/list', { id: S9, cardId: four[3].id, ask: 1000 })
   check('撤回一张之后，第 4 张挂得上', r.ok === true, JSON.stringify(r))
-  const open = (await sql`select count(*)::int as n from card_listings where seller_h = ${hashOf(S8)} and status = 'open'`)[0].n
+  const open = (await sql`select count(*)::int as n from card_listings where seller_h = ${hashOf(S9)} and status = 'open'`)[0].n
   check('此刻正好三张在架上', open === 3, String(open))
 }
 
@@ -428,24 +462,30 @@ check('卖掉之后就从货架上消失了', (after.listings as unknown[]).leng
     select count(*)::int as n from card_offers where status = 'open'`
   const stranded = await sql`
     select count(*)::int as n from card_mail where taken is null`
-  console.log(`\n还在货架上的挂牌 ${open[0].n} 个，托管中的报价 ${escrowed[0].n} 个，`
+  console.log(`\n还在货架上的挂牌 ${open[0].n} 个，托管中的出价 ${escrowed[0].n} 个，`
     + `信箱里等着领的 ${stranded[0].n} 条`)
   // every closed listing and every settled offer must have produced mail
   const closedNoMail = await sql`
     select l.id from card_listings l
     where l.status in ('sold', 'pulled', 'expired')
       and not exists (select 1 from card_mail m
-        where m.kind in ('sold', 'listing_pulled', 'listing_expired')
+        where m.kind in ('sold', 'listing_pulled', 'listing_expired', 'unsold')
           and m.to_h = l.seller_h)`
   check('每一个已结束的挂牌都给卖家留了信', closedNoMail.length === 0,
     JSON.stringify(closedNoMail.map((x: { id: string }) => String(x.id))))
   const lostOffers = await sql`
     select o.id from card_offers o
-    where o.status in ('expired', 'declined', 'withdrawn')
+    where o.status in ('expired', 'declined', 'withdrawn', 'outbid')
       and not exists (select 1 from card_mail m
-        where m.to_h = o.buyer_h and m.coins = o.price)`
-  check('每一笔失败的报价都把钱还了回去', lostOffers.length === 0,
+        where m.to_h = o.buyer_h and m.coins = o.price
+          and m.kind in ('offer_expired', 'offer_declined', 'offer_withdrawn', 'outbid', 'overbid'))`
+  check('每一笔没成的出价都把钱还了回去', lostOffers.length === 0,
     JSON.stringify(lostOffers.map((x: { id: string }) => String(x.id))))
+  const wonNoCard = await sql`
+    select o.id from card_offers o join card_listings l on l.id = o.listing
+    where o.status = 'accepted'
+      and not exists (select 1 from card_mail m where m.to_h = o.buyer_h and m.kind = 'bought' and m.card_id = l.card_id)`
+  check('每一笔成交都把卡寄给了买家', wonNoCard.length === 0, JSON.stringify(wonNoCard.map((x: { id: string }) => String(x.id))))
 }
 
 console.log(bad ? `\n${bad} FAILED` : '\nall good')

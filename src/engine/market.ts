@@ -37,12 +37,24 @@ export interface Listing {
   id: string
   cardId: string
   level: number
+  /** the starting price */
   ask: number
   seller: string
   mine: boolean
+  /** bids still standing — one, on an auction */
   offers: number
+  /** the standing top bid */
   best: number | null
+  /** I have a bid standing on it (on an auction: I am leading) */
   bid: boolean
+  /** when the auction closes, ms since the epoch; null for a listing from before the auctions */
+  ends: number | null
+  /** the price that ends it at once, if the seller set one */
+  buyout: number | null
+  /** everyone who has bid on it at all, beaten ones included */
+  bids: number
+  /** the least the next bid may be */
+  min: number
 }
 
 export interface Offer {
@@ -54,13 +66,19 @@ export interface Offer {
   who: string
   madeAt: number
   ignored?: number
+  /** the auction's close, or null for an old-style listing */
+  ends?: number | null
+  buyout?: number | null
 }
 
 /** `gate` is null once the account has played enough to trade — see TRADE_PULLS. */
 export interface Gate { need: number; have: number }
 
 export const browseMarket = () =>
-  post<{ ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null; total?: number; shelf?: number }>('browse', {})
+  post<{
+    ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null; total?: number; shelf?: number
+    hours?: number; step?: number; snipe?: number; buyoutMin?: number; now?: number
+  }>('browse', {})
 
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})
@@ -75,11 +93,20 @@ export interface WithState { ok: boolean; state?: GachaState; rev?: number; [k: 
  * the game itself would pay for the card — nobody sane sells below salvage, so
  * the floor costs a real seller nothing and closes the alt-account funnel.
  */
-export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string) =>
-  post<WithState>('list', { cardId, ask, level, rarity })
+export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string, buyout: number | null = null) =>
+  post<WithState>('list', { cardId, ask, level, rarity, buyout })
 
 /** How many listings one seller may have open at once — mirrored from the server. */
 export const MAX_LISTINGS = 3
+/** The auction, mirrored from the server: a day on the clock, five percent a step,
+ *  ten minutes' grace at the end, and a buy-now price at least a fifth over the start. */
+export const AUCTION_HOURS = 24
+export const BID_STEP = 0.05
+export const SNIPE_MINUTES = 10
+export const BUYOUT_MIN = 1.2
+/** The least the next bid may be — the start until somebody bids, a step over the top after. */
+export const minBidOf = (ask: number, top: number | null): number =>
+  (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
 
 /** The least a card may be listed for — SALVAGE, mirrored from the server. */
 export const askFloorOf = (rarity: string): number =>
