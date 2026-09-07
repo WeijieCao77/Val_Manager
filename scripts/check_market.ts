@@ -188,6 +188,18 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   const far = new Date((await listingRow(LID)).ends!).getTime()
   r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1300 })
   check('离截止还远的出价不动时钟', r.ok === true && new Date((await listingRow(LID)).ends!).getTime() === far, JSON.stringify(r))
+  // the stretching has a ceiling: an hour past the day, and no further
+  await sql`update card_listings set created = now() - make_interval(hours => ${AUCTION_HOURS}, mins => 55) where id = ${LID}::bigint`
+  await endsIn(LID, 3)
+  r = await call('/api/market/offer', { id: OTHER, listing: LID, price: 1400 })
+  const capped = (new Date((await listingRow(LID)).ends!).getTime() - Date.now()) / 60000
+  check('顺延到头只到「一天加一小时」', r.ok === true && capped > 4.5 && capped < 5.5, `${capped.toFixed(2)} 分钟`)
+  await sql`update card_listings set created = now() - make_interval(hours => ${AUCTION_HOURS}, mins => 70) where id = ${LID}::bigint`
+  await endsIn(LID, 3)
+  const fixed = new Date((await listingRow(LID)).ends!).getTime()
+  r = await call('/api/market/offer', { id: BUYER, listing: LID, price: 1500 })
+  check('过了上限，再晚的出价也不再顺延', r.ok === true && new Date((await listingRow(LID)).ends!).getTime() === fixed, JSON.stringify(r))
+  await sql`update card_listings set created = now() where id = ${LID}::bigint`
 }
 
 // ---- the hammer: time up, the top bid takes the card --------------------------
@@ -199,13 +211,13 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('挂牌记为已卖出', (await listingRow(LID)).status === 'sold')
   const bm = await inbox(BUYER)
   const got = bm.find((m) => m.kind === 'bought')
-  check('最高价的人收到卡，强化等级一起带过来', got?.cardId === 'p:P1' && got.level === 3 && Number(got.body?.price) === 1300, JSON.stringify(got))
+  check('最高价的人收到卡，强化等级一起带过来', got?.cardId === 'p:P1' && got.level === 3 && Number(got.body?.price) === 1500, JSON.stringify(got))
   const sm2 = await inbox(SELLER)
-  check('卖家收到成交价', sm2.some((m) => m.kind === 'sold' && m.coins === 1300), JSON.stringify(sm2.map((m) => [m.kind, m.coins])))
+  check('卖家收到成交价', sm2.some((m) => m.kind === 'sold' && m.coins === 1500), JSON.stringify(sm2.map((m) => [m.kind, m.coins])))
   const om = await inbox(OTHER)
   check('结算时没人被退第二次钱', om.length === 0, JSON.stringify(om.map((m) => [m.kind, m.coins])))
   check('路人的钱早在被压过时就退了，一分不少', await coinsOf(OTHER) === 5000, String(await coinsOf(OTHER)))
-  check('买家的钱正好少了成交价', await coinsOf(BUYER) === 5000 - 1300, String(await coinsOf(BUYER)))
+  check('买家的钱正好少了成交价', await coinsOf(BUYER) === 5000 - 1500, String(await coinsOf(BUYER)))
 }
 
 // ---- 一口价 -----------------------------------------------------------------

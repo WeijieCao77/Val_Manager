@@ -1,4 +1,5 @@
 /**
+import { readFileSync } from 'node:fs'
  * The dashboard's browser script actually parses.
  *
  * It lives inside a template literal in dashboard.js, which means
@@ -53,6 +54,19 @@ if (m) {
   for (const key of ['home', 'careers', 'unlocks', 'accounts', 'funnel', 'depth']) {
     check(`面板读了 .${key}`, new RegExp(`\\.${key}\\b`).test(src))
   }
+}
+
+// The page is a template literal on the server, and its <script> runs in a
+// browser that has none of the server's imports: a bare STAMINA_POINT_SEC in
+// the client code was 「读不到数据：STAMINA_POINT_SEC is not defined」 on the
+// live admin page (2026-09-07). Every name imported at the top of
+// dashboard.js must be interpolated, never written into the script as is.
+{
+  const src = readFileSync(new URL('../dashboard.js', import.meta.url), 'utf8')
+  const imported = [...src.matchAll(/^import \{([^}]+)\} from/gm)].flatMap((x) => x[1].split(',').map((n) => n.trim().split(/\s+as\s+/).pop()!)).filter(Boolean)
+  const script = m ? m[1] : ''
+  const leaked = imported.filter((name) => new RegExp(`\\b${name}\\b`).test(script))
+  check('浏览器脚本里没有裸露的服务端常量', leaked.length === 0, leaked.join(', ') || `检查了 ${imported.length} 个名字`)
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

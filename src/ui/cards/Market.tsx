@@ -41,14 +41,21 @@ const nameOf = (id: string) => {
   return c ? (isPlayerCard(c) ? c.ign : c.name) : id
 }
 
-/** How long an auction has left, in words short enough for a 122px tile. */
-const left = (ends: number | null | undefined, now: number): string => {
+/**
+ * How long an auction has left. Never rounded up: 23 hours 40 minutes read
+ * as 「剩 24 小时」 for the first half hour of every listing, which the group
+ * took for the clock resetting on every bid. The tile (122px) gets whole
+ * hours, the wider panels the minutes too.
+ */
+const left = (ends: number | null | undefined, now: number, exact = false): string => {
   if (ends == null) return ''
   const ms = ends - now
   if (ms <= 0) return '结算中'
   const m = Math.ceil(ms / 60000)
   if (m < 60) return `剩 ${m} 分钟`
-  return `剩 ${Math.round(m / 60)} 小时`
+  const h = Math.floor(m / 60)
+  const rest = m % 60
+  return exact && rest ? `剩 ${h} 小时 ${rest} 分` : `剩 ${h} 小时`
 }
 const nowrap = { whiteSpace: 'nowrap' } as const
 
@@ -334,8 +341,8 @@ export default function Market() {
                   {l.ends == null
                     ? (l.offers ? `${l.offers} 个报价，最高 ${money(l.best ?? 0)}` : '还没有人出价（旧规则挂牌）')
                     : l.best != null
-                      ? <>当前最高 <b className="pos">{money(l.best)}</b>{l.bids > 1 ? `，${l.bids} 人出过价` : ''} · {left(l.ends, now)}</>
-                      : <>还没有人出价 · {left(l.ends, now)}</>}
+                      ? <>当前最高 <b className="pos">{money(l.best)}</b>{l.bids > 1 ? `，${l.bids} 人出过价` : ''} · {left(l.ends, now, true)}</>
+                      : <>还没有人出价 · {left(l.ends, now, true)}</>}
                 </div>
               </div>
               <button
@@ -358,7 +365,7 @@ export default function Market() {
                 <b>{nameOf(o.cardId)}</b>
                 <span className="tiny faint"> · 卖家 {o.who} · 起拍 {money(o.ask)}</span>
                 {o.ends != null && (
-                  <div className="tiny"><span className="pos">领先</span> · {left(o.ends, now)}</div>
+                  <div className="tiny"><span className="pos">领先</span> · {left(o.ends, now, true)}</div>
                 )}
               </div>
               <span className="mono">{money(o.price)}</span>

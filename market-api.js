@@ -42,6 +42,8 @@ export const AUCTION_HOURS = 24
 export const BID_STEP = 0.05
 /** A bid this close to the end pushes the end back by this much. */
 export const SNIPE_MINUTES = 10
+/** …but the stretching stops once the auction has run this much past its day: a card cannot be bid on forever. */
+export const SNIPE_CAP_MINUTES = 60
 /** A buy-now price, if the seller sets one, is at least this much of the start. */
 export const BUYOUT_MIN = 1.2
 /** The least the next bid may be: the start until somebody bids, a step over the top after. */
@@ -610,11 +612,16 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
           const sold = await settle(db, l, { id: ins[0].id, buyer_h: me, price: bid })
           return sold ? { ok: true, bought: true, price: bid, state: stored(g), rev: w[0].rev } : { gone: true }
         }
-        // a bid in the last minutes gives everyone a few more
+        // a bid in the last minutes gives everyone a few more — up to an hour
+        // past the day in all, so two people cannot keep a card on the shelf
+        // by trading bids every nine minutes
         const stretched = await db`
-          update card_listings set ends = now() + make_interval(mins => ${SNIPE_MINUTES})
+          update card_listings set ends = least(
+              now() + make_interval(mins => ${SNIPE_MINUTES}),
+              created + make_interval(hours => ${AUCTION_HOURS}, mins => ${SNIPE_CAP_MINUTES}))
           where id = ${l.id} and status = 'open'
             and ends < now() + make_interval(mins => ${SNIPE_MINUTES})
+            and ends < created + make_interval(hours => ${AUCTION_HOURS}, mins => ${SNIPE_CAP_MINUTES})
           returning ends`
         const ends = stretched.length ? endsAt(stretched[0]) : endsAt(l)
         // the seller hears about the first bid; the rest is on the shelf
