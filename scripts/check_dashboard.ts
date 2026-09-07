@@ -1,5 +1,4 @@
 /**
-import { readFileSync } from 'node:fs'
  * The dashboard's browser script actually parses.
  *
  * It lives inside a template literal in dashboard.js, which means
@@ -15,6 +14,7 @@ import { readFileSync } from 'node:fs'
  *
  *     npx tsx scripts/check_dashboard.ts
  */
+import { readFileSync } from 'node:fs'
 import { dashboardHtml } from '../dashboard.js'
 
 let bad = 0
