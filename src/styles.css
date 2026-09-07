@@ -2902,6 +2902,10 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
   display: flex; align-items: center; gap: 6px; padding: 3px 8px; margin-bottom: 3px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); font-size: var(--t-small);
 }
+/* a pot entry that is ours to pick: lit like a control, not a label */
+.draw-ball.pickable { border-color: var(--accent); }
+.draw-ball.pickable:hover { background: var(--panel-3); }
+
 .draw-ball.out { opacity: .38; text-decoration: line-through; }
 .draw-ball.me { border-color: var(--accent); }
 .draw-steps { max-height: 360px; overflow-y: auto; padding-right: 4px; }

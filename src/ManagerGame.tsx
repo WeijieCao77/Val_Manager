@@ -467,8 +467,10 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
         })()}
         {(() => {
           // the poster for a booked international: once per event, after any
-          // farewell, never over a match, a verdict or the tour
-          if (live || game.gameOver || game.midReview || tour) return null
+          // farewell, never over a match, a verdict, the tour or a draw
+          // ceremony — it landed on top of the Masters pick, which then
+          // read as a screen that did not respond (2026-09-07)
+          if (live || game.gameOver || game.midReview || tour || drawId) return null
           if ((game.retireFeed ?? []).some((n) => !n.seen && (n.clubId === game.myTeam || n.star))) return null
           const q = qualifiedEvent(game)
           if (!q) return null

@@ -71,16 +71,38 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
         {ev.rule}
         <span className="tiny faint"> · {fmtDay(ev.day, ev.year)}{ev.status === 'complete' ? ' · 已完成' : ''}</span>
       </p>
+      {/* The pick is the one thing on this screen that is ours to do, so it
+          comes first: on a phone it used to sit below the pots and the order
+          list, and the four qualifiers in the pot — display only — were
+          what got tapped (「点下面那四个队伍没反应」, 2026-09-07). The pot
+          entries take the pick too now, while it is ours. */}
+      {myTurn && <Choice ev={ev} comp={comp} onChoose={choose} onDelegate={delegate} />}
       <div className="draw-grid">
         <div className="draw-pots">
           {ev.pots.map((pot, pi) => (
             <div key={pi} className="draw-pot">
-              <div className="tiny muted" style={{ marginBottom: 4 }}>{pot.name}</div>
-              {pot.teams.map((t) => (
-                <div key={t} className={`draw-ball${revealed.has(t) ? ' out' : ''}${t === game.myTeam ? ' me' : ''}`}>
-                  <Crest id={t} size={14} /><span className="nm">{tagOf(t)}</span>
-                </div>
-              ))}
+              <div className="tiny muted" style={{ marginBottom: 4 }}>
+                {pot.name}
+                {myTurn && pot.teams.some((t) => (ev.pickPool ?? []).includes(t)) && <span className="faint"> · 点一队选它</span>}
+              </div>
+              {pot.teams.map((t) => {
+                const pickable = myTurn && (ev.pickPool ?? []).includes(t)
+                return (
+                  <div
+                    key={t}
+                    className={`draw-ball${revealed.has(t) ? ' out' : ''}${t === game.myTeam ? ' me' : ''}${pickable ? ' pickable' : ''}`}
+                    role={pickable ? 'button' : undefined}
+                    tabIndex={pickable ? 0 : undefined}
+                    title={pickable ? `选 ${tagOf(t)} 做八强对手` : undefined}
+                    onClick={pickable ? () => choose(t) : undefined}
+                    onKeyDown={pickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(t) } } : undefined}
+                    style={pickable ? { cursor: 'pointer' } : undefined}
+                  >
+                    <Crest id={t} size={14} /><span className="nm">{tagOf(t)}</span>
+                    {pickable && <span className="tiny faint" style={{ marginLeft: 'auto' }}>选它 ›</span>}
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>
@@ -101,7 +123,6 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
           <Board ev={ev} comp={comp} revealed={revealed} />
         </div>
       </div>
-      {myTurn && <Choice ev={ev} comp={comp} onChoose={choose} onDelegate={delegate} />}
       <div className="row wrap" style={{ gap: 8, marginTop: 12 }}>
         {!allOut && <button className="primary" onClick={next}>抽下一签</button>}
         {!ev.consumed && !myTurn && <button onClick={all}>快进跳过</button>}
@@ -203,11 +224,16 @@ function Choice({ ev, comp, onChoose, onDelegate }: {
     && ((f.teamA === game.myTeam && f.teamB === id) || (f.teamB === game.myTeam && f.teamA === id)))
   return (
     <div className="draw-choice">
-      <div className="nav-group" style={{ padding: '10px 0 6px' }}>轮到我们选八强对手——选定即锁定，不能反悔</div>
+      <div className="nav-group" style={{ padding: '10px 0 6px' }}>轮到我们选八强对手——点一行选定，不能反悔</div>
+      {/* The 选 button used to be the seventh column. On a phone the table
+          scrolls sideways and that column was off the screen, so the four
+          rows read as a list that did nothing when tapped — 「点下面那四个
+          队伍没反应」. The row itself is the control now, the button sits
+          beside the name, and the columns a phone cannot fit are hidden. */}
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>队伍</th><th>赛区</th><th className="num">评分</th><th className="num">瑞士轮</th><th className="num">小局</th><th>交手</th><th /></tr>
+            <tr><th>队伍</th><th className="hide-m">赛区</th><th className="num">评分</th><th className="num">瑞士轮</th><th className="num hide-m">小局</th><th className="hide-m">交手</th></tr>
           </thead>
           <tbody>
             {pool.map((id) => {
@@ -217,14 +243,18 @@ function Choice({ ev, comp, onChoose, onDelegate }: {
               const h = met(id)
               const won = h.filter((f) => (f.result!.mapsWonA > f.result!.mapsWonB) === (f.teamA === game.myTeam)).length
               return (
-                <tr key={id}>
-                  <td><span className="club"><Crest id={id} /><span>{t?.name}</span></span></td>
-                  <td className="small muted">{t ? REGION_CN[t.region] : ''}</td>
+                <tr key={id} className="clickable" onClick={() => onChoose(id)} title={`选 ${t?.tag} 做八强对手`}>
+                  <td>
+                    <span className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button className="sm primary" onClick={(e) => { e.stopPropagation(); onChoose(id) }}>选 {t?.tag}</button>
+                      <span className="club"><Crest id={id} /><span>{t?.name}</span></span>
+                    </span>
+                  </td>
+                  <td className="small muted hide-m">{t ? REGION_CN[t.region] : ''}</td>
                   <td className="num mono">{t?.rating}</td>
                   <td className="num mono">{r.w}-{r.l}</td>
-                  <td className="num mono">{row ? `${row.mapW}-${row.mapL}` : '—'}</td>
-                  <td className="small muted">{h.length ? `${won} 胜 ${h.length - won} 负` : '未交手'}</td>
-                  <td><button className="sm primary" onClick={() => onChoose(id)}>选 {t?.tag}</button></td>
+                  <td className="num mono hide-m">{row ? `${row.mapW}-${row.mapL}` : '—'}</td>
+                  <td className="small muted hide-m">{h.length ? `${won} 胜 ${h.length - won} 负` : '未交手'}</td>
                 </tr>
               )
             })}
