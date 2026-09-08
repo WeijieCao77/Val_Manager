@@ -379,15 +379,22 @@ for (const a of RUN_ACHIEVEMENTS) {
     total.seasons += r.seasons
     total.clubs = [...new Set([...total.clubs, ...r.clubs])]
   }
-  // what many such careers would add up to, and every club the world has
+  // what many such careers would add up to, and every club the world has.
+  // International titles come from the same harvest the endings are built
+  // from — the Masters and Champions honour strings the engine was seen to
+  // write — not only from the handful of careers sampled here: six careers
+  // can all miss an international (2026-09-08, one player's IGL flag moved
+  // and every sampled career came out without one), and that is luck, not
+  // an unreachable badge. A career holding each of those honours once is
+  // exactly what the endings section assembles below.
   const many = 20
   const scaled: CareerRecord = {
     ...total,
     careers: total.careers * many,
     finished: total.finished * many,
     sacked: total.sacked * many,
-    titles: total.titles * many,
-    worldTitles: total.worldTitles * many,
+    titles: Math.max(total.titles, v.intl.length) * many,
+    worldTitles: Math.max(total.worldTitles, v.intl.length) * many,
     seasons: total.seasons * many,
     clubs: WORLD_TEAMS.map((t) => t.id),
   }
