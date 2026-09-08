@@ -4,7 +4,7 @@ import { RARITY_CN, ratingAt } from '../engine/cards'
 import { crestUrl } from '../engine/dossier'
 import { FLAG_AS, natName } from '../engine/nat'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
-import { isCoachCard, isPlayerCard } from '../engine/cards'
+import { isCoachCard, isPlayerCard, legendOf } from '../engine/cards'
 import { POSITION_PACKS, positionPackStyle } from './cards/positionPackDesign'
 import type { PackPosition } from './cards/positionPackDesign'
 import { COACH_CREST } from './cards/coachCrest'
@@ -129,10 +129,10 @@ export default function CardFace({
   const rating = ratingAt(card.rating, level)
   const cls = `cardface r-${card.rarity} s-${size}`
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
-  const legend = isPlayerCard(card) ? card.legend : undefined
+  const legend = legendOf(card)
   const crest = crestUrl(card.clubId)
   const title = legend
-    ? `${legend.title} · ${card.kind === 'player' ? card.ign : ''} · 彩卡 ${rating}`
+    ? `${legend.title} · ${card.kind === 'player' ? card.ign : card.name} · 彩卡 ${rating}`
     : `${card.kind === 'player' ? card.ign : card.name} · ${RARITY_CN[card.rarity]} ${rating}`
       + (level ? `（+${level}）` : '')
 
@@ -143,7 +143,7 @@ export default function CardFace({
   const asBackdrop = card.rarity === 'mythic' && !!card.face
   const body = isPlayerCard(card)
     ? <PlayerBody card={card} size={size} footer={footer} backdrop={asBackdrop} />
-    : <CoachBody card={card as CoachCard} size={size} footer={footer} />
+    : <CoachBody card={card as CoachCard} size={size} footer={footer} backdrop={asBackdrop} />
 
   // A grid of彩卡 all animating in step reads as "a row of red cards", not as
   // iridescence. Each one starts somewhere else in the cycle, keyed off its own
@@ -242,10 +242,11 @@ function PlayerBody({
   )
 }
 
-function CoachBody({ card, size, footer }: { card: CoachCard; size: string; footer?: string }) {
+function CoachBody({ card, size, footer, backdrop }: { card: CoachCard; size: string; footer?: string; backdrop?: boolean }) {
   return (
     <>
-      <Face src={card.face} alt={card.name} />
+      {backdrop ? <span className="cf-push" /> : <Face src={card.face} alt={card.name} />}
+      {card.legend && <div className="cf-moment">{card.legend.short}</div>}
       <div className="cf-name">{card.name}</div>
       {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}
       <div className="cf-meta">

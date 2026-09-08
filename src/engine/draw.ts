@@ -134,6 +134,18 @@ export const drawsOf = (state: GameState, compKey: string): DrawEvent[] =>
   (state.draws ?? []).filter((d) => d.competitionKey === compKey)
 
 /**
+ * The same, for THIS season only.
+ *
+ * A competition key repeats every year — 'stage1:China' is the same string in
+ * 2026 and 2031 — and last season's draws are kept for a year so the screens
+ * can still show them. Asking "has this been drawn?" without asking "this
+ * year?" answered yes forever: from a career's second season on, Stage 1 and
+ * Stage 2 were never drawn again and the region simply had no league.
+ */
+export const drawsThisYear = (state: GameState, compKey: string): DrawEvent[] =>
+  drawsOf(state, compKey).filter((d) => d.year === state.year)
+
+/**
  * Is this draw the manager's to hold? His own region's, and any
  * international his club is in. The other regions' draws are held in the
  * background and reported in the news; a Masters he did not reach keeps
@@ -358,6 +370,40 @@ export function drawSwissRound(
   ev.outcome = { pairs }
   ev.log.push(...pairs.map(([a, b], i) => `第 ${i + 1} 场：${state.teams[a]?.tag} vs ${state.teams[b]?.tag}`))
   return ev
+}
+
+/**
+ * Which region fills each seat of each group: four groups, one club from every
+ * region and one from every seed level in each. That shape is a Latin square,
+ * and the layout used to be a FIXED one — group i took region j's (i+j)th seed
+ * — with the group written out in region order, which is the order the GSL
+ * opener pairs on. So every group of every Champions of every career opened
+ * 美洲一号 vs 中国四号 and EMEA vs 太平洋. The constraints were right; it was
+ * simply never a draw. Here the square is picked at random and the group comes
+ * out in seed order, which is what a GSL group is.
+ *
+ * Returns rows of region indices, one row per group, one column per seed.
+ */
+export function championsGroupSquare(rng: Rng, n = 4): number[][] {
+  const grid: number[][] = Array.from({ length: n }, () => Array<number>(n).fill(-1))
+  const place = (cell: number): boolean => {
+    if (cell === n * n) return true
+    const g = Math.floor(cell / n)
+    const s = cell % n
+    for (const r of rng.shuffle([...Array(n).keys()])) {
+      // a group holds each region once, and a seed level is one club per region
+      if (grid[g].includes(r)) continue
+      let clash = false
+      for (let up = 0; up < g; up++) if (grid[up][s] === r) { clash = true; break }
+      if (clash) continue
+      grid[g][s] = r
+      if (place(cell + 1)) return true
+      grid[g][s] = -1
+    }
+    return false
+  }
+  place(0)
+  return grid
 }
 
 /**

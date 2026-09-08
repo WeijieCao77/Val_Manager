@@ -100,7 +100,7 @@ export function agendaFor(state: GameState): AgendaItem[] {
     // which is exactly how it was reported: 「为什么被警告一次之后就一直在」
     items.push({
       key: 'notice', tone: 'urgent', go: 'standings',
-      text: `董事会已经警告过你——这个赛段交不出成绩就会被解约。${noticeHint(state)}。`,
+      text: `董事会警告：这个赛段没成绩就下课。${noticeHint(state)}。`,
     })
   }
 
@@ -108,14 +108,14 @@ export function agendaFor(state: GameState): AgendaItem[] {
   if (squad.length < 5) {
     items.push({
       key: 'thin', tone: 'urgent', go: 'transfers',
-      text: `阵容只有 ${squad.length} 人，无法正常出战，必须补人。`,
+      text: `阵容只有 ${squad.length} 人，凑不齐首发。`,
     })
   }
   const expiring = squad.filter((p) => p.contractYears <= 0)
   if (expiring.length) {
     items.push({
       key: 'expiring', tone: 'urgent', go: 'squad',
-      text: `${expiring.map((p) => p.ign).join('、')} 合同已到期，再不续约就会走人。`,
+      text: `${expiring.map((p) => p.ign).join('、')} 合同到期，不续就走。`,
     })
   }
   // A finished drill leaves nothing running. Without a nudge the squad simply
@@ -123,28 +123,27 @@ export function agendaFor(state: GameState): AgendaItem[] {
   if (state.drillLock == null || state.drillLock <= state.day) {
     items.push({
       key: 'drill', tone: 'todo', go: 'training',
-      text: '目前没有在跑的团队训练——上一轮已经结算，去训练页排下一轮（一轮七天）。',
+      text: '没有在跑的团队训练，去排下一轮（七天一轮）。',
     })
   }
   const unhappy = squad.filter((p) => (p.grievance ?? 0) > 45)
   if (unhappy.length) {
     items.push({
       key: 'unhappy', tone: 'urgent', go: 'squad',
-      text: `${unhappy.map((p) => p.ign).join('、')} 心生不满（出场承诺、薪资、被拒的转会都会积累）——`
-        + `再无视下去他会想离队，别队报价他也更容易点头。`,
+      text: `${unhappy.map((p) => p.ign).join('、')} 有意见，再拖就想走了。`,
     })
   }
   if (state.finances.balance < 0) {
     items.push({
       key: 'broke', tone: 'urgent', go: 'finance',
-      text: '资金已经为负，董事会不会容忍太久。',
+      text: '账上是负的，董事会看着呢。',
     })
   }
   const injured = squad.filter((p) => p.injuredUntil > state.day)
   if (injured.length && me.starters.some((id) => injured.some((p) => p.id === id))) {
     items.push({
       key: 'injured', tone: 'urgent', go: 'squad',
-      text: `首发中有 ${injured.length} 人伤停，需要调整阵容。`,
+      text: `首发 ${injured.length} 人伤停，得调阵容。`,
     })
   }
 
@@ -155,23 +154,23 @@ export function agendaFor(state: GameState): AgendaItem[] {
         const left = windowDaysLeft(state)
         items.push({
           key: 'market', tone: 'todo', go: 'transfers',
-          text: `转会窗口开放中（还剩 ${left} 天，一回合走 7 天），这是补强阵容的主要机会。`,
+          text: `转会窗口还剩 ${left} 天，补强就趁现在。`,
         })
       }
-      items.push({ key: 'plan', tone: 'todo', go: 'training', text: '为本赛季设定训练重点，赛段中途改动收益有限。' })
-      items.push({ key: 'tac', tone: 'todo', go: 'tactics', text: '确认战术风格与首发五人。' })
+      items.push({ key: 'plan', tone: 'todo', go: 'training', text: '定本赛季的训练重点，中途改效果打折。' })
+      items.push({ key: 'tac', tone: 'todo', go: 'tactics', text: '定战术风格和首发五人。' })
       break
     case 'kickoff':
     case 'stage1':
     case 'stage2':
-      items.push({ key: 'lineup', tone: 'todo', go: 'squad', text: '赛段进行中，主要工作是轮换阵容、控制体能。' })
+      items.push({ key: 'lineup', tone: 'todo', go: 'squad', text: '赛段进行中，注意轮换和体能。' })
       {
         // where the table leads — the next Masters or Champions, and what we
         // still need for it — rather than a line that only named the cut
         const q = qualification(state)
         items.push({
           key: 'table', tone: q?.tone === 'warn' ? 'todo' : 'info', go: 'standings',
-          text: q ? `${q.event}：${q.headline}` : '关注积分榜，前 8 名才能进季后赛。',
+          text: q ? `${q.event}：${q.headline}` : '积分榜前 8 进季后赛。',
         })
       }
       break
@@ -181,7 +180,7 @@ export function agendaFor(state: GameState): AgendaItem[] {
       const q = qualification(state)
       items.push({
         key: 'intl', tone: 'info', go: 'standings',
-        text: q ? q.headline : `${stageName(state.stage)} 期间，没有你的比赛时可以安排训练赛。`,
+        text: q ? q.headline : `${stageName(state.stage)} 期间没我们的比赛，可以约训练赛。`,
       })
       if (open) {
         items.push({
@@ -192,10 +191,10 @@ export function agendaFor(state: GameState): AgendaItem[] {
       break
     }
     case 'offseason':
-      items.push({ key: 'renew', tone: 'todo', go: 'squad', text: '休赛期：处理续约、清理阵容。' })
+      items.push({ key: 'renew', tone: 'todo', go: 'squad', text: '休赛期：续约、清人。' })
       items.push({
         key: 'market2', tone: 'todo', go: 'transfers',
-        text: `转会窗口开放，为下赛季重建阵容（还剩 ${windowDaysLeft(state)} 天）。`,
+        text: `转会窗口还剩 ${windowDaysLeft(state)} 天。`,
       })
       break
     default:
@@ -211,14 +210,14 @@ export function agendaFor(state: GameState): AgendaItem[] {
   if (gap >= 4) {
     items.push({
       key: 'scrim', tone: 'todo', go: 'dashboard',
-      text: `距下一场还有 ${gap} 天，可以安排训练赛保持状态。`,
+      text: `距下一场 ${gap} 天，可以约训练赛。`,
     })
   }
 
   // ---- a standing money problem, stated once
   const bill = wageBill(state, state.myTeam)
   if (bill > me.budget * 0.9 && state.finances.balance >= 0) {
-    items.push({ key: 'wages', tone: 'info', go: 'finance', text: '薪资支出偏高，注意现金流。' })
+    items.push({ key: 'wages', tone: 'info', go: 'finance', text: '薪资偏高，看着点现金流。' })
   }
 
   const pending = state.offers.filter((o) => o.status === 'pending' && o.toTeam === state.myTeam)
@@ -239,8 +238,8 @@ export function agendaFor(state: GameState): AgendaItem[] {
     const soonest = Math.min(...incoming.map((o) => o.day + 7 - state.day))
     items.push({
       key: 'incoming', tone: 'todo', go: 'transfers',
-      text: `收到 ${incoming.length} 份对我方选手的报价，`
-        + `${soonest <= 0 ? '今天就要答复' : `最快 ${soonest} 天后失效`}——不答复视为拒绝。`,
+      text: `${incoming.length} 份报价要我们的人，`
+        + `${soonest <= 0 ? '今天必须答复' : `最快 ${soonest} 天后作废`}。`,
     })
   }
 
@@ -256,8 +255,8 @@ export function agendaFor(state: GameState): AgendaItem[] {
     const left = gigWindow(state, soon).left
     items.push({
       key: 'gig',
-      text: `有 ${unbooked.length} 个商务邀约待处理，${soon.label}`
-        + (left <= 0 ? '今天是最后一天' : `还剩 ${left} 天可安排`),
+      text: `${unbooked.length} 个商务邀约没排，${soon.label}`
+        + (left <= 0 ? '今天最后一天' : `还剩 ${left} 天`),
       tone: left <= 2 ? 'urgent' : 'todo',
       go: 'commercial',
     })

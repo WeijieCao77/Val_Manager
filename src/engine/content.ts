@@ -15,8 +15,8 @@ export type GameMap = (typeof MAPS)[number]
 export const AGENTS: Record<Role, string[]> = {
   决斗者: ['Jett', 'Raze', 'Phoenix', 'Reyna', 'Yoru', 'Neon', 'Iso', 'Waylay'],
   先锋: ['Sova', 'Breach', 'Skye', 'KAY/O', 'Fade', 'Gekko', 'Tejo'],
-  控场: ['Brimstone', 'Viper', 'Omen', 'Astra', 'Harbor', 'Clove'],
-  哨卫: ['Sage', 'Cypher', 'Killjoy', 'Chamber', 'Deadlock', 'Vyse'],
+  控场: ['Brimstone', 'Viper', 'Omen', 'Astra', 'Harbor', 'Clove', 'Miks'],
+  哨卫: ['Sage', 'Cypher', 'Killjoy', 'Chamber', 'Deadlock', 'Vyse', 'Veto'],
   自由人: ['Sova', 'KAY/O', 'Omen', 'Sage', 'Breach', 'Viper', 'Skye', 'Cypher'],
 }
 
@@ -56,6 +56,7 @@ export const AGENT_CN: Record<string, string> = {
   Phoenix: '不死鸟', Raze: '雷兹', Reyna: '芮娜', Sage: '贤者',
   Skye: '斯凯', Sova: '猎枭', Tejo: '钛狐', Viper: '蝰蛇',
   Vyse: '维斯', Waylay: '幻棱', Yoru: '夜露',
+  Miks: '迷核', Veto: '禁灭',
 }
 
 /**
@@ -66,7 +67,12 @@ export const AGENT_CN: Record<string, string> = {
  * Chinese names and the composition tables are all keyed by the proper name,
  * so on a case-sensitive server the icons were broken, the names came out in
  * English, and the match engine found no player who had ever played anything.
- * Null for something that is not an agent at all ('veto' was a column).
+ * Null for anything that is not an agent.
+ *
+ * 'veto' used to be one of those: it is a column on vlr's match pages, and it
+ * was read as a stray heading. Then Riot shipped a sentinel called Veto, and
+ * the rule that was keeping a heading out started deleting a real agent —
+ * Autumn's most-played, in this data. Only the table below decides now.
  */
 const AGENT_BY_KEY = new Map(Object.keys(AGENT_CN).map((a) => [a.toLowerCase().replace(/[^a-z]/g, ''), a]))
 export const canonAgent = (a: string): string | null =>

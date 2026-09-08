@@ -8,7 +8,7 @@ import { ORIGINS, SKILL_CN, SKILL_HINT } from '../engine/manager'
 import {
   applyForJob, defaultContract, managerSalaryFor, openness, renegotiate, takeAcceptedJob,
 } from '../engine/career'
-import { acceptJob } from '../engine/season'
+import { acceptJob, declineJob } from '../engine/season'
 import { WORLD_TEAMS } from '../engine/teams'
 import type { Team } from '../engine/types'
 
@@ -127,6 +127,9 @@ export default function Career() {
                 <span className="tiny faint" style={{ flex: 1 }}>
                   {o.pitch} · {o.expiresOn - game.day} 天内答复
                 </span>
+                <button className="sm ghost" onClick={() => { toast(declineJob(game, o.id)); commit() }}>
+                  拒绝
+                </button>
                 <button className="primary sm" onClick={() => move(t.id, () => acceptJob(game, o.id))}>
                   接受
                 </button>

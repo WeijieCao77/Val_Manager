@@ -2054,9 +2054,11 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
     0 2px 8px rgba(0, 0, 0, .3);
 }
 
-/* the moment ribbon: a plate rather than a grey box */
+/* the moment ribbon: a plate rather than a grey box, and thin enough to let
+   the photograph through — it sits on top of the shot, not over it */
 .cf-moment {
-  background: linear-gradient(180deg, rgba(20, 14, 40, .82), rgba(8, 6, 18, .9));
+  background: linear-gradient(180deg, rgba(20, 14, 40, .62), rgba(8, 6, 18, .72));
+  backdrop-filter: blur(2px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
   border-radius: 3px;
   padding: 2px 5px;

@@ -147,6 +147,11 @@ def main() -> int:
         c = t.get("coach") or {}
         if c.get("name"):
             names.add(c["name"])
+        # assistants too: only head coaches get an ordinary card, but an
+        # assistant can still be somebody — Muggle coached EDG to the 2024
+        # title and is an aim coach at TEC now, and his彩卡 needs the name,
+        # the nationality and the portrait like anyone else's.
+        names.update(c.get("assistants") or [])
     for a in (world.get("meta", {}).get("analysts") or []):
         names.add(a["name"])
 

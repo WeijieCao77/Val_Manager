@@ -989,6 +989,8 @@ export interface GameState {
   enquiries?: PlayerEnquiry[]
   /** clubs currently trying to hire us away */
   jobOffers?: JobOffer[]
+  /** clubs we have turned down, and the day they may ask again */
+  jobDeclines?: Record<string, number>
   /** jobs we have applied for ourselves */
   jobApplications?: JobApplication[]
   /** our own contract with the current club */

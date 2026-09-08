@@ -9,7 +9,7 @@ import { useGame } from './ctx'
 import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, acceptJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
 import { nextInEvent, upcomingInternational } from '../engine/qualify'
 import type { ScrimFormat } from '../engine/season'
 import { poolFor } from '../engine/match'
@@ -178,6 +178,11 @@ export default function Dashboard() {
     toast(acceptJob(game, id))
     commit()
   }
+  // Saying no is not a day's work: no confirm, no 行动力, gone from the panel.
+  const passJob = (id: string) => {
+    toast(declineJob(game, id))
+    commit()
+  }
 
   return (
     <>
@@ -204,14 +209,17 @@ export default function Dashboard() {
                       {o.pitch} · {o.expiresOn - game.day} 天内答复
                     </div>
                   </span>
-                  <button className="sm primary right" onClick={() => void takeJob(o.id, t.name)}>接受</button>
+                  <span className="row right" style={{ gap: 6, flexShrink: 0 }}>
+                    <button className="sm ghost" onClick={() => passJob(o.id)}>拒绝</button>
+                    <button className="sm primary" onClick={() => void takeJob(o.id, t.name)}>接受</button>
+                  </span>
                 </div>
               )
             })}
           </div>
           <p className="tiny faint" style={{ padding: '0 14px 12px', margin: 0 }}>
-            成绩越好、名气越大，来找你的俱乐部就越强。不接受的话邀请会自行过期。
-            也可以去<b>经理</b>页面主动向别的球队投申请。
+            成绩越好、名气越大，来找你的俱乐部就越强。拒绝不花行动力，这家俱乐部一个赛季内不会再来。
+            也可以去<b>经理</b>页面主动投申请。
           </p>
         </Panel>
       )}
@@ -355,7 +363,7 @@ export default function Dashboard() {
                 <span className="tag">约 {fmtDay(up.day, game.year)}（{up.day - game.day} 天后）</span>
               </div>
               <p className="tiny faint center" style={{ margin: '10px 0 0' }}>
-                已锁定：{up.how}。对阵要等四个赛区都打完才抽，抽出来会写进赛程。
+                已锁定：{up.how}。对阵等四个赛区都打完再抽。
               </p>
             </>
           ) : inEvFirst ? (
@@ -371,7 +379,7 @@ export default function Dashboard() {
                 <span className="tag">{fmtDay(inEv.day, game.year)}（{inEv.day - game.day} 天后）</span>
               </div>
               <p className="tiny faint center" style={{ margin: '10px 0 0' }}>
-                对手要等上一轮打完才知道；日期是定好的。
+                日期已定，对手等上一轮打完才知道。
               </p>
             </>
           ) : next ? (

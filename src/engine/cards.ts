@@ -83,6 +83,8 @@ export interface PlayerCard {
 export interface CoachCard {
   kind: 'coach'
   id: string
+  /** set on a彩卡: the night this version of him is — see PlayerCard.legend */
+  legend?: Legend
   name: string
   /** real name and nationality, from the club's staff listing on vlr.gg */
   realName: string | null
@@ -208,6 +210,7 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
   const byIgn = new Map(players.map((c) => [c.ign.toLowerCase(), c]))
   const out: PlayerCard[] = []
   for (const l of LEGENDS) {
+    if (l.coach) continue                 // his card is a coach card, below
     const base = byIgn.get(l.ign.toLowerCase())
     // A legend with no live player behind it would be a fabricated person,
     // which this project does not have. Skipped loudly rather than invented.
@@ -231,7 +234,9 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
       clubId: l.clubId,
       clubTag: l.clubTag,
       face: photo ? faceUrl(photo.img, photo.v) : base.face,
-      attrs: legendAttrs(base.attrs, rating - base.rating),
+      // the shift keeps the shape of the player; the override says what the
+      // night is actually remembered for
+      attrs: { ...legendAttrs(base.attrs, rating - base.rating), ...l.attrs },
       rating,
       rarity: 'mythic',
     })
@@ -246,16 +251,49 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
  * PLAYER_CARDS. The dossier used the latter and so printed everyone with a
  * legend twice — two Derkes, two Boasters — and counted 538 players out of 518.
  */
+/**
+ * The彩卡 of people who were in the coaching booth that night.
+ *
+ * Same idea as a player legend and a different card type: three numbers rather
+ * than eight attributes, the club he did it FOR, and the photograph from the
+ * night. He does not need an ordinary card to exist first — only head coaches
+ * get one of those, and the man who won Champions 2024 is an assistant now.
+ */
+function buildLegendCoachCards(): CoachCard[] {
+  const out: CoachCard[] = []
+  for (const l of LEGENDS) {
+    if (!l.coach) continue
+    const d = coachDossier(l.ign)
+    const photo = legendPhoto(l.id)
+    const club = teamById.get(l.clubId)
+    out.push({
+      kind: 'coach', id: l.id, legend: l, name: l.ign,
+      realName: d?.real ?? null,
+      nat: d?.nat ?? null,
+      face: photo ? faceUrl(photo.img, photo.v) : (d?.img ? faceUrl(d.img, d.v) : null),
+      clubId: l.clubId, clubTag: l.clubTag,
+      region: (club?.region as Region) ?? null,
+      tactics: l.coach.tactics, development: l.coach.development, motivation: l.coach.motivation,
+      rating: Math.min(99, Math.max(l.rating, coachRating(l.coach))),
+      rarity: 'mythic',
+    })
+  }
+  return out
+}
+
 export const BASE_PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
 export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(BASE_PLAYER_CARDS)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
-export const COACH_CARDS: CoachCard[] = buildCoachCards()
+export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
+export const COACH_CARDS: CoachCard[] = [...buildCoachCards(), ...LEGEND_COACH_CARDS]
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...COACH_CARDS]
 
 const byId = new Map(ALL_CARDS.map((c) => [c.id, c]))
 export const cardById = (id: string): Card | undefined => byId.get(id)
 
 export const isPlayerCard = (c: Card | undefined): c is PlayerCard => c?.kind === 'player'
+/** The night a card is, whichever kind of card it is. */
+export const legendOf = (c: Card | undefined): Legend | undefined => c?.legend
 export const isCoachCard = (c: Card | undefined): c is CoachCard => c?.kind === 'coach'
 
 /** Display name, whichever kind of card it is. */

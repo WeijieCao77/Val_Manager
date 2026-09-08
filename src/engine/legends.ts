@@ -22,6 +22,8 @@
  * `fmvp` so the game can be honest about the difference.
  */
 
+import type { Attrs } from './types'
+
 export type LegendKind =
   /** Riot's own Finals MVP, or the Champions MVP award */
   | 'fmvp'
@@ -50,6 +52,24 @@ export interface Legend {
   rating: number
   /** one line, shown on the card's detail panel */
   note: string
+  /**
+   * Attribute values this night is remembered FOR, written over the ones the
+   * ordinary card's shift produces.
+   *
+   * The shift moves every attribute by the same amount, which keeps the shape
+   * of the player — a duelist stays a duelist — but cannot say 「这一晚他的指挥
+   * 是 99」. Only the keys named here are overruled; the rest still ride the
+   * shift.
+   */
+  attrs?: Partial<Attrs>
+  /**
+   * Set when the card is the COACH he was that night rather than a player.
+   *
+   * A coach's card has no attributes and no position; it has the three numbers
+   * every other coach card has. Muggle never played a map of the 2024 final and
+   * is one of the reasons it was won, which a player card cannot express.
+   */
+  coach?: { tactics: number; development: number; motivation: number }
 }
 
 export const LEGENDS: Legend[] = [
@@ -209,6 +229,48 @@ export const LEGENDS: Legend[] = [
     year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
     rating: 93,
     note: 'EDG 夺冠阵容的控场核心，中国赛区首个国际冠军成员。',
+  },
+  // The rest of that dressing room. ZmjjKK's FMVP and CHICHOO's control are
+  // above; these five are the other people who were on the stage — the caller,
+  // the rifle, the utility, the substitute and the coach.
+  {
+    id: 'L:nobody-champions-2024',
+    ign: 'nobody', title: '2024 首尔冠军指挥', short: '24 首尔冠军指挥',
+    year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 92,
+    attrs: { igl: 99 },
+    note: '喊下中国赛区第一个世界冠军的人。数据从来不是他的活。',
+  },
+  {
+    id: 'L:smoggy-champions-2024',
+    ign: 'Smoggy', title: '2024 首尔冠军', short: '24 首尔冠军',
+    year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 95,
+    attrs: { aim: 99 },
+    note: 'EDG 夺冠阵容的枪。那五张图，他的枪线就是队伍的底气。',
+  },
+  {
+    id: 'L:s1mon-champions-2024',
+    ign: 'S1Mon', title: '2024 首尔冠军', short: '24 首尔冠军',
+    year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 92,
+    attrs: { utility: 99, igl: 90 },
+    note: 'EDG 夺冠阵容的道具核心，也是场上的第二个脑子。',
+  },
+  {
+    id: 'L:haodong-champions-2024',
+    ign: 'Haodong', title: '2024 首尔冠军助教', short: '24 首尔冠军助教',
+    year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 90,
+    note: '首尔那支 EDG 的助教兼替补。名字不在首发上，人在冠军合影里。',
+  },
+  {
+    id: 'L:muggle-champions-2024',
+    ign: 'Muggle', title: '2024 首尔冠军教练', short: '24 首尔冠军教练',
+    year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
+    rating: 92,
+    coach: { tactics: 95, development: 88, motivation: 90 },
+    note: '2024 年 6 月接任 EDG 主教练，两个月后拿下首尔冠军赛。中国赛区第一个世界冠军是他带的。',
   },
 ]
 

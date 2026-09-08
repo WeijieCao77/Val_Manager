@@ -24,7 +24,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { judgeTenure, moveToClub, setupSeason } from '../src/engine/season'
+import { advanceDay, declineJob, judgeTenure, moveToClub, setupSeason } from '../src/engine/season'
 import type { GameState } from '../src/engine/types'
 
 const store = new Map<string, string>()
@@ -138,6 +138,31 @@ const stage = (g: GameState, met: boolean, place: number): string[] => {
   const other = Object.values(g.teams).find((t) => t.id !== g.myTeam && t.tier === 1)!
   moveToClub(g, other.id)
   check('换了俱乐部，警告不跟着走', g.onNotice === false && (g.missedStreak ?? 0) === 0)
+}
+
+// ---- an invitation you are not taking ---------------------------------------
+// Until 2026-09-08 the only way to say no was to let it sit on the dashboard
+// for thirty days. Saying no is free — no confirmation, no 行动力 — and the
+// club that was turned down does not ask again the next morning.
+{
+  const g = createNewGame(WORLD_TEAMS.find((t) => t.tier === 1)!.id, '测试经理', 11)
+  setupSeason(g)
+  const other = Object.values(g.teams).find((t) => t.id !== g.myTeam && t.tier === 1)!
+  g.jobOffers = [{ id: 'JTEST', teamId: other.id, day: g.day, expiresOn: g.day + 30, pitch: '来带一线队。' }]
+  const was = { team: g.myTeam, roster: [...g.teams[g.myTeam].roster] }
+  const msg = declineJob(g, 'JTEST')
+  check('拒绝把邀请从面板上拿掉', (g.jobOffers ?? []).length === 0, msg)
+  check('拒绝不换俱乐部、不动阵容',
+    g.myTeam === was.team && g.teams[g.myTeam].roster.join() === was.roster.join())
+  check('这家俱乐部被记下了冷却期', (g.jobDeclines ?? {})[other.id] > 0)
+  check('同一份邀请拒绝两次是失效提示，不是崩',
+    declineJob(g, 'JTEST').includes('失效'))
+  // and the generator leaves them alone while the cool-off runs
+  g.jobOffers = []
+  const before = g.day
+  for (let i = 0; i < 40; i++) advanceDay(g, { autoResolveDrawDecisions: true })
+  check('冷却期内这家不会再来', !(g.jobOffers ?? []).some((o) => o.teamId === other.id),
+    `${before} → ${g.day} 天`)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

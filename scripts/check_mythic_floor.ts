@@ -49,14 +49,30 @@ check(`计数到 ${MYTHIC_FLOOR} 之后的那一抽必是彩卡（触发 ${floor
 check('出彩卡后两个计数都归零', notResetAfter === 0, `${notResetAfter} 次没归零`)
 check('没出的每一抽都把计数加一', counterMoved === 0, `${counterMoved} 次不对`)
 
-// the guarantee is paid from any pack that can hold a 彩卡, and a coach pack neither pays nor counts
+// The guarantee is paid from any pack that can hold a 彩卡 and only from those.
+// The coach pack used to be the example of a pack that could not: 彩卡 were
+// nights somebody PLAYED. Muggle coached EDG to Champions 2024 without playing
+// a map of it, so the booth has one now and the pack counts like the rest
+// (2026-09-08). A pack with no 彩卡 in its pool still must not touch the
+// counter, or the guarantee could be spent where it can never be paid.
 {
   const g = newGacha('VM-FLOR-0000-0000-0000-0004', '保底', '2026-09-06')
   g.coins = 1e9
   g.mythicDry = MYTHIC_FLOOR
   g.packs.coach = 1
-  openPack(g, 'coach', 'pack')
-  check('教练包不动计数（也不会替保底出彩卡）', g.mythicDry === MYTHIC_FLOOR && PACKS.coach.mythic === 0, `计数 ${g.mythicDry}`)
+  const coach = openPack(g, 'coach', 'pack')
+  check('教练包也能兑现保底（里面有教练彩卡了）',
+    PACKS.coach.mythic > 0 && coach.some((c) => c.card.rarity === 'mythic') && g.mythicDry < MYTHIC_FLOOR,
+    `计数 → ${g.mythicDry}`)
+  {
+    // 位置包 still has none, and still must not move the counter
+    const h = newGacha('VM-FLOR-0000-0000-0000-0005', '保底', '2026-09-06')
+    h.coins = 1e9
+    h.mythicDry = MYTHIC_FLOOR
+    h.packs.duelist = 1
+    openPack(h, 'duelist', 'pack')
+    check('没有彩卡的包不动计数', h.mythicDry === MYTHIC_FLOOR && PACKS.duelist.mythic === 0, `计数 ${h.mythicDry}`)
+  }
   for (const kind of ['elite', 'ten', 'cn'] as const) {
     const h = newGacha(`VM-FLOR-0000-0000-0000-000${kind.length}`, '保底', '2026-09-06')
     h.coins = 1e9

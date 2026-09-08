@@ -25,8 +25,8 @@ import { dailyLife, weeklyLife } from './life'
 import { autoStarters, ensureCaller } from './world'
 import { CHAMPIONS_2025, drawRules } from './ruleset'
 import {
-  createPlayoffPick, drawChampionsGroups, drawChampionsPlayoffs, drawKickoffBracket, drawStageGroups,
-  drawStageReshuffle, drawSwissRound, drawsOf, needsManager, nextPendingDraw, resetDrawSeq, resolvePicks, revealAll,
+  championsGroupSquare, createPlayoffPick, drawChampionsGroups, drawChampionsPlayoffs, drawKickoffBracket, drawStageGroups,
+  drawStageReshuffle, drawSwissRound, drawsThisYear, needsManager, nextPendingDraw, resetDrawSeq, resolvePicks, revealAll,
 } from './draw'
 import type { DrawEvent } from './draw'
 import { importBlock } from './imports'
@@ -287,8 +287,15 @@ function createMasters(state: GameState, stage: StageKey, name: string, feeder: 
 function createChampions(state: GameState, name: string, day: number): void {
   if (state.comps.champions) return
   const field = championsField(state)
-  const groups = GROUPS.map((_, i) =>
-    REGIONS.map((r, j) => field[r][(i + j) % 4]).filter((t): t is string => !!t))
+  // One club per region and one per seed level in each group, drawn rather
+  // than laid out: the fixed rotation this replaces put the same region in
+  // the same seat every season, and the group was written in region order,
+  // which is the order the GSL opener pairs on — so every group of every
+  // Champions opened 美洲一号 vs 中国四号 and EMEA vs 太平洋. Seed order now,
+  // so the opener is the 1v4 and 2v3 a GSL group is supposed to be.
+  const square = championsGroupSquare(new Rng(hashStr(`champions:${state.seed}:${state.year}:groups`)))
+  const groups = square.map((row) =>
+    row.map((r, seed) => field[REGIONS[r]][seed]).filter((t): t is string => !!t))
   const all = groups.flat()
   if (all.length < 8) return
   const comp = makeComp(state, 'champions', name, all)
@@ -604,7 +611,7 @@ function openKickoffDraw(state: GameState, comp: Competition, auto: boolean): vo
 /** Stage 1's groups, drawn from the Kickoff placings the day it ends. */
 function openStage1Draw(state: GameState, region: Region, placings: string[], auto: boolean): void {
   const comp = state.comps[compKey('stage1', region)]
-  if (!comp || !comp.grouped || comp.groups || drawsOf(state, comp.key).length) return
+  if (!comp || !comp.grouped || comp.groups || drawsThisYear(state, comp.key).length) return
   const pots: string[][] = []
   for (let i = 0; i + 1 < placings.length && pots.length < 6; i += 2) pots.push([placings[i], placings[i + 1]])
   comp.seedPots = pots
@@ -616,7 +623,7 @@ function openStage1Draw(state: GameState, region: Region, placings: string[], au
 function openStage2Draw(state: GameState, s1: Competition, auto: boolean): void {
   if (!s1.region || !s1.groups) return
   const comp = state.comps[compKey('stage2', s1.region)]
-  if (!comp || !comp.grouped || comp.groups || drawsOf(state, comp.key).length) return
+  if (!comp || !comp.grouped || comp.groups || drawsThisYear(state, comp.key).length) return
   const alpha = groupTable(s1, s1.groups[0])
   const omega = groupTable(s1, s1.groups[1])
   comp.seedPots = [[...alpha.slice(0, 2), ...omega.slice(0, 2)], [...alpha.slice(2, 4), ...omega.slice(2, 4)], [...alpha.slice(4, 6), ...omega.slice(4, 6)]]
@@ -661,8 +668,10 @@ function progressCompetitions(state: GameState, notes: string[] = [], autoPick =
     const ko = own.filter((f) => f.label.startsWith('KO:'))
     const when = state.day + WAVE_GAP
     // a draw not yet held: its ties are not written, and if it is the
-    // manager's the clock is waiting on him
-    if (drawsOf(state, comp.key).some((d) => !d.consumed)) continue
+    // manager's the clock is waiting on him. This season's — a draw left
+    // unheld when the season rolled over is last year's business and must not
+    // stop this year's competition of the same name.
+    if (drawsThisYear(state, comp.key).some((d) => !d.consumed)) continue
 
     // ---- Masters: the Swiss round, then the eight-team double elimination
     if (comp.format === 'masters') {
@@ -1220,6 +1229,7 @@ function offerJobs(state: GameState, notes: string[]): void {
     if (t.id === state.myTeam) continue
     if (t.reputation <= here.reputation) continue          // no sideways moves
     if (state.jobOffers.some((o) => o.teamId === t.id)) continue
+    if ((state.jobDeclines?.[t.id] ?? 0) > careerDay(state)) continue   // we said no; they wait
     // they want someone they can justify hiring
     const reach = m.reputation - t.reputation
     if (reach < -6) continue
@@ -1232,8 +1242,8 @@ function offerJobs(state: GameState, notes: string[]): void {
       day: state.day,
       expiresOn: state.day + 30,
       pitch: t.tier === 1
-        ? `${t.name} 希望你接手一线队，预算 ${Math.round(t.budget / 10000) / 100} 千万级别。`
-        : `${t.name} 想请你来重建队伍。`,
+        ? `${t.name} 想让你带一线队，预算 ${Math.round(t.budget / 10000) / 100} 千万。`
+        : `${t.name} 想请你去重建队伍。`,
     })
     notes.push(`📩 ${t.name} 向你发出了执教邀请。`)
     state.news.push({
@@ -1241,6 +1251,35 @@ function offerJobs(state: GameState, notes: string[]): void {
       text: `📩 ${t.name} 向你发出执教邀请（声望 ${Math.round(t.reputation)}）。`,
     })
   }
+}
+
+/**
+ * Turn one down.
+ *
+ * Free, and instant: an invitation you are not taking is not a day's work.
+ * It used to be that the only way to say no was to let it sit on the
+ * dashboard for thirty days until it expired.
+ *
+ * The club is left alone for a season after that. Without the cool-off the
+ * generator would simply ask again the next morning, which is the same panel
+ * that would not go away.
+ */
+export const DECLINE_COOLOFF = 120
+
+/** A day that keeps counting after the season rolls over, for anything measured across one. */
+const careerDay = (state: GameState): number => state.year * SEASON_DAYS + state.day
+
+export function declineJob(state: GameState, offerId: string): string {
+  const offer = state.jobOffers?.find((o) => o.id === offerId)
+  const to = offer ? state.teams[offer.teamId] : null
+  if (!offer || !to) return '这份邀请已经失效。'
+  state.jobOffers = (state.jobOffers ?? []).filter((o) => o.id !== offerId)
+  state.jobDeclines = { ...(state.jobDeclines ?? {}), [to.id]: careerDay(state) + DECLINE_COOLOFF }
+  state.news.push({
+    day: state.day, kind: 'club', important: false,
+    text: `你婉拒了 ${to.name} 的执教邀请。`,
+  })
+  return `已婉拒 ${to.name}。`
 }
 
 /** Take a job elsewhere. The career continues; the club does not. */

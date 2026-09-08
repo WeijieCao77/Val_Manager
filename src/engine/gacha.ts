@@ -11,11 +11,11 @@ import { WORLD_TEAMS } from './teams'
 import { REGION_CN } from './types'
 import type { Role } from './types'
 import {
-  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, MAX_LEVEL, PLAYER_CARDS,
+  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating,
 } from './cards'
-import type { Card, CoachCard, PlayerCard, Rarity, Squad } from './cards'
+import type { Card, PlayerCard, Rarity, Squad } from './cards'
 import { newChallenge } from './challenge'
 import { MINI_CN, MINI_COINS, MINI_PAYS_PACK, newMinigame } from './minigame'
 import type { MiniGame, MinigameState, Tier } from './minigame'
@@ -134,9 +134,10 @@ export const PACKS: Record<PackKind, PackDef> = {
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
     blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
-    // no legend coaches: a彩卡 is a night somebody played, and these twenty
-    // nights were played by players
-    cost: 1200, draws: 1, mythic: 0, gold: 0.12, silver: 0.42, shop: true,
+    // A彩卡 used to be a night somebody PLAYED, so this pack had none. Muggle
+    // did not play a map of the 2024 final and is one of the reasons it was
+    // won, and a booth is where that card belongs.
+    cost: 1200, draws: 1, mythic: 0.0004, gold: 0.12, silver: 0.42, shop: true,
   },
   // The position packs. One card that plays the position, a little kinder
   // than a 试训包 because it was earned in a game rather than bought, and no
@@ -792,7 +793,7 @@ const POOLS = {
   Americas: seriesPool('Americas'),
   EMEA: seriesPool('EMEA'),
   coach: {
-    mythic: [] as CoachCard[],
+    mythic: LEGEND_COACH_CARDS,
     gold: COACH_CARDS.filter((c) => c.rarity === 'gold'),
     silver: COACH_CARDS.filter((c) => c.rarity === 'silver'),
     bronze: COACH_CARDS.filter((c) => c.rarity === 'bronze'),
@@ -865,9 +866,9 @@ export function openPack(
       else metal = 'bronze'
     }
     if (metal === 'mythic') { g.mythicDry = 0; g.pity = 0 } else {
-      // a coach pack cannot produce a彩卡, so it must not count toward the
-      // floor either — otherwise the guarantee could be spent on a deck it
-      // can never be paid out of
+      // a pack with no彩卡 in it must not count toward the floor either —
+      // otherwise the guarantee could be spent on a deck it can never be paid
+      // out of. The coach pack has one now, so it does count.
       if (def.mythic > 0) g.mythicDry = (g.mythicDry ?? 0) + 1
       if (metal === 'gold') g.pity = 0
       else g.pity++

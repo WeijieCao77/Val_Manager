@@ -181,7 +181,7 @@ export function qualification(state: GameState): QualStatus | null {
     const comp = state.comps[state.stage]
     if (!comp) return null
     if (!comp.teams.includes(state.myTeam)) {
-      return { event: comp.name, headline: `${comp.name} 正在进行，我们没有拿到参赛资格。`, lines: [], tone: 'info' }
+      return { event: comp.name, headline: `${comp.name} 进行中，我们没打进去。`, lines: [], tone: 'info' }
     }
     if (comp.champion) {
       const place = comp.finished.indexOf(state.myTeam) + 1
@@ -193,7 +193,7 @@ export function qualification(state: GameState): QualStatus | null {
     }
     if (comp.format === 'masters' && !comp.bracketStarted) {
       if (comp.byes?.includes(state.myTeam)) {
-        return { event: comp.name, headline: `${comp.name}：作为赛区冠军直接进季后赛，等瑞士轮打完。`, lines: [], tone: 'good' }
+        return { event: comp.name, headline: `${comp.name}：赛区冠军，直接进季后赛，等瑞士轮打完。`, lines: [], tone: 'good' }
       }
       const r = swissRecord(comp, state.myTeam)
       const seed = (comp.swissSeeds ?? []).indexOf(state.myTeam) + 1

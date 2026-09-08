@@ -8,7 +8,7 @@ import {
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card } from '../../engine/cards'
-import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
+import { RARITY_CN, cardById } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 import { playPackCue } from '../packAudio'
@@ -429,7 +429,7 @@ export function PackStage({
                 >
                   {RARITY_CN[current.card.rarity]}
                 </span>
-                {isPlayerCard(current.card) && current.card.legend && (
+                {current.card.legend && (
                   <span className="small" style={{ color: '#e9dcff', textAlign: 'center' }}>
                     <b>{current.card.legend.title}</b>
                     <br />

@@ -38,7 +38,13 @@ const mk = (): GameState => {
   const bad = withPool.filter((p) => p.agentPool.some((a) => !AGENT_CN[a]))
   check('every recorded agent is a canonical name', bad.length === 0, bad.slice(0, 3).map((p) => `${p.ign}: ${p.agentPool.join(',')}`).join(' | '))
   check('most players carry a real pool', withPool.length > players.length * 0.5, `${withPool.length}/${players.length}`)
-  check('the slug spellings resolve', canonAgent('cypher') === 'Cypher' && canonAgent('kayo') === 'KAY/O' && canonAgent('KAY/O') === 'KAY/O' && canonAgent('veto') === null)
+  check('the slug spellings resolve', canonAgent('cypher') === 'Cypher' && canonAgent('kayo') === 'KAY/O' && canonAgent('KAY/O') === 'KAY/O')
+  // 'veto' is a column heading on vlr's match pages AND, since Riot shipped
+  // one, a sentinel. It used to be rejected as junk, which deleted the agent
+  // from the pool of everyone who plays it. Junk is rejected by not being in
+  // the table, not by name.
+  check('禁灭 resolves like any other agent', canonAgent('veto') === 'Veto' && canonAgent('Veto') === 'Veto')
+  check('a real column heading is still not an agent', canonAgent('overall') === null && canonAgent('rating') === null)
   const known = withPool.filter((p) => p.agentPool.some((a) => AGENT_ROLE[a] === p.role)).length
   check('a real player knows an agent of his own role', known > withPool.length * 0.7, `${known}/${withPool.length}`)
 }

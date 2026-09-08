@@ -155,7 +155,7 @@ export default function Collection() {
               <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <CardFace card={sel} level={owned.level} size="lg" />
                 <div style={{ flex: 1, minWidth: 240 }}>
-                  {isPlayerCard(sel) && sel.legend && (
+                  {sel.legend && (
                     <div
                       className="small"
                       style={{

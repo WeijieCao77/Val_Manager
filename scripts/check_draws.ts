@@ -22,7 +22,8 @@ import { eventRounds } from '../src/engine/qualify'
 import { CHAMPIONS_2025, setCurrentRuleset } from '../src/engine/ruleset'
 import { readFileSync } from 'node:fs'
 import { WORLD_PLAYERS } from '../src/engine/world'
-import { drawsOf, choosePick, pickerNow } from '../src/engine/draw'
+import { drawsOf, choosePick, championsGroupSquare, pickerNow } from '../src/engine/draw'
+import { Rng, hashStr } from '../src/engine/rng'
 import { REGIONS } from '../src/engine/types'
 import type { GameState, Fixture } from '../src/engine/types'
 
@@ -286,6 +287,61 @@ for (let i = 0; i < N; i++) {
     const r2 = advanceDay(g)
     check(!r2.pendingDecision && g.day === day + 1, 'and the clock runs again')
   }
+}
+
+// ---- a career has a second season, and a third ------------------------------
+// 「打了个 kickoff 之后不让我打 stage1 和 2」(2026-09-08). A competition key
+// repeats every year and last season's draws are kept for a year, so the
+// "has this been drawn?" guard said yes forever: from season two on, no
+// region was ever drawn into Stage 1 or Stage 2 again and the league stopped
+// existing. Every save under this rulebook was affected, not just the
+// promoted club that noticed it.
+{
+  console.log('\nseason after season')
+  const g = createNewGame('T36', '测试经理', 7)   // EDG, VCT China
+  setupSeason(g)
+  const reg = g.teams[g.myTeam].region
+  // two seasons is the whole test: season one always worked, season two is
+  // where the guard used to latch. A third costs five minutes of every audit.
+  for (let y = 0; y < 2; y++) {
+    const y0 = g.year
+    while (g.year === y0) {
+      advanceDay(g, { autoResolveDrawDecisions: true })
+      if (g.day === SEASON_DAYS - 2) {
+        const n = (st: string) => g.fixtures.filter((f) => f.comp === `${st}:${reg}`).length
+        check(n('kickoff') > 0 && n('stage1') > 0 && n('stage2') > 0,
+          `${y0}: Kickoff ${n('kickoff')}, Stage 1 ${n('stage1')}, Stage 2 ${n('stage2')} — all three were played`)
+      }
+      if (g.day > SEASON_DAYS + 5) throw new Error('no rollover')
+    }
+  }
+}
+
+// ---- Champions groups are a draw, not a layout -----------------------------
+// One club per region and one per seed level in each group was already true;
+// the layout that produced it was a single fixed Latin square written in
+// region order, and the GSL opener pairs on that order — so every group of
+// every Champions of every career opened 美洲一号 vs 中国四号 and EMEA vs
+// 太平洋.
+{
+  console.log('\nChampions groups')
+  const REG = ['Americas', 'EMEA', 'Pacific', 'China']
+  const squares = new Set<string>()
+  const openers = new Set<string>()
+  let shaped = true
+  for (let y = 0; y < 200; y++) {
+    const sq = championsGroupSquare(new Rng(hashStr(`champions:s${y}:${2026 + y}:groups`)))
+    squares.add(JSON.stringify(sq))
+    for (const row of sq) {
+      if (new Set(row).size !== 4) shaped = false
+      openers.add([REG[row[0]], REG[row[3]]].sort().join(' v '))
+      openers.add([REG[row[1]], REG[row[2]]].sort().join(' v '))
+    }
+    for (let seed = 0; seed < 4; seed++) if (new Set(sq.map((r) => r[seed])).size !== 4) shaped = false
+  }
+  check(shaped, 'every group has one club per region and one per seed level')
+  check(squares.size > 100, `the draw is a draw — ${squares.size} different groupings over 200 seasons`)
+  check(openers.size === 6, `all six region pairings can open a group (saw ${openers.size})`)
 }
 
 console.log(bad ? `\n${bad} problem(s)` : '\nall good')
