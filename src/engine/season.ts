@@ -1260,11 +1260,11 @@ function offerJobs(state: GameState, notes: string[]): void {
  * It used to be that the only way to say no was to let it sit on the
  * dashboard for thirty days until it expired.
  *
- * The club is left alone for a season after that. Without the cool-off the
- * generator would simply ask again the next morning, which is the same panel
- * that would not go away.
+ * The club is left alone for a stage after that — the length of Stage 1,
+ * 66 days. Without the cool-off the generator would simply ask again the
+ * next morning, which is the same panel that would not go away.
  */
-export const DECLINE_COOLOFF = 120
+export const DECLINE_COOLOFF = ((s) => s.end - s.start + 1)(STAGES.find((s) => s.key === 'stage1')!)
 
 /** A day that keeps counting after the season rolls over, for anything measured across one. */
 const careerDay = (state: GameState): number => state.year * SEASON_DAYS + state.day

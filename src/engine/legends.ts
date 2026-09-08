@@ -22,7 +22,7 @@
  * `fmvp` so the game can be honest about the difference.
  */
 
-import type { Attrs } from './types'
+import type { Attrs, Role } from './types'
 
 export type LegendKind =
   /** Riot's own Finals MVP, or the Champions MVP award */
@@ -62,6 +62,15 @@ export interface Legend {
    * shift.
    */
   attrs?: Partial<Attrs>
+  /**
+   * The positions he played THAT night, when they are not the ones he plays
+   * now. S1Mon calls for his 2026 club from the controller slot; in Seoul he
+   * was an initiator (KAY/O, Breach, Fade) and nobody was the caller. Left
+   * out, the card keeps the ordinary card's positions.
+   */
+  roles?: Role[]
+  /** whether he was the caller that night; left out, the ordinary card decides */
+  isIgl?: boolean
   /**
    * Set when the card is the COACH he was that night rather than a player.
    *
@@ -254,8 +263,9 @@ export const LEGENDS: Legend[] = [
     ign: 'S1Mon', title: '2024 首尔冠军', short: '24 首尔冠军',
     year: 2024, kind: 'icon', clubId: 'T36', clubTag: 'EDG',
     rating: 92,
-    attrs: { utility: 99, igl: 90 },
-    note: 'EDG 夺冠阵容的道具核心，也是场上的第二个脑子。',
+    roles: ['先锋'], isIgl: false,
+    attrs: { utility: 99, igl: 65 },
+    note: 'EDG 夺冠阵容的道具核心。那时打先锋，KAY/O、Breach、Fade。',
   },
   {
     id: 'L:haodong-champions-2024',

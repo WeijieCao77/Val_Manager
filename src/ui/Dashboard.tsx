@@ -218,7 +218,7 @@ export default function Dashboard() {
             })}
           </div>
           <p className="tiny faint" style={{ padding: '0 14px 12px', margin: 0 }}>
-            成绩越好、名气越大，来找你的俱乐部就越强。拒绝不花行动力，这家俱乐部一个赛季内不会再来。
+            成绩越好、名气越大，来找你的俱乐部就越强。拒绝不花行动力，这家俱乐部一个赛段内不会再来。
             也可以去<b>经理</b>页面主动投申请。
           </p>
         </Panel>

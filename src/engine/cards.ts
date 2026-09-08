@@ -234,6 +234,10 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
       clubId: l.clubId,
       clubTag: l.clubTag,
       face: photo ? faceUrl(photo.img, photo.v) : base.face,
+      // what he played that night, if it is not what he plays now
+      role: l.roles?.[0] ?? base.role,
+      roles: l.roles ?? base.roles,
+      isIgl: l.isIgl ?? base.isIgl,
       // the shift keeps the shape of the player; the override says what the
       // night is actually remembered for
       attrs: { ...legendAttrs(base.attrs, rating - base.rating), ...l.attrs },
