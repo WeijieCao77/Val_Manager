@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-08',
+    title: '数据：DRG 的 Nicc 是指挥',
+    changes: [
+      { kind: '修复', text: 'DRG 有两个指挥：Flex1n 和 Nicc。之前只标了 Flex1n。新开的生涯和开瓦包里的 Nicc 卡生效，已有存档里的 Nicc 不变。' },
+    ],
+  },
+  {
+    date: '2026-09-08',
     title: '经理：第二个赛季能打完了；开瓦包：EDG 首尔冠军五张彩卡',
     changes: [
       { kind: '修复', text: '<b>「打了个 Kickoff 之后不让我打 Stage 1 和 2」——从第二个赛季起，赛区的两个赛段再也不会开赛。</b>抽签记录会保留一年，而每年的赛事名字是一样的，所以第二年一查「这个抽过了吗」永远答「抽过了」，分组就再也不抽了。所有存档都中招，不只是升上来的队。' },
