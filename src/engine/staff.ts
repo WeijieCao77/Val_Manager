@@ -100,7 +100,7 @@ export function staffMarket(state: GameState): StaffCandidate[] {
 export const SPEC_CN: Record<AnalystSpec, { label: string; blurb: string }> = {
   maps: { label: '图池分析', blurb: '「跑图」训练的地图熟练度收益 +60%' },
   opponent: { label: '对手研究', blurb: '比赛中的战术加成提升，相当于多半个主教练' },
-  potential: { label: '数据建模', blurb: '潜力看得更准，等同于额外的「眼光」天赋' },
+  potential: { label: '数据建模', blurb: '潜力看得更准，相当于额外的「眼光」' },
   economy: { label: '经济分析', blurb: '道具与经济运用更高效，全场小幅加成' },
   review: { label: '复盘专家', blurb: '「教练复盘」训练的意识与指挥收益翻倍' },
 }
@@ -181,7 +181,7 @@ export function resolveApproaches(state: GameState, rng: Rng): string[] {
 
     if (rng.chance(odds)) {
       a.answer = 'granted'
-      notes.push(`✅ ${team.name} 同意你与 ${a.name} 接触，接下来要和他本人谈合同。`)
+      notes.push(`✅ ${team.name} 同意你接触 ${a.name}，接下来和他谈合同。`)
     } else {
       a.answer = 'refused'
       a.reason = ratio < 0.85 ? '补偿金太低' : '不愿意放走现任主教练'
@@ -306,7 +306,7 @@ export function resolveStaffOffers(state: GameState, rng: Rng): string[] {
           tactics: old.tactics, development: old.development, motivation: old.motivation,
           salary: old.salary ?? Math.round(o.salary * 0.4), years: 1,
         }]
-        notes.push(`🔁 ${old.name} 卸任主教练，转为助理教练（可在教练组中解约）。`)
+        notes.push(`🔁 ${old.name} 转为助理教练，可在教练组解约。`)
       }
     } else {
       state.staff = [...(state.staff ?? []), {
@@ -449,5 +449,5 @@ export function demoteHead(state: GameState): string {
     salary: old.salary ?? Math.round(headPay(old) * ROLE_PAY.assistant), years: 1,
   }]
   team.coach = null
-  return `${old.name} 降为助理教练。俱乐部暂时没有主教练，训练与战术加成按队伍整体水平计算——可以从助教里升任一人。`
+  return `${old.name} 降为助理教练。现在没有主教练，加成按队伍整体水平算，可从助教里升任一人。`
 }

@@ -432,7 +432,7 @@ export function chemistry(squad: Squad): ChemReport {
   // instead would make an ordinary squad look finished.
   let score = Math.round(((raw + coachBonus) / 41) * 100)
   score = Math.max(0, Math.min(100, score))
-  if (misfits.length) notes.push(`${misfits.length} 人被放在不熟悉的位置上`)
+  if (misfits.length) notes.push(`${misfits.length} 人不在熟悉的位置`)
   if (noIgl) notes.push('没有人喊指挥')
 
   return { score, links, misfits, noIgl, coachBonus, notes }

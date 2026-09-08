@@ -23,7 +23,7 @@ const FACTORS: {
   label: string
   fix: string | ((mine: number) => string)
 }[] = [
-  { key: 'base', label: '选手个人能力', fix: '这是阵容硬实力，只能靠转会和训练慢慢补' },
+  { key: 'base', label: '选手个人能力', fix: '阵容硬实力，靠转会和训练补' },
   { key: 'map', label: '地图熟练度', fix: '在训练里安排「跑图」练这张图，或在 BP 时避开它' },
   { key: 'chem', label: '团队默契', fix: '更衣室关系与协同/沟通属性，双排练和集训能改善' },
   // comp's advice is filled in from the lineup that actually played — see
@@ -34,20 +34,20 @@ const FACTORS: {
     key: 'igl',
     label: '指挥（IGL）',
     fix: (v) => (v <= -3.9
-      ? '首发里没有指挥，攻防两端各扣 4 分——把队里的 IGL 放进首发'
+      ? '首发里没有指挥，攻防各扣 4 分。把队里的 IGL 放进首发'
       : '让指挥属性更高的人来指挥，或用「教练复盘」练 IGL 的指挥'),
   },
   {
     key: 'shortHanded',
     label: '人数不足',
-    fix: '首发凑不齐五人，每缺一人都是压倒性的劣势——先把阵容补到五人',
+    fix: '首发不满五人，每缺一人都是巨大劣势。先把阵容补到五人',
   },
   { key: 'coach', label: '教练与战术素养', fix: '换个战术更好的主教练，或点满「战术」天赋' },
   { key: 'utility', label: '道具运用', fix: '战术里的「道具」滑杆，以及选手的道具属性；双控场阵容从这一项拿得最多' },
-  { key: 'tacticsAtk', label: '战术设置（进攻端）', fix: '这张图的节奏与侵略性滑杆——双决斗阵容往右拉才吃得到' },
+  { key: 'tacticsAtk', label: '战术设置（进攻端）', fix: '这张图的节奏与侵略性滑杆，双决斗阵容往右拉才吃得到' },
   { key: 'tacticsDef', label: '战术设置（防守端）', fix: '节奏与侵略性调高会削弱防守；双哨卫阵容往左拉才厚' },
-  { key: 'style', label: '阵容风格', fix: '双决斗偏攻、双哨卫偏守、双控场两头都吃——在预案里换一套五个英雄' },
-  { key: 'matchup', label: '针对对手', fix: '对双哨卫放慢节奏、对双决斗别把侵略性拉满、对双控场道具拉高——赛前预案里能看到对手的阵容' },
+  { key: 'style', label: '阵容风格', fix: '双决斗偏攻、双哨卫偏守、双控场两头都吃。在预案里换一套五个英雄' },
+  { key: 'matchup', label: '针对对手', fix: '对双哨卫放慢节奏，对双决斗别把侵略性拉满，对双控场道具拉高。赛前预案里能看到对手阵容' },
   { key: 'familiarity', label: '阵容熟练度', fix: '同一套五个英雄多打几场、跑图时练它；临时换阵容会从零开始' },
 ]
 
@@ -57,7 +57,7 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const { game } = useGame()
   if (!map.edge) {
     return (
-      <div className="empty">这场比赛是在此功能上线前打的，没有记录当时的强弱分解。</div>
+      <div className="empty">这场比赛打在此功能上线前，没有强弱分解记录。</div>
     )
   }
   const mine = mineIsA ? map.edge.a : map.edge.b
@@ -72,8 +72,8 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const covered = new Set(played.flatMap((p) => p.roles ?? [p.role]))
   const gaps = played.length ? CORE_ROLES.filter((r) => !covered.has(r)) : []
   const compFix = gaps.length
-    ? `首发缺 ${gaps.join('、')}——把能打这些位置的人放进首发`
-    : '四个位置已覆盖齐，这一项没有可补的；第五人是谁都不扣分，能兼位还会小幅加分'
+    ? `首发缺 ${gaps.join('、')}，把能打这些位置的人放进首发`
+    : '四个位置已覆盖齐；第五人是谁都不扣分，能兼位小幅加分'
 
   // the newer rows are absent on maps played before they existed; absent is
   // zero, not a hole in the table
@@ -100,15 +100,15 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
   const won = myScore > foeScore
   const verdict = Math.abs(total) < 1.5
     ? (won
-      ? '两队几乎势均力敌，这张图能拿下靠的是临场发挥'
-      : '两队几乎势均力敌，这张图的胜负主要靠临场发挥和运气')
+      ? '两队势均力敌，这张图靠临场发挥拿下'
+      : '两队势均力敌，胜负看临场发挥和运气')
     : total >= 0
       ? (won
-        ? '账面上我们更强，这张图也照着实力拿下了'
-        : '账面上我们更强——这张图却输了，说明临场没打出来')
+        ? '账面上我们更强，也按实力拿下了'
+        : '账面上我们更强，却输了，临场没打出来')
       : (won
         ? '账面上处于下风，这张图是硬啃下来的'
-        : '账面上确实处于下风')
+        : '账面上处于下风')
 
   return (
     <div>
@@ -159,8 +159,8 @@ export default function WhyPanel({ map, mineIsA }: { map: MapScore; mineIsA: boo
         </table>
       </div>
       <p className="tiny faint" style={{ marginBottom: 0 }}>
-        这些就是模拟器判定胜负时用的数值本身，不是事后编的解释。数值只决定每回合的胜率，
-        不直接决定结果——账面占优照样可能输，那通常意味着状态、体能或运气的问题。
+        这些是模拟器判定胜负时用的数值。它们只决定每回合的胜率，
+        账面占优也可能输，多半是状态、体能或运气。
       </p>
     </div>
   )

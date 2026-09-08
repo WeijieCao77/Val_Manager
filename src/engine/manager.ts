@@ -29,7 +29,7 @@ export const SKILL_HINT: Record<ManagerSkill, string> = {
   training: '训练收益更高',
   negotiation: '转会与续约更容易谈成',
   tactics: '比赛中的战术加成更大',
-  scouting: '看得准潜力：低时选手潜力只显示为区间，高时显示确切数字',
+  scouting: '潜力看得更准：低时只显示区间，高时显示确切数字',
   medical: '伤病更少，休息恢复更多体能',
   business: '赞助收入更高',
   locker: '士气更稳，不满消退更快',

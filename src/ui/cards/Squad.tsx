@@ -113,7 +113,7 @@ export default function SquadScreen() {
                       const r = loadPreset(g, i)
                       commit(true)
                       toast(r.missing
-                        ? `已读取「${rec!.name}」，其中 ${r.missing} 张卡已经不在收藏里，位置空着。`
+                        ? `已读取「${rec!.name}」，${r.missing} 张卡已不在收藏里，位置留空。`
                         : `已切换到「${rec!.name}」。`)
                     }}
                   >
@@ -134,7 +134,7 @@ export default function SquadScreen() {
           })}
         </div>
         <p className="tiny faint" style={{ marginBottom: 0 }}>
-          存的是卡的编号，不是卡本身——分解掉的卡再读出来时那个位置会空着，不会凭空变出一张。
+          存的是卡的编号，分解掉的卡读出来时位置会空着。
         </p>
       </Panel>
 
@@ -144,7 +144,7 @@ export default function SquadScreen() {
           <div className="row" style={{ gap: 8 }}>
             <button
               className="sm"
-              onClick={() => { g.squad = autoSquad(g); commit(true); toast('已按评分、默契和有没有指挥自动组队。') }}
+              onClick={() => { g.squad = autoSquad(g); commit(true); toast('已按评分、默契和指挥自动组队。') }}
             >
               自动组队
             </button>
@@ -154,13 +154,13 @@ export default function SquadScreen() {
                 so a wrong click costs a 「读」. */}
             <button
               className="sm ghost"
-              title="五个位置和教练一起清空；存过的配置不受影响"
+              title="清空五个位置和教练，存过的配置不受影响"
               onClick={() => {
                 if (!g.squad.slots.some(Boolean) && !g.squad.coach) { toast('卡组已经是空的。'); return }
                 for (let i = 0; i < g.squad.slots.length; i++) setSlot(g, i, null)
                 g.squad.coach = null
                 commit(true)
-                toast('已清空当前卡组。存过的配置还在，随时可以读回来。')
+                toast('已清空当前卡组，存过的配置还在。')
               }}
             >
               清空卡组
@@ -230,22 +230,21 @@ export default function SquadScreen() {
             </div>
 
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
-              默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。
-              一套默契高的阵容，能打赢平均分比它高四五分的全明星——这是这个模式最值钱的一条规则。
+              默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。默契高的阵容能打赢评分更高的对手。
             </p>
 
             {filled < 5 && <p className="small warn">还差 {5 - filled} 个人。</p>}
             {!!gaps.length && (
-              <p className="small warn">没人打得了：{gaps.join('、')}——比赛里会被针对。</p>
+              <p className="small warn">没人打得了：{gaps.join('、')}，比赛里会吃亏。</p>
             )}
-            {chem.noIgl && filled > 0 && <p className="small warn">阵容里没有指挥，中局决策会吃亏。</p>}
+            {chem.noIgl && filled > 0 && <p className="small warn">没有指挥，中局决策会吃亏。</p>}
             {!!chem.notes.length && (
               <p className="tiny faint" style={{ marginBottom: 0 }}>{chem.notes.join(' · ')}</p>
             )}
 
             {!!chem.links.length && (
               <div style={{ marginTop: 12 }}>
-                <div className="tiny faint" style={{ marginBottom: 5 }}>已连上的关系（{chem.links.length} 条）</div>
+                <div className="tiny faint" style={{ marginBottom: 5 }}>默契关系（{chem.links.length} 条）</div>
                 <div className="row wrap" style={{ gap: 5 }}>
                   {chem.links.map((l, i) => {
                     const a = g.squad.slots[l.a] ? cardById(g.squad.slots[l.a]!) : undefined

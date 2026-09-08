@@ -27,7 +27,7 @@ export function OfferVerdict({
       {s.worst && o.level === 'good' && (
         <span className="small faint">唯一保留：{s.worst.why}</span>
       )}
-      {!s.worst && o.level === 'good' && <span className="small muted">条件足够有说服力。</span>}
+      {!s.worst && o.level === 'good' && <span className="small muted">条件足够了。</span>}
     </div>
   )
 }
@@ -137,7 +137,7 @@ export default function ContractTerms({
           onChange={(e) => set('noPoach', e.target.checked)}
         />
         <span className="small">转会限制条款 <span className="tiny faint">
-          未经选手本人同意不得出售。球队更安全，但选手要价更高。
+          未经本人同意不得出售，选手要价会更高。
         </span></span>
       </label>
     </>

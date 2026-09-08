@@ -86,10 +86,10 @@ export function weeklyTrust(state: GameState, rng: Rng, notes: string[]): void {
 
     const now = trustOf(p)
     if (before >= 40 && now < 40) {
-      notes.push(`💢 ${p.ign} 开始怀疑俱乐部是不是在合理使用他。`)
+      notes.push(`💢 ${p.ign} 开始怀疑俱乐部的安排。`)
     }
     if (before >= 25 && now < 25) {
-      notes.push(`🚨 ${p.ign} 已经不信任管理层，续约几乎不可能谈成。`)
+      notes.push(`🚨 ${p.ign} 已不信任管理层，续约基本谈不成。`)
       p.grievance = clamp((p.grievance ?? 0) + 12, 0, 100)
     }
   }

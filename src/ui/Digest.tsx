@@ -89,7 +89,7 @@ export default function Digest({
 
       {nothing && (
         <div className="empty">
-          这{days <= 1 ? '一天' : `${days} 天`}平静地过去了，没有需要你处理的事。
+          这{days <= 1 ? '一天' : `${days} 天`}没什么事。
         </div>
       )}
 

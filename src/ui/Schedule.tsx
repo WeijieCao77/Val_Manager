@@ -150,12 +150,12 @@ export default function Schedule() {
         }
         groups.push({
           key: ev.key, title: comp.city ? `${ev.name} · ${comp.city}` : ev.name, day: rows[0]?.day ?? game.day, dim: !inIt,
-          note: inIt ? undefined : '本届没有我们，看看别人怎么打。', rows,
+          note: inIt ? undefined : '本届没有我们。', rows,
         })
       } else if (up?.key === ev.key) {
         groups.push({
           key: ev.key, title: `${ev.name} · ${hostCity(game, ev.key)}`, day: up.day,
-          note: `已锁定：${up.how}。对阵要等四个赛区都打完才抽，抽出来会补进这里。`,
+          note: `已锁定：${up.how}。四个赛区打完后抽签。`,
           rows: [{ key: ev.key + ':pending', day: up.day, comp: ev.name, round: up.swiss ? '瑞士轮 第1轮' : '季后赛', a: me, pending: '对手待定' }],
         })
       } else if (game.day <= INTERNATIONAL_START[ev.key] + 30 && game.stage !== 'offseason') {
@@ -195,7 +195,7 @@ export default function Schedule() {
           })}
         </div>
         <p className="tiny muted" style={{ marginBottom: 0, marginTop: 10 }}>
-          次级联赛的两个赛段与一级联赛并行进行；Challengers 第二赛段冠军可通过 Ascension 升入 VCT。
+          Challengers 与 VCT 并行；Challengers 第二赛段冠军经 Ascension 升入 VCT。
         </p>
       </Panel>
 

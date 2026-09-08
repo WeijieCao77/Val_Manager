@@ -114,4 +114,4 @@ export function spendAction(state: GameState, _kind: ActionKind): boolean {
   return true
 }
 
-export const NO_ACTIONS_LEFT = '今天的行动力已经用完了，推进一天再继续。'
+export const NO_ACTIONS_LEFT = '今天的行动力用完了，推进一天再继续。'

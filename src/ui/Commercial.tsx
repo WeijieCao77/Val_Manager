@@ -78,9 +78,8 @@ export default function Commercial() {
 
       <Panel title="主动出击">
         <p className="small muted" style={{ marginTop: 0 }}>
-          不必干等着别人来找。你可以自己去谈赞助，也可以自己办活动——办活动要<b>先垫钱</b>，
-          回本与否取决于<b>俱乐部声望</b>（上座率）：豪门大概六七成场次赚钱，
-          小球队多半亏。<b>线下训练营是唯一注定亏钱的</b>，它买的是体能和士气，不是收入。
+          赞助可以自己去谈，活动可以自己办。办活动要<b>先垫钱</b>，能不能回本看<b>俱乐部声望</b>。
+          <b>线下训练营必亏</b>，买的是体能和士气。
         </p>
 
         <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginBottom: 14 }}>
@@ -96,7 +95,7 @@ export default function Commercial() {
           <span className="tiny faint">
             {game.pitchCooldown != null && game.pitchCooldown > game.day
               ? `${(game.pitchCooldown ?? 0) - game.day} 天后可以再谈`
-              : `免费，每 10 天一轮，最多同时持有 ${sponsorSlots(game.teams[game.myTeam])} 家（现有 ${game.teams[game.myTeam]?.sponsors.length ?? 0} 家，俱乐部声望 ${SPONSOR_SLOT_TIERS.join('/')} 各解锁一个栏位，经理声望不算）。3 天后对方给出具体条件，你再决定签不签`}
+              : `免费，每 10 天一次。最多 ${sponsorSlots(game.teams[game.myTeam])} 家（现有 ${game.teams[game.myTeam]?.sponsors.length ?? 0} 家，俱乐部声望 ${SPONSOR_SLOT_TIERS.join('/')} 各解锁一个）。3 天后给出条件`}
           </span>
         </div>
 
@@ -114,8 +113,8 @@ export default function Commercial() {
             </div>
             <div className="tiny muted" style={{ marginBottom: 8 }}>
               {t.demands.length ? (
-                <>对方要求：{t.demands.map((d) => d.text).join('；')}。<b>要求越多，保底越高。</b></>
-              ) : '没有附加要求，保底也相应低一些。'}
+                <>要求：{t.demands.map((d) => d.text).join('；')}。要求越多，保底越高。</>
+              ) : '没有附加要求，保底较低。'}
             </div>
             <div className="row" style={{ gap: 8 }}>
               <button className="primary sm" onClick={() => {
@@ -131,7 +130,7 @@ export default function Commercial() {
         ))}
         {(game.sponsorTalks ?? []).some((t) => !t.answer && t.replyOn > game.day) && (
           <div className="small" style={{ marginBottom: 12, color: 'var(--warn)' }}>
-            ⏳ 正在等待赞助商给出方案（{Math.max(0, Math.min(...(game.sponsorTalks ?? [])
+            ⏳ 等赞助商回复（{Math.max(0, Math.min(...(game.sponsorTalks ?? [])
               .filter((t) => !t.answer && t.replyOn > game.day).map((t) => t.replyOn - game.day)))} 天）
           </div>
         )}
@@ -194,14 +193,11 @@ export default function Commercial() {
 
       <Panel title="商务邀约">
         <p className="small muted" style={{ marginTop: 0 }}>
-          <b>直播合同</b>按 <b>2~3 个月</b>一签，到期自动结束、可以重新谈——平台不会跟一名选手
-          锁一整年。签约期间是稳定的被动收入，但每周的直播夜会持续消耗体能；每周 3 晚以上
-          还会占掉一天训练。<br />
-          活动是不用靠成绩就能拿到的钱，代价是选手的时间：<b>出席一天，这一周的训练收益就少四分之一</b>，
-          还会掉体能。有比赛的日子不能安排。邀约会过期，不接就没了。
+          <b>直播合同</b> 2~3 个月一签，到期自动结束。直播夜消耗体能，每周 3 晚以上占掉一天训练。<br />
+          活动<b>出席一天，当周训练收益少四分之一</b>，还掉体能。比赛日不能安排，邀约过期作废。
         </p>
 
-        {gigs.length === 0 && <div className="empty">暂时没有商务邀约，过几天再看看。</div>}
+        {gigs.length === 0 && <div className="empty">暂时没有商务邀约。</div>}
 
         <div className="grid c2" style={{ gap: 12 }}>
           {gigs.map((g) => {
@@ -266,7 +262,7 @@ export default function Commercial() {
                           key={p.id}
                           className={`sm${chosen.includes(p.id) ? ' primary' : ''}`}
                           onClick={() => toggle(p.id, g.heads)}
-                          title={p.injuredUntil > game.day ? '伤停中，但仍可出席商务活动' : ''}
+                          title={p.injuredUntil > game.day ? '伤停中，仍可出席' : ''}
                         >
                           {p.ign} <OvrBadge value={p.overall} />
                         </button>
@@ -312,7 +308,7 @@ export default function Commercial() {
                     <td className="num mono">{Math.round(p.morale)}</td>
                     <td className="num">
                       {used === 0
-                        ? <span className="faint" title="本周没有参加任何商务活动">未占用</span>
+                        ? <span className="faint" title="本周没有商务活动">未占用</span>
                         : <span style={{ color: used >= 2 ? 'var(--accent)' : 'var(--warn)' }}>
                             占用 {used} 天 · 本周训练 −{Math.min(100, used * 25)}%
                           </span>}

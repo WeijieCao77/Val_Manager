@@ -120,8 +120,8 @@ export default function NewGame({ onHome,
           // would choose if asked.
           const ok = await ask(
             `当前自动存档（${rescue.year} 年第 ${rescue.day} 天）比这份文件更新，`
-            + '但存储空间不足，无法先给它做备份。\n\n'
-            + '继续导入会永久覆盖它。建议先到「存档」页删掉一些旧存档再导入。\n\n仍要继续吗？',
+            + '但存储空间不足，没法先备份。\n\n'
+            + '继续导入会永久覆盖它。建议先到「存档」页删掉一些旧存档。\n\n仍要继续吗？',
             '仍要导入',
           )
           if (!ok) return
@@ -230,8 +230,7 @@ export default function NewGame({ onHome,
             ))}
           </div>
           <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
-            每个出身都是 2 强 1 弱、幅度相同，没有强弱之分，差别只在你拿到哪些工具。
-            出身主要影响背景故事与起步声望。
+            每个出身都是 2 强 1 弱，幅度相同；差别在强弱项和起步声望。
           </p>
         </div>
       </div>
@@ -249,7 +248,7 @@ export default function NewGame({ onHome,
         </div>
         <div className="panel-body">
           {!manager ? (
-            <div className="empty">先确定你的年龄与出身，才知道哪些俱乐部愿意请你。</div>
+            <div className="empty">先选年龄和出身，再看哪些俱乐部愿意请你。</div>
           ) : (
             <>
               <div className="seg" style={{ marginBottom: 14 }}>
@@ -278,7 +277,7 @@ export default function NewGame({ onHome,
                     <button key={t.id}
                       className={`team-card${teamId === t.id ? ' sel' : ''}${ok ? '' : ' locked'}`}
                       disabled={!ok}
-                      title={top ? '联赛顶尖球队，需要靠成绩解锁' : ok ? '' : '你的声望还不足以接手这支球队'}
+                      title={top ? '联赛顶尖球队，需要靠成绩解锁' : ok ? '' : '声望不足以接手这支球队'}
                       onClick={() => { setTeamId(t.id); setErr(null) }}>
                       <div className="row" style={{ justifyContent: 'space-between', gap: 6 }}>
                         <div className="n" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -302,14 +301,13 @@ export default function NewGame({ onHome,
               ))}
               {veteran ? (
                 <p className="tiny" style={{ marginTop: 12, marginBottom: 0, color: 'var(--win)' }}>
-                  🏅 殿堂经理——你的账号有拿得出手的履历（三连霸／走完十年／声望 90 任一），
-                  从这里开始，任何俱乐部都愿意请你。
+                  🏅 殿堂经理：你的账号有三连霸、走完十年或声望 90 的履历，任何俱乐部都愿意请你。
                 </p>
               ) : (
                 <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
-                  声望决定哪些俱乐部愿意请你，每个赛区最强的三支球队开局锁定。
-                  在任意存档里做到<b>三连霸</b>、<b>走完十年</b>或<b>声望 90</b>，
-                  之后的新生涯就能不受限制、任选球队开局。
+                  声望决定哪些俱乐部愿意请你，每个赛区最强的三支开局锁定。
+                  任意存档做到<b>三连霸</b>、<b>走完十年</b>或<b>声望 90</b>，
+                  之后的新生涯可以任选球队。
                 </p>
               )}
             </>
@@ -342,12 +340,12 @@ export default function NewGame({ onHome,
             {currentRuleset() === 'vct-2026' && (
               <p className="small muted" style={{ marginTop: 0 }}>
                 <b>{RULESET_CN['vct-2026']}</b>：Kickoff 抽签进十二队三败淘汰，Stage 1/2 抽 Alpha、Omega 两组，
-                Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。轮到你的抽签会停下来等你亲手抽。
+                Masters 瑞士轮逐轮抽签、赛区冠军自选八强对手，Champions 抽四档小组和八强。轮到你的抽签会等你亲手抽。
               </p>
             )}
             <p className="small muted" style={{ marginTop: 0 }}>
-              每点 +{POINT_STEP}，上限 {SKILL_MAX}。<b>8 点不够样样精通</b>——
-              可以把两项拉满，也可以摊平但都不突出。出身决定你从哪开始，天赋决定你走向哪。
+              每点 +{POINT_STEP}，上限 {SKILL_MAX}。<b>8 点不够样样精通</b>：
+              可以把两项拉满，也可以摊平。
             </p>
             <div className="grid c2" style={{ gap: 10 }}>
               {(Object.keys(SKILL_CN) as (keyof typeof SKILL_CN)[]).map((k) => {
@@ -382,8 +380,8 @@ export default function NewGame({ onHome,
         <span>
           <b>限制外援</b>
           <span className="muted">
-            {' '}— 每支俱乐部最多两名来自其他赛区的选手（按国籍判定，含替补）。
-            开启后 AI 俱乐部同样受限。已在阵容里的不受影响，只限新引进。
+            {' '}— 每支俱乐部最多两名外区选手（按国籍，含替补），AI 俱乐部同样受限。
+            只限新引进，已有阵容不受影响。
           </span>
         </span>
       </label>
@@ -400,7 +398,7 @@ export default function NewGame({ onHome,
         游戏内所有战队与选手均为真实人物。阵容、国籍、位置、照片、赛事名次与全部比赛数据取自
         <b> vlr.gg</b>；真名、生日、教练、指挥、生涯队伍履历与部分选手照片取自 <b>Liquipedia</b>
         （图片依 CC BY-SA 3.0 使用）；少量选手照片取自<b>号角 HOJO</b>（haojiao.cc）；英雄池取自真实出场记录。
-        八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡所需的估算值。
+        八项能力值由这些真实数据按分位映射得出。合同、薪资与预算为游戏平衡的估算值。
       </p>
     </div>
   )

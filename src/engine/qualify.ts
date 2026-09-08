@@ -73,7 +73,7 @@ export type EventKey = 'masters1' | 'masters2' | 'champions'
  * regional place is the fact that explains it.
  */
 const swissHow = (place: number): string =>
-  place > 0 ? `赛区第 ${place} 名，先打瑞士轮——只有赛区冠军直接进季后赛` : '先打瑞士轮——只有赛区冠军直接进季后赛'
+  place > 0 ? `赛区第 ${place} 名，先打瑞士轮，只有赛区冠军直接进季后赛` : '先打瑞士轮，只有赛区冠军直接进季后赛'
 const EVENT_KEYS: EventKey[] = ['masters1', 'masters2', 'champions']
 
 export interface Qualified {
@@ -302,7 +302,7 @@ export function qualification(state: GameState): QualStatus | null {
       .filter((t) => t.region === me.region && t.tier === 1)
       .sort((a, b) => b.champPoints - a.champPoints || b.rating - a.rating)
     const pr = rank.findIndex((t) => t.id === state.myTeam) + 1
-    lines.push(`全年冠军积分：${me.champPoints} 分，赛区第 ${pr}。积分名额给季后赛前 2 之外积分最高的 2 队，所以积分排在前 4 附近就有机会。`)
+    lines.push(`全年冠军积分：${me.champPoints} 分，赛区第 ${pr}。季后赛前 2 之外，积分最高的 2 队拿积分名额。`)
   }
   if (!played) {
     return { event: feed.event, tone: 'info', headline: `本赛段尚未开打。前 ${cut} 进季后赛。`, lines }

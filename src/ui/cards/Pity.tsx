@@ -26,7 +26,7 @@ export default function Pity() {
   return (
     <Panel
       title="保底进度"
-      actions={<span className="tiny muted">挂在账号上，换一种包开也不重置 · 教练包不计入</span>}
+      actions={<span className="tiny muted">换包不重置 · 教练包不计入</span>}
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px 28px' }}>
         <div style={row}>
@@ -34,7 +34,7 @@ export default function Pity() {
             <b>金卡</b>
             <span className="tiny muted">
               {gold}/{HARD_PITY} · 还差 <b>{HARD_PITY - gold}</b> 抽必出
-              {soft ? '，已进入递增区，出金率每抽都在涨' : `，第 ${SOFT_PITY} 抽起概率递增`}
+              {soft ? '，概率递增中' : `，第 ${SOFT_PITY} 抽起概率递增`}
             </span>
           </div>
           <div className="bar" style={track} title={`第 ${SOFT_PITY} 抽起概率递增，第 ${HARD_PITY} 抽必出`}>

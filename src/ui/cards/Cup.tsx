@@ -39,7 +39,7 @@ export default function Cup() {
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
     const drawn = (r.result as { cup?: { path: string[] } } | undefined)?.cup?.path.length ?? 0
-    toast(`抽签完成：${drawn} 轮的签表，${cupRoundName(drawn, 0)}对手已经出来了。`)
+    toast(`抽签完成：共 ${drawn} 轮，先打${cupRoundName(drawn, 0)}。`)
   }
 
   // the bracket is played on the server, against the club it drew, with the
@@ -69,11 +69,10 @@ export default function Cup() {
         actions={<span className="tiny muted">入场 {STAMINA_COST.cup} 点体力 · 之后每轮免费</span>}
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
-          <b>{STAMINA_COST.cup} 点体力买一张门票</b>，签表 {CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，
-          <b>之后每一轮都不再收钱也不再扣体力</b>——能打到哪看阵容硬不硬。
-          对手按你的阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
-          出局按赢过的轮数给钱（{cupExitPrize(0)} 起，每赢一轮多 150）；
-          冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + 一个{PACKS.elite.name}</b>，签表越长给得越多。
+          <b>{STAMINA_COST.cup} 点体力入场</b>，{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，<b>之后每轮免费</b>。
+          对手按阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
+          出局按赢的轮数给金币（{cupExitPrize(0)} 起，每轮多 150）；
+          冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + 一个{PACKS.elite.name}</b>。
         </p>
 
         {!cup && (

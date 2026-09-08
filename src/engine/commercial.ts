@@ -46,7 +46,7 @@ const TEMPLATES: GigTemplate[] = [
   {
     kind: 'shoot', label: '拍摄', heads: 5,
     pay: [1.0, 2.0], fatigue: [12, 20], morale: [-6, -1], fans: [2, 5],
-    blurb: '队服或宣传片拍摄，全队到场，反复重拍很消耗人。',
+    blurb: '队服或宣传片拍摄，全队到场，很耗人。',
   },
   {
     kind: 'stream', label: '直播', heads: 1,
@@ -232,7 +232,7 @@ const VENTURES: Record<VentureKind, {
   bootcamp: {
     label: '线下训练营', cost: 120_000, heads: 5, lead: [7, 14],
     pay: [0.2, 0.8], fans: [2, 5], fatigue: -12, morale: 6,
-    blurb: '拉出去集训：几乎不赚钱，但恢复体能、提振士气，而且是少数能直接拉近全队关系的手段。',
+    blurb: '集训不赚钱，但恢复体能、提振士气，还能拉近全队关系。',
   },
   watchparty: {
     label: '观赛派对', cost: 30_000, heads: 2, lead: [3, 8],
@@ -369,7 +369,7 @@ export function pitchSponsor(state: GameState): string {
   if (team.sponsors.length >= sponsorSlots(team)) {
     // name which reputation and where it stands: a famous manager at a mid
     // club read the bare "声望" as his own 82 and filed this as a bug
-    return `赞助栏位已满（${sponsorSlots(team)} 家）——先解约一家才能再谈新的。俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 会各多一个栏位（现在 ${Math.round(team.reputation)}），看的是俱乐部声望，不是经理声望。`
+    return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家。俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 各多一个栏位（现在 ${Math.round(team.reputation)}）。`
   }
   // ten days between approaches: pitching is meant to be a habit, not a find
   state.pitchCooldown = state.day + 10
@@ -450,7 +450,7 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
         answer: 'offer',
       }
       state.sponsorTalks = [...(state.sponsorTalks ?? []), talk]
-      notes.push(`🤝 ${talk.name} 主动找上门谈赞助${recentWins ? '——最近的战绩他们看见了' : ''}，条件已开出，等你答复。`)
+      notes.push(`🤝 ${talk.name} 主动来谈赞助${recentWins ? '，看中了最近的战绩' : ''}，条件已开出，等你答复。`)
     }
   }
   for (const t of state.sponsorTalks ?? []) {
@@ -479,7 +479,7 @@ export function resolveSponsorTalks(state: GameState, rng: Rng): string[] {
     if (t.answer === 'offer' && t.replyOn <= state.day - 21) {
       t.answer = 'reject'
       t.reason = '等太久了，对方把预算给了别人'
-      notes.push(`⌛ ${t.name} 的赞助方案过期作废——条件摆了三周没有答复。`)
+      notes.push(`⌛ ${t.name} 的赞助方案已过期，三周没答复。`)
     }
   }
   state.sponsorTalks = (state.sponsorTalks ?? [])
@@ -492,7 +492,7 @@ export function signSponsor(state: GameState, id: string): string {
   const t = state.sponsorTalks?.find((x) => x.id === id)
   const team = state.teams[state.myTeam]
   if (!t || !team || t.answer !== 'offer') return '这份方案已经失效。'
-  if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家；俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 会各多一个栏位（现在 ${Math.round(team.reputation)}）。`
+  if (team.sponsors.length >= sponsorSlots(team)) return `赞助栏位已满（${sponsorSlots(team)} 家），先解约一家。俱乐部声望到 ${SPONSOR_SLOT_TIERS.join('、')} 各多一个栏位（现在 ${Math.round(team.reputation)}）。`
   if (team.sponsors.some((x) => x.name === t.name)) return `已经和 ${t.name} 有合作了。`
   t.answer = 'accept'
   team.sponsors = [...team.sponsors, {
@@ -630,8 +630,8 @@ export function streamWeek(state: GameState, rng: Rng, notes: string[]): void {
     state.finances.balance += weekly + gifts
     state.finances.log.push({ day: state.day, label: `直播分成 ${p.ign}`, amount: weekly })
     if (gifts) {
-      state.finances.log.push({ day: state.day, label: `直播礼物 ${p.ign} · 赢下比赛人气上涨`, amount: gifts })
-      notes.push(`📺 ${p.ign} 直播间人气因胜利上涨，礼物收入 +$${(gifts / 1000).toFixed(1)}K。`)
+      state.finances.log.push({ day: state.day, label: `直播礼物 ${p.ign}`, amount: gifts })
+      notes.push(`📺 ${p.ign} 赢球后直播间人气上涨，礼物收入 +$${(gifts / 1000).toFixed(1)}K。`)
     }
     p.fatigue = clamp(p.fatigue + p.stream.nights * rng.range(1.6, 3.2), 0, 100)
     // a night streaming is a night not practising, though milder than a shoot
@@ -703,10 +703,10 @@ export function settleSponsorDemands(state: GameState): string[] {
       return false
     })
     if (!broken) { kept.push(sp); continue }
-    notes.push(`📄 ${sp.name} 终止了合作：合同写明「${broken.text}」，本赛季没有做到。`)
+    notes.push(`📄 ${sp.name} 终止了合作：没做到「${broken.text}」。`)
     state.news.push({
       day: state.day, kind: 'club', important: true,
-      text: `📄 ${team.name} 与 ${sp.name} 的赞助因未达成约定条件而终止。`,
+      text: `📄 ${team.name} 与 ${sp.name} 的赞助因未达成条件终止。`,
     })
   }
   team.sponsors = kept

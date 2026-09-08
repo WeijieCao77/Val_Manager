@@ -274,7 +274,7 @@ function Performance({
           {series.length ? (
             <MultiRadar axes={PERF_AXES} series={series} />
           ) : (
-            <div className="empty">选择 1–2 名选手进行对比。</div>
+            <div className="empty">选 1–2 名选手对比。</div>
           )}
         </div>
         <div>
@@ -314,7 +314,7 @@ function Performance({
             </table>
           </div>
           <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-            「发挥」= 本场评分与该选手赛季均值之差。点击一行可将他加入雷达对比。
+            发挥 = 本场评分减赛季均值。点一行加入雷达对比。
           </p>
         </div>
       </div>
@@ -381,10 +381,10 @@ function Scoreboard({
                           cold is worth seeing on the sheet, not only in the
                           squad table */}
                       {p.form >= 82 && (
-                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态火热 ${Math.round(p.form)}：打得比预期好，击杀也会更多`}>🔥</span>
+                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态火热 ${Math.round(p.form)}`}>🔥</span>
                       )}
                       {p.form <= 58 && (
-                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态低迷 ${Math.round(p.form)}：最近打得不如预期，击杀会变少`}>🧊</span>
+                        <span className="tiny" style={{ marginLeft: 5 }} title={`状态低迷 ${Math.round(p.form)}`}>🧊</span>
                       )}
                       {mapBest === p.id && (
                         <span

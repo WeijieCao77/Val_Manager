@@ -63,7 +63,7 @@ export default function Account(
       track('account', { act: 'new' })
       settle(r.state.id)
     } catch {
-      setErr('创建失败，稍后再试一次。')
+      setErr('创建失败，稍后再试。')
     } finally {
       setBusy(false)
     }
@@ -83,9 +83,9 @@ export default function Account(
     } else {
       // the same three sentences the card mode's own sign-in gives
       setErr({
-        bad: 'ID 格式不对——应该是 VM- 开头、后面五组四位。',
-        missing: '没有这个 ID 的记录。检查一下有没有抄错。',
-        offline: '连不上服务器，而且这台设备上也没有这个账号的备份。',
+        bad: 'ID 格式不对：VM- 开头，后面五组四位。',
+        missing: '没有这个 ID，检查是否抄错。',
+        offline: '连不上服务器，本机也没有这个账号的备份。',
       }[r.reason])
     }
   }
@@ -116,8 +116,7 @@ export default function Account(
           <>
             {madeNow && (
               <p className="small" style={{ color: 'var(--warn)', margin: 0, lineHeight: 1.9 }}>
-                ⚠️ <b>现在就把它截图存下来。</b>没有邮箱也没有密码找回——
-                这串字符就是账号本身，丢了就找不回来了。
+                ⚠️ <b>现在就截图保存。</b>没有邮箱和密码，丢了找不回来。
               </p>
             )}
             <div className="acct-id">
@@ -128,8 +127,8 @@ export default function Account(
               <button className="sm ghost" onClick={copy}>{copied ? '已复制' : '复制'}</button>
             </div>
             <p className="tiny faint" style={{ margin: 0, lineHeight: 1.8 }}>
-              VCT电竞经理和开瓦包共用这一个账号。成就、结局、生涯数据和卡牌收藏都记在它上面，
-              换手机时在这里填进去就能全部找回。<b>相当于账号密码，不要发给别人。</b>
+              VCT电竞经理和开瓦包共用这个账号，成就、结局、生涯和卡牌收藏都在上面，换设备时填入即可找回。
+              <b>它就是密码，不要发给别人。</b>
             </p>
 
             <div className="acct-mine">
@@ -141,14 +140,13 @@ export default function Account(
         ) : (
           <>
             <p className="small muted" style={{ margin: 0, lineHeight: 1.9 }}>
-              不用邮箱，也不用密码。点一下就会给你一串 ID，
-              <b>它同时是开瓦包的账号</b>——成就、结局和卡牌收藏都记在上面，换设备靠它找回。
+              不用邮箱和密码，点一下生成一串 ID，<b>同时是开瓦包的账号</b>，换设备靠它找回。
             </p>
             <div className="acct-row">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="给自己起个名字（可留空）"
+                placeholder="昵称（可留空）"
                 maxLength={20}
               />
               <button className="primary" onClick={create} disabled={busy}>
@@ -173,7 +171,7 @@ export default function Account(
         </div>
         {err && <p className="small" style={{ color: 'var(--accent)', margin: 0 }}>{err}</p>}
         <p className="tiny faint" style={{ margin: 0 }}>
-          O 和 0、I 和 1 会自动纠正，抄错这几个字母不影响登录。
+          O/0、I/1 抄错会自动纠正。
         </p>
       </div>
     </>

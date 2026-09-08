@@ -50,7 +50,7 @@ export function OddsTables() {
           <div className="odds-head">
             <b>{r.name}</b>
             <span className="tiny muted">
-              每包 {r.draws} 张 · {r.shop ? `${r.cost.toLocaleString()} 金币` : '非卖品，靠升段／夺冠／连签七天'}
+              每包 {r.draws} 张 · {r.shop ? `${r.cost.toLocaleString()} 金币` : '非卖品：升段、夺冠或连签七天获得'}
             </span>
           </div>
           <div className="table-wrap">
@@ -107,27 +107,20 @@ export function OddsWhy() {
     <>
       <ul className="odds-why">
         <li>
-          <b>金卡保底</b>：连续 {SOFT_PITY} 抽没出金卡之后，概率每抽递增，
-          第 {HARD_PITY} 抽必出。所以实际金卡率总是高于基础值——基础值越低，
-          保底触发得越频繁，抬升也越明显。
+          <b>金卡保底</b>：连续 {SOFT_PITY} 抽没出金卡后概率递增，第 {HARD_PITY} 抽必出，所以实测金卡率高于基础值。
         </li>
         <li>
-          <b>彩卡保底</b>：连续 {MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡就必出一张。
-          这条才是决定彩卡稀有度的主要因素——单看基础值会严重低估，
-          所以上面公示的是含保底的实测值。教练包不出彩卡，也不计入这个进度。
+          <b>彩卡保底</b>：连续 {MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡必出一张。教练包不出彩卡，也不计入。
         </li>
         <li>
-          <b>保底进度挂在账号上</b>，不是挂在卡包上。换一种包开，进度不会重置。
+          <b>保底进度挂在账号上</b>，换一种包开不重置。
         </li>
         <li>
-          <b>选拔包保底银卡、十连包保底金卡</b>：如果一包里最好的那张没达到承诺，
-          会被提升上去。所以选拔包的银卡实测高于基础值，
-          而十连包的银卡实测<i>低于</i>基础值——被升成金卡了。
+          <b>选拔包保底银卡、十连包保底金卡</b>：一包里最好的一张不够档就补到该档。
         </li>
       </ul>
       <p className="tiny faint" style={{ marginBottom: 0 }}>
-        彩卡是二十一张「某个夜晚」的纪念卡，本来就设计成中不了的东西。
-        它稀有不是为了让你多花钱——这个游戏不卖任何东西。
+        彩卡是纪念特定比赛夜晚的纪念卡，极稀有。这个游戏不卖任何东西。
       </p>
     </>
   )

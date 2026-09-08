@@ -161,7 +161,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
               </div>
             </div>
           ) : (
-            <p className="small muted">这段任期没能留下任何冠军。</p>
+            <p className="small muted">这段任期没有冠军。</p>
           )}
 
           {m && (
@@ -209,9 +209,9 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
                     is named, not printed. The full string lives on 成就 and on
                     the front page, both behind a 显示 button. */}
                 {id
-                  ? '记在你的账号名下，和开瓦包是同一个（完整 ID 在「成就」页里）。'
-                  : '记在这台浏览器上。去开瓦包领一个账号 ID，收藏就能跟着你走。'}
-                鼠标悬停可以看到未解锁结局的条件。
+                  ? '记在你的账号上，和开瓦包同一个，完整 ID 在「成就」页。'
+                  : '记在这台浏览器上。创建账号 ID 后可以跨设备保存。'}
+                悬停可以看未解锁结局的条件。
               </p>
             </div>
           </div>
@@ -220,7 +220,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
             <button className="primary" onClick={onRestart}>开始新的职业生涯</button>
           </div>
           <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
-            董事会不会毫无预兆地解约——被正式警告后，下一个赛段就是你的最后机会。
+            董事会先警告再下课，警告后的下一个赛段是最后机会。
           </p>
         </div>
       </div>

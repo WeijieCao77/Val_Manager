@@ -24,9 +24,9 @@ import { CardPicker } from './Picker'
 import type { SwapRow } from '../../engine/market'
 
 const MISS: Record<FriendMiss, string> = {
-  bad: '对战码是 8 位，只有数字和 A–F 这几个字母。',
-  missing: '没有这个对战码。让他在「好友」页里复制自己的码。',
-  clash: '这个码对上了不止一个账号，换个方式找他。',
+  bad: '对战码是 8 位，只含数字和 A–F。',
+  missing: '没有这个对战码，让对方在「好友」页复制自己的码。',
+  clash: '这个码对应了多个账号，换个方式找他。',
   offline: '连不上服务器，等会儿再试。',
   empty: '这个人还没有卡。',
 }
@@ -77,43 +77,43 @@ export default function Swap() {
 
   const propose = async () => {
     if (!friend || !give || !want) { toast('先选好给什么、要什么。'); return }
-    if (!canPlay(g, 'swap', now)) { toast(`体力不够——换卡要 ${STAMINA_COST.swap} 点。`); return }
+    if (!canPlay(g, 'swap', now)) { toast(`体力不够，换卡要 ${STAMINA_COST.swap} 点。`); return }
     setBusy(true)
     const r = await proposeSwap(friend.code, give, want)
     setBusy(false)
     if (!r?.ok) {
-      toast(r?.rarity ? '只能同等级的卡互换：银卡换银卡，金卡换金卡。'
+      toast(r?.rarity ? '只能同等级互换：银换银，金换金。'
         : r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽才能换卡（已开 ${r.have}/${r.need}）。`
           : r?.theyNew ? '对方还没开够 50 抽，暂时不能和他换。'
             : r?.theyLack ? '对方没有这张卡。'
               : r?.notOwned ? '你已经没有这张卡了。'
-                : r?.stamina ? `体力不够——换卡要 ${STAMINA_COST.swap} 点。`
+                : r?.stamina ? `体力不够，换卡要 ${STAMINA_COST.swap} 点。`
                   : r?.full ? `最多同时挂 ${r.max} 个交换，先等答复或撤回一个。`
-                    : r?.self ? '不能和自己换。' : '没发出去，等会儿再试。')
+                    : r?.self ? '不能和自己换。' : '发送失败，稍后再试。')
       return
     }
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
-    toast(`已向 ${friend.name} 发出交换：${nameOf(give)} 换 ${nameOf(want)}。卡先托管着，${days} 天没答复会退回。`)
+    toast(`已向 ${friend.name} 发出交换：${nameOf(give)} 换 ${nameOf(want)}。${days} 天没答复自动退回。`)
     setGive(''); setWant('')
     void refresh()
   }
 
   const answer = async (s: SwapRow, accept: boolean) => {
-    if (accept && !canPlay(g, 'swap', now)) { toast(`体力不够——接受交换要 ${STAMINA_COST.swap} 点。`); return }
+    if (accept && !canPlay(g, 'swap', now)) { toast(`体力不够，接受交换要 ${STAMINA_COST.swap} 点。`); return }
     setBusy(true)
     const r = await answerSwap(s.id, accept)
     setBusy(false)
     if (!r?.ok) {
-      toast(r?.stamina ? `体力不够——接受交换要 ${STAMINA_COST.swap} 点。`
-        : r?.notOwned ? '你已经没有他要的那张卡了，这个交换作废，他的卡退回给他。'
+      toast(r?.stamina ? `体力不够，接受交换要 ${STAMINA_COST.swap} 点。`
+        : r?.notOwned ? '你已没有他要的那张卡，交换作废。'
           : '这个交换已经结束了。')
       void refresh()
       return
     }
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
-    toast(accept ? `成交。${nameOf(s.give)} 会到你的信箱。` : '已拒绝，他的卡退回给他。')
+    toast(accept ? `成交。${nameOf(s.give)} 会到你的信箱。` : '已拒绝，卡退回对方。')
     void refresh()
   }
 
@@ -128,7 +128,7 @@ export default function Swap() {
   if (!cloud) {
     return (
       <Panel title="换卡">
-        <p className="empty">换卡要连上服务器才能用。现在是离线模式。</p>
+        <p className="empty">换卡需要联网。</p>
       </Panel>
     )
   }
@@ -137,9 +137,9 @@ export default function Swap() {
     <>
       <Panel title="换卡" actions={<span className="tiny muted">同等级互换 · 每人 {STAMINA_COST.swap} 点体力</span>}>
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
-          用你的一张卡换朋友的一张，<b>只能同等级：银卡换银卡，金卡换金卡，彩卡换彩卡</b>。
-          发出时你的卡先托管、扣 {STAMINA_COST.swap} 点体力；对方接受时扣他 {STAMINA_COST.swap} 点，两张卡各自进信箱。
-          有重复的先走重复那张（+0）；只有一张时连强化等级一起过去。
+          用一张卡换朋友的一张，<b>只能同等级互换</b>。
+          发起扣你 {STAMINA_COST.swap} 点体力，对方接受扣他 {STAMINA_COST.swap} 点，两张卡各进信箱。
+          有重复先换重复那张（+0），只有一张时连强化等级一起换出。
         </p>
         <div className="row" style={{ gap: 6, marginBottom: 10 }}>
           <input

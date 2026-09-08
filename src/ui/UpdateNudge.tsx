@@ -60,7 +60,7 @@ export default function UpdateNudge() {
     <div className="update-nudge" role="status" aria-live="polite">
       <div className="update-body">
         <b>游戏更新了</b>
-        <span>刷新一下页面就能用上新版本，存档不受影响。</span>
+        <span>刷新页面即可使用新版本，存档不受影响。</span>
       </div>
       <button className="primary sm" onClick={() => location.reload()}>刷新</button>
       <button className="sm ghost" onClick={() => setFresh(false)} aria-label="稍后再说">稍后</button>

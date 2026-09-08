@@ -212,7 +212,7 @@ function completable(
 export function drawKickoffBracket(state: GameState, comp: Competition, byes: string[], first: string[], playDay: number): DrawEvent {
   const rng = rngFor(state, comp.key, 'bracket')
   const ev = newEvent(state, comp, 'kickoff-bracket', 'bracket',
-    '上一年 Champions 的四支队伍轮空到胜者组第二轮，其余八支随机抽入胜者组第一轮的四场对阵。',
+    '上届 Champions 的四队轮空到胜者组第二轮，其余八队抽入胜者组第一轮。',
     [{ name: '首轮参赛池', teams: first.slice() }, { name: 'Champions 轮空池', teams: byes.slice() }], playDay)
   const firstOrder = rng.shuffle(first.slice())
   const byeOrder = rng.shuffle(byes.slice())
@@ -231,7 +231,7 @@ export function drawKickoffBracket(state: GameState, comp: Competition, byes: st
 export function drawStageGroups(state: GameState, comp: Competition, pots: string[][], playDay: number): DrawEvent {
   const rng = rngFor(state, comp.key, 'groups')
   const ev = newEvent(state, comp, 'stage1-groups', 'groups',
-    '按 Kickoff 名次分成六档，每档两队：先抽出的进 Alpha 组，另一队进 Omega 组。每组各有一至六档各一队。',
+    '按 Kickoff 名次分六档，每档两队：先抽出的进 Alpha 组，另一队进 Omega 组。',
     pots.map((p, i) => ({ name: `第${'一二三四五六'[i] ?? i + 1}档（Kickoff 第 ${i * 2 + 1}、${i * 2 + 2} 名）`, teams: p.slice() })), playDay)
   const alpha: string[] = []
   const omega: string[] = []
@@ -257,7 +257,7 @@ export function drawStageReshuffle(state: GameState, comp: Competition, alpha: s
   const rng = rngFor(state, comp.key, 'reshuffle')
   const pools: [number, number][] = [[0, 1], [2, 3], [4, 5]]
   const ev = newEvent(state, comp, 'stage2-reshuffle', 'reshuffle',
-    '按 Stage 1 两组名次分成三个交换池（第 1/2 名、第 3/4 名、第 5/6 名），每池抽出一个名次：该名次的两队互换小组，另一名次留在原组。',
+    '按 Stage 1 名次分三个交换池（第 1/2、3/4、5/6 名），每池抽一个名次：该名次的两队互换小组，另一名次留在原组。',
     pools.map(([x, y]) => ({ name: `第 ${x + 1}/${y + 1} 名池`, teams: [alpha[x], omega[x], alpha[y], omega[y]].filter(Boolean) })), playDay)
   const nextAlpha = alpha.slice()
   const nextOmega = omega.slice()
@@ -290,8 +290,8 @@ export function drawSwissRound(
 ): DrawEvent {
   const rng = rngFor(state, comp.key, `swiss-r${round}`)
   const rule = round === 1
-    ? '首轮二号种子对三号种子，且不与同赛区队伍相遇。'
-    : round === 2 ? '第二轮按战绩分池：1-0 对 1-0，0-1 对 0-1。' : '第三轮 1-1 队伍互相配对，不与此前交手过的队伍重赛。'
+    ? '首轮二号种子对三号种子，同赛区不相遇。'
+    : round === 2 ? '第二轮按战绩分池：1-0 对 1-0，0-1 对 0-1。' : '第三轮 1-1 的队伍互相配对，交手过的不重赛。'
   const ev = newEvent(state, comp, 'masters-swiss', `swiss-r${round}`, rule, pools.map((p) => ({ name: p.name, teams: p.teams.slice() })), playDay)
   const pairs: [string, string][] = []
   if (round === 1) {
@@ -416,7 +416,7 @@ export function drawChampionsGroups(state: GameState, comp: Competition, pots: s
   const rng = rngFor(state, comp.key, 'groups')
   const names = ['A', 'B', 'C', 'D']
   const ev = newEvent(state, comp, 'champions-groups', 'groups',
-    '四档各四队，每组从每档各得一队，且每组必须来自四个不同赛区。签球依次落入 A 到 D 组中第一个合法的小组。',
+    '四档各四队，每组从每档各抽一队，同赛区不同组。签球依次落入 A 到 D 组中第一个合法的小组。',
     pots.map((p, i) => ({ name: `第${'一二三四'[i]}档`, teams: p.slice() })), playDay)
   const groups: string[][] = [[], [], [], []]
   pots.forEach((pot, pi) => {
@@ -461,7 +461,7 @@ export function drawChampionsPlayoffs(
 ): DrawEvent {
   const rng = rngFor(state, comp.key, 'playoffs')
   const ev = newEvent(state, comp, 'champions-playoffs', 'playoffs',
-    '每个小组第一抽一支不同组的小组第二；同组出线的两队分在不同半区，胜者组决赛之前不会重赛。',
+    '每个小组第一抽一支别组的小组第二；同组出线的两队分在不同半区，胜者组决赛前不重赛。',
     [{ name: '小组第一池', teams: firsts.slice() }, { name: '小组第二池', teams: seconds.slice() }], playDay)
   const half = (tie: number) => (tie < 2 ? 0 : 1)
   const winnersOrder = rng.shuffle(firsts.slice())
@@ -519,7 +519,7 @@ export function drawChampionsPlayoffs(
 export function createPlayoffPick(state: GameState, comp: Competition, champions: string[], qualifiers: string[], playDay: number): DrawEvent {
   const rng = rngFor(state, comp.key, 'pick')
   const ev = newEvent(state, comp, 'masters-playoff-pick', 'pick',
-    '四个赛区冠军抽出选择顺序，依次从瑞士轮晋级的四队里挑选八强对手；最后一位拿剩下的一队。',
+    '四个赛区冠军抽出选择顺序，依次从瑞士轮晋级的四队里选八强对手，最后一位拿剩下的一队。',
     [{ name: '赛区冠军', teams: champions.slice() }, { name: '瑞士轮晋级队', teams: qualifiers.slice() }], playDay)
   ev.pickOrder = rng.shuffle(champions.slice())
   ev.pickPool = qualifiers.slice()
@@ -559,11 +559,11 @@ export function pickReason(state: GameState, champion: string, cand: string, com
   const rec = comp.standings[cand]
   const met = state.fixtures.some((f) => f.played && f.comp === comp.key
     && ((f.teamA === champion && f.teamB === cand) || (f.teamB === champion && f.teamA === cand)))
-  if (met) return `${state.teams[cand]?.tag} 是交过手的对手，心里有底`
+  if (met) return `${state.teams[cand]?.tag} 交过手，心里有底`
   const tag = state.teams[cand]?.tag
-  if (rec && rec.l >= 1) return `${tag} 在瑞士轮输过一场，看起来最好啃`
-  if ((state.teams[cand]?.rating ?? 0) < 84) return `${tag} 纸面实力是四队里最弱的`
-  return `教练组权衡后选了 ${tag}`
+  if (rec && rec.l >= 1) return `${tag} 瑞士轮输过一场，最好打`
+  if ((state.teams[cand]?.rating ?? 0) < 84) return `${tag} 纸面实力四队最弱`
+  return `教练组选了 ${tag}`
 }
 
 /**
@@ -602,7 +602,7 @@ export function choosePick(state: GameState, ev: DrawEvent, comp: Competition, w
   ev.log.push(`${state.teams[who]?.tag} 选择了 ${state.teams[cand]?.tag}（${why}）`)
   state.news.push({
     day: state.day, kind: 'league', important: who === state.myTeam || cand === state.myTeam,
-    text: `${comp.name} 八强抽签：${state.teams[who]?.name} 选择 ${state.teams[cand]?.name} 作为对手——${why}。`,
+    text: `${comp.name} 八强抽签：${state.teams[who]?.name} 选了 ${state.teams[cand]?.name}（${why}）。`,
   })
   ev.revealed = ev.steps.length
   if (!pickerNow(ev)) { ev.status = 'complete'; state.pendingDrawId = undefined }

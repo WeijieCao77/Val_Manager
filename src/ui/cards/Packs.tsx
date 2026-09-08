@@ -44,7 +44,7 @@ export default function Packs() {
     const out: Pulled[] = wire
       .map((p) => { const card = cardById(p.cardId); return card ? { card, dupe: p.dupe, salvage: p.salvage } : null })
       .filter((x): x is Pulled => !!x)
-    if (!out.length) { toast('开是开了，但没读到卡——刷新看看收藏。'); return }
+    if (!out.length) { toast('没读到开出的卡，刷新看看收藏。'); return }
     track('card_pull', {
       kind,
       paid: payWith,
@@ -91,8 +91,7 @@ export default function Packs() {
       <div className="grid c2" style={{ alignItems: 'start' }}>
         <Panel title="每日签到" actions={<span className="tiny muted">连续 {g.daily.streak} 天</span>}>
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
-            每天一次，送金币和卡包。连签 3 天多一个选拔包，连签 7 天送十连包。
-            日期以服务器为准（北京时间），改手机时间没有用。
+            每天送金币和卡包，连签 3 天加送选拔包，连签 7 天送十连包。日期以服务器（北京时间）为准。
           </p>
           <div className="row" style={{ gap: 4, margin: '10px 0 12px' }}>
             {Array.from({ length: 7 }, (_, i) => {
@@ -141,7 +140,7 @@ export default function Packs() {
               </div>
             )
           })}
-          <p className="tiny faint" style={{ marginBottom: 0 }}>三个全部完成再送一个试训包。</p>
+          <p className="tiny faint" style={{ marginBottom: 0 }}>全部完成加送一个试训包。</p>
         </Panel>
       </div>
 
@@ -151,13 +150,12 @@ export default function Packs() {
           <span className="tiny muted">
             收集 {prog.owned}/{prog.total} ·
             距保底 {Math.max(0, HARD_PITY - g.pity)} 抽
-            {g.pity >= SOFT_PITY ? '（已进入保底区间，出金率提升中）' : ''}
+            {g.pity >= SOFT_PITY ? '（概率递增中）' : ''}
           </span>
         }
       >
         <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          想买几个就买几个，没有次数限制——能开多少由金币决定。
-          十连包不卖，只能靠升段、夺冠或连签七天拿。
+          用金币随时买，不限次数。十连包不卖，靠升段、夺冠或连签七天获得。
         </p>
         <div className="pack-shelf">
           {PACK_ORDER.filter((k) => !seriesOfPack(k)).map((kind) => {
@@ -195,7 +193,7 @@ export default function Packs() {
       {POSITION_PACK_KINDS.some((k) => (g.packs[k] ?? 0) > 0) && (
         <Panel title="位置奖励包" actions={<span className="tiny muted">小游戏打出来的</span>}>
           <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
-            一张能打这个位置的选手卡，不卖，只能在「小游戏」里打出来。包装和卡背按位置各一套。
+            开出一张该位置的选手卡，只能在「小游戏」里赢得。
           </p>
           <div className="pack-shelf">
             {POSITION_PACK_KINDS.filter((k) => (g.packs[k] ?? 0) > 0).map((kind) => {
@@ -218,10 +216,9 @@ export default function Packs() {
         actions={<span className="tiny muted">四个赛区，分开收集</span>}
       >
         <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          赛区包只会开出该赛区的选手，出金率和选拔包一样，贵 200 金币买的是「不会开到别的赛区」——这个赛区里你已经有的人照样会重复，重复卡照旧能升级或折金币。
-          {'　'}每个赛区的选手卡收到 25% / 50% / 75% / 90% / 100% 各有一档奖励，收齐一个赛区送买不到的十连包。
-          {'　'}彩卡另算，不影响进度——不然一张三百抽才出一次的卡会把整条进度卡死。
-          {'　'}每周轮一个主打赛区，本周是{REGION_CN[featured]}，便宜两成；四个包一直都在，不会下架。
+          赛区包只出该赛区的选手，出金率和选拔包相同，贵 200 金币。
+          {'　'}每个赛区收到 25% / 50% / 75% / 90% / 100% 各有一档奖励，收齐送十连包。彩卡不计入进度。
+          {'　'}每周轮一个主打赛区，本周是{REGION_CN[featured]}，便宜两成。
         </p>
         <div className="pack-shelf">
           {series.map((s) => {
@@ -443,7 +440,7 @@ export function PackStage({
               <div className="pack-hint" aria-live="polite">
                 {shown}/{pulled.length} · {!faceUp
                   ? '点击卡背翻开'
-                  : last ? '再点一次查看全部' : '再点一次查看下一张卡背'}
+                  : last ? '再点一次看全部' : '再点一次看下一张'}
               </div>
             )}
           </>
@@ -615,9 +612,9 @@ function PackTearGate({ count, kind, position, onOpen }: { count: number; kind: 
         </div>
       </div>
       <div className="pack-tear-instruction" aria-live="polite">
-        {torn ? '好戏，即将上场' : progress > 0 ? '继续向右划' : '按住封条，向右划开'}
+        {torn ? '即将揭晓' : progress > 0 ? '继续向右划' : '按住封条，向右划开'}
       </div>
-      <div className="pack-tear-sub">鼠标、触屏均可操作 · 键盘按 Enter</div>
+      <div className="pack-tear-sub">鼠标或触屏拖动 · 也可按 Enter</div>
     </div>
   )
 }

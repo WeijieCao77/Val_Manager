@@ -56,7 +56,7 @@ export default function Finances() {
           <Line label="选手薪资" v={wages} max={Math.max(sponsors + league, wages + upkeep)} />
           <Line label="运营开支" v={upkeep} max={Math.max(sponsors + league, wages + upkeep)} />
           <p className="tiny muted" style={{ marginTop: 12, marginBottom: 0 }}>
-            薪资与开支每 7 天按 1/48 赛季比例结算一次。资金为负会持续削弱董事会信任度。
+            薪资和开支每 7 天结算一次。资金为负会持续掉董事会信任。
           </p>
         </Panel>
 
@@ -75,7 +75,7 @@ export default function Finances() {
                     <td className="num mono pos">{money(s.bonus)}</td>
                     <td className="sticky-act">
                       <button className="sm ghost" onClick={async () => {
-                        if (!(await ask(`与 ${s.name} 解约？本赛季剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位立即空出。`))) return
+                        if (!(await ask(`与 ${s.name} 解约？剩余保底（${money(s.perSeason)}/赛季）不再支付，栏位空出。`))) return
                         toast(dropSponsor(game, i))
                         commit()
                       }}>解约</button>
@@ -91,9 +91,8 @@ export default function Finances() {
 
       <Panel title={`联盟分成 · ${deal.share}% 捆绑包分成`}>
         <p className="small muted" style={{ marginTop: 0 }}>
-          联盟每赛季付给每支{me.tier === 1 ? ' VCT ' : ' Challengers '}俱乐部
-          <b> {money(stipend)} </b>津贴（随每周结算到账），另有一笔<b>年度捆绑包</b>在赛季结束时结算——
-          你拿其中 <b>{deal.share}%</b>，比例可以每年和联盟谈一次。
+          每支{me.tier === 1 ? ' VCT ' : ' Challengers '}俱乐部每赛季有
+          <b> {money(stipend)} </b>津贴，随每周结算到账。年度捆绑包赛季末结算，你拿 <b>{deal.share}%</b>，比例每年可以谈一次。
         </p>
         <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginBottom: 10 }}>
           <span className="tag">结算方式</span>
@@ -112,7 +111,7 @@ export default function Finances() {
             </button>
           </div>
           <span className="tiny faint">
-            固定＝旱涝保收；销量＝跟声望和成绩走。只能在赛季初（Masters I 前）改，一年一次。
+            固定：旱涝保收。销量：跟声望和成绩走。只能在 Masters I 前改，一年一次。
           </span>
         </div>
         <div className="row wrap" style={{ gap: 10, alignItems: 'center' }}>
@@ -126,7 +125,7 @@ export default function Finances() {
           <span className="tiny faint">
             {deal.share >= SHARE_MAX ? `已是最高档 ${SHARE_MAX}%`
               : deal.talkedYear === game.year ? '今年已谈过，明年再来'
-              : '成功率取决于谈判技能、声望和最近的冠军。一年一次。'}
+              : '看谈判技能、声望和近期冠军。一年一次。'}
           </span>
           <div style={{ flex: 1 }} />
           <span className="small mono">
@@ -138,8 +137,7 @@ export default function Finances() {
             <div className="panel-body">
               <p className="small" style={{ marginTop: 0 }}>
                 📦 <b>联盟特别企划</b>：为你的俱乐部推出主题捆绑包。
-                现在买断拿 <b>{money(BUNDLE_BUYOUT)}</b>，或者按销量对赌——赛季结束时按声望和成绩结算
-                （照现在的水平约 {money(betPot(game))}，打得更好还会涨）。
+                现在买断拿 <b>{money(BUNDLE_BUYOUT)}</b>，或按销量对赌，赛季末按声望和成绩结算（按现在约 {money(betPot(game))}）。
                 还剩 {Math.max(0, game.leagueOffer.expires - game.day)} 天答复。
               </p>
               <div className="row" style={{ gap: 8 }}>

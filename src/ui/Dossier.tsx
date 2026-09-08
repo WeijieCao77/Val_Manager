@@ -161,7 +161,7 @@ export default function Dossier({
           </tbody>
         </table>
       </div>
-      {rows.length > 300 && <p className="tiny faint" style={{ marginTop: 10 }}>只列出了前 300 人，搜一下缩小范围。</p>}
+      {rows.length > 300 && <p className="tiny faint" style={{ marginTop: 10 }}>只显示前 300 人，搜索可缩小范围。</p>}
     </Panel>
   )
 }
@@ -212,7 +212,7 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
               <Flag nat={card.nat} /> {natName(card.nat)} · {REGION_CN[card.region]}
               <br />
               {card.age} 岁
-              {player?.birth ? `（${player.birth}）` : player?.ageEstimated ? '（生日未知，年龄为估算）' : ''}
+              {player?.birth ? `（${player.birth}）` : player?.ageEstimated ? '（年龄为估算）' : ''}
               {' · '}
               {club ? club.name : '自由人'}
               <br />
@@ -253,7 +253,7 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
                 target="_blank"
                 rel="noreferrer noopener"
               >
-                在 vlr.gg 上查看原始资料 ↗
+                vlr.gg 资料 ↗
               </a>
             )}
           </div>
@@ -271,7 +271,7 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
           ))}
           {player?.vlr?.rating != null && (
             <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0, lineHeight: 1.7 }}>
-              这些数值由真实数据分位映射得出：vlr.gg 记录的 Rating {player.vlr.rating}
+              按 vlr.gg 数据换算：Rating {player.vlr.rating}
               {player.vlr.acs != null && ` · ACS ${player.vlr.acs}`}
               {player.vlr.rounds ? ` · ${player.vlr.rounds} 回合` : ''}。
             </p>
@@ -314,7 +314,7 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
           {!records ? (
             <p className="empty">读取中…</p>
           ) : tenures.length === 0 ? (
-            <p className="empty">Liquipedia 上没有这名选手的队伍履历。</p>
+            <p className="empty">Liquipedia 没有队伍履历。</p>
           ) : (
             <ul className="cv">
               {tenures.map((t, i) => (
@@ -339,7 +339,7 @@ function Detail({ card, onBack }: { card: PlayerCard; onBack: () => void }) {
           {!records ? (
             <p className="empty">读取中…</p>
           ) : placements.length === 0 ? (
-            <p className="empty">vlr.gg 上没有这名选手的参赛记录。</p>
+            <p className="empty">vlr.gg 没有参赛记录。</p>
           ) : (
             byYear.map(([year, list]) => (
               <div key={year} style={{ marginBottom: 12 }}>

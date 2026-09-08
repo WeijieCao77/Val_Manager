@@ -11,7 +11,7 @@ import { AFDIAN } from './Support'
 export default function Credit() {
   return (
     <footer className="credit">
-      <span>作者：<b>猪之家</b>出品</span>
+      <span><b>猪之家</b>出品</span>
       <span className="sep">·</span>
       <span>小红书<b>@点点点点点点点点</b></span>
       <span className="sep">·</span>

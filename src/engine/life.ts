@@ -94,7 +94,7 @@ function milestones(state: GameState, notes: string[]): void {
     if (!hit) continue
     p.marks = { ...(p.marks ?? {}), maps: hit }
     p.morale = clamp(p.morale + 2, 0, 100)
-    notes.push(`🎖 ${p.ign} 生涯地图数来到 ${hit} 张（含加入前的职业记录）。`)
+    notes.push(`🎖 ${p.ign} 生涯地图数到 ${hit} 张（含加入前）。`)
   }
 }
 
@@ -121,8 +121,8 @@ function payDemands(state: GameState, rng: Rng, notes: string[]): void {
     p.grievance = clamp((p.grievance ?? 0) + 8, 0, 100)
     p.trust = clamp((p.trust ?? 62) - 3, 0, 100)
     notes.push(
-      `💰 ${p.ign} 认为自己的合同已经配不上现在的表现，`
-      + `希望谈到 ${Math.round(worth / 1000)}K（现 ${Math.round(p.salary / 1000)}K）。`,
+      `💰 ${p.ign} 觉得合同配不上现在的表现，`
+      + `想谈到 ${Math.round(worth / 1000)}K（现 ${Math.round(p.salary / 1000)}K）。`,
     )
   }
 }

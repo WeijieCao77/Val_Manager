@@ -20,7 +20,7 @@ import Support from './Support'
 import Changelog from './Changelog'
 import ThemeToggle from './ThemeToggle'
 import {
-  act as actOnServer, createAccount, dayOf, flushAccount, fetchDay, loadAccount, retryPending,
+  act as actOnServer, createAccount, dayOf, flushAccount, fetchDay, loadAccount, refreshAccount, retryPending,
   saveAccount, serverNow, whenStale,
 } from '../engine/account'
 import type { ActOutcome } from '../engine/account'
@@ -74,8 +74,8 @@ function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
   return (
     <div
       className={`chip${have === 0 ? ' spent' : ''}`}
-      title={`每场天梯 ${STAMINA_COST.ladder} 点、杯赛入场 ${STAMINA_COST.cup} 点（之后每轮免费）。`
-        + `${staminaRate()}，最多存 ${STAMINA_MAX} 点。`}
+      title={`天梯每场 ${STAMINA_COST.ladder} 点，杯赛入场 ${STAMINA_COST.cup} 点，之后每轮免费。`
+        + `${staminaRate()}，上限 ${STAMINA_MAX} 点。`}
     >
       ⚡ <b>{have}/{STAMINA_MAX}</b>
       {have < STAMINA_MAX && (
@@ -173,7 +173,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         // the quest board for today, for display; the server rolls the day
         // over itself the moment anything is actually done
         refreshDaily(r.state, r.today)
-        if (!r.cloud) toast('连不上服务器。收藏可以看，但开包、签到、比赛都要等联网。')
+        if (!r.cloud) toast('连不上服务器，只能看收藏。开包、签到、比赛需要联网。')
         track('card_start', {
           fresh: false, cloud: r.cloud,
           owned: Object.keys(r.state.cards).length,
@@ -196,7 +196,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     whenStale((fresh) => {
       gRef.current = fresh
       bump()
-      toast('这个账号刚在别的设备上玩过，已经同步到最新进度。')
+      toast('账号在别的设备上有新进度，已同步。')
     })
     return () => whenStale(null)
   }, [toast])
@@ -212,7 +212,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const act = useCallback(async (action: string, args: Record<string, unknown> = {}): Promise<ActOutcome> => {
     const g = gRef.current
     if (!g) return { ok: false, why: '还没登录' }
-    if (!cloud) return { ok: false, why: '连不上服务器——这一步需要联网。', offline: true }
+    if (!cloud) return { ok: false, why: '连不上服务器，这一步需要联网。', offline: true }
     const r = await actOnServer(g, action, args)
     bump()
     return r
@@ -230,8 +230,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     if (mail.length) {
       // the toast is the knock; the 信箱 button at the top is the letter
       toast(mail.length === 1
-        ? `${mailLine(mail[0])}。已收下，顶上信箱里能再看。`
-        : `信箱收到 ${mail.length} 条，都已收下——点顶上的信箱看。`)
+        ? `${mailLine(mail[0])}，已收下。`
+        : `信箱收到 ${mail.length} 条，已收下。`)
     }
     return mail.length
   }, [act, toast])
@@ -247,13 +247,25 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   // background: a sale used to wait for a reload before it reached the
   // person it paid.
   useEffect(() => {
+    // and the five chosen on another device since — the account is re-read
+    // and, if it moved, taken into this tab (engine/account.ts refreshAccount)
+    const catchUp = () => {
+      const g = gRef.current
+      if (!g) return
+      retryPending(g)
+      void refreshAccount(g).then((changed) => {
+        if (!changed || gRef.current !== g) return
+        bump()
+        toast('已同步别的设备上的改动。')
+      })
+    }
     const onVis = () => {
       if (!gRef.current) return
       if (document.visibilityState === 'hidden') { flushAccount(gRef.current); return }
-      retryPending(gRef.current)
+      catchUp()
       if (cloud) void collect()
     }
-    const onOnline = () => { if (gRef.current) retryPending(gRef.current) }
+    const onOnline = () => catchUp()
     document.addEventListener('visibilitychange', onVis)
     window.addEventListener('online', onOnline)
     return () => {
@@ -374,12 +386,12 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
           {fresh && tab === 'account' && (
             <div className="panel" style={{ borderColor: 'var(--accent-line)', marginBottom: 14 }}>
               <div className="panel-body">
-                <b style={{ color: 'var(--accent)' }}>账号已创建 —— 先把下面这串 ID 存好再玩。</b>
+                <b style={{ color: 'var(--accent)' }}>账号已创建，先把下面的 ID 存好。</b>
                 <p className="small muted" style={{ marginBottom: 0 }}>
-                  没有密码也没有邮箱，这串 ID 就是全部。存好之后点「抽卡」开始。
+                  没有密码和邮箱，ID 丢了就找不回来。
                 </p>
                 <button className="primary sm" style={{ marginTop: 10 }} onClick={() => { setFresh(false); setTab('packs') }}>
-                  已经存好了，去抽卡 →
+                  存好了，去抽卡 →
                 </button>
               </div>
             </div>
@@ -435,9 +447,9 @@ function Gate({
       onReady(r.state, false, r.cloud, r.today)
     } else {
       setErr({
-        bad: 'ID 格式不对——应该是 VM- 开头、后面五组四位。',
-        missing: '没有这个 ID 的记录。检查一下有没有抄错。',
-        offline: '连不上服务器，而且这台设备上也没有这个账号的备份。',
+        bad: 'ID 格式不对：VM- 开头，后面五组四位。',
+        missing: '没有这个 ID，检查是否抄错。',
+        offline: '连不上服务器，本机也没有这个账号的备份。',
       }[r.reason])
     }
   }
@@ -447,8 +459,8 @@ function Gate({
       <div className="wrap newgame">
         <h1 className="display">记好这串 ID</h1>
         <p className="muted" style={{ lineHeight: 1.9 }}>
-          它就是你的账号。<b style={{ color: 'var(--warn)' }}>没有密码，没有邮箱，丢了找不回来。</b>
-          <br />截图，或者复制下来存到备忘录里。
+          这就是你的账号。<b style={{ color: 'var(--warn)' }}>没有密码和邮箱，丢了找不回来。</b>
+          <br />截图或复制保存。
         </p>
         <div className="acct-id" style={{ maxWidth: 460 }}>{made.state.id}</div>
         <div className="row" style={{ gap: 8, marginTop: 12 }}>
@@ -457,7 +469,7 @@ function Gate({
             onClick={async () => {
               const ok = await copyText(made.state.id)
               setCopied(true)
-              if (!ok) setErr('这个浏览器不让自动复制——请长按上面那串手动选中，或者直接截图。')
+              if (!ok) setErr('自动复制失败，请长按手动复制，或者截图。')
             }}
           >
             {copied ? '已复制 ✓' : '复制 ID'}
@@ -480,7 +492,7 @@ function Gate({
         </div>
         {sure && !copied && (
           <p className="small warn" style={{ marginTop: 10, marginBottom: 0 }}>
-            还没复制 ID。丢了就找不回来了——再点一次就直接进入。
+            还没复制 ID，丢了找不回来。再点一次直接进入。
           </p>
         )}
         {err && <p className="small warn" style={{ marginTop: 10 }}>{err}</p>}
@@ -494,9 +506,8 @@ function Gate({
       <h1 className="display" style={{ marginBottom: 2 }}>开瓦包</h1>
       <p className="tiny faint" style={{ letterSpacing: '.34em', margin: '0 0 16px' }}>VAL CARDS</p>
       <p className="muted" style={{ lineHeight: 1.9, maxWidth: 620 }}>
-        抽真实的 VCT 选手做成的卡牌，金银铜三档，用抽到的人组一套五人阵容，
-        去打真实的职业战队。<b>同队、同国籍、同赛区</b>的选手放在一起会有默契加成——
-        一套默契拉满的阵容，能打赢平均分比它高四五分的全明星。
+        抽真实 VCT 选手做成的卡牌，金银铜三档，组一套五人阵容去打职业战队。
+        <b>同队、同国籍、同赛区</b>的选手一起上有默契加成。
       </p>
 
       <div className="grid c2" style={{ maxWidth: 720, marginTop: 20, alignItems: 'start' }}>
@@ -504,7 +515,7 @@ function Gate({
           <div className="panel-head"><h2>第一次玩</h2></div>
           <div className="panel-body">
             <p className="small muted" style={{ marginTop: 0 }}>
-              取个名字就行。系统会给你一串 ID，那就是你的账号——记得存好。
+              取个名字，会生成一串 ID 作为账号，记得存好。
             </p>
             <input
               placeholder="你的昵称"
@@ -522,7 +533,7 @@ function Gate({
           <div className="panel-head"><h2>已经有 ID 了</h2></div>
           <div className="panel-body">
             <p className="small muted" style={{ marginTop: 0 }}>
-              把之前存下来的那串填进来，收藏和段位都在。
+              填入之前保存的 ID。
             </p>
             <input
               placeholder="VM-XXXX-XXXX-XXXX-XXXX-XXXX"

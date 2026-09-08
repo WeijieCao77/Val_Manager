@@ -42,7 +42,7 @@ export default function Squad() {
       me.starters = me.starters.filter((id) => id !== p.id)
     } else {
       if (me.starters.length >= 5) {
-        toast('首发已满 5 人，请先移除一位。')
+        toast('首发已满 5 人，先移除一位。')
         return
       }
       me.starters = [...me.starters, p.id]
@@ -131,7 +131,7 @@ export default function Squad() {
             </div>
             <button
               className="sm"
-              onClick={() => { me.starters = autoStarters(game, game.myTeam); commit(); toast('已自动排出最佳首发。') }}
+              onClick={() => { me.starters = autoStarters(game, game.myTeam); commit(); toast('已排出最佳首发。') }}
             >
               自动首发
             </button>
@@ -156,9 +156,9 @@ export default function Squad() {
         {noIgl && (
           <div className="tiny" style={{ padding: '0 14px 10px', color: 'var(--warn)' }}>
             <div style={{ marginBottom: 6 }}>
-              没有指挥的五人组在攻防两端各扣 4 分、中局决策再扣 3 分——比缺任何一个位置都贵。
-              {benchedIgl && `把 ${benchedIgl.ign} 放进首发，或让首发里的人接过指挥：`}
-              {hurtIgl && `${hurtIgl.ign} 伤停期间上不了场，先让别人接过指挥（伤愈后可以再任命回来）：`}
+              没有指挥：攻防各扣 4 分，中局决策再扣 3 分。
+              {benchedIgl && `把 ${benchedIgl.ign} 放进首发，或让首发里的人指挥：`}
+              {hurtIgl && `${hurtIgl.ign} 伤停中，先让别人指挥，伤愈后可以再任命回来：`}
             </div>
             <div className="row wrap" style={{ gap: 6 }}>
               {me.starters
@@ -234,8 +234,8 @@ export default function Squad() {
                         <span className="tag" style={{ opacity: iglsInSquad.length > 1 && p.id !== caller?.id ? 0.55 : 1 }}
                           title={iglsInSquad.length > 1
                             ? (p.id === caller?.id
-                              ? `主指挥：队里有 ${iglsInSquad.length} 名指挥出身的选手，由他实际喊话（指挥 ${p.attrs.igl}）`
-                              : `副指挥：${caller?.ign} 不在场上时由他喊话——点开他可以任命为主指挥`)
+                              ? `主指挥（指挥 ${p.attrs.igl}），队里有 ${iglsInSquad.length} 名指挥出身的选手`
+                              : `副指挥：${caller?.ign} 不在场时由他喊话，点开可任命为主指挥`)
                             : '队内指挥'}>
                           {iglsInSquad.length > 1 ? (p.id === caller?.id ? '主指挥' : '副指挥')
                             : p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
@@ -245,7 +245,7 @@ export default function Squad() {
                       {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役">退役</span>}
                       {(p.grievance ?? 0) > 45 && !p.listed && (
                         <span className="tag warn"
-                          title={`不满 ${Math.round(p.grievance ?? 0)}/100——出场承诺、薪资、被拒的转会都会积累。高不满的选手更容易接受别队报价。`}>
+                          title={`不满 ${Math.round(p.grievance ?? 0)}/100，出场承诺、薪资、被拒的转会都会积累；不满高的更容易接受别队报价。`}>
                           想走
                         </span>
                       )}
@@ -335,13 +335,8 @@ export default function Squad() {
 
       <Panel title={`更衣室 · 全队默契 ${harmony >= 0 ? '+' : ''}${harmony.toFixed(0)}`} flush>
         <p className="small muted" style={{ padding: '10px 14px 0', margin: 0 }}>
-          每两名选手之间有独立的关系值。他们首先是<b>每天一起训练的队友</b>，所以开局都在
-          40~70 这一档——<b>差距有，但不会有人一上来就跟队友结怨</b>。拉开差距的因素依次是：
-          <b>一起打了多久</b>（取自 Liquipedia 的真实转会履历，四年约 +10）、同国籍、
-          位置上要天天配合（决斗↔先锋、控场↔哨卫）、年纪相仿、本身协同沟通就好。
-          多年老班底通常比刚拼起来的阵容高十几分。之后：<b>赢球让所有人更亲近</b>；输球时，如果一个人打得
-          明显好而另一个明显差，差的一方会被记账，而且<b>矛盾会滚雪球</b>。关系会缓慢回落到
-          两人各自的基准线，而不是回到某个统一值。<b>双排练</b>是最直接的修复手段。
+          每两名选手之间有独立的关系值。一起打得越久、同国籍、位置上要配合、年纪相仿，关系越高。
+          赢球拉近所有人；输球时打得差的一方会被记账，矛盾会滚雪球。<b>双排练</b>是最直接的修复手段。
         </p>
         <div className="table-wrap">
           <table className="bond-grid">
@@ -389,7 +384,7 @@ export default function Squad() {
           <span>+100 生死之交</span>
           {worst && worst.value <= -25 && (
             <span style={{ color: 'var(--accent)' }}>
-              ⚠ {worst.a.ign} 和 {worst.b.ign} 关系已经很僵，会拖累全队配合。
+              ⚠ {worst.a.ign} 和 {worst.b.ign} 关系很僵，拖累全队配合。
             </span>
           )}
         </div>

@@ -47,7 +47,7 @@ export default function Career() {
 
   const move = async (teamId: string, fn: () => string) => {
     const name = game.teams[teamId]?.name
-    if (!(await askConfirm(`确定离开 ${me?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`))) return
+    if (!(await askConfirm(`确定离开 ${me?.name}，出任 ${name} 的经理？\n阵容、资金和赛段目标都会换成新俱乐部的。`))) return
     toast(fn())
     commit()
   }
@@ -94,8 +94,7 @@ export default function Career() {
           </div>
           <p className="small muted" style={{ marginTop: 0 }}>
             以你的声望，这个位置的合理年薪约 <b>{money(fairHere)}</b>。
-            涨薪要看董事会信任、你的冠军数，以及<b>有没有别的球队在挖你</b>——
-            手上有邀请时最好谈。刚被警告过就别开口了。
+            手上有别队邀请时最好谈；刚被警告过就别开口。
           </p>
           <div className="row wrap" style={{ gap: 8, alignItems: 'center' }}>
             <input
@@ -157,9 +156,7 @@ export default function Career() {
 
       <Panel title="主动求职">
         <p className="small muted" style={{ marginTop: 0 }}>
-          不必干等着别人来找。任何一支愿意接你电话的球队都可以投申请——
-          <b>成绩不好的球队最容易点头</b>，一切顺利的球队反而最难进，因为没人要走。
-          要价太高也会被拒。答复需要 3~10 天。
+          成绩差的球队最容易点头，要价太高会被拒。3~10 天内答复。
         </p>
         {applyTo && (() => {
           const t = game.teams[applyTo]
@@ -232,7 +229,7 @@ export default function Career() {
           </table>
         </div>
         {candidates.length === 0 && (
-          <div className="empty">目前没有球队会考虑你的申请，先做出成绩。</div>
+          <div className="empty">目前没有球队会考虑你，先做出成绩。</div>
         )}
         <p className="tiny faint" style={{ marginBottom: 0 }}>
           共 {WORLD_TEAMS.length} 支球队，其中 {candidates.length} 支愿意考虑你。

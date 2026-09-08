@@ -29,11 +29,10 @@ export default function Tactics() {
       <Panel
         title="各图预案 · 每张图的英雄阵容和战术"
         className="own"
-        actions={<span className="tiny faint">训练赛按这里打，跑图练的也是它</span>}
+        actions={<span className="tiny faint">训练赛和跑图都按这里练</span>}
       >
         <p className="small muted" style={{ marginTop: 0 }}>
-          在这里把每张图的<b>五个英雄</b>和<b>四条滑杆</b>定好，赛前就不用再调。
-          <b>同一套阵容打得越多越熟</b>——熟练度进比赛是加分，临时换五个人从零开始。
+          定好每张图的五个英雄和四条滑杆，赛前不用再调。同一套阵容打得越多越熟，熟练度进比赛是加分。
         </p>
         <MapPlan maps={pool} mode="plan" />
       </Panel>
@@ -88,7 +87,7 @@ export default function Tactics() {
             ))}
           </div>
           {!lineup.some((p) => p.isIgl) && (
-            <p className="small neg">⚠ 首发中没有指挥（IGL），中局应变会受到明显惩罚。</p>
+            <p className="small neg">⚠ 首发没有指挥（IGL），中局应变大减。</p>
           )}
           <p className="tiny faint" style={{ marginBottom: 0 }}>以 {mapCn(pool[0])} 的预案计算。</p>
         </Panel>
@@ -129,7 +128,7 @@ export default function Tactics() {
           </table>
         </div>
         <p className="tiny muted" style={{ padding: '10px 14px', margin: 0 }}>
-          BP 会 ban 掉对手熟练度高的图、留自己擅长的。阵容熟练度看的是这张图预案里那五个英雄，50 是中立。
+          BP 会 ban 对手熟练的图、留自己擅长的。阵容熟练度看这张图预案的五个英雄，50 是中立。
         </p>
       </Panel>
     </>

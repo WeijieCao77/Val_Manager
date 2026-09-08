@@ -277,7 +277,7 @@ function createMasters(state: GameState, stage: StageKey, name: string, feeder: 
   else state.fixtures.push(...swissNext(state, comp, swiss, day))
   state.news.push({
     day: state.day, kind: 'league', important: true,
-    text: `${name}（${comp.city}）参赛名单出炉：${byes.map((t) => state.teams[t]?.name).join('、')} 作为赛区冠军直接进入季后赛；`
+    text: `${name}（${comp.city}）参赛名单：${byes.map((t) => state.teams[t]?.name).join('、')} 赛区冠军直接进季后赛；`
       + `${swiss.map((t) => state.teams[t]?.name).join('、')} 先打瑞士轮。`,
   })
 }
@@ -311,7 +311,7 @@ function createChampions(state: GameState, name: string, day: number): void {
     holdDraw(state, drawChampionsGroups(state, comp, pots, day), false)
     state.news.push({
       day: state.day, kind: 'league', important: true,
-      text: `${name}（${comp.city}）参赛名单出炉，分组抽签待举行：${all.map((t) => state.teams[t]?.tag).join('、')}。`,
+      text: `${name}（${comp.city}）参赛名单：${all.map((t) => state.teams[t]?.tag).join('、')}，分组抽签待举行。`,
     })
     return
   }
@@ -388,7 +388,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
       state.rivalry = (state.rivalry ?? 0) + 1
       state.news.push({
         day: state.day, kind: 'league', important: true,
-        text: `🔥 ${champ?.name} 的 ${comp.name} 冠军震动了各赛区——多家俱乐部宣布加练备战，休赛期引援预计更加激进。`,
+        text: `🔥 ${champ?.name} 拿下 ${comp.name} 后，各赛区俱乐部加练备战，休赛期引援会更激进。`,
       })
     }
     // winning is what actually makes your name
@@ -416,7 +416,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
       state.finances.log.push({
         day: state.day, label: `赞助达标奖 · ${sp.name}（${comp.name} 第 ${place} 名）`, amount: sp.bonus,
       })
-      notes.push(`💰 ${sp.name} 的达标奖金 $${sp.bonus.toLocaleString()} 到账——${comp.name} 第 ${place} 名，合同要求前 ${sp.bonusPlacement}。`)
+      notes.push(`💰 ${sp.name} 达标奖金 $${sp.bonus.toLocaleString()} 到账：${comp.name} 第 ${place} 名，合同要求前 ${sp.bonusPlacement}。`)
     }
   }
   if (comp.champion !== state.myTeam && comp.teams.includes(state.myTeam)) {
@@ -430,7 +430,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
         // second time by raw share of the table, and the two disagreed: a side
         // asked for「不低于第 10 名」that finished 9th of 12 read「✅ 目标达成，
         // 董事会满意」and「📉 董事会不满（信任 -7）」in the same digest.
-        notes.push(`🏁 ${rank}。董事会的要求是前 ${obj.placeAtLeast}，赛段结束时按这个评价。`)
+        notes.push(`🏁 ${rank}。董事会要求前 ${obj.placeAtLeast}，赛段结束再评。`)
       } else {
         // An event nobody briefed us on — Masters, Champions, Ascension. The
         // board reads it against the field: a top-third finish is good news
@@ -447,7 +447,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
         notes.push(
           swing > 0 ? `🏅 ${rank}，董事会满意（信任 +${swing}）。`
             : swing < 0 ? `📉 ${rank}，按实力本该在第 ${seed + 1} 名上下，董事会不满（信任 ${swing}）。`
-              : share > 0.7 ? `🏁 ${rank}——以队伍实力这在预期之内，董事会没有意见。`
+              : share > 0.7 ? `🏁 ${rank}，符合实力，董事会没意见。`
                 : `🏁 ${rank}。`,
         )
       }
@@ -534,7 +534,7 @@ function consumeDraw(state: GameState, comp: Competition, ev: DrawEvent): void {
       })
       state.news.push({
         day: state.day, kind: 'league', important: mine(comp.teams),
-        text: `${comp.name} 分组抽签完成——Alpha：${groups[0]?.map((t) => state.teams[t]?.tag).join('、')}；Omega：${groups[1]?.map((t) => state.teams[t]?.tag).join('、')}。`,
+        text: `${comp.name} 分组抽签：Alpha ${groups[0]?.map((t) => state.teams[t]?.tag).join('、')}；Omega ${groups[1]?.map((t) => state.teams[t]?.tag).join('、')}。`,
       })
       break
     }
@@ -684,7 +684,7 @@ function progressCompetitions(state: GameState, notes: string[] = [], autoPick =
         const pick = createPlayoffPick(state, comp, comp.byes ?? [], through, when)
         state.news.push({
           day: state.day, kind: 'league', important: [...(comp.byes ?? []), ...through].includes(state.myTeam),
-          text: `${comp.name} 瑞士轮结束，${through.map((t) => state.teams[t]?.name).join('、')} 晋级。四个赛区冠军按抽出的顺序选择八强对手：${pick.pickOrder?.map((t) => state.teams[t]?.tag).join(' → ')}。`,
+          text: `${comp.name} 瑞士轮结束，${through.map((t) => state.teams[t]?.name).join('、')} 晋级。赛区冠军选八强对手，顺序：${pick.pickOrder?.map((t) => state.teams[t]?.tag).join(' → ')}。`,
         })
         holdDraw(state, pick, autoPick)
         continue
@@ -1085,8 +1085,8 @@ export function judgeTenure(
     const streak = state.missedStreak ?? 0
     const conf = Math.round(state.boardConfidence)
     const why = streak >= 2
-      ? `连续 ${streak} 个赛段没有达成目标，信任度已经跌到 ${conf}%。`
-      : `被警告之后又交了一个不合格的赛段（本赛段第 ${place} 名），信任度只剩 ${conf}%。`
+      ? `连续 ${streak} 个赛段没达成目标，信任度跌到 ${conf}%。`
+      : `警告后这个赛段又没达标（第 ${place} 名），信任度只剩 ${conf}%。`
     state.gameOver = `${club} 董事会决定解除你的职务。${why}`
     track('sacked', {
       day: state.day, year: state.year, stage: state.stage,
@@ -1102,8 +1102,8 @@ export function judgeTenure(
   if (!state.onNotice && (state.boardConfidence <= 20 || (state.missedStreak ?? 0) >= 2)) {
     state.onNotice = true
     // say what takes it off, or 「已被警告」 reads as a permanent mark
-    const warn = `⚠ 董事会正式警告：再有一个赛段交不出成绩，就会换人。`
-      + `（当前信任度 ${Math.round(state.boardConfidence)}%——${noticeHint(state)}）`
+    const warn = `⚠ 董事会警告：再有一个赛段交不出成绩，就换人。`
+      + `信任度 ${Math.round(state.boardConfidence)}%，${noticeHint(state)}。`
     notes.push(warn)
     state.news.push({ day: state.day, kind: 'club', important: true, text: warn })
     return
@@ -1113,7 +1113,7 @@ export function judgeTenure(
   // against a placing the brief never asked for
   if (state.onNotice && met && state.boardConfidence >= NOTICE_LIFT) {
     state.onNotice = false
-    const ok = `董事会撤回了此前的警告（第 ${place} 名，达成目标；信任度 ${Math.round(state.boardConfidence)}%），你坐稳了位置。`
+    const ok = `董事会撤回了警告：第 ${place} 名达成目标，信任度 ${Math.round(state.boardConfidence)}%。`
     notes.push(ok)
     state.news.push({ day: state.day, kind: 'club', important: true, text: ok })
   }
@@ -1198,7 +1198,7 @@ export function settleClubReputation(state: GameState, notes: string[]): void {
         if (t.id === state.myTeam && Math.round(t.reputation) !== Math.round(before)) {
           const up = t.reputation > before
           notes.push(`${up ? '📈' : '📉'} 俱乐部声望 ${Math.round(before)} → ${Math.round(t.reputation)}：${
-            up ? '这个赛季的成绩和实力配得上更高的位置' : '按这个赛季的实力和排名，外界对俱乐部的看法在降温'}。`)
+            up ? '这赛季的成绩配得上更高的位置' : '这赛季的成绩撑不住原来的位置'}。`)
         }
       }
     }
@@ -1819,10 +1819,10 @@ function retirePlayer(state: GameState, p: Player, notes: string[]): string {
   if (mine || star) {
     state.news.push({
       day: state.day, kind: 'player', important: mine,
-      text: `👋 ${p.ign} 正式挂上鼠标，结束了他的职业生涯——${p.age} 岁${t ? `，最后一站 ${t.name}` : ''}。`,
+      text: `👋 ${p.ign} 正式退役，${p.age} 岁${t ? `，最后一站 ${t.name}` : ''}。`,
     })
   }
-  if (mine) notes.push(`👋 ${p.ign} 正式退役，${p.age} 岁。他的告别卡已经备好。`)
+  if (mine) notes.push(`👋 ${p.ign} 正式退役，${p.age} 岁。告别卡已备好。`)
   delete state.players[p.id]
   return mine || star ? '' : `${p.ign}（${p.age} 岁${t ? `，${t.tag}` : ''}）`
 }
@@ -1845,9 +1845,9 @@ export function persuadeStay(
 ): string {
   const p = state.players[playerId]
   if (!p) return '找不到这名选手。'
-  if (p.teamId !== state.myTeam) return '他不是你队里的人，这话轮不到你说。'
+  if (p.teamId !== state.myTeam) return '他不是你队里的人。'
   if (!p.retiring) return `${p.ign} 没打算退役。`
-  if (p.persuaded) return '你已经和他谈过了——他的决定应该被尊重。'
+  if (p.persuaded) return '你已经和他谈过了，只能谈一次。'
   p.persuaded = true
 
   const locker = state.manager?.skills.locker ?? 50
@@ -1867,9 +1867,9 @@ export function persuadeStay(
         if (p.contract) p.contract.salary = p.salary
         p.contractYears = Math.max(1, p.contractYears)
         p.morale = clamp(p.morale + 8, 0, 100)
-        return stays(`${p.ign} 收下了那份加薪合同——再战一年，年薪 $${p.salary.toLocaleString()}。`)
+        return stays(`${p.ign} 收下加薪合同，再战一年，年薪 $${p.salary.toLocaleString()}。`)
       }
-      return `${p.ign} 把合同推了回来："不是钱的事。" 他心意已决，赛季打完就走。`
+      return `${p.ign} 把合同推了回来："不是钱的事。"赛季打完还是要走。`
     }
     case 'bench': {
       const odds = clamp(0.42 + (locker - 50) * 0.007, 0.15, 0.8)
@@ -1880,15 +1880,15 @@ export function persuadeStay(
           if (t.starters.length < 5) t.starters = autoStarters(state, state.myTeam)
         }
         p.morale = clamp(p.morale + 3, 0, 100)
-        return stays(`${p.ign} 同意退居替补，把经验留给年轻人——他还在更衣室里，这就够了。`)
+        return stays(`${p.ign} 同意退居替补，留下来带年轻人。`)
       }
-      return `${p.ign} 苦笑了一下："让我坐着看别人打？那还不如回家。" 他决定退役。`
+      return `${p.ign} 苦笑："让我坐着看别人打？那还不如回家。"他还是要退役。`
     }
     case 'transfer': {
       p.listed = true
       p.listedOn = state.day
       p.morale = clamp(p.morale + 4, 0, 100)
-      return stays(`${p.ign} 没想到你会成全他——他想换个环境打最后一舞，已挂牌，转会费能收回一点是一点。`)
+      return stays(`${p.ign} 想换个环境打最后一年，已挂牌，转会费能收一点是一点。`)
     }
     case 'accept': {
       p.morale = clamp(p.morale + 6, 0, 100)
@@ -1896,15 +1896,15 @@ export function persuadeStay(
         day: state.day, kind: 'player', important: true,
         text: `🫡 俱乐部官宣：将在赛季末为 ${p.ign} 举办退役仪式。`,
       })
-      return `你握了握他的手。俱乐部会在赛季末为 ${p.ign} 办一场配得上他生涯的退役仪式。`
+      return `赛季末俱乐部会为 ${p.ign} 办退役仪式。`
     }
     default: {
       const odds = clamp(0.3 + (locker - 50) * 0.008 + (p.morale - 60) * 0.004, 0.1, 0.8)
       if (roll < odds) {
         p.morale = clamp(p.morale + 6, 0, 100)
-        return stays(`${p.ign} 被你说动了——退役计划搁置，再战一年。`)
+        return stays(`${p.ign} 被你说动了，再战一年。`)
       }
-      return `${p.ign} 听完摇了摇头——他心意已决，这个赛季打完就走。让他体面地离开吧。`
+      return `${p.ign} 摇了摇头，赛季打完还是要走。`
     }
   }
 }
@@ -1937,7 +1937,7 @@ export function continuePastFive(state: GameState): void {
   state.midReviewDone = true
   state.news.push({
     day: state.day, kind: 'club', important: true,
-    text: '你谢绝了功成身退的机会——这份工作干到 2036 年为止。',
+    text: '你留了下来，这份工作干到 2036 年。',
   })
 }
 
@@ -1956,7 +1956,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // played longest. Asked late is right; not asked at all is not.
   if (state.year >= MID_YEAR && state.year < FINAL_YEAR && !state.midReviewDone) {
     state.midReview = true
-    notes.push(`⏳ ${tenureCn(state.year)}年之期已到——是就此收官拿一个结局，还是继续带到 2036？`)
+    notes.push(`⏳ ${tenureCn(state.year)}年之期已到：现在收官拿结局，还是带到 2036？`)
     return
   }
 
@@ -2035,10 +2035,10 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     reprice(promoted, step)
     reprice(relegated, 1 / step)
     if (promoted.id === state.myTeam) {
-      notes.push('💰 升入一级联赛后，赞助合同全部重新议价，收入大幅提高。')
+      notes.push('💰 升入一级联赛，赞助合同重新议价，收入大幅提高。')
     }
     if (relegated.id === state.myTeam) {
-      notes.push('📉 降级后赞助合同被重新议价，赛季收入大幅缩水——先把薪资压下来。')
+      notes.push('📉 降级后赞助合同重新议价，收入大幅缩水，先把薪资压下来。')
     }
     state.news.push({
       day: state.day, kind: 'league', important: true,
@@ -2077,16 +2077,16 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
           p.expiredYear = undefined
           state.news.push({
             day: state.day, kind: 'club', important: true,
-            text: `👋 ${p.ign} 的合同到期满一年未续约，已经离队。`,
+            text: `👋 ${p.ign} 合同到期一年未续约，已离队。`,
           })
           notes.push(`👋 ${p.ign} 合同到期一年未续，已自由转会离队。`)
         } else {
           p.expiredYear ??= state.year
           state.news.push({
             day: state.day, kind: 'club', important: true,
-            text: `⏳ ${p.ign} 的合同已到期，本赛季内必须续约，否则下个休赛期他会走。`,
+            text: `⏳ ${p.ign} 合同到期，本赛季不续约，下个休赛期就走。`,
           })
-          notes.push(`⏳ ${p.ign} 的合同已到期——这是最后一个赛季，不续约他就走了。`)
+          notes.push(`⏳ ${p.ign} 合同到期，这是最后一个赛季，不续约就走。`)
           p.contractYears = 0
         }
       } else if (team) {
@@ -2186,7 +2186,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         noticed.push(`${p.ign}（${tag}）`)
       }
       if (mine) {
-        notes.push(`📢 ${p.ign} 告诉你，这将是他的最后一个赛季——想留他，去他的资料页当面谈。`)
+        notes.push(`📢 ${p.ign} 说这是他最后一个赛季。想留他，去资料页谈。`)
       }
     }
   }
@@ -2428,14 +2428,14 @@ export function scrimReply(
       ((f.teamA === state.myTeam && f.teamB === oppId) ||
        (f.teamB === state.myTeam && f.teamA === oppId)),
   )
-  if (soon) return { ok: false, reason: `${opp.name} 很快要和我们打正赛，不想提前暴露战术。` }
+  if (soon) return { ok: false, reason: `${opp.name} 很快要和我们打正赛，不想暴露战术。` }
 
   const gap = opp.rating - me.rating
   const rng = new Rng(hashStr(`scrim:${state.seed}:${state.day}:${oppId}`))
   if (gap >= 10 && rng.chance(0.55 + (gap - 10) * 0.03)) {
-    return { ok: false, reason: `${opp.name} 认为和我们打收益不大，婉拒了。` }
+    return { ok: false, reason: `${opp.name} 觉得和我们打收益不大，婉拒了。` }
   }
-  if (rng.chance(0.12)) return { ok: false, reason: `${opp.name} 这几天的训练安排已经排满了。` }
+  if (rng.chance(0.12)) return { ok: false, reason: `${opp.name} 这几天训练排满了。` }
   return { ok: true }
 }
 

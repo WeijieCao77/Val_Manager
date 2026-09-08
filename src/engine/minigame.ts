@@ -84,14 +84,14 @@ export function judgeSchulte(t: unknown, elapsedMs: number): Verdict {
   for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] < MIN_STEP_MS) return { ok: false, why: '有一步快得不像人' }
   const wrong = Math.max(0, Math.min(200, Math.round(num(tr.wrong) ?? 0)))
   const last = ts[ts.length - 1]
-  if (last > elapsedMs + 2000) return { ok: false, why: '记录的时间比服务器的钟还快' }
+  if (last > elapsedMs + 2000) return { ok: false, why: '计时比服务器的钟还快' }
   if (last > 5 * 60_000) return { ok: false, why: '这局放太久了' }
   const ms = last + wrong * SCHULTE_PENALTY_MS
   const tier: Tier = ms <= SCHULTE_GOLD_MS ? '金' : ms <= SCHULTE_SILVER_MS ? '银' : '铜'
   const score = Math.max(0, Math.min(100, Math.round(100 - (ms - 15_000) / 300)))
   return {
     ok: true, tier, score,
-    summary: `${(ms / 1000).toFixed(1)} 秒完成${wrong ? `（含 ${wrong} 次点错的罚时）` : ''}`,
+    summary: `${(ms / 1000).toFixed(1)} 秒完成${wrong ? `（点错 ${wrong} 次）` : ''}`,
     detail: { ms, wrong },
   }
 }
@@ -115,7 +115,7 @@ export function judgeAim(seed: number, t: unknown, elapsedMs: number): Verdict {
   const targets = aimSchedule(seed)
   const tr = (t ?? {}) as { hits?: unknown }
   if (!Array.isArray(tr.hits) || tr.hits.length !== targets.length) return { ok: false, why: '记录不完整' }
-  if (elapsedMs < AIM_ROUND_MS - 1500) return { ok: false, why: '这局还没到时间就结束了' }
+  if (elapsedMs < AIM_ROUND_MS - 1500) return { ok: false, why: '这局没打满时间' }
   const react: number[] = []
   for (const h of tr.hits) {
     if (h == null) continue
@@ -172,7 +172,7 @@ export function judgeRecon(seed: number, t: unknown, elapsedMs: number): Verdict
     if (x == null || y == null || x < window.x - 0.01 || x > window.x + window.s + 0.01 || y < window.y - 0.01 || y > window.y + window.s + 0.01) return { ok: false, why: '标记不在这块地图上' }
     marks.push({ x, y })
   }
-  if (elapsedMs < RECON_N * (RECON_SHOW_MS + RECON_GAP_MS) - 500) return { ok: false, why: '人还没亮完就报点了' }
+  if (elapsedMs < RECON_N * (RECON_SHOW_MS + RECON_GAP_MS) - 500) return { ok: false, why: '还没亮完就报点了' }
   const mpm = METRES_PER_MAP[window.map]
   let best: { sum: number; d: number[] } | null = null
   for (const p of perms([0, 1, 2, 3])) {

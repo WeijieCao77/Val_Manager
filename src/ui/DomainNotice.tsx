@@ -62,9 +62,9 @@ export default function DomainNotice() {
       <div className="update-body">
         <b>这个网址以后会停用，请改用 {CANONICAL}</b>
         <span>
-          存档只认网址：这台设备在这个网址下的东西不会自动搬过去。
+          这个网址下的存档不会自动搬过去。
           生涯存档请到「存档」页<b>导出为文件</b>，再到 {CANONICAL} 的开始页导入；
-          开瓦包在那边输入你的 ID 就能接上。
+          开瓦包在那边输入 ID 即可。
           {id && <>{' '}你的 ID：<code>{id}</code></>}
         </span>
       </div>

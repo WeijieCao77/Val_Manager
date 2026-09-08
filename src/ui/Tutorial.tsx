@@ -55,31 +55,31 @@ interface Step {
 const STEPS: Step[] = [
   {
     title: '你是一支 VALORANT 战队的经理',
-    body: '你不打比赛。你决定谁上场、练什么、买谁、接哪些商务——然后推进时间，看结果。\n\n'
+    body: '你不打比赛。你决定谁上场、练什么、买谁、接哪些商务，然后推进时间看结果。\n\n'
       + '⚡ 每回合有几点行动力，对外的事（报价、商务、约战）花点数，队内设置不花。\n'
       + '📅 赛季中一天一回合，空档期一周一回合。\n'
       + '🏛 董事会给你赛段目标，达不到会先警告、再下课。\n'
       // Worth saying on the first screen rather than discovering it in 2036:
       // this career has an end, and the end is graded. Interpolated from
       // MID_YEAR / FINAL_YEAR so the sentence cannot drift away from the engine.
-      + `🏁 打完 ${MID_YEAR} 赛季有一次「五年之约」——可以就此收官领取结局，`
-      + `也可以继续执教；生涯最长到 ${FINAL_YEAR} 年，走完十年有单独的成就。`,
+      + `🏁 打完 ${MID_YEAR} 赛季有一次「五年之约」，可以收官领结局，也可以继续；`
+      + `生涯最长到 ${FINAL_YEAR} 年，走完十年有单独的成就。`,
   },
   {
     title: '下面用一天试一遍',
-    body: '接下来这一天是**模拟的**（12 月 31 日），你做的任何事结束后都会撤销，'
-      + '不会影响正式存档。跟着高亮走就行。',
+    body: '接下来这一天是**模拟的**（12 月 31 日），做的事结束后全部撤销，不影响存档。'
+      + '跟着高亮走。',
   },
   {
     screen: 'dashboard', spot: '.chip.actions',
     title: '行动力：今天能做几件对外的事',
-    body: '顶栏这枚「行动力」是今天的额度。**报价、问价、谈商务、约训练赛、换教练、挂牌解约**这些对外的事各花 1 点；'
-      + '**首发、战术、训练安排不花**。赛季中每天 2 点，空档期每周 4 点，用完就只能推进时间了。',
+    body: '顶栏的「行动力」是今天的额度。**报价、问价、谈商务、约训练赛、换教练、挂牌解约**各花 1 点；'
+      + '**首发、战术、训练安排不花**。赛季中每天 2 点，空档期每周 4 点，用完就推进时间。',
   },
   {
     screen: 'dashboard', spot: '.advance-bar',
     title: '总览：每天从这里结束',
-    body: '最上面是待办，这条红色的大按钮是推动时间往前的地方。先别按，我们先去干活。',
+    body: '最上面是待办，红色大按钮用来推进时间。先别按。',
   },
   {
     screen: 'squad', navigate: true, spot: '.nav-item[data-key="squad"]',
@@ -89,19 +89,19 @@ const STEPS: Step[] = [
   {
     screen: 'squad', spot: '[data-tut="squad-table"]',
     title: '阵容表：首发、能力、合同',
-    body: '最左边的勾是**首发五人**（要凑齐决斗者、先锋、控场、哨卫，还得有一个指挥）。'
-      + '「能力」是综合评分，「合同」是还剩几年，最右边的**续约 / 解约**直接在表里点。'
-      + '再往下是「更衣室」——每两名选手之间的关系。\n\n'
-      + '现在**点任意一名选手的名字**，打开他的详情。',
+    body: '最左边的勾是**首发五人**，要凑齐决斗者、先锋、控场、哨卫，还得有一个指挥。'
+      + '「能力」是综合评分，「合同」是剩几年，**续约 / 解约**直接在表里点。'
+      + '再往下的「更衣室」是选手两两之间的关系。\n\n'
+      + '**点任意一名选手的名字**打开详情。',
     done: (_g, ui) => ui.playerOpen,
     hint: '点一个名字即可继续',
   },
   {
     screen: 'squad', spot: '.modal-bg, [data-tut="player-actions"]',
     title: '选手详情：能做的三件事',
-    body: '八项能力和雷达图之外，底下这一排按钮才是操作：'
+    body: '底下一排按钮：'
       + '**「续约 / 谈条件」**谈新合同，**「挂牌出售」**让别的俱乐部来问价，'
-      + '**「任命为指挥」**把队内指挥交给他——没有指挥的五人组攻防各扣 4 分。\n\n'
+      + '**「任命为指挥」**让他当指挥，没有指挥的首发攻防各扣 4 分。\n\n'
       + '看完点右上角「关闭」。',
     done: (_g, ui) => !ui.playerOpen,
     hint: '关闭弹窗即可继续',
@@ -115,21 +115,21 @@ const STEPS: Step[] = [
     screen: 'training', spot: '.drill-group',
     title: '主训练：三选一，一轮七天',
     body: '跑图 / 教练复盘 / 练新英雄三选一，这是全队的**主训练**。'
-      + '它和下面的**双排练**、每个人的**训练重点**是**并行**的——三样可以同时排，互不占用。\n\n'
-      + '随便选一个——比如「跑图」挑一张熟练度低的图。',
+      + '它和下面的**双排练**、每个人的**训练重点**可以同时排。\n\n'
+      + '选一个，比如「跑图」挑一张熟练度低的图。',
     done: (g) => !!g.drill && g.drill.kind !== 'none',
     hint: '选好了会自动继续',
   },
   {
     screen: 'training', spot: '[data-tut="pair"]',
     title: '双排练：和主训练同时进行',
-    body: '选两个人一起加练：协同、沟通涨经验，两人的**关系 +3~6**——更衣室里有矛盾时靠它修。'
-      + '它不占主训练的位置，可以一起排。',
+    body: '选两个人一起加练：协同、沟通涨经验，两人**关系 +3~6**，更衣室有矛盾靠它修。'
+      + '不占主训练的位置。',
   },
   {
     screen: 'training', spot: '[data-tut="focus"]',
     title: '再给一名选手定个训练重点',
-    body: '下面的「训练计划」表里，任意一名选手的「训练重点」下拉框选一个能力项。'
+    body: '在下面的「训练计划」表里，给任意一名选手的「训练重点」选一个能力项。'
       + '不设就是休息，只恢复体能。',
     done: (g) => Object.entries(g.training).some(
       ([id, v]) => v !== 'rest' && g.teams[g.myTeam]?.roster.includes(id),
@@ -144,9 +144,9 @@ const STEPS: Step[] = [
   {
     screen: 'transfers', spot: '[data-tut="enquire"]',
     title: '试着问一个人的价',
-    body: '「自由人」和「挂牌」是已经在市场上的；真正想要的人要用「问价」按俱乐部去打听。'
-      + '在「问价」面板里选一支俱乐部，再对他们的某名选手点「问价」——'
-      + '花 1 点行动力、不花钱，几天后告诉你对方俱乐部的真实要价，和选手本人愿不愿意来。',
+    body: '「自由人」和「挂牌」是已经在市场上的；想要别人的选手就「问价」。'
+      + '在「问价」面板选一支俱乐部，对他们的某名选手点「问价」：'
+      + '花 1 点行动力、不花钱，几天后告诉你对方要价和选手愿不愿意来。',
     done: (g) => (g.enquiries ?? []).length > 0,
     hint: '问完任意一人即可继续',
   },
@@ -158,20 +158,20 @@ const STEPS: Step[] = [
   {
     screen: 'standings', spot: '[data-tut="qualify"]',
     title: '这个赛段通向哪里',
-    body: '最上面这块说的是本赛段**前几名去 Masters 或 Champions**、你现在差什么、去了是几号种子。'
-      + '董事会的赛段目标也按这里的排名算：达不到先警告，连续达不到就下课。',
+    body: '最上面这块写着本赛段**前几名去 Masters 或 Champions**、你现在差什么、去了是几号种子。'
+      + '董事会的赛段目标也按这里的排名算。',
   },
   {
     screen: 'finance', navigate: true, spot: '.nav-item[data-key="finance"]',
     title: '财务：钱从哪来到哪去',
-    body: '点开财务页。赞助与奖金是收入，薪资是支出。缺钱时去「商务」页接活动或谈赞助——'
+    body: '点开财务页。赞助和奖金是收入，薪资是支出。缺钱去「商务」页接活动或谈赞助，'
       + '代价是选手的时间。',
   },
   {
     screen: 'dashboard', spot: '.advance-bar',
     title: '最后：推进，结束这一天',
-    body: '按下红色的「推进 一天」。推进完会弹出这一天发生了什么——'
-      + '正式开局后，这就是你每个回合的收尾动作。',
+    body: '按下红色的「推进 一天」，会弹出这一天发生了什么。'
+      + '正式开局后每回合都这样收尾。',
     done: (g) => g.day >= 0,
     hint: '按下推进即可完成',
   },
@@ -299,7 +299,7 @@ export default function Tutorial({
               ⤷ {step.hint ?? '按提示操作后自动继续'}
             </span>
           ) : last ? (
-            <button className="primary sm" onClick={finish}>看完报告后点这里：完成，开始正式的第一天</button>
+            <button className="primary sm" onClick={finish}>完成，开始正式的第一天</button>
           ) : (
             <button className="primary sm" disabled={!canNext}
               onClick={() => setI(i + 1)}>下一步</button>

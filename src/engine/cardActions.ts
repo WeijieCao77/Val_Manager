@@ -146,7 +146,7 @@ function dispatch(
       const region = str(a.region) as Series
       if (!(SERIES as readonly string[]).includes(region)) return { ok: false, why: '没有这个赛区' }
       const got = claimSeries(g, region)
-      if (!got) return { ok: false, why: '这个赛区暂时没有可领的奖励' }
+      if (!got) return { ok: false, why: '这个赛区没有可领的奖励' }
       return { ok: true, result: { got } }
     }
     case 'salvage': {
@@ -176,7 +176,7 @@ function dispatch(
     case 'ladder': {
       const five = squadForPlay(g)
       if (!five.ok) return five
-      if (!canPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够了。' }
+      if (!canPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
       // the opponent the screen showed is the opponent that gets played; a
       // client that never asked for one gets one drawn now
       if (!pendingOpponent(g)) drawOpponent(g, g.ladder.div >= 4 ? env.rival ?? undefined : undefined)
@@ -186,7 +186,7 @@ function dispatch(
       const opp = WORLD_TEAMS.find((t) => t.id === oppId)
       const master = g.ladder.div >= MASTER_DIV
       const bump = master ? oppBumpFor(g.ladder.points ?? 0) : 0
-      if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够了。' }
+      if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
       const level = (id: string) => levelOf(g, id)
       const res: ArenaResult = rival
         ? playRivalMatch(five.squad, level, rival, 3, env.seed)
@@ -205,7 +205,7 @@ function dispatch(
       const five = squadForPlay(g)
       if (!five.ok) return five
       if (g.cup && !g.cup.done) return { ok: true, result: { cup: g.cup } }
-      if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够——入场要 ${STAMINA_COST.cup} 点。` }
+      if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够，入场要 ${STAMINA_COST.cup} 点` }
       try {
         enterCup(g, squadRating(five.squad, (id) => levelOf(g, id)), env.now)
         return { ok: true, result: { cup: g.cup } }

@@ -99,8 +99,8 @@ export default function RetireCard({ note, onClose }: { note: RetireNote; onClos
 
       <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
         {mine
-          ? '他把最后一个赛季留在了你的更衣室。这张卡不会再出现——想留念就现在截图。'
-          : '一个时代落幕。这张卡不会再出现——想留念就现在截图。'}
+          ? '他在你的队里退役。这张卡不会再出现，想留念现在截图。'
+          : '这张卡不会再出现，想留念现在截图。'}
         <br />
         《VCT电竞经理》· 履历、荣誉与数据均为本存档 2026 年起的游戏模拟，非真实资讯。
       </p>

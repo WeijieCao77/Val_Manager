@@ -58,7 +58,7 @@ export default function Support({ raised = false }: { raised?: boolean }) {
           className={`support-fab${open ? ' on' : ''}${raised ? ' raised' : ''}`}
           onClick={() => setOpen((x) => !x)}
           aria-expanded={open}
-          title="游戏永久免费——如果你愿意支持一下"
+          title="游戏永久免费，愿意的话支持一下"
         >
           <span className="ico" aria-hidden="true">⚡</span>
           <span className="lbl">支持作者</span>
@@ -74,9 +74,8 @@ export default function Support({ raised = false }: { raised?: boolean }) {
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted">
-              这个游戏我做着玩，也做给群里的各位玩，<b>所有内容永久免费，不卖数值、不卖抽卡</b>。
-              如果它让你开心过，欢迎请我喝杯咖啡——不请也完全没关系，
-              继续在群里提 bug 和建议就是最大的支持。
+              这个游戏<b>永久免费，不卖数值、不卖抽卡</b>。
+              喜欢的话可以请我喝杯咖啡；不请也没关系，在群里提 bug 和建议就是支持。
             </p>
             <div className="support-body">
               <Qr />
@@ -85,8 +84,8 @@ export default function Support({ raised = false }: { raised?: boolean }) {
                   打开爱发电 ↗
                 </a>
                 <p className="tiny faint" style={{ margin: 0 }}>
-                  手机扫码，或直接点上面的按钮。<br />
-                  ¥10/月 可以提前玩到新版本、进专属群；也可以自选金额，一次就好。
+                  手机扫码，或点上面的按钮。<br />
+                  ¥10/月 可提前玩新版本、进专属群；也可以自选金额，一次即可。
                 </p>
               </div>
             </div>

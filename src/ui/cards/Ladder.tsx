@@ -92,7 +92,7 @@ export default function Ladder() {
 
   const play = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
-    if (!canPlay(g, 'ladder', now)) { toast(`体力不够了——${staminaRate()}。`); return }
+    if (!canPlay(g, 'ladder', now)) { toast(`体力不够，${staminaRate()}。`); return }
     setBusy(true)
     const r = await act('ladder')
     setBusy(false)
@@ -131,16 +131,15 @@ export default function Ladder() {
             <br />
             {master ? (
               <span className="tiny faint">
-                到了大师就不再掉段，改成计分：赢一场 +20 起，对手评分每高出 84 一分多给 3 分
+                大师不掉段，改为计分：赢一场 +20 起，对手评分每高出 84 一分多 3 分
                 （下一个对手评分 {(opp?.rating ?? 80) + bump}，赢了 +{20 + Math.max(0, (opp?.rating ?? 80) + bump - 84) * 3}），
-                三连胜起再 +8；对上别人的阵容时，对手评分按他的大师分折算。输一场 −15，分数最低到 0 为止。
+                三连胜起再 +8；输一场 −15，最低 0 分。
                 {MASTER_TITLES.slice().reverse().filter((t) => t.at > 0)
-                  .map((t) => `${t.at} 分升「${t.name}」`).join('，')}——上不封顶。
+                  .map((t) => `${t.at} 分升「${t.name}」`).join('，')}，上不封顶。
               </span>
             ) : (
               <span className="tiny faint">
-                赢一场 +1★（三连胜起 +2★，钻石以下），输一场 −1★。铂金开始会掉段。
-                每个大段分成几个小段，升一个小段就是一次进步；打到大师之后改成计分，不再封顶。
+                赢一场 +1★（钻石以下三连胜起 +2★），输一场 −1★，铂金起会掉段。到大师后改为计分，不封顶。
               </span>
             )}
           </div>
@@ -159,7 +158,7 @@ export default function Ladder() {
                     {rival ? (
                       <>
                         <span className="tag t1">真人卡组</span>{' '}
-                        {rankName(rival.div, 0, rival.points)} · 别的玩家存下来的五人
+                        {rankName(rival.div, 0, rival.points)} · 别的玩家保存的阵容
                       </>
                     ) : (
                       <>
@@ -180,10 +179,10 @@ export default function Ladder() {
                 </div>
               </div>
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
-                三局两胜，走完整的 BAN/PICK 和回合经济——和生涯模式是同一套比赛引擎，<b>在服务器上打</b>。
+                BO3，完整 BAN/PICK 和回合经济，<b>在服务器上打</b>。
                 {rival
-                  ? '　对面是别的玩家存下来的阵容快照，不需要他在线，你的任何信息也不会给到他。'
-                  : L.div >= 4 ? '　（这会儿没找到合适的真人卡组，先打真实俱乐部。）' : ''}
+                  ? '　对面是别的玩家保存的阵容，不需要他在线。'
+                  : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
               </p>
               <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
@@ -194,8 +193,7 @@ export default function Ladder() {
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。
-                {staminaRate()}，攒满 {STAMINA_MAX} 点要 {staminaFillHours()} 小时。
-                隔一会儿回来打两场，比攒着一次打完划算——攒满了就不再回体力了。
+                {staminaRate()}，攒满 {STAMINA_MAX} 点要 {staminaFillHours()} 小时，满了不再回复。
               </p>
             </>
           ) : (
@@ -253,20 +251,15 @@ export default function Ladder() {
                       <b style={{ color: 'var(--warn)' }}>你的名字没有显示在榜上</b>
                       <div className="small muted" style={{ marginTop: 3, lineHeight: 1.7 }}>
                         {top.find((r) => r.me)?.why === 'id'
-                          ? <>你把<b>账号 ID 当成昵称</b>了——那串东西是你的密码，
-                            公开出去别人就能登录你的号。请<b>马上去「账号」页改个昵称</b>，
-                            排名和战绩都不会丢。</>
-                          : <>名字里有不适合公开显示的词。去「账号」页改一个就会恢复显示，
-                            排名和战绩不受影响。</>}
+                          ? <>你把<b>账号 ID 当成了昵称</b>，公开会被人登录。
+                            请<b>去「账号」页改个昵称</b>，排名和战绩不会丢。</>
+                          : <>昵称含不宜公开的词，去「账号」页改一个即可恢复。</>}
                       </div>
                     </div>
                   )}
                   <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-                    前 100 名，加上你自己那一行——排在外面也看得到自己第几。
-                    名字后面的 <b>#四位</b> 是账号的识别码，用来区分同名的人，
-                    它来自 ID 的哈希，<b>不是 ID 本身</b>，看到也没法登录你的号。
-                    显示成「已隐藏」的，要么名字里有不该上榜的词，要么<b>把账号 ID 填成了昵称</b>
-                    （那是你的密码，绝不能公开）——去「账号」页改个名字就会恢复。
+                    前 100 名加上你自己。名字后的 <b>#四位</b> 用来区分同名，<b>不是账号 ID</b>。
+                    显示「已隐藏」的是昵称含不宜公开的词，或<b>把账号 ID 填成了昵称</b>，去「账号」页改名即可恢复。
                   </p>
                 </>
               )}

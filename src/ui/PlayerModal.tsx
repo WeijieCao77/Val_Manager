@@ -78,7 +78,7 @@ export default function PlayerModal(
     commit()
     logActivity(game, 'transfer', p.listed ? `将 ${p.ign} 挂牌出售` : `取消 ${p.ign} 的挂牌`)
     toast(p.listed
-      ? `${p.ign} 已挂牌，其他俱乐部会来问价。${firstThisYear ? '他对这里的归属感也掉了一截。' : ''}`
+      ? `${p.ign} 已挂牌，等其他俱乐部来问价。${firstThisYear ? '他的归属感掉了一截。' : ''}`
       : `已取消 ${p.ign} 的挂牌。`)
   }
 
@@ -91,7 +91,7 @@ export default function PlayerModal(
           <Roles p={p} />
           <OvrBadge value={p.overall} />
           {p.isIgl && (
-            <span className="tag" title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行'
+            <span className="tag" title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行'
               : isMain ? '主指挥：在场上就由他喊话' : isDeputy ? '副指挥：主指挥不在场上时由他喊话' : '已确认的队内指挥'}>
               {p.iglSource === 'inferred' ? '推定 IGL' : isMain ? '主指挥' : isDeputy ? '副指挥' : 'IGL'}
             </span>
@@ -128,9 +128,9 @@ export default function PlayerModal(
                 <p className="small" style={{ margin: 0 }}>
                   {p.ign} 已宣布本赛季结束后退役。
                   {p.teamId === game.myTeam && !p.persuaded
-                    ? '这场谈话只有一次——想清楚你要摆在桌上的是什么。'
+                    ? '只能谈一次，想清楚再选。'
                     : p.teamId === game.myTeam
-                      ? '你已经和他谈过了，他的决定应该被尊重。'
+                      ? '你已经和他谈过了。'
                       : ''}
                 </p>
                 {p.teamId === game.myTeam && !p.persuaded && (
@@ -138,9 +138,9 @@ export default function PlayerModal(
                     {([
                       ['heart', '动之以情', '不花钱，看交情和士气'],
                       ['raise', `涨薪再战一年`, `年薪提到 ${money(Math.round(p.salary * 1.3))}，最容易点头`],
-                      ['bench', '转替补带新人', '退居二线传帮带，让出首发位'],
-                      ['transfer', '成全他，挂牌转会', '必成——他去别家打最后一舞，能收转会费'],
-                      ['accept', '同意退役', '必成——体面告别，赛季末办退役仪式'],
+                      ['bench', '转替补带新人', '让出首发位，带新人'],
+                      ['transfer', '成全他，挂牌转会', '必成，能收转会费'],
+                      ['accept', '同意退役', '必成，赛季末办退役仪式'],
                     ] as const).map(([key, label, hint]) => (
                       <button
                         key={key}
@@ -202,7 +202,7 @@ export default function PlayerModal(
           )}
           {p.vlr?.rating != null && (
             <div className="tiny faint center" style={{ lineHeight: 1.7 }}>
-              属性来源 · vlr.gg 2026 赛季真实数据<br />
+              属性来源 · vlr.gg 2026 赛季<br />
               Rating {p.vlr.rating.toFixed(2)}
               {p.vlr.acs != null && <> · ACS {p.vlr.acs.toFixed(0)}</>}
               {' '}· {p.vlr.rounds} 回合

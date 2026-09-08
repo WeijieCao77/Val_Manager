@@ -77,7 +77,7 @@ export function importBlock(state: GameState, teamId: string, p: Player): string
   if (!team || !isImport(p, team)) return null
   if (importCount(state, teamId) < IMPORT_MAX) return null
   return teamId === state.myTeam
-    ? `外援名额已满（${IMPORT_MAX}/${IMPORT_MAX}）——${p.ign} 来自${regionCn(originOf(p))}赛区，签他要先放走一名外援。`
+    ? `外援名额已满（${IMPORT_MAX}/${IMPORT_MAX}），${p.ign} 来自${regionCn(originOf(p))}赛区，先放走一名外援才能签。`
     : `${team.name} 的外援名额已满。`
 }
 

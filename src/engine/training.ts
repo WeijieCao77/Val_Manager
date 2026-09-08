@@ -225,7 +225,7 @@ function mapDecay(state: GameState, team: Team, notes: string[] | null): void {
     if (notes && idle < MAP_DECAY_AFTER + 7) started.push(mapCn(m))
   }
   if (notes && started.length) {
-    notes.push(`🗺 ${started.join('、')} 已经四周没练也没打，熟练度开始回落（每周 −${MAP_DECAY_PER_WEEK}，最低 ${MAP_DECAY_FLOOR}）。`)
+    notes.push(`🗺 ${started.join('、')} 四周没练也没打，熟练度开始回落（每周 −${MAP_DECAY_PER_WEEK}，最低 ${MAP_DECAY_FLOOR}）。`)
   }
 }
 
@@ -331,7 +331,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
         if (Math.round(team.mapPrefs[map]) > Math.round(before)) {
           notes.push(`🗺 ${mapCn(map)} 熟练度提升到 ${Math.round(team.mapPrefs[map])}，这套阵容熟练度 ${Math.round(fam)}。`)
         } else if (before >= 94.5) {
-          notes.push(`🗺 ${mapCn(map)} 熟练度已到上限 95，继续跑图只能保持手感——换张图练吧。`)
+          notes.push(`🗺 ${mapCn(map)} 熟练度已到上限 95，换张图练吧。`)
         }
       }
       for (const p of squad) {
@@ -360,7 +360,7 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       // other drills all filter their squad — this one never did.
       if (!p || p.teamId !== state.myTeam) {
         state.drill = { kind: 'none' }
-        notes.push('⚠️ 原定的「练新英雄」对象已经不在队中，本轮团队训练没有产生效果。')
+        notes.push('⚠️ 「练新英雄」的对象已不在队中，本轮团队训练没有效果。')
         break
       }
       if (p.injuredUntil > state.day) {

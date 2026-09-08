@@ -116,7 +116,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         <button
           className="home-id"
           onClick={() => setAcct(true)}
-          title={id ? '账号设置——查看、复制或换一个 ID' : '创建一个 ID，成就和结局才能跨设备保存'}
+          title={id ? '账号设置：查看、复制或换一个 ID' : '创建一个 ID，成就和结局才能跨设备保存'}
         >
           <span className="k">ID</span>
           <b className="mono">{id ? maskId(id) : '创建账号'}</b>
@@ -152,10 +152,10 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             <h2>VCT电竞经理</h2>
             <p className="lede">无畏契约电竞经理模拟</p>
             <p className="blurb">
-              接手一支真实存在的战队，从 2026 出发。
-              签人、训练、排兵、BP、谈赞助，打满五年可以收官领一个结局，
-              也可以一路带到 2036 的大结局。
-              524 名选手和 64 名教练全部是真实存在的人，没有一个是程序生成的。
+              接手一支真实战队，从 2026 出发。
+              签人、训练、排兵、BP、谈赞助，打满五年可以收官领结局，
+              也可以一直带到 2036。
+              524 名选手和 64 名教练全是真人，没有程序生成的。
             </p>
             <ul className="home-facts">
               <li><b>78</b> 支战队 · 四大赛区与次级联赛</li>
@@ -196,8 +196,8 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             </div>
             <p className="lede">选手卡收集与对战</p>
             <p className="blurb">
-              开包抽选手卡，凑一套五人首发去打天梯。
-              每天有体力和任务，签到连着算。卡面用的是选手本人的照片。
+              开包抽选手卡，凑五人首发打天梯。
+              每天有体力和任务，签到连着算。卡面是选手本人的照片。
             </p>
             <ul className="home-facts">
               <li>每日签到 · 体力恢复</li>
@@ -233,9 +233,9 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           <span className="v">{profile.record.titles}<em> 座</em></span>
         </div>
         <p className="tiny faint home-note">
-          这些记在你的 ID 上，跨存档累计——被解雇不会清零。
-          换设备时把 ID 填进任意一个游戏就能找回；
-          <b>这串 ID 相当于账号密码，不要发给别人</b>。
+          这些记在你的 ID 上，跨存档累计，被解雇不清零。
+          换设备时把 ID 填进任一游戏就能找回。
+          <b>ID 相当于密码，不要发给别人</b>。
         </p>
       </section>
 

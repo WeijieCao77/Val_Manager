@@ -78,8 +78,7 @@ function Table({ comp, members, cut: cutOverride }: { comp: Competition; members
       {!hasPlayed && <div className="empty">尚未开赛。</div>}
       {concluded && (
         <p className="tiny faint" style={{ padding: '9px 13px', margin: 0 }}>
-          本赛段已结束，排序为<b>最终名次</b>（由季后赛决定），「常规赛」列仍是循环赛战绩——
-          常规赛第一但止步淘汰赛是正常结果。
+          赛段已结束，按<b>最终名次</b>排序；「常规赛」列是循环赛战绩。
         </p>
       )}
     </div>
@@ -147,7 +146,7 @@ export default function Standings() {
               </div>
             </Panel>
           )}
-          {shown.length === 0 && <div className="empty">该赛区本阶段没有进行中的赛事。</div>}
+          {shown.length === 0 && <div className="empty">该赛区暂无赛事。</div>}
           {shown.map((c) => c.region ? (
             <Panel
               key={c.key}
@@ -156,9 +155,9 @@ export default function Standings() {
             >
               {c.format === 'triple' ? (
                 <p className="tiny faint" style={{ padding: '9px 13px', margin: 0 }}>
-                  三败淘汰：十二队，输三场出局。胜者组、中段组、败者组各有一场决赛，三个冠军就是本赛区去 Masters 的三个名额（依次为第 1、2、3 种子）。
-                  上届 Champions 的四队轮空到胜者组第二轮，其余八队抽签进入首轮。
-                  {!c.seeds?.length && '签表还没抽——抽签在总览页弹出，抽完对阵才会出现在这里。'}
+                  三败淘汰：十二队，输三场出局。胜者组、中段组、败者组三场决赛的冠军，即本赛区去 Masters 的 1、2、3 号种子。
+                  上届 Champions 四队轮空到胜者组第二轮。
+                  {!c.seeds?.length && '签表还没抽，抽签在总览页进行。'}
                 </p>
               ) : c.grouped && c.groups ? (
                 <div className="grid c2" style={{ gap: 0 }}>

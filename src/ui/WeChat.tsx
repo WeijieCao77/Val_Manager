@@ -62,8 +62,8 @@ export default function WeChat() {
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>
-              这个游戏大部分改动都来自群里的反馈——bug、平衡、想加的功能。
-              有问题、有想法，或者只是想找人打好友房，都可以进来说。
+              游戏的大部分改动来自群里的反馈。
+              有问题、有想法，或者想找人打好友房，都可以进来。
             </p>
             {broke ? (
               // the server only turns the button on when there IS a code, so
@@ -83,7 +83,7 @@ export default function WeChat() {
               />
             )}
             <p className="tiny faint" style={{ margin: 0, textAlign: 'center', lineHeight: 1.7 }}>
-              {group.note || '微信扫码进群。群二维码七天一换，扫不进就过两天再来看看。'}
+              {group.note || '微信扫码进群。二维码七天一换，扫不进过两天再来。'}
             </p>
           </div>
         </>

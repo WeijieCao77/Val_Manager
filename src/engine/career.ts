@@ -106,7 +106,7 @@ export function resolveApplications(state: GameState, rng: Rng): string[] {
     a.answer = ok ? 'accept' : 'reject'
     if (!ok) {
       a.reason = a.salary > fair * 1.25 ? '你要的薪资超出了他们的预算'
-        : '他们决定继续信任现在的教练组'
+        : '他们留用了现在的教练组'
       notes.push(`❌ ${team.name} 婉拒了你的执教申请：${a.reason}`)
     } else {
       notes.push(`✅ ${team.name} 接受了你的执教申请，你可以随时上任。`)

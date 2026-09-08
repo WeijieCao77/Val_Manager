@@ -233,7 +233,7 @@ export default function Market() {
     if (!card || !Number.isFinite(price)) { toast('先选一张卡，填个起拍价。'); return }
     const now2 = buyout.trim() === '' ? null : Math.round(Number(buyout))
     if (now2 != null && (!Number.isFinite(now2) || now2 < Math.ceil(price * BUYOUT_MIN))) {
-      toast(`一口价至少要 ${money(Math.ceil(price * BUYOUT_MIN))}（起拍价的 ${BUYOUT_MIN} 倍），不想设就留空。`)
+      toast(`一口价至少 ${money(Math.ceil(price * BUYOUT_MIN))}（起拍价的 ${BUYOUT_MIN} 倍），可留空。`)
       return
     }
     setBusy(true)
@@ -243,13 +243,13 @@ export default function Market() {
     setBusy(false)
     if (!r?.ok) {
       toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
-        : r?.notOwned ? '服务器上还没看到这张卡，稍等一下再挂。'
+        : r?.notOwned ? '服务器还没同步这张卡，稍后再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? `最多同时挂 ${r.max ?? MAX_LISTINGS} 张，卖掉或撤回一张再挂。`
-            : r?.badBuyout ? `一口价要在 ${money(Number(r.min ?? 0))} ~ 500,000 之间，不想设就留空。`
+            : r?.badBuyout ? `一口价要在 ${money(Number(r.min ?? 0))} ~ 500,000 之间，可留空。`
             : r?.badHours ? `拍卖时长要在 ${r.min} ~ ${r.max} 小时之间。`
-            : r?.bad ? `起拍价要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间（最低不能低于分解价）。`
-              : '挂不上去，等会儿再试。')
+            : r?.bad ? `起拍价要在 ${money(Number(r.min ?? 50))} ~ 500,000 之间，不低于分解价。`
+              : '挂牌失败，稍后再试。')
       return
     }
     // the card left the server's copy of the account when it took the listing
@@ -257,7 +257,7 @@ export default function Market() {
     void commit()
     setSellCard(''); setAsk(''); setBuyout('')
     try { localStorage.setItem(HOURS_KEY, String(hours)) } catch { /* fine */ }
-    toast(`${nameOf(sellCard)} 已挂出，起拍 ${money(price)}${now2 != null ? `，一口价 ${money(now2)}` : ''}。${hours} 小时后按最高价成交，没人出价原样退回。`)
+    toast(`${nameOf(sellCard)} 已挂出，起拍 ${money(price)}${now2 != null ? `，一口价 ${money(now2)}` : ''}。${hours} 小时后按最高价成交，流拍退回。`)
     void refresh()
   }
 
@@ -266,8 +266,8 @@ export default function Market() {
     if (!r?.ok) {
       toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
-        : r?.leading ? '你已经是最高价了，等别人超过你再加。'
-        : r?.range ? `只能在 ${r.lo} ~ ${r.hi} 之间还价（这是旧规则的挂牌，标价 ±10%）。`
+        : r?.leading ? '你已是最高价。'
+        : r?.range ? `旧规则挂牌，只能在 ${r.lo} ~ ${r.hi} 之间还价。`
         : r?.broke ? '金币不够。'
           : r?.already ? '你已经对这张牌出过价了。'
             : r?.self ? '这是你自己的挂牌。' : '这张牌已经不在了，可能刚刚成交。')
@@ -279,8 +279,8 @@ export default function Market() {
     void commit()
     setBidOpen(null); setBidPrice('')
     const paid = typeof r.price === 'number' ? r.price : price
-    toast(r.bought ? `一口价成交，${money(paid)} 金币换来的卡会到你的信箱。`
-      : `已出价 ${money(paid)}，目前领先。被超过会立刻退回金币；到时没人超过就是你的。`)
+    toast(r.bought ? `一口价成交（${money(paid)} 金币），卡会到你的信箱。`
+      : `已出价 ${money(paid)}，目前领先。被超过会立刻退回金币。`)
     void refresh()
   }
 
@@ -310,7 +310,7 @@ export default function Market() {
     const r = await answerOffer(o.id, accept)
     setBusy(false)
     if (!r?.ok) { toast(r?.auction ? '竞拍到时自动成交，不用你选。' : '这个报价已经失效了。'); void refresh(); return }
-    toast(accept ? `成交，${money(o.price)} 金币会到你的信箱。` : '已拒绝。对方的金币退回给他。')
+    toast(accept ? `成交，${money(o.price)} 金币会到你的信箱。` : '已拒绝，金币退回对方。')
     void refresh()
   }
 
@@ -320,7 +320,7 @@ export default function Market() {
     setBusy(true)
     const r = await withdrawOffer(o.id)
     setBusy(false)
-    if (!r?.ok) { toast(r?.binding ? '竞拍的出价不能撤回，被别人超过才会退。' : '这个报价已经不在了。'); void refresh(); return }
+    if (!r?.ok) { toast(r?.binding ? '竞拍出价不能撤回，被超过才退。' : '这个报价已经不在了。'); void refresh(); return }
     toast(`已撤回，${money(o.price)} 金币会回到你的信箱。`)
     void refresh()
   }
@@ -338,7 +338,7 @@ export default function Market() {
   if (!cloud) {
     return (
       <Panel title="交易区">
-        <p className="empty">交易区要连上服务器才能用。现在是「仅本机」模式。</p>
+        <p className="empty">交易区需要联网。</p>
       </Panel>
     )
   }
@@ -375,9 +375,7 @@ export default function Market() {
             <div style={{ width: `${Math.min(100, (gate.have / gate.need) * 100)}%`, height: '100%', background: 'var(--accent)' }} />
           </div>
           <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
-            这道门槛是防小号的：有人开一堆新号，把新手包和签到的卡搬给大号。
-            养一个号到能交易的成本，比它能搬走的那几张卡高得多，这条路就不划算了。
-            <b>货架随便看</b>——只是还不能买卖。
+            这道门槛是防小号的。<b>货架可以随便看</b>，只是还不能买卖。
           </p>
         </Panel>
       )}
@@ -439,11 +437,10 @@ export default function Market() {
           </p>
         )}
         <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
-          <b>拍多久自己定（{AUCTION_HOURS_CHOICES[0]} ~ {AUCTION_HOURS_CHOICES[AUCTION_HOURS_CHOICES.length - 1]} 小时），到时最高价成交</b>，谁出得高卖给谁，你不用选。
-          时间短出手快，时间长看到的人多。没人出价原样退回信箱；<b>有人出价之后就不能撤回了</b>。
-          一口价可以不填，填了就是「谁按这个价出，立刻成交」，至少要起拍价的 {BUYOUT_MIN} 倍。
-          <b>最多同时挂 {MAX_LISTINGS} 张</b>；挂出的一刻卡就从你这边拿走了。
-          有重复的先走重复那张（重复卡是没强化过的），只有一张时连强化等级一起过去。
+          <b>拍卖时长 {AUCTION_HOURS_CHOICES[0]} ~ {AUCTION_HOURS_CHOICES[AUCTION_HOURS_CHOICES.length - 1]} 小时自定，到时最高价成交</b>。
+          流拍退回信箱；<b>有人出价后不能撤回</b>。
+          一口价可不填，填了则按此价立刻成交，至少为起拍价的 {BUYOUT_MIN} 倍。
+          <b>最多同时挂 {MAX_LISTINGS} 张</b>。有重复先卖重复那张（+0），只有一张时连强化等级一起卖出。
         </p>
       </Panel>
 
@@ -511,8 +508,7 @@ export default function Market() {
             </div>
           ))}
           <p className="tiny faint" style={{ marginBottom: 0 }}>
-            这些金币已经从你身上扣掉、由服务器托管。到时没人超过你，卡就到你的信箱；被超过的那一刻金币退回信箱。
-            竞拍的出价不能撤回。
+            金币已托管。到时无人超过，卡到你的信箱；被超过立刻退回金币。竞拍出价不能撤回。
           </p>
         </Panel>
       )}
@@ -575,7 +571,7 @@ export default function Market() {
                   there is not */}
               <button
                 className={`sm ${unowned ? '' : 'ghost'}`}
-                title="只看买来不是重复卡的：你还没有的，加上强化比你手上那张高的"
+                title="只看你没有的，或强化比你手上高的"
                 onClick={() => setUnowned((v) => !v)}
               >
                 只看非重复
@@ -586,7 +582,7 @@ export default function Market() {
         {shelf === null ? <p className="empty">读取中…</p>
           : theirs.length === 0 ? (
             <p className="empty">
-              {total === 0 ? '现在没有人在卖东西。挂一张上去试试。' : '货架上没有符合筛选的卡。'}
+              {total === 0 ? '货架是空的，挂一张试试。' : '没有符合筛选的卡。'}
             </p>
           )
             : (
@@ -701,8 +697,8 @@ export default function Market() {
           </div>
         )}
         <p className="tiny faint" style={{ marginBottom: 0 }}>
-          出价的一刻金币就托管走了；被超过立刻退回，到时没人超过就成交换卡。每次至少比当前最高价再高 {Math.round(BID_STEP * 100)}%，
-          最后 {SNIPE_MINUTES} 分钟内有人出价会再延长 {SNIPE_MINUTES} 分钟。出了价就不能撤回。
+          出价即托管金币，被超过立刻退回。每次加价至少 {Math.round(BID_STEP * 100)}%，
+          最后 {SNIPE_MINUTES} 分钟内有人出价会延长 {SNIPE_MINUTES} 分钟。出价不能撤回。
           {days ? '' : ''}
         </p>
       </Panel>

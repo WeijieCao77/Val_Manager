@@ -164,7 +164,7 @@ export default function MatchLive({
               <p className="tiny faint" style={{ margin: 0 }}>
                 {game.vetoPlan
                   ? `你亲自 BP 的结果：${simRef.current!.vetoLog.join('，')}`
-                  : '双方按各自的地图熟练度自动 BP 完成了。想亲自 ban 图就点右上角。'}
+                  : '已按地图熟练度自动 BP。想自己 ban 图点「手动 BP」。'}
               </p>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function MatchLive({
           <button onClick={skip}>快进到结果</button>
         </div>
         <p className="tiny faint center" style={{ marginTop: 14, marginBottom: 0 }}>
-          观战与快进结果相同；观战每张图 2 次暂停，加时各加 1 次。
+          观战与快进结果相同。每张图 2 次暂停，加时加 1 次。
         </p>
       </Modal>
     )
@@ -264,7 +264,7 @@ export default function MatchLive({
               return nextMap ? (
                 <>
                   <div className="small muted" style={{ marginBottom: 6 }}>
-                    下一张图 <b>{mapCn(nextMap)}</b> 的战术（本图的已经定了，改不了）：
+                    下一张图 <b>{mapCn(nextMap)}</b> 的战术：
                   </div>
                   <div style={{ marginBottom: 12 }}>
                     <TacticSliders game={game} commit={commit} compact map={nextMap} />
@@ -272,7 +272,7 @@ export default function MatchLive({
                 </>
               ) : (
                 <p className="tiny faint" style={{ marginTop: 0 }}>
-                  这是最后一张图，滑杆改不了本图——用上面的强攻／稳守。
+                  最后一张图，战术已定。
                 </p>
               )
             })()}
@@ -291,7 +291,7 @@ export default function MatchLive({
                   spent by the three calls above, so leaving costs nothing. */}
               <button className="ghost sm" onClick={() => setPhase('watching')}>直接继续比赛</button>
               <p className="tiny faint" style={{ marginTop: 6, marginBottom: 0 }}>
-                滑杆拖动即保存；只有选了强攻／稳守／围绕选手，才会用掉一次暂停。
+                滑杆即时保存；选了打法才用掉一次暂停。
               </p>
             </div>
           </div>

@@ -110,7 +110,7 @@ export default function Achievements() {
     <div className="grid">
       <Panel title={`成就 · ${has.size}/${ACHIEVEMENT_COUNT}`}>
         <p className="tiny faint" style={{ marginTop: 0 }}>
-          记在你的账号上，跨存档累计——换俱乐部、被解雇、开新档都不会清零。
+          记在你的账号上，跨存档累计，被解雇、开新档都不清零。
         </p>
         {RUN_GROUPS.map((g) => {
           const rows = RUN_ACHIEVEMENTS.filter((a) => a.group === g)
@@ -121,15 +121,14 @@ export default function Achievements() {
 
       <Panel title={`生涯累计 · ${LIFE_ACHIEVEMENTS.filter((a) => has.has(a.key)).length}/${LIFE_ACHIEVEMENTS.length}`}>
         <p className="tiny faint" style={{ marginTop: 0 }}>
-          这些看的是你所有存档加起来的总数，一段生涯做不完。
+          按所有存档的总数算。
         </p>
         <Group name="" rows={LIFE_ACHIEVEMENTS} has={has} />
       </Panel>
 
       <Panel title={`结局收藏 · ${seenEnding.size}/${ENDING_COUNT}`}>
         <p className="tiny faint" style={{ marginTop: 0 }}>
-          每段生涯走完十年会同时给出两个结局：<b>王朝线</b>看你拿了什么，
-          <b>故事线</b>看这十年是怎么过的。没见过的只显示达成条件。
+          每段生涯结束会给两个结局：<b>王朝线</b>看战绩，<b>故事线</b>看经历。没见过的只显示条件。
         </p>
         <Endings name="王朝线 · 看战绩" rows={DYNASTY_ENDINGS} has={seenEnding} />
         <Endings name="故事线 · 看经历" rows={STORY_ENDINGS} has={seenEnding} />
@@ -156,8 +155,8 @@ export default function Achievements() {
         </div>
         <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
           {id
-            ? '这串 ID 和开瓦包是同一个账号，相当于账号密码，不要发给别人。换手机时在账号设置里填进去，成就、结局和卡牌收藏都会跟过来。'
-            : '现在这些记录只存在这台浏览器上。创建一个 ID，它们就能跟着你换设备——开瓦包用的也是同一个账号。'}
+            ? 'ID 和开瓦包共用，相当于密码，不要发给别人。换设备时在账号设置里填进去，成就、结局和卡牌都会跟过来。'
+            : '这些记录现在只在这台浏览器上。创建 ID 后可以跨设备，开瓦包共用同一个账号。'}
         </p>
       </Panel>
 

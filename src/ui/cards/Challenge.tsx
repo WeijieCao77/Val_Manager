@@ -175,13 +175,10 @@ export default function Challenge() {
         }
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          今天要猜的可能是<b>一名选手、一支战队、一张地图或者一个英雄</b>——
-          题目不会告诉你是哪一类，<b>先猜出它是什么，再猜出它是哪个</b>。
-          图会糊到看不出是人是队；每猜错一次清楚一点。
+          答案可能是<b>选手、战队、地图或英雄</b>，不告诉你是哪一类。每猜错一次图片清楚一点。
           <br />
-          <b>每个账号的题目都不一样</b>，日期以服务器为准。一天一次，
-          入场 <b>{CHALLENGE_COST} 金币</b>——猜中按用了几次给卡包（<b>一次猜中给十连包</b>），
-          没猜中退一半。
+          每天一题，<b>每个账号题目不同</b>，入场 <b>{CHALLENGE_COST} 金币</b>。
+          猜中按次数给卡包（<b>一次猜中给十连包</b>），没猜中退一半。
         </p>
 
         {/* The subject — see paintPuzzle for why it is drawn the way it is,
@@ -214,7 +211,7 @@ export default function Challenge() {
           }}>
             {state.done
               ? `${KIND_CN[kind]} · ${answerRow.name}`
-              : `还剩 ${left} 次 · 每猜错一次清楚一点`}
+              : `还剩 ${left} 次`}
           </div>
         </div>
 
@@ -230,7 +227,7 @@ export default function Challenge() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={block ?? `输入名字开始猜（还剩 ${left} 次）`}
+                placeholder={block ?? `输入名字（还剩 ${left} 次）`}
                 disabled={!!block}
                 enterKeyHint="go"
               />
@@ -355,8 +352,7 @@ export default function Challenge() {
                   别把答案发出去
                 </b>
                 <div className="small muted" style={{ marginTop: 3, lineHeight: 1.7 }}>
-                  <b>别人的题目和你的不一样</b>，发出去也帮不上他，只会剧透你自己这一局。
-                  想晒的话，晒「第几次猜中」和连胜天数就好。
+                  <b>每个人的题目不一样</b>，发出去帮不上别人。想晒就晒猜中次数和连胜天数。
                 </div>
               </div>
             </div>
@@ -378,8 +374,7 @@ export default function Challenge() {
           </table>
         </div>
         <p className="tiny faint" style={{ marginTop: 10, marginBottom: 0 }}>
-          猜中还按连胜天数加金币。题型每天轮换：猜选手、猜战队、猜地图、猜英雄——
-          选手题最多，因为这游戏说到底是关于人的。
+          猜中另按连胜天数加金币。题型每天轮换，选手题最多。
         </p>
       </Panel>
     </>

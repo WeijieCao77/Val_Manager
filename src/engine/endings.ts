@@ -231,15 +231,15 @@ export const ENDINGS: Ending[] = [
     key: 'immortal', track: '王朝', title: '不朽',
     brief: '连续五年包揽两站大师赛和冠军赛——十五座国际冠军',
     test: (_s, f) => f.perfectStreak >= 5,
-    text: (s, f) => `连续 ${f.perfectStreak} 年，两站大师赛和冠军赛全部属于${club(s)}。`
-      + `十五座国际奖杯。后来的人提起这十年，不会说它属于谁——他们会说，那就是那个时代。`,
+    text: (s, f) => `连续 ${f.perfectStreak} 年，两站大师赛和冠军赛全归${club(s)}。`
+      + `十五座国际奖杯。后来的人提起这十年，只会说那是一个时代。`,
   },
   {
     key: 'golden', track: '王朝', title: '黄金之路',
     brief: '连续三年包揽两站大师赛和冠军赛——三年九冠',
     test: (_s, f) => f.perfectStreak >= 3,
-    text: (s, f) => `三年，九座国际冠军，一座没让。${club(s)}走完了那条`
-      + `所有人都以为只存在于理论里的路——${f.perfectYears.slice(0, 3).join('、')}，一年不落。`,
+    text: (s, f) => `三年九座国际冠军，一座没让。${f.perfectYears.slice(0, 3).join('、')}，一年不落。`
+      + `${club(s)}走完了所有人都以为只存在于理论里的路。`,
   },
   {
     key: 'perfectYear', track: '王朝', title: '全冠之年',
@@ -252,15 +252,13 @@ export const ENDINGS: Ending[] = [
     key: 'fivePeat', track: '王朝', title: '五连霸',
     brief: '连续五年拿下冠军赛',
     test: (_s, f) => f.champStreak >= 5,
-    text: (s, f) => `连续 ${f.champStreak} 年的世界冠军。${club(s)}这个名字`
-      + `已经不再是一支队伍的称呼，而是一个时代的名字。`,
+    text: (s, f) => `连续 ${f.champStreak} 年世界冠军。${club(s)}已经不只是一支队伍的名字，而是一个时代的名字。`,
   },
   {
     key: 'threePeat', track: '王朝', title: '三连霸',
     brief: '连续三年拿下冠军赛',
     test: (_s, f) => f.champStreak >= 3,
-    text: (s, f) => `连续 ${f.champStreak} 年的世界冠军。十年任期结束时，`
-      + `没有人再怀疑${club(s)}属于哪个层级。`,
+    text: (s, f) => `连续 ${f.champStreak} 年世界冠军。十年下来，没人再怀疑${club(s)}属于哪个层级。`,
   },
   {
     key: 'tenCrowns', track: '王朝', title: '十冠王',
@@ -294,8 +292,8 @@ export const ENDINGS: Ending[] = [
     key: 'regionKing', track: '王朝', title: '赛区霸主',
     brief: '拿下五个赛区冠军，却没有国际冠军',
     test: (_s, f) => f.regionalTitles >= 5 && f.intlTitles === 0,
-    text: (s, f) => `${f.regionalTitles} 个赛区冠军。国内没有人是${club(s)}的对手——`
-      + `出了国门，这句话每年都要重新证明一次，而你没能证明。`,
+    text: (s, f) => `${f.regionalTitles} 个赛区冠军。国内没人是${club(s)}的对手，`
+      + `出了国门，你始终没能证明这一点。`,
   },
   {
     key: 'ascend', track: '王朝', title: '升班马',
@@ -320,8 +318,7 @@ export const ENDINGS: Ending[] = [
     key: 'nothing', track: '王朝', title: '空手而归',
     brief: '一座奖杯也没有',
     test: (_s, f) => f.titles === 0,
-    text: (s) => `${club(s)}的陈列柜依然空着。`
-      + `这一行就是这样——绝大多数人的十年，都是这样的。`,
+    text: (s) => `${club(s)}的陈列柜还是空的。这一行绝大多数人的十年，都是这样。`,
   },
 
   // ================================================================== 故事线
@@ -329,8 +326,8 @@ export const ENDINGS: Ending[] = [
     key: 'icarus', track: '故事', title: '乐极生悲',
     brief: '连冠之后，突然有一个赛季颗粒无收',
     test: (_s, f) => f.fellOff,
-    text: (s) => `你曾经让${club(s)}把冠军变成一种习惯。然后有一年，`
-      + `奖杯被别人举起来了，你在台下看着——那之后，它再也没有回来过。`,
+    text: (s) => `你曾让${club(s)}把夺冠变成习惯。后来有一年，奖杯被别人举起，`
+      + `那之后它再没回来过。`,
   },
   {
     key: 'homegrown', track: '故事', title: '本土主义',
@@ -357,8 +354,8 @@ export const ENDINGS: Ending[] = [
     key: 'rebuild', track: '故事', title: '推倒重来',
     brief: '接手时的队员一个不剩，并拿下国际冠军',
     test: (_s, f) => f.originalsAt > 0 && f.originalsLeft === 0 && f.intlTitles > 0,
-    text: (s) => `接手时的那支队伍，如今一个人都不剩了。这很残酷，`
-      + `但${club(s)}举起奖杯的那天，没有人再问值不值得。`,
+    text: (s) => `接手时的那批人，一个都不剩了。`
+      + `但${club(s)}举起奖杯那天，没人再问值不值得。`,
   },
   {
     key: 'oneClub', track: '故事', title: '一生一队',
@@ -378,8 +375,8 @@ export const ENDINGS: Ending[] = [
     key: 'quiet', track: '故事', title: '十年一日',
     brief: '完整走完十个赛季',
     test: (_s, f) => f.seasons >= 10,
-    text: (s, f) => `十个赛季，${f.titles} 座奖杯。在一个平均任期不到两年的行业里，`
-      + `你在${club(s)}待满了十年——这件事本身就没几个人做到过。`,
+    text: (s, f) => `十个赛季，${f.titles} 座奖杯。这一行平均任期不到两年，`
+      + `你在${club(s)}待满了十年，没几个人做到过。`,
   },
   {
     // 十年一日 and this one partition every career between them, so the story
@@ -387,8 +384,7 @@ export const ENDINGS: Ending[] = [
     key: 'shortStay', track: '故事', title: '来过',
     brief: '没能走完十年',
     test: (_s, f) => f.seasons < 10,
-    text: (s, f) => `${f.seasons} 个赛季之后，你离开了${club(s)}。`
-      + `这一行的门一直开着——进来容易，留下来才难。`,
+    text: (s, f) => `${f.seasons} 个赛季后，你离开了${club(s)}。这一行进来容易，留下来难。`,
   },
 ]
 

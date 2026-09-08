@@ -455,9 +455,9 @@ export const triesLeft = (c: ChallengeState): number =>
 export function challengeBlock(g: GachaState, today: string): string | null {
   const c = g.challenge
   if (!c) return null
-  if (c.day === today && c.done) return '今天的挑战已经结束了，明天换一道。'
+  if (c.day === today && c.done) return '今天的挑战已结束，明天换一道。'
   const owed = c.day === today && c.paid ? 0 : CHALLENGE_COST
-  if (g.coins < owed) return `金币不够——入场要 ${CHALLENGE_COST} 金币。`
+  if (g.coins < owed) return `金币不够，入场要 ${CHALLENGE_COST} 金币`
   return null
 }
 

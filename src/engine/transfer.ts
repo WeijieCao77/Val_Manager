@@ -22,7 +22,7 @@ export function rosterBlock(state: GameState, teamId: string): string | null {
   const team = state.teams[teamId]
   if (!team || team.roster.length < ROSTER_MAX) return null
   return teamId === state.myTeam
-    ? `正式名单已满（${ROSTER_MAX}/${ROSTER_MAX}）——现实的参赛名单也有人数上限，先放走一人再签。`
+    ? `名单已满（${ROSTER_MAX}/${ROSTER_MAX}），先放走一人再签。`
     : `${team.name} 的名单已满。`
 }
 
@@ -56,7 +56,7 @@ export const windowOpen = (day: number): boolean =>
 export const windowBlock = (state: GameState): string | null =>
   windowOpen(state.day)
     ? null
-    : '转会窗口已关闭，现在不能提出新的报价或问价——只能答复已经在谈的事。'
+    : '转会窗口已关闭，不能新报价或问价，只能答复在谈的事。'
 
 /** What the selling club wants for a player under contract. */
 export function askingPrice(p: Player): number {
@@ -179,7 +179,7 @@ export function scoreOffer(
       // group looking for a way to farm something that did not exist — 「忠诚度
       // 怎么刷呀」. It grows a season at a time now, so the line says so.
       why: renewal
-        ? '对这支球队没有太深的归属感（归属感靠年头和荣誉慢慢长，挂牌会掉一大截）'
+        ? '对这支球队归属感不深（靠年头和荣誉慢慢涨，挂牌会掉一大截）'
         : '对现在的俱乐部感情很深',
     },
     { key: 'lock', v: noPoach ? -13 : 0, why: '不愿接受转会限制条款' },
@@ -286,7 +286,7 @@ export function canSell(state: GameState, p: Player): boolean {
 export function squadFloorBlock(state: GameState, teamId: string): string | null {
   if (squadOf(state, teamId).length > 5) return null
   return teamId === state.myTeam
-    ? '阵容只剩五人了——再放走一个就凑不出首发，比赛只能少人上场。先补人再说。'
+    ? '阵容只剩五人，再放走就凑不齐首发。先补人。'
     : '对方只剩五名球员，放人就凑不齐首发了。'
 }
 
@@ -434,7 +434,7 @@ export function doTransfer(
     text: (fee > 0
       ? `${to.name} 以 $${fee.toLocaleString()} 的转会费从 ${from?.name ?? '自由市场'} 签下 ${p.ign}（${p.overall}）。`
       : `${to.name} 免转会费签下自由人 ${p.ign}（${p.overall}）。`)
-      + (watched ? ' 你此前正在接触这名选手。' : ''),
+      + (watched ? ' 你之前在接触他。' : ''),
     important: to.id === state.myTeam || from?.id === state.myTeam || watched,
   })
   return true
@@ -753,8 +753,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
       state.offers[state.offers.length - 1].status = left ? 'accepted' : 'rejected'
       if (!left) {
         notes?.push(
-          `🛡 ${team.name} 想触发 ${target.ign} 的解约金，但这笔交易无法完成`
-          + '（我方阵容会不足五人，或对方名单已满），他留下了。',
+          `🛡 ${team.name} 想触发 ${target.ign} 的解约金，但我方会不足五人或对方名单已满，交易没成，他留下了。`,
         )
         continue
       }
@@ -773,7 +772,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
       })
       notes?.push(
         `💼 ${team.name} 报价 $${fee.toLocaleString()} 求购 ${target.ign}，`
-        + '7 天内要给答复，逾期视为拒绝。',
+        + '7 天内答复，逾期视为拒绝。',
       )
     }
   }
@@ -812,7 +811,7 @@ export function answerIncoming(state: GameState, offerId: string, accept: boolea
     if ((p.grievance ?? 0) > 30 || p.listed) {
       p.grievance = clamp((p.grievance ?? 0) + 12, 0, 100)
       p.morale = clamp(p.morale - 6, 0, 100)
-      return `已拒绝 ${to.name} 对 ${p.ign} 的报价。他本人对此并不高兴。`
+      return `已拒绝 ${to.name} 对 ${p.ign} 的报价，他本人不太高兴。`
     }
     return `已拒绝 ${to.name} 对 ${p.ign} 的报价。`
   }
@@ -855,7 +854,7 @@ export function enquireAbout(state: GameState, playerId: string): string {
     replyOn: state.day + rng.int(2, 5),
   }]
   const full = rosterBlock(state, state.myTeam)
-  return `已就 ${p.ign} 向 ${state.teams[p.teamId]?.name} 问价，等待答复。${full ? '注意：名单已满（7/7），正式买入前要先放走一人。' : ''}`
+  return `已就 ${p.ign} 向 ${state.teams[p.teamId]?.name} 问价，等待答复。${full ? '名单已满（7/7），买入前要先放走一人。' : ''}`
 }
 
 /** Enquiries answered today. */
@@ -867,7 +866,7 @@ export function resolveEnquiries(state: GameState, rng: Rng): string[] {
     const holder = p?.teamId ? state.teams[p.teamId] : null
     if (!p || !holder || p.teamId !== e.teamId) {
       e.answer = 'closed'
-      e.reason = '这名选手的情况已经变了'
+      e.reason = '他的情况变了'
       continue
     }
 
@@ -1019,7 +1018,7 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     // the same line. Name the real block, and name both numbers.
     if (!canSell(state, p)) {
       offer.status = 'rejected'
-      return `${state.teams[p.teamId]?.name} 没有放人——${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
+      return `${state.teams[p.teamId]?.name} 没有放人：${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
     }
     if (!clubAcceptsFee(p, offer.fee, rng)) {
       offer.status = 'rejected'
@@ -1037,7 +1036,7 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     offer.status = 'rejected'
     // name the real reason: the selling club would be left unable to field five
     return p.teamId
-      ? `${state.teams[p.teamId]?.name ?? '对方'} 最终没有放人——${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
+      ? `${state.teams[p.teamId]?.name ?? '对方'} 没有放人：${squadFloorBlock(state, p.teamId) ?? '这笔转会没能完成。'}`
       : `这笔签约没能完成，${p.ign} 仍是自由人。`
   }
   offer.status = 'accepted'

@@ -108,7 +108,7 @@ export default function Transfers() {
             <span className="v">{money(game.finances.balance - committed)}</span>
           </div>
           {committed > 0 && (
-            <div className="tiny faint">其中 {money(committed)} 已被待回应的报价占用</div>
+            <div className="tiny faint">其中 {money(committed)} 被待答复的报价占用</div>
           )}
         </Panel>
         <Panel><div className="stat"><span className="k">阵容人数</span><span className="v">{squad.length}</span></div></Panel>
@@ -131,8 +131,7 @@ export default function Transfers() {
 
       {!open && (
         <p className="small neg">
-          转会窗口目前关闭：<b>不能再提出新的报价或问价，但已经在谈的照常进行</b>——
-          对方仍会给你答复，窗口内下的报价谈成了照样成，别队对我们球员的报价也仍需你答复。
+          转会窗口已关闭：不能新报价或问价，已经在谈的照常进行。
           开放时段：{TRANSFER_WINDOWS.map(([a, b]) => `第 ${a}–${b} 天`).join('、')}。
         </p>
       )}
@@ -263,7 +262,7 @@ export default function Transfers() {
             </table>
           </div>
           <p className="tiny faint" style={{ padding: '10px 13px', margin: 0 }}>
-            拒绝一名想走的选手会加深他的不满。合同里写了解约金的，对方付到价可以直接带走，无需我们同意。
+            拒绝想走的选手会加深他的不满。有解约金的，对方付到价就能直接带走。
           </p>
         </Panel>
       )}
@@ -303,7 +302,7 @@ export default function Transfers() {
             </table>
           </div>
           <p className="tiny faint" style={{ padding: '10px 13px', margin: 0 }}>
-            报价期间资金已被预留，别的俱乐部也可能抢先签下目标。
+            报价期间资金已预留，别的俱乐部也可能抢先。
           </p>
         </Panel>
       )}
@@ -318,15 +317,14 @@ export default function Transfers() {
             </div>
           ))}
           <p className="tiny faint" style={{ padding: '8px 13px', margin: 0 }}>
-            别的俱乐部也在市场上买人签人——盯上了谁就别等太久。
+            盯上了谁别等太久，别的俱乐部也在买人。
           </p>
         </Panel>
       )}
 
       <Panel tut="enquire" title="问价 · 找不在市场上的人">
         <p className="small muted" style={{ marginTop: 0 }}>
-          想要的人多半不在市场上。问价花 1 点行动力、不花钱，2~5 天后得到<b>俱乐部要价</b>和<b>本人意向</b>，
-          <b>有结果会显示在本页最上面</b>，直接在那里报价。
+          问价花 1 点行动力，不花钱。2~5 天后给出俱乐部要价和本人意向，结果显示在本页最上面，在那里报价。
         </p>
 
         <div className="row wrap" style={{ gap: 8, marginBottom: 10, alignItems: 'center' }}>
@@ -399,7 +397,7 @@ export default function Transfers() {
                             <b>{p.ign}</b>
                             <span className="name-tags">
                             {p.listed && <span className="tag warn">挂牌</span>}
-                            {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
+                            {p.retiring && <span className="tag warn" title="本赛季结束后退役">退役</span>}
                             </span>
                           </td>
                           <td className="small">
@@ -435,7 +433,7 @@ export default function Transfers() {
           </div>
         ) : !askClub ? (
           <p className="tiny faint" style={{ margin: 0 }}>
-            选一支俱乐部列出他们的全部选手，或者用上面的「按位置找人」直接横扫全世界。
+            选一支俱乐部看他们的全部选手，或用「按位置找人」搜全世界。
           </p>
         ) : (() => {
           const club = game.teams[askClub]
@@ -467,7 +465,7 @@ export default function Transfers() {
                             <b>{p.ign}</b>
                             {starter && <span className="tag" style={{ marginLeft: 5 }}>首发</span>}
                             {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
-                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="已宣布本赛季结束后退役——买他打不了几个月">退役</span>}
+                            {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="本赛季结束后退役">退役</span>}
                           </td>
                           <td><Roles p={p} /></td>
                           <td className="num"><OvrBadge value={p.overall} /></td>
@@ -554,7 +552,7 @@ export default function Transfers() {
                     <b>{p.ign}</b>
                     {p.isIgl && (
                       <span className="tag" style={{ marginLeft: 6 }}
-                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行' : '队内指挥'}>
+                        title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行' : '队内指挥'}>
                         {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
                       </span>
                     )}
@@ -638,10 +636,9 @@ export default function Transfers() {
             // through, but there is no second bid if they say no
             const full = rosterBlock(game, game.myTeam)
             toast((windowOpen(offer.respondOn ?? game.day)
-              ? `报价已提交给 ${target.ign}，${wait} 天后给你答复。`
-              : `报价已提交给 ${target.ign}，${wait} 天后答复——那时窗口已关，成了照样成，` +
-                `但被拒就没机会补价了。`)
-              + (full ? ` 注意：名单已满（7/7），答复前先放走一人，否则交易会被取消。` : ''))
+              ? `已向 ${target.ign} 报价，${wait} 天后答复。`
+              : `已向 ${target.ign} 报价，${wait} 天后答复，那时窗口已关，被拒就不能补价了。`)
+              + (full ? ` 名单已满（7/7），答复前先放走一人，否则交易取消。` : ''))
             setTarget(null)
           })}
         />
@@ -684,20 +681,20 @@ function OfferModal({
 
       {player.teamId && (
         <div style={{ marginBottom: 14 }}>
-          <label className="small muted">转会费（对方要价 {moneyFull(ask)}，出到这个数就会放人）</label>
+          <label className="small muted">转会费（对方要价 {moneyFull(ask)}）</label>
           <input
             type="number" value={fee} min={0} step={10000}
             onChange={(e) => setFee(Math.max(0, Number(e.target.value)))}
           />
           {feeHopeless
             ? <div className="tiny neg">不到要价的七成，对方不会考虑。</div>
-            : !feeOk && <div className="tiny neg">低于对方要价，有可能被拒绝——差得越多越可能。</div>}
+            : !feeOk && <div className="tiny neg">低于要价，差得越多越可能被拒。</div>}
           {player.contract?.noPoach && (
-            <div className="tiny neg">该选手合同含转会限制条款，原俱乐部可以直接拒绝。</div>
+            <div className="tiny neg">合同含转会限制条款，原俱乐部可直接拒绝。</div>
           )}
           {!!player.contract?.releaseClause && (
             <div className="tiny pos">
-              解约金 {moneyFull(player.contract.releaseClause)} —— 出到这个价对方必须放人。
+              解约金 {moneyFull(player.contract.releaseClause)}，出到这个价必须放人。
             </div>
           )}
         </div>
@@ -708,7 +705,7 @@ function OfferModal({
 
       {!afford && (
         <div className="tiny neg" style={{ marginTop: 10 }}>
-          资金不足：需要立刻支付 {moneyFull(upfront)}，你只有 {moneyFull(game.finances.balance)}。
+          资金不足：需立即支付 {moneyFull(upfront)}，现有 {moneyFull(game.finances.balance)}。
         </div>
       )}
 

@@ -190,10 +190,10 @@ export async function act(
     if (typeof j.code === 'string') code = j.code
     if (j.state && absorb(state, j.state)) writeMirror(state, false)
     if (j.ok) return { ok: true, result: j.result }
-    if (j.offline) return { ok: false, why: '服务器后面没有数据库，这一步做不了。', offline: true }
+    if (j.offline) return { ok: false, why: '服务器暂时不可用，稍后再试。', offline: true }
     return { ok: false, why: j.why ?? (r.status === 429 ? '操作太快了，等一下。' : '没成功，等会儿再试。') }
   } catch {
-    return { ok: false, why: '连不上服务器——这一步需要联网。', offline: true }
+    return { ok: false, why: '连不上服务器，请检查网络。', offline: true }
   }
 }
 
@@ -367,8 +367,15 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
     if (j?.ok && j.state) {
       const state = migrateGacha(j.state as GachaState, id)
       const m = readMirror(id)
-      if (m?.dirty && m.state) {
-        // cosmetic edits this device made and never got to send
+      // Cosmetic edits this device made and never got to send — a five
+      // rearranged and the tab swiped away before the debounced save fired.
+      // They are delivered only if the account is still where this device
+      // last saw it. If another device has written since, its five is the
+      // newer choice, and laying a days-old mirror over it and pushing that
+      // up was exactly how the phone kept undoing the desktop (2026-09-08).
+      // A mirror with no revision at all is a bare state from before the
+      // envelope existed; its name and five are still its own to write, once.
+      if (m?.dirty && m.state && (m.rev == null || m.rev === rev)) {
         mergeClientFields(state, m.state)
         writeMirror(state, true)
         void saveAccount(state, true)
@@ -415,7 +422,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
       // the newcomer gets a fresh id instead of a stranger's collection
       if (j?.taken) continue
       if (!j?.ok || !j.state) {
-        return { ok: false, why: j?.offline ? '服务器后面没有数据库，现在建不了账号。' : '服务器没接受，等会儿再试。' }
+        return { ok: false, why: j?.offline ? '服务器暂时不可用，建不了账号。' : '服务器没接受，等会儿再试。' }
       }
       if (typeof j.rev === 'number') rev = j.rev
       if (typeof j.code === 'string') code = j.code
@@ -424,10 +431,10 @@ export async function createAccount(name: string): Promise<CreateResult> {
       writeMirror(state, false)
       return { ok: true, state, today: j.today ?? localToday() }
     } catch {
-      return { ok: false, why: '连不上服务器。建账号需要联网——账号是存在服务器上的。' }
+      return { ok: false, why: '连不上服务器，建账号需要联网。' }
     }
   }
-  return { ok: false, why: '三次都撞了号，再试一次。' }
+  return { ok: false, why: '生成账号失败，再试一次。' }
 }
 
 let pending: number | null = null
@@ -488,6 +495,41 @@ export function saveAccount(state: GachaState, immediate = false): Promise<void>
   if (immediate) return send()
   pending = window.setTimeout(send, 1200)
   return Promise.resolve()
+}
+
+/**
+ * Re-read the account into a tab that has been sitting in the background.
+ *
+ * The five set on the phone used to reach an open desktop tab only on a
+ * reload; until then the tab showed the old five, and touching it there
+ * collided with the phone's. Called when the tab comes to the front: if the
+ * server's revision has moved past the one this device last confirmed, the
+ * server's copy is adopted into the object the tab is holding. A tab with
+ * unsent work of its own is left alone — its save resolves the collision.
+ * Resolves true when something changed.
+ */
+export async function refreshAccount(state: GachaState): Promise<boolean> {
+  const m = readMirror(state.id)
+  if (m?.dirty) return false
+  const base = typeof m?.rev === 'number' ? m.rev : rev
+  try {
+    const r = await fetch(api('load'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: state.id }),
+    })
+    const j = await r.json()
+    noteNow(j?.now)
+    if (!j?.ok || !j.state || typeof j.rev !== 'number') return false
+    if (typeof j.code === 'string') code = j.code
+    if (j.rev === base) { rev = j.rev; return false }
+    rev = j.rev
+    const fresh = migrateGacha(j.state as GachaState, state.id)
+    takeServerFields(state, fresh)
+    mergeClientFields(state, fresh)
+    writeMirror(state, false)
+    return true
+  } catch { return false }
 }
 
 /** Push whatever is pending right now — for page-hide, where a timer will not fire. */

@@ -94,7 +94,7 @@ export interface PackDef {
 export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
-    blurb: '一张选手卡。大部分是铜卡，但金卡就是从这里出的。',
+    blurb: '一张选手卡。多是铜卡，也出金卡。',
     cost: 750, draws: 1, mythic: 0.0001, gold: 0.03, silver: 0.26, shop: true,
   },
   elite: {
@@ -104,7 +104,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
-    blurb: '十张选手卡，必出金卡，彩卡出得最多。买不到——升段、夺冠、连签七天才有。',
+    blurb: '十张选手卡，必出金卡，彩卡最多。不卖，升段、夺冠、连签七天才有。',
     cost: 5000, draws: 10, mythic: 0.0012, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
   },
   // The series packs: same three cards as a 选拔包 and the same odds, priced a
@@ -113,7 +113,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   // complaint about a 607-card pile answered in one line.
   cn: {
     kind: 'cn', name: '中国包', pool: 'China',
-    blurb: '只出中国赛区的选手卡。三张，至少一张银卡起——想补哪个赛区就开哪个。',
+    blurb: '只出中国赛区的选手卡。三张，至少一张银卡起。',
     cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   pac: {
@@ -133,7 +133,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
-    blurb: '一名真实教练。带过你阵容里的人，默契还会更高。',
+    blurb: '一名真实教练。带过阵容里的人，默契更高。',
     // A彩卡 used to be a night somebody PLAYED, so this pack had none. Muggle
     // did not play a map of the 2024 final and is one of the reasons it was
     // won, and a booth is where that card belongs.
@@ -155,7 +155,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   },
   controller: {
     kind: 'controller', name: '控场包', pool: '控场',
-    blurb: '一张能打控场的选手卡。控场的小游戏还在做。',
+    blurb: '一张能打控场的选手卡。控场小游戏还没上线。',
     cost: 0, draws: 1, mythic: 0, gold: 0.05, silver: 0.32, shop: false,
   },
   sentinel: {
@@ -1382,8 +1382,8 @@ export function recordLadder(g: GachaState, win: boolean, oppRating = 80): Ladde
     + `${win ? '胜' : '负'}，${win ? '+' : ''}${out.coins} 金币`
     + (out.pointsDelta != null
       ? `，${out.pointsDelta >= 0 ? '+' : ''}${out.pointsDelta} 分（${out.title} ${out.points}）`
-      : out.promoted ? ` — 升到${rankName(L.div, L.stars, L.points ?? 0)}`
-        : out.demoted ? ` — 掉到${rankName(L.div, L.stars, 0)}` : ''))
+      : out.promoted ? `，升到${rankName(L.div, L.stars, L.points ?? 0)}`
+        : out.demoted ? `，掉到${rankName(L.div, L.stars, 0)}` : ''))
   return out
 }
 
@@ -1436,7 +1436,7 @@ export const CUP_WIN = cupTitlePrize(3)
  */
 export function enterCup(g: GachaState, squadRating: number, now: number): CupState {
   if (g.cup && !g.cup.done) return g.cup
-  if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够——入场要 ${STAMINA_COST.cup} 点。`)
+  if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够，入场要 ${STAMINA_COST.cup} 点`)
   const { rng, done } = roll(g)
   const sorted = WORLD_TEAMS.slice().sort((a, b) => a.rating - b.rating)
   let rounds = CUP_MIN_ROUNDS
@@ -1504,7 +1504,7 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
     const coins = cupTitlePrize(cup.path.length)
     g.coins += coins
     g.packs.elite = (g.packs.elite ?? 0) + 1
-    note(g, `杯赛冠军（${cup.path.length} 轮）！奖金 ${coins} + 一个选拔包`)
+    note(g, `杯赛冠军（${cup.path.length} 轮），奖金 ${coins}，选拔包 +1`)
     return { coins, pack: 'elite', done: true, won: true }
   }
   return { coins: 0, done: false, won: false }

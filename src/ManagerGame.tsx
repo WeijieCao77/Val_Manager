@@ -324,7 +324,7 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
           <div className="chip" title="可用资金" aria-label="可用资金"><span aria-hidden="true">💰</span> <b>{money(game.finances.balance)}</b></div>
           <div
             className={`chip actions${actionsLeft(game) === 0 ? ' spent' : ''}`}
-            title={`本回合 ${actionsForTurn(game)} 点行动力（赛季中每天 2 点，空档期每周 4 点）。\n报价、问价、商务、约战、教练组、挂牌解约等对外事务各花 1 点；\n首发、战术、训练安排不花点数。`}
+            title={`本回合 ${actionsForTurn(game)} 点行动力（赛季中每天 2 点，空档期每周 4 点）。\n报价、商务、约战等对外事务各花 1 点；首发、战术、训练不花。`}
           >
             <span aria-hidden="true">⚡</span> 行动力
             <b style={{ marginLeft: 4 }}>{actionsLeft(game)}/{actionsForTurn(game)}</b>
@@ -338,12 +338,12 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
             </div>
           )}
           {upFirst ? (
-            <div className="chip small muted" title={`${up.name}：${up.how}。对阵要等四个赛区都打完才抽。`}>
+            <div className="chip small muted" title={`${up.name}：${up.how}。四个赛区打完后抽签。`}>
               下一场：{up.name}
               <span className="faint"> · 约{up.day - game.day}天后 · 对手待定</span>
             </div>
           ) : inEvFirst ? (
-            <div className="chip small muted" title={`${inEv.comp.name} ${inEv.round}，对手等上一轮打完才知道`}>
+            <div className="chip small muted" title={`${inEv.comp.name} ${inEv.round}，对手待定`}>
               下一场：{inEv.round}
               <span className="faint"> · {inEv.day - game.day <= 0 ? '今天' : `${inEv.day - game.day}天后`} · 对手待定</span>
             </div>
@@ -410,15 +410,14 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
             <b>{saveWarn === 'shrunk' ? '⚠ 存储空间满了，已精简存档' : '⚠ 进度没有被保存'}</b>
             <span>
               {saveWarn === 'behind'
-                ? '另一个标签页里有更靠后的存档，为了不覆盖它，这一页暂时不写入。'
-                  + '请关掉其它的游戏标签页，然后刷新这一页。'
+                ? '另一个标签页里有更靠后的存档，这一页暂时不写入。'
+                  + '关掉其它游戏标签页，再刷新这一页。'
                 : saveWarn === 'shrunk'
-                  ? '浏览器的存储空间满了。为了继续保存，旧比赛的计分板和回合记录已经清掉——'
-                    + '生涯本身（阵容、合同、荣誉、成就）一点没少，之后的进度照常写入。'
-                    + '想彻底腾地方，可以去「存档」页删掉用不上的手动存档。'
-                  : '浏览器拒绝了写入（多半是存储空间满了）。'
-                    + '现在的进度只存在这个页面里——请去「存档」页导出成文件，'
-                    + '并删掉用不上的手动存档腾地方。导出之后可以关掉这条提示；写入恢复时它会自己消失。'}
+                  ? '浏览器存储空间满了，旧比赛的计分板和回合记录已清掉，生涯本身没少。'
+                    + '可以去「存档」页删掉用不上的手动存档。'
+                  : '浏览器拒绝写入，多半是存储空间满了。'
+                    + '当前进度只在这个页面里，请去「存档」页导出文件，并删掉用不上的手动存档。'
+                    + '写入恢复后这条提示会自动消失。'}
             </span>
           </div>
         )}

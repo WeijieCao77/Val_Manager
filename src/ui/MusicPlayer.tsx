@@ -86,9 +86,9 @@ const IOS = typeof navigator !== 'undefined'
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
 const LOOPS: Record<Loop, { label: string; hint: string; next: Loop }> = {
-  all: { label: '列表', hint: '列表循环：放完一轮从头再来', next: 'one' },
-  one: { label: '单曲', hint: '单曲循环：这一首一直放', next: 'off' },
-  off: { label: '顺序', hint: '顺序播放：放完一轮就停', next: 'all' },
+  all: { label: '列表', hint: '列表循环', next: 'one' },
+  one: { label: '单曲', hint: '单曲循环', next: 'off' },
+  off: { label: '顺序', hint: '顺序播放，放完就停', next: 'all' },
 }
 
 export default function MusicPlayer() {

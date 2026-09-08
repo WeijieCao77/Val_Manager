@@ -68,7 +68,7 @@ export default function Collection() {
         }
       >
         <p className="tiny muted" style={{ marginTop: 0 }}>
-          一支俱乐部的选手卡全部到手就算集齐（5–7 张，按它在卡池里的人数；彩卡是同一个人的另一晚，不算第二张，但只有彩卡也算有了这个人）。
+          集齐一支俱乐部在卡池里的所有选手卡（5–7 张）即可。彩卡算作同一个人。
         </p>
         <div className="club-sets">
           {(allSets ? sets : sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).slice(0, 24)).map((x) => {
@@ -85,7 +85,7 @@ export default function Collection() {
           })}
         </div>
         {!allSets && sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).length === 0 && (
-          <p className="empty">还没有哪支队快集齐。点「看全部」看每支队差多少。</p>
+          <p className="empty">还没有快集齐的队，点「看全部」查看。</p>
         )}
       </Panel>
 
@@ -139,7 +139,7 @@ export default function Collection() {
           </div>
         )}
         {rows.length > 240 && (
-          <p className="tiny faint" style={{ marginTop: 10 }}>只显示了前 240 张，搜一下缩小范围。</p>
+          <p className="tiny faint" style={{ marginTop: 10 }}>只显示前 240 张，可搜索缩小范围。</p>
         )}
       </Panel>
 
@@ -212,7 +212,7 @@ export default function Collection() {
                       {sel.clubTag ?? '自由身'} 的教练{sel.spec ? '组分析师' : ''}
                       <br />战术 {sel.tactics} · 培养 {sel.development} · 激励 {sel.motivation}
                       <br />
-                      <span className="tiny">带你阵容里同队/同赛区的选手时，默契会更高。</span>
+                      <span className="tiny">带同队或同赛区的选手时默契更高。</span>
                     </div>
                   )}
                 </div>

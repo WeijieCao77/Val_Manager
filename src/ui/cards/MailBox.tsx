@@ -43,7 +43,7 @@ export default function MailBox() {
     if (!r.ok) { toast(r.why); return }
     const got = ((r.result as { mail?: MailItem[] } | undefined)?.mail ?? [])
     if (got.length) {
-      toast(got.length === 1 ? `${mailLine(got[0])}。已收下。` : `信箱收到 ${got.length} 条，已收下。`)
+      toast(got.length === 1 ? `${mailLine(got[0])}，已收下。` : `信箱收到 ${got.length} 条，已收下。`)
     }
   }
 
@@ -64,7 +64,7 @@ export default function MailBox() {
       <div
         className={`chip mail-chip${unread ? ' own' : ''}`}
         role="button" tabIndex={0}
-        title="交易区的成交、退款，以及官方发放的东西，都在这里"
+        title="成交、退款和官方发放都在这里"
         onClick={() => setOpen((x) => !x)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((x) => !x) } }}
       >
@@ -83,9 +83,7 @@ export default function MailBox() {
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted" style={{ lineHeight: 1.8 }}>
-              交易区的成交、退款、被拒的报价，和<b>官方发放的卡包、金币、卡</b>都从这里进来。
-              打开卡池时自动收下并记在这里——<b>列表里的每一条都已经到账</b>，不用再点；
-              标着「新」的是这次才到的。「收取」只是把刚刚才寄到的立刻拿进来。
+              交易区的成交、退款和<b>官方发放</b>都从这里进来，<b>每一条都已自动到账</b>。标「新」的是这次刚到的。
             </p>
             {!cloud && (
               <p className="small" style={{ color: 'var(--warn)' }}>服务器连不上，信箱暂时收不了。</p>

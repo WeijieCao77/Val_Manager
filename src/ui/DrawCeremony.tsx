@@ -49,7 +49,7 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
     toast(isPick ? '交给了教练组。' : '对阵已写进赛程。')
   }
   const close = () => {
-    if (!ev.consumed) toast('抽签还没抽完，赛季会等着——总览页可以再进来。')
+    if (!ev.consumed) toast('抽签还没抽完，可以从总览页再进来。')
     commit()
     onClose()
   }
@@ -129,7 +129,7 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
         {ev.consumed && <button className="primary" onClick={close}>关闭</button>}
         {!ev.consumed && <button className="ghost" onClick={close}>先关掉，稍后再抽</button>}
         <span className="tiny faint" style={{ alignSelf: 'center' }}>
-          {ev.revealed}/{ev.steps.length} 签 · {ev.consumed ? '对阵已写进赛程' : '抽完（或跳过）对阵才会写进赛程，赛季在等这一步'}
+          {ev.revealed}/{ev.steps.length} 签 · {ev.consumed ? '对阵已写进赛程' : '抽完才会写进赛程'}
         </span>
       </div>
       {ev.log.length > 0 && allOut && (
@@ -224,7 +224,7 @@ function Choice({ ev, comp, onChoose, onDelegate }: {
     && ((f.teamA === game.myTeam && f.teamB === id) || (f.teamB === game.myTeam && f.teamA === id)))
   return (
     <div className="draw-choice">
-      <div className="nav-group" style={{ padding: '10px 0 6px' }}>轮到我们选八强对手——点一行选定，不能反悔</div>
+      <div className="nav-group" style={{ padding: '10px 0 6px' }}>轮到我们选八强对手，选定后不能反悔</div>
       {/* The 选 button used to be the seventh column. On a phone the table
           scrolls sideways and that column was off the screen, so the four
           rows read as a list that did nothing when tapped — 「点下面那四个
@@ -263,7 +263,7 @@ function Choice({ ev, comp, onChoose, onDelegate }: {
       </div>
       <div className="row wrap" style={{ gap: 8, marginTop: 8 }}>
         <button className="sm ghost" onClick={onDelegate}>交给教练组</button>
-        <span className="tiny faint" style={{ alignSelf: 'center' }}>教练组会按实力、瑞士轮表现和交手记录挑最有把握的一队。</span>
+        <span className="tiny faint" style={{ alignSelf: 'center' }}>教练组会挑最有把握的一队。</span>
       </div>
     </div>
   )

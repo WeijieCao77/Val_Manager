@@ -33,9 +33,8 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
     <>
       <Panel title="账号">
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
-          这个 ID 就是你的账号，没有密码，也没有找回方式。
-          <b style={{ color: 'var(--warn)' }}>请立刻截图或复制保存</b>——丢了就再也进不来了。
-          换设备时用这串 ID 登录，收藏和段位都会跟着走。
+          这个 ID 就是你的账号，没有密码，丢了找不回来。
+          <b style={{ color: 'var(--warn)' }}>请截图或复制保存</b>，换设备用它登录。
         </p>
 
         <div className="acct-id" style={{ filter: reveal ? 'none' : 'blur(7px)' }}>
@@ -49,7 +48,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
             className="primary sm"
             onClick={async () => {
               setReveal(true)
-              toast(await copyText(g.id) ? 'ID 已复制，找个地方存好。' : '复制失败，请手动选中复制。')
+              toast(await copyText(g.id) ? 'ID 已复制，记得存好。' : '复制失败，请手动选中复制。')
             }}
           >
             复制 ID
@@ -71,7 +70,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
         </div>
         {!cloud && (
           <p className="tiny warn" style={{ marginTop: 8 }}>
-            现在连不上服务器，进度只写在这个浏览器里，签到日期也用的是本机时间。恢复连接后会自动上传。
+            连不上服务器，进度只存在本机，联网后自动上传。
           </p>
         )}
       </Panel>
@@ -87,7 +86,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
         </div>
       </Panel>
 
-      <Panel title="最近发生了什么">
+      <Panel title="最近动态">
         {g.log.length === 0 ? (
           <p className="empty">还没开始。</p>
         ) : (
@@ -106,11 +105,11 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
 
       <Panel title="退出">
         <p className="small muted" style={{ marginTop: 0 }}>
-          退出后这台设备不再记住你的 ID。确认已经保存好再退。
+          退出后本机不再记住 ID，确认已保存再退。
         </p>
         <button
           onClick={() => {
-            if (confirm('确认退出？没有保存 ID 的话就找不回来了。')) onSignOut()
+            if (confirm('确认退出？没存 ID 就找不回来了。')) onSignOut()
           }}
         >
           退出登录

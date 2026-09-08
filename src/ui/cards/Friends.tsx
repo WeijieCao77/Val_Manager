@@ -16,10 +16,10 @@ import Swap from './Swap'
 type Found = RivalSquad & { code: string }
 
 const MISS: Record<FriendMiss, string> = {
-  bad: '对战码是 8 位，只有数字和 A–F 这几个字母。再看一眼是不是抄漏了。',
-  missing: '没有这个对战码。让他在「好友」页面里复制一下自己的码，别手打。',
-  empty: '这个人的卡组还没凑齐五个人，打不了。让他先去组队。',
-  clash: '这个码对上了不止一个账号（概率极低，但确实撞上了）。跟他说一声，换个方式找他。',
+  bad: '对战码是 8 位，只含数字和 A–F。',
+  missing: '没有这个对战码，让对方在「好友」页复制自己的码。',
+  empty: '对方卡组还没凑齐五人，打不了。',
+  clash: '这个码对应了多个账号，换个方式找他。',
   offline: '连不上服务器，等会儿再试。',
 }
 
@@ -54,7 +54,7 @@ export default function Friends() {
     const want = (raw ?? code).trim()
     if (mine && want.toUpperCase() === mine.toUpperCase()) {
       setFound(null)
-      setWhy('这是你自己的码。把它发给别人，让他们来打你。')
+      setWhy('这是你自己的码。')
       return
     }
     setBusy(true); setWhy(null); setFound(null)
@@ -83,15 +83,15 @@ export default function Friends() {
   const copy = () => {
     if (!mine) return
     void navigator.clipboard?.writeText(mine).then(
-      () => toast('对战码已复制，发给朋友就行。'),
-      () => toast('复制不了，手动选中吧。'),
+      () => toast('对战码已复制。'),
+      () => toast('复制失败，请手动选中。'),
     )
   }
 
   return (
     <>
       <div className="grid c2" style={{ alignItems: 'start' }}>
-        <Panel title="我的对战码" actions={<span className="tiny muted">发给谁都可以</span>}>
+        <Panel title="我的对战码" actions={<span className="tiny muted">可以公开</span>}>
           {mine ? (
             <>
               <div
@@ -102,18 +102,15 @@ export default function Friends() {
               </div>
               <button className="primary sm" onClick={copy}>复制对战码</button>
               <p className="small muted" style={{ lineHeight: 1.8, marginBottom: 0 }}>
-                <b>这不是你的账号 ID，发出去是安全的。</b>
-                它是账号 ID 的哈希前八位——和排行榜上你名字后面那个 #四位是同一串东西，
-                只是长一点。别人拿到它只能来打你的卡组，<b>没法登录你的号，也倒推不回你的 ID</b>。
+                <b>这不是账号 ID，可以放心发。</b>别人拿到它只能来打你的卡组，<b>无法登录你的账号</b>。
               </p>
               <p className="tiny faint" style={{ marginBottom: 0 }}>
-                你的账号 ID（VM- 开头那串）是这个游戏全部的认证方式，
-                <b>那串永远不要发给任何人</b>，包括自称管理员的人。
+                账号 ID（VM- 开头那串）<b>不要发给任何人</b>，包括自称管理员的人。
               </p>
             </>
           ) : (
             <p className="empty">
-              还没连上服务器，暂时拿不到你的对战码。等联网之后再来。
+              连不上服务器，暂时拿不到对战码。
             </p>
           )}
         </Panel>
@@ -159,9 +156,8 @@ export default function Friends() {
                 </div>
               </div>
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
-                三局两胜，和天梯同一套比赛引擎。<b>不花体力，也不给金币、不算段位</b>——
-                只记你俩之间的胜负。打的是他上次存下来的阵容，他不需要在线，
-                你的任何信息也不会给到他。
+                BO3。<b>不花体力，不给金币，不算段位</b>，只记你们之间的胜负。
+                打的是对方上次保存的阵容，不需要他在线。
               </p>
               <button className="primary" onClick={play} disabled={busy}>
                 {busy ? '比赛中…' : filled < 5 ? '先去组队' : '开打（BO3 · 不花体力）'}
@@ -178,7 +174,7 @@ export default function Friends() {
         actions={<span className="tiny muted">最近 {friends.length} 个人</span>}
       >
         {friends.length === 0 ? (
-          <p className="empty">还没和谁打过。把上面的对战码发给朋友，或者问他要一个。</p>
+          <p className="empty">还没和谁打过。把对战码发给朋友，或问他要一个。</p>
         ) : (
           <>
             <div className="table-wrap">
@@ -213,8 +209,7 @@ export default function Friends() {
               </table>
             </div>
             <p className="tiny faint" style={{ marginBottom: 0 }}>
-              这份记录存在你自己的存档里，对面那边有他自己的一份。
-              你打他一场、他打你一场，两边的账才对得上——不是一本共用的账。
+              记录只存在你自己的存档里，对方有他自己的一份。
             </p>
           </>
         )}

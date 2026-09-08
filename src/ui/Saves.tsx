@@ -21,7 +21,7 @@ export default function Saves() {
       toast(`已保存到「${name}」。`)
     } catch {
       // a thrown write used to look identical to success minus the toast
-      toast('⚠ 保存失败——浏览器存储写不进去。先「导出为文件」保住进度。')
+      toast('⚠ 保存失败，浏览器存储写不进去。先「导出为文件」保住进度。')
     }
   }
 
@@ -46,16 +46,14 @@ export default function Saves() {
         <div className="row wrap" style={{ gap: 14, alignItems: 'center' }}>
           <ThemeToggle />
           <span className="small muted" style={{ flex: '1 1 260px' }}>
-            黑底看久了发晕的话，换<b>浅色</b>或<b>米色</b>；米色更柔和一些。
-            只记在这台设备上，不跟存档走，随时可以换回来。
+            黑底看着晕就换<b>浅色</b>或<b>米色</b>。只记在这台设备上，不跟存档走。
           </span>
         </div>
       </Panel>
 
       <Panel title="新手引导">
         <p className="small muted" style={{ marginTop: 0 }}>
-          第一次进入游戏时会有一段引导：先讲清楚基本机制，然后用一个<b>模拟的一天</b>
-          带你把训练、问价、推进真的走一遍——期间做的任何事结束后都会撤销，不影响存档。
+          用<b>模拟的一天</b>把训练、问价、推进走一遍，期间做的事结束后全部撤销，不影响存档。
         </p>
         <button className="sm" onClick={() => {
           // reloading dropped the in-memory save and dumped you on the new-career
@@ -77,7 +75,7 @@ export default function Saves() {
           <button onClick={doExport}>导出为文件</button>
         </div>
         <p className="tiny muted" style={{ marginBottom: 0, marginTop: 10 }}>
-          每次操作都会写入自动存档，重新打开页面即可继续。导出的文件可以在开始界面导入。
+          每次操作都会自动存档。导出的文件可以在开始界面导入。
         </p>
       </Panel>
 
@@ -128,7 +126,7 @@ export default function Saves() {
           {!saves.length && <div className="empty">还没有存档。</div>}
         </div>
         <p className="tiny muted" style={{ padding: '10px 13px', margin: 0 }}>
-          点「读取」直接切换到该存档；开始界面也能读取手动存档。
+          开始界面也能读取手动存档。
         </p>
       </Panel>
 
@@ -139,12 +137,12 @@ export default function Saves() {
               game.importLimit = e.target.checked
               commit()
               toast(e.target.checked
-                ? '已开启外援限制：每队最多两名外区选手（按国籍，含替补），AI 同样受限。已有阵容不拆散，只限新引进。'
+                ? '已开启外援限制：每队最多两名外区选手，AI 同样受限，只限新引进。'
                 : '已关闭外援限制。')
             }} />
           <span>
             <b>限制外援</b>
-            <span className="muted"> — 每支俱乐部最多两名来自其他赛区的选手。中途开关都安全：已有阵容不动，只影响之后的签人。</span>
+            <span className="muted"> — 每支俱乐部最多两名外区选手。只影响之后的签人，已有阵容不动。</span>
           </span>
         </label>
       </Panel>

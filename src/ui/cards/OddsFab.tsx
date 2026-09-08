@@ -47,8 +47,7 @@ export default function OddsFab() {
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted" style={{ margin: 0, lineHeight: 1.9 }}>
-              下面每个数字都是<b>实测</b>的：用游戏里同一套开包代码各开三万包统计出来，
-              不是抄的配置表。所以它永远等于你真正抽到的东西。
+              以下都是<b>实测</b>值：用游戏同一套开包代码各开三万包统计得出。
             </p>
             {everOpened && <OddsTables />}
             <h4 style={{ margin: '4px 0 0', fontSize: 'var(--t-body)' }}>为什么实测和基础值不一样</h4>

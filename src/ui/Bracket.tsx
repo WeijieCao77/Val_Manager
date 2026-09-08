@@ -135,7 +135,7 @@ function Swiss({ comp, fixtures }: { comp: Competition; fixtures: Fixture[] }) {
   return (
     <div className="swiss">
       <div className="nav-group" style={{ padding: '0 0 8px' }}>
-        瑞士轮 · 两胜晋级，两负出局{comp.byes?.length ? `（${comp.byes.map((id) => game.teams[id]?.tag).join('、')} 作为赛区冠军直接进季后赛）` : ''}
+        瑞士轮 · 两胜晋级，两负出局{comp.byes?.length ? `（${comp.byes.map((id) => game.teams[id]?.tag).join('、')} 赛区冠军，直接进季后赛）` : ''}
       </div>
       <div className="swiss-grid">
         <div className="swiss-table">

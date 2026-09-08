@@ -78,7 +78,7 @@ export default function Training() {
     }
     commit()
     toast(rested
-      ? `已按位置重点分配，其中 ${rested} 人受伤、体能偏低或已到潜力上限，改为休息。`
+      ? `已按位置分配，${rested} 人受伤、疲劳或到潜力上限，改为休息。`
       : '已按位置重点分配训练。')
   }
 
@@ -135,16 +135,15 @@ export default function Training() {
       <Panel
         title={`团队训练 · ${locked
           ? `进行中 ${drillDone}/7 天`
-          : '确定后连续训练 7 天，期满结算'}`}
+          : '确定后练 7 天，期满结算'}`}
         className={locked ? '' : 'own'}
       >
         {/* The unit, stated once and loudly. 「IGL 指挥 +7」 was read as seven
             points of 指挥 — it is seven points of a hundred-point bar, and
             nothing on this screen had ever said how big the bar is. */}
         <p className="small muted" style={{ marginTop: 0 }}>
-          主训练<b>三选一</b>，双排练可以并行。
-          <span style={{ color: 'var(--warn)' }}>所有 <b>+N</b> 都是<b>经验</b>：<b>攒满 100 才 +1 属性</b></span>，
-          实际到手乘教练和设施加成（约 1.2~2 倍）。
+          主训练三选一，双排练可以同时安排。
+          <span style={{ color: 'var(--warn)' }}>所有 <b>+N</b> 都是经验，<b>攒满 100 才 +1 属性</b></span>，教练和设施再乘 1.2~2 倍。
         </p>
 
         <div className={`drill-group${locked ? ' locked' : ''}`}>
@@ -153,9 +152,8 @@ export default function Training() {
           <div className="drill-card">
             <b>跑图</b>
             <p className="tiny muted">
-              <b>一周最多两张图</b>，每张熟练度约 <b>+2</b>（上限 95），并把这张图的<b>预案阵容练熟</b>（阵容熟练度 +12）；
-              全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
-              四周没练也没打的图会<b>每周回落 {MAP_DECAY_PER_WEEK}</b>（最低 {MAP_DECAY_FLOOR}），带 ↓ 的就是正在掉的。
+              一周最多两张图。每张地图熟练度 <b>+2</b>（上限 95），阵容熟练度 +12；全队协同 <b>+9</b>、意识 <b>+5</b> 经验。
+              四周没练也没打的图每周回落 {MAP_DECAY_PER_WEEK}（最低 {MAP_DECAY_FLOOR}），带 ↓ 的正在掉。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => {
@@ -191,10 +189,7 @@ export default function Training() {
           <div className="drill-card">
             <b>教练复盘</b>
             <p className="tiny muted">
-              全队意识 <b>+6</b>、沟通 <b>+3</b> 的<b>经验</b>（满 100 才 +1 属性），
-              再乘教练战术加成。<b>指挥只有 IGL 拿，给得多得多</b>——
-              而且他现在的指挥越低学得越快，越接近顶尖越慢。
-              <b>不掉体能，反而恢复 1~4</b>。
+              全队意识 <b>+6</b>、沟通 <b>+3</b> 经验，乘教练战术加成。指挥经验只有 IGL 拿，给得多，指挥越低涨得越快。不掉体能，还恢复 1~4。
             </p>
             {/* Who is actually getting the 指挥 experience, and how far along
                 he is. The table below only ever showed the attribute a player
@@ -206,7 +201,7 @@ export default function Training() {
               if (!igl) {
                 return (
                   <p className="tiny" style={{ color: 'var(--warn)', margin: '0 0 8px' }}>
-                    队里还没有指定指挥，这一项的<b>指挥经验没人拿</b>——去「阵容」页指一个。
+                    队里还没有指挥，指挥经验没人拿。去「阵容」页指定一个。
                   </p>
                 )
               }
@@ -223,12 +218,11 @@ export default function Training() {
                   </div>
                   {capped ? (
                     <div style={{ color: 'var(--warn)', marginTop: 3 }}>
-                      他的能力已经到潜力上限，<b>再练也不会涨</b>了。
+                      已到潜力上限，再练也不会涨。
                     </div>
                   ) : (
                     <div className="faint" style={{ marginTop: 3 }}>
-                      按现在的教练与设施，一轮约 <b>+{Math.round(per)}</b> 经验，
-                      还需 <b>{rounds}</b> 轮（{rounds * 7} 天）指挥 +1。
+                      一轮约 <b>+{Math.round(per)}</b> 经验，再 <b>{rounds}</b> 轮（{rounds * 7} 天）指挥 +1。
                     </div>
                   )}
                 </div>
@@ -244,8 +238,7 @@ export default function Training() {
           <div className="drill-card">
             <b>练新英雄</b>
             <p className="tiny muted">
-              位置熟练度约 <b>+3/周</b>（看意识与道具，满 100 约需半个赛季）。
-              满了就能<b>兼任该位置</b>，中途每 34% 解锁一个该位置英雄。
+              位置熟练度每周约 <b>+3</b>，满 100 就能兼任该位置，每 34% 解锁一个该位置英雄。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => (
@@ -273,7 +266,7 @@ export default function Training() {
                     <span className="tiny mono">{Math.round(pro)}%</span>
                   </div>
                   <div className="tiny faint" style={{ marginTop: 4 }}>
-                    满 100% 才算真正兼任，中途会陆续解锁该位置的英雄。改练别的位置不会清空已有进度。
+                    改练别的位置不会清空进度。
                   </div>
                 </div>
               )
@@ -286,8 +279,7 @@ export default function Training() {
           <div className="drill-card" data-tut="pair">
             <b>双排练</b>
             <p className="tiny muted">
-              两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> <b>经验</b>（满 100 才 +1 属性），
-              并让这两人的<b>关系 +3~6</b>——修复队内矛盾的主要手段。体能 −5~10。
+              两人协同 <b>+10</b>、沟通 <b>+8</b>、反应 <b>+5</b> 经验，关系 <b>+3~6</b>，体能 −5~10。修复队内矛盾主要靠它。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => {
@@ -326,17 +318,16 @@ export default function Training() {
                 <span className="bar-track" style={{ width: 120, height: 6, background: 'var(--panel-2)', borderRadius: 3, overflow: 'hidden', display: 'inline-block' }}>
                   <span style={{ display: 'block', height: '100%', width: `${Math.round(100 * drillDone / 7)}%`, background: 'var(--win)' }} />
                 </span>
-                <span className="tiny faint">{drillDone}/7 天 · 第 7 天结算效果</span>
+                <span className="tiny faint">{drillDone}/7 天 · 第 7 天结算</span>
               </span>
               <button className="sm ghost" onClick={async () => {
                 if (!(await ask(
-                  `重选将荒废现有进度（已训练 ${drillDone}/7 天，不会产生任何效果），\n` +
-                  '新计划确定后重新从第 1 天数起。确定吗？',
+                  `重选会荒废已练的 ${drillDone}/7 天，新计划从第 1 天重新数起。确定？`,
                 ))) return
                 game.drillLock = undefined
                 logActivity(game, 'training', `撤销团队训练计划（荒废 ${drillDone}/7 天进度）`)
                 commit()
-                toast('已放弃当前训练进度。重新选好后点「确定」，从第 1 天重新数起。')
+                toast('已放弃当前进度，重新选好后点「确定」。')
               }}>
                 重选（荒废进度）
               </button>
@@ -428,8 +419,7 @@ export default function Training() {
 
       <Panel title={`理疗室 · 每次 ${money(PHYSIO_COST)}`}>
         <p className="small muted" style={{ marginTop: 0 }}>
-          花钱不花行动力：一次<b>大幅恢复体能</b>，伤停中还能<b>提前复出</b>。每人每 7 天一次。
-          <b>体能 55 以上几乎不会受伤</b>。
+          花钱不花行动力。大幅恢复体能，伤停中可提前复出，每人每 7 天一次。体能 55 以上几乎不会受伤。
         </p>
         <div className="row wrap" style={{ gap: 8 }}>
           {squad.map((p) => {
@@ -465,7 +455,7 @@ export default function Training() {
             <span className="mono">{me.facilities}</span>
           </div>
           <p className="small muted">
-            设施等级直接影响训练收益：每一级大约让训练收益 +0.8%。
+            每一级训练收益约 +0.8%。
           </p>
           {me.facilities >= 95 ? (
             <p className="small" style={{ color: 'var(--win)', margin: 0 }}>已是顶级设施。</p>
@@ -495,7 +485,7 @@ export default function Training() {
                 <b>{me.coach.name}</b>
                 <button
                   className="sm ghost"
-                  title="他留在教练组当助理教练；主教练位置空出来，可以从助教里升任"
+                  title="降为助理教练，主教练位置空出"
                   onClick={async () => {
                     const head = me.coach
                     if (!head) return
@@ -519,8 +509,7 @@ export default function Training() {
             </>
           ) : (
             <p className="small muted">
-              暂无主教练记录。本作只收录真实人物，缺失的教练不会用虚构人名补齐；
-              没有教练时按队伍整体水平计算训练与战术加成。
+              暂无主教练。本作只收录真实人物，不会编造教练；没有教练时按队伍整体水平算加成。
             </p>
           )}
           {(game.staff ?? []).length > 0 && (() => {
@@ -531,7 +520,7 @@ export default function Training() {
             const capped = rows.filter((r) => r.raw > r.used + 0.05)
             return (
               <div style={{ marginTop: 12 }}>
-                <div className="tiny faint" style={{ marginBottom: 5 }}>教练组加成（全组合计，各项上限 {STAFF_CAP}）</div>
+                <div className="tiny faint" style={{ marginBottom: 5 }}>教练组加成（合计，各项上限 {STAFF_CAP}）</div>
                 {rows.map((r) => (
                   <div key={r.k} className="row" style={{ gap: 10, marginBottom: 6 }}>
                     <span className="small muted" style={{ width: 40 }}>{r.label}</span>
@@ -543,10 +532,9 @@ export default function Training() {
                 ))}
                 {capped.length > 0 && (
                   <p className="tiny" style={{ color: 'var(--warn)', margin: '6px 0 0' }}>
-                    ⚠️ {capped.map((r) => r.label).join('、')}已封顶——
-                    这几项再雇人<b>不会有任何提升</b>，只会多付一份薪水
-                    （目前浪费掉 {capped.map((r) => `${r.label} ${(r.raw - r.used).toFixed(1)}`).join('、')}）。
-                    想再变强只能<b>换更好的人</b>，或者去签<b>数据分析师</b>——他们的专精效果不占这个上限。
+                    ⚠️ {capped.map((r) => r.label).join('、')}已封顶，再雇人没有提升
+                    （浪费 {capped.map((r) => `${r.label} ${(r.raw - r.used).toFixed(1)}`).join('、')}）。
+                    想再变强要换更好的人，或签数据分析师，专精效果不占上限。
                   </p>
                 )}
                 <div className="tiny faint" style={{ margin: '10px 0 5px' }}>教练组其他成员</div>
@@ -562,7 +550,7 @@ export default function Training() {
                     )}
                   </span>
                   <span className="tiny faint">战 {m.tactics} / 培 {m.development} / 激 {m.motivation}</span>
-                  <span className="tiny mono" title="他本人贡献的培养加成（属性高于 55 的部分才算）">
+                  <span className="tiny mono" title="他贡献的培养加成（高于 55 的部分）">
                     培 +{staffShare(m, 'development').toFixed(1)}
                   </span>
                   <span className="tiny mono">{money(m.salary)}</span>
@@ -638,17 +626,13 @@ export default function Training() {
               <p className="tiny faint" style={{ marginTop: 0 }}>
                 {role === 'analyst' ? (
                   <>
-                    <b>分析师和教练是两批人</b>，不共用人才池。全世界只有
-                    <b> {analystMarket(game).length} 名</b>在册分析师——vlr 不标注这个职位，
-                    Liquipedia 上有记录的就这几个，本作不编造真人。
-                    正因为少，<b>每个人各管一件事</b>：签谁取决于你缺什么，而不是谁数值高。
+                    全世界只有<b> {analystMarket(game).length} 名</b>在册分析师，只收录 Liquipedia 有记录的真人。
+                    每人各管一件事，签谁看你缺什么。
                   </>
                 ) : (
                   <>
-                    都是各队真实的助理教练；助教和主教练是同一批人（助教可以升任主教练）。
-                    发出邀请后对方会在 <b>1~7 天内答复</b>，可能拒绝——薪资、俱乐部声望和你的
-                    执教履历都会影响他的决定。聘请新主教练时，<b>原主教练会转为助理教练</b>
-                    而不是凭空消失。助教加成「培养」。
+                    都是各队真实的助理教练，助教可以升任主教练。发出邀请后 <b>1~7 天内答复</b>，
+                    薪资、俱乐部声望和你的履历都影响他是否接受。聘新主教练后，原主教练转为助理教练。助教加成「培养」。
                   </>
                 )}
               </p>
@@ -829,11 +813,9 @@ export default function Training() {
               )}
               {poach && (
                 <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
-                  两步走：先给对方俱乐部一笔补偿金请求接触，<b>获准后就在这一行里和教练本人谈薪资</b>
-                  （「自由教练」列表里也能找到他）——谈得拢他才会来，他也可能不想来。<br />
-                  「参考补偿」只是这名教练的身价，<b>不是付了就一定放人</b>：你的声望越低、
-                  对方俱乐部越大牌，就越要溢价。实测新人经理付足额基本不成，
-                  <b>1.6 倍约五成、2.2 倍九成</b>；等你有名气了才谈得下来平价。
+                  先付补偿金请求接触，获准后在这一行和教练本人谈薪资，他也可能不来。<br />
+                  「参考补偿」只是身价，不是付了就放人：你声望越低、对方越大牌，越要溢价。
+                  新人经理付足额基本不成，<b>1.6 倍约五成、2.2 倍九成</b>。
                 </p>
               )}
             </div>
@@ -842,8 +824,8 @@ export default function Training() {
       </div>
 
       <p className="tiny muted">
-        <b>个人专项</b>设一次一直生效，每 7 天结算；<b>团队训练</b>一轮七天，<b>期满后等你重新安排</b>。
-        疲劳超过 70 成长大减；≤20 岁的成长约是 27 岁以上的三倍；到潜力上限后只能维持。
+        个人专项设一次一直生效，每 7 天结算；团队训练一轮 7 天，期满后要重新安排。
+        疲劳超过 70 成长大减；20 岁以下成长约是 27 岁以上的三倍；到潜力上限后不再涨。
       </p>
     </>
   )

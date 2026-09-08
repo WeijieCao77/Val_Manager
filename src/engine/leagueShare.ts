@@ -83,7 +83,7 @@ export function settleLeagueSeason(state: GameState, notes: string[]): void {
     me.budget += payout
     state.finances.balance += payout
     state.finances.log.push({ day: state.day, label: `联盟分成 · 年度捆绑包（${deal.share}%）`, amount: payout })
-    notes.push(`📦 联盟年度捆绑包结算：${deal.mode === 'fixed' ? '固定模式' : '销量模式'}，你的 ${deal.share}% 分成到账 $${payout.toLocaleString()}。`)
+    notes.push(`📦 年度捆绑包结算（${deal.mode === 'fixed' ? '固定' : '销量'}）：${deal.share}% 分成到账 $${payout.toLocaleString()}。`)
   }
 
   if (deal.bundleBet) {
@@ -92,7 +92,7 @@ export function settleLeagueSeason(state: GameState, notes: string[]): void {
     state.finances.balance += bet
     state.finances.log.push({ day: state.day, label: '联盟特别企划 · 销量对赌', amount: bet })
     notes.push(`🎲 特别企划对赌结算：$${bet.toLocaleString()}`
-      + `（当年买断价 $${BUNDLE_BUYOUT.toLocaleString()}——${bet >= BUNDLE_BUYOUT ? '赌对了' : '这次买断更划算'}）。`)
+      + `，买断价 $${BUNDLE_BUYOUT.toLocaleString()}，${bet >= BUNDLE_BUYOUT ? '赌对了' : '买断更划算'}。`)
     deal.bundleBet = false
   }
 }
@@ -106,8 +106,8 @@ export function negotiateShare(state: GameState): string {
   const me = state.teams[state.myTeam]
   if (!me) return '找不到俱乐部。'
   const deal = leagueDealOf(state)
-  if (deal.talkedYear === state.year) return '今年已经和联盟谈过了——他们的预算一年只批一次。'
-  if (deal.share >= SHARE_MAX) return `分成已经是联盟给过的最高档（${SHARE_MAX}%），没有再谈的余地了。`
+  if (deal.talkedYear === state.year) return '今年已经和联盟谈过了，一年只能谈一次。'
+  if (deal.share >= SHARE_MAX) return `分成已经是最高档（${SHARE_MAX}%）。`
   deal.talkedYear = state.year
 
   const skill = state.manager?.skills.negotiation ?? 50
@@ -129,20 +129,20 @@ export function negotiateShare(state: GameState): string {
     state.news.push({ day: state.day, kind: 'club', important: true, text: `🤝 ${msg}` })
     return msg
   }
-  return `联盟这次没让步——分成维持 ${deal.share}%，明年可以再谈。战绩和声望是最好的筹码。`
+  return `联盟没让步，分成维持 ${deal.share}%，明年再谈。`
 }
 
 /** Pick how this season's bundle settles. Locked once the season is underway. */
 export function setDealMode(state: GameState, mode: LeagueDeal['mode']): string {
   const deal = leagueDealOf(state)
   if (deal.mode === mode) return ''
-  if (state.day >= 63) return '合作方式要在赛季初（Masters I 之前）和联盟定下来，现在改不了了。'
+  if (state.day >= 63) return '合作方式只能在 Masters I 之前改，现在改不了了。'
   if (deal.modeYear === state.year) return '今年的合作方式已经定过一次了。'
   deal.mode = mode
   deal.modeYear = state.year
   return mode === 'sales'
-    ? '已改为销量分成：收入跟着声望和成绩走——打得越好，捆绑包卖得越多。'
-    : '已改为固定结算：不论成绩，每年一笔稳定的分成。'
+    ? '已改为销量分成，收入跟着声望和成绩走。'
+    : '已改为固定结算，每年一笔固定分成。'
 }
 
 /** The league floats a themed capsule. Generated when Stage 1 opens, some years. */
@@ -150,8 +150,8 @@ export function offerBundle(state: GameState, notes: string[]): void {
   const me = state.teams[state.myTeam]
   if (!me || me.tier !== 1) return
   state.leagueOffer = { year: state.year, expires: state.day + 10 }
-  const line = `📦 联盟提出为 ${me.name} 推出主题捆绑包：可以现在拿 $${BUNDLE_BUYOUT.toLocaleString()} 买断，`
-    + '也可以按销量对赌、赛季结束结算。去「财务」页答复,10 天内有效。'
+  const line = `📦 联盟想为 ${me.name} 出主题捆绑包：现在拿 $${BUNDLE_BUYOUT.toLocaleString()} 买断，`
+    + '或按销量对赌、赛季末结算。去「财务」页答复，10 天内有效。'
   notes.push(line)
   state.news.push({ day: state.day, kind: 'club', important: true, text: line })
 }
@@ -170,7 +170,7 @@ export function answerBundle(state: GameState, take: 'cash' | 'bet'): string {
     return `买断成交：$${BUNDLE_BUYOUT.toLocaleString()} 到账。`
   }
   leagueDealOf(state).bundleBet = true
-  return '选择销量对赌——赛季结束时按声望和成绩结算。现在，去把成绩打出来。'
+  return '已选销量对赌，赛季末按声望和成绩结算。'
 }
 
 /** A day's housekeeping: an unanswered proposal quietly lapses. */
@@ -178,6 +178,6 @@ export function tickLeagueOffer(state: GameState, notes: string[]): void {
   const offer = state.leagueOffer
   if (offer && (state.day > offer.expires || offer.year !== state.year)) {
     state.leagueOffer = undefined
-    notes.push('📦 联盟的主题捆绑包企划无人答复，撤回了。')
+    notes.push('📦 联盟的捆绑包企划没答复，已撤回。')
   }
 }

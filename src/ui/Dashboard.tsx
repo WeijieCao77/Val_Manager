@@ -174,7 +174,7 @@ export default function Dashboard() {
   const offers = (game.jobOffers ?? []).filter((o) => o.expiresOn > game.day)
 
   const takeJob = async (id: string, name: string) => {
-    if (!(await ask(`确定离开 ${game.teams[game.myTeam]?.name} 出任 ${name} 的经理？\n当前阵容、资金与赛段目标都会换成新俱乐部的。`, '接受邀请'))) return
+    if (!(await ask(`确定离开 ${game.teams[game.myTeam]?.name}，出任 ${name} 的经理？\n阵容、资金和目标都换成新俱乐部的。`, '接受邀请'))) return
     toast(acceptJob(game, id))
     commit()
   }
@@ -218,8 +218,7 @@ export default function Dashboard() {
             })}
           </div>
           <p className="tiny faint" style={{ padding: '0 14px 12px', margin: 0 }}>
-            成绩越好、名气越大，来找你的俱乐部就越强。拒绝不花行动力，这家俱乐部一个赛段内不会再来。
-            也可以去<b>经理</b>页面主动投申请。
+            拒绝不花行动力，这家俱乐部一个赛段内不会再来。也可以去<b>经理</b>页主动申请。
           </p>
         </Panel>
       )}
@@ -242,7 +241,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="small muted">目前没有需要处理的事，可以直接推进。</div>
+          <div className="small muted">没有要处理的事，可以直接推进。</div>
         )}
       </Panel>
 
@@ -317,12 +316,11 @@ export default function Dashboard() {
         <div className="advance-note">
           {cycleDays(game) > 1 ? (
             <>
-              <b>现在是空档期，一回合 = {cycleDays(game)} 天，行动力 4 点</b>——转会窗多半开着，
-              这是做买卖的时候。{cycleDays(game) < 7 ? '这回合到赛季结束就停。' : '中途遇到正式比赛会自动停下（训练赛自动打完）。'}
+              <b>空档期：一回合 {cycleDays(game)} 天，行动力 4 点。</b>
+              {cycleDays(game) < 7 ? '这回合到赛季结束就停。' : '遇到正式比赛会停下，训练赛自动打完。'}
             </>
           ) : (
-            <>比赛期间一天一回合，行动力 2 点——
-              {windowOpen(game.day) ? '转会窗现在开着，别忘了看看市场。' : '转会窗关着，事情本来就少。'}</>
+            <>比赛期间一天一回合，行动力 2 点。{windowOpen(game.day) ? '转会窗开着。' : '转会窗关着。'}</>
           )}
         </div>
       </div>
@@ -339,10 +337,10 @@ export default function Dashboard() {
             <div className="row wrap" style={{ gap: 8, padding: '4px 0', alignItems: 'center' }}>
               <span style={{ flex: '1 1 240px' }}>
                 <b>{comp?.name ?? d.competitionKey} · {DRAW_KIND_CN[d.kind]}{n ? ` 第 ${n} 轮` : ''}</b>
-                <span className="small muted"> · {d.kind === 'masters-playoff-pick' ? '轮到你选八强对手' : '抽完对阵才会写进赛程'}，抽签结束前赛季不会推进。</span>
+                <span className="small muted"> · {d.kind === 'masters-playoff-pick' ? '轮到你选八强对手' : '抽完对阵才写进赛程'}，抽完前不能推进。</span>
               </span>
               <button className="primary sm" onClick={() => openDraw(d.id)}>{d.kind === 'masters-playoff-pick' ? '去选择' : '进入抽签'}</button>
-              <button className="sm ghost" onClick={() => { finishDraw(game, d, true); commit(); toast(d.kind === 'masters-playoff-pick' ? '交给了教练组。' : '抽签结果已揭晓，对阵写进了赛程。') }}>快进跳过</button>
+              <button className="sm ghost" onClick={() => { finishDraw(game, d, true); commit(); toast(d.kind === 'masters-playoff-pick' ? '已交给教练组。' : '抽签完成，对阵已写进赛程。') }}>快进跳过</button>
             </div>
           </Panel>
         ) : null
@@ -397,9 +395,9 @@ export default function Dashboard() {
             </>
           ) : (
             <div className="empty">
-              当前没有安排比赛。
+              暂无比赛。
               {game.stage === 'preseason' || game.stage === 'offseason'
-                ? '休赛期是处理转会与续约的好时机。'
+                ? '休赛期可以处理转会和续约。'
                 : ''}
             </div>
           )}
@@ -436,9 +434,9 @@ export default function Dashboard() {
           )}
           {squad.length < 5 && (
             <p className="small neg" style={{ marginBottom: 0 }}>
-              ⚠ 阵容不足 5 人（当前 {squad.length} 人），请尽快在
+              ⚠ 阵容不足 5 人（现 {squad.length} 人），去
               <button className="sm ghost" onClick={() => go('transfers')}>转会市场</button>
-              补强。
+              补人。
             </p>
           )}
         </Panel>
@@ -474,7 +472,7 @@ export default function Dashboard() {
           return (
             <>
               {acts.length === 0 && !drillText && !duoText && (
-                <div className="news-item"><span className="muted small">今天还没有任何操作。</span></div>
+                <div className="news-item"><span className="muted small">今天还没有操作。</span></div>
               )}
               {acts.map((a, i) => (
                 <div key={i} className="news-item">
@@ -517,7 +515,7 @@ export default function Dashboard() {
               {starters.map((p) => {
                 const notes: string[] = []
                 if (p.injuredUntil > game.day) notes.push(`伤停 ${p.injuredUntil - game.day} 天`)
-                if (p.fatigue >= 70) notes.push('体能偏低，考虑休息')
+                if (p.fatigue >= 70) notes.push('体能偏低')
                 if (p.morale <= 45) notes.push('士气低落')
                 if ((p.grievance ?? 0) > 45) notes.push('对出场时间不满')
                 if ((game.commercialDays?.[p.id] ?? 0) >= 2) notes.push('本周商务占用多')
@@ -525,7 +523,7 @@ export default function Dashboard() {
                   <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
                     <td><b>{p.ign}</b>{p.isIgl && (
                       <span className="tag" style={{ marginLeft: 5 }}
-                        title={p.iglSource === 'inferred' ? '真实指挥尚未确认，由系统临时代行'
+                        title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行'
                           : game.teams[game.myTeam]?.igl === p.id ? '主指挥' : '副指挥：主指挥不在场上时由他喊话'}>
                         {p.iglSource === 'inferred' ? '推定 IGL' : game.teams[game.myTeam]?.igl === p.id ? '主指挥' : '副指挥'}
                       </span>
@@ -575,27 +573,26 @@ export default function Dashboard() {
               </table>
             </div>
           ) : (
-            <div className="empty">{stageName(game.stage)} 期间没有进行中的联赛。</div>
+            <div className="empty">{stageName(game.stage)} 期间没有联赛。</div>
           )}
         </Panel>
 
         {gapDays < 2 && (
           <Panel title="训练赛">
             <p className="small muted" style={{ margin: 0 }}>
-              {gapDays <= 0 ? '今天有正式比赛' : '明天就是正式比赛'}，训练赛安排不下——训练赛都约在第二天打，赛后就能再约。
+              {gapDays <= 0 ? '今天有正式比赛' : '明天就是正式比赛'}，训练赛约在第二天打，赛后再约。
             </p>
           </Panel>
         )}
         {gapDays >= 2 && (
         <Panel title={next ? `空档期 · 距下一场还有 ${gapDays} 天` : '空档期 · 本赛段没有比赛'}>
           <p className="small muted" style={{ marginTop: 0 }}>
-            约一场训练赛：<b>不计积分、不进个人数据</b>，没有 BP，地图提前商定。
-            <b>按「战术」页给这张图定的英雄阵容打</b>，练的也是那套阵容。
+            训练赛不计积分、不进个人数据，没有 BP。按「战术」页这张图的阵容打。
           </p>
           <div className="tiny faint" style={{ margin: '0 0 12px', lineHeight: 1.85 }}>
-            每人每张图：<b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2</b>／
-            <b style={{ color: 'var(--accent)' }}>输 −0.4~2.2</b>，<b>体能 −3.5~6.5</b>，队内默契累积。
-            <b style={{ color: 'var(--win)' }}>约在哪张图就练哪张图</b>：地图熟练度 +0.6~1.0（<b>到 80 就到头</b>），阵容熟练度 +6。
+            每人：<b style={{ color: 'var(--win)' }}>赢 状态 +0.4~2.2</b>／
+            <b style={{ color: 'var(--accent)' }}>输 −0.4~2.2</b>，体能 −3.5~6.5，默契累积。
+            这张图熟练度 +0.6~1.0（上限 80），阵容熟练度 +6。
           </div>
           <div className="grid c3" style={{ gap: 12, alignItems: 'end' }}>
             <div className="field">
@@ -657,12 +654,12 @@ export default function Dashboard() {
             </button>
             <span className="tiny faint">
               {scrimFmt === 'full24'
-                ? '双方攻防各打 12 回合，常规训练赛做法，练完整两个半场。'
-                : '先到 13 分结束，更接近正赛节奏。'}
+                ? '攻防各 12 回合，练完整两个半场。'
+                : '先到 13 分，接近正赛节奏。'}
             </span>
           </div>
           <p className="tiny faint" style={{ marginTop: 10, marginBottom: 0 }}>
-            对方可能拒绝：即将与我们打正赛的球队不愿暴露战术，实力远高于我们的球队也未必愿意。
+            快要和我们打正赛的队、实力远高于我们的队可能拒绝。
           </p>
         </Panel>
         )}

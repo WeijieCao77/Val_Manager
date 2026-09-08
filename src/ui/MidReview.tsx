@@ -33,9 +33,8 @@ export default function MidReview() {
         <div className="modal-head"><h3>{cn}年之约 · 2026–{game.year}</h3></div>
         <div className="modal-body">
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
-            {cn}个赛季打完了。现在收官，这段生涯就以下面的评价定格，记入你的账号；
-            继续的话，合同一路签到 <b>2036</b>——那才是不能再往后的大结局，
-            走完的人会有单独的成就。
+            {cn}个赛季打完了。现在收官，这段生涯就以下面的评价定格，记入账号；
+            继续的话一直执教到 <b>2036</b>，走完十年有单独的成就。
           </p>
 
           {dynasty && (
@@ -63,8 +62,8 @@ export default function MidReview() {
             <button onClick={() => choose(true)}>就此收官，领取结局</button>
           </div>
           <p className="tiny faint" style={{ marginTop: 12, marginBottom: 0 }}>
-            收官不算解约——生涯档案里既不记「完成十年」也不记「被解雇」，
-            结局和成就照常入账。这个选择只会出现这一次。
+            收官不算解约，不记「完成十年」也不记「被解雇」，结局和成就照常入账。
+            这个选择只出现一次。
           </p>
         </div>
       </div>

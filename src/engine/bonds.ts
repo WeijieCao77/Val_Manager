@@ -255,7 +255,7 @@ export function weeklyBonds(state: GameState, rng: Rng, notes: string[]): void {
     a.morale = clamp(a.morale - 3, 0, 100)
     b.morale = clamp(b.morale - 3, 0, 100)
     a.grievance = clamp((a.grievance ?? 0) + 4, 0, 100)
-    notes.push(`💢 ${a.ign} 与 ${b.ign} 的关系还没缓和，更衣室氛围受到影响。`)
+    notes.push(`💢 ${a.ign} 与 ${b.ign} 还没和好，更衣室氛围受影响。`)
   }
 }
 

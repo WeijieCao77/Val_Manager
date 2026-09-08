@@ -30,14 +30,14 @@ interface Finish {
 }
 const ROLE_VAR: Record<MiniGame, string> = { aim: 'var(--duelist)', recon: 'var(--initiator)', schulte: 'var(--sentinel)' }
 const BLURB: Record<MiniGame, string> = {
-  aim: '20 秒。靶子在哪里亮起就点哪里，只亮 0.9 秒。决斗者的活是第一枪：谁先看到、谁先出手。',
-  recon: '真实小地图上，4 个敌人逐个亮 1 秒，全部消失后点出他们在哪，按误差多少米计分。先锋带的是信息。',
-  schulte: '25 个数字乱序，按 1 到 25 点完，点错罚 0.5 秒。哨卫守的是一整局的注意力。',
+  aim: '20 秒，靶子亮起就点，只亮 0.9 秒。',
+  recon: '小地图上 4 个敌人逐个亮 1 秒，消失后点出他们的位置，按误差计分。',
+  schulte: '25 个乱序数字，按 1 到 25 点完，点错罚 0.5 秒。',
 }
 const TIER_LINE: Record<MiniGame, string> = {
   aim: '金档：命中 ≥ 75% 且平均反应 ≤ 380 ms；银档：≥ 60% 且 ≤ 480 ms。',
-  recon: '金档：平均误差 ≤ 4 米；银档：≤ 8 米。距离按地图坐标换算成米，手机和电脑一样。',
-  schulte: '金档：≤ 25 秒；银档：≤ 35 秒。排列在点开始时才下发，背不了。',
+  recon: '金档：平均误差 ≤ 4 米；银档：≤ 8 米。',
+  schulte: '金档：≤ 25 秒；银档：≤ 35 秒。',
 }
 
 export default function Minigames() {
@@ -94,8 +94,8 @@ export default function Minigames() {
         }
       >
         <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          每个位置一个小游戏，打得好给一张能打这个位置的卡（金档、银档给位置包，金档另加金币；铜档只给一点金币）。
-          一天共 {MINIGAME_DAILY} 次，一个位置玩五次或者分开玩都行。题由服务器出、服务器算分。测试中，数值会调。
+          每个位置一个小游戏。金档、银档给位置包，金档另加金币；铜档只给少量金币。
+          每天共 {MINIGAME_DAILY} 次，任意分配。测试中，数值会调。
         </p>
         <div className="row wrap" style={{ gap: 6, marginBottom: 12 }}>
           {MINI_GAMES.map((k) => (
@@ -116,7 +116,7 @@ export default function Minigames() {
           <>
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>{BLURB[game]}</p>
             <p className="tiny faint" style={{ marginTop: 0 }}>{TIER_LINE[game]} 奖励：{PACKS[MINI_PACK_OF[game]].name}。</p>
-            {stale && <p className="tiny" style={{ color: 'var(--warn)' }}>上一局没打完就离开了，那一次已经用掉；现在开始的是新的一局。</p>}
+            {stale && <p className="tiny" style={{ color: 'var(--warn)' }}>上一局中途离开，那一次已用掉。</p>}
             <button className="primary" disabled={busy || playsLeft <= 0} onClick={() => void start(game)}>
               {playsLeft <= 0 ? '今天的次数用完了' : `开始（用 1 次，剩 ${playsLeft}）`}
             </button>
@@ -293,7 +293,7 @@ function ReconGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown
   const [phase, setPhase] = useState<'show' | 'pick'>('show')
   const [count, setCount] = useState(0)
   const [shown, setShown] = useState(0)
-  const lede = phase === 'show' ? `${RECON_MAP_CN[win.map]} · ${win.name}。看清 4 个人在哪。` : '他们不见了。点地图标出 4 个位置，标记可以拖动微调，标满点「报点」。'
+  const lede = phase === 'show' ? `${RECON_MAP_CN[win.map]} · ${win.name}。记住 4 个敌人的位置。` : '点地图标出 4 个位置，可拖动微调，标满后点「报点」。'
 
   useEffect(() => {
     const im = new Image()
