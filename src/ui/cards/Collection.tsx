@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
-import { collection, upgradeCost } from '../../engine/gacha'
+import { collection, salvagePlan, upgradeCost, SWEEPABLE } from '../../engine/gacha'
 import { clubSets } from '../../engine/clubSets'
 import { crestUrl } from '../../engine/dossier'
 import {
@@ -15,6 +15,8 @@ import { legendPhoto } from '../../engine/dossier'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import type { CardFilter } from './Filters'
 
+const coin = (n: number) => n.toLocaleString('en-US')
+
 export default function Collection() {
   const { g, act, toast, openDossier } = useCards()
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
@@ -22,6 +24,12 @@ export default function Collection() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
+  // 批量分解: the grid becomes a picker, and the cards with no spare to give
+  // drop out of it
+  const [bulk, setBulk] = useState(false)
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
+  const [keepUp, setKeepUp] = useState(true)
+  const [busy, setBusy] = useState(false)
 
   const mine = useMemo(() => collection(g), [g, g.pulls, g.coins])
   // the club menu is built from whatever pile is on screen: what you own, or
@@ -43,8 +51,48 @@ export default function Collection() {
         .map((card) => ({ card, owned: null, rating: card.rating }))
     }
     return mine
-      .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && match(card) && matchesFilter(card, filter))
-  }, [mine, pool, filter, dupesOnly, q, missing])
+      .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && (!bulk || owned.dupes > 0)
+        && match(card) && matchesFilter(card, filter))
+  }, [mine, pool, filter, dupesOnly, q, missing, bulk])
+
+  // What each sweep would take, and what the hand-picked ones would. The same
+  // function the server runs, so the number on the button is the number.
+  const sweeps = useMemo(() => SWEEPABLE.map((rarity) => {
+    const lines = salvagePlan(g, { rarities: [rarity], keepForUpgrade: keepUp })
+    return {
+      rarity,
+      dupes: lines.reduce((n, l) => n + l.count, 0),
+      coins: lines.reduce((n, l) => n + l.coins, 0),
+    }
+  }), [g, g.cards, g.coins, keepUp])
+  const pickedPlan = useMemo(() => {
+    const lines = salvagePlan(g, { cardIds: [...picked], keepForUpgrade: keepUp })
+    return {
+      dupes: lines.reduce((n, l) => n + l.count, 0),
+      coins: lines.reduce((n, l) => n + l.coins, 0),
+    }
+  }, [g, g.cards, g.coins, picked, keepUp])
+
+  // 300 is what the server will read out of one request; the grid shows 240,
+  // so this only ever bites somebody picking across several filters
+  const togglePick = (id: string) => setPicked((was) => {
+    const next = new Set(was)
+    if (next.has(id)) next.delete(id)
+    else if (next.size >= 300) { toast('一次最多选 300 张，先分一批。'); return was }
+    else next.add(id)
+    return next
+  })
+
+  const runSalvage = async (args: Record<string, unknown>, ask: string, after?: () => void) => {
+    if (busy || !confirm(ask)) return
+    setBusy(true)
+    const r = await act('salvage_bulk', { ...args, keepForUpgrade: keepUp })
+    setBusy(false)
+    if (!r.ok) { toast(r.why); return }
+    const got = r.result as { coins: number; dupes: number }
+    toast(`分解 ${got.dupes} 张，+${coin(got.coins)} 金币。`)
+    after?.()
+  }
 
   const sets = useMemo(() => clubSets(g), [g, g.cards])
   const doneSets = sets.filter((x) => x.done)
@@ -94,7 +142,16 @@ export default function Collection() {
         actions={
           <div className="row" style={{ gap: 8 }}>
             <span className="tiny muted mono">{rows.length} 张</span>
-            <button className="sm" onClick={() => setMissing((v) => !v)}>
+            {!missing && (
+              <button
+                className={`sm${bulk ? ' primary' : ''}`}
+                aria-pressed={bulk}
+                onClick={() => { setBulk((v) => !v); setPicked(new Set()) }}
+              >
+                {bulk ? '退出批量分解' : '批量分解'}
+              </button>
+            )}
+            <button className="sm" onClick={() => { setMissing((v) => !v); setBulk(false) }}>
               {missing ? '看我有的' : '看还缺什么'}
             </button>
           </div>
@@ -121,8 +178,56 @@ export default function Collection() {
           }
         />
 
+        {bulk && (
+          <div className="salvage-bar">
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <b className="small">一键分解</b>
+              {sweeps.map((s) => (
+                <button
+                  key={s.rarity}
+                  className="sm"
+                  disabled={busy || !s.dupes}
+                  onClick={() => void runSalvage(
+                    { rarities: [s.rarity] },
+                    `分解 ${s.dupes} 张重复${RARITY_CN[s.rarity]}，换 ${coin(s.coins)} 金币？`,
+                  )}
+                >
+                  {RARITY_CN[s.rarity]} {s.dupes} 张 · +{coin(s.coins)}
+                </button>
+              ))}
+              <label className="tiny row" style={{ gap: 5, alignItems: 'center', marginLeft: 'auto' }}>
+                <input type="checkbox" checked={keepUp} onChange={(e) => setKeepUp(e.target.checked)} />
+                留够升级用的
+              </label>
+            </div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 9 }}>
+              <span className="tiny muted">
+                点卡片挑：选中 {picked.size} 张，可分解 {pickedPlan.dupes} 张
+                {pickedPlan.dupes > 0 && ` · +${coin(pickedPlan.coins)}`}
+              </span>
+              <button
+                className="primary sm"
+                disabled={busy || !pickedPlan.dupes}
+                onClick={() => void runSalvage(
+                  { cardIds: [...picked] },
+                  `分解选中的 ${pickedPlan.dupes} 张重复卡，换 ${coin(pickedPlan.coins)} 金币？`,
+                  () => setPicked(new Set()),
+                )}
+              >
+                分解选中
+              </button>
+              {picked.size > 0 && (
+                <button className="sm" disabled={busy} onClick={() => setPicked(new Set())}>清空选择</button>
+              )}
+            </div>
+            <p className="tiny faint" style={{ margin: '9px 0 0' }}>
+              只卖重复的那几张，收藏里的卡和等级都不动。一键不含彩卡，彩卡要自己点中再分解。
+            </p>
+          </div>
+        )}
+
         {rows.length === 0 ? (
-          <p className="empty">没有符合条件的卡。</p>
+          <p className="empty">{bulk ? '没有可分解的重复卡。' : '没有符合条件的卡。'}</p>
         ) : (
           <div className="cm-grid">
             {rows.slice(0, 240).map(({ card, owned: o, rating }) => (
@@ -132,8 +237,11 @@ export default function Collection() {
                 level={o?.level ?? 0}
                 dupes={o?.dupes ?? 0}
                 dimmed={missing}
-                onClick={() => (missing ? undefined : setOpen(card.id))}
-                footer={missing ? `${RARITY_CN[card.rarity]} ${rating}` : undefined}
+                selected={bulk && picked.has(card.id)}
+                onClick={missing ? undefined : bulk ? () => togglePick(card.id) : () => setOpen(card.id)}
+                footer={missing
+                  ? `${RARITY_CN[card.rarity]} ${rating}`
+                  : bulk ? `重复 ${o?.dupes ?? 0} 张` : undefined}
               />
             ))}
           </div>

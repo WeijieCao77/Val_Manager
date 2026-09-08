@@ -26,7 +26,7 @@
 import {
   awardMinigame, canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
-  refreshDaily, salvage, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES, STAMINA_COST,
+  refreshDaily, salvage, salvageBulk, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES, STAMINA_COST, SWEEPABLE,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
@@ -38,7 +38,7 @@ import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, guessChallenge } from './challenge'
 import { hashStr } from './rng'
 import { cardById, isPlayerCard, personOf, squadRating } from './cards'
-import type { Squad } from './cards'
+import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { markMailSeen } from './inbox'
 
@@ -59,7 +59,7 @@ export type ActResult =
   | { ok: false; why: string }
 
 export const ACTIONS = [
-  'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'upgrade',
+  'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
   'minigame_start', 'minigame_finish',
 ] as const
@@ -162,6 +162,20 @@ function dispatch(
       let coins = 0
       for (const id of ids) coins += salvage(g, id, 1)
       return { ok: true, result: { coins } }
+    }
+    case 'salvage_bulk': {
+      // 「一键分解」. The request names a pile — these rarities, these cards —
+      // and never a count: how many spares are in it is read off the
+      // collection here. A彩卡 is only ever in it by name (see SWEEPABLE).
+      const rarities = (Array.isArray(a.rarities) ? a.rarities : [])
+        .map((x) => str(x, 8))
+        .filter((r): r is Rarity => (SWEEPABLE as readonly string[]).includes(r))
+      const cardIds = (Array.isArray(a.cardIds) ? a.cardIds : [])
+        .map((x) => str(x)).filter(Boolean).slice(0, 300)
+      if (!rarities.length && !cardIds.length) return { ok: false, why: '没有选中要分解的卡' }
+      const got = salvageBulk(g, { rarities, cardIds, keepForUpgrade: a.keepForUpgrade === true })
+      if (!got.dupes) return { ok: false, why: '没有可分解的重复卡' }
+      return { ok: true, result: got }
     }
     case 'upgrade': {
       const cardId = str(a.cardId)

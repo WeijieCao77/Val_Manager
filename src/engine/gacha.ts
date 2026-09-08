@@ -932,6 +932,71 @@ export function salvage(g: GachaState, cardId: string, count: number): number {
   return coins
 }
 
+/**
+ * A bulk salvage as a list rather than an act: which cards give up how many
+ * spares, and what that pays.
+ *
+ * The same function runs on both sides — the client to put a number on the
+ * button before it is pressed, the server to decide what actually happens —
+ * so what the button promises and what the account does cannot drift. Note
+ * what is NOT in the request: how many. A sweep names a pile; the collection
+ * the server holds says what is in it.
+ */
+export interface SalvagePick {
+  /** every spare of every card of these rarities */
+  rarities?: readonly Rarity[]
+  /** and the spares of exactly these cards */
+  cardIds?: readonly string[]
+  /** leave behind what the next upgrade would need */
+  keepForUpgrade?: boolean
+}
+
+export interface SalvageLine { cardId: string; count: number; coins: number }
+
+/**
+ * What a sweep may pick up.
+ *
+ * A彩卡 is not on the list. A spare one is worth more than a pack of anything
+ * else, it is the rarest thing an account holds, and 「分解全部金卡」 with a
+ * mis-set filter behind it is how somebody loses one to a single click. Named
+ * card by card it still goes — that is a decision, not a sweep.
+ */
+export const SWEEPABLE: readonly Rarity[] = ['bronze', 'silver', 'gold']
+
+export function salvagePlan(g: GachaState, pick: SalvagePick): SalvageLine[] {
+  const sweep = new Set((pick.rarities ?? []).filter((r) => SWEEPABLE.includes(r)))
+  const named = pick.cardIds?.length ? new Set(pick.cardIds) : null
+  if (!sweep.size && !named) return []
+  const out: SalvageLine[] = []
+  for (const owned of Object.values(g.cards)) {
+    if (owned.dupes <= 0) continue
+    const card = cardById(owned.id)
+    if (!card) continue
+    if (!named?.has(owned.id) && !sweep.has(card.rarity)) continue
+    // the spares the next upgrade is going to want, left where they are
+    const keep = pick.keepForUpgrade && owned.level < MAX_LEVEL ? DUPES_FOR[owned.level] : 0
+    const count = owned.dupes - keep
+    if (count <= 0) continue
+    out.push({ cardId: owned.id, count, coins: SALVAGE[card.rarity] * count })
+  }
+  return out
+}
+
+/** Sell every spare the plan names. The card itself is never touched. */
+export function salvageBulk(g: GachaState, pick: SalvagePick): { coins: number; dupes: number; cards: number } {
+  let coins = 0
+  let dupes = 0
+  let cards = 0
+  for (const line of salvagePlan(g, pick)) {
+    const paid = salvage(g, line.cardId, line.count)
+    if (!paid) continue
+    coins += paid
+    dupes += line.count
+    cards++
+  }
+  return { coins, dupes, cards }
+}
+
 export interface UpgradeCost {
   dupes: number
   coins: number

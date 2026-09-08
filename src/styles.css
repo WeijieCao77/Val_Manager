@@ -2591,6 +2591,20 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .club-set-crest { width: 20px; height: 20px; border-radius: 4px; background: center / contain no-repeat, var(--panel); flex: none; }
 .club-set-mark { color: var(--accent); font-weight: 700; margin-left: auto; }
 
+/* the 批量分解 bar: a working surface above the grid, not another panel */
+.salvage-bar {
+  margin: 10px 0 4px;
+  padding: 11px 12px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.salvage-bar label { cursor: pointer; }
+.salvage-bar input[type="checkbox"] { accent-color: var(--accent); }
+@media (max-width: 560px) {
+  .salvage-bar label { margin-left: 0 !important; }
+}
+
 
 /* ---------------------------------------------------------------- polish
 

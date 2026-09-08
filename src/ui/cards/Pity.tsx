@@ -26,7 +26,7 @@ export default function Pity() {
   return (
     <Panel
       title="保底进度"
-      actions={<span className="tiny muted">换包不重置 · 教练包不计入</span>}
+      actions={<span className="tiny muted">换包不重置 · 位置包不计入</span>}
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px 28px' }}>
         <div style={row}>

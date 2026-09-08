@@ -110,7 +110,7 @@ export function OddsWhy() {
           <b>金卡保底</b>：连续 {SOFT_PITY} 抽没出金卡后概率递增，第 {HARD_PITY} 抽必出，所以实测金卡率高于基础值。
         </li>
         <li>
-          <b>彩卡保底</b>：连续 {MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡必出一张。教练包不出彩卡，也不计入。
+          <b>彩卡保底</b>：连续 {MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡必出一张。位置包不出彩卡，也不计入。
         </li>
         <li>
           <b>保底进度挂在账号上</b>，换一种包开不重置。
