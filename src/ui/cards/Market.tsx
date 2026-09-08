@@ -17,17 +17,18 @@
  * buys everyone ten more. Listings from before the change still show the old
  * offer-and-answer controls until they run out.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SNIPE_MINUTES,
+  AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
   answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, minBidOf, myOffers, unlistCard, withdrawOffer,
 } from '../../engine/market'
-import type { Gate, Listing, Offer } from '../../engine/market'
+import type { Gate, Listing, Offer, ShelfQuery, ShelfSort } from '../../engine/market'
+import type { Card } from '../../engine/cards'
 import { takeServer } from '../../engine/account'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import { CardPicker, matchesQuery } from './Picker'
@@ -59,6 +60,30 @@ const left = (ends: number | null | undefined, now: number, exact = false): stri
 }
 const nowrap = { whiteSpace: 'nowrap' } as const
 
+/**
+ * A value that stops changing for a moment before anyone acts on it — the
+ * search box and the price boxes ask the server now, and a request per
+ * keystroke is both rude and slower than not having one.
+ */
+function useSettled<T>(value: T, ms = 350): T {
+  const [settled, setSettled] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(value), ms)
+    return () => clearTimeout(t)
+  }, [value, ms])
+  return settled
+}
+
+/** The shelf's four orders. Two of them are the tabs; the market has to be
+ *  readable both by what closes next and by what went up last, or a card
+ *  listed for a day is invisible for most of it. */
+const SORTS: { key: ShelfSort; label: string }[] = [
+  { key: 'ends', label: '即将结束' },
+  { key: 'new', label: '最新上架' },
+  { key: 'price', label: '价格 ↑' },
+  { key: 'price_desc', label: '价格 ↓' },
+]
+
 /** the length the seller chose last time, so a regular does not re-pick it on every listing */
 const HOURS_KEY = 'valmgr.market.hours'
 const rememberedHours = (): number => {
@@ -71,11 +96,20 @@ const rememberedHours = (): number => {
 export default function Market() {
   const { g, commit, toast, cloud } = useCards()
   const level = (id: string) => levelOf(g, id)
+  /** other people's listings, a page at a time, in the order the tabs picked */
   const [shelf, setShelf] = useState<Listing[] | null>(null)
+  /** all of your own, which are outside the paging and outside the filter */
+  const [own, setOwn] = useState<Listing[]>([])
+  /** where the shelf stopped; null at the end of it */
+  const [next, setNext] = useState<string | null>(null)
+  const [more, setMore] = useState(false)
+  /** how many listings are open in all */
+  const [total, setTotal] = useState<number | null>(null)
+  /** every card with something of it on the market, and how many — the filter
+   *  menus are built from this so they cascade over the whole market */
+  const [pool, setPool] = useState<[string, number][]>([])
   /** the shelf's own search box — the same rule the listing menu uses */
   const [q, setQ] = useState('')
-  /** how many listings are open in all, and how many of other people's the shelf shows */
-  const [size, setSize] = useState<{ total: number; shelf: number } | null>(null)
   const [inbound, setInbound] = useState<Offer[]>([])
   const [outbound, setOutbound] = useState<Offer[]>([])
   const [days, setDays] = useState(3)
@@ -94,29 +128,99 @@ export default function Market() {
   // you are looking to buy and what you are looking to get rid of are two
   // different questions, and a hundred-line menu answers neither
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
+  const [sort, setSort] = useState<ShelfSort>('ends')
+  const [priceLo, setPriceLo] = useState('')
+  const [priceHi, setPriceHi] = useState('')
+  /** leave out what would only be a spare — see the toggle's own note */
+  const [unowned, setUnowned] = useState(false)
+  const qq = useSettled(q)
+  const loSet = useSettled(priceLo)
+  const hiSet = useSettled(priceHi)
 
-  const refresh = useCallback(async () => {
-    const [b, o] = await Promise.all([browseMarket(), myOffers()])
+  /** what the server is being asked for. Everything in it is applied before
+   *  the page is cut, so a filter reaches the whole market and not this page. */
+  const query = useMemo<ShelfQuery>(() => {
+    const n = (v: string) => { const k = Math.round(Number(v)); return v.trim() !== '' && Number.isFinite(k) && k >= 0 ? k : undefined }
+    return {
+      sort,
+      ...(filter.rarity !== 'all' ? { rarity: filter.rarity } : {}),
+      ...(filter.region !== 'all' ? { region: filter.region } : {}),
+      ...(filter.role !== 'all' ? { role: filter.role } : {}),
+      ...(filter.club !== 'all' ? { club: filter.club } : {}),
+      ...(qq.trim() ? { q: qq.trim() } : {}),
+      ...(n(loSet) != null ? { priceMin: n(loSet) } : {}),
+      ...(n(hiSet) != null ? { priceMax: n(hiSet) } : {}),
+      ...(unowned ? { unowned: true } : {}),
+    }
+  }, [sort, filter, qq, loSet, hiSet, unowned])
+
+  // The newest request wins. Changing the filter while the page before it is
+  // still in the air used to be the one way to get a shelf that does not match
+  // the menus above it.
+  const asked = useRef(0)
+  /** whether anything past the first page has been loaded — the poll leaves a
+   *  scrolled shelf alone rather than yanking it back to the top */
+  const deep = useRef(false)
+
+  const load = useCallback(async () => {
+    const mine = ++asked.current
+    const [b, o] = await Promise.all([browseMarket(query), myOffers()])
+    if (mine !== asked.current) return
+    deep.current = false
     if (b?.ok) {
       setShelf(b.listings)
+      setOwn(b.own ?? [])
+      setNext(b.next ?? null)
       setGate(b.gate ?? null)
-      setSize(typeof b.total === 'number' && typeof b.shelf === 'number' ? { total: b.total, shelf: b.shelf } : null)
+      if (typeof b.total === 'number') setTotal(b.total)
+      if (b.pool) setPool(b.pool)
       if (typeof b.now === 'number') setNow(b.now)
-    }
-    else setShelf([])
+    } else setShelf([])
     if (o?.ok) { setInbound(o.inbound); setOutbound(o.outbound); setDays(o.days) }
-  }, [])
+  }, [query])
 
-  useEffect(() => { if (cloud) void refresh() }, [cloud, refresh])
+  /** the next page, appended. A listing already on the shelf is never added
+   *  twice even if the market shifted under the cursor. */
+  const loadMore = useCallback(async () => {
+    if (!next || more) return
+    setMore(true)
+    const mine = asked.current
+    const b = await browseMarket({ ...query, cursor: next })
+    setMore(false)
+    if (mine !== asked.current || !b?.ok) return
+    deep.current = true
+    setShelf((old) => {
+      const seen = new Set((old ?? []).map((l) => l.id))
+      return [...(old ?? []), ...b.listings.filter((l) => !seen.has(l.id))]
+    })
+    setNext(b.next ?? null)
+  }, [next, more, query])
+
+  const refresh = load
+
+  useEffect(() => { if (cloud) void load() }, [cloud, load])
   // an auction moves without anyone here clicking: the countdowns tick every
   // half minute and the shelf is re-read every couple of minutes, so a sale
   // or a beaten bid shows up without a reload
   useEffect(() => {
     if (!cloud) return
     const tick = setInterval(() => setNow((t) => t + 30_000), 30_000)
-    const poll = setInterval(() => { void refresh() }, 120_000)
+    const poll = setInterval(() => { if (!deep.current) void load() }, 120_000)
     return () => { clearInterval(tick); clearInterval(poll) }
-  }, [cloud, refresh])
+  }, [cloud, load])
+
+  // the next page arrives before the last one runs out, so the shelf reads as
+  // one long list rather than as pages
+  const foot = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = foot.current
+    if (!el || !next) return
+    const io = new IntersectionObserver(
+      (es) => { if (es.some((e) => e.isIntersecting)) void loadMore() },
+      { rootMargin: '400px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [next, loadMore])
 
   // Anything in the collection can be sold, spare or not: somebody who pulls a
   // 彩卡 he has no use for and wants to keep opening packs is exactly who this
@@ -239,10 +343,22 @@ export default function Market() {
     )
   }
 
-  const mineOnShelf = (shelf ?? []).filter((l) => l.mine)
-  const theirsAll = (shelf ?? []).filter((l) => !l.mine)
-  const shelfCards = theirsAll.map((l) => cardById(l.cardId)).filter((c): c is NonNullable<typeof c> => !!c)
-  const theirs = theirsAll.filter((l) => { const c = cardById(l.cardId); return !!c && matchesFilter(c, filter) && matchesQuery(c, q) })
+  const mineOnShelf = own
+  const theirs = shelf ?? []
+  // The menus are built from the whole market, not from the page in front of
+  // you: one card per listing, so 「TES（12）」 counts listings the way it always
+  // did. It is the server's `pool`, which respects the price range and 「只看
+  // 非重复」 and not the four menus themselves — a club menu narrowed by the
+  // club you already picked has one entry in it.
+  const poolCards = useMemo<Card[]>(
+    () => pool.flatMap(([id, n]) => { const c = cardById(id); return c ? (Array(n).fill(c) as Card[]) : [] }),
+    [pool])
+  // how many are behind the filter, counted off that same pool — the shelf
+  // itself only holds the pages loaded so far
+  const matched = useMemo(
+    () => poolCards.filter((c) => matchesFilter(c, filter) && matchesQuery(c, qq)).length,
+    [poolCards, filter, qq])
+  const narrowed = matched !== poolCards.length
   const legacyInbound = inbound.filter((o) => o.ends == null)
   const askNum = Math.round(Number(ask))
   const buyoutFloor = Number.isFinite(askNum) && askNum > 0 ? Math.ceil(askNum * BUYOUT_MIN) : null
@@ -403,31 +519,76 @@ export default function Market() {
 
       <Panel
         title="货架"
-        actions={<span className="tiny muted">{theirs.length} 张在拍{theirs.length !== theirsAll.length ? `（共 ${theirsAll.length}）` : ''}{size && size.total > theirsAll.length + mineOnShelf.length ? `，全站 ${size.total} 张，只显示 ${size.shelf} 张` : ''}</span>}
+        actions={
+          <span className="tiny muted">
+            {narrowed ? `筛出 ${matched} 张` : `${matched} 张在拍`}
+            {theirs.length < matched ? `，看到第 ${theirs.length} 张` : ''}
+            {total != null && total > matched ? `（全站 ${total} 张）` : ''}
+          </span>
+        }
       >
+        {/* Two tabs and two orders beside them. 「即将结束」 is the shelf as it
+            was; 「最新上架」 exists because it is the only one that guarantees a
+            card just listed is on somebody's first screen — under the closing
+            order a 24-hour auction waits most of a day for its turn. */}
+        <div className="row wrap" style={{ gap: 8, marginBottom: 10, alignItems: 'center' }}>
+          <div className="seg">
+            {SORTS.map((o) => (
+              <button key={o.key} className={sort === o.key ? 'on' : ''} onClick={() => setSort(o.key)}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {/* The filter belongs to the thing it filters. It used to be its own
             panel at the top of the page, two panels away from the shelf and
             right above the listing menu — which has its own — and read as
             if it filtered that. */}
-        {theirsAll.length > 0 && (
-          <CardFilters
-            value={filter}
-            onChange={setFilter}
-            pool={shelfCards}
-            extra={
+        <CardFilters
+          value={filter}
+          onChange={setFilter}
+          pool={poolCards}
+          extra={
+            <>
               <input
                 className="sm"
-                style={{ width: 150, padding: '4px 7px' }}
+                style={{ width: 130, padding: '4px 7px' }}
                 placeholder="搜 ID / 战队"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
-            }
-          />
-        )}
+              <span className="row" style={{ gap: 4, alignItems: 'center' }}>
+                <input
+                  className="sm" type="number" min={0} placeholder="最低价"
+                  style={{ width: 78, padding: '4px 7px' }}
+                  value={priceLo} onChange={(e) => setPriceLo(e.target.value)}
+                />
+                <span className="tiny faint">—</span>
+                <input
+                  className="sm" type="number" min={0} placeholder="最高价"
+                  style={{ width: 78, padding: '4px 7px' }}
+                  value={priceHi} onChange={(e) => setPriceHi(e.target.value)}
+                />
+              </span>
+              {/* the price it filters on is the one you would have to beat:
+                  the top bid where there is one, the starting price where
+                  there is not */}
+              <button
+                className={`sm ${unowned ? '' : 'ghost'}`}
+                title="只看买来不是重复卡的：你还没有的，加上强化比你手上那张高的"
+                onClick={() => setUnowned((v) => !v)}
+              >
+                只看非重复
+              </button>
+            </>
+          }
+        />
         {shelf === null ? <p className="empty">读取中…</p>
-          : theirsAll.length === 0 ? <p className="empty">现在没有人在卖东西。挂一张上去试试。</p>
-            : theirs.length === 0 ? <p className="empty">货架上没有符合筛选的卡。</p>
+          : theirs.length === 0 ? (
+            <p className="empty">
+              {total === 0 ? '现在没有人在卖东西。挂一张上去试试。' : '货架上没有符合筛选的卡。'}
+            </p>
+          )
             : (
               <div className="market-shelf">
                 {theirs.map((l) => {
@@ -525,6 +686,20 @@ export default function Market() {
                 })}
               </div>
             )}
+        {/* The foot of the shelf. The observer fetches the next page before
+            this one runs out, so it reads as one list; the button is there
+            for anyone the observer never fires for. */}
+        {shelf !== null && theirs.length > 0 && (
+          <div ref={foot} className="row" style={{ justifyContent: 'center', marginTop: 10 }}>
+            {next ? (
+              <button className="sm ghost" disabled={more} onClick={() => void loadMore()}>
+                {more ? '读取中…' : `再看 ${Math.min(SHELF_PAGE, Math.max(0, matched - theirs.length)) || SHELF_PAGE} 张`}
+              </button>
+            ) : (
+              <span className="tiny faint">到底了，一共 {theirs.length} 张</span>
+            )}
+          </div>
+        )}
         <p className="tiny faint" style={{ marginBottom: 0 }}>
           出价的一刻金币就托管走了；被超过立刻退回，到时没人超过就成交换卡。每次至少比当前最高价再高 {Math.round(BID_STEP * 100)}%，
           最后 {SNIPE_MINUTES} 分钟内有人出价会再延长 {SNIPE_MINUTES} 分钟。出了价就不能撤回。

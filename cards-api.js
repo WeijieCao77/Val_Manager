@@ -148,6 +148,11 @@ create table if not exists card_offers (
 );
 create index if not exists offer_open_idx on card_offers (listing) where status = 'open';
 create index if not exists offer_buyer_idx on card_offers (buyer_h);
+-- The shelf reads every status of a listing's offers at once (how many stand,
+-- how many ever bid, what the top bid is), which the partial index above does
+-- not serve: without this one that read is a sequential scan of every offer
+-- ever made, once per listing on the page.
+create index if not exists offer_listing_idx on card_offers (listing);
 
 -- Everything waiting to be collected, and everything worth telling somebody.
 -- A row with a card or coins on it is a delivery; a row with neither is a

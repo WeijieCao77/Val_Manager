@@ -16,38 +16,21 @@
  * after position that people look for a card by.
  */
 import type { ReactNode } from 'react'
-import { RARITY_CN, isPlayerCard } from '../../engine/cards'
-import type { Card, Rarity } from '../../engine/cards'
+import { RARITY_CN } from '../../engine/cards'
+import type { Card } from '../../engine/cards'
 import { SERIES } from '../../engine/gacha'
-import type { Series } from '../../engine/gacha'
 import { REGION_CN } from '../../engine/types'
 import type { Role } from '../../engine/types'
+// The rule itself lives in the engine: the trading post's server runs it too,
+// and a filter that means one thing on each side of the wire is worse than no
+// filter at all. See engine/cardFilter.ts.
+import { EMPTY_FILTER, filterActive, matchesFilter } from '../../engine/cardFilter'
+import type { CardFilter } from '../../engine/cardFilter'
 
-export interface CardFilter {
-  rarity: 'all' | Rarity | 'coach'
-  region: 'all' | Series
-  /** a position, or 'igl' — the callers, whatever position they play */
-  role: 'all' | Role | 'igl'
-  club: 'all' | string
-}
-
-export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all' }
-
-export const filterActive = (f: CardFilter): boolean =>
-  f.rarity !== 'all' || f.region !== 'all' || f.role !== 'all' || f.club !== 'all'
+export { EMPTY_FILTER, filterActive, matchesFilter, matchesQuery } from '../../engine/cardFilter'
+export type { CardFilter } from '../../engine/cardFilter'
 
 const ROLES: Role[] = ['决斗者', '先锋', '控场', '哨卫']
-
-export function matchesFilter(card: Card, f: CardFilter): boolean {
-  if (f.rarity === 'coach') { if (card.kind !== 'coach') return false }
-  else if (f.rarity !== 'all' && card.rarity !== f.rarity) return false
-  if (f.region !== 'all' && card.region !== f.region) return false
-  // a coach has no position; asking for one leaves coaches out
-  if (f.role === 'igl') { if (!(isPlayerCard(card) && card.isIgl)) return false }
-  else if (f.role !== 'all' && !(isPlayerCard(card) && card.roles.includes(f.role))) return false
-  if (f.club !== 'all' && (card.clubTag ?? '') !== f.club) return false
-  return true
-}
 
 /** The clubs present in a pile, busiest first, for the club menu. */
 export function clubsIn(cards: Card[]): { tag: string; n: number }[] {

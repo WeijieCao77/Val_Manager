@@ -10,6 +10,7 @@
  */
 import { useState } from 'react'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
+import { matchesQuery } from '../../engine/cardFilter'
 import type { CardFilter } from './Filters'
 import { RARITY_CN, isPlayerCard } from '../../engine/cards'
 import type { Card } from '../../engine/cards'
@@ -22,12 +23,9 @@ export interface PickRow {
 
 const nameOf = (c: Card) => (isPlayerCard(c) ? c.ign : c.name)
 
-/** The search box rule: handle or club tag contains the text. Shared with the shelf. */
-export const matchesQuery = (c: Card, q: string): boolean => {
-  const s = q.trim().toLowerCase()
-  if (!s) return true
-  return nameOf(c).toLowerCase().includes(s) || (c.clubTag ?? '').toLowerCase().includes(s)
-}
+/** The search box rule: handle or club tag contains the text. Shared with the
+ *  shelf, and with the server that pages it — see engine/cardFilter.ts. */
+export { matchesQuery }
 
 export function CardPicker({
   rows, value, onChange, placeholder, disabled,

@@ -57,8 +57,28 @@ export const minBid = (ask, top) => (top == null ? ask : Math.max(ask, Math.ceil
 export const HAGGLE = 0.10
 /** (old listings only) An offer the seller never answers. */
 export const OFFER_DAYS = 3
-/** How many other people's listings the shelf shows, newest first. */
-export const SHELF = 400
+/**
+ * How many of other people's listings one page of the shelf holds.
+ *
+ * It used to be one window of 400 and no way past it, ordered by the auction
+ * closing soonest. With 1,428 cards on the market that window covered the next
+ * FIVE HOURS: a card listed for a day was invisible to every buyer for its
+ * first nineteen, and 「我挂的卡别人看不见」 was simply true. Worse, the window
+ * moved, so two people looking an hour apart saw two different markets and
+ * neither could be told they were looking at a twelfth of it.
+ *
+ * So the shelf is paged instead — a page at a time, forward from a cursor, in
+ * whatever order and through whatever filter the player picked. Nothing is out
+ * of reach any more; it is only further down.
+ */
+export const PAGE = 60
+export const PAGE_MAX = 80
+/**
+ * The orders the shelf can be read in. `ends` is the auction closing soonest
+ * and is the default; `new` is the one that guarantees a card just listed is
+ * on somebody's first screen, which is the whole reason it exists.
+ */
+export const SORTS = ['ends', 'new', 'price', 'price_desc']
 /** (old listings only) Consecutive ignored offers before the listing gives up. */
 export const IGNORE_LIMIT = 3
 /**
@@ -289,6 +309,26 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     return `${shown.name} #${shown.tag}`
   }
 
+  /**
+   * The same, for a whole page of listings, in one query rather than one per
+   * seller. A shelf of sixty is sixty different sellers as often as not, and
+   * the shelf is read several times now that it pages — `= any($1)` with a
+   * plain array, NOT sql(list): a nested tagged template is not something the
+   * PGlite shim the checks run against can compose.
+   */
+  const namesOf = async (hashes) => {
+    const want = [...new Set(hashes)]
+    const out = {}
+    if (!want.length) return out
+    const rows = await sql`select id_hash, name from card_accounts where id_hash = any(${want})`
+    const known = new Map(rows.map((r) => [r.id_hash, r.name]))
+    for (const h of want) {
+      const shown = displayName(known.get(h), h)
+      out[h] = `${shown.name} #${shown.tag}`
+    }
+    return out
+  }
+
   /** When an auction closes, as milliseconds; null for an old-style listing. */
   const endsAt = (l) => (l.ends ? new Date(l.ends).getTime() : null)
 
@@ -326,26 +366,152 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     return true
   }
 
-  /** The shelf. */
+  /**
+   * Where a page of the shelf stopped, so the next one starts strictly after
+   * it: the sort key of the last row and that row's id.
+   *
+   * A keyset and not an offset. Auctions close while somebody is scrolling, so
+   * `offset 60` shows the same card twice and skips another every time a row
+   * ahead of it disappears; a cursor pinned to the last row read cannot.
+   */
+  const cursorOf = (sort, row) => Buffer
+    .from(JSON.stringify([sort, Number(row.sortkey), String(row.id)]))
+    .toString('base64url')
+
+  /** …and back, refusing anything that is not one of ours. A bad cursor reads as the first page. */
+  const readCursor = (sort, raw) => {
+    if (typeof raw !== 'string' || !raw || raw.length > 400) return null
+    try {
+      const [s2, key, id] = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
+      // a cursor from a different order describes a place that does not exist
+      // in this one; start over rather than page through nonsense
+      if (s2 !== sort || !Number.isFinite(key) || !/^\d{1,19}$/.test(String(id))) return null
+      return { key: Number(key), id: String(id) }
+    } catch { return null }
+  }
+
+  /** A whole number in range, or null for "no limit given". */
+  const money = (v) => {
+    const n = Math.round(Number(v))
+    return Number.isFinite(n) && n >= 0 ? Math.min(n, MAX_ASK) : null
+  }
+
+  /**
+   * The cards this account already has, and at what level.
+   *
+   * For 「只看非重复」: a listing of a card you hold at the same level or higher
+   * is a duplicate whatever else it is, but one ABOVE your level is an upgrade
+   * and belongs on the shelf. That distinction needs the level, so the two
+   * arrays travel to the query together and are matched there.
+   */
+  async function heldBy(h) {
+    const r = await sql`select state->'cards' as cards from card_accounts where id_hash = ${h}`
+    const cards = r[0]?.cards
+    const ids = []
+    const levels = []
+    if (cards && typeof cards === 'object') {
+      for (const [id, own] of Object.entries(cards)) {
+        ids.push(id)
+        levels.push(Math.max(0, Math.round(Number(own?.level ?? 0)) || 0))
+      }
+    }
+    return { ids, levels }
+  }
+
+  /**
+   * The shelf: one page of other people's listings, plus all of your own.
+   *
+   * Every filter is applied HERE rather than on the page after it arrives.
+   * Filtering a page is filtering whatever that page happened to hold — pick
+   * 金卡 and you get the gold cards among sixty, not the gold cards on the
+   * market — which is the same mistake as the fixed window it replaced.
+   *
+   * Metal, region, position, club and the search box are card facts, and the
+   * database has no card table: they are turned into the set of card ids that
+   * match, by the same predicate the filter bar runs (engine/cardFilter.ts),
+   * and the query filters on that. Six hundred cards is a small enough table
+   * to walk on every request and a small enough set to hand to Postgres.
+   */
   async function browse(req, res, bucket) {
     if (guard(req, res, `mb:${bucket}`, 90)) return
-    await sweep()
     let mine = ''
+    let b = null
     try {
-      const b = JSON.parse(await readBody(req, 2048))
+      b = JSON.parse(await readBody(req, 4096))
       const id = normalizeId(b?.id)
       if (id) mine = hash(id)
     } catch { /* browsing without an account is fine */ }
-    // Your own listings come first and come ALL of them, outside the window.
-    // The shelf used to be "the 120 newest", full stop, and 「我挂的牌」 on
-    // the client is read off the same shelf — so once 120 newer listings
-    // existed, an older one vanished from its owner's page and from every
-    // buyer's, with the card still in escrow: 「挂了一张金卡消失了，也没有
-    // 别人报价」. The window is wider too, and the reply says how many are
-    // open in total so the page can say so.
-    // `offers` is the bids still standing (one, in an auction — the beaten
-    // one is settled at once), `bids` everyone who has bid on it at all
-    const own = mine ? await sql`
+
+    const sort = SORTS.includes(b?.sort) ? b.sort : 'ends'
+    const limit = Math.max(1, Math.min(PAGE_MAX, Math.round(Number(b?.limit)) || PAGE))
+    const cursor = readCursor(sort, b?.cursor)
+    // The clock is checked lazily rather than by a job, so arriving at the
+    // market is what settles the auctions that are over. Scrolling further
+    // down the same market is the same visit: only the first page pays for it,
+    // which matters now that reading the shelf takes several requests.
+    if (!cursor) await sweep()
+    const q = typeof b?.q === 'string' ? b.q.slice(0, 60) : ''
+    const filter = engine.readFilter(b)
+    const priceMin = money(b?.priceMin)
+    const priceMax = money(b?.priceMax)
+    // the toggle only means anything to somebody with a collection to compare against
+    const unowned = !!b?.unowned && !!mine
+
+    // The card ids that pass metal / region / position / club / search — null
+    // when none of them is set, which is the common case and skips the filter
+    // in the query entirely.
+    const narrowed = engine.filterActive(filter) || q.trim() !== ''
+    const ids = narrowed
+      ? engine.ALL_CARDS.filter((c) => engine.matchesFilter(c, filter) && engine.matchesQuery(c, q)).map((c) => c.id)
+      : null
+    const held = unowned ? await heldBy(mine) : null
+    const heldIds = held ? held.ids : null
+    const heldLevels = held ? held.levels : null
+
+    const rows = await sql`
+      select * from (
+        select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
+               coalesce(o.open_n, 0) as offers,
+               coalesce(o.all_n, 0) as bids,
+               o.best,
+               coalesce(o.mine_bid, false) as bid,
+               -- one comparable number for whichever order was asked for, so
+               -- a single query and a single cursor serve all four. An auction
+               -- with no end (a listing from before them) sorts last.
+               case ${sort}::text
+                 when 'ends' then coalesce(extract(epoch from l.ends)::float8, 1e15)
+                 when 'new' then (-extract(epoch from l.created))::float8
+                 when 'price' then coalesce(o.best, l.ask)::float8
+                 else (-coalesce(o.best, l.ask))::float8
+               end as sortkey
+        from card_listings l
+        left join lateral (
+          select (count(*) filter (where f.status = 'open'))::int as open_n,
+                 (count(*) filter (where f.status in ('open', 'outbid', 'accepted')))::int as all_n,
+                 (max(f.price) filter (where f.status = 'open'))::int as best,
+                 bool_or(f.status = 'open' and f.buyer_h = ${mine}) as mine_bid
+          from card_offers f where f.listing = l.id
+        ) o on true
+        where l.status = 'open'
+          and l.seller_h <> ${mine}
+          and (${ids}::text[] is null or l.card_id = any(${ids}::text[]))
+          and (${priceMin}::int is null or coalesce(o.best, l.ask) >= ${priceMin}::int)
+          and (${priceMax}::int is null or coalesce(o.best, l.ask) <= ${priceMax}::int)
+          and (${heldIds}::text[] is null or not exists (
+                select 1 from unnest(${heldIds}::text[], ${heldLevels}::int[]) as h(cid, lvl)
+                where h.cid = l.card_id and l.level <= h.lvl))
+      ) t
+      where ${cursor ? cursor.key : null}::float8 is null
+         or (t.sortkey, t.id) > (${cursor ? cursor.key : null}::float8, ${cursor ? cursor.id : '0'}::bigint)
+      order by t.sortkey asc, t.id asc
+      limit ${limit}`
+
+    // Your own listings are not in that window and never were: all of them
+    // come back, on the first page, outside the paging and outside the filter.
+    // The shelf used to be one window of the newest 400 and 「我挂的牌」 was
+    // read off it, so an older listing vanished from its owner's page as well
+    // as every buyer's, with the card still in escrow.
+    const own = mine && !cursor ? await sql`
       select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
              (select count(*)::int from card_offers o
                where o.listing = l.id and o.status = 'open') as offers,
@@ -357,45 +523,66 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       from card_listings l
       where l.status = 'open' and l.seller_h = ${mine}
       order by l.ends asc nulls last, l.created desc` : []
-    const others = await sql`
-      select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
-             (select count(*)::int from card_offers o
-               where o.listing = l.id and o.status = 'open') as offers,
-             (select count(*)::int from card_offers o
-               where o.listing = l.id and o.status in ('open', 'outbid', 'accepted')) as bids,
-             (select max(o.price)::int from card_offers o
-               where o.listing = l.id and o.status = 'open') as best,
-             exists (select 1 from card_offers o
-               where o.listing = l.id and o.status = 'open' and o.buyer_h = ${mine}) as bid
+
+    /**
+     * What the filter menus are built from, on the first page only: every
+     * card with something of it on the market, and how many.
+     *
+     * The menus have to cascade over the WHOLE market — 「选了 CN 赛区队伍还是
+     * 全部」 is the complaint they exist to answer, and a menu built from one
+     * page of sixty answers it wrong. It respects the price range and 「只看
+     * 非重复」 and not the four card filters, because those are the ones it is
+     * feeding: a club menu narrowed by the club you picked has one entry.
+     */
+    const pool = cursor ? null : await sql`
+      select l.card_id, count(*)::int as n
       from card_listings l
-      where l.status = 'open' and l.seller_h <> ${mine}
-      order by l.ends asc nulls last, l.created desc
-      limit ${SHELF}`
-    const rows = [...own, ...others]
-    const total = (await sql`select count(*)::int as n from card_listings where status = 'open'`)[0].n
-    const names = {}
-    for (const r of rows) if (!(r.seller_h in names)) names[r.seller_h] = await nameOf(r.seller_h)
-    const young = mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0 }
+      left join lateral (
+        select (max(f.price) filter (where f.status = 'open'))::int as best
+        from card_offers f where f.listing = l.id
+      ) o on true
+      where l.status = 'open'
+        and l.seller_h <> ${mine}
+        and (${priceMin}::int is null or coalesce(o.best, l.ask) >= ${priceMin}::int)
+        and (${priceMax}::int is null or coalesce(o.best, l.ask) <= ${priceMax}::int)
+        and (${heldIds}::text[] is null or not exists (
+              select 1 from unnest(${heldIds}::text[], ${heldLevels}::int[]) as h(cid, lvl)
+              where h.cid = l.card_id and l.level <= h.lvl))
+      group by l.card_id`
+
+    const total = cursor ? null : (await sql`select count(*)::int as n from card_listings where status = 'open'`)[0].n
+    const names = await namesOf([...own, ...rows].map((r) => r.seller_h))
+    const shape = (r) => ({
+      id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
+      seller: names[r.seller_h], mine: r.seller_h === mine,
+      offers: r.offers, best: r.best ?? null, bid: r.bid,
+      // the auction: when it closes, the buy-now price, how many have bid,
+      // and the least the next bid may be. `ends` null is an old listing.
+      ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers, hours: r.hours ?? AUCTION_HOURS,
+      min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
+    })
     json(res, 200, {
+      ...shelfConstants(),
       ok: true,
-      haggle: HAGGLE,
-      hours: AUCTION_HOURS, hoursMin: AUCTION_MIN_HOURS, hoursMax: AUCTION_MAX_HOURS, hoursChoices: AUCTION_HOURS_CHOICES,
-      step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
       now: Date.now(),
-      gate: young,
-      total,
-      shelf: SHELF,
-      listings: rows.map((r) => ({
-        id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
-        seller: names[r.seller_h], mine: r.seller_h === mine,
-        offers: r.offers, best: r.best ?? null, bid: r.bid,
-        // the auction: when it closes, the buy-now price, how many have bid,
-        // and the least the next bid may be. `ends` null is an old listing.
-        ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers, hours: r.hours ?? AUCTION_HOURS,
-        min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
-      })),
+      sort,
+      gate: mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0 },
+      // a short page is the end of the shelf; a full one may or may not be, and
+      // the cursor costs nothing to hand out and try
+      next: rows.length === limit ? cursorOf(sort, rows[rows.length - 1]) : null,
+      ...(cursor ? {} : { total, pool: pool.map((r) => [r.card_id, r.n]) }),
+      own: own.map(shape),
+      listings: rows.map(shape),
     })
   }
+
+  /** Everything about the market that does not change between requests. */
+  const shelfConstants = () => ({
+    haggle: HAGGLE,
+    hours: AUCTION_HOURS, hoursMin: AUCTION_MIN_HOURS, hoursMax: AUCTION_MAX_HOURS, hoursChoices: AUCTION_HOURS_CHOICES,
+    step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
+    page: PAGE,
+  })
 
   /** Put a card up. The card leaves your side now and comes back if it does not sell. */
   async function list(req, res, bucket) {

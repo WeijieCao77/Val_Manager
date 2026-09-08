@@ -76,11 +76,55 @@ export interface Offer {
 /** `gate` is null once the account has played enough to trade — see TRADE_PULLS. */
 export interface Gate { need: number; have: number }
 
-export const browseMarket = () =>
-  post<{
-    ok: boolean; listings: Listing[]; haggle: number; gate: Gate | null; total?: number; shelf?: number
-    hours?: number; step?: number; snipe?: number; buyoutMin?: number; now?: number
-  }>('browse', {})
+/** How many of other people's listings one page of the shelf holds — mirrored
+ *  from the server, which is what actually decides it. */
+export const SHELF_PAGE = 60
+/** The orders the shelf can be read in — mirrored from the server. */
+export const SHELF_SORTS = ['ends', 'new', 'price', 'price_desc'] as const
+export type ShelfSort = (typeof SHELF_SORTS)[number]
+
+/**
+ * What to ask the shelf for. Everything here is applied by the SERVER, before
+ * the page is cut: filtering a page that has already arrived is filtering
+ * whatever that page happened to hold, which on a market of fourteen hundred
+ * cards is a twelfth of it.
+ */
+export interface ShelfQuery {
+  sort?: ShelfSort
+  /** where the last page stopped; leave it out for the first */
+  cursor?: string
+  rarity?: string
+  region?: string
+  role?: string
+  club?: string
+  q?: string
+  priceMin?: number
+  priceMax?: number
+  /** leave out the cards you already hold at that level or higher */
+  unowned?: boolean
+}
+
+export interface ShelfPage {
+  ok: boolean
+  /** one page of other people's listings */
+  listings: Listing[]
+  /** all of your own, on the first page only — they are outside the paging */
+  own: Listing[]
+  /** hand it back to get the next page; null at the end of the shelf */
+  next: string | null
+  sort: ShelfSort
+  gate: Gate | null
+  haggle: number
+  /** first page only: how many listings are open in all */
+  total?: number
+  /** first page only: every card with something of it on the market, and how
+   *  many — what the filter menus are built from, so they cascade over the
+   *  whole market rather than over the page you happen to be looking at */
+  pool?: [string, number][]
+  hours?: number; step?: number; snipe?: number; buyoutMin?: number; now?: number; page?: number
+}
+
+export const browseMarket = (q: ShelfQuery = {}) => post<ShelfPage>('browse', { ...q })
 
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})

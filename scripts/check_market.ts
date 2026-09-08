@@ -29,7 +29,7 @@ const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js'
 const { displayName } = await import('../names.js')
 const {
   AUCTION_HOURS, AUCTION_MIN_HOURS, AUCTION_MAX_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS,
-  SALVAGE_FLOOR, SHELF, SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
+  PAGE, PAGE_MAX, SALVAGE_FLOOR, SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -477,36 +477,162 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))
 }
 
-// ---- 自己挂的牌永远看得见，哪怕货架上后来又多了几百张 ------------------------
+// ---- 货架分页：全站的牌都够得着，筛选筛的是全站而不是这一页 ----------------
 {
-  // 「我挂了一张金卡消失了，也没有别人报价」(2026-09-03)：货架只取最新的
-  // 120 张，「我挂的牌」又是从同一份货架里筛出来的，所以别人一多挂，自己的
-  // 老牌就从自己页面上消失了，也从所有买家眼前消失了——卡还在托管里。
+  // 「我挂的卡别人看不见，但另一个人看得见」(2026-09-08)：货架只发最新的
+  // 400 张，按最快结束排序，而全站有 1,428 张——那 400 张只覆盖未来五个
+  // 小时，挂一天的卡前十九个小时对谁都不存在，而且窗口一直在动，所以两个
+  // 人隔一小时看到的是两个市场。现在是一页一页往后翻，顺序和筛选都由服务器
+  // 定，没有够不着的牌。
   const S8 = 'VM-KKKK-KKKK-KKKK-KKKK-KKKK'
   await account(S8, '老牌', 0, { [GOLD]: { id: GOLD, dupes: 0 } })
   const old = String((await call('/api/market/list', { id: S8, cardId: GOLD, ask: 2000 })).id)
   // one listing per card id and MAX_LISTINGS per seller, so the flood is
   // many sellers with a few distinct cards each
   const used = new Set([GOLD, BRONZE, MYTHIC])
-  const stock = ALL_CARDS.filter((c) => c.kind === 'player' && !used.has(c.id) && /^p:P\d{2,}$/.test(c.id)).slice(0, SHELF + 5)
+  const stock = ALL_CARDS.filter((c) => c.kind === 'player' && !used.has(c.id) && /^p:P\d{2,}$/.test(c.id))
+    .slice(0, PAGE * 2 + 5)
+  const askOf = (c: { rarity: string }, i: number) => Math.max(1000, askFloor(c.rarity)) + i
   let listed = 0
   for (let i = 0; i < stock.length; i += MAX_LISTINGS) {
     const cards = stock.slice(i, i + MAX_LISTINGS)
     const flood = `VM-MMMM-MMMM-MMMM-MMMM-M${String(i / MAX_LISTINGS).padStart(3, '0')}`
     await account(flood, `刷屏${i}`, 0, Object.fromEntries(cards.map((c) => [c.id, { id: c.id, dupes: 0 }])))
     for (const c of cards) {
-      const r = await call('/api/market/list', { id: flood, cardId: c.id, ask: 1000 })
+      // a spread of prices and of closing times, so the orders are telling apart
+      const r = await call('/api/market/list', {
+        id: flood, cardId: c.id, ask: askOf(c, stock.indexOf(c)), hours: 2 + (stock.indexOf(c) % 23),
+      })
       if (r.ok) listed++
     }
   }
   check(`货架被灌了 ${listed} 张新牌`, listed === stock.length, `${listed}/${stock.length}`)
-  const seen = await call('/api/market/browse', { id: S8 })
-  const rows = seen.listings as { id: string; mine: boolean; ends: number | null }[]
-  check('自己那张老牌还在自己眼前，标着 mine', rows.some((l) => l.id === old && l.mine), `${rows.length} 张里没有`)
-  check(`别人的只取 ${SHELF} 张`, rows.filter((l) => !l.mine).length === SHELF, String(rows.filter((l) => !l.mine).length))
-  const others = rows.filter((l) => !l.mine && l.ends != null)
-  check('货架按快到期的排在前面', others.every((l, i) => i === 0 || (others[i - 1].ends ?? 0) <= (l.ends ?? 0)))
-  check('回复里说了货架上一共有多少张', Number(seen.total) >= stock.length + 1, String(seen.total))
+
+  interface Row { id: string; mine: boolean; ends: number | null; ask: number; best: number | null; cardId: string }
+  interface Page {
+    ok: boolean; listings: Row[]; own: Row[]; next: string | null
+    total?: number; pool?: [string, number][]
+  }
+  const browse = (body: Record<string, unknown>) =>
+    call('/api/market/browse', { id: S8, ...body }) as Promise<Page & { _code: number }>
+  /** every page of a shelf, in order, and how many requests it took */
+  const walk = async (body: Record<string, unknown>, cap = 40) => {
+    const rows: Row[] = []
+    let cursor: string | null = null
+    let pages = 0
+    do {
+      const p: Page = await browse({ ...body, ...(cursor ? { cursor } : {}) })
+      rows.push(...p.listings)
+      cursor = p.next
+      pages++
+    } while (cursor && pages < cap)
+    return { rows, pages }
+  }
+
+  /** everything on the market that is not S8's, which is what a page of the shelf draws from */
+  const theirs = async () => Number((await sql`select count(*)::int as n from card_listings
+    where status = 'open' and seller_h <> ${hashOf(S8)}`)[0].n)
+  const stocked = await theirs()
+
+  const first = await browse({})
+  check('自己那张老牌在 own 里，一页就全给', first.own.length === 1 && first.own[0].id === old,
+    JSON.stringify(first.own.map((l) => l.id)))
+  check('自己的牌不混在别人的货架里', first.listings.every((l) => !l.mine))
+  check(`一页 ${PAGE} 张`, first.listings.length === PAGE, String(first.listings.length))
+  check('还有下一页', typeof first.next === 'string')
+  check('第一页带着全站张数和筛选菜单的料', Number(first.total) === stocked + 1 && Array.isArray(first.pool),
+    `total=${first.total}`)
+  check('筛选菜单的料就是全站的牌，一张算一张',
+    (first.pool ?? []).reduce((n, [, k]) => n + k, 0) === stocked,
+    String((first.pool ?? []).reduce((n, [, k]) => n + k, 0)))
+
+  const open = await walk({})
+  check('翻到底能翻到别人全部的牌，一张不多一张不少',
+    open.rows.length === stocked && new Set(open.rows.map((l) => l.id)).size === stocked,
+    `${open.rows.length} 张 / ${new Set(open.rows.map((l) => l.id)).size} 个不重复 / 应为 ${stocked}`)
+  check('翻页的第二页起不再重发全站统计',
+    (await browse({ cursor: first.next as string })).total === undefined)
+  check('按快结束排：一路不递减', open.rows.every((l, i) => i === 0 || (open.rows[i - 1].ends ?? 0) <= (l.ends ?? 0)))
+
+  // the point of 「最新上架」: a card listed just now is on the first screen,
+  // whatever it does to its own clock
+  const fresh = 'VM-NNNN-NNNN-NNNN-NNNN-NNNN'
+  await account(fresh, '刚挂的', 0, { [MYTHIC]: { id: MYTHIC, dupes: 0 } })
+  const just = String((await call('/api/market/list', { id: fresh, cardId: MYTHIC, ask: 9000, hours: 24 })).id)
+  const byNew = await browse({ sort: 'new' })
+  check('最新上架：刚挂的那张在第一页第一个', byNew.listings[0]?.id === just, byNew.listings[0]?.id)
+  const byEnds = await browse({ sort: 'ends' })
+  check('同一张牌在「即将结束」里第一页是看不到的（所以才要两个标签页）',
+    !byEnds.listings.some((l) => l.id === just))
+  const newWalk = await walk({ sort: 'new' })
+  check('最新上架翻到底也是全部，不重不漏',
+    newWalk.rows.length === stocked + 1 && new Set(newWalk.rows.map((l) => l.id)).size === stocked + 1,
+    String(newWalk.rows.length))
+
+  const cheap = await walk({ sort: 'price' })
+  const priceOf = (l: Row) => l.best ?? l.ask
+  check('按价格从低到高：一路不递减', cheap.rows.every((l, i) => i === 0 || priceOf(cheap.rows[i - 1]) <= priceOf(l)))
+  const dear = await walk({ sort: 'price_desc' })
+  check('按价格从高到低：一路不递增', dear.rows.every((l, i) => i === 0 || priceOf(dear.rows[i - 1]) >= priceOf(l)))
+  check('两个方向看到的是同一批牌', cheap.rows.length === dear.rows.length && cheap.rows.length === stocked + 1,
+    `${cheap.rows.length} / ${dear.rows.length}`)
+
+  // the fix itself: a filter that reaches past the page it was applied to
+  const golds = new Set(ALL_CARDS.filter((c) => c.rarity === 'gold').map((c) => c.id))
+  const goldWalk = await walk({ rarity: 'gold' })
+  const goldTotal = open.rows.concat(newWalk.rows.filter((l) => l.id === just)).filter((l) => golds.has(l.cardId)).length
+  check('筛金卡筛的是全站，不是这一页',
+    goldWalk.rows.length === goldTotal && goldWalk.rows.every((l) => golds.has(l.cardId)),
+    `${goldWalk.rows.length} / 应为 ${goldTotal}`)
+  check('筛出来的菜单料也跟着筛选之外的条件走', Array.isArray((await browse({ rarity: 'gold' })).pool))
+  const none = await browse({ q: '这个名字没有人叫' })
+  check('搜不到就是空货架，不是整个货架', none.ok === true && none.listings.length === 0 && none.next === null)
+  check('搜不到的时候自己的牌还在', none.own.length === 1)
+
+  const band = await walk({ priceMin: 3000, priceMax: 6000 })
+  check('价格区间：全都在区间里', band.rows.every((l) => priceOf(l) >= 3000 && priceOf(l) <= 6000))
+  check('价格区间：区间里的一张都不少',
+    band.rows.length === open.rows.concat(newWalk.rows.filter((l) => l.id === just))
+      .filter((l) => priceOf(l) >= 3000 && priceOf(l) <= 6000).length,
+    String(band.rows.length))
+
+  // 「只看非重复」: a card you hold at that level or higher is a duplicate; one
+  // ABOVE your level is an upgrade and belongs on the shelf, which is the whole
+  // reason the toggle compares levels rather than just card ids
+  const upSeller = 'VM-XXXX-XXXX-XXXX-XXXX-XXXX'
+  // one listing per card id, so it has to be a card nothing above has listed
+  const onSale = new Set((await sql`select distinct card_id from card_listings`)
+    .map((r: { card_id: string }) => r.card_id))
+  const UPCARD = ALL_CARDS.find((c) => c.kind === 'player' && !onSale.has(c.id))!
+  await account(upSeller, '升级卡', 0, { [UPCARD.id]: { id: UPCARD.id, level: 2, dupes: 0 } })
+  const upLid = String((await call('/api/market/list', {
+    id: upSeller, cardId: UPCARD.id, ask: Math.max(1000, askFloor(UPCARD.rarity)),
+  })).id)
+  const picky = 'VM-YYYY-YYYY-YYYY-YYYY-YYYY'
+  const dupe = open.rows[0]
+  await account(picky, '挑剔', 0, {
+    [dupe.cardId]: { id: dupe.cardId, level: 0, dupes: 0 },
+    [UPCARD.id]: { id: UPCARD.id, level: 1, dupes: 0 },
+  } as Record<string, unknown>)
+  // picky sells nothing, so its shelf is every open listing there is; exactly
+  // one of them — the same card at the same level — is the duplicate it hides
+  const all = Number((await sql`select count(*)::int as n from card_listings where status = 'open'`)[0].n)
+  const un = await walk({ id: picky, unowned: true })
+  check('只看非重复：已经有的同级卡不出现', !un.rows.some((l) => l.id === dupe.id))
+  check('只看非重复：比自己强化高的还在（那是升级不是重复）', un.rows.some((l) => l.id === upLid))
+  check('只看非重复：其余的一张不少', un.rows.length === all - 1, `${un.rows.length} / 应为 ${all - 1}`)
+
+  // paging that cannot be talked into nonsense
+  check('换了排序的旧游标当没给，从头来一遍',
+    (await browse({ sort: 'price', cursor: first.next as string })).listings.length === PAGE)
+  check('伪造的游标也一样', (await browse({ cursor: 'not-a-cursor' })).listings.length === PAGE)
+  check(`一页最多 ${PAGE_MAX} 张`, (await browse({ limit: 5000 })).listings.length === PAGE_MAX)
+  const every = await theirs()
+  const oneAt = await walk({ limit: 1 }, every + 5)
+  check('一次一张也能翻完，不重不漏',
+    oneAt.rows.length === every && new Set(oneAt.rows.map((l) => l.id)).size === every,
+    `${oneAt.rows.length} / 应为 ${every}`)
+  check('没有账号也能逛货架', ((await call('/api/market/browse', {})) as Page).listings.length === PAGE)
 }
 
 // ---- 一个人同时最多挂三张 (2026-09-05) ------------------------------------
