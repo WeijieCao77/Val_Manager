@@ -99,8 +99,13 @@ for (let i = 0; i < N; i++) {
     const losses = new Map<string, number>()
     for (const f of ko) if (f.result) losses.set(loserOf(f), (losses.get(loserOf(f)) ?? 0) + 1)
     const finals = ko.filter((f) => ['胜者组决赛', '中段组决赛', '败者组决赛'].includes(nameOf(f)))
+    const upper = finals.find((f) => nameOf(f) === '胜者组决赛')
     check(ko.length === 30 && ko.every((f) => f.played), `${region} Kickoff: thirty ties, all played`)
-    check(finals.length === 3 && finals.every((f) => f.bo === 5), `${region}: the three finals are BO5`)
+    // 胜者组决赛是 BO3 —— Kickoff 曾是全游戏唯一一个 BO5 的胜者组决赛，跟其他
+    // 赛制不一致。中段组和败者组决赛仍是 BO5：那两场是淘汰赛。
+    check(finals.length === 3 && upper?.bo === 3, `${region}: the upper final is BO3`)
+    check(finals.filter((f) => f !== upper).every((f) => f.bo === 5),
+      `${region}: the middle and lower finals are still BO5`)
     check([...losses.values()].every((n) => n <= 3) && kc.finished.length === 12 && new Set(kc.finished).size === 12, `${region}: nobody lost more than three, twelve placings, each once (losses ${[...losses.values()].sort().join('')})`)
     const q = kc.finished.slice(0, 3)
     check(losses.get(q[0]) === undefined && losses.get(q[1]) === 1 && losses.get(q[2]) === 2, `${region}: seeds 1/2/3 have 0/1/2 losses (${q.map((t) => tag(g, t)).join('/')})`)
