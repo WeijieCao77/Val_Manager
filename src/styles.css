@@ -2960,3 +2960,13 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 .draw-slot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 3px 0; font-size: var(--t-small); min-height: 24px; }
 .draw-slot .club.me span { color: var(--accent); font-weight: 700; }
 .draw-choice { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 5px; background: var(--panel-2); }
+
+/* 分享阵容: the picture is the point, so the dialog is only as wide as it. */
+.share-modal { max-width: 560px; }
+.share-png {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #0b1017;
+}

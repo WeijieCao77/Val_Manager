@@ -8,6 +8,9 @@ import {
 } from '../../engine/gacha'
 import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
+import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
+import ShareSquad from './ShareSquad'
+import type { CardFilter } from './Filters'
 
 const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
 
@@ -15,6 +18,12 @@ export default function SquadScreen() {
   const { g, commit, toast } = useCards()
   const [picking, setPicking] = useState<number | 'coach' | null>(null)
   const [q, setQ] = useState('')
+  // 「卡组选选手的地方也加个筛选器」. The same bar as the collection and the
+  // trading post — metal, region, position (with 指挥), club — because a
+  // collection of four hundred cards is not a list you scroll to find the
+  // Chinese sentinel you meant.
+  const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
+  const [sharing, setSharing] = useState(false)
 
   const level = (id: string) => levelOf(g, id)
   const presets = presetsOf(g)
@@ -27,11 +36,20 @@ export default function SquadScreen() {
   const gaps = roleGaps(g.squad)
   const filled = g.squad.slots.filter(Boolean).length
 
+  /** everything that could go in this seat, before the filter bar narrows it */
+  const pool = useMemo(() => {
+    const want = picking === 'coach' ? 'coach' : 'player'
+    return collection(g)
+      .filter(({ card }) => (want === 'coach' ? isCoachCard(card) : isPlayerCard(card)))
+      .map(({ card }) => card)
+  }, [g, picking])
+
   const options = useMemo(() => {
     const want = picking === 'coach' ? 'coach' : 'player'
     const text = q.trim().toLowerCase()
     return collection(g)
       .filter(({ card }) => (want === 'coach' ? isCoachCard(card) : isPlayerCard(card)))
+      .filter(({ card }) => matchesFilter(card, filter))
       .filter(({ card }) => {
         if (!text) return true
         const name = isPlayerCard(card)
@@ -49,13 +67,14 @@ export default function SquadScreen() {
         }
         return b.rating - a.rating
       })
-  }, [g, picking, q])
+  }, [g, picking, q, filter])
 
   const pick = (cardId: string | null) => {
     if (picking === 'coach') g.squad.coach = cardId
     else if (typeof picking === 'number') setSlot(g, picking, cardId)
     setPicking(null)
     setQ('')
+    setFilter(EMPTY_FILTER)
     commit(true)
   }
 
@@ -148,6 +167,8 @@ export default function SquadScreen() {
             >
               自动组队
             </button>
+            {/* 「可以生成一张图片分享阵容，还可以扫二维码直接打开」 */}
+            <button className="sm" onClick={() => setSharing(true)}>分享阵容</button>
             {/* One click, no dialog —「卡组里加一个一键清空当前配置的功能」.
                 Clearing five seats one modal at a time was the only way to
                 start a five from nothing. The saved presets are untouched,
@@ -268,6 +289,8 @@ export default function SquadScreen() {
         </div>
       </Panel>
 
+      {sharing && <ShareSquad onClose={() => setSharing(false)} />}
+
       {picking !== null && (
         <div className="modal-bg" onClick={() => setPicking(null)}>
           <div className="modal" style={{ maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
@@ -278,16 +301,27 @@ export default function SquadScreen() {
               <button className="ghost sm" onClick={() => setPicking(null)}>关闭</button>
             </div>
             <div className="modal-body">
-              <input
-                autoFocus
-                placeholder="搜 ID / 真名 / 战队 / 位置"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                style={{ marginBottom: 12 }}
+              <CardFilters
+                value={filter}
+                onChange={setFilter}
+                pool={pool}
+                extra={
+                  <input
+                    className="sm"
+                    // grows into whatever the bar has left rather than a fixed
+                    // 190px, which cut the placeholder off on a phone
+                    style={{ flex: '1 1 170px', minWidth: 130, padding: '4px 7px' }}
+                    placeholder="搜 ID / 真名 / 战队"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                }
               />
               {options.length === 0 ? (
                 <p className="empty">
-                  {picking === 'coach' ? '还没有教练卡，去开一个教练包。' : '没有可选的卡，先去抽卡。'}
+                  {pool.length === 0
+                    ? (picking === 'coach' ? '还没有教练卡，去开一个教练包。' : '没有可选的卡，先去抽卡。')
+                    : '这些条件下没有卡，放宽一点看看。'}
                 </p>
               ) : (
                 <div className="cm-grid sm">

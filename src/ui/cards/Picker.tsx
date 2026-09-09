@@ -54,7 +54,7 @@ export function CardPicker({
         extra={
           <input
             className="sm"
-            style={{ width: 150, padding: '4px 7px' }}
+            style={{ flex: '1 1 150px', minWidth: 120, padding: '4px 7px' }}
             placeholder="搜 ID / 战队"
             value={q}
             onChange={(e) => setQ(e.target.value)}
