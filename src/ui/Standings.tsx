@@ -106,9 +106,14 @@ export default function Standings() {
     if (i >= 0) return i
     return c.stage === 'challengers1' ? 3.5 : c.stage === 'challengers2' ? 5.5 : 9
   }
+  // your own competitions lead. A Challengers side used to open this page on
+  // the VCT Kickoff bracket of twelve clubs it is not in, with its own league
+  // three panels down (2026-09-09).
+  const mine = (c: Competition): number => (c.teams.includes(game.myTeam) ? 0 : 1)
   const shown = Object.values(game.comps)
     .filter((c) => !c.region || c.region === region)
-    .sort((a, b) => rank(a) - rank(b) || (rank(a) === 3 ? order(b) - order(a) : order(a) - order(b)))
+    .sort((a, b) => (region === myRegion ? mine(a) - mine(b) : 0)
+      || rank(a) - rank(b) || (rank(a) === 3 ? order(b) - order(a) : order(a) - order(b)))
 
   const leaders = Object.values(game.players)
     .filter((p) => p.season.maps >= 8 && p.teamId)

@@ -145,10 +145,18 @@ const tier1Of = (state: GameState, region: Region) =>
     .sort((a, b) => b.rating - a.rating)
     .map((t) => t.id)
 
+/**
+ * The second tier of a region, in the order the world declares it.
+ *
+ * That order is the real one where we have it — China's eight are listed in
+ * their VCNT finishing order — and nothing is played yet, so an all-zero table
+ * shows the standing the season is starting from. It used to re-sort by our
+ * own rating, which put the club that finished sixth on top of the club that
+ * won the thing (2026-09-09).
+ */
 const tier2Of = (state: GameState, region: Region) =>
   Object.values(state.teams)
     .filter((t) => t.region === region && t.tier === 2)
-    .sort((a, b) => b.rating - a.rating)
     .map((t) => t.id)
 
 /** Build every fixture that can be known before a ball is thrown. */

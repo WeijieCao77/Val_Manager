@@ -89,9 +89,13 @@ export default function Schedule() {
       byStage.set(k, [...(byStage.get(k) ?? []), rowOf(f)])
     }
     // a playoff we are out of still has a winner to find: its remaining ties
-    // join our stage's section, greyed, so the final's date is on the page
+    // join our stage's section, greyed, so the final's date is on the page.
+    // OUT of, which means we were in it: a Challengers side is not in its
+    // region's Kickoff at all, and 本队 opened on twelve clubs' bracket
+    // (2026-09-09, managing ODG).
     for (const comp of Object.values(game.comps)) {
       if (comp.region !== myRegion || comp.champion || !comp.bracketStarted) continue
+      if (!comp.teams.includes(me)) continue
       const rest = game.fixtures.filter((f) => f.comp === comp.key && !f.played
         && f.label.startsWith('KO:') && f.teamA !== me && f.teamB !== me)
       if (!rest.length) continue
@@ -106,6 +110,7 @@ export default function Schedule() {
     const inRegional = nextInEvent(game)
     for (const comp of Object.values(game.comps)) {
       if (comp.region !== myRegion || (comp.format !== 'double' && comp.format !== 'triple') || comp.champion) continue
+      if (!comp.teams.includes(me)) continue
       // a bracket whose draw has not been held has no ties, but its days are
       // known — every round shows as 待定 vs 待定 until the balls are out
       if (!comp.bracketStarted && comp.plannedStart == null) continue

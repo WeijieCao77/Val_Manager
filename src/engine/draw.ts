@@ -154,7 +154,11 @@ export const drawsThisYear = (state: GameState, compKey: string): DrawEvent[] =>
 export function needsManager(state: GameState, ev: DrawEvent): boolean {
   const comp = state.comps[ev.competitionKey]
   if (!comp) return false
-  if (comp.region) return comp.region === state.teams[state.myTeam]?.region
+  // A draw is yours to hold when your club is in the competition — not when
+  // it merely happens in your region. It used to be the region, which was the
+  // same thing while every managed club was a VCT club; a Challengers side is
+  // not in its region's Kickoff, and was being stopped on day one to draw a
+  // twelve-club bracket it has no team in (2026-09-09, managing ODG).
   return comp.teams.includes(state.myTeam)
 }
 
@@ -168,14 +172,13 @@ export const nextPendingDraw = (state: GameState): string | undefined =>
  * held in the background and reported in the news, so a season does not
  * ask you to sit through four Stage 1 draws.
  */
-export const unwatchedDraws = (state: GameState): DrawEvent[] => {
-  const myRegion = state.teams[state.myTeam]?.region
-  return (state.draws ?? []).filter((d) => {
-    if (d.watched || d.status === 'awaiting-choice' || d.year !== state.year) return false
-    const comp = state.comps[d.competitionKey]
-    return !comp?.region || comp.region === myRegion
-  })
-}
+export const unwatchedDraws = (state: GameState): DrawEvent[] => (state.draws ?? []).filter((d) => {
+  if (d.watched || d.status === 'awaiting-choice' || d.year !== state.year) return false
+  const comp = state.comps[d.competitionKey]
+  // the ceremonies you sit through are your club's own; everybody else's are
+  // held in the background and reported in the news
+  return !!comp && comp.teams.includes(state.myTeam)
+})
 
 const regionOf = (state: GameState, id: string): Region | undefined => state.teams[id]?.region
 

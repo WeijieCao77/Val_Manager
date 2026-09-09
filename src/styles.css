@@ -683,6 +683,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .team-card:hover { border-color: var(--line-hi); }
 .team-card.sel { border-color: var(--accent); background: var(--accent-wash); }
 .team-card .n { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+/* A long club name has to give way to the VCT/CHAL tag beside it, not shove
+   it off the card: 「KBG 和 AQ 边上的 CHAL 标超出页面了」. A flex item will not
+   shrink below its content unless it is told it may. */
+.team-card .n { min-width: 0; flex: 1 1 auto; }
+.team-card .n > span { overflow-wrap: anywhere; }
+.team-card .tag { flex: none; }
 
 /* A segmented control, and it has to survive being wider than the phone.
  *
