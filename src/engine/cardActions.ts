@@ -120,6 +120,15 @@ function dispatch(
       const kind = a.kind
       if (!isPack(kind)) return { ok: false, why: '没有这种卡包' }
       const payWith = a.payWith === 'coins' ? 'coins' : 'pack'
+      // A pack must not be knowable before it is bought. `seed` lives in the
+      // account, the account is handed to the client with every reply, and
+      // openPack is a pure function of it — so a player holding their own
+      // state could work out the next pack card for card and open only when a
+      // 彩卡 was due. Folding in a number the server made and has never sent
+      // anywhere makes the reply worthless for guessing the one after it.
+      // Mixed here rather than inside openPack so the pack itself stays a
+      // pure function of the state, which is what the odds scripts measure.
+      g.seed = hashStr(`${g.seed}:${env.seed}`) >>> 0
       try {
         const pulled = openPack(g, kind, payWith, env.today)
         return {

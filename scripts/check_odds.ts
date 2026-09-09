@@ -55,7 +55,7 @@ for (const kind of PACK_ORDER as PackKind[]) {
 }
 
 console.log(`保底：金卡第 ${SOFT_PITY} 抽起概率递增、第 ${HARD_PITY} 抽必出；`
-  + `彩卡 ${MYTHIC_FLOOR} 抽硬保底（教练包不计入）`)
+  + `彩卡 ${MYTHIC_FLOOR} 抽硬保底（位置包不计入）`)
 
 // ---- 混开时保底是共用的：pity 和 mythicDry 挂在账号上，不是挂在卡包上
 {

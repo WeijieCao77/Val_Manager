@@ -32,6 +32,7 @@ import { createHash } from 'node:crypto'
 import { STARTER_COINS, STAMINA_MAX, STAMINA_COST } from '../src/engine/gacha'
 import { CHALLENGE_COST } from '../src/engine/challenge'
 import { cardById, isPlayerCard, personOf } from '../src/engine/cards'
+import { migrateGacha, openPack } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
@@ -322,6 +323,40 @@ console.log('\n旧存档：')
   check('还能签到', a.ok && (await stored(C)).coins === 4500, a.why)
   const s = await stored(C)
   check('旧账号的卡和抽数原样保留', s.pulls === 12 && s.cards['p:P5']?.dupes === 2)
+}
+
+// ---- the pack a client can work out before it buys it ------------------
+//
+// Reported as 「大保底抽完马上又出一张彩卡，是不是触发了两次保底」 (2026-09-08).
+// The floor does not fire twice — that was measured three ways — but chasing
+// it turned up the reason someone could make it look as though it had. The
+// account carries `seed`, the account is handed to the client with every
+// reply, and openPack is a pure function of it, so a player holding their own
+// state could roll the next pack locally, card for card, and open only when a
+// 彩卡 was coming. Every pack now folds in a number the server made and has
+// never sent anywhere.
+{
+  console.log('\n---- 开包不可预测 ----')
+  const P = 'VM-PPPP-PPPP-PPPP-PPPP-PPPP'
+  const made = (await call('/api/card/claim', { id: P, name: '预言家' })).body as { ok: boolean; state: GachaState }
+  check('账号建好了', made.ok === true)
+  let held: GachaState = JSON.parse(JSON.stringify(made.state))
+  check('客户端手上确实有 seed', typeof (held as unknown as { seed?: number }).seed === 'number')
+  let hits = 0
+  const TRIES = 12
+  for (let i = 0; i < TRIES; i++) {
+    // roll it locally, from nothing but what the server handed over
+    const sim = migrateGacha(JSON.parse(JSON.stringify(held)) as GachaState, P)
+    sim.packs.scout = 1
+    const guess = openPack(sim, 'scout', 'pack').map((p) => p.card.id).join(',')
+    await sql`update card_accounts set state = jsonb_set(state, '{coins}', '9000') where id_hash = ${hashOf(P)}`
+    const r = await act(P, 'open', { kind: 'scout', payWith: 'coins' })
+    const real = ((r.result as { pulled: { cardId: string }[] }).pulled).map((p) => p.cardId).join(',')
+    if (guess === real) hits++
+    held = JSON.parse(JSON.stringify(r.state))
+  }
+  // one in five hundred-odd by luck; a broken build hits every time
+  check('拿着自己的存档也算不出下一包是什么', hits <= 1, `${hits}/${TRIES} 猜中`)
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
