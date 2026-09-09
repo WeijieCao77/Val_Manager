@@ -10,10 +10,10 @@
  *   npx tsx scripts/card_check.ts
  */
 import {
-  PLAYER_CARDS, COACH_CARDS, LEGEND_CARDS, GOLD_AT, chemistry, squadRating, emptySquad,
-  rarityRank,
+  ALL_CARDS, PLAYER_CARDS, COACH_CARDS, LEGEND_CARDS, GOLD_AT, SQUAD_SLOTS, cardById, chemistry,
+  isPlayerCard, personOf, squadRating, emptySquad, rarityRank,
 } from '../src/engine/cards'
-import type { Squad } from '../src/engine/cards'
+import type { PlayerCard, Squad } from '../src/engine/cards'
 import {
   DIVISIONS, PACKS, newGacha, openPack, recordLadder, ladderOpponent, checkIn,
   collectionProgress, autoSquad, enterCup, recordCup, cupOpponent, cupBo, starsFor,
@@ -21,7 +21,7 @@ import {
   STAMINA_COST, STAMINA_REGEN_MS, staminaEvery,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
-import { playArenaMatch } from '../src/engine/arena'
+import { buildArena, playArenaMatch, ARENA_TEAM } from '../src/engine/arena'
 import { WORLD_TEAMS } from '../src/engine/teams'
 
 const pct = (n: number, d: number) => `${((100 * n) / Math.max(1, d)).toFixed(1)}%`
@@ -472,4 +472,35 @@ console.log('\n=== 国籍默契：中国台湾 / 中国香港 / 中国澳门 与
   console.log(`  ${four.map((c) => `${c?.ign}(${c?.nat})`).join(' / ')}，${clubs.size} 家俱乐部`)
   console.log(`  同国籍连线 ${natLinks}/6  ${natLinks === 6 ? 'ok' : 'FAIL'} 四人两两都应算同一国籍`)
   if (natLinks !== 6) process.exitCode = 1
+}
+
+// ---- somebody is always calling ------------------------------------------
+// The engine docks a side with no caller four flat, and every club in the game
+// is spared that — world.ts promotes a deputy the moment an AI club loses its
+// IGL. The arena appointed nobody, so a five holding no card flagged IGL
+// played every map uncalled: the best five cards in the game are stars, none
+// of them called, and they lost to ordinary golds who happened to own one
+// (2026-09-09, 「卡很好但是打不过别人」).
+{
+  console.log('\n=== 指挥 ===')
+  const noneCall = ALL_CARDS.filter((c): c is PlayerCard => isPlayerCard(c) && !c.isIgl)
+    .sort((a, b) => b.rating - a.rating)
+  const used = new Set<string>()
+  const slots = SQUAD_SLOTS.map((role) => {
+    const pick = noneCall.find((c) => !used.has(personOf(c)) && (role === '自由人' || c.roles.includes(role)))
+    if (!pick) return null
+    used.add(personOf(pick))
+    return pick.id
+  })
+  const squad = { slots, coach: null } as Squad
+  const held = slots.filter(Boolean).length
+  const anyFlagged = slots.some((id) => { const c = id ? cardById(id) : null; return isPlayerCard(c) && c.isIgl })
+  console.log(`  五张都不是指挥卡：${held} 人，卡面里有指挥 ${anyFlagged}`)
+  const { state } = buildArena(squad, () => 0, 11)
+  const roster = state.teams[ARENA_TEAM].roster.map((id) => state.players[id])
+  const callers = roster.filter((p) => p.isIgl)
+  const best = roster.slice().sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  console.log(`  上场后有人喊指挥：${callers.length === 1 ? 'ok' : 'FAIL'}（${callers.map((p) => p.ign).join('、') || '没有人'}）`)
+  console.log(`  顶上来的是指挥属性最高的那个：${callers[0]?.id === best.id ? 'ok' : 'FAIL'}（${best.ign} 指挥 ${best.attrs.igl}）`)
+  if (held !== 5 || anyFlagged || callers.length !== 1 || callers[0]?.id !== best.id) process.exitCode = 1
 }

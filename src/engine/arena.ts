@@ -212,6 +212,25 @@ function seatSquad(
     roster.push(id)
   })
 
+  // Somebody is always calling.
+  //
+  // The match engine docks a side with no caller four points flat, and every
+  // club in the game is spared that: world.ts appoints the best deputy the
+  // moment an AI club loses its IGL, because 「a real club promotes someone
+  // within the week」. The arena never appointed anyone, so a five holding no
+  // card flagged IGL played every map with literally nobody calling — a
+  // sentence no club can serve — while the squad screen priced it at three
+  // points (NO_IGL_PENALTY). Reported as 「卡很好但是打不过别人」: the top five
+  // cards in the game are stars, none of them called, and they lost to
+  // ordinary golds who happened to own one.
+  //
+  // The stand-in is the best 指挥 attribute on the five, and he is a worse
+  // caller than a real one, which is the cost the screen already names.
+  if (roster.length && !roster.some((id) => state.players[id].isIgl)) {
+    const best = roster.slice().sort((a, b) => state.players[b].attrs.igl - state.players[a].attrs.igl)[0]
+    state.players[best] = { ...state.players[best], isIgl: true, iglSource: 'inferred' }
+  }
+
   const mapPrefs: Record<string, number> = {}
   for (const m of Object.keys(state.teams[WORLD_TEAMS[0].id].mapPrefs)) mapPrefs[m] = 50
 
