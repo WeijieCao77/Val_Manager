@@ -207,10 +207,14 @@ export function autoAgents(
       ? man.agentPool.includes(a)
       : (man.agentPro?.[a] ?? 0) > 0
     const onMap = meta.filter((a) => !used.has(a) && AGENT_ROLE[a] === role)
-    const agent = onMap.find(known)
-      ?? (AGENTS[role] ?? []).find((a) => !used.has(a) && known(a))
-      ?? onMap[0]
-      ?? (AGENTS[role] ?? []).find((a) => !used.has(a))
+    // 开瓦包借用的世界要逐字走老路径：卡牌天梯的平衡是按那条链调过的，
+    // 换一个回退顺序就会挪动卡组强弱（check_leagues 抓到过 83%）。
+    const agent = isArena(state)
+      ? (onMap.find(known) ?? onMap[0] ?? (AGENTS[role] ?? []).find((a) => !used.has(a)))
+      : (onMap.find(known)
+        ?? (AGENTS[role] ?? []).find((a) => !used.has(a) && known(a))
+        ?? onMap[0]
+        ?? (AGENTS[role] ?? []).find((a) => !used.has(a)))
     if (!agent) continue
     out[man.id] = agent
     used.add(agent)
@@ -226,7 +230,9 @@ export function autoAgents(
       : (p.agentPro?.[a] ?? 0) > 0
     const pick =
       meta.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]) && knows(a))
-      ?? mine.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a) && knows(a))
+      // 中间这一层同样只在经理模式里加
+      ?? (isArena(state) ? undefined
+        : mine.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a) && knows(a)))
       ?? meta.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]))
       ?? p.agentPool.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]))
       ?? mine.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a))
