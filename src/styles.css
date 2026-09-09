@@ -2625,6 +2625,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .league-bar { gap: 6px; }
   .league-tab { padding: 6px 9px; flex: 1 1 30%; }
   .league-tab b { font-size: 12px; }
+}
 
 
 /* ---------------------------------------------------------------- polish
