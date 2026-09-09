@@ -105,7 +105,14 @@ export const PACKS: Record<PackKind, PackDef> = {
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
     blurb: '十张选手卡，必出金卡，彩卡最多。不卖，升段、夺冠、连签七天才有。',
-    cost: 5000, draws: 10, mythic: 0.0012, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
+    // 0.0012 a draw made the floor beside the point here: ten draws a pack put
+    // a彩卡 in 1.19% of them, three quarters of the tier arrived on the natural
+    // roll, and 1200 was a number almost nobody reached — the floor is what is
+    // supposed to decide how rare a legend is (see MYTHIC_FLOOR). At 0.0006 it
+    // is roughly half and half: 1/852 draws measured against 1/636 before, and
+    // the progress bar means something. The odds screen measures the engine
+    // rather than reading this number, so it followed on its own.
+    cost: 5000, draws: 10, mythic: 0.0006, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
   },
   // The series packs: same three cards as a 选拔包 and the same odds, priced a
   // little above it. What you are buying is not volume, it is aim — a 中国包
