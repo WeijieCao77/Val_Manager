@@ -2970,3 +2970,59 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
   border: 1px solid var(--line);
   background: #0b1017;
 }
+
+/* ---------------------------------------------------------------- 暂停阵容板
+   两队五人 + 打法风格。窄屏一列，宽屏两列。颜色只是辅助，每段都带文字。 */
+.compboard { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.compboard-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 620px) { .compboard-grid { grid-template-columns: 1fr 1fr; } }
+
+.compside {
+  background: var(--panel-2); border: 1px solid var(--panel-3);
+  border-radius: 8px; padding: 9px 10px 8px;
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+}
+.compside.is-mine { border-color: var(--accent-line); background: var(--panel-me); }
+
+.compside-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.compside-tag {
+  font-size: 10px; letter-spacing: .1em; color: var(--muted);
+  border: 1px solid var(--panel-3); border-radius: 3px; padding: 1px 4px; flex: 0 0 auto;
+}
+.compside-name {
+  font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.compside-style { margin-left: auto; font-size: 12px; font-weight: 700; flex: 0 0 auto; }
+
+.compfive { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.compfive li {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto;
+  align-items: center; gap: 7px;
+}
+.compfive-blank {
+  width: 30px; height: 30px; border-radius: 5px;
+  background: var(--panel-3); display: inline-block;
+}
+.compfive-ign {
+  font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.compfive-agent { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+.mixbar {
+  display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--panel-3); margin-top: 1px;
+}
+.mixbar i { display: block; height: 100%; }
+
+.compside-nums { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 10.5px; color: var(--muted); }
+.compside-nums span { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.compside-nums i { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+
+.compverdict {
+  margin: 0; font-size: 12.5px; line-height: 1.6;
+  border-left: 3px solid var(--panel-3); padding: 6px 10px;
+  background: var(--panel-2); border-radius: 0 6px 6px 0;
+}
+.compverdict.is-good { border-left-color: var(--sentinel); }
+.compverdict.is-bad { border-left-color: var(--accent); }
+.compverdict.is-flat { color: var(--muted); }

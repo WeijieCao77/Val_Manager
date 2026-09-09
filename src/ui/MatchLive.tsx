@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { CompBoard } from './CompBoard'
 import { useGame } from './ctx'
 import { Crest, Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
@@ -246,6 +247,11 @@ export default function MatchLive({
         <div className="panel own">
           <div className="panel-head"><h2>暂停 · 剩余 {map.timeouts[mySide]} 次</h2></div>
           <div className="panel-body">
+            {/* 先给他看清楚两边排了什么 —— 没有这个，下面那三个按钮只能靠猜 */}
+            <CompBoard
+              mine={mySide === 'a' ? map.A : map.B}
+              theirs={mySide === 'a' ? map.B : map.A}
+            />
             <p className="small muted" style={{ marginTop: 0 }}>选择接下来 3 个回合的打法：</p>
             <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
               <button onClick={() => callTimeout('rush')}>
