@@ -331,7 +331,13 @@ export function playArenaMatch(
   // so the top sides are sharpened rather than replaced: every attribute up by
   // the same amount, which keeps them recognisably themselves. A stopgap until
   // the arena can put another player's saved five across the net.
-  if (oppBump > 0) {
+  //
+  // The same dial runs backwards for the metal ladders. The world's clubs
+  // start at 80 and a bronze five seats around 72, so an unscaled 铜卡赛 is a
+  // wall rather than a ladder; the club that turns up is the same club, a
+  // little further off its best. It used to ignore a negative number
+  // entirely, which quietly made every league play the open ladder.
+  if (oppBump !== 0) {
     const opp = state.teams[opponentId]
     for (const pid of opp?.roster ?? []) {
       const p = state.players[pid]

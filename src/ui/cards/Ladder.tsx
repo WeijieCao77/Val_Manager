@@ -4,10 +4,11 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   DIVISIONS, MASTER_DIV, MASTER_TITLES, PACKS, STAMINA_COST, STAMINA_MAX, canPlay,
-  ladderOpponent, levelOf, masterTitle, oppBumpFor, pendingOpponent,
+  ladderOpponent, ladderOf, leagueEntry, levelOf, masterTitle, oppBumpFor, pendingOpponent,
+  LEAGUES, LEAGUE_RULES,
   rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../../engine/gacha'
-import type { LadderOutcome } from '../../engine/gacha'
+import type { LadderOutcome, LeagueKind } from '../../engine/gacha'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
@@ -31,11 +32,17 @@ export default function Ladder() {
     { res: ArenaResult; opp: string; who?: string; out: LadderOutcome } | null
   >(null)
 
+  // Which ladder is being played. The open one is the default and the only
+  // one the leaderboard ranks; the metal ladders and 名人堂 keep their own
+  // records, so a bronze collection has a climb of its own.
+  const [league, setLeague] = useState<LeagueKind>('open')
+  const rule = LEAGUE_RULES[league]
   const level = (id: string) => levelOf(g, id)
   const filled = g.squad.slots.filter(Boolean).length
   const rating = squadRating(g.squad, level)
-  const opp0 = ladderOpponent(g)
-  const L = g.ladder
+  const opp0 = ladderOpponent(g, league)
+  const L = ladderOf(g, league)
+  const entry = filled === 5 ? leagueEntry(g.squad, league) : ({ ok: true } as const)
   const master = L.div >= MASTER_DIV
   const [top, setTop] = useState<TopRow[] | null | 'loading'>('loading')
   /**
@@ -75,16 +82,16 @@ export default function Ladder() {
    * new one is to play the one you have. From 钻石 up the server puts a real
    * player's five in front of you when it has one.
    */
-  const pinned = pendingOpponent(g)
+  const pinned = pendingOpponent(g, league)
   const [drawing, setDrawing] = useState(false)
   useEffect(() => {
     if (pinned || drawing || !cloud) return
     let alive = true
     setDrawing(true)
-    void act('ladder_draw').finally(() => { if (alive) setDrawing(false) })
+    void act('ladder_draw', { league }).finally(() => { if (alive) setDrawing(false) })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinned, cloud, L.wins, L.losses])
+  }, [pinned, cloud, league, L.wins, L.losses])
 
   const rival = (pinned?.rival ?? null) as RivalSquad | null
   const oppId = pinned?.club ?? opp0
@@ -92,15 +99,16 @@ export default function Ladder() {
 
   const play = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
+    if (!entry.ok) { toast(entry.why); go('squad'); return }
     if (!canPlay(g, 'ladder', now)) { toast(`体力不够，${staminaRate()}。`); return }
     setBusy(true)
-    const r = await act('ladder')
+    const r = await act('ladder', { league })
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
     const got = r.result as { res: ArenaResult; opp: string; who?: string; out: LadderOutcome }
     track('card_match', {
-      mode: 'ladder', won: got.res.win, div: g.ladder.div, rating,
-      points: g.ladder.points ?? 0, rival: got.who ? 1 : 0,
+      mode: 'ladder', league, won: got.res.win, div: L.div, rating,
+      points: L.points ?? 0, rival: got.who ? 1 : 0,
     })
     setSaved((n) => n + 1)
     setShown(got)
@@ -108,6 +116,33 @@ export default function Ladder() {
 
   return (
     <>
+      {/* Five ladders, one record each. The metal ones are what makes a bronze
+          worth owning: it can only be played where nothing better is allowed. */}
+      <div className="league-bar">
+        {LEAGUES.map((k) => {
+          const r = LEAGUE_RULES[k]
+          const rec = g.leagues?.[k] ?? (k === 'open' ? g.ladder : null)
+          return (
+            <button
+              key={k}
+              className={`league-tab${k === league ? ' on' : ''}`}
+              aria-pressed={k === league}
+              onClick={() => { setLeague(k); setShown(null) }}
+            >
+              <b>{r.name}</b>
+              <span className="tiny faint">
+                {rec ? `${DIVISIONS[rec.div]} · ${rec.wins}–${rec.losses}` : '未开始'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="tiny muted" style={{ margin: '0 0 12px' }}>
+        {rule.blurb}
+        {league !== 'open' && ' 这里的段位、战绩和公开赛分开算，排行榜只看公开赛。'}
+        {!entry.ok && <b className="neg"> {entry.why}</b>}
+      </p>
+
       <div className="grid c2" style={{ alignItems: 'start' }}>
         <Panel title="段位">
           <div className="div-badge">
@@ -184,12 +219,13 @@ export default function Ladder() {
                   ? '　对面是别的玩家保存的阵容，不需要他在线。'
                   : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
               </p>
-              <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !canPlay(g, 'ladder', now)}>
+              <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !entry.ok || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
                   : !cloud ? '需要联网'
                     : filled < 5 ? '先去组队'
-                      : !canPlay(g, 'ladder', now) ? '体力不够'
-                        : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
+                      : !entry.ok ? `这套卡组进不了${rule.name}`
+                        : !canPlay(g, 'ladder', now) ? '体力不够'
+                          : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。
@@ -281,8 +317,8 @@ export default function Ladder() {
                   {shown.out.pointsDelta >= 0 ? '+' : ''}{shown.out.pointsDelta} 分 · {shown.out.title} {shown.out.points}
                 </span>
               )}
-              {shown.out.promoted && <span className="chiplet" style={{ color: 'var(--win)' }}>升段 → {rankName(g.ladder.div, g.ladder.stars, g.ladder.points ?? 0)}</span>}
-              {shown.out.demoted && <span className="chiplet" style={{ color: 'var(--loss)' }}>掉段 → {rankName(g.ladder.div, g.ladder.stars, 0)}</span>}
+              {shown.out.promoted && <span className="chiplet" style={{ color: 'var(--win)' }}>升段 → {rankName(L.div, L.stars, L.points ?? 0)}</span>}
+              {shown.out.demoted && <span className="chiplet" style={{ color: 'var(--loss)' }}>掉段 → {rankName(L.div, L.stars, 0)}</span>}
               {shown.out.pack && <span className="chiplet" style={{ color: 'var(--warn)' }}>升段奖励：{PACKS[shown.out.pack].name}</span>}
             </div>
           }

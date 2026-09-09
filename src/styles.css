@@ -2611,6 +2611,21 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .salvage-bar label { margin-left: 0 !important; }
 }
 
+/* the five ladders: a row of tabs, each carrying its own record */
+.league-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.league-tab {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 7px 12px; border-radius: 6px; line-height: 1.35;
+  background: var(--panel-2); border: 1px solid var(--line); cursor: pointer;
+}
+.league-tab b { font-size: 13px; }
+.league-tab:hover { border-color: var(--accent-line); }
+.league-tab.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+@media (max-width: 560px) {
+  .league-bar { gap: 6px; }
+  .league-tab { padding: 6px 9px; flex: 1 1 30%; }
+  .league-tab b { font-size: 12px; }
+
 
 /* ---------------------------------------------------------------- polish
 

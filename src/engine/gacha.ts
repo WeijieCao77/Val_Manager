@@ -11,7 +11,7 @@ import { WORLD_TEAMS } from './teams'
 import { REGION_CN } from './types'
 import type { Role } from './types'
 import {
-  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, PLAYER_CARDS,
+  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating,
 } from './cards'
@@ -383,6 +383,113 @@ export const tierStars = (div: number): number =>
  * no ceiling — the whole complaint was that the climb ended. The names are
  * VALORANT's own top ranks rather than invented ones.
  */
+/**
+ * The ladders, and what each one lets you field.
+ *
+ * One open ladder meant one answer to 「我该练哪张卡」: the biggest numbers you
+ * own. A bronze card was a salvage price and nothing else, and a silver was a
+ * step on the way to a gold — which is a strange thing to say about four
+ * fifths of a collection. Each metal gets a ladder of its own, and it may be
+ * played with that metal and everything below it: a silver five may bring
+ * bronzes, a bronze five may not bring silvers.
+ *
+ * 名人堂 is the other end. It is the only place a legend counts for anything
+ * beyond its rating, and it asks for two of them, so the deepest collection
+ * has somewhere of its own to go.
+ *
+ * The open ladder is unchanged and is still where the leaderboard is ranked;
+ * an account that never opens the new ones sees exactly what it saw before.
+ */
+export const LEAGUES = ['open', 'gold', 'silver', 'bronze', 'hof'] as const
+export type LeagueKind = (typeof LEAGUES)[number]
+
+export interface LeagueRule {
+  name: string
+  blurb: string
+  /** the best metal the five may hold; null for no ceiling */
+  ceiling: Rarity | null
+  /** how many 彩卡 the five must hold to enter */
+  needMythic: number
+  /**
+   * How much weaker the clubs on the other side are.
+   *
+   * A bronze five seats around 72 and the world's clubs start at 80, so an
+   * unscaled bronze ladder is a wall, not a ladder. Every opponent attribute
+   * comes down by this much — the same dial that sharpens them above 大师,
+   * pointed the other way (see playArenaMatch).
+   */
+  oppBump: number
+}
+
+/**
+ * The handicaps are measured, not guessed. The open ladder's own shape is the
+ * target: a middling collection of the metal wins about 63% of its 钻石
+ * matches and stalls near 大师, which is what a gold five does on the open
+ * ladder today. Each number below is the one that reproduces that curve for
+ * its own metal (scripts/check_leagues.ts holds the measurement).
+ */
+export const LEAGUE_RULES: Record<LeagueKind, LeagueRule> = {
+  open:   { name: '公开赛', blurb: '任何卡都能上，排行榜看的是这里。', ceiling: null, needMythic: 0, oppBump: 0 },
+  gold:   { name: '金卡赛', blurb: '金卡、银卡、铜卡都能上，彩卡不行。', ceiling: 'gold', needMythic: 0, oppBump: -3 },
+  silver: { name: '银卡赛', blurb: '只能上银卡和铜卡。', ceiling: 'silver', needMythic: 0, oppBump: -7 },
+  bronze: { name: '铜卡赛', blurb: '只能上铜卡。', ceiling: 'bronze', needMythic: 0, oppBump: -13 },
+  hof:    { name: '名人堂', blurb: '至少两张彩卡才能入场，对手也更强。', ceiling: null, needMythic: 2, oppBump: 2 },
+}
+
+export const isLeague = (k: unknown): k is LeagueKind =>
+  typeof k === 'string' && (LEAGUES as readonly string[]).includes(k)
+
+/** A fresh rung at the bottom, for a ladder nobody has played yet. */
+export const newLadder = (): LadderState =>
+  ({ div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 })
+
+/**
+ * The record for one ladder.
+ *
+ * `open` is the original `g.ladder` and stays exactly where it was, so every
+ * save, leaderboard row and achievement written before the other four existed
+ * still reads correctly.
+ */
+export function ladderOf(g: GachaState, league: LeagueKind = 'open'): LadderState {
+  if (league === 'open') return g.ladder
+  // Reading does not start a ladder. The screen calls this to draw a tab, and
+  // creating the record there turned 未开始 into 青铜 · 0–0 the moment you
+  // looked at it. The copy handed back is a throwaway; `ladderSlot` below is
+  // what a match writes to.
+  return g.leagues?.[league] ?? newLadder()
+}
+
+/** The stored record, created on first use — for the paths that write. */
+export function ladderSlot(g: GachaState, league: LeagueKind = 'open'): LadderState {
+  if (league === 'open') return g.ladder
+  g.leagues ??= {}
+  g.leagues[league] ??= newLadder()
+  return g.leagues[league]!
+}
+
+/** Does this five meet the league's terms? A reason when it does not. */
+export function leagueEntry(squad: Squad, league: LeagueKind): { ok: true } | { ok: false; why: string } {
+  const rule = LEAGUE_RULES[league]
+  const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
+  if (rule.ceiling) {
+    const cap = rarityRank(rule.ceiling)
+    // the coach walks in with them, so he is held to the same line
+    const coach = squad.coach ? cardById(squad.coach) : undefined
+    const over = [...cards, ...(coach ? [coach] : [])].filter((c) => rarityRank(c.rarity) > cap)
+    if (over.length) {
+      return { ok: false, why: `${rule.name}只能上${RARITY_CN[rule.ceiling]}以下：`
+        + `${over.map((c) => `${cardName(c)}（${RARITY_CN[c.rarity]}）`).join('、')}进不去。` }
+    }
+  }
+  if (rule.needMythic) {
+    const have = cards.filter((c) => c.rarity === 'mythic').length
+    if (have < rule.needMythic) {
+      return { ok: false, why: `${rule.name}要至少 ${rule.needMythic} 张彩卡，现在只有 ${have} 张。` }
+    }
+  }
+  return { ok: true }
+}
+
 export const MASTER_DIV = DIVISIONS.length - 1
 export const MASTER_TITLES = [
   { at: 2500, name: '辐能' },
@@ -543,6 +650,8 @@ export interface GachaState {
   mythicDry: number
   pulls: number
   ladder: LadderState
+  /** the metal ladders and 名人堂; `ladder` above is the open one */
+  leagues?: Partial<Record<LeagueKind, LadderState>>
   cup: CupState | null
   daily: DailyState
   /** 每日挑战 — see engine/challenge.ts */
@@ -626,7 +735,7 @@ export interface SquadPreset {
   squad: Squad
 }
 
-export const SQUAD_PRESETS = 3
+export const SQUAD_PRESETS = 5
 
 /** Read the presets as a fixed-length list, whatever the save holds. */
 export const presetsOf = (g: GachaState): (SquadPreset | null)[] =>
@@ -1301,8 +1410,12 @@ export function ladderPool(div: number): string[] {
 export const matchNo = (g: GachaState): number => g.ladder.wins + g.ladder.losses
 
 /** The opponent already drawn for the match in front of you, if it still applies. */
-export const pendingOpponent = (g: GachaState): PendingOpponent | null =>
-  g.ladder.pending && g.ladder.pending.at === matchNo(g) ? g.ladder.pending : null
+export const matchNoIn = (L: LadderState): number => L.wins + L.losses
+
+export const pendingOpponent = (g: GachaState, league: LeagueKind = 'open'): PendingOpponent | null => {
+  const L = ladderOf(g, league)
+  return L.pending && L.pending.at === matchNoIn(L) ? L.pending : null
+}
 
 /**
  * Pin an opponent to this match.
@@ -1311,15 +1424,19 @@ export const pendingOpponent = (g: GachaState): PendingOpponent | null =>
  * — a network failure must not pin 「nobody」, or a blip would quietly put you
  * back on the world's clubs for that match.
  */
-export function drawOpponent(g: GachaState, rival?: PendingOpponent['rival']): PendingOpponent {
-  const rec: PendingOpponent = { at: matchNo(g), rival, club: ladderOpponent(g) }
-  g.ladder.pending = rec
+export function drawOpponent(
+  g: GachaState, rival?: PendingOpponent['rival'], league: LeagueKind = 'open',
+): PendingOpponent {
+  const L = ladderSlot(g, league)
+  const rec: PendingOpponent = { at: matchNoIn(L), rival, club: ladderOpponent(g, league) }
+  L.pending = rec
   return rec
 }
 
-export function ladderOpponent(g: GachaState): string {
-  const pool = ladderPool(g.ladder.div)
-  return new Rng((g.seed ^ hashStr(`lad${g.ladder.wins}${g.ladder.losses}`)) >>> 0).pick(pool)
+export function ladderOpponent(g: GachaState, league: LeagueKind = 'open'): string {
+  const L = ladderOf(g, league)
+  const pool = ladderPool(L.div)
+  return new Rng((g.seed ^ hashStr(`lad${league}${L.wins}${L.losses}`)) >>> 0).pick(pool)
 }
 
 export interface LadderOutcome {
@@ -1375,8 +1492,10 @@ export const oppBumpFor = (points: number): number =>
  * divisions have a floor — losing your way out of 青铜 teaches nothing — and
  * above that you can genuinely fall.
  */
-export function recordLadder(g: GachaState, win: boolean, oppRating = 80): LadderOutcome {
-  const L = g.ladder
+export function recordLadder(
+  g: GachaState, win: boolean, oppRating = 80, league: LeagueKind = 'open',
+): LadderOutcome {
+  const L = ladderSlot(g, league)
   // 大师 is where the stars run out and the score takes over
   const master = L.div >= MASTER_DIV
   const pointsBefore = L.points ?? 0
@@ -1899,6 +2018,13 @@ export function autoSquad(g: GachaState): Squad {
 
 export const clampState = (g: GachaState): GachaState => {
   g.coins = Math.max(0, Math.round(g.coins))
+  for (const L of [g.ladder, ...Object.values(g.leagues ?? {})]) {
+    if (!L) continue
+    L.div = clamp(Math.round(L.div), 0, DIVISIONS.length - 1)
+    L.stars = clamp(Math.round(L.stars), 0, starsFor(L.div))
+    L.points = Math.max(0, Math.round(L.points ?? 0))
+    L.bestPoints = Math.max(L.bestPoints ?? 0, L.points)
+  }
   g.ladder.div = clamp(Math.round(g.ladder.div), 0, DIVISIONS.length - 1)
   g.ladder.stars = clamp(Math.round(g.ladder.stars), 0, starsFor(g.ladder.div))
   // no ceiling on purpose — this is the part of the ladder that never ends
@@ -1926,6 +2052,28 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.packs = g.packs && typeof g.packs === 'object' ? g.packs : {}
   g.pity = typeof g.pity === 'number' ? g.pity : 0
   g.mythicDry ??= 0
+  // the metal ladders arrived after 大师; an account from before them simply
+  // has none, and each one is created the first time it is played
+  if (g.leagues && typeof g.leagues === 'object') {
+    const clean: Partial<Record<LeagueKind, LadderState>> = {}
+    for (const k of LEAGUES) {
+      if (k === 'open') continue
+      const L = g.leagues[k]
+      if (!L || typeof L !== 'object') continue
+      clean[k] = {
+        div: clamp(Math.round(Number(L.div) || 0), 0, DIVISIONS.length - 1),
+        stars: Math.max(0, Math.round(Number(L.stars) || 0)),
+        best: Math.max(0, Math.trunc(Number(L.best) || 0)),
+        wins: Math.max(0, Math.trunc(Number(L.wins) || 0)),
+        losses: Math.max(0, Math.trunc(Number(L.losses) || 0)),
+        streak: Math.trunc(Number(L.streak) || 0),
+        points: Math.max(0, Math.round(Number(L.points) || 0)),
+        bestPoints: Math.max(0, Math.round(Number(L.bestPoints) || 0)),
+        pending: L.pending,
+      }
+    }
+    g.leagues = clean
+  } else delete g.leagues
   g.pulls = typeof g.pulls === 'number' && Number.isFinite(g.pulls) ? g.pulls : 0
   g.log = Array.isArray(g.log) ? g.log : []
   g.squad ??= { slots: [null, null, null, null, null], coach: null }
@@ -1976,7 +2124,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

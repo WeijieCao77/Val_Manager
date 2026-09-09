@@ -409,6 +409,24 @@ export function chemistry(squad: Squad): ChemReport {
     }
   }
 
+  // A 彩卡 brings its own standing.
+  //
+  // The links are clubs, countries and regions, and the 25 legends are spread
+  // over fourteen clubs and fourteen passports — two or three of them are
+  // strangers by construction, and a card records the night, not the man's
+  // club now, so aspas' LOUD 2022 does not even meet his own MIBR side. The
+  // rarest thing an account can hold was therefore a downgrade to field:
+  // three legends and the best fillers money can buy came out at 默契 10 and
+  // lost to an ordinary same-club five of golds two games in three.
+  //
+  // Six a legend, measured: three of them reach 54 — a shade under neutral,
+  // 47% against that same club five — and five of them, the deepest hand the
+  // game can deal, take 63% off the twelve strongest clubs, under the 75% a
+  // club five is allowed. A legend plays with anybody; five people who have
+  // actually practised together are still better than a pile of names.
+  const MYTHIC_CHEM = 6
+  raw += cards.filter((c) => isPlayerCard(c) && c.rarity === 'mythic').length * MYTHIC_CHEM
+
   const coach = squad.coach ? cardById(squad.coach) : undefined
   let coachBonus = 0
   if (isCoachCard(coach)) {
@@ -432,6 +450,8 @@ export function chemistry(squad: Squad): ChemReport {
   // instead would make an ordinary squad look finished.
   let score = Math.round(((raw + coachBonus) / 41) * 100)
   score = Math.max(0, Math.min(100, score))
+  const legends = cards.filter((c) => isPlayerCard(c) && c.rarity === 'mythic').length
+  if (legends) notes.push(`${legends} 张彩卡自带默契，跟谁都打得来`)
   if (misfits.length) notes.push(`${misfits.length} 人不在熟悉的位置`)
   if (noIgl) notes.push('没有人喊指挥')
 

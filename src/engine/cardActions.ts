@@ -26,7 +26,8 @@
 import {
   awardMinigame, canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
-  refreshDaily, salvage, salvageBulk, spendPlay, upgrade, MASTER_DIV, PACKS, SERIES, STAMINA_COST, SWEEPABLE,
+  refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
+  LEAGUE_RULES, MASTER_DIV, PACKS, SERIES, STAMINA_COST, SWEEPABLE,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
@@ -192,23 +193,36 @@ function dispatch(
       return { ok: true, result: { level: levelOf(g, cardId) } }
     }
     case 'ladder_draw': {
-      if (pendingOpponent(g)) return { ok: true, result: { pending: g.ladder.pending } }
-      drawOpponent(g, g.ladder.div >= 4 ? env.rival ?? undefined : undefined)
-      return { ok: true, result: { pending: g.ladder.pending } }
+      const league = isLeague(a.league) ? a.league : 'open'
+      const L = ladderSlot(g, league)
+      if (pendingOpponent(g, league)) return { ok: true, result: { league, pending: L.pending } }
+      // only the open ladder puts another player's five across the net; a
+      // metal ladder is about your own shelf and plays the clubs
+      drawOpponent(g, league === 'open' && L.div >= 4 ? env.rival ?? undefined : undefined, league)
+      return { ok: true, result: { league, pending: L.pending } }
     }
     case 'ladder': {
+      const league = isLeague(a.league) ? a.league : 'open'
       const five = squadForPlay(g)
       if (!five.ok) return five
+      // the terms of entry, checked here — the client picks the ladder, the
+      // server decides whether this five may walk into it
+      const entry = leagueEntry(five.squad, league)
+      if (!entry.ok) return { ok: false, why: entry.why }
       if (!canPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
+      const L = ladderSlot(g, league)
       // the opponent the screen showed is the opponent that gets played; a
       // client that never asked for one gets one drawn now
-      if (!pendingOpponent(g)) drawOpponent(g, g.ladder.div >= 4 ? env.rival ?? undefined : undefined)
-      const pinned = pendingOpponent(g)!
+      if (!pendingOpponent(g, league)) {
+        drawOpponent(g, league === 'open' && L.div >= 4 ? env.rival ?? undefined : undefined, league)
+      }
+      const pinned = pendingOpponent(g, league)!
       const rival = (pinned.rival ?? null) as RivalSquad | null
       const oppId = pinned.club ?? WORLD_TEAMS[0].id
       const opp = WORLD_TEAMS.find((t) => t.id === oppId)
-      const master = g.ladder.div >= MASTER_DIV
-      const bump = master ? oppBumpFor(g.ladder.points ?? 0) : 0
+      const master = L.div >= MASTER_DIV
+      // the league's own handicap, and above 大师 the sharpening on top
+      const bump = LEAGUE_RULES[league].oppBump + (master ? oppBumpFor(L.points ?? 0) : 0)
       if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
       const level = (id: string) => levelOf(g, id)
       const res: ArenaResult = rival
@@ -218,10 +232,10 @@ function dispatch(
       const strength = rival
         ? 84 + Math.min(10, Math.floor(rival.points / 250))
         : (opp?.rating ?? 80) + bump
-      const out = recordLadder(g, res.win, strength)
+      const out = recordLadder(g, res.win, strength, league)
       return {
         ok: true,
-        result: { res, opp: oppId, who: rival ? `${rival.name} ${rival.tag}` : undefined, out },
+        result: { league, res, opp: oppId, who: rival ? `${rival.name} ${rival.tag}` : undefined, out },
       }
     }
     case 'cup_enter': {
