@@ -91,12 +91,11 @@
   "P414",
   "P415",
   "P416",
-  "P421",
-  "P422",
-  "P423",
-  "P424",
   "P428",
-  "P522"
+  "P514",
+  "P516",
+  "P522",
+  "P524"
  ],
  "igns": [
   "Sharks",
@@ -191,14 +190,13 @@
   "Guran",
   "jowa",
   "Levius",
-  "heybay",
-  "AcMe",
-  "Yoyo",
-  "Satoshi",
-  "Z1Yan"
+  "Midnight",
+  "Z1Yan",
+  "XyuS",
+  "ZiXuan"
  ],
  "rejected": {
   "P417": "Apathy (WSIG, 黄盈盛) — 号角的图是另一个同名选手，人不对，2026-08-31 撤下"
  },
- "fetched": "2026-09-03"
+ "fetched": "2026-09-09"
 }

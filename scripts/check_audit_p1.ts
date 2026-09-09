@@ -101,7 +101,7 @@ const mk = (tag = 'TYL'): GameState => {
 
 // ---- the finance screen and the ledger agree
 {
-  const g = mk('WBG')
+  const g = mk('KBG')
   const me = g.teams[g.myTeam]
   check('a Challengers club is not a VCT club', me.tier === 2)
   let charged = 0
@@ -114,7 +114,7 @@ const mk = (tag = 'TYL'): GameState => {
 
 // ---- unanswered offers do not shut the door on inbound sponsors
 {
-  const g = mk('WBG')
+  const g = mk('KBG')
   const team = g.teams[g.myTeam]
   team.sponsors = team.sponsors.slice(0, 1)
   g.sponsorTalks = [1, 2, 3].map((n) => ({
@@ -134,7 +134,7 @@ const mk = (tag = 'TYL'): GameState => {
   // awaiting the sponsor's answer, not ones already sitting on the table
   let knockedWithOffersPinned = false
   for (let seed = 0; seed < 60 && !knockedWithOffersPinned; seed++) {
-    const g2 = mk('WBG')
+    const g2 = mk('KBG')
     g2.teams[g2.myTeam].sponsors = g2.teams[g2.myTeam].sponsors.slice(0, 1)
     const r2 = new Rng(900 + seed)
     for (let d = 0; d < 18; d++) {

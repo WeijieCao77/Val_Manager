@@ -1,14 +1,17 @@
 /**
- * Challengers China went from six clubs to seven when Weibo Gaming was added.
  * An odd league has to schedule through a bye, so this checks that every club
  * still plays the same number of games and nobody sits out a whole stage.
+ *
+ * It used to run on Challengers China, which was odd while Weibo Gaming sat
+ * in it. China's second tier is the top eight of 全国大赛 now and comes out
+ * even, so the odd one is Challengers Pacific at seven.
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 
-const wbg = WORLD_TEAMS.find(t => t.tag === 'WBG')!
-const g = createNewGame(wbg.id, '审计经理', 20260823)
+const club = WORLD_TEAMS.find(t => t.tag === 'REJE')!
+const g = createNewGame(club.id, '审计经理', 20260823)
 setupSeason(g)
 
 const counts: Record<string, Record<string, number>> = {}
@@ -37,8 +40,8 @@ for (const [stage, fx] of Object.entries(byStage)) {
     bad++
   }
 }
-const mine = g.fixtures.filter(f => f.teamA === wbg.id || f.teamB === wbg.id)
-console.log(`\n执教 ${wbg.name} (${wbg.tag}) · ${wbg.league} · 阵容 ${wbg.roster.length} 人 · 本赛段 ${mine.length} 场`)
+const mine = g.fixtures.filter(f => f.teamA === club.id || f.teamB === club.id)
+console.log(`\n执教 ${club.name} (${club.tag}) · ${club.league} · 阵容 ${club.roster.length} 人 · 本赛段 ${mine.length} 场`)
 // Play a season out and check the seven-club leagues finish level. Mid-season
 // they will not be — a bye means one club is idle each round — so the only
 // meaningful moment to compare is after the last round has been played.

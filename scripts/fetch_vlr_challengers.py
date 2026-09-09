@@ -99,6 +99,11 @@ LEAGUES = [
 # them. Named here by vlr team id so they are fetched directly.
 EXTRA_TEAMS = [
     ("China", "1224", "Weibo Gaming", "https://www.vlr.gg/team/1224/weibo-gaming"),
+    # 4th in the 2026 pro qualifier and one of the four non-league sides that
+    # went on to CN ES Act 3, so it belongs in the Chinese second tier — but it
+    # is knocked out before the bracket the event page lists.
+    ("China", "21919", "Unsettled Resentment",
+     "https://www.vlr.gg/team/21919/unsettled-resentment"),
 ]
 
 

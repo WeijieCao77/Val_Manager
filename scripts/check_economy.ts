@@ -24,7 +24,7 @@ const check = (name: string, ok: boolean, detail = '') => {
   if (!ok) bad++
 }
 const mk = (): GameState => {
-  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'WBG')!.id, '审计', 20260828)
+  const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'KBG')!.id, '审计', 20260828)
   setupSeason(g)
   return g
 }

@@ -56,7 +56,7 @@ check('a floater plugging a gap softens it but does not erase it',
   `缺控场但有自由人 ${comp([[D], [I], [S], [F], [D]]).toFixed(2)}`)
 
 // the auto-lineup must use a second role to close a gap rather than leave it
-const g2 = createNewGame(WORLD_TEAMS.find(t => t.tag === 'WBG')!.id, '审计经理', 1)
+const g2 = createNewGame(WORLD_TEAMS.find(t => t.tag === 'KBG')!.id, '审计经理', 1)
 setupSeason(g2)
 const CORE: Role[] = [D, I, C, S]
 const uncovered: string[] = []

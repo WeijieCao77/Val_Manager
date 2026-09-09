@@ -40,7 +40,16 @@
  },
  "_coach_note": [
   "RA: York is the current head coach; the cached Liquipedia entry still names mikiya.",
-  "TEC: Muggle joined the coaching booth as aim coach in June 2026 (vlr 707183); the cached Liquipedia entry predates it."
+  "TEC: Muggle joined the coaching booth as aim coach in June 2026 (vlr 707183); the cached Liquipedia entry predates it.",
+  "The Chinese second tier is read off 号角 team pages (2026-09-09): Liquipedia",
+  "carries almost none of these clubs and vlr only sometimes names a coach.",
+  "KBG: ColdFish took over 2026-09-01, Naint stays on the bench.",
+  "AT: 742 and Malix, both listed as 教练, no head named — 742 joined first.",
+  "AQ: Sunshine is 主教练, Carry joined the bench 2026-07-06.",
+  "UR: Biank is 主教练 (vlr agrees); Lazen is the analyst.",
+  "ODG: xiuyueer and Xive, both 教练.",
+  "VLG: heav1n.",
+  "WSIG: Ann is 主教练, rin 副教练."
  ],
  "coaches": {
   "RA": {
@@ -52,6 +61,44 @@
    "assistants": [
     "3water",
     "Muggle"
+   ]
+  },
+  "KBG": {
+   "name": "ColdFish",
+   "assistants": [
+    "Naint"
+   ]
+  },
+  "AT": {
+   "name": "742",
+   "assistants": [
+    "Malix"
+   ]
+  },
+  "AQ": {
+   "name": "Sunshine",
+   "assistants": [
+    "Carry"
+   ]
+  },
+  "UR": {
+   "name": "Biank",
+   "assistants": []
+  },
+  "ODG": {
+   "name": "xiuyueer",
+   "assistants": [
+    "Xive"
+   ]
+  },
+  "VLG": {
+   "name": "heav1n",
+   "assistants": []
+  },
+  "WSIG": {
+   "name": "Ann",
+   "assistants": [
+    "rin"
    ]
   }
  },
@@ -83,5 +130,59 @@
  "_drop_note": "Players the owner has struck from the database, by ign as vlr spells it. Left out of world.json entirely on every rebuild — not made free agents. KovaQ: asked for on 2026-09-04, the 09-03 roster refresh had brought him back as a free agent instead.",
  "drop": [
   "KovaQ"
- ]
+ ],
+ "_rosters_note": [
+  "Hand-verified fives for clubs vlr.gg has wrong, read off 号角 (web.haojiao.cc)",
+  "team pages on 2026-09-09. Named by handle; the build finds each man across the",
+  "whole pool, so a stale club tag does not keep him out. Anyone dropped becomes a",
+  "free agent, not a deletion.",
+  "VLG: vlr lists the club Game Changers side (Nana, Ayu, p1katong, maofish, Yunni).",
+  "ODG: vlr is four names out of date (YHchen is at YG, W1nner has left).",
+  "RA: vlr counts the manager Punch1 as a player and misses kklin and Midnight.",
+  "KBG: coldfish is the coach as of 2026-09-01, not a player.",
+  "UR: vlr lists the head coach Biank in the roster block.",
+  "ODG: KiNo is on the club page but has never played a recorded map, so he is",
+  "left out rather than modelled from nothing.",
+  "RA: 号角 lists kklin on the club page, but his own player page says JDG and he",
+  "has no recent maps — left out until the two agree."
+ ],
+ "rosters": {
+  "VLG": [
+   "RealPotter",
+   "wyx",
+   "WoodAy1",
+   "moonlight",
+   "Icesh4rk"
+  ],
+  "ODG": [
+   "Suyjing",
+   "XyuS",
+   "Moves",
+   "ZIXUAN",
+   "vipers",
+   "SuHang"
+  ],
+  "RA": [
+   "Ben1Ley",
+   "Midnight",
+   "Potter",
+   "Z1Yan",
+   "nnono",
+   "Guran"
+  ],
+  "KBG": [
+   "Ying",
+   "Tonk",
+   "sibeastw0w",
+   "Krst1Ng",
+   "Akeman"
+  ],
+  "UR": [
+   "Ninebody",
+   "CXIX666",
+   "QiuYe",
+   "waituu",
+   "Hopedawn"
+  ]
+ }
 }

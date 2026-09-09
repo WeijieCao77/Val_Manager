@@ -1802,13 +1802,6 @@
     }
    ]
   },
-  "21919": {
-   "vlrId": "21919",
-   "name": "Unsettled Resentment",
-   "url": "https://www.vlr.gg/team/21919/unsettled-resentment",
-   "region": "China",
-   "roster": []
-  },
   "12785": {
    "vlrId": "12785",
    "name": "Octagonal Disposition Gaming",
@@ -2043,6 +2036,94 @@
      "vlrId": "53080",
      "ign": "Currie",
      "name": "Scott Currie",
+     "role": "staff"
+    }
+   ]
+  },
+  "23312": {
+   "vlrId": "23312",
+   "name": "LA MASIA",
+   "url": "https://www.vlr.gg/team/23312/la-masia",
+   "region": "Americas",
+   "roster": [
+    {
+     "vlrId": "8872",
+     "ign": "mazin",
+     "name": "Matheus Araújo",
+     "role": "player"
+    },
+    {
+     "vlrId": "3455",
+     "ign": "Zanatsu",
+     "name": "Carlos Eduardo",
+     "role": "player"
+    },
+    {
+     "vlrId": "13093",
+     "ign": "jzz",
+     "name": "João Pedro",
+     "role": "player"
+    },
+    {
+     "vlrId": "2408",
+     "ign": "tuyz",
+     "name": "Arthur Andrade",
+     "role": "player"
+    },
+    {
+     "vlrId": "15681",
+     "ign": "Palla",
+     "name": "Davi Alcides",
+     "role": "player"
+    },
+    {
+     "vlrId": "5709",
+     "ign": "stkJ",
+     "name": "Jordan Nunes",
+     "role": "staff"
+    }
+   ]
+  },
+  "21919": {
+   "vlrId": "21919",
+   "name": "Unsettled Resentment",
+   "url": "https://www.vlr.gg/team/21919/unsettled-resentment",
+   "region": "China",
+   "roster": [
+    {
+     "vlrId": "47102",
+     "ign": "waituu",
+     "name": "Xu Yinze (许寅泽)",
+     "role": "player"
+    },
+    {
+     "vlrId": "66833",
+     "ign": "Hopedawn",
+     "name": "",
+     "role": "player"
+    },
+    {
+     "vlrId": "44770",
+     "ign": "CXIX666",
+     "name": "",
+     "role": "player"
+    },
+    {
+     "vlrId": "3547",
+     "ign": "Ninebody",
+     "name": "Ding Yi (丁毅)",
+     "role": "player"
+    },
+    {
+     "vlrId": "19531",
+     "ign": "QiuYe",
+     "name": "Li Runtao (李润涛)",
+     "role": "player"
+    },
+    {
+     "vlrId": "3021",
+     "ign": "Biank",
+     "name": "Zhong Jianfei (钟剑飞)",
      "role": "staff"
     }
    ]
@@ -14977,6 +15058,128 @@
    ],
    "ign": "Leav3u",
    "club": "Weibo Gaming"
+  },
+  "47102": {
+   "R": 0.76,
+   "acs": 178.312,
+   "kd": 0.887,
+   "kast": 0.689,
+   "adr": 95.998,
+   "kpr": 0.627,
+   "apr": 0.37,
+   "fkpr": 0.029,
+   "fdpr": 0.032,
+   "rnd": 618,
+   "agents": [
+    "omen",
+    "astra",
+    "brimstone",
+    "viper",
+    "breach",
+    "sova",
+    "fade"
+   ],
+   "ign": "waituu",
+   "club": "Unsettled Resentment"
+  },
+  "66833": {
+   "acs": 251.7,
+   "kd": 1.43,
+   "kpr": 0.95,
+   "apr": 0.52,
+   "fkpr": 0.0,
+   "fdpr": 0.0,
+   "rnd": 42,
+   "agents": [
+    "omen"
+   ],
+   "ign": "Hopedawn",
+   "club": "Unsettled Resentment"
+  },
+  "44770": {
+   "R": 1.131,
+   "acs": 212.866,
+   "kd": 1.166,
+   "kast": 0.744,
+   "adr": 140.953,
+   "kpr": 0.753,
+   "apr": 0.298,
+   "fkpr": 0.087,
+   "fdpr": 0.08,
+   "rnd": 2549,
+   "agents": [
+    "cypher",
+    "omen",
+    "waylay",
+    "viper",
+    "vyse",
+    "sova",
+    "astra",
+    "killjoy",
+    "yoru",
+    "gekko",
+    "chamber"
+   ],
+   "ign": "CXIX666",
+   "club": "Unsettled Resentment"
+  },
+  "3547": {
+   "R": 1.164,
+   "acs": 249.438,
+   "kd": 1.199,
+   "kast": 0.728,
+   "adr": 160.737,
+   "kpr": 0.865,
+   "apr": 0.214,
+   "fkpr": 0.15,
+   "fdpr": 0.113,
+   "rnd": 8207,
+   "agents": [
+    "jett",
+    "raze",
+    "chamber",
+    "neon",
+    "yoru",
+    "cypher",
+    "waylay",
+    "vyse",
+    "killjoy",
+    "phoenix",
+    "reyna",
+    "gekko",
+    "omen",
+    "brimstone"
+   ],
+   "ign": "Ninebody",
+   "club": "Unsettled Resentment"
+  },
+  "19531": {
+   "R": 1.047,
+   "acs": 200.024,
+   "kd": 0.978,
+   "kast": 0.714,
+   "adr": 142.924,
+   "kpr": 0.695,
+   "apr": 0.27,
+   "fkpr": 0.065,
+   "fdpr": 0.059,
+   "rnd": 1547,
+   "agents": [
+    "raze",
+    "jett",
+    "sova",
+    "skye",
+    "kayo",
+    "cypher",
+    "killjoy",
+    "harbor",
+    "breach",
+    "waylay",
+    "iso",
+    "sage"
+   ],
+   "ign": "QiuYe",
+   "club": "Unsettled Resentment"
   }
  }
 }

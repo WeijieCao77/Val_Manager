@@ -18,8 +18,8 @@ import { windowDaysLeft } from '../src/engine/agenda'
 import { cycleDays } from '../src/engine/actions'
 import { Rng } from '../src/engine/rng'
 
-const wbg = WORLD_TEAMS.find(t => t.tag === 'WBG')!
-const g = createNewGame(wbg.id, '审计经理', 20260824)
+const club = WORLD_TEAMS.find(t => t.tag === 'KBG')!
+const g = createNewGame(club.id, '审计经理', 20260824)
 setupSeason(g)
 const rng = new Rng(3)
 
@@ -41,7 +41,7 @@ while (g.day <= 30) {
 }
 
 // an offer placed on the last in-window turn: does it ever come back?
-const g2 = createNewGame(wbg.id, '审计经理', 20260824)
+const g2 = createNewGame(club.id, '审计经理', 20260824)
 setupSeason(g2)
 const rng2 = new Rng(4)
 while (g2.day < 14) advanceDay(g2, rng2)
@@ -55,7 +55,7 @@ console.log(`推进到第 ${g2.day} 天，报价状态：${off.status}` +
 
 // force one through: an overwhelming bid on a listed player, placed on the
 // last in-window turn, must still complete after the window shuts
-const g4 = createNewGame(wbg.id, '审计经理', 20260824)
+const g4 = createNewGame(club.id, '审计经理', 20260824)
 setupSeason(g4)
 const rng4 = new Rng(9)
 while (g4.day < 14) advanceDay(g4, rng4)
@@ -73,7 +73,7 @@ console.log(`\n第 14 天报价 ${cheap.ign}（${g4.teams[was ?? ''].tag}，出�
   + `\n结果：${big.status}，现效力 ${g4.teams[cheap.teamId ?? '']?.tag ?? '自由人'}（我们是 ${g4.teams[g4.myTeam].tag}）`)
 
 // and an enquiry, which is the cheaper first step
-const g3 = createNewGame(wbg.id, '审计经理', 20260824)
+const g3 = createNewGame(club.id, '审计经理', 20260824)
 setupSeason(g3)
 const rng3 = new Rng(5)
 while (g3.day < 14) advanceDay(g3, rng3)
@@ -83,7 +83,7 @@ console.log(`\n第 14 天问价 ${mark.ign}，第 ${e?.replyOn} 天回复` +
   ` — 那天窗口${e ? (windowOpen(e.replyOn) ? '还开着' : '已经关了') : '?'}`)
 
 // the rule the window enforces: once shut you may answer, not open
-const g5 = createNewGame(wbg.id, '审计经理', 20260824)
+const g5 = createNewGame(club.id, '审计经理', 20260824)
 setupSeason(g5)
 const rng5 = new Rng(12)
 while (g5.day <= 21) advanceDay(g5, rng5)

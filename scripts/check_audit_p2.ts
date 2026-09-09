@@ -239,7 +239,7 @@ const mk = (tag = 'TYL'): GameState => {
 
 // ---- money owed costs the board's patience
 {
-  const g = mk('WBG')
+  const g = mk('KBG')
   g.finances.balance = -2_000_000
   const c0 = g.boardConfidence
   for (let i = 0; i < 21; i++) advanceDay(g)

@@ -232,16 +232,19 @@ TIER1 = {
 # vlr.gg (see scripts/fetch_vlr_challengers.py). Every one is a real club with
 # a real roster; regions with fewer clubs simply have a smaller league.
 #
-# One placement is ours rather than the calendar's: Weibo Gaming spent 2026 on
-# the Chinese domestic circuit (China National Tournament, China Evolution
-# Series) and played neither VCT China nor Challengers China. The club and its
-# roster are real and taken from vlr.gg like everyone else; which league it
-# sits in here is a decision, not a fact, and is written down in the README.
+# China has no Challengers league to scrape — Riot runs no VCL there. Its
+# second tier is the domestic circuit: 全国大赛 (VCNT) feeds 进化者杯 (CN ES),
+# whose points decide who plays the promotion series, and the twelve VCT CN
+# clubs enter CN ES from the other side. So the eight here are the top eight
+# non-league sides of VCNT 2026 第七届 全国大赛专业选拔赛, in finishing order —
+# KBG, AT and AQ went on to CN ES 第三幕 with UR as the fourth qualifier.
+# Weibo Gaming, which used to sit here on a judgement call, finished 10th-11th
+# and is out; UR, 4th and a CN ES qualifier, takes the place it earned.
 TIER2 = {
     'Americas': [('M80', 'M80'), ('SRB', 'Shopify Rebellion Black'), ('SE', 'SaD Esports'), ('NA', 'NRG Academy'), ('QOR', 'QoR'), ('NG', 'Nightblood Gaming'), ('YFT', 'YFT'), ('LM', 'LA MASIA')],
     'EMEA': [('EIN', 'Eintracht Frankfurt'), ('ILEK', 'Çilekler'), ('CE', 'CGN Esports'), ('MAND', 'Mandatory'), ('PL', 'Pixel Lumina'), ('FFE', 'Fire Flux Esports'), ('BE', 'Barça eSports'), ('EP', 'Eastern Pandas'), ('SGE', 'Sangal Esports'), ('JL', 'Joblife')],
     'Pacific': [('REJE', 'REJECT'), ('QD', 'QT DIG∞'), ('RO', 'RIDDLE ORDER'), ('FENN', 'FENNEL'), ('IGZI', 'IGZIST'), ('AGEL', 'AGELITE'), ('INSO', 'Insomnia'), ('OG', 'ONSIDE GAMING')],
-    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('RA', 'Rare Atom'), ('VLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming'), ('ODG', 'Octagonal Disposition Gaming'), ('WBG', 'Weibo Gaming')],
+    'China': [('KBG', 'KeepBest Gaming'), ('AT', 'A Team'), ('AQ', 'Any Questions Gaming'), ('UR', 'Unsettled Resentment'), ('RA', 'Rare Atom'), ('ODG', 'Octagonal Disposition Gaming'), ('VLG', 'Victory No Limits Gaming'), ('WSIG', 'World Sports Invictus Gaming')],
 }
 
 ROLE_CN = {"d": "决斗者", "i": "先锋", "c": "控场", "s": "哨卫", "": "自由人"}
@@ -1452,18 +1455,44 @@ def main():
         out_players.append(rec)
         return rec
 
+    # Clubs whose five is named by hand rather than read off a club tag.
+    #
+    # vlr.gg carries the Chinese second tier badly: it has no Challengers China
+    # to scrape, so a club's page is whatever somebody last edited. Victory No
+    # Limits' page lists the club's Game Changers side, which is how five women
+    # who have never played the men's circuit ended up as VLG's VCT roster;
+    # ODG's page is four names old; Rare Atom's counts its manager as a player.
+    # 号角 (web.haojiao.cc) has all three right, so the five is named here and
+    # the players are found by handle across the whole pool — a man whose
+    # scraped club tag says otherwise still lines up where he actually plays.
+    # Anyone the override drops is not deleted: he falls through to free
+    # agency like everybody else the tables do not place.
+    ov_rosters = {k.upper(): [str(n).lower() for n in v]
+                  for k, v in (load_json(OVERRIDES).get("rosters") or {}).items()}
+    by_ign = {}
+    for _grp in by_tag.values():
+        for _p in _grp:
+            by_ign.setdefault(_p["ign"].lower(), _p)
+
     def add_team(tag, display, region, tier):
         # A tag is not unique across tiers — Eternal Fire and Eintracht Frankfurt
         # are both "EF" — so indexing squads by tag alone put one roster on two
         # clubs. Anyone already placed is skipped.
         squad_src, seen_here = [], set()
-        for p in by_tag.get(tag, []):
+        named = ov_rosters.get(tag.upper())
+        pool = [by_ign[n] for n in named if n in by_ign] if named else by_tag.get(tag, [])
+        if named:
+            missing = [n for n in named if n not in by_ign]
+            if missing:
+                print(f"  ! {tag}: named roster is missing {', '.join(missing)}")
+        for p in pool:
             low = p["ign"].lower()
             if low in placed or low in seen_here:
                 continue
             seen_here.add(low)
             squad_src.append(p)
-        squad_src.sort(key=lambda x: -(x["vlr"]["rating"] or 0))
+        if not named:
+            squad_src.sort(key=lambda x: -(x["vlr"]["rating"] or 0))
         if len(squad_src) < 5:
             return False
         team_id = prev_tid.get((tag, display)) or prev_tid_tag.get(tag)
@@ -1638,9 +1667,15 @@ def main():
             add_team(tag, full, region, 2)
 
     # every remaining real player becomes a free agent — nobody is invented
+    #
+    # A club whose five was named by hand is the exception to "the club is
+    # done, skip its group": the people the override left out have not been
+    # dealt with, and dropping them would delete real players from the world —
+    # VLG's Game Changers side has cards in people's collections. They fall
+    # through here like anybody else the tables do not place.
     fa = 0
     for tag, group in by_tag.items():
-        if tag in used_tags:
+        if tag in used_tags and tag.upper() not in ov_rosters:
             continue
         for p in group:
             if p["ign"].lower() in placed:

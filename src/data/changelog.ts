@@ -28,6 +28,16 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-09',
+    title: '中国次级联赛按真实赛事重做',
+    changes: [
+      { kind: '修复', text: '<b>VLG 的阵容是女队。</b>vlr.gg 的战队页挂的是俱乐部的 Game Changers 名单，我们照抄了，于是五位从没打过男子赛的选手成了 VLG 的一队。现在是真正打全国大赛的那五个人：RealPotter、wyx、WoodAy1、moonlight、Icesh4rk。原来那五位没有消失，成了自由球员，卡还在。' },
+      { kind: '调整', text: '<b>次级队伍改从真实赛事取。</b>中国没有 Challengers 联赛，次级循环是全国大赛（VCNT）打进化者杯（CN ES）。现在的八支就是 VCNT 2026 第七届全国大赛专业选拔赛的前八名，按名次排：KBG、AT、AQ、UR、RA、ODG、VLG、WSIG。' },
+      { kind: '调整', text: '<b>UR 进来，WBG 出去。</b>UR 拿了第 4 名并打进 CN ES 第三幕，WBG 只有第 10-11 名。ODG 之前挂在名单上却一个球员都没有，现在补齐了。' },
+      { kind: '新增', text: '这八支队的教练组全部核对过，之前没有教练的 AT、WSIG、UR、VLG、ODG 现在都有了。KBG 的 coldfish 是教练不是选手。' },
+    ],
+  },
+  {
+    date: '2026-09-09',
     title: '开瓦包：没有指挥卡的阵容，现在也有人喊指挥',
     changes: [
       { kind: '修复', text: '<b>「卡很好但是打不过别人」的一个原因找到了。</b>比赛里没人喊指挥的一方要吃四分的惩罚，而游戏里每支俱乐部都不会真的没人喊——少了指挥会有人顶上。只有卡组竞技场从来不指定，所以你五张卡里没有一张带 IGL 标记时，是真的没人指挥。全游戏评分最高的那五张卡都是明星枪手，没有一个是指挥，结果打不过随便一套带指挥的金卡。' },

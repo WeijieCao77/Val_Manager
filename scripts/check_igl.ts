@@ -93,7 +93,7 @@ const withMain = buildLineup(g7, g7.myTeam, map).edge.igl
 check('a named main caller calls over a louder deputy', Math.abs(withMain - (40 - 60) * 0.09) < 1e-9, withMain.toFixed(2))
 
 // ---- an AI club that sells its caller appoints a new one
-const g8 = createNewGame(WORLD_TEAMS.find(t => t.tag === 'WBG')!.id, '审计经理', 20260824)
+const g8 = createNewGame(WORLD_TEAMS.find(t => t.tag === 'KBG')!.id, '审计经理', 20260824)
 setupSeason(g8)
 const seller = Object.values(g8.teams).find(t => t.id !== g8.myTeam &&
   squadOf(g8, t.id).some(p => p.isIgl) && squadOf(g8, t.id).length >= 6)!
