@@ -429,7 +429,7 @@ export interface LeagueRule {
  * its own metal (scripts/check_leagues.ts holds the measurement).
  */
 export const LEAGUE_RULES: Record<LeagueKind, LeagueRule> = {
-  open:   { name: '公开赛', blurb: '任何卡都能上，排行榜看的是这里。', ceiling: null, needMythic: 0, oppBump: 0 },
+  open:   { name: '公开赛', blurb: '任何卡都能上。', ceiling: null, needMythic: 0, oppBump: 0 },
   gold:   { name: '金卡赛', blurb: '金卡、银卡、铜卡都能上，彩卡不行。', ceiling: 'gold', needMythic: 0, oppBump: -3 },
   silver: { name: '银卡赛', blurb: '只能上银卡和铜卡。', ceiling: 'silver', needMythic: 0, oppBump: -7 },
   bronze: { name: '铜卡赛', blurb: '只能上铜卡。', ceiling: 'bronze', needMythic: 0, oppBump: -13 },

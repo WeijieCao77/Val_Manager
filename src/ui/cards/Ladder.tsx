@@ -32,9 +32,9 @@ export default function Ladder() {
     { res: ArenaResult; opp: string; who?: string; out: LadderOutcome } | null
   >(null)
 
-  // Which ladder is being played. The open one is the default and the only
-  // one the leaderboard ranks; the metal ladders and 名人堂 keep their own
-  // records, so a bronze collection has a climb of its own.
+  // Which ladder is being played. Each keeps its own record and its own
+  // board, so a bronze collection has a climb of its own to be near the top
+  // of — which was the whole point of splitting them.
   const [league, setLeague] = useState<LeagueKind>('open')
   const rule = LEAGUE_RULES[league]
   const level = (id: string) => levelOf(g, id)
@@ -56,8 +56,9 @@ export default function Ladder() {
   useEffect(() => {
     let alive = true
     const pull = () => {
-      void fetchTop().then((r) => { if (alive) { setTop(r); setTopAt(Date.now()) } })
+      void fetchTop(league).then((r) => { if (alive) { setTop(r); setTopAt(Date.now()) } })
     }
+    setTop('loading')
     pull()
     // A board that only moves when YOU move is not a leaderboard. Everybody
     // else is playing asynchronously, so it refreshes on a slow clock and
@@ -70,7 +71,7 @@ export default function Ladder() {
       clearInterval(t)
       document.removeEventListener('visibilitychange', wake)
     }
-  }, [saved])
+  }, [saved, league])
   // past 大师 the world's clubs are not strong enough on their own
   const bump = master ? oppBumpFor(L.points ?? 0) : 0
 
@@ -139,7 +140,7 @@ export default function Ladder() {
       </div>
       <p className="tiny muted" style={{ margin: '0 0 12px' }}>
         {rule.blurb}
-        {league !== 'open' && ' 这里的段位、战绩和公开赛分开算，排行榜只看公开赛。'}
+        {league !== 'open' && ' 这里的段位、战绩和排行榜都和公开赛分开算。'}
         {!entry.ok && <b className="neg"> {entry.why}</b>}
       </p>
 
@@ -239,7 +240,7 @@ export default function Ladder() {
       </div>
 
       <Panel
-        title="排行榜"
+        title={league === 'open' ? '排行榜' : `${rule.name}排行榜`}
         actions={
           <span className="tiny muted">
             按段位和大师分排
@@ -249,7 +250,11 @@ export default function Ladder() {
       >
         {top === 'loading' ? <p className="empty">读取中…</p>
           : !top ? <p className="empty">暂时读不到排行榜（离线或服务器忙）。</p>
-            : top.length === 0 ? <p className="empty">还没有人上榜。</p>
+            : top.length === 0 ? (
+              <p className="empty">
+                {league === 'open' ? '还没有人上榜。' : `${rule.name}还没有人打过，第一场就是第一名。`}
+              </p>
+            )
               : (
                 <>
                   <div className="table-wrap" style={{ maxHeight: 420, overflowY: 'auto' }}>

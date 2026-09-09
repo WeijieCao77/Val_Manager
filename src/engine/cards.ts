@@ -419,12 +419,16 @@ export function chemistry(squad: Squad): ChemReport {
   // three legends and the best fillers money can buy came out at 默契 10 and
   // lost to an ordinary same-club five of golds two games in three.
   //
-  // Six a legend, measured: three of them reach 54 — a shade under neutral,
-  // 47% against that same club five — and five of them, the deepest hand the
-  // game can deal, take 63% off the twelve strongest clubs, under the 75% a
-  // club five is allowed. A legend plays with anybody; five people who have
-  // actually practised together are still better than a pile of names.
-  const MYTHIC_CHEM = 6
+  // Four a legend, measured against a same-club five of golds and the twelve
+  // clubs a 钻石 ladder draws from: three legends reach 默契 46 and win 82.9%
+  // where the club five wins 83.1%, and five of them — the deepest hand the
+  // game can deal — reach 66 and 84.0%. So the rarest cards in the game are
+  // worth fielding and are still not the ceiling. Six was tried first and put
+  // three legends level with the club five and five of them four points clear
+  // of it, which is the wrong way round: a legend plays with anybody, but five
+  // people who have actually practised together should still be better than a
+  // pile of names.
+  const MYTHIC_CHEM = 4
   raw += cards.filter((c) => isPlayerCard(c) && c.rarity === 'mythic').length * MYTHIC_CHEM
 
   const coach = squad.coach ? cardById(squad.coach) : undefined

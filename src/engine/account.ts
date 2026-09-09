@@ -215,19 +215,19 @@ export interface TopRow {
 }
 
 /**
- * The public ladder.
+ * The public ladder — one board per ladder, since 2026-09-09.
  *
  * The id is sent so the server can hand back the caller's own row even when it
  * is nowhere near the top — 「我在第几」 is the number worth opening a
  * leaderboard for. It is never echoed: what comes back is four characters of
  * its hash.
  */
-export async function fetchTop(): Promise<TopRow[] | null> {
+export async function fetchTop(league = 'open'): Promise<TopRow[] | null> {
   try {
     const r = await fetch(api('top'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: rememberedId() }),
+      body: JSON.stringify({ id: rememberedId(), league }),
     })
     if (!r.ok) return null
     const j = await r.json() as { ok?: boolean; rows?: TopRow[] }

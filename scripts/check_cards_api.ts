@@ -273,6 +273,55 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
     JSON.stringify(leaked))
   check('而且知道是哪一种隐藏，好告诉他去改', leaked.why === 'id')
   check('整个返回里还是找不到 ID 的影子', !JSON.stringify(after.body).includes('9DJ0'))
+
+  // ---- 每个天梯有自己的榜 (2026-09-09) -----------------------------------
+  //
+  // Reported: 「银卡赛显示的排行榜也是公开赛的」. The board read state.ladder
+  // whichever tab you were on, so climbing the silver ladder put you nowhere
+  // — which is most of the reason to climb one.
+  {
+    await db.exec('delete from card_accounts')
+    const league = async (id: string, name: string, open: number, silver: number) => {
+      await sql`insert into card_accounts (id_hash, name, state)
+        values (${hashOf(id)}, ${name}, ${JSON.stringify({
+          ladder: { div: 5, points: open, stars: 0, wins: 10, losses: 0 },
+          leagues: silver >= 0
+            ? { silver: { div: 5, points: silver, stars: 0, wins: 5, losses: 1 } }
+            : {},
+        })})`
+    }
+    await league('VM-6666-6666-6666-6666-6666', '公开赛第一', 9000, 100)
+    await league('VM-7777-7777-7777-7777-7777', '银卡赛第一', 10, 9000)
+    await league('VM-8888-8888-8888-8888-8888', '只打公开赛', 5000, -1)
+    api.invalidate()
+
+    const nameOf = (b: { rows?: { name: string }[] }) => (b.rows ?? []).map((x) => x.name)
+    const open = await call('/api/card/top', { league: 'open' }, 'lb1')
+    check('公开赛榜还是按公开赛的分排',
+      nameOf(open.body)[0] === '公开赛第一', nameOf(open.body).join(' > '))
+
+    const silver = await call('/api/card/top', { league: 'silver' }, 'lb2')
+    check('银卡赛榜按银卡赛的分排',
+      nameOf(silver.body)[0] === '银卡赛第一', nameOf(silver.body).join(' > '))
+    check('没打过银卡赛的不占位置',
+      !nameOf(silver.body).includes('只打公开赛'), nameOf(silver.body).join(' > '))
+    const rec = (silver.body.rows as { name: string; wins: number; losses: number }[])[0]
+    check('战绩也是那个天梯的', rec.wins === 5 && rec.losses === 1, `${rec.wins}-${rec.losses}`)
+
+    const hof = await call('/api/card/top', { league: 'hof' }, 'lb3')
+    check('没人打过的天梯是空榜，不是报错',
+      hof.code === 200 && (hof.body.rows as unknown[]).length === 0, JSON.stringify(hof.body).slice(0, 90))
+
+    // the name goes into a jsonb path, so it may only ever be one of ours
+    const junk = await call('/api/card/top', { league: "open'--" }, 'lb4')
+    check('编出来的赛事名当成公开赛，不是崩',
+      junk.code === 200 && nameOf(junk.body)[0] === '公开赛第一', JSON.stringify(junk.body).slice(0, 90))
+    const inject = await call('/api/card/top', { league: { toString: () => 'silver' } }, 'lb5')
+    check('非字符串的赛事名也当成公开赛',
+      inject.code === 200 && nameOf(inject.body)[0] === '公开赛第一', nameOf(inject.body).join(' > '))
+    check('不带赛事名就是公开赛，和以前一样',
+      nameOf((await call('/api/card/top', {}, 'lb6')).body)[0] === '公开赛第一')
+  }
 }
 
 // ---- 真人卡组当对手 ---------------------------------------------------

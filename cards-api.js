@@ -44,6 +44,13 @@ export const engine = await loadEngine()
 export const STAMINA_MAX = engine.STAMINA_MAX ?? 20
 export const STAMINA_POINT_SEC = Math.round((engine.STAMINA_REGEN_MS ?? 30 * 60 * 1000) / 1000)
 
+/**
+ * The ladders a leaderboard can be asked for, from the engine rather than
+ * typed here — the name goes into a jsonb path, so the list being closed is
+ * what keeps that path out of a player's hands.
+ */
+export const BOARDS = engine.LEAGUES ? [...engine.LEAGUES] : ['open']
+
 export const CARD_SCHEMA = `
 create table if not exists card_accounts (
   id_hash  text primary key,
@@ -618,13 +625,15 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     if (guard(req, res, `ct:${bucket}`, 30)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
     let mine = null
+    let league = 'open'
     try {
       const body = JSON.parse(await readBody(req, 4096))
       const id = normalizeId(body?.id)
       if (id) mine = hash(id)
+      if (BOARDS.includes(body?.league)) league = body.league
     } catch { /* an anonymous look at the board is fine */ }
     try {
-      const rows = await topRows(mine)
+      const rows = await topRows(mine, league)
       json(res, 200, {
         ok: true,
         rows: rows.map((r) => ({
@@ -647,8 +656,10 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
    * and a hundredth of the load.
    */
   const TOP_TTL = 20_000
-  let topCache = null
-  async function topRows(mine) {
+  /** one board per ladder, each cached on its own clock */
+  const topCaches = new Map()
+  async function topRows(mine, league = 'open') {
+    const topCache = topCaches.get(league) ?? null
     // a player who has just played waits for his own write (CardMode's
     // commit), so a board built before that write must not be handed back
     // to him: one indexed lookup says whether his row moved since
@@ -658,40 +669,55 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       const at = own[0]?.ladder_at ? new Date(own[0].ladder_at).getTime() : 0
       if (at > topCache.at - 1000) stale = true
     }
-    if (stale) topCache = { at: Date.now(), rows: await rankedRows() }
-    const rows = topCache.rows
+    if (stale) topCaches.set(league, { at: Date.now(), rows: await rankedRows(league) })
+    const rows = topCaches.get(league).rows
     const hundred = rows.filter((r) => r.rk <= 100)
     if (!mine || hundred.some((r) => r.id_hash === mine)) return hundred
     const own = rows.find((r) => r.id_hash === mine)
     return own ? [...hundred, own] : hundred
   }
 
-  async function rankedRows() {
+  async function rankedRows(league = 'open') {
+      // Which record in the save this board reads: the open ladder is
+      // `state.ladder`, where it has always been, and every other ladder keeps
+      // its own under `state.leagues`. Picked once, in a CTE, so the name is a
+      // plain parameter and never part of the query text — and so the six
+      // fields below read one column instead of repeating the path.
       return sql`
-        with ranked as (
+        with lad as (
+          select id_hash, name, suspect,
+            case when ${league} = 'open' then state->'ladder'
+                 else state->'leagues'->${league} end as l
+          from card_accounts
+        ), ranked as (
           select
             id_hash, name,
-            case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
-                 then (state->'ladder'->>'div')::int else 0 end as div,
-            case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
-                 then (state->'ladder'->>'points')::int else 0 end as points,
-            case when state->'ladder'->>'stars' ~ '^[0-9]{1,3}$'
-                 then (state->'ladder'->>'stars')::int else 0 end as stars,
-            case when state->'ladder'->>'wins' ~ '^[0-9]{1,7}$'
-                 then (state->'ladder'->>'wins')::int else 0 end as wins,
-            case when state->'ladder'->>'losses' ~ '^[0-9]{1,7}$'
-                 then (state->'ladder'->>'losses')::int else 0 end as losses
-          from card_accounts
-          where jsonb_typeof(state->'ladder') = 'object'
+            case when l->>'div' ~ '^[0-9]{1,2}$'
+                 then (l->>'div')::int else 0 end as div,
+            case when l->>'points' ~ '^[0-9]{1,9}$'
+                 then (l->>'points')::int else 0 end as points,
+            case when l->>'stars' ~ '^[0-9]{1,3}$'
+                 then (l->>'stars')::int else 0 end as stars,
+            case when l->>'wins' ~ '^[0-9]{1,7}$'
+                 then (l->>'wins')::int else 0 end as wins,
+            case when l->>'losses' ~ '^[0-9]{1,7}$'
+                 then (l->>'losses')::int else 0 end as losses
+          from lad
+          where jsonb_typeof(l) = 'object'
             -- An account whose matches once outran the 体力 clock keeps
             -- playing and keeps its collection; it just does not get to stand
             -- at the top of a board that means something to everybody else.
             and not suspect
+        ), kept as (
+          -- A ladder nobody has played sits at 青铜 III 0-0, and a board of
+          -- those is not a board. The open one keeps its old rule so nobody's
+          -- rank moves under them.
+          select * from ranked where ${league} = 'open' or wins + losses > 0
         ), placed as (
           select *, rank() over (
             order by div desc, points desc, stars desc, wins desc, id_hash
           )::int as rk
-          from ranked
+          from kept
         )
         select rk, id_hash, name, div, points, stars, wins, losses
         from placed
@@ -1016,7 +1042,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
 
   return {
     /** Forget the cached board and rival pools — for tests that reseed the table. */
-    invalidate() { topCache = null; rivalCache.clear() },
+    invalidate() { topCaches.clear(); rivalCache.clear() },
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
