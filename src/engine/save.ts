@@ -1,4 +1,5 @@
 import { canonAgents } from './content'
+import { seedAgentPro } from './agents'
 import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
 import type { GameState } from './types'
@@ -277,6 +278,8 @@ function migrate(state: GameState): GameState {
     p.potentialRevisions ??= 0
     // pools saved as vlr's slugs come back as proper names — see canonAgent
     p.agentPool = canonAgents(p.agentPool ?? [])
+    // 熟练度从「位置」搬到「英雄」：老档按常用英雄和旧的位置进度折算，只多不少
+    p.agentPro ??= seedAgentPro(p)
     p.injuredUntil ??= 0
   }
   repairClocks(state)

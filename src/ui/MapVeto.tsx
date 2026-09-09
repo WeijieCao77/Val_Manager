@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useGame } from './ctx'
-import { poolFor, vetoChoice, vetoOrder } from '../engine/match'
+import { poolFor, vetoChoice, vetoEdge, vetoSteps } from '../engine/match'
 import { mapCn } from '../engine/content'
 import { mapImg } from './common'
 import { Rng } from '../engine/rng'
@@ -36,7 +36,11 @@ export default function MapVeto({
   const foe = game.teams[foeId]
   // our side goes first when we are the home team, exactly as runVeto orders it
   const weAreA = fixture.teamA === game.myTeam
-  const order = useMemo(() => vetoOrder(fixture.bo), [fixture.bo])
+  // 总决赛里胜者组上来的一方（永远是 A）连 ban 两张再先选，所以先后手不能再
+  // 按「我是不是 A」逐步取模，得照 vetoSteps 给的顺序来
+  const edge = vetoEdge(fixture.label)
+  const steps = useMemo(() => vetoSteps(fixture.bo, edge), [fixture.bo, edge])
+  const order = useMemo(() => steps.map((s) => s.action), [steps])
   const pool = useMemo(
     () => poolFor(game), [game.seed, game.year, game.stage])
   const rng = useMemo(
@@ -48,7 +52,7 @@ export default function MapVeto({
   const [log, setLog] = useState<string[]>([])
   const [step, setStep] = useState(0)
 
-  const myTurn = (weAreA ? step % 2 === 0 : step % 2 === 1)
+  const myTurn = step < steps.length && (steps[step].actor === 0) === weAreA
   const action = order[step]
   const done = step >= order.length || remaining.length <= 1
 

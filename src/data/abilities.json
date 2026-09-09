@@ -1,0 +1,1778 @@
+{
+ "Astra": {
+  "abilities": [
+   {
+    "cn": "新星脉冲",
+    "cooldown": 60.0,
+    "cost": 1.0,
+    "desc": "Place Stars in Astral Form (Ultimate Key). ACTIVATE a Star to detonate a Nova Pulse. The Nova Pulse charges briefly then strikes, Concussing all players in its area.",
+    "descCn": "进入星界形态（终极技能键）并放置星体。 【激活】一颗星体，引发一次新星脉冲。新星脉冲会在短暂充能后爆发，使范围内的所有玩家受到【震荡】。",
+    "duration": null,
+    "key": "Q",
+    "name": "Nova Pulse",
+    "rechargeable": true,
+    "slot": "Ability1",
+    "uses": null
+   },
+   {
+    "cn": "星云/消散",
+    "cooldown": 35.0,
+    "cost": 2.0,
+    "desc": "Place Stars in Astral Form (Ultimate Key). ACTIVATE a Star to transform it into a Nebula (smoke). USE a Star to Dissipate it, returning the Star to be placed in a new location after a delay. Dissipate briefly forms a fake Nebula at the Star's location before returning.",
+    "descCn": "进入星界形态（终极技能键）并放置星体。 【激活】一颗星体，将其转化为星云（烟雾）。 对星体按【使用】键即可将其驱散和回收，以便在一段时间后重新布置。 驱散星云后，其所在位置仍会短暂存续一片混淆视听的假星云，直至星体回收完毕。",
+    "duration": "14.25 s (Nebula)/1 s (Dissipate)",
+    "key": "E",
+    "name": "Nebula  / Dissipate",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": null
+   },
+   {
+    "cn": "重力之阱",
+    "cooldown": 60.0,
+    "cost": 1.0,
+    "desc": "Place Stars in Astral Form (Ultimate Key). ACTIVATE a Star to form a Gravity Well. Players in the area are pulled toward the center before it explodes, making all players still trapped inside Vulnerable.",
+    "descCn": "进入星界形态（终极技能键）并放置星体。 【激活】一颗星体，将其转化为重力之阱。处于该区域内的玩家会被拉向中心点，随后重力之阱引爆，对陷入其中的所有玩家施加【易伤】效果。",
+    "duration": "2 s",
+    "key": "C",
+    "name": "Gravity Well",
+    "rechargeable": true,
+    "slot": "Grenade",
+    "uses": null
+   },
+   {
+    "cn": "星界形态/宇宙分裂",
+    "cooldown": null,
+    "cost": null,
+    "desc": "ACTIVATE to enter Astral Form where you can place Stars with FIRE. Stars can be reactivated later, transforming them into a Nova Pulse, Nebula, or Gravity Well. When Cosmic Divide is charged, use ALT FIRE in Astral Form to begin aiming it, then FIRE to select two locations. An infinite Cosmic Divide connects the two points you select. Cosmic Divide blocks bullets and sound.",
+    "descCn": "激活该技能可进入星界形态，在此状态下按【射击】即可放置星体。随后你可重新激活星体，将其转化为【新星脉冲】、【星云】或【重力之阱】。 当【宇宙分裂】充能完毕时，你可在星体形态下使用【辅助射击】进行瞄准，然后按【射击】选择两个位置。一道无边无际的宇宙裂隙会在两个位置之间生成，阻挡所有子弹并完全阻隔声音的传播。",
+    "duration": null,
+    "key": "X",
+    "name": "Astral Form / Cosmic Divide",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "星界形态",
+    "cooldown": null,
+    "cost": null,
+    "desc": "ACTIVATE Ultimate to enter Astral Form and PRIMARY FIRE to place Stars. Target Stars with your Nova Pulse, Nebula, or Gravity Well to use those abilities.",
+    "descCn": "激活【终极技能】以进入星界形态，按【射击】来放置星体。随后，你可以对星体使用【新星脉冲】、【星云】和【重力之阱】技能来将其激活。",
+    "duration": null,
+    "key": "X",
+    "name": "Astral Form",
+    "rechargeable": false,
+    "slot": "Passive",
+    "uses": null
+   }
+  ],
+  "cn": "星礈",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Breach": {
+  "abilities": [
+   {
+    "cn": "闪点爆破",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP a Blinding charge. FIRE the charge to set a fast-acting burst through the wall. The charge detonates to Blind all players looking at it.",
+    "descCn": "装备【致盲】炸药。按【射击】即可在墙壁的另一侧引发一次爆破，【致盲】所有目击爆破点的玩家。",
+    "duration": null,
+    "key": "Q",
+    "name": "Flashpoint",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "山崩地陷",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a Seismic Blast. HOLD FIRE to increase the distance. RELEASE to set off the quake, Concussing all players in its zone and in a line up to the zone.",
+    "descCn": "装备震波冲击器。【按住射击】可增加射程。【松开】便可引发震荡，使直线范围内的玩家受到【震荡】。",
+    "duration": null,
+    "key": "E",
+    "name": "Fault Line",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "剧震余波",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a fusion charge. FIRE the charge to set a slow-acting burst through the wall. The burst does heavy damage to anyone caught in its area.",
+    "descCn": "装备聚变炸药。按【射击】即可透过墙壁引发一次延时生效的爆破。该冲击会对作用范围内的所有人造成严重伤害。",
+    "duration": null,
+    "key": "C",
+    "name": "Aftershock",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "惊雷卷地",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a Seismic Charge. FIRE to send a cascading quake through all terrain in a large zone. The quake Concusses and knocks up anyone caught in it.",
+    "descCn": "装备震波炸药。按【射击】在巨大的锥形范围内发出一道穿越地形、层层递进的地震波。该地震会击飞任何受波及的玩家并震晕他们。",
+    "duration": null,
+    "key": "X",
+    "name": "Rolling Thunder",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "铁臂",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Brimstone": {
+  "abilities": [
+   {
+    "cn": "振奋信标",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "INSTANTLY toss down a stim beacon. Upon landing, it creates a field that grants players a Combat Stim and a Speed Boost.",
+    "descCn": "立即向前方投掷振奋信标，它在落地后会生成一片增益区域，给予其中的玩家【作战强化】和【加速】效果。",
+    "duration": "12 s",
+    "key": "C",
+    "name": "Stim Beacon",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "燃烧榴弹",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP an incendiary grenade launcher. FIRE to launch a grenade that detonates as it comes to a rest on the floor, creating a lingering fire zone that damages players within the zone.",
+    "descCn": "装备燃烧弹发射器。按【射击】发射一枚榴弹，在落地停稳后引爆，生成一片持续燃烧的区域，对进入其中的玩家造成伤害。",
+    "duration": "7 s (minimum at full size)",
+    "key": "Q",
+    "name": "Incendiary",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "空投烟幕",
+    "cooldown": null,
+    "cost": 100.0,
+    "desc": "EQUIP a tactical map. FIRE to set locations where Brimstone's smoke clouds will land. ALT FIRE to confirm, launching long-lasting smoke clouds that block vision in the selected area.",
+    "descCn": "装备战术地图。按【射击】设定烟幕落地的位置。按【辅助射击】以确认，呼叫历久不散的烟云来阻碍该选定区域的视野。",
+    "duration": "19.25 s}}",
+    "key": "E",
+    "name": "Sky Smoke",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 3.0
+   },
+   {
+    "cn": "天基光束",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a tactical map. FIRE to launch a lingering orbital strike laser at the selected location, dealing high damage-over-time to players caught in the selected area.",
+    "descCn": "装备战术地图。按【射击】向选定位置发射轨道激光炮，对区域内的玩家造成高额持续伤害。",
+    "duration": "3 s (minimum at full size)",
+    "key": "X",
+    "name": "Orbital Strike",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "炼狱",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Chamber": {
+  "abilities": [
+   {
+    "cn": "闪转自如",
+    "cooldown": 30.0,
+    "cost": null,
+    "desc": "EQUIP a teleport anchor. FIRE to place it on the ground. While on the ground and in range of the anchor, REACTIVATE to quickly teleport to the anchor. The anchor can be picked up to be REDEPLOYED.",
+    "descCn": "放置一个传送锚点。处于锚点范围内的地面上时，【再次激活】技能即可快速传送到锚点处。锚点可被拾起并【重新部署】。",
+    "duration": "1.3 s}}",
+    "key": "E",
+    "name": "Rendezvous",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "贵宾限行",
+    "cooldown": 30.0,
+    "cost": 200.0,
+    "desc": "EQUIP a trap that scans for enemies. FIRE to place it on the ground. When a visible enemy comes in range, the trap counts down and then destabilizes the terrain around them, creating a lingering field that Slows players caught inside of it. The trap can be picked up to be REDEPLOYED.",
+    "descCn": "装备一个可以扫描敌人的陷阱。按【射击】将其放置在地面上。非隐形的敌人进入扫描范围时，陷阱将开始倒计时并使周围地面陷入不稳定状态，生成一片持续存在的力场，使范围内所有的玩家【减速】。陷阱可被拾起并【重新部署】。",
+    "duration": null,
+    "key": "C",
+    "name": "Trademark",
+    "rechargeable": true,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "金牌猎头",
+    "cooldown": null,
+    "cost": 100.0,
+    "desc": "ACTIVATE to equip a heavy pistol. ALT FIRE with the pistol equipped to aim down sights.",
+    "descCn": "激活后装备一把重型手枪。可使用【辅助射击】开镜瞄准。",
+    "duration": null,
+    "key": "Q",
+    "name": "Headhunter",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": null
+   },
+   {
+    "cn": "孤高火力",
+    "cooldown": null,
+    "cost": null,
+    "desc": "ACTIVATE to summon a powerful, custom sniper rifle that will kill an enemy with any direct hit to the upper body. ALT FIRE to aim down sights. Killing an enemy creates a lingering field that Slows players caught inside of it.",
+    "descCn": "【激活】技能可召唤一把威力强大的定制狙击枪，命中敌人上半身任何部位均可将其击败。按【辅助射击】可使用瞄准镜。被击败的敌人会留下一片持续存在的力场，使范围内的所有玩家【减速】。",
+    "duration": null,
+    "key": "X",
+    "name": "Tour De Force",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "尚勃勒",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Clove": {
+  "abilities": [
+   {
+    "cn": "虹吸",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "ACTIVATE to absorb the life force of a fallen enemy that Clove damaged or killed, gaining haste and temporary health.",
+    "descCn": "激活后，从被暮蝶击败或助攻的敌人身上吸收生命能量，获得加速和临时生命值。",
+    "duration": "10 s",
+    "key": "C",
+    "name": "Pick-me-up",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "霞染",
+    "cooldown": 40.0,
+    "cost": 150.0,
+    "desc": "EQUIP a view of the battlefield. FIRE to set the locations where Clove’s clouds will settle. ALT FIRE to confirm, launching clouds that block vision in the chosen areas. Clove can use this ability after death.",
+    "descCn": "装备战场地图。按【射击】选择烟雾的部署位置，按【辅助射击】以确认，在指定地点创造阻隔视线的云雾。暮蝶可以在被击败期间使用此技能。",
+    "duration": "14/6 s (Alive/Dead)",
+    "key": "E",
+    "name": "Ruse",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "化蝶",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "After dying, ACTIVATE to resurrect. Once resurrected, Clove must earn a kill or a damaging assist within a set time or they will die. REACTIVATE to cancel early.",
+    "descCn": "被击败后，【激活】此技能以复活。复活后，暮蝶必须在限定时间内完成击败或助攻，否则将会回到被击败状态。【再次激活】可提前取消技能。",
+    "duration": "10 s",
+    "key": "X",
+    "name": "Not Dead Yet",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "整蛊",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP a fragment of immortality essence. FIRE to throw the fragment, which upon landing on the floor, erupts after a short delay and temporarily Decays all targets caught inside.",
+    "descCn": "装备一块不朽精华碎片。按【射击】将其掷出，落地后，碎片会在短暂延迟后爆炸，对范围内所有目标施加短时间的【腐坏】效果。",
+    "duration": "5 s",
+    "key": "Q",
+    "name": "Meddle",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   }
+  ],
+  "cn": "暮蝶",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Cypher": {
+  "abilities": [
+   {
+    "cn": "赛博囚笼",
+    "cooldown": null,
+    "cost": 100.0,
+    "desc": "INSTANTLY toss the cyber cage in front of Cypher. ACTIVATE to create a zone that blocks vision and plays an audio cue when enemies pass through it.",
+    "descCn": "向前方投掷赛博囚笼。【激活】即可生成一片阻碍视野的区域，敌人通过时会发出提示音。",
+    "duration": "7.25 s}}",
+    "key": "Q",
+    "name": "Cyber Cage",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "战术监控",
+    "cooldown": 15.0,
+    "cost": null,
+    "desc": "EQUIP a spycam. FIRE to place the spycam at the targeted location. RE-USE this ability to take control of the camera's view. While in control of the camera, FIRE to shoot a marking dart. This dart will Reveal the location of any player struck by the dart. This ability can be picked up to be REDEPLOYED.",
+    "descCn": "装备摄像头，按【射击】即可将其布置于目标位置。【再次按技能键】可切换至监控镜头。在使用监控镜头期间按【射击】可发射定位镖，【揭露】所命中目标的位置。此装置可被回收并【重新部署】。",
+    "duration": null,
+    "key": "E",
+    "name": "Spycam",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "震慑绊线",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a trapwire. FIRE to place a destructible and covert trapwire at the targeted location, creating a line that spans between the placed location and the wall opposite. Enemy players who cross a trapwire will be Slowed and Revealed after a short period if they do not destroy the device in time. This ability can be picked up to be REDEPLOYED.",
+    "descCn": "装备绊线。按【射击】在目标位置与相对的墙体之间形成一条可摧毁的隐蔽绊线。敌方玩家触发绊线后若未及时摧毁该装置，将在短暂延迟后受到【减速】和【揭露】。此装置可被回收并【重新部署】。",
+    "duration": null,
+    "key": "C",
+    "name": "Trapwire",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "神经取析",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "INSTANTLY use on a targeted dead enemy to download information on their team. After a brief delay, the location of all living enemy players will be Revealed twice.",
+    "descCn": "对被击败的敌方玩家使用本技能，即可获取敌方队伍的信息。短暂延迟后，【揭露】所有存活敌方玩家的位置两次。",
+    "duration": null,
+    "key": "X",
+    "name": "Neural Theft",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "零",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Deadlock": {
+  "abilities": [
+   {
+    "cn": "声感陷阱",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a Sonic Sensor. FIRE to deploy. The sensor monitors an area for enemies making sound. It concusses that area if footsteps, weapons fire, or significant noise are detected. This ability can be picked up to be REDEPLOYED.",
+    "descCn": "装备声感陷阱。按【射击】进行部署。声感陷阱将在一定范围内监听敌方动态，一旦探测到脚步声、枪声或其它明显噪音，便会自动激活，对区域内所有目标造成【震荡】。此装置可被回收并【重新部署】。",
+    "duration": null,
+    "key": "Q",
+    "name": "Sonic Sensor",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "阻域屏障",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a Barrier Mesh disc. FIRE to throw forward. Upon landing, the disc generates barriers from the origin point that block character movement.",
+    "descCn": "装备屏障网生成器。按【射击】向前掷出。该装置会在落地点周围生成屏障网，阻挡所有角色移动。",
+    "duration": "30 s",
+    "key": "C",
+    "name": "Barrier Mesh",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "重力捕网",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a GravNet grenade. FIRE to throw. ALT FIRE to lob. The GravNet detonates upon landing, forcing any characters caught within to crouch and move slowly.",
+    "descCn": "装备重力捕网手雷。按【射击】投掷，按【辅助射击】可轻抛。手雷会在落地后引爆，迫使范围内的角色蹲下，并减慢其移动速度。",
+    "duration": null,
+    "key": "E",
+    "name": "GravNet",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "断魂索道",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "EQUIP a Nanowire Accelerator. FIRE to unleash a pulse of nanowires that captures the first enemy contacted. The cocooned enemy is pulled along a nanowire path and will die unless they are freed. The nanowire cocoon is destructible.",
+    "descCn": "装备纳米纤维加速器。按【射击】发出一道纳米纤维脉冲波，把命中的首个敌人包裹在茧里，并拖拽目标沿一条索道移动。如果敌人未获得解救，则直接被击败。纳米纤维茧可被摧毁。",
+    "duration": "10 s",
+    "key": "X",
+    "name": "Annihilation",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "钢锁",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Fade": {
+  "abilities": [
+   {
+    "cn": "幽爪",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a knot of raw fear. FIRE to throw. The knot drops down after a set time. RE-USE to drop the knot early. The knot ruptures on impact, holding nearby enemies in place. Held enemies are Deafened, and Decayed.",
+    "descCn": "将恐惧之力具象化为一根套索，按【射击】将其掷出。套索会在一段时间后下落，【再次按技能键】可使它提前下落。套索会在碰触到地面后炸裂，将附近的敌人束缚在原地，并对其施加【致聋】和【腐坏】效果。",
+    "duration": "4.5 s",
+    "key": "Q",
+    "name": "Seize",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "诡眼",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a haunting watcher. FIRE to throw. The watcher drops down after a set time. RE-USE to drop the watcher early. The watcher lashes out on impact, Revealing enemies in its line of sight and creating terror trails to them. Enemies can destroy the watcher.",
+    "descCn": "装备一颗诡眼。按【射击】将其掷出。诡眼会在一段时间后下落，【再次按技能键】可使它提前下落。诡眼会在碰触到地面后爆裂，【揭露】其视线范围内的所有敌人，并使他们留下恐惧轨迹。诡眼可被敌人摧毁。",
+    "duration": "1.5 s",
+    "key": "E",
+    "name": "Haunt",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "黯兽",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP a prowler. FIRE to send the prowler forward. HOLD FIRE to steer the prowler towards your crosshair. The prowler will chase down the first enemy or terror trail it sees, and Nearsight the enemy on impact.",
+    "descCn": "装备一只黯兽。按【射击】使其向前扑出，【按住射击】可引导黯兽朝准星前进。黯兽将追击它所看到的第一个敌人或追踪恐惧轨迹，并在碰触到敌人时使其【视野收缩】。",
+    "duration": "2.5 s",
+    "key": "C",
+    "name": "Prowler",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "夜临",
+    "cooldown": null,
+    "cost": null,
+    "desc": "EQUIP the power of nightmare itself. FIRE to unleash a wave of unstoppable nightmare energy. Enemies caught in the wave are Marked by terror trails, Deafened, and Decayed.",
+    "descCn": "引导噩梦本源的力量，按【射击】释放出排山倒海般的噩梦能量。被波及的敌人会被恐惧轨迹【标记】、并受到【致聋】和【腐坏】效果。",
+    "duration": null,
+    "key": "X",
+    "name": "Nightfall",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "黑梦",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Gekko": {
+  "abilities": [
+   {
+    "cn": "顽皮搭档",
+    "cooldown": 20.0,
+    "cost": 300.0,
+    "desc": "EQUIP Wingman. FIRE to send Wingman forward seeking enemies. Wingman unleashes a concussive blast toward the first enemy he sees. ALT FIRE when targeting a Spike site or planted Spike to have Wingman defuse or plant the Spike. To plant, Gekko must have the Spike in his inventory. When Wingman expires he reverts into a dormant globule. INTERACT to reclaim the globule and gain another Wingman charge after a short cooldown.",
+    "descCn": "装备宠物“皮蛋”。按【射击】派皮蛋去前方搜寻敌人。发现首名敌人后，皮蛋将对其发射震荡冲击。瞄准爆能器部署区域或已部署的爆能器后，按下【辅助射击】可以派皮蛋前去部署或拆除爆能器。盖可的物品栏中必须拥有爆能器才能进行部署。技能失效后，皮蛋将变回一颗休眠的球体。与球体【互动】即可将其回收，在短暂的冷却时间后可再次获得顽皮搭档充能。",
+    "duration": "5 s (without spike)",
+    "key": "Q",
+    "name": "Wingman",
+    "rechargeable": true,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "炫晕光波",
+    "cooldown": 20.0,
+    "cost": null,
+    "desc": "EQUIP Dizzy. FIRE to send Dizzy soaring forward through the air. Dizzy charges then unleashes plasma blasts at enemies in line of sight. Enemies hit by her plasma are Blinded. When Dizzy expires she reverts into a dormant globule. INTERACT to reclaim the globule and gain another Dizzy charge after a short cooldown.",
+    "descCn": "装备宠物“丢丢”。按【射击】派它飞向天空。丢丢会对视线范围内的敌人使用电浆冲击。被电浆命中的敌人将被【致盲】。技能失效后，丢丢将变回一颗休眠的球体。与球体【互动】即可将其回收，在短暂的冷却时间后可再次获得炫晕光波充能。",
+    "duration": "1 s",
+    "key": "E",
+    "name": "Dizzy",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "嗨爆全场",
+    "cooldown": 20.0,
+    "cost": 250.0,
+    "desc": "EQUIP Mosh. FIRE to throw Mosh like a grenade. ALT FIRE to lob. Upon landing Mosh duplicates across a large area that deals a small amount of damage over time then after a short delay explodes. INTERACT to reclaim the globule and gain another Mosh charge after a short cooldown.",
+    "descCn": "装备宠物“嗨宝”。按【射击】即可将其掷出。按【辅助射击】可轻抛。落地后，嗨宝会在一大片区域内复制自己，持续造成少量伤害，并在短暂延迟后爆炸。与球体【互动】即可将其回收，在短暂的冷却时间后可再次获得嗨爆全场充能。",
+    "duration": null,
+    "key": "C",
+    "name": "Mosh Pit",
+    "rechargeable": true,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "无敌超鲨",
+    "cooldown": 20.0,
+    "cost": 8.0,
+    "desc": "EQUIP Thrash. FIRE to link with Thrash’s mind and steer her through enemy territory. ACTIVATE to lunge forward and explode, Detaining any players in a small radius. When Thrash expires she reverts into a dormant globule. INTERACT to reclaim the globule and gain another Thrash charge after a short cooldown. Thrash can be reclaimed once.",
+    "descCn": "装备宠物“鲨鲨”。按【射击】与鲨鲨的意识进行相连，控制她穿越敌人领地。按【激活】即可让鲨鲨向前冲刺并爆炸，【束缚】小范围内的所有玩家。技能失效后，鲨鲨将变回一颗休眠的球体。与球体【互动】即可将其回收，在短暂的冷却时间后可再次获得无敌超鲨充能。鲨鲨仅可被回收一次。",
+    "duration": "6 s",
+    "key": "X",
+    "name": "Thrash",
+    "rechargeable": true,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "盖可",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Harbor": {
+  "abilities": [
+   {
+    "cn": "狂潮",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP High Tide. FIRE to send water forward along the ground. HOLD FIRE to guide the water towards your crosshair spawning a vision blocking Screen along the path. ALT FIRE to stop the water early. All players crossing High Tide are Slowed.",
+    "descCn": "装备狂潮。按【射击】使水流沿地面向前延展。【按住射击】可使水流朝准星方向卷曲，沿路生成一道封锁视野的屏障。按【辅助射击】可提前中断水流。所有穿过狂潮的玩家都将受到【减速】。",
+    "duration": "15 s",
+    "key": "Q",
+    "name": "High Tide",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "乱涌",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP Storm Surge. FIRE to throw, creating an explosive whirlpool that Slows and Nearsights players within it after a short duration.",
+    "descCn": "装备乱涌。按【射击】向前投掷，制造一股具有强大破坏力的漩流，短时间后使漩流内的玩家受到【减速】和【视野收缩】。",
+    "duration": null,
+    "key": "C",
+    "name": "Storm Surge",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "海盾",
+    "cooldown": 30.0,
+    "cost": null,
+    "desc": "EQUIP Cove. ACTIVATE to form a water Smoke in the select location. HOLD FIRE while targeting to move the marker further away and HOLD ALT FIRE to move it closer. RELOAD to toggle targeting view. REACTIVATE to Shield the water Smoke, blocking any bullets that hit it. The Shielded water Smoke can be destroyed.",
+    "descCn": "装备海盾。【激活】后在选定位置形成一道水雾。瞄准期间，【按住射击】可将标记移远，【按住辅助射击】可将标记移近。【换弹】即可切换至瞄准视野。【再次激活】技能即可为水雾生成护盾，阻挡所有命中它的子弹。受护盾保护的水雾可被敌人摧毁。",
+    "duration": "19.25 s",
+    "key": "E",
+    "name": "Cove",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "怒涛",
+    "cooldown": null,
+    "cost": null,
+    "desc": "EQUIP Reckoning. FIRE to unleash the full power of your artifact, releasing a surge of water that barrels forward to Nearsight and Slow enemies that are hit.",
+    "descCn": "装备怒涛。按【射击】释放圣物的全部力量，激起汹涌水流向前奔涌，被水流命中的敌人会受到【视野收缩】和【减速】。",
+    "duration": "7 s (if stopped)",
+    "key": "X",
+    "name": "Reckoning",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "海神",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Iso": {
+  "abilities": [
+   {
+    "cn": "稳态剥离",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a molecular bolt. FIRE to throw it forward, briefly applying Vulnerable & Suppress to all players it touches. The bolt can pass through solid objects, including walls.",
+    "descCn": "装备扰乱分子结构的能量箭。按【射击】将其向前掷出，对触碰到的所有玩家施加短暂的【易伤】与【压制】效果。此能量箭可穿透墙壁等固体障碍。",
+    "duration": null,
+    "key": "Q",
+    "name": "Undercut",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "决斗通牒",
+    "cooldown": null,
+    "cost": null,
+    "desc": "EQUIP an interdimensional arena. FIRE to hurl a column of energy through the battlefield, pulling and healing both you and the first enemy hit into the arena to duel to the death.",
+    "descCn": "构筑一座异次元竞技场。按【射击】发出一道穿越战场的能量矩阵，将命中的首名敌人拉进竞技场，双方同时获得治疗，并展开一对一决斗。",
+    "duration": "13 s",
+    "key": "X",
+    "name": "Kill Contract",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "战斗心流",
+    "cooldown": null,
+    "cost": null,
+    "desc": "INSTANTLY start channeling your focus. Once focused: gain a shield which absorbs one instance of damage from any source, reload more quickly, and enter a flow state during which downed enemies you kill or damage spawn an energy orb. Shooting this orb refreshes your flow state and your existing shield, or grants another.",
+    "descCn": "集中意念：获得一道护盾，可吸收一次任意来源的伤害，加快换弹速度，并进入心流状态。在此状态期间，受到你伤害的敌人会在被击败时生成一颗能量球。射击此球体可刷新当前存在的护盾和心流状态，或生成一道新护盾。",
+    "duration": "12 s",
+    "key": "E",
+    "name": "Double Tap",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "绝对屏障",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP to assemble prismatic energy. FIRE to push an indestructible wall of energy forward that blocks bullets. ALT FIRE to push out a slower version of the wall.",
+    "descCn": "将能量聚合为棱晶形态。按【射击】向前推出一道可阻挡子弹的能量墙。按【辅助射击】可以较慢速度推出能量墙。",
+    "duration": "4.6 s (minimum at full size)",
+    "key": "C",
+    "name": "Contingency",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   }
+  ],
+  "cn": "壹决",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Jett": {
+  "abilities": [
+   {
+    "cn": "凌空",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "INSTANTLY propel Jett high into the air.",
+    "descCn": "立即腾空直上，高高跃起。",
+    "duration": "0.6 s}}",
+    "key": "Q",
+    "name": "Updraft",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "逐风",
+    "cooldown": 2.0,
+    "cost": null,
+    "desc": "ACTIVATE to prepare a gust of wind for a limited time. RE-USE the wind to propel Jett in the direction she is moving. If Jett is standing still, she propels forward. Tailwind charge resets every two kills.",
+    "descCn": "【激活】即可在限定时间内刮起阵风。【再次使用】该技能可朝移动方向突进。若站立不动，则向面朝的方向突进。每击败两名敌人，可重置【逐风】的充能。",
+    "duration": "7.5 s (Charged), 0.45 s (Dash)",
+    "key": "E",
+    "name": "Tailwind",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "瞬云",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "INSTANTLY throw a projectile that expands into a brief vision-blocking cloud on impact with a surface. HOLD the ability key to curve the smoke in the direction of your crosshair.",
+    "descCn": "投掷一个发射物，其在触碰后可扩展成一朵能短暂阻挡视线的云雾。按住技能键能扭曲云雾至准星的方向。",
+    "duration": "2.5 s}}",
+    "key": "C",
+    "name": "Cloudburst",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "飓刃",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a set of highly accurate throwing knives. FIRE to throw a single knife and recharge knives on a kill. ALT FIRE to throw all remaining daggers but does not recharge on a kill.",
+    "descCn": "装备一组飞刀，按【射击】向目标掷出一把飞刀，击败敌人即可重新充能所有飞刀。按【辅助射击】向你的目标抛掷所有剩余的飞刀，但这样做无法通过击败敌人获得充能。",
+    "duration": null,
+    "key": "X",
+    "name": "Blade Storm",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "飘移",
+    "cooldown": null,
+    "cost": null,
+    "desc": "Holding the jump button while falling allows you to glide through the air.",
+    "descCn": "下落时按住【跳跃】可让你在空中滑翔。",
+    "duration": null,
+    "key": "SPACE}}",
+    "name": "Drift",
+    "rechargeable": false,
+    "slot": "Passive",
+    "uses": null
+   }
+  ],
+  "cn": "捷风",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "KAY/O": {
+  "abilities": [
+   {
+    "cn": "碎片溢出",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP an explosive fragment. FIRE to throw. ALT FIRE to lob. The fragment sticks to the floor and explodes multiple times, dealing near lethal damage at the center with each explosion.",
+    "descCn": "装备一枚碎片手雷。按【射击】将其掷出。按【辅助射击】可轻抛。手雷会粘在地上并多次引爆，每次爆炸对范围中心造成高额伤害。",
+    "duration": "4 s",
+    "key": "C",
+    "name": "FRAG/ment",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "闪存过载",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP a flash grenade. FIRE to overhand throw. ALT FIRE to lob a weaker version that explodes quickly. The flash grenade explodes after a short fuse, Blinding anyone in line of sight.",
+    "descCn": "装备闪光榴弹。按【射击】上手投掷。闪光榴弹会在短暂停留后引爆，将拥有视线的所有人【致盲】。按【辅助射击】可轻抛，掷出一颗效力较弱但引爆更快的闪光弹。",
+    "duration": null,
+    "key": "Q",
+    "name": "FLASH/drive",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "零点嗅探",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a suppression blade. FIRE to throw. The blade sticks to the first surface it hits, winds up, and Suppresses anyone in the radius of the explosion. Enemies can destroy this blade.",
+    "descCn": "装备一把压制匕首。按【射击】将其掷出。匕首将粘附在碰到的首个表面，在一段引导时间后对其范围内的所有人造成【压制】。匕首可被敌人摧毁。",
+    "duration": null,
+    "key": "E",
+    "name": "ZERO/point",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "无效命令",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "INSTANTLY overload with polarized radianite energy that pulses from KAY/O in a massive radius. Enemies hit with pulses are Suppressed for a short duration. While overloaded, KAY/O gains Combat Stim and can be re-stabilized if downed.",
+    "descCn": "立即超载极化源晶能量，从K/O身上发射出大范围的能量脉冲。被脉冲击中的敌人会在短时间内受到【压制】。在超载期间，K/O获得【作战强化】状态，并能在被击倒后重启再战。",
+    "duration": "Overload: 12 s, Downed: 15 s",
+    "key": "X",
+    "name": "NULL/cmd",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "K/O",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Killjoy": {
+  "abilities": [
+   {
+    "cn": "纳米蜂群",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a Nanoswarm grenade. FIRE to throw the grenade. Upon landing, the Nanoswarm goes covert. ALT FIRE to lob. ACTIVATE the Nanoswarm to deploy a damaging swarm of nanobots.",
+    "descCn": "装备纳米蜂群手雷，按【射击】将其掷出。蜂群手雷会在落地后隐形。按【辅助射击】可轻抛。【激活】纳米蜂群即可部署一群纳米机器人，造成伤害。",
+    "duration": "4 s",
+    "key": "C",
+    "name": "Nanoswarm",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "自动哨兵",
+    "cooldown": 20.0,
+    "cost": 200.0,
+    "desc": "EQUIP a covert Alarmbot. FIRE to deploy a bot that hunts down enemies that get in range. After reaching its target, the bot explodes and applies Vulnerable to enemies in the area. HOLD EQUIP to recall a deployed bot.",
+    "descCn": "装备隐形的自动哨兵。按【射击】可部署机器人来追踪进入范围的敌人。机器人会在接触目标后爆炸，施加【易伤】效果。【按住技能键】可召回已部署的机器人。",
+    "duration": null,
+    "key": "Q",
+    "name": "ALARMBOT",
+    "rechargeable": true,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "哨戒炮台",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a Turret. FIRE to deploy a turret that fires at enemies in a 100 degree cone. While targeting, EQUIP again to swap turret direction, HOLD ALT FIRE to rotate. HOLD EQUIP to recall the deployed turret.",
+    "descCn": "装备炮台，按【射击】即可部署，向100度范围内的敌人开火。瞄准期间，再次按【装备】可转换炮台方向，按【辅助射击】即可旋转。按住【装备】可召回已部署的炮台。",
+    "duration": null,
+    "key": "E",
+    "name": "TURRET",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "全面封锁",
+    "cooldown": null,
+    "cost": 9.0,
+    "desc": "EQUIP the Lockdown device. FIRE to deploy the device. After a long windup, the device Detains all enemies caught in the radius. The device can be destroyed by enemies.",
+    "descCn": "装备封锁装置。按【射击】进行部署。在长时间的启动后，束缚有效半径内的所有敌人。该装置可被敌人摧毁。",
+    "duration": null,
+    "key": "X",
+    "name": "Lockdown",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "奇乐",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Miks": {
+  "abilities": [
+   {
+    "cn": "电音脉冲",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP M-pulse. ALT-FIRE to toggle between Concuss and Healing outputs. FIRE to throw the device. Upon landing, M-pulse sends out sound waves, either Concussing or Healing players.",
+    "descCn": "装备电音脉冲。按【辅助射击】可在震荡输出与治疗输出之间切换。按【射击】投掷装置。落地时，电音脉冲会释放声波，对玩家造成震荡或治疗效果。",
+    "duration": "1 pulse per 2 s }}",
+    "key": "C",
+    "name": "M-pulse",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "声波帷幕",
+    "cooldown": null,
+    "cost": 100.0,
+    "desc": "EQUIP a Map Targeter. FIRE to set locations. ALT-FIRE to spawn Smokes at selected locations.",
+    "descCn": "装备地图定位仪。按【射击】设定位置。按【辅助射击】在选定位置释放烟雾。",
+    "duration": "16.75 s }}",
+    "key": "E",
+    "name": "Waveform",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "共振谐律",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP Harmonize. Target an ally and FIRE to activate a Combat Stim and a speed boost on yourself and the ally that refreshes with each kill. ALT-FIRE to grant Combat Stim and speed boost to yourself.",
+    "descCn": "装备共振谐律。锁定一名队友并按下【射击】，为你和该队友激活【作战强化】效果和速度加成，每次击败都会刷新效果。按【辅助射击】让自己获得【作战强化】效果和速度加成。",
+    "duration": "8 s, refreshed on kill }}",
+    "key": "Q",
+    "name": "Harmonize",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "音脉强袭",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP Bassquake. FIRE to build up and unleash Sonic Radiance forward, knocking back, Deafening, and Slowing players.",
+    "descCn": "装备音脉强袭。按【射击】积蓄能量并向前释放音波源光，击退目标，并对其造成【致聋】和【减速】。",
+    "duration": null,
+    "key": "X",
+    "name": "Bassquake",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "迷核",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Neon": {
+  "abilities": [
+   {
+    "cn": "充能疾驰",
+    "cooldown": 2.0,
+    "cost": null,
+    "desc": "INSTANTLY channel Neon’s power for Increased Speed. When charged, ALT FIRE to trigger an electric slide dash. Slide charge resets every two kills.",
+    "descCn": "引导霓虹的力量，立即提升移动速度。充能完毕时，按【辅助射击】即可发动闪电滑行。每击败两名敌人，可重置滑行的充能。",
+    "duration": "10 s max.",
+    "key": "E",
+    "name": "High Gear",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "闪电弹球",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "INSTANTLY throw an energy bolt that bounces once. Upon hitting each surface, the bolt electrifies the ground below with a Concussive blast.",
+    "descCn": "立即掷出一个能量箭，可反弹一次。每次击中表面时，能量箭都会造成【震荡】冲击，同时使其下方的地面通电。",
+    "duration": null,
+    "key": "Q",
+    "name": "Relay Bolt",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "高速通道",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "FIRE two energy lines forward on the ground that extend a short distance or until they hit a surface. The lines rise into walls of static electricity that block vision.",
+    "descCn": "向前发射两条能量线，它们随后会变成两道阻挡视线的静电墙。能量线只能向前延伸一小段距离，且会被墙面阻挡。",
+    "duration": "4 s}}",
+    "key": "C",
+    "name": "Fast Lane",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "超限暴走",
+    "cooldown": null,
+    "cost": null,
+    "desc": "Unleash Neon’s full power and speed for a short duration, regaining all her fuel and a slide charge. FIRE to channel the power into a deadly lightning beam with high movement accuracy. Kills reset the duration of the effect.",
+    "descCn": "短时间内释放霓虹的全部力量与速度，补满燃料并获得一次滑行充能。按【射击】即可引导她的力量，发射一道高速且精准的闪电光束。击败敌人可重置效果持续时间。",
+    "duration": "20 s min.}}",
+    "key": "X",
+    "name": "Overdrive",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "霓虹",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Omen": {
+  "abilities": [
+   {
+    "cn": "暗魇",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP a blinding orb. FIRE to throw it forward, briefly Nearsighting and Deafening all players it touches. This projectile can pass straight through walls.",
+    "descCn": "装备致盲法球。按【射击】将其向前掷出，可使接触到的玩家短暂【致聋】和【视野收缩】。此投掷物可穿透墙体。",
+    "duration": null,
+    "key": "Q",
+    "name": "Paranoia",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "黑瘴",
+    "cooldown": 40.0,
+    "cost": 150.0,
+    "desc": "EQUIP a shadow orb, entering a phased world to place and target the orbs. PRESS the ability key to throw the shadow orb to the marked location, creating a long-lasting shadow sphere that blocks vision. HOLD FIRE while targeting to move the marker further away. HOLD ALT FIRE while targeting to move the marker closer. PRESS RELOAD to toggle normal targeting view.",
+    "descCn": "装备暗影法球，然后进入相位空间为法球选择目标。按【技能键】即可朝标记位置投掷暗影法球，创造一个长时间持续的暗影球体来遮挡视线。瞄准期间，【按住射击】可将标记移远，【按住辅助射击】可将标记移近。按【装填】即可切换至普通瞄准视野。",
+    "duration": "15 s",
+    "key": "E",
+    "name": "Dark Cover",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "践影",
+    "cooldown": null,
+    "cost": 100.0,
+    "desc": "EQUIP a shrouded step ability and see its range indicator. FIRE to begin a brief channel, then teleport to the marked location.",
+    "descCn": "装备【践影】技能，查看其范围指示器。按【射击】开始引导，然后传送至标记位置。",
+    "duration": null,
+    "key": "C",
+    "name": "Shrouded Step",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "离魂",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "EQUIP a tactical map. FIRE to begin teleporting to the selected location. While teleporting, Omen will appear as a Shade that can be destroyed by an enemy to cancel his teleport, or PRESS EQUIP for Omen to cancel his teleport.",
+    "descCn": "装备战术地图。按【射击】传送至选定位置，传送期间幽影会变为一团阴影，敌人可通过摧毁阴影来强制取消传送，幽影也能按【装备】来取消传送。",
+    "duration": "4 s}}",
+    "key": "X",
+    "name": "From the Shadows",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "幽影",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Phoenix": {
+  "abilities": [
+   {
+    "cn": "火冒三丈",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "EQUIP a flame wall. FIRE to create a line of flame that moves forward, passing through the world and creating a wall of fire that blocks vision and damages players passing through it. The fire wall heals Phoenix instead of dealing damage. HOLD FIRE to bend the wall in the direction of your crosshair.",
+    "descCn": "装备烈焰屏障。按【射击】向前生成一道可穿越地形的火墙，可阻挡视野并伤害穿过它的人。不死鸟不会受到火墙的伤害，反而会获得治疗。【按住射击】可使火墙朝你准星的方向卷曲。",
+    "duration": "8 s",
+    "key": "C",
+    "name": "Blaze",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "火热手感",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a fireball. FIRE to throw a fireball that explodes after a set amount of time or upon hitting the ground, creating a lingering fire zone that damages enemies. The fire zone heals Phoenix instead of dealing damage. ALT FIRE to lob.",
+    "descCn": "装备一颗火球，按【射击】将其掷出，在落地或一定时间后爆炸，生成一片持续燃烧的区域，对进入其中的敌人造成伤害。不死鸟不会受到燃烧区域的伤害，反而会获得治疗。按【辅助射击】可轻抛。",
+    "duration": "3.25 s (minimum at full size)",
+    "key": "Q",
+    "name": "Hot Hands",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "闪光曲球",
+    "cooldown": 2.0,
+    "cost": 250.0,
+    "desc": "EQUIP a flare orb that takes a curving path and detonates shortly after throwing. FIRE to curve the flare orb to the left, detonating and Blinding any player who sees the orb. ALT FIRE to curve the flare orb to the right. Curveball resets a charge every two kills.",
+    "descCn": "装备一颗闪光球，投掷后，闪光球沿弧线轨迹飞行并在短时间内爆炸。爆炸时，所有视野内可看到闪光球的玩家均会被【致盲】。按【射击】投掷左曲球，按【辅助射击】投掷右曲球。每击败两名敌人，可重置【闪光曲球】的充能。",
+    "duration": null,
+    "key": "E",
+    "name": "Curveball",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "再火一回",
+    "cooldown": null,
+    "cost": 6.0,
+    "desc": "INSTANTLY place a marker at Phoenix's location. While this ability is active, dying or allowing the timer to expire will end this ability and bring Phoenix back to this location with full health and the amount of armor he had when the ability was cast.",
+    "descCn": "立即标记不死鸟的位置。如果他在技能激活期间阵亡，或当技能时效结束，他都会返回该位置满血重生，并且保留技能施放时的护甲值。",
+    "duration": "10 s}}",
+    "key": "X",
+    "name": "Run it Back",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "热度上升",
+    "cooldown": null,
+    "cost": null,
+    "desc": "PASSIVELY Heal Phoenix instead of taking damage after standing in Phoenix's own fire",
+    "descCn": "不死鸟踏入自己创造的火焰后，会获得【被动治疗】，而非受到伤害。",
+    "duration": null,
+    "key": "",
+    "name": "Heating Up",
+    "rechargeable": false,
+    "slot": "Passive",
+    "uses": null
+   }
+  ],
+  "cn": "不死鸟",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Raze": {
+  "abilities": [
+   {
+    "cn": "惊喜翻腾",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "INSTANTLY throw a Blast Pack that will stick to surfaces. RE-USE the ability after deployment to detonate, moving anything hit and dealing damage if fully armed.",
+    "descCn": "投掷一个可粘在物体表面的炸药包。完成部署后，【再次使用】该技能即可将其引爆，击飞命中的目标。如果炸药包已完全激活，则可造成伤害。",
+    "duration": "5 s}}",
+    "key": "Q",
+    "name": "Blast Pack",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "彩雷飞溅",
+    "cooldown": 2.0,
+    "cost": null,
+    "desc": "EQUIP a cluster grenade. FIRE to throw the grenade, which does damage and creates sub-munitions, each doing damage to anyone in their range. ALT FIRE to lob. Paint Shells charge resets every two kills.",
+    "descCn": "装备集束手雷。按【射击】投掷手雷，手雷爆炸后会生成子榴弹，每颗对范围内所有人造成伤害。按【辅助射击】可轻抛。每击败两名敌人，可重置【彩雷飞溅】的充能。",
+    "duration": null,
+    "key": "E",
+    "name": "Paint Shells",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "花车巡游",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a Boom Bot. FIRE will deploy the bot, causing it to travel in a straight line on the ground, bouncing off walls. The Boom Bot will lock on to any enemies in its frontal cone and chase them, exploding for heavy damage if it reaches them.",
+    "descCn": "装备爆弹机器人。按【射击】即可部署机器人，它在地上沿直线行进，并会在碰到墙体后弹开。爆弹机器人会锁定任何在其锥形范围内的敌人并追逐他们，一旦追上便会引爆并造成严重伤害。",
+    "duration": "5 s",
+    "key": "C",
+    "name": "Boom Bot",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "晚安焰火",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a rocket launcher. FIRE to shoot a rocket that does massive area damage on contact with anything.",
+    "descCn": "装备火箭发射器。按【射击】即可发射一枚在与任何物体接触时造成大范围伤害的火箭。",
+    "duration": "10 s",
+    "key": "X",
+    "name": "Showstopper",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "雷兹",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Reyna": {
+  "abilities": [
+   {
+    "cn": "噬尽",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "Soul Harvest: Enemies that die within 3 seconds of taking damage from Reyna leave behind Soul Orbs that last 3 seconds. Devour: INSTANTLY consume a soul orb, rapidly gaining Temporary Health. If EMPRESS is active then Devour automatically casts, does not consume the Soul Orb, and Healing is permanent.",
+    "descCn": "狩魂：被芮娜造成伤害的3秒内被击败的敌人将留下魂珠，持续3秒。 噬尽：立即吞噬一颗魂珠并迅速获得【临时生命值】。在【女皇旨令】激活时，噬尽将自动施放且不会消耗魂珠，治疗效果也将持续生效。",
+    "duration": "3/2.5 s (Standard/Empress)",
+    "key": "Q",
+    "name": "Devour",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "逐散",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "INSTANTLY consume a nearby Soul Orb, becoming Intangible for a short duration. If EMPRESS is active, also become Invisible.",
+    "descCn": "立即吞噬邻近的魂珠，在短时间内变得【无形】。在【女皇旨令】激活时，此技能还会使你【隐形】。",
+    "duration": "1.5 s}}",
+    "key": "E",
+    "name": "Dismiss",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "睥睨",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP an ethereal, destructible eye. ACTIVATE to cast the eye a short distance forward. The eye will Nearsight all enemies who look at it.",
+    "descCn": "装备一颗可被摧毁的虚灵之眼，【激活】将其向前掷出一段距离，使看见此眼球的敌人【视野收缩】。",
+    "duration": "1.6 s",
+    "key": "C",
+    "name": "Leer",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "女皇旨令",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "INSTANTLY enter a frenzy, gaining a Combat Stim that increases firing, equip and reload speed dramatically. Gain infinite charges of Soul Harvest abilities.",
+    "descCn": "进入狂暴状态，获得【作战强化】效果，大幅度提升射击、装备与换弹速度，可以不限次数地使用【噬尽】技能。",
+    "duration": null,
+    "key": "X",
+    "name": "Empress",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "芮娜",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Sage": {
+  "abilities": [
+   {
+    "cn": "薄冰",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a slowing orb. FIRE to throw a slowing orb forward that detonates upon landing, creating a lingering field that Slows and reduces the dash speed of players caught inside of it.",
+    "descCn": "装备减速法球，按【射击】将其掷出，它会在落地时爆开，生成一片持续的【减速】领域，降低其中玩家的移动速度和冲刺速度。",
+    "duration": "7 s",
+    "key": "Q",
+    "name": "Slow Orb",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "逢春",
+    "cooldown": 45.0,
+    "cost": null,
+    "desc": "EQUIP a healing orb. FIRE with your crosshairs over a damaged ally to activate a Heal-Over-Time on them. ALT FIRE while Sage is damaged to activate a self Heal-Over-Time.",
+    "descCn": "装备治疗法球。按【射击】并用准星对准受伤队友以持续对其进行【治疗】。当贤者受伤时，使用【辅助射击】来【治疗】自己。",
+    "duration": "5 s",
+    "key": "E",
+    "name": "Healing Orb",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "玉城",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a barrier orb. FIRE places a wall that fortifies after a few seconds. ALT FIRE rotates the targeter.",
+    "descCn": "装备屏障法球，按【射击】来布置一道墙壁，【辅助射击】可旋转目标指示器。",
+    "duration": "40 s",
+    "key": "C",
+    "name": "Barrier Orb",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "再起",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "EQUIP a resurrection ability. FIRE with your crosshairs placed over a dead ally to begin resurrecting them. After a brief channel, the ally will be brought back to life with full health.",
+    "descCn": "装备复活技能。瞄准一名倒下的队友按下【射击】，即可在短暂引导后使其满血复活。",
+    "duration": "3.3 s}}",
+    "key": "X",
+    "name": "Resurrection",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "贤者",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Skye": {
+  "abilities": [
+   {
+    "cn": "辟林之虎",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a Tasmanian tiger trinket. FIRE to send out and take control of the predator. While in control, FIRE to leap forward, exploding in a Concussive blast on impact and damaging directly hit enemies.",
+    "descCn": "装备袋狼雕饰，按【射击】放出并控制一只兽形造物，在控制期间按【射击】可向前扑出。兽形造物会在碰撞后引爆，对直接命中的敌人造成【震荡】和伤害。",
+    "duration": "6 s",
+    "key": "Q",
+    "name": "Trailblazer",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "引路之隼",
+    "cooldown": 60.0,
+    "cost": 250.0,
+    "desc": "EQUIP a hawk trinket. FIRE to send it forward. HOLD FIRE to guide the hawk in the direction of your crosshair. RE-USE while the hawk is in flight to transform it into a flash. The flash reaches max potency after a short duration during the hawk's flight.",
+    "descCn": "装备飞鹰雕饰，按【射击】将其放出。【按住射击】可以让飞鹰向准星的方向转弯，【再次按技能键】可以让飞鹰化作闪光弹。闪光弹在飞鹰飞行一小段时间后即可达到最大效能。",
+    "duration": "2 s",
+    "key": "E",
+    "name": "Guiding Light",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "愈生之息",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "EQUIP a healing trinket. HOLD FIRE to channel, Healing allies in range and line of sight. Can be reused until her healing pool is depleted. Skye cannot heal herself.",
+    "descCn": "装备治疗雕饰，【按住射击】开始输出，【治疗】技能范围内且在视线内的队友。在治疗池耗尽前，此技能可重复使用。斯凯无法治疗自己。",
+    "duration": null,
+    "key": "C",
+    "name": "Regrowth",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "追猎之灵",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a Seeker trinket. FIRE to send out three Seekers to track down the three closest enemies. If a Seeker reaches its target, it Nearsights and slows them. Enemies can destroy the Seekers.",
+    "descCn": "装备追猎者雕饰。按【射击】即可派出三个追猎之灵，对三名距离最近的敌人进行追踪。如果追猎之灵接触到目标，即可使其【视野收缩】和【减速】。追猎之灵可被敌人摧毁。",
+    "duration": "15 s",
+    "key": "X",
+    "name": "Seekers",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "斯凯",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Sova": {
+  "abilities": [
+   {
+    "cn": "雷击箭",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "EQUIP a bow with a shock bolt. FIRE to send the explosive bolt forward, detonating upon collision and damaging players nearby. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow.",
+    "descCn": "装备弓和雷击箭，按【射击】即可将箭矢向前射出，箭矢在碰撞物体后爆炸，对附近的玩家造成伤害。【按住射击】可延长投射距离。按【辅助射击】可为该弩箭增加一次弹射次数，最多两次。",
+    "duration": null,
+    "key": "Q",
+    "name": "Shock Bolt",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 2.0
+   },
+   {
+    "cn": "寻敌箭",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP a bow with recon bolt. FIRE to send the recon bolt forward, activating upon collision and Revealing the location of nearby enemies caught in the line of sight of the bolt. Enemies can destroy this bolt. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow.",
+    "descCn": "装备弓和寻敌箭，按【射击】即可将箭矢向前射出，箭矢在碰撞物体后激活声纳并【揭露】探测范围内的敌人位置。敌人可摧毁该箭矢。【按住射击】可延长投射距离。按【辅助射击】可为该弩箭增加一次弹射次数，最多两次。",
+    "duration": "3.2 s",
+    "key": "E",
+    "name": "Recon Bolt",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "枭型无人机",
+    "cooldown": 5.0,
+    "cost": 400.0,
+    "desc": "EQUIP an owl drone. FIRE to deploy and take control of movement of the drone. While in control of the drone, FIRE to shoot a marking dart. This dart will Reveal the location of any player struck by the dart. Enemies can destroy the Owl Drone.",
+    "descCn": "装备枭型无人机，按【射击】即可部署并操作无人机，在操作期间按【射击】可发射定位镖，【揭露】所命中目标的位置。枭型无人机可被敌人摧毁。",
+    "duration": "7 s",
+    "key": "C",
+    "name": "Owl Drone",
+    "rechargeable": true,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "狂猎之怒",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a bow with three long-range, wall-piercing energy blasts. FIRE to release an energy blast in a line in front of Sova, dealing damage and Revealing the location of enemies caught in the line. This ability can be RE-USED up to two more times while the ability timer is active.",
+    "descCn": "装备弓和三发可穿墙的远程能量箭。按【射击】即向猎枭的前方发射一道能量冲击波，对直线上的敌人造成伤害并【揭露】其位置。此技能在计时器结束前可【再次使用】最多两次。",
+    "duration": "6 s",
+    "key": "X",
+    "name": "Hunter's Fury",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "诡秘神射手",
+    "cooldown": null,
+    "cost": null,
+    "desc": "Sova's custom bow can fire his arrows and bounce them off terrain. Holding fire charges the bow's power, and the bolt is loosed when released. Press alt fire to change the number of bounces.Your arrows can bounce off terrain. Holding left click increases the bow's range trajectory. Right clicking Toggle through the desired number of terrain bounces by right clicking. The arrow is loosed when left click is released.",
+    "descCn": "猎枭的特制战弓能发射特制弩箭，并让箭在碰撞地形后反弹。按住【射击】可拉弦蓄力，【松开】即射出箭。按【辅助射击】可调整反弹次数。你的箭可在地形上反弹。按住左键可延伸弓的弹道射程。按右键可切换预期的地形反弹次数。松开左键即可射出箭矢。",
+    "duration": null,
+    "key": "",
+    "name": "Uncanny Marksman",
+    "rechargeable": false,
+    "slot": "Passive",
+    "uses": null
+   }
+  ],
+  "cn": "猎枭",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Tejo": {
+  "abilities": [
+   {
+    "cn": "精准投放",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "EQUIP an AR targeting system. FIRE to select up to two target locations on the map. ALT FIRE to launch missiles that autonomously navigate to target locations, detonating repeatedly for damage on arrival.",
+    "descCn": "装备一套战术投送系统。按【射击】在地图上最多选择两个目标位置。按【辅助射击】发射导弹，导弹可自动导航至目标位置，到达时多次引爆，造成伤害。",
+    "duration": null,
+    "key": "E",
+    "name": "Guided Salvo",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "特快专递",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a sticky grenade. FIRE to launch. The grenade sticks to the first surface it hits and explodes, Concussing and dealing damage to any targets caught in the blast. ALT FIRE to launch the grenade with a single bounce instead.",
+    "descCn": "装备一颗粘性榴弹，按【射击】发射。榴弹会粘附击中的首个表面并爆炸，被爆炸波及的所有目标都会受到震荡和伤害。按【辅助射击】发射榴弹时，榴弹会在反弹一次后爆炸。",
+    "duration": null,
+    "key": "Q",
+    "name": "Special Delivery",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "末日审判",
+    "cooldown": null,
+    "cost": 9.0,
+    "desc": "EQUIP a tactical strike targeting map. FIRE to select the origin point of the strike. FIRE again to set the end point and launch the attack, unleashing a wave of lethal damaging explosions along the strike path. ALT FIRE during map targeting to cancel the origin point.",
+    "descCn": "装备战术打击地图。按【射击】选择打击起点。【再次按射击键】设置终点并发动无人机空袭，沿所选路径进行地毯式爆破，造成致命伤害。在地图瞄准期间按【辅助射击】可取消起点设置。",
+    "duration": null,
+    "key": "X",
+    "name": "Armageddon",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "潜袭爬虫",
+    "cooldown": null,
+    "cost": 400.0,
+    "desc": "EQUIP a stealth drone. FIRE to throw the drone forward, assuming direct control of its movement. FIRE again to trigger a pulse that Suppresses and Reveals enemies hit.",
+    "descCn": "装备一架潜袭爬虫，按【射击】将爬虫抛向前方，直接控制其移动。再次按【射击】可触发脉冲，压制并揭露被击中的敌人。",
+    "duration": "6 s",
+    "key": "C",
+    "name": "Stealth Drone",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   }
+  ],
+  "cn": "钛狐",
+  "role": "Initiator",
+  "roleCn": "先锋"
+ },
+ "Veto": {
+  "abilities": [
+   {
+    "cn": "噬源体",
+    "cooldown": null,
+    "cost": null,
+    "desc": "EQUIP the Interceptor. FIRE to place the Interceptor at projected location. Once placed, RE-USE to activate. Once active, it will destroy any utility that would BOUNCE off a player and/or be destroyed naturally by gunfire. Enemies can destroy the Interceptor.",
+    "descCn": "装备噬源体。按【射击】将其部署至目标位置。部署后，【再次使用】技能即可激活。激活后，噬源体将摧毁一切能从玩家身上弹开或被枪火自然摧毁的装置。 噬源体可被敌人摧毁。",
+    "duration": "9 s",
+    "key": "E",
+    "name": "Interceptor",
+    "rechargeable": false,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "涡流折跃",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a vortex. FIRE to place on the ground. While in range and looking at the vortex, ACTIVATE to teleport to the vortex. During the BUY PHASE, the vortex can be reclaimed to be REDEPLOYED.",
+    "descCn": "装备一颗漩涡能量球。按【射击】将其放置于地面。在技能范围内且瞄准漩涡时，【激活】技能即可传送至漩涡所在位置。在购买阶段期间，可将能量球回收并【重新部署】。",
+    "duration": "1.6 s}}",
+    "key": "C",
+    "name": "Crosscut",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "完全进化",
+    "cooldown": null,
+    "cost": 7.0,
+    "desc": "INSTANTLY begin to fully mutate, gaining a combat stim, regeneration, and becoming IMMUNE to all forms of debuffs.",
+    "descCn": "立即进入完全变异形态，获得【作战强化】效果和再生能力，并免疫所有形式的减益效果。",
+    "duration": null,
+    "key": "X",
+    "name": "Evolution",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "裂变残片",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP a viscous fragment of your mutation. FIRE to throw. The fragment deploys upon hitting the ground, creating a trap to hold enemies in place. Held enemies are Deafened, and Decayed. Enemies can destroy the trap before activation.",
+    "descCn": "装备一块由异变产生的黏液碎片。按【射击】将其掷出。碎片会在碰到地面时部署为陷阱，困住经过的敌人。被困敌人将受到【致聋】和【腐坏】效果。陷阱激活前可被敌人摧毁。",
+    "duration": "4.5 s",
+    "key": "Q",
+    "name": "Chokehold",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   }
+  ],
+  "cn": "禁灭",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Viper": {
+  "abilities": [
+   {
+    "cn": "瘴云",
+    "cooldown": 5.0,
+    "cost": 200.0,
+    "desc": "EQUIP a gas emitter. FIRE to throw the emitter that perpetually remains throughout the round. ALT FIRE to lob. RE-USE the ability to create a toxic gas cloud that Decays opponents inside it at the cost of fuel. This ability can be picked up to be REDEPLOYED before the round starts and can be RE-USED more than once throughout the round.",
+    "descCn": "装备气雾喷射器，按【射击】将其掷出，该装置会一直存在至回合结束。按【辅助射击】可轻抛。【再次按技能键】可消耗燃料生成一团化学烟雾，消耗燃料对其中的敌人造成腐坏。回合开始前，可拾取喷射器，将其【重新部署】。在回合中，此技能可以多次【重复使用】。",
+    "duration": "Minimum 2 s",
+    "key": "Q",
+    "name": "Poison Cloud",
+    "rechargeable": true,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "毒幕",
+    "cooldown": 5.0,
+    "cost": null,
+    "desc": "EQUIP a gas emitter launcher that penetrates terrain. FIRE to deploy a long line of gas emitters. RE-USE the ability to create a tall wall of toxic gas that Decays opponents that cross it at the cost of fuel. This ability can be RE-USED more than once.",
+    "descCn": "装备可穿越地形的气雾喷射器，按【射击】沿一条直线部署气雾喷射器阵列。【再次按技能键】可产生一道气雾幕墙，消耗燃料对穿过幕墙的敌人造成腐坏。此技能可以多次【重复使用】。",
+    "duration": "Minimum 2 s",
+    "key": "E",
+    "name": "Toxic Screen",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "蛇吻",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a chemical launcher. FIRE to launch a canister that shatters upon hitting the floor, creating a lingering chemical zone that damages and applies Vulnerable.",
+    "descCn": "装备化学品发射器，按【射击】即可射出一个触地即碎的化学容器，碎裂后会留下一滩化学溶液，对范围内的目标造成伤害并施加【易伤】。",
+    "duration": "6.5 s",
+    "key": "C",
+    "name": "Snake Bite",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "蝰腹",
+    "cooldown": null,
+    "cost": 9.0,
+    "desc": "EQUIP a chemical sprayer. FIRE to spray a chemical cloud in all directions around Viper, creating a large cloud that Nearsights players and Decays the health of enemies inside of it. HOLD the ability key to disperse the cloud early.",
+    "descCn": "装备化学喷雾器。按【射击】即可朝蝰蛇的四周喷射化学气雾，产生大片云雾，使范围内的玩家【视野收缩】并使敌人受到【腐坏】效果。【按住技能键】可使气雾提前消散。",
+    "duration": "Indefinite whenever Viper is within, 8 s timer if she exits",
+    "key": "X",
+    "name": "Viper's Pit",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   },
+   {
+    "cn": "毒素",
+    "cooldown": null,
+    "cost": null,
+    "desc": "You gradually generate and replenish the toxin that fuels your abilities. Enemies that cross through Viper's Poison Cloud, Toxic Screen, or Viper's Pit are instantly inflicted with at least 30 Decay. Their Decay level increases the longer they remain in contact with it.",
+    "descCn": "你会逐渐生成和补充技能的药剂。所有穿过蝰蛇的【瘴云】、【毒幕】或【蝰腹】的敌人都会立刻承受至少30点【腐坏】值。敌人在化学区域停留，【腐坏】等级便会随之提升。",
+    "duration": null,
+    "key": "",
+    "name": "Toxic",
+    "rechargeable": false,
+    "slot": "Passive",
+    "uses": null
+   }
+  ],
+  "cn": "蝰蛇",
+  "role": "Controller",
+  "roleCn": "控场"
+ },
+ "Vyse": {
+  "abilities": [
+   {
+    "cn": "裁断",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP filaments of liquid metal. FIRE to place a hidden wall trap. When an enemy crosses, an indestructible wall bursts from the ground behind them. The wall lasts for a brief time before dissipating.",
+    "descCn": "装备条状液态金属。按【射击】放置一道隐藏的隔断陷阱。当有敌人经过时，会在其身后升起一道无法摧毁的屏障墙。墙体将在一段时间后自行瓦解。",
+    "duration": "6 s}}",
+    "key": "Q",
+    "name": "Shear",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "弧光玫瑰",
+    "cooldown": 60.0,
+    "cost": null,
+    "desc": "EQUIP an Arc Rose. Target a surface and FIRE to place a stealthed Arc Rose, or ALT FIRE to place the Arc Rose through it. REUSE to blind all players looking at it. This ability can be picked up to be REDEPLOYED.",
+    "descCn": "装备弧光玫瑰。选择一块墙面，放置隐形的弧光玫瑰，按【辅助射击】可部署到墙的另一侧。【再次按技能键】可致盲所有目击闪爆点的玩家。此技能可回收和【重新部署】。",
+    "duration": null,
+    "key": "E",
+    "name": "Arc Rose",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "剃刀藤蔓",
+    "cooldown": null,
+    "cost": 150.0,
+    "desc": "EQUIP a nest of liquid metal. FIRE to launch. Upon landing, the nest becomes invisible. When ACTIVATED, it sprawls out into a large razorvine nest which slows and damages all players who move through it.",
+    "descCn": "装备网状的液态金属。按【射击】将其投射出去。该装置会在落地时隐形。激活后，它会从地面伸出大量剃刀藤蔓，对穿行的所有玩家造成伤害和减速。",
+    "duration": "6 s",
+    "key": "C",
+    "name": "Razorvine",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 2.0
+   },
+   {
+    "cn": "铁棘禁园",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a bramble of liquid metal. FIRE to send the metal erupting from you as a torrent of metal thorns, JAMMING enemy primary weapons after a brief windup.",
+    "descCn": "装备液态金属荆团。按【射击】在短暂的蓄力后，向四周展开荆棘领域，阻塞敌人的主要武器。",
+    "duration": null,
+    "key": "X",
+    "name": "Steel Garden",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "维斯",
+  "role": "Sentinel",
+  "roleCn": "哨卫"
+ },
+ "Waylay": {
+  "abilities": [
+   {
+    "cn": "溯流回光",
+    "cooldown": 2.0,
+    "cost": null,
+    "desc": "INSTANTLY create a beacon of light on the floor. REACTIVATE to speed back to your beacon as a mote of pure light. You are invulnerable as you travel. Refract resets a charge every two kills.",
+    "descCn": "立即在地面上形成一道光束。【再次激活】技能即可让自己化为一颗纯粹的光粒，迅速回到光束的所在位置。穿行时你不会受到伤害。【溯流回光】每击败两名敌人重置一次充能。",
+    "duration": "8 s (Charged), 0.35-2 s (Travel time)",
+    "key": "E",
+    "name": "Refract",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 1.0
+   },
+   {
+    "cn": "光棱闪爆",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP a cluster of light. FIRE to throw the cluster, which upon contact with the ground explodes, Hindering nearby players with a powerful movement and weapon slow.",
+    "descCn": "装备一道光簇。按下【射击】投掷光簇，与地面接触时爆炸，【干扰】附近的玩家，使其受到大幅的移动和武器减速。",
+    "duration": null,
+    "key": "C",
+    "name": "Saturate",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "光速飞跃",
+    "cooldown": null,
+    "cost": 300.0,
+    "desc": "EQUIP to prepare for a burst of speed. FIRE to dash forward twice. ALT FIRE to dash once. Only your first dash can send you upward.",
+    "descCn": "准备进行加速。按【射击】向前冲刺两次。按【辅助射击】向前冲刺一次。只有第一段冲刺能让你升空。",
+    "duration": "0.45 s per dash}}",
+    "key": "Q",
+    "name": "Lightspeed",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "时光修罗场",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP to focus your prismatic power. FIRE to create an afterimage of yourself that projects a beam of light. After a brief delay, you gain a powerful speed boost and the beam expands, Hindering other players in the area.",
+    "descCn": "装备并汇聚光棱能量。按【射击】创造一个自己的残像，放射一道光线。短暂延迟后你将获得大幅加速效果，同时光线开始扩张，干扰区域内的其他玩家。",
+    "duration": null,
+    "key": "X",
+    "name": "Convergent Paths",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "幻棱",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ },
+ "Yoru": {
+  "abilities": [
+   {
+    "cn": "出其不意",
+    "cooldown": null,
+    "cost": 200.0,
+    "desc": "EQUIP an echo that transforms into a mirror image of Yoru when activated. FIRE to instantly activate the mirror image and send it forward. ALT FIRE to place an inactive echo. USE to transform an inactive echo into a mirror image and send it forward. Mirror images explode in a Blinding flash when destroyed by enemies.",
+    "descCn": "装备一个启动时变为夜露外形的回声镜像，【射击】即可激活镜像并令其前进，【辅助射击】则可放置一个未激活的回声镜像，【按下技能键】可激活之前未激活的镜像并使其前进。镜像被敌人摧毁时，会放出【致盲】闪光。",
+    "duration": "10 s",
+    "key": "C",
+    "name": "FAKEOUT",
+    "rechargeable": false,
+    "slot": "Grenade",
+    "uses": 1.0
+   },
+   {
+    "cn": "攻其不备",
+    "cooldown": null,
+    "cost": 250.0,
+    "desc": "EQUIP to rip an unstable dimensional fragment from reality. FIRE to throw the fragment, activating a flash that winds up once it collides with a hard surface.",
+    "descCn": "从现实中撕下一块不稳定的空间碎片。按【射击】掷出碎片，在它与坚硬表面碰撞后，会变成一颗闪光弹。",
+    "duration": null,
+    "key": "Q",
+    "name": "BLINDSIDE",
+    "rechargeable": false,
+    "slot": "Ability1",
+    "uses": 1.0
+   },
+   {
+    "cn": "不请自来",
+    "cooldown": 2.0,
+    "cost": 150.0,
+    "desc": "EQUIP a rift tether FIRE to send the tether forward. ALT FIRE to place a stationary tether. ACTIVATE to teleport to the tether's location. USE to trigger a fake teleport. GATECRASH resets a charge every two kills.",
+    "descCn": "装备裂隙锚索，【射击】使其向前射出，【辅助射击】可放置固定锚索。【激活】此技能可以将自己传送到锚索的位置。按下【使用】可触发佯装传送。每击败两名敌人，可重置【不请自来】的充能。",
+    "duration": "20 s",
+    "key": "E",
+    "name": "GATECRASH",
+    "rechargeable": true,
+    "slot": "Ability2",
+    "uses": 2.0
+   },
+   {
+    "cn": "神鬼不觉",
+    "cooldown": null,
+    "cost": 8.0,
+    "desc": "EQUIP a mask that can see between dimensions. FIRE to drift into Yoru's dimension, unable to be affected or seen by enemies from the outside. REACTIVATE to exit Yoru's dimension early.",
+    "descCn": "装备一个可穿越位面的面具。按【射击】即可进入夜露的位面，不会被外界的敌人看见或影响。【再次激活】技能即可提前离开夜露的位面。",
+    "duration": "10 s}}",
+    "key": "X",
+    "name": "DIMENSIONAL DRIFT",
+    "rechargeable": false,
+    "slot": "Ultimate",
+    "uses": null
+   }
+  ],
+  "cn": "夜露",
+  "role": "Duelist",
+  "roleCn": "决斗"
+ }
+}

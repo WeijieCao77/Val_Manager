@@ -4,7 +4,7 @@ import { finishDraw } from '../engine/season'
 import { useRef, useState } from 'react'
 import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
-import { mapCn } from '../engine/content'
+import { agentCn, mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
@@ -454,7 +454,7 @@ export default function Dashboard() {
             !drill || drill.kind === 'none' ? null
               : drill.kind === 'map' ? `团队跑图 · ${mapCn(drill.map)}`
                 : drill.kind === 'review' ? '教练复盘'
-                  : `${game.players[drill.playerId]?.ign} 学习${drill.role}（${Math.round(game.players[drill.playerId]?.rolePro?.[drill.role] ?? 0)}%）`
+                  : `${game.players[drill.playerId]?.ign} 练${agentCn(drill.agent)}（${Math.round(game.players[drill.playerId]?.agentPro?.[drill.agent] ?? 0)}%）`
           const duoText = drillRunning && game.duo
             ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
             : null

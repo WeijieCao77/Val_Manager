@@ -1,7 +1,11 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
-import { DIAL_SCALE, callBoost, compStyle, famBonus, familiarity, tacticEdge } from './comp'
+import { isArena } from './types'
+import {
+  DIAL_SCALE, callBoost, compStyle, famBonus, familiarity, styleEdge, styleName, stylePurity, tacticEdge,
+} from './comp'
+import type { StyleMix } from './comp'
 import type { CompStyle } from './comp'
 import { callerOf, coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
@@ -55,6 +59,12 @@ export interface Lineup {
   agents: Record<string, string>
   /** the shape those agents make — see engine/comp.ts */
   style: CompStyle
+  /** 打法风格三角上的坐标：快攻 / 消耗 / 控制，见 engine/comp.ts */
+  mix: StyleMix
+  /** 主轴的名字，暂停面板直接显示 */
+  mixName: string
+  /** 押注得多深：0 是万金油，1 是押死一个角 */
+  purity: number
   atk: number
   def: number
   chem: number
@@ -242,8 +252,17 @@ export function buildLineup(
   // any; otherwise the map's usual composition, handed to whoever can play it.
   // Agents used to be decoration — this is where a pick starts to cost or pay.
   const { agents: picks, style } = sheetFor(state, teamId, map, players)
-  const oppStyle: CompStyle = oppId && state.teams[oppId] ? sheetFor(state, oppId, map).style : 'standard'
-  const effs = players.map((x) => effectiveRating(x, state.day) * agentMod(x, picks[x.id]))
+  const oppSheet = oppId && state.teams[oppId] ? sheetFor(state, oppId, map) : undefined
+  const oppStyle: CompStyle = oppSheet?.style ?? 'standard'
+  // 打法风格三角：版本之子 > 阵容合适 > 阵容克制，三项都是回合强度点。
+  // 同样只做在经理模式里 —— 开瓦包的对战结构不动。
+  const se = isArena(state)
+    ? { total: 0, version: 0, map: 0, counter: 0, mix: [1 / 3, 1 / 3, 1 / 3] as StyleMix, foe: [1 / 3, 1 / 3, 1 / 3] as StyleMix }
+    : styleEdge(Object.values(picks), Object.values(oppSheet?.agents ?? {}), map, state.patch)
+  // 英雄熟练度只做在经理模式里：开瓦包的卡按槽位排，不该因为「这张卡没练过
+  // 这个英雄」而变弱
+  const effs = players.map((x) =>
+    effectiveRating(x, state.day) * (isArena(state) ? 1 : agentMod(x, picks[x.id])))
 
   // the top performers carry slightly more than a flat mean
   const sorted = effs.slice().sort((a, b) => b - a)
@@ -307,7 +326,7 @@ export function buildLineup(
   const shortHanded = -missing * 18
 
   const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus + shortHanded +
-    famEdge
+    famEdge + se.total
   const atk = common + te.tacticsAtk + styleAtk + (avg('aim') - 65) * 0.05
   const def = common + te.tacticsDef + styleDef + (avg('awareness') - 65) * 0.05 + 1.6
 
@@ -324,9 +343,13 @@ export function buildLineup(
     style: (te.styleAtk + te.styleDef) / 2,
     matchup: (te.matchupAtk + te.matchupDef) / 2,
     familiarity: famEdge,
+    version: se.version, mapFit: se.map, counter: se.counter,
     atk, def,
   }
-  return { team, players, agents: picks, style, atk, def, chem, midRound, edge }
+  return {
+    team, players, agents: picks, style, atk, def, chem, midRound, edge,
+    mix: se.mix, mixName: styleName(se.mix), purity: stylePurity(se.mix),
+  }
 }
 
 // ---------------------------------------------------------------- map veto
@@ -382,6 +405,27 @@ export function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
 }
 
 /**
+ * 只有总决赛给优先权，而总决赛的 A 方在赛程模板里就是胜者组决赛的胜者
+ * （bracket.ts: `GF: { a: W(UBF, 0), b: W(LBF, 0) }`），所以拿到优先权的
+ * 永远是 A 方，不用另外记谁从哪条路上来的。
+ */
+export const vetoEdge = (label?: string): boolean => !!label && label.includes('总决赛')
+
+/**
+ * 谁在第几步动手。0 = A 方，1 = B 方。
+ *
+ * 平时严格轮流。带优先权时（2ban1）A 方连 ban 两张、再选下第一张图，之后从
+ * B 方开始轮流——也就是前三步都归 A，剩下的按 B 先。图池是七张，各种 bo 下
+ * 最后剩一张当决胜图，跟原来一样。
+ */
+export function vetoSteps(bo: 1 | 3 | 5, edge = false): { action: 'ban' | 'pick'; actor: 0 | 1 }[] {
+  return vetoOrder(bo).map((action, i) => ({
+    action,
+    actor: (edge ? (i < 3 ? 0 : (i - 3) % 2 === 0 ? 1 : 0) : (i % 2)) as 0 | 1,
+  }))
+}
+
+/**
  * What the AI would do with this board, right now.
  *
  * The same judgement runVeto makes, exposed one step at a time so the
@@ -409,20 +453,22 @@ export function runVeto(
   bo: 1 | 3 | 5,
   pool: string[],
   rng: Rng,
+  edge = false,
 ): { maps: string[]; log: string[] } {
   const a = state.teams[aId]
   const b = state.teams[bId]
   let remaining = pool.slice()
   const picked: string[] = []
   const log: string[] = []
-  const order = vetoOrder(bo)
+  const steps = vetoSteps(bo, edge)
+  if (edge) log.push(`${a.name} 从胜者组决赛上来，拿 2 ban 1 选的优先权`)
 
   const prefOf = (t: Team, m: string) => (t.mapPrefs[m] ?? 50) + rng.range(-6, 6)
 
-  for (let i = 0; i < order.length && remaining.length > 1; i++) {
-    const actor = i % 2 === 0 ? a : b
-    const other = i % 2 === 0 ? b : a
-    const action = order[i]
+  for (let i = 0; i < steps.length && remaining.length > 1; i++) {
+    const actor = steps[i].actor === 0 ? a : b
+    const other = steps[i].actor === 0 ? b : a
+    const action = steps[i].action
     let target: string
     if (action === 'ban') {
       // ban whatever the opponent likes most and we like least
@@ -906,6 +952,8 @@ export class MatchSim {
   constructor(
     state: GameState, aId: string, bId: string, bo: 1 | 3 | 5, rng: Rng,
     agreed?: { map: string; format: 'first13' | 'full24' },
+    /** 赛程标签，只用来判断这是不是总决赛（决定 veto 的优先权） */
+    label?: string,
   ) {
     this.state = state
     this.aId = aId
@@ -923,7 +971,7 @@ export class MatchSim {
       this.vetoLog = state.vetoPlan.log.slice()
     } else {
       const pool = poolFor(state)
-      const { maps, log } = runVeto(state, aId, bId, bo, pool, rng)
+      const { maps, log } = runVeto(state, aId, bId, bo, pool, rng, vetoEdge(label))
       this.maps = maps
       this.vetoLog = log
     }
@@ -1134,8 +1182,9 @@ export function simulateMatch(
   bo: 1 | 3 | 5,
   rng: Rng,
   agreed?: { map: string; format: 'first13' | 'full24' },
+  label?: string,
 ): MatchResult {
-  return new MatchSim(state, aId, bId, bo, rng, agreed).runOut()
+  return new MatchSim(state, aId, bId, bo, rng, agreed, label).runOut()
 }
 
 /** Roll the match's per-map lines into a player's season + career totals. */

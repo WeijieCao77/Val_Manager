@@ -1,3 +1,4 @@
+import type { Patch } from './comp'
 import type { Manager } from './manager'
 
 export type Region = 'Americas' | 'EMEA' | 'Pacific' | 'China'
@@ -121,8 +122,8 @@ export type TeamDrill =
   | { kind: 'map'; map: string; map2?: string }
   /** the coach takes them through the tape: reading the game, and calling it */
   | { kind: 'review' }
-  /** learning an agent from a role they do not yet cover */
-  | { kind: 'agent'; playerId: string; role: Role }
+  /** 练一个具体英雄——本职的，或者一个他还不会的位置上的 */
+  | { kind: 'agent'; playerId: string; agent: string }
 
 /**
  * A club approaching the manager.
@@ -229,7 +230,18 @@ export interface Player {
    * this up; only at 100 does he genuinely cover it, and the climb is slow
    * enough that retraining a position is a season-long project, not a month.
    */
+  /**
+   * 老存档留下的位置熟练度。migrate 会把它折进 agentPro，之后没有任何地方再写它。
+   */
   rolePro?: Partial<Record<Role, number>>
+  /**
+   * 每个英雄各自的熟练度，0-100。稀疏存：表里没有的就是他从没碰过的英雄。
+   *
+   * 位置是错误的粒度。捷风打得好的决斗者换到夜露就不是同一个人，而游戏此前
+   * 说不出这件事——「康康玩得好决斗但玩不好夜露」。种子来自 agentPool，也就
+   * 是 vlr 真正记录过他打的英雄；靠专门练某一个英雄来涨。
+   */
+  agentPro?: Record<string, number>
   /** true when they cover a second role for their club */
   flex?: boolean
   /** derived from real statistics, not authored */
@@ -642,6 +654,12 @@ export interface EdgeBreakdown {
    * absent on maps played before compositions were read
    */
   style?: number
+  /** 版本：这五个人在当前版本里值不值得上 */
+  version?: number
+  /** 地图契合：这套打法是不是这张图想要的 */
+  mapFit?: number
+  /** 阵容克制：快攻克控制、控制克消耗、消耗克快攻 */
+  counter?: number
   /** what our dials did against THEIR shape */
   matchup?: number
   /** how well the club knew the five agents it took onto this map */
@@ -968,6 +986,21 @@ export interface GameState {
   compPro?: Record<string, { key: string; value: number }>
   /** maps the manager banned/picked himself for the next match */
   vetoPlan?: { fixtureId: string; maps: string[]; log: string[] }
+  /**
+   * 当前版本。国际赛之间做中小调整，休赛期做大改——教练给的节奏。
+   * 没有这个字段的老存档按「没有任何英雄被调整过」处理。
+   */
+  patch?: Patch
+  /**
+   * 这是开瓦包对战借用的一次性世界，不是一局经理生涯。
+   *
+   * 版本、打法风格三角、英雄熟练度都只做在 VCT 经理里 —— 卡牌那边的对战结构
+   * 不动。卡是按槽位排的，它的强弱应该只由卡本身决定。
+   *
+   * 平时不用设：`isArena` 认的是 arena.ts 给那个世界安的 myTeam。留这个字段
+   * 是为了让调用方能显式声明。
+   */
+  arena?: true
   /** the club's revenue-share arrangement with the league — engine/leagueShare.ts */
   leagueDeal?: LeagueDeal
   /** a live league proposal (themed bundle), waiting on the manager's answer */
@@ -1027,3 +1060,17 @@ export interface GameState {
   /** set when the career is over; the text is why */
   gameOver?: string
 }
+
+
+/**
+ * 开瓦包对战借用的那个一次性世界，它的 myTeam。
+ *
+ * 必须与 engine/arena.ts 的 ARENA_TEAM 一致——那边是卡牌模式自己的常量，这边
+ * 是引擎判断「这局不是经理生涯」的依据，两边分开是为了不让 match.ts 反向依赖
+ * arena.ts。check_style.ts 里有一条断言盯着它们别走散。
+ */
+export const ARENA_TEAM_ID = 'ARENA'
+
+/** 这局是不是开瓦包的对战。版本 / 打法三角 / 英雄熟练度都对它让路。 */
+export const isArena = (s: GameState): boolean =>
+  s.arena === true || s.myTeam === ARENA_TEAM_ID

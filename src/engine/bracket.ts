@@ -85,7 +85,8 @@ export const DOUBLE_4: Wave[] = [
  * middle bracket, a second into the lower, a third sends it home. There is
  * no grand final: the upper, middle and lower brackets each end in a final
  * of their own, and their winners are the region's three Masters seeds in
- * that order. Thirty ties over nine waves; the three finals are BO5.
+ * that order. Thirty ties over nine waves; the middle and lower finals are
+ * BO5, the upper final BO3.
  *
  * Seeds: the eight opening-round sides in slot order, then the four byes.
  * Sides that wait a wave — the upper semi-final losers, the upper final's
@@ -121,7 +122,7 @@ export const TRIPLE_12: Wave[] = [
     { name: KL1, slots: [{ a: L(KM1, 0), b: L(KM1, 1) }] },
   ],
   [
-    { name: KUF, slots: [{ a: W(KUSF, 0), b: W(KUSF, 1), bo: 5 }] },
+    { name: KUF, slots: [{ a: W(KUSF, 0), b: W(KUSF, 1) }] },
     { name: KM3, slots: [{ a: W(KM1, 0), b: W(KM2, 1) }, { a: W(KM1, 1), b: W(KM2, 0) }] },
     { name: KL2, slots: [{ a: L(KM2, 0), b: L(KM2, 1) }] },
   ],

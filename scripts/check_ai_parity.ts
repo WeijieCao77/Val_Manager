@@ -26,7 +26,7 @@ import {
 import { askingPrice, clubAcceptsFee, makeOffer, resolveDueOffers } from '../src/engine/transfer'
 import { expectedSalary } from '../src/engine/player'
 import { poolFor } from '../src/engine/match'
-import { MAPS } from '../src/engine/content'
+import { AGENT_ROLE, MAPS } from '../src/engine/content'
 import { Rng } from '../src/engine/rng'
 import { defaultContract } from '../src/engine/types'
 import type { Competition, GameState, Player, Team } from '../src/engine/types'
@@ -165,9 +165,11 @@ const ai = (g: GameState, pick?: (t: Team) => boolean) =>
   const rng = new Rng(4)
   const club = ai(g, (t) => t.tier === 1 && squadOf(g, t.id).length >= 5)
   // a hole in the five: nobody covers 哨卫
-  for (const p of squadOf(g, club.id)) { p.roles = ['决斗者', '先锋', '控场']; p.role = '决斗者'; p.rolePro = {} }
+  for (const p of squadOf(g, club.id)) { p.roles = ['决斗者', '先锋', '控场']; p.role = '决斗者'; p.agentPro = {} }
   const d1 = aiDrillFor(g, club)
-  check('a five with no sentinel puts a learner on it', d1.kind === 'agent' && d1.role === '哨卫', JSON.stringify(d1))
+  // 现在练的是一个具体英雄，所以看的是这个英雄属不属于缺的那个位置
+  check('a five with no sentinel puts a learner on a sentinel agent',
+    d1.kind === 'agent' && AGENT_ROLE[d1.agent] === '哨卫', JSON.stringify(d1))
   // the pool's weakest map gets run
   for (const p of squadOf(g, club.id)) { p.roles = ['决斗者', '先锋', '控场', '哨卫'] }
   const pool = poolFor(g)

@@ -11,8 +11,8 @@ import { awardPrize, weeklyFinance } from './finance'
 import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
-import { mapCn } from './content'
-import { FAM_MATCH, FAM_SCRIM, learnComp } from './comp'
+import { MAP_META, agentCn, mapCn } from './content'
+import { FAM_MATCH, FAM_SCRIM, learnComp, rollPatch } from './comp'
 import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
 import { hostCity } from './hosts'
 import { applyMatchBonds } from './bonds'
@@ -346,6 +346,31 @@ function createChampions(state: GameState, name: string, day: number): void {
  * finish and what it cost now go into the turn's digest. The stage we were
  * briefed on is left to settleObjective, so the board never says two things.
  */
+/**
+ * 换一个版本。
+ *
+ * 教练给的节奏：一年一次大型更新（系统性，休赛期），中间以国际赛为版本分界线
+ * 做中小型更新。所以这里挂在国际赛结算上，Champions 之后那次是大改。
+ *
+ * 只动现役图池里出场的英雄——没人玩的角色改了也没人知道。
+ */
+export function applyPatch(state: GameState, big: boolean): void {
+  const pool = Array.from(new Set(poolFor(state).flatMap((m) => MAP_META[m] ?? [])))
+  if (!pool.length) return
+  const rng = new Rng(hashStr(`patch:${state.seed}:${state.year}:${state.day}`))
+  const name = big ? `${state.year} 休赛期大改` : `${state.year} 赛中调整`
+  state.patch = rollPatch(state.patch, pool, state.day, name, big, rng)
+  const say = (list: string[]) => list.map(agentCn).join('、')
+  const parts: string[] = []
+  if (state.patch.buffed.length) parts.push(`加强 ${say(state.patch.buffed)}`)
+  if (state.patch.nerfed.length) parts.push(`削弱 ${say(state.patch.nerfed)}`)
+  if (!parts.length) return
+  state.news.push({
+    day: state.day, kind: 'league', important: big,
+    text: `🔧 ${name}：${parts.join('；')}。逆着版本排阵容要吃亏。`,
+  })
+}
+
 export function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
   if (comp.awarded || !comp.champion) return
   comp.awarded = true
@@ -365,6 +390,11 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
     day: state.day, kind: 'league', important: true,
     text: `🏆 ${champ?.name} 夺得 ${comp.name} 冠军！`,
   })
+  // 版本以国际赛为分界线更替 —— 一年一次大改（Champions 之后，进休赛期），
+  // 中间的大师赛之后是中小改。地区赛不改版本。
+  if (comp.stage === 'masters1' || comp.stage === 'masters2' || comp.stage === 'champions') {
+    applyPatch(state, comp.stage === 'champions')
+  }
   // every man on the winning roster carries this title from now on — the
   // farewell card reads it, and it is entirely a thing that happened here
   for (const pid of champ?.roster ?? []) {
@@ -1742,7 +1772,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       pendingMine = f
       continue
     }
-    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f), f.scrim)
+    const result = simulateMatch(state, f.teamA, f.teamB, f.bo, fixtureRng(state, f), f.scrim, f.label)
     commitFixture(state, f, result, notes)
     if (isMine) playedMine.push(f)
   }

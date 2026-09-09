@@ -7,9 +7,51 @@ import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
 import { growLoyalty } from './loyalty'
 import { skillMod } from './manager'
-import { AGENTS, MAPS, mapCn } from './content'
+import { AGENTS, AGENT_ROLE, MAP_META, MAPS, agentCn, mapCn } from './content'
 import { FAM_DRILL, learnComp } from './comp'
 import { poolFor, sheetFor } from './match'
+import { rolePeak } from './agents'
+
+/** 一周专练一个英雄涨多少。练一个角色比练一整个位置快，所以比旧值高。 */
+export const AGENT_DRILL = 4.2
+
+/**
+ * 练一个英雄。练满 100 时，如果这是他还不会的位置，他就此兼任那个位置。
+ *
+ * 回 null 表示还没练满；练满的那一周回一次，附带新兼任的位置（如果有）。
+ */
+export function learnAgent(
+  p: Player, agent: string, amount: number,
+): { newRole?: Role } | null {
+  const before = p.agentPro?.[agent] ?? 0
+  if (before >= 100) return null
+  const now = clamp(before + amount, 0, 100)
+  p.agentPro = { ...(p.agentPro ?? {}), [agent]: now }
+  // 常用英雄列表是展示用的，练到三分之一就该出现在他名下
+  if (now >= 34 && !p.agentPool.includes(agent)) p.agentPool = [...p.agentPool, agent]
+  if (now < 100) return null
+  const need = AGENT_ROLE[agent]
+  const roles = p.roles?.length ? p.roles : [p.role]
+  if (need && !roles.includes(need)) {
+    p.roles = [...roles, need]
+    p.flex = true
+    return { newRole: need }
+  }
+  return {}
+}
+
+/**
+ * AI 俱乐部补位置缺口时挑哪个英雄：这个位置上现役地图最常用的那个，
+ * 优先挑他已经开了个头的。
+ */
+export function pickAgentToLearn(p: Player, role: Role): string | undefined {
+  const common = Array.from(new Set(MAPS.flatMap((m) => MAP_META[m] ?? [])))
+    .filter((a) => AGENT_ROLE[a] === role)
+  const list = common.length ? common : (AGENTS[role] ?? [])
+  return list
+    .filter((a) => (p.agentPro?.[a] ?? 0) < 100)
+    .sort((x, y) => (p.agentPro?.[y] ?? 0) - (p.agentPro?.[x] ?? 0))[0]
+}
 import { facilityCost } from './staff'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
@@ -371,25 +413,13 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       // needs the better part of a season, which is what makes buying a real
       // specialist worth the money.
       const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
-      const before = p.rolePro?.[drill.role] ?? 0
-      const now = clamp(before + gain(2.6) * aptitude, 0, 100)
-      p.rolePro = { ...(p.rolePro ?? {}), [drill.role]: now }
+      const learned = learnAgent(p, drill.agent, gain(AGENT_DRILL) * aptitude)
       addXp(p, 'utility', gain(4))
       p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
-
-      // agents come in along the way, so progress is visible before it pays off
-      const earned = Math.floor(now / 34) - Math.floor(before / 34)
-      for (let i = 0; i < earned; i++) {
-        const pool = AGENTS[drill.role].filter((a) => !p.agentPool.includes(a))
-        if (pool.length) p.agentPool = [...p.agentPool, rng.pick(pool)]
-      }
-      if (now >= 100 && before < 100) {
-        const roles = p.roles?.length ? p.roles : [p.role]
-        if (!roles.includes(drill.role)) {
-          p.roles = [...roles, drill.role]
-          p.flex = true
-        }
-        notes.push(`🎓 ${p.ign} 练成了${drill.role}，现在可以兼任这个位置。`)
+      if (learned) {
+        notes.push(learned.newRole
+          ? `🎓 ${p.ign} 把${agentCn(drill.agent)}练满了，现在可以兼任${learned.newRole}。`
+          : `🎓 ${p.ign} 把${agentCn(drill.agent)}练满了。`)
         state.drill = { kind: 'none' }
       }
       break
@@ -456,9 +486,12 @@ export function aiDrillFor(state: GameState, team: Team): TeamDrill {
   if (missing) {
     const fit = (p: Player) => p.attrs.awareness + p.attrs.utility + (p.flex ? 20 : 0)
     const learner = five
-      .filter((p) => p.injuredUntil <= state.day && !p.isIgl && (p.rolePro?.[missing] ?? 0) < 100)
+      .filter((p) => p.injuredUntil <= state.day && !p.isIgl && rolePeak(p, missing) < 100)
       .sort((a, b) => fit(b) - fit(a))[0]
-    if (learner) return { kind: 'agent', playerId: learner.id, role: missing }
+    if (learner) {
+      const agent = pickAgentToLearn(learner, missing)
+      if (agent) return { kind: 'agent', playerId: learner.id, agent }
+    }
   }
   const pool = poolFor(state)
   const weak = pool.slice().sort((a, b) => (team.mapPrefs[a] ?? 50) - (team.mapPrefs[b] ?? 50))
@@ -516,27 +549,9 @@ export function aiClubWeek(state: GameState, team: Team, rng: Rng): void {
       const p = state.players[drill.playerId]
       if (!p || p.teamId !== team.id) break
       const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
-      const before = p.rolePro?.[drill.role] ?? 0
-      const now = clamp(before + gain(2.6) * aptitude, 0, 100)
-      p.rolePro = { ...(p.rolePro ?? {}), [drill.role]: now }
+      learnAgent(p, drill.agent, gain(AGENT_DRILL) * aptitude)
       drilled(p, 'utility', gain(4))
       p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
-      const earned = Math.floor(now / 34) - Math.floor(before / 34)
-      for (let i = 0; i < earned; i++) {
-        const pool = AGENTS[drill.role].filter((a) => !p.agentPool.includes(a))
-        if (pool.length) p.agentPool = [...p.agentPool, rng.pick(pool)]
-      }
-      if (now >= 100 && before < 100) {
-        const roles = p.roles?.length ? p.roles : [p.role]
-        if (!roles.includes(drill.role)) {
-          p.roles = [...roles, drill.role]
-          p.flex = true
-        }
-        state.news.push({
-          day: state.day, kind: 'player',
-          text: `${team.tag} 的 ${p.ign} 练成了${drill.role}，现在可以兼任这个位置。`,
-        })
-      }
       break
     }
     default:

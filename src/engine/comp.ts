@@ -286,3 +286,230 @@ export function learnComp(
   state.compPro = { ...(state.compPro ?? {}), [map]: { key, value } }
   return value
 }
+
+// ============================================================ 打法风格三角
+
+/**
+ * 阵容的第二条轴：不是「谁上场」，是「道具怎么用」。
+ *
+ * comp.ts 上半部分数的是位置（双决斗 / 双哨卫 / 双控场），那条轴回答的是队形。
+ * 这条轴来自 Isaaa 的 Style Dynamics 指南，回答的是打法，两条正交：星礈是控场，
+ * 但她的回收烟是拿来换对面道具的；海神加蝰蛇循环冷却封点才是控制。同一个位置
+ * 组合可以落在三角的不同角上。
+ *
+ *   快攻 Aggro     一次性的催化型道具砸开空间，趁道具还在的窗口内打完回合
+ *   消耗 Midrange  高频 + 可再生道具，拿便宜的换对面贵的，赢残局和下包后
+ *   控制 Control   预铺点位、封锁空间，决定对面能走到哪
+ *
+ * 快攻克控制，消耗克快攻，控制克消耗。（指南第 14 页把这行写反了，第 3、6、
+ * 10 页和 FNATIC 输给 LOUD 那个实例都是这个方向。）
+ *
+ * 系数是 scripts/style_dynamics.ts 标定的：三项先各自归一化到 [-1,1]，分母取
+ * 八千套抽样阵容的 5%/95% 分位——理论极值（纯快攻打纯控制）在五人阵容里根本
+ * 排不出来，拿它标定会让克制项在实战中缩到 ±1%。
+ */
+export type StyleAxis = 0 | 1 | 2
+export const STYLE_CN = ['快攻', '消耗', '控制'] as const
+export type StyleMix = [number, number, number]
+
+/**
+ * 每个英雄在三角上的点数，总分 3。
+ *
+ * 判据是道具性质，见 src/data/abilities.json（valorant-api 的技能表 +
+ * Fandom 的充能与冷却，由 scripts/fetch_agent_abilities.py 抓取）：
+ * 一次性的开路/位移道具算快攻，免费且冷却 ≥15 秒的可再生道具算消耗，
+ * 预铺封锁算控制。2 秒那种使用窗口不算再生。
+ */
+export const AGENT_STYLE: Record<string, StyleMix> = {
+  Jett: [3, 0, 0], Raze: [2, 1, 0], Phoenix: [2, 1, 0], Reyna: [3, 0, 0],
+  Yoru: [2, 1, 0], Neon: [3, 0, 0], Iso: [2, 0, 1], Waylay: [3, 0, 0],
+  // 钛狐四个技能全是一次性的开路道具，没有一个能再生。他原本被归到消耗，是
+  // 「铁夜壶 = 铁臂+夜露+钛狐」这条把错误抓出来的：这套的俗称说明它是抓人和
+  // 开局的阵容，而按旧分类它落在三角正中心，克制项恒为零。
+  Sova: [0, 2, 1], Breach: [3, 0, 0], Skye: [1, 2, 0], 'KAY/O': [1, 2, 0],
+  Fade: [1, 2, 0], Gekko: [0, 3, 0], Tejo: [2, 1, 0],
+  Brimstone: [1, 0, 2], Viper: [0, 1, 2], Omen: [0, 1, 2], Astra: [0, 2, 1],
+  Harbor: [0, 0, 3], Clove: [0, 1, 2], Miks: [0, 1, 2],
+  Sage: [0, 1, 2], Cypher: [0, 0, 3], Killjoy: [0, 0, 3], Chamber: [0, 1, 2],
+  Deadlock: [0, 0, 3], Vyse: [0, 0, 3], Veto: [0, 0, 3],
+}
+
+/**
+ * 每张图想让你怎么打。
+ *
+ * 这组数来自九位教练/复盘从业者的问卷（scripts/survey_ingest.py）。问卷的地图
+ * 那半跟原先手填的表几乎完全一致——微风岛屿差 0.01、森寒冬港 0.02、亚海 0.03，
+ * 十三张里十二张差距小于 0.15——所以直接采用他们的平均值。英雄那半没有采用：
+ * 在国内语境里「控制」是控图，是每套阵容都在做的事，不是区分维度，换上去会让
+ * 八套阵容里七套都读成控制。
+ */
+export const MAP_WANT: Record<string, StyleMix> = {
+  Ascent: [0.36, 0.31, 0.33], Bind: [0.29, 0.41, 0.30], Breeze: [0.17, 0.28, 0.55],
+  Corrode: [0.27, 0.33, 0.40], Fracture: [0.54, 0.20, 0.26], Haven: [0.34, 0.32, 0.34],
+  Icebox: [0.24, 0.26, 0.50], Lotus: [0.36, 0.28, 0.36], Pearl: [0.23, 0.38, 0.38],
+  Split: [0.39, 0.16, 0.45], Summit: [0.25, 0.36, 0.39], Sunset: [0.34, 0.30, 0.36],
+  Abyss: [0.47, 0.23, 0.29],
+}
+
+const CENTRE: StyleMix = [1 / 3, 1 / 3, 1 / 3]
+
+/** 五个人的点数加总归一化，得到阵容在三角上的坐标。 */
+export function styleMix(agents: Iterable<string>): StyleMix {
+  const s: StyleMix = [0, 0, 0]
+  for (const a of agents) {
+    const v = AGENT_STYLE[a]
+    if (!v) continue
+    s[0] += v[0]; s[1] += v[1]; s[2] += v[2]
+  }
+  const t = s[0] + s[1] + s[2]
+  return t ? [s[0] / t, s[1] / t, s[2] / t] : CENTRE
+}
+
+/** 0 = 三边平衡（万金油），1 = 押死一个角。 */
+export const stylePurity = (m: StyleMix): number => (Math.max(...m) - 1 / 3) / (2 / 3)
+
+/** 主轴。三边差不到五个点就是没有主轴，不能随便挑一个。 */
+export const styleName = (m: StyleMix): string =>
+  Math.max(...m) - Math.min(...m) < 0.05 ? '均衡' : STYLE_CN[m.indexOf(Math.max(...m)) as StyleAxis]
+
+/**
+ * 克制项，双线性型。反对称，所以镜像自动归零、两边都平衡也自动归零——指南说
+ * 亚海默认阵容「永远不被克也吃不到红利」，这个式子直接就是那句话。
+ */
+const RPS = [[0, -1, 1], [1, 0, -1], [-1, 1, 0]]
+export function styleCounter(u: StyleMix, v: StyleMix): number {
+  let e = 0
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) e += u[i] * RPS[i][j] * v[j]
+  return e
+}
+
+/**
+ * 阵容跟这张图的契合度，用点积而不是距离。
+ *
+ * 用 L1 距离的那一版让万金油阵容在十三张图上全部排第一——单纯形的质心离谁都
+ * 近，那是距离的性质不是设计。点积奖励的是「往这张图要的方向压」。
+ */
+export const styleAlign = (m: StyleMix, map: string): number => {
+  const d = MAP_WANT[map] ?? CENTRE
+  return m[0] * d[0] + m[1] * d[1] + m[2] * d[2]
+}
+
+/**
+ * 归一化用的常数，由 scripts/style_dynamics.ts 对八千套合法五人阵容抽样得出。
+ * 契合度用全局尺度而不是按图各自拉满：需求越平的图（亚海 36/31/33），阵容
+ * 选择就越不重要，这是这张表该有的性质。
+ */
+const ALIGN_MID = 1 / 3
+const ALIGN_SPAN = 0.075
+const COUNTER_HALF = 0.30
+const clamp1 = (x: number) => Math.max(-1, Math.min(1, x))
+
+export const alignN = (m: StyleMix, map: string): number =>
+  clamp1((2 * (styleAlign(m, map) - ALIGN_MID)) / ALIGN_SPAN)
+export const counterN = (u: StyleMix, v: StyleMix): number =>
+  clamp1(styleCounter(u, v) / COUNTER_HALF)
+
+/**
+ * 三项各值多少回合强度点。
+ *
+ * 教练给的优先级是 版本之子 > 阵容合适 > 阵容强，所以三项的极差按这个顺序
+ * 递减：全员版本之子打全员逆版本 64%、这张图最合适打最不合适 60%、克制方打
+ * 被克方 57%（一张图的胜率）。参照物是 comp.ts 的滑杆——顺着打对逆着打约十个
+ * 地图胜率点，跟地图熟悉度同量级。
+ *
+ * 克制项定得最小是有依据的：指南里 FNATIC 靠它打赢了当时所有主流阵容，但它
+ * 没救下对 LOUD 那场。它是加成，不是胜负手。
+ */
+export const STYLE_K = { version: 2.05, map: 1.45, counter: 1.01 }
+
+// ---------------------------------------------------------------- 版本
+
+/**
+ * 一个版本。
+ *
+ * 教练给的节奏：一年一次大型更新（系统性，休赛期），中间以国际赛为分界线做
+ * 中小型更新。所以这里的「换版本」挂在赛事结束上，不挂在日期上。
+ *
+ * `coef` 是每个英雄的版本系数，−1 到 +1。它不改英雄的三角坐标——改的是他现在
+ * 值不值得上。版本之子定义为 +0.8，五个人全是版本之子就把归一化项打满。
+ */
+export interface Patch {
+  /** 生效那天 */
+  since: number
+  name: string
+  /** 英雄 → 版本系数 [-1, 1]，没有的就是 0 */
+  coef: Record<string, number>
+  /** 加强了谁、削弱了谁，给收件箱用 */
+  buffed: string[]
+  nerfed: string[]
+  big: boolean
+}
+
+/** 版本之子的门槛。也是归一化的分母：五个人全是版本之子刚好打满。 */
+export const DARLING = 0.8
+
+/** 一套五人相对这个版本站在哪。−1 全逆版本，+1 全版本之子。 */
+export function versionN(agents: Iterable<string>, patch: Patch | undefined): number {
+  if (!patch) return 0
+  let sum = 0, n = 0
+  for (const a of agents) { sum += patch.coef[a] ?? 0; n++ }
+  return n ? clamp1(sum / n / DARLING) : 0
+}
+
+/** 这个版本里最强势的几个英雄。 */
+export const darlings = (patch: Patch | undefined, n = 3): string[] =>
+  Object.entries(patch?.coef ?? {})
+    .filter(([, v]) => v >= DARLING * 0.55)
+    .sort((a, b) => b[1] - a[1]).slice(0, n).map(([a]) => a)
+
+/**
+ * 滚一个新版本。
+ *
+ * 旧系数先往回衰减——没有英雄永远是版本之子，这也是逆版本会自己解除的原因。
+ * 大改动的英雄多、幅度大；国际赛之间的小改只动三四个。
+ *
+ * `pick` 传的是当前可选的英雄池，所以还没进游戏的英雄不会被改动。
+ */
+export function rollPatch(
+  prev: Patch | undefined, pool: readonly string[], day: number, name: string,
+  big: boolean, rng: { norm(m: number, sd: number): number; int(a: number, b: number): number },
+): Patch {
+  const coef: Record<string, number> = {}
+  for (const [a, v] of Object.entries(prev?.coef ?? {})) {
+    const decayed = v * (big ? 0.6 : 0.82)
+    if (Math.abs(decayed) > 0.05) coef[a] = decayed
+  }
+  const buffed: string[] = []
+  const nerfed: string[] = []
+  const touched = new Set<string>()
+  for (let i = 0; i < (big ? 9 : 3); i++) {
+    const a = pool[rng.int(0, pool.length - 1)]
+    if (!a || touched.has(a)) continue
+    touched.add(a)
+    const before = coef[a] ?? 0
+    const after = clamp1(before + rng.norm(0, big ? 0.6 : 0.35))
+    coef[a] = after
+    if (after - before > 0.15) buffed.push(a)
+    else if (before - after > 0.15) nerfed.push(a)
+  }
+  return { since: day, name, coef, buffed, nerfed, big }
+}
+
+/**
+ * 打法风格给这场比赛的全部加成，我方视角的回合强度差。
+ *
+ * 三项都归一化到 [-1,1] 之后乘各自的系数，所以它们可以直接比大小，也就守得住
+ * 「版本之子 > 阵容合适 > 阵容强」这个优先级。
+ */
+export function styleEdge(
+  mine: Iterable<string>, theirs: Iterable<string>, map: string, patch: Patch | undefined,
+): { total: number; version: number; map: number; counter: number; mix: StyleMix; foe: StyleMix } {
+  const a = Array.from(mine)
+  const b = Array.from(theirs)
+  const u = styleMix(a)
+  const v = styleMix(b)
+  const version = STYLE_K.version * (versionN(a, patch) - versionN(b, patch))
+  const mapFit = STYLE_K.map * (alignN(u, map) - alignN(v, map))
+  const counter = 2 * STYLE_K.counter * counterN(u, v)
+  return { total: version + mapFit + counter, version, map: mapFit, counter, mix: u, foe: v }
+}

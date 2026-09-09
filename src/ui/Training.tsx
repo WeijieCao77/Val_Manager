@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { ask } from './confirm'
-import { mapCn } from '../engine/content'
+import { AGENTS, AGENT_ROLE, agentCn, mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { callerOf, squadOf } from '../engine/roster'
 import { stageName } from '../engine/season'
+import { AGENT_DRILL } from '../engine/training'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
-import type { Role } from '../engine/types'
 import { poolFor } from '../engine/match'
 import { logActivity } from '../engine/agenda'
 import {
@@ -107,7 +107,7 @@ export default function Training() {
     const main = !d || d.kind === 'none' ? '不安排团队训练'
       : d.kind === 'map' ? `跑图 ${[d.map, d.map2].filter((m): m is string => !!m).map(mapCn).join('＋')}`
         : d.kind === 'review' ? '教练复盘'
-          : `${game.players[d.playerId]?.ign} 练${d.role}`
+          : `${game.players[d.playerId]?.ign} 练${agentCn(d.agent)}`
     const duo = game.duo
       ? ` ＋ 双排 ${game.players[game.duo.a]?.ign}/${game.players[game.duo.b]?.ign}`
       : ''
@@ -236,37 +236,47 @@ export default function Training() {
           </div>
 
           <div className="drill-card">
-            <b>练新英雄</b>
+            <b>练英雄</b>
             <p className="tiny muted">
-              位置熟练度每周约 <b>+3</b>，满 100 就能兼任该位置，每 34% 解锁一个该位置英雄。
+              这个英雄的熟练度每周约 <b>+{AGENT_DRILL}</b>。练满 100 就能把他当本命用；
+              如果不是他的位置，练满还会让他兼任那个位置。
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {fit.map((p) => (
                 <select key={p.id} className="sm" style={{ width: 'auto', padding: '4px 7px', fontSize: 12 }}
-                  value={drill.kind === 'agent' && drill.playerId === p.id ? drill.role : ''}
+                  value={drill.kind === 'agent' && drill.playerId === p.id ? drill.agent : ''}
                   onChange={(e) => {
-                    const role = e.target.value as Role
-                    if (!role) return
-                    setDrill({ kind: 'agent', playerId: p.id, role }, `${p.ign} 学习${role}英雄`)
+                    const agent = e.target.value
+                    if (!agent) return
+                    setDrill({ kind: 'agent', playerId: p.id, agent }, `${p.ign} 练${agentCn(agent)}`)
                   }}>
                   <option value="">{p.ign}…</option>
-                  {ROLES.filter((r) => r !== '自由人' && !(p.roles ?? [p.role]).includes(r))
-                    .map((r) => <option key={r} value={r}>{p.ign} 学 {r}</option>)}
+                  {ROLES.filter((r) => r !== '自由人').map((r) => (
+                    <optgroup key={r} label={`${r}${(p.roles ?? [p.role]).includes(r) ? '（本职）' : ''}`}>
+                      {(AGENTS[r] ?? []).filter((a) => (p.agentPro?.[a] ?? 0) < 100).map((a) => (
+                        <option key={a} value={a}>
+                          {agentCn(a)} {Math.round(p.agentPro?.[a] ?? 0)}%
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               ))}
             </div>
             {drill.kind === 'agent' && (() => {
               const learner = game.players[drill.playerId]
-              const pro = learner?.rolePro?.[drill.role] ?? 0
+              const pro = learner?.agentPro?.[drill.agent] ?? 0
+              const need = AGENT_ROLE[drill.agent]
+              const covers = learner ? (learner.roles ?? [learner.role]).includes(need) : true
               return (
                 <div style={{ marginTop: 8 }}>
                   <div className="row" style={{ gap: 8 }}>
-                    <span className="tiny muted">{learner?.ign} 的{drill.role}熟练度</span>
+                    <span className="tiny muted">{learner?.ign} 的{agentCn(drill.agent)}</span>
                     <Bar value={pro} color="var(--controller)" />
                     <span className="tiny mono">{Math.round(pro)}%</span>
                   </div>
                   <div className="tiny faint" style={{ marginTop: 4 }}>
-                    改练别的位置不会清空进度。
+                    改练别的英雄不会清空进度。{covers ? '' : `练满还能让他兼任${need}。`}
                   </div>
                 </div>
               )

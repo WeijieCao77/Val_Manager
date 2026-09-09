@@ -74,10 +74,15 @@ const mk = (): GameState => {
   // recorded pool was removed, because no training in the game could answer it
   check('someone else\'s job costs exactly the position penalty',
     Math.abs((1 - off) - OFF_ROLE) < 1e-9, `×${off.toFixed(3)}`)
-  duelist.rolePro = { ...(duelist.rolePro ?? {}), 哨卫: 100 }
-  check('drilled to 100%, the position penalty is gone',
+  duelist.agentPro = { ...(duelist.agentPro ?? {}), [wrongAgent]: 100 }
+  check('drilled to 100% ON THAT AGENT, the position penalty is gone',
     agentFit(duelist, wrongAgent) === 1, `×${agentMod(duelist, wrongAgent).toFixed(3)}`)
-  duelist.rolePro = { 哨卫: 50 }
+  // 练的是这一个角色，不是整个位置：同位置的另一个英雄仍然不会
+  const otherSentinel = (AGENTS['哨卫'] ?? []).find((a) => a !== wrongAgent)!
+  check('but the next sentinel is still a stranger',
+    Math.abs((1 - agentMod(duelist, otherSentinel)) - OFF_ROLE) < 1e-9,
+    `×${agentMod(duelist, otherSentinel).toFixed(3)}`)
+  duelist.agentPro = { [wrongAgent]: 50 }
   const half = 1 - agentMod(duelist, wrongAgent)
   check('and halfway there costs half of it',
     Math.abs(half - OFF_ROLE * 0.5) < 1e-9, `−${(half * 100).toFixed(1)}%`)
@@ -112,7 +117,13 @@ const mk = (): GameState => {
     for (const m of MAPS) {
       const picks = autoAgents(g, t.id, five, m)
       if (agentRoleGaps(five, picks).length) gaps++
-      const off = five.filter((p) => agentFit(p, picks[p.id]) < 1).length
+      // 「错位」问的是位置，不是熟不熟这个角色 —— 本职里没练过的英雄有惩罚，
+      // 但那不叫错位，那是让他去练
+      const off = five.filter((p) => {
+        const need = AGENT_ROLE[picks[p.id]]
+        const covers = p.roles ?? [p.role]
+        return !!need && !covers.includes(need) && !covers.includes('自由人')
+      }).length
       forced += Math.min(off, missing)
       avoidable += Math.max(0, off - missing)
     }
@@ -132,7 +143,10 @@ const mk = (): GameState => {
     const rs = (p.roles ?? [p.role]).filter((r) => r !== '哨卫')
     p.role = rs[0] ?? '决斗者'
     p.roles = rs.length ? rs : ['决斗者']
-    p.rolePro = {}
+    // 熟练度按英雄记之后，光改 roles 不够 —— 他仍然会奇乐。要造一个真的打
+    // 不了哨卫的五人，得连英雄熟练度一起清掉。
+    p.agentPro = Object.fromEntries(
+      Object.entries(p.agentPro ?? {}).filter(([a]) => AGENT_ROLE[a] !== '哨卫'))
   }
   let holeForced = 0
   let holeGaps = 0
@@ -220,11 +234,20 @@ const mk = (): GameState => {
   const mine = p.roles ?? [p.role]
   const own = (AGENTS[mine[0]] ?? []).filter((a) => !p.agentPool.includes(a))
   check('there is an agent of his own role he has never been recorded on', own.length > 0)
-  check('and it costs him nothing — the drill trains positions, not characters',
-    agentMod(p, own[0]) === 1, `×${agentMod(p, own[0]).toFixed(3)}`)
+  // 本职里一个没碰过的角色现在是有代价的 —— 而且这个代价练一周就能开始还
+  const unknown = 1 - agentMod(p, own[0])
+  check('an agent of his own role he has never touched costs something, but less than a wrong job',
+    unknown > 0 && unknown < OFF_ROLE - 1e-9, `−${(unknown * 100).toFixed(1)}%`)
   const played = (AGENTS[mine[0]] ?? []).find((a) => p.agentPool.includes(a))
   if (played) {
-    check('exactly the same as one he has played', agentMod(p, played) === agentMod(p, own[0]))
+    check('one he actually plays costs nothing', agentMod(p, played) === 1)
+    check('and the manager can close the gap by drilling that one agent', (() => {
+      const before = agentMod(p, own[0])
+      p.agentPro = { ...(p.agentPro ?? {}), [own[0]]: 100 }
+      const after = agentMod(p, own[0])
+      delete p.agentPro[own[0]]
+      return before < 1 && after === 1
+    })())
   }
 }
 

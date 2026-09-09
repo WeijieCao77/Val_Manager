@@ -1,3 +1,4 @@
+import { seedAgentPro } from './agents'
 import { canonAgents } from './content'
 import raw from '../data/world.json'
 import { dossierOf } from './dossier'
@@ -191,6 +192,10 @@ export function createNewGame(
   for (const p of freeAgentPool(2026)) {
     if (!players[p.id]) players[p.id] = p
   }
+
+  // 熟练度按英雄记，种子是他真正打过的那些角色。自由球员和青训也一起播，
+  // 否则签进来的人会一个英雄都不会。
+  for (const p of Object.values(players)) p.agentPro = seedAgentPro(p)
 
   const teams: Record<string, Team> = {}
   for (const rt of WORLD_TEAMS) {

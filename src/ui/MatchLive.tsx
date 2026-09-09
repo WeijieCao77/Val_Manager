@@ -32,7 +32,7 @@ export default function MatchLive({
   const rerender = useCallback(() => bump((x) => x + 1), [])
 
   if (!simRef.current) {
-    simRef.current = new MatchSim(game, fixture.teamA, fixture.teamB, fixture.bo, fixtureRng(game, fixture), fixture.scrim)
+    simRef.current = new MatchSim(game, fixture.teamA, fixture.teamB, fixture.bo, fixtureRng(game, fixture), fixture.scrim, fixture.label)
   }
   const sim = simRef.current
   const mySide: Side | null = sim.sideOf(game.myTeam)
