@@ -22,14 +22,15 @@ import { createServer } from 'node:http'
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EVENTS, MAX_BODY, SCHEMA, rateLimited, sanitize, tokenOk } from './analytics.js'
-import { CARD_SCHEMA, engine, makeCardApi, normalizeId } from './cards-api.js'
+import { EVENTS, MAX_BODY, rateLimited, sanitize, tokenOk } from './analytics.js'
+import { engine, makeCardApi, normalizeId } from './cards-api.js'
 import { displayName } from './names.js'
-import { PROFILE_SCHEMA, makeProfileApi } from './profile-api.js'
-import { SITE_SCHEMA, makeSiteApi } from './site-api.js'
+import { makeProfileApi } from './profile-api.js'
+import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
 import { overview, prune, storage } from './stats.js'
-import { ROLLUP_SCHEMA, history, rollup } from './rollup.js'
+import { history, rollup } from './rollup.js'
+import { SCHEMAS, applySchema } from './db-schema.js'
 import { dashboardHtml } from './dashboard.js'
 import { bucketOf } from './client-ip.js'
 
@@ -110,9 +111,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
     // every table the Postgres branch creates, so the dashboard and the
     // analytics routes answer locally too instead of 500ing on a missing
     // relation — which is exactly the kind of thing a local run is for
-    for (const schema of [SCHEMA, ROLLUP_SCHEMA, CARD_SCHEMA, SITE_SCHEMA, PROFILE_SCHEMA]) {
-      await sql.unsafe(schema)
-    }
+    for (const schema of SCHEMAS) await sql.unsafe(schema)
     console.log('cards: in-process database (pglite), nothing persists')
   } catch (err) {
     console.warn('pglite: schema failed —', err.message)
@@ -130,12 +129,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
       ssl: process.env.DATABASE_URL.includes('railway.internal') ? false : 'require',
       onnotice: () => {},
     })
-    await sql.unsafe(SCHEMA)
-    await sql.unsafe(CARD_SCHEMA)
-    await sql.unsafe(PROFILE_SCHEMA)
-    await sql.unsafe(SITE_SCHEMA)
-    await sql.unsafe(ROLLUP_SCHEMA)
-    console.log('analytics: connected, schema ready')
+    await applySchema(sql)
     // Settle what the market owes, before anyone trades. Until 2026-09-03 a
     // listing that died of three ignored offers kept the bids still sitting
     // on it; the sweep refunds now, and this pays back whoever it already

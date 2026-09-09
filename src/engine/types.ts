@@ -593,6 +593,14 @@ export interface Team {
    * flagged. Older saves lack it and are settled on their next day.
    */
   igl?: string | null
+  /**
+   * The year this club won Ascension, for as long as the slot it won is
+   * still running. A promoted club holds its place for two seasons — that is
+   * the term the real circuit gives it — so it is not the one sent back down
+   * at the end of the first. Absent on every club that came up long ago or
+   * never did.
+   */
+  ascendedYear?: number
 }
 
 /** How a single round played out — drives the broadcast-style round ribbon. */

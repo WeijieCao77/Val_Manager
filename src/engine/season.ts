@@ -69,8 +69,13 @@ export const LEAGUE_DAYS: Record<'kickoff' | 'stage1' | 'stage2' | 'challengers1
   kickoff: [24, 38],
   stage1: [112, 147],
   stage2: [220, 255],
-  challengers1: [28, 112],
-  challengers2: [216, 256],
+  // The two Challengers splits used to run 28–112 and 216–256, which put a
+  // hundred and four empty days between them — a tier-2 manager clicked
+  // through three and a half months with nothing to play, every season. The
+  // same twenty matches now sit either side of a break the length of the one
+  // tier 1 gets, and the second split is no longer a sprint next to a crawl.
+  challengers1: [28, 130],
+  challengers2: [172, 268],
 }
 
 /** Days between an international's last match and the next league's first. */
@@ -2008,15 +2013,24 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
     const chal = state.comps[compKey('challengers2', region)]
     const promoted = chal?.champion ? state.teams[chal.champion] : null
     if (!promoted) continue
-    const relegated = Object.values(state.teams)
-      .filter((t) => t.region === region && t.tier === 1)
+    const tier1 = Object.values(state.teams).filter((t) => t.region === region && t.tier === 1)
+    // A club that just came up is the one with the fewest champ points almost
+    // by definition, so sorting the whole league sent it straight back down:
+    // win Ascension, play one VCT season, and you are in Challengers again
+    // next February, for ever. The real slot runs two years. So a club still
+    // inside its term is not a candidate, and the league picks its weakest
+    // from the rest.
+    const settled = tier1.filter((t) => t.ascendedYear === undefined || state.year - t.ascendedYear >= 2)
+    const relegated = (settled.length ? settled : tier1)
       .sort((a, b) => a.champPoints - b.champPoints || a.rating - b.rating)[0]
     if (!relegated || relegated.id === promoted.id) continue
 
     promoted.tier = 1
     promoted.league = `VCT ${region}`
+    promoted.ascendedYear = state.year
     relegated.tier = 2
     relegated.league = `Challengers ${region}`
+    delete relegated.ascendedYear
     // going up is the biggest thing that can happen to a club's name in a
     // year; going down is the second biggest
     promoted.reputation = clamp(promoted.reputation + CLUB_REP.promoted, 20, 99)
@@ -2053,7 +2067,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       text: `🎫 ${promoted.name} 通过 Ascension 升入 VCT ${region}，${relegated.name} 降入次级联赛。`,
     })
     if (promoted.id === state.myTeam) state.honours.push({ year: state.year, title: `晋级 VCT ${region}` })
-    if (promoted.id === state.myTeam) notes.push(`🎫 我们通过 Ascension 升入 VCT ${region}。`)
+    if (promoted.id === state.myTeam) {
+      notes.push(`🎫 我们通过 Ascension 升入 VCT ${region}，席位保两个赛季。`)
+    }
     if (relegated.id === state.myTeam) notes.push(`🎫 我们降入 Challengers ${region}。`)
   }
 
