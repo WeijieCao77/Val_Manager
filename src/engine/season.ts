@@ -423,6 +423,17 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
 
   if (comp.champion === state.myTeam) {
     state.honours.push({ year: state.year, title: comp.name })
+    // 夺冠那一刻把海报要的东西记下来 —— 对手和城市事后从名字反推不回来
+    const second = state.teams[comp.finished[1] ?? '']
+    state.titlePoster = {
+      year: state.year,
+      tier: comp.stage === 'masters1' || comp.stage === 'masters2' || comp.stage === 'champions'
+        ? 'international' : 'regional',
+      name: comp.name,
+      teamId: state.myTeam,
+      city: comp.city,
+      how: second ? `决赛击败 ${second.name}` : '全胜夺冠',
+    }
     state.boardConfidence = clamp(state.boardConfidence + 14, 0, 100)
     // A world title paints a target on the club. The league answers: harder
     // training and hungrier recruitment everywhere else, so the second trophy
@@ -2096,7 +2107,14 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       day: state.day, kind: 'league', important: true,
       text: `🎫 ${promoted.name} 通过 Ascension 升入 VCT ${region}，${relegated.name} 降入次级联赛。`,
     })
-    if (promoted.id === state.myTeam) state.honours.push({ year: state.year, title: `晋级 VCT ${region}` })
+    if (promoted.id === state.myTeam) {
+      state.honours.push({ year: state.year, title: `晋级 VCT ${region}` })
+      state.titlePoster = {
+        year: state.year, tier: 'ascension', name: `Ascension ${region}`,
+        teamId: state.myTeam,
+        how: `击败 ${relegated.name}，升入一级联赛`,
+      }
+    }
     if (promoted.id === state.myTeam) {
       notes.push(`🎫 我们通过 Ascension 升入 VCT ${region}，席位保两个赛季。`)
     }

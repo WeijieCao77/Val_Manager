@@ -921,6 +921,13 @@ export interface GameState {
   /** qualification posters already shown, as `${year}:${event}` */
   postersSeen?: string[]
   /**
+   * 刚拿下的冠军，等着弹海报。看过就清掉。
+   *
+   * 跟 `honours` 分开：honours 是一行字的档案，海报要的是当时的对手、城市和
+   * 这是哪一级的赛事——事后从名字反推不回来。
+   */
+  titlePoster?: TitlePoster
+  /**
    * How many international titles the player's club has taken, and so how hard
    * the rest of the world is chasing. Every Masters or Champions trophy raises
    * it: AI clubs train harder and recruit for potential, not just today's
@@ -1074,3 +1081,17 @@ export const ARENA_TEAM_ID = 'ARENA'
 /** 这局是不是开瓦包的对战。版本 / 打法三角 / 英雄熟练度都对它让路。 */
 export const isArena = (s: GameState): boolean =>
   s.arena === true || s.myTeam === ARENA_TEAM_ID
+
+
+/** 冠军海报要展示的东西，在夺冠那一刻记下来。 */
+export interface TitlePoster {
+  year: number
+  /** 晋升赛 / 赛区赛 / 国际赛 —— 三级的分量不一样，海报的规格也不一样 */
+  tier: 'ascension' | 'regional' | 'international'
+  name: string
+  teamId: string
+  /** 国际赛才有主办城市 */
+  city?: string
+  /** 怎么拿下的，用玩家的话 */
+  how: string
+}

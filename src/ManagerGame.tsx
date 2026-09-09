@@ -21,6 +21,7 @@ import GameOver from './ui/GameOver'
 import MidReview from './ui/MidReview'
 import RetireCard from './ui/RetireCard'
 import QualifyPoster from './ui/QualifyPoster'
+import ChampionPoster from './ui/ChampionPoster'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame, packState } from './engine/save'
 import { syncCallersWithWorld } from './engine/world'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
@@ -479,6 +480,20 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
             <QualifyPoster
               q={q} club={myTeam.name} tag={myTeam.tag}
               onClose={() => { (game.postersSeen ??= []).push(k); commit() }}
+            />
+          )
+        })()}
+        {/* 夺冠海报走跟晋级海报一样的闸门：教程、复盘、抽签、退役快讯都优先，
+            免得它盖在一个需要操作的界面上（2026-09-07 那次就是这么出的问题）。 */}
+        {(() => {
+          const p = game.titlePoster
+          if (!p) return null
+          if (live || game.gameOver || game.midReview || tour || drawId) return null
+          if ((game.retireFeed ?? []).some((n) => !n.seen && (n.clubId === game.myTeam || n.star))) return null
+          return (
+            <ChampionPoster
+              p={p} club={myTeam.name} tag={myTeam.tag}
+              onClose={() => { game.titlePoster = undefined; commit() }}
             />
           )
         })()}

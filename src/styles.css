@@ -3026,3 +3026,11 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 .compverdict.is-good { border-left-color: var(--sentinel); }
 .compverdict.is-bad { border-left-color: var(--accent); }
 .compverdict.is-flat { color: var(--muted); }
+
+/* ---------------------------------------------------------------- 夺冠海报
+   跟晋级海报共用版式，只加奖杯角标和分档的那一行。 */
+.poster-champ .poster-crest { box-shadow: 0 0 0 8px color-mix(in srgb, var(--warn) 18%, transparent), var(--shadow-card); }
+.poster-lead {
+  font-size: var(--t-small); font-weight: 700; letter-spacing: .16em;
+  margin-top: 4px;
+}
