@@ -167,21 +167,33 @@ const mk = (tag: string, seed = 20260824): GameState => {
   while (!g.gameOver && guard++ < 200 && g.year === 2026) {
     for (const p of Object.values(g.players)) before.set(p.id, p.fatigue)
     advanceDay(g, rng2)
+    // Fatigue is read once for the whole day, so a man has to be judged
+    // against everything his club played that day, not against one fixture of
+    // it. A club with two ties on the calendar sat a starter out of the first
+    // and played him in the second, and he was counted as tired by a match he
+    // did not play — which he was not (2026-09-09, after the Chinese second
+    // tier was redrawn and the fixture list moved with it).
+    const playedToday = new Set<string>()
+    const today: { side: string[]; tid: string }[] = []
     for (const f of g.fixtures) {
       if (!f.played || seen2.has(f.id) || f.comp === 'scrim') continue
       seen2.add(f.id)
       const L = (f.result as never as { lineups?: { a: string[]; b: string[] } })?.lineups
       for (const [side, tid] of [[L?.a, f.teamA], [L?.b, f.teamB]] as const) {
         if (!side) continue
-        const sheet = g.teams[tid as string].starters
-        for (const pid of sheet) {
-          if (side.includes(pid)) continue
-          if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) ghosts++
-        }
-        for (const pid of side) {
-          if (sheet.includes(pid)) continue
-          if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) subs++
-        }
+        for (const pid of side) playedToday.add(pid)
+        today.push({ side: side as string[], tid: tid as string })
+      }
+    }
+    for (const { side, tid } of today) {
+      const sheet = g.teams[tid].starters
+      for (const pid of sheet) {
+        if (playedToday.has(pid)) continue
+        if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) ghosts++
+      }
+      for (const pid of side) {
+        if (sheet.includes(pid)) continue
+        if ((g.players[pid]?.fatigue ?? 0) - (before.get(pid) ?? 0) > 1) subs++
       }
     }
   }
