@@ -974,7 +974,10 @@ export function salvagePlan(g: GachaState, pick: SalvagePick): SalvageLine[] {
     if (!card) continue
     if (!named?.has(owned.id) && !sweep.has(card.rarity)) continue
     // the spares the next upgrade is going to want, left where they are
-    const keep = pick.keepForUpgrade && owned.level < MAX_LEVEL ? DUPES_FOR[owned.level] : 0
+    // a row written by an early client may have no level at all, and
+    // DUPES_FOR[undefined] would reserve NaN spares
+    const level = Math.max(0, Math.trunc(Number(owned.level) || 0))
+    const keep = pick.keepForUpgrade && level < MAX_LEVEL ? DUPES_FOR[level] : 0
     const count = owned.dupes - keep
     if (count <= 0) continue
     out.push({ cardId: owned.id, count, coins: SALVAGE[card.rarity] * count })

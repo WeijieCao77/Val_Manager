@@ -94,7 +94,7 @@ const rememberedHours = (): number => {
 }
 
 export default function Market() {
-  const { g, commit, toast, cloud } = useCards()
+  const { g, commit, toast, cloud, collect } = useCards()
   const level = (id: string) => levelOf(g, id)
   /** other people's listings, a page at a time, in the order the tabs picked */
   const [shelf, setShelf] = useState<Listing[] | null>(null)
@@ -199,6 +199,11 @@ export default function Market() {
   const refresh = load
 
   useEffect(() => { if (cloud) void load() }, [cloud, load])
+  // An auction settles with nobody here to click: the win is posted to the
+  // inbox by the sweep. Opening the shelf empties it, so a card won an hour
+  // ago is in the collection by the time you come to look for it. Quiet —
+  // the 信箱 already carries the record.
+  useEffect(() => { if (cloud) void collect(true) }, [cloud, collect])
   // an auction moves without anyone here clicking: the countdowns tick every
   // half minute and the shelf is re-read every couple of minutes, so a sale
   // or a beaten bid shows up without a reload
@@ -262,7 +267,7 @@ export default function Market() {
   }
 
   /** the shape of a reply to a bid, whichever way it went */
-  const afterBid = (r: Awaited<ReturnType<typeof bidOn>>, price: number) => {
+  const afterBid = async (r: Awaited<ReturnType<typeof bidOn>>, price: number) => {
     if (!r?.ok) {
       toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
@@ -279,7 +284,12 @@ export default function Market() {
     void commit()
     setBidOpen(null); setBidPrice('')
     const paid = typeof r.price === 'number' ? r.price : price
-    toast(r.bought ? `一口价成交（${money(paid)} 金币），卡会到你的信箱。`
+    // A bought card is handed over through the inbox. Emptying it here is what
+    // puts it in the collection at the level it was raised to, right now —
+    // otherwise 收藏 kept showing the plain copy already there until the tab
+    // went away and came back.
+    if (r.bought) await collect(true)
+    toast(r.bought ? `一口价成交（${money(paid)} 金币），卡已入库。`
       : `已出价 ${money(paid)}，目前领先。被超过会立刻退回金币。`)
     void refresh()
   }
@@ -292,7 +302,7 @@ export default function Market() {
     setBusy(true)
     const r = await bidOn(bidOpen.id, price)
     setBusy(false)
-    afterBid(r, price)
+    await afterBid(r, price)
   }
 
   const buyNow = async (l: Listing) => {
@@ -301,7 +311,7 @@ export default function Market() {
     setBusy(true)
     const r = await bidOn(l.id, l.buyout)
     setBusy(false)
-    afterBid(r, l.buyout)
+    await afterBid(r, l.buyout)
   }
 
   // the old listings only: an auction settles itself
@@ -330,8 +340,9 @@ export default function Market() {
     const r = await unlistCard(l.id)
     setBusy(false)
     if (!r?.ok) { toast(r?.bound ? '已经有人出价了，撤不回来。' : '这张挂牌已经不在了。'); void refresh(); return }
-    // it comes home through the inbox, like everything else
-    toast('已撤回，卡会回到你的信箱。')
+    // it comes home through the inbox, and the inbox is emptied here
+    await collect(true)
+    toast('已撤回，卡回到了收藏。')
     void refresh()
   }
 

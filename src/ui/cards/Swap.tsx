@@ -37,7 +37,7 @@ const nameOf = (id: string) => {
 }
 
 export default function Swap() {
-  const { g, now, cloud, commit, toast } = useCards()
+  const { g, now, cloud, commit, toast, collect } = useCards()
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [friend, setFriend] = useState<{ name: string; tag: string; code: string; cards: FriendCard[] } | null>(null)
@@ -113,7 +113,8 @@ export default function Swap() {
     }
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
-    toast(accept ? `成交。${nameOf(s.give)} 会到你的信箱。` : '已拒绝，卡退回对方。')
+    if (accept) await collect(true)
+    toast(accept ? `成交，${nameOf(s.give)} 已入库。` : '已拒绝，卡退回对方。')
     void refresh()
   }
 
@@ -121,7 +122,8 @@ export default function Swap() {
     setBusy(true)
     const r = await cancelSwap(s.id)
     setBusy(false)
-    toast(r?.ok ? `已撤回，${nameOf(s.give)} 会回到你的信箱。` : '这个交换已经结束了。')
+    if (r?.ok) await collect(true)
+    toast(r?.ok ? `已撤回，${nameOf(s.give)} 回到了收藏。` : '这个交换已经结束了。')
     void refresh()
   }
 

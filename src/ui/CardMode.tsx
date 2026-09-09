@@ -223,11 +223,11 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
    * grant from the owner, a gift sent before gifting was removed — collected
    * into the account by the server and handed back with it.
    */
-  const collect = useCallback(async (): Promise<number> => {
+  const collect = useCallback(async (quiet = false): Promise<number> => {
     const r = await act('mail_take')
     if (!r.ok) return 0
     const mail = ((r.result as { mail?: MailItem[] } | undefined)?.mail ?? [])
-    if (mail.length) {
+    if (mail.length && !quiet) {
       // the toast is the knock; the 信箱 button at the top is the letter
       toast(mail.length === 1
         ? `${mailLine(mail[0])}，已收下。`
@@ -284,11 +284,12 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     commit,
     act,
     toast,
+    collect,
     openDossier: (id: string) => { setDossierId(id); setTab('dossier') },
     go: setTab,
   // gRef is stable; bump() drives the re-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [commit, act, toast, today, now, cloud, gRef.current, tab])
+  }), [commit, act, toast, collect, today, now, cloud, gRef.current, tab])
 
   if (booting) {
     return <div className="wrap" style={{ padding: 40 }}><p className="muted">正在读取卡牌账号…</p></div>
