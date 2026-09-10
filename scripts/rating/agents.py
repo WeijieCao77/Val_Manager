@@ -153,9 +153,10 @@ def main():
     envA = EventEnv(recs_cov)
     A_lines = event_lines(records, date(2100, 1, 1), envA)
     A = {}
+    eid_at = {(r.key, r.end): r.eid for r in recs_cov}
     for key, ls in A_lines.items():
         for e in ls:
-            eid = next((r.eid for r in recs_cov if r.key == key and r.end == e.end), None)
+            eid = eid_at.get((key, e.end))
             if eid:
                 A[(key, eid)] = (e.abilities, e.role_share, e.rnd, e.z)
     both = [k for k in B if k in A]
@@ -252,7 +253,13 @@ def main():
         ign = next(v for (kk, e), v in B.items() if kk == k)[3]
         n = sum(1 for (kk, e) in B if kk == k)
         L.append(f"| {ign} | {max(a[1], key=a[1].get)} | {n} | {a[0]['aim']:+.2f}/{b[0]['aim']:+.2f} | {a[0]['utility']:+.2f}/{b[0]['utility']:+.2f} | {a[0]['teamwork']:+.2f}/{b[0]['teamwork']:+.2f} | {a[0]['awareness']:+.2f}/{b[0]['awareness']:+.2f} | {combat_of(a[0], a[1]):+.2f}/{combat_of(b[0], b[1]):+.2f} |")
-    L.append("\n前面是点名的；之后是作战值上升最多和下降最多的各五人。")
+    L.append("\n前面是点名的；之后是作战值上升最多和下降最多的各五人。B 的数值普遍比 A 小：按英雄逐图标准化时，单图的噪声进了英雄表的方差，z 被压小；比较看方向和秩，不看幅度。")
+    L.append("\n## 结论\n")
+    L.append("1. **耦合**：A 里「枪法 × 道具」在控场几乎不相关（−0.03），在决斗（−0.27）和哨卫（−0.19）是负的；B 把三者都拉到 0 附近（+0.07 / +0.07 / +0.02）。所以「枪强助攻少被重复扣分」主要发生在决斗和哨卫，不在控场；同英雄校正确实消掉了它。")
+    L.append("2. **位置偏差**：B 的各位置均值偏离 0 都在 −0.11～+0.00 之间，说明位置层面的机制差在（位置 × 层级 × 赛季）中心化下已经吸收了大半；同英雄校正改变的是同位置内不同英雄的人，不是位置整体。")
+    L.append("3. **预测**（单一截止点，n=204，只用 2026 Stage 1 + 伦敦线，样本小、读作方向）：作战对 Stage 2 Rating 的 ρ 从 0.213 升到 0.263；先锋 0.39→0.52，控场 −0.06→+0.08，哨卫 0.13→0.16，决斗 0.35→0.30。道具项对「原始 APR」的预测从 0.45 降到 0.18、对「同英雄 APR」从 0.28 升到 0.35——它不再预测英雄给的助攻，而是预测同英雄下的高低，这正是要的。枪法项对 Rating 的 ρ 0.33→0.27，有一点损失。")
+    L.append("4. **关键选手**：Chronicle 道具 −0.51→+0.25、Less −0.70→+0.14、leaf −0.47→+0.27、skuba −0.27→+0.24，控场的道具项由负转正；Nicc、Ethan、Jieni7 的道具 +1.7～+2.1 收到 +0.2～+0.3，先锋的 APR 优势大部分被英雄吸收。这是「控场与先锋对调」假设的直接证据，但它只覆盖 2026 的 12 个赛事，且 B 尚未接进主流程。")
+    L.append("\n**判断**：同英雄校正是根因的假设**得到方向性支持、幅度有限**（作战 ρ +0.05，控场从无预测力到略有）。要作为主流程的一部分，还需要：(a) 把 B 的 z 尺度与 A 对齐（英雄表按赛事内方差而不是单图方差）；(b) 覆盖 2025 的赛事再做两个截止点；(c) 作为 scheme2 的可选路径，在全部目标样本上重跑第二轮的表。荣誉与指挥权重仍不因本结果改变。")
     (OUT / "report_agents.md").write_text("\n".join(L) + "\n", "utf-8")
     print(f"report -> {OUT / 'report_agents.md'}")
 
