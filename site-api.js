@@ -302,6 +302,10 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
    * name, a club tag — so a card can be sent without knowing that ZmjjKK is
    * p:P200. Twenty at most, strongest first.
    */
+  let mythicList = null
+  const mythicIds = () => (mythicList ??= [...(engine?.PLAYER_CARDS ?? []), ...(engine?.COACH_CARDS ?? [])]
+    .filter((c) => c.rarity === 'mythic').map((c) => c.id))
+
   async function cards(res, url) {
     const q = String(url.searchParams.get('q') ?? '').trim().toLowerCase()
     if (!q) { json(res, 200, { ok: true, cards: [] }); return }
@@ -329,6 +333,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     const acc = await sql`
       select id_hash, name, suspect, rev, created, seen, saved, ladder_seen, ladder_at,
              (state->>'coins')::int as coins, (state->>'pulls')::int as pulls,
+             (state->>'mythicDry')::int as mythic_dry,
              (select count(*)::int from jsonb_object_keys(coalesce(state->'cards', '{}'::jsonb))) as cards,
              state->'ladder' as ladder,
              state->'cards' as owned,
@@ -339,32 +344,111 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     const a = acc[0]
     const h = a.id_hash
     const ign = (cardId) => (engine?.cardById?.(cardId)?.ign ?? engine?.cardById?.(cardId)?.name ?? cardId)
+    const rarityOf = (cardId) => engine?.cardById?.(cardId)?.rarity ?? null
+    // `other` is the account on the far side: who bought a listing that sold,
+    // who listed the card an offer was made on
     const listings = await sql`
-      select l.id, l.card_id, l.level, l.ask, l.status, l.created, l.closed, l.ignored,
+      select l.id, l.card_id, l.level, l.ask, l.buyout, l.status, l.created, l.closed, l.ignored,
              (select count(*)::int from card_offers o where o.listing = l.id and o.status = 'open') as offers,
-             (select count(*)::int from card_listings x where x.status = 'open' and x.created > l.created) as newer
+             (select count(*)::int from card_listings x where x.status = 'open' and x.created > l.created) as newer,
+             (select o.buyer_h from card_offers o where o.listing = l.id and o.status = 'accepted' limit 1) as other
       from card_listings l where l.seller_h = ${h}
       order by l.created desc limit 20`
     const offers = await sql`
-      select o.id, o.listing, o.price, o.status, o.made, o.settled, l.card_id
+      select o.id, o.listing, o.price, o.status, o.made, o.settled, l.card_id, l.seller_h as other
       from card_offers o join card_listings l on l.id = o.listing
       where o.buyer_h = ${h} order by o.made desc limit 20`
+    // Every sale this account stood on either side of. The twenty rows above
+    // could not say where a collection came from: the day this was written,
+    // six of one account's ten 彩卡 were older than the window, and a mail
+    // names the other side only by what that person typed into a box.
+    const trades = await sql`
+      select 'sell' as side, l.card_id, l.level, l.ask, l.buyout, l.created as listed,
+             o.settled as at, o.price, o.buyer_h as other
+      from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
+      where l.seller_h = ${h}
+      union all
+      select 'buy' as side, l.card_id, l.level, l.ask, l.buyout, l.created as listed,
+             o.settled as at, o.price, l.seller_h as other
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.buyer_h = ${h} and o.status = 'accepted'
+      order by at desc nulls last limit 500`
     const mail = await sql`
       select id, kind, card_id, coins, made, taken from card_mail
       where to_h = ${h} order by made desc limit 20`
     // the two other ways a card leaves an account: handed to a friend, or
     // swapped — 「我抽到过他，现在没了」 is answered here or nowhere
     const gifts = await sql`
-      select id, card_id, claimed, sent as at, from_h = ${h} as outgoing
+      select id, card_id, claimed, sent as at, from_h = ${h} as outgoing,
+             case when from_h = ${h} then to_h else from_h end as other
       from card_gifts where from_h = ${h} or to_h = ${h} order by sent desc limit 20`
     const swaps = await sql`
-      select id, give_id, give_level, want_id, status, made, settled, from_h = ${h} as mine
+      select id, give_id, give_level, want_id, status, made, settled, from_h = ${h} as mine,
+             case when from_h = ${h} then to_h else from_h end as other
       from card_swaps where from_h = ${h} or to_h = ${h} order by made desc limit 20`
+    const grants = await sql`
+      select card_id, made from card_mail
+      where to_h = ${h} and kind = 'grant' and card_id is not null order by made desc limit 50`
+    // The people on the far side, each with enough of their own account to
+    // tell a stranger from a second account of the same person: how old it
+    // is, whether it plays, what it holds, and whether it trades with anybody
+    // else at all.
+    const hashes = [...new Set([...listings, ...offers, ...trades, ...gifts, ...swaps]
+      .map((r) => r.other).filter(Boolean))]
+    const people = hashes.length ? await sql`
+      select a.id_hash, a.name, a.suspect, a.created, a.seen,
+             (a.state->>'coins')::int as coins, (a.state->>'pulls')::int as pulls,
+             a.state->'ladder' as ladder,
+             (select count(*)::int from jsonb_object_keys(coalesce(a.state->'cards', '{}'::jsonb)) k
+               where k = any(${mythicIds()})) as mythics,
+             (select count(*)::int from card_listings l
+                join card_offers o on o.listing = l.id and o.status = 'accepted'
+               where l.seller_h = a.id_hash)
+             + (select count(*)::int from card_offers o
+               where o.buyer_h = a.id_hash and o.status = 'accepted') as deals
+      from card_accounts a where a.id_hash = any(${hashes})` : []
+    const byHash = new Map(people.map((p) => [p.id_hash, p]))
+    const who = (other) => {
+      if (!other) return null
+      const them = displayName(byHash.get(other)?.name, other)
+      return { code: battleCode(other), name: `${them.name} #${them.tag}` }
+    }
+    const partners = new Map()
+    const partner = (other) => {
+      if (!partners.has(other)) {
+        partners.set(other, { buys: 0, sells: 0, paid: 0, received: 0, mythicIn: 0, mythicOut: 0, swaps: 0, gifts: 0 })
+      }
+      return partners.get(other)
+    }
+    for (const t of trades) {
+      const p = partner(t.other)
+      const mythic = rarityOf(t.card_id) === 'mythic'
+      if (t.side === 'buy') { p.buys++; p.paid += t.price; if (mythic) p.mythicIn++ }
+      else { p.sells++; p.received += t.price; if (mythic) p.mythicOut++ }
+    }
+    for (const w of swaps) if (w.status === 'done') partner(w.other).swaps++
+    for (const g of gifts) partner(g.other).gifts++
+    // Where each 彩卡 came from: the newest delivery of that card on record.
+    // One with none came out of a pack, and mythicDry — the server's own count
+    // of draws since the last 彩卡 — says whether that can have been recent.
+    const arrivals = [
+      ...trades.filter((t) => t.side === 'buy')
+        .map((t) => ({ cardId: t.card_id, how: 'buy', at: t.at, price: t.price, other: t.other })),
+      ...swaps.filter((w) => w.status === 'done')
+        .map((w) => ({ cardId: w.mine ? w.want_id : w.give_id, how: 'swap', at: w.settled, other: w.other })),
+      ...gifts.filter((g) => !g.outgoing && g.claimed)
+        .map((g) => ({ cardId: g.card_id, how: 'gift', at: g.claimed, other: g.other })),
+      ...grants.map((m) => ({ cardId: m.card_id, how: 'grant', at: m.made, other: null })),
+    ].sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime())
+    const cameFrom = (cardId) => {
+      const r = arrivals.find((x) => x.cardId === cardId)
+      return r ? { how: r.how, at: r.at, price: r.price ?? null, who: who(r.other) } : null
+    }
     const shown = displayName(a.name, h)
     json(res, 200, {
       ok: true,
       who: `${shown.name} #${shown.tag}`, code: code.toUpperCase(), suspect: !!a.suspect,
-      coins: a.coins, pulls: a.pulls, cards: a.cards,
+      coins: a.coins, pulls: a.pulls, cards: a.cards, mythicDry: a.mythic_dry ?? null,
       rev: a.rev, created: a.created, seen: a.seen, saved: a.saved,
       ladderSeen: a.ladder_seen, ladderAt: a.ladder_at,
       ladder: a.ladder ?? null,
@@ -375,21 +459,42 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
       log: Array.isArray(a.log) ? a.log : [],
       owned: Object.entries(a.owned ?? {}).map(([cardId, v]) => ({
         cardId, card: ign(cardId), level: v?.level ?? 0, dupes: v?.dupes ?? 0,
+        rarity: rarityOf(cardId), got: v?.got ?? null,
+        ...(rarityOf(cardId) === 'mythic' ? { from: cameFrom(cardId) } : {}),
       })),
-      gifts: gifts.map((g) => ({ id: String(g.id), card: ign(g.card_id), cardId: g.card_id, outgoing: g.outgoing, sent: g.at, claimed: g.claimed })),
+      gifts: gifts.map((g) => ({
+        id: String(g.id), card: ign(g.card_id), cardId: g.card_id, outgoing: g.outgoing, sent: g.at, claimed: g.claimed,
+        who: who(g.other),
+      })),
       swaps: swaps.map((w) => ({
         id: String(w.id), mine: w.mine, give: ign(w.give_id), giveLevel: w.give_level, want: ign(w.want_id),
-        status: w.status, made: w.made, settled: w.settled,
+        status: w.status, made: w.made, settled: w.settled, who: who(w.other),
       })),
       listings: listings.map((l) => ({
-        id: String(l.id), card: ign(l.card_id), cardId: l.card_id, level: l.level, ask: l.ask,
+        id: String(l.id), card: ign(l.card_id), cardId: l.card_id, level: l.level, ask: l.ask, buyout: l.buyout ?? null,
         status: l.status, created: l.created, closed: l.closed, ignored: l.ignored,
-        offers: l.offers, newerOpen: l.newer,
+        offers: l.offers, newerOpen: l.newer, who: who(l.other),
       })),
       offers: offers.map((o) => ({
         id: String(o.id), listing: String(o.listing), card: ign(o.card_id), price: o.price,
-        status: o.status, made: o.made, settled: o.settled,
+        status: o.status, made: o.made, settled: o.settled, who: who(o.other),
       })),
+      trades: trades.map((t) => ({
+        side: t.side, cardId: t.card_id, card: ign(t.card_id), rarity: rarityOf(t.card_id),
+        rarityCn: engine?.RARITY_CN?.[rarityOf(t.card_id)] ?? null, level: t.level,
+        ask: t.ask, buyout: t.buyout ?? null, price: t.price, listed: t.listed, at: t.at, who: who(t.other),
+      })),
+      partners: [...partners].map(([other, p]) => {
+        const o = byHash.get(other)
+        return {
+          ...who(other), ...p,
+          account: o ? {
+            created: o.created, seen: o.seen, coins: o.coins, pulls: o.pulls, mythics: o.mythics,
+            matches: (Number(o.ladder?.wins) || 0) + (Number(o.ladder?.losses) || 0),
+            deals: o.deals, suspect: !!o.suspect,
+          } : null,
+        }
+      }).sort((x, y) => (y.paid + y.received) - (x.paid + x.received) || (y.buys + y.sells) - (x.buys + x.sells)),
       mail: mail.map((m) => ({
         id: String(m.id), kind: m.kind, card: m.card_id ? ign(m.card_id) : null, coins: m.coins,
         made: m.made, taken: m.taken,

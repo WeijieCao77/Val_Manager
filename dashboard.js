@@ -55,6 +55,11 @@ export const dashboardHtml = () => `<!doctype html>
   .acct { font-size:12px; color:var(--muted); line-height:1.7; margin-top:8px;
     border-top:1px solid var(--line); padding-top:8px; }
   .acct b { color:var(--text); }
+  .acct-h { color:var(--text); font-weight:600; margin-top:8px; }
+  .acct a { color:var(--accent); text-decoration:none; }
+  .acct a:hover { text-decoration:underline; }
+  .acct .dim { color:var(--faint); }
+  .acct .hot { color:var(--warn); }
   .panel h2 {
     font-size:11px; letter-spacing:.14em; text-transform:uppercase;
     color:var(--muted); margin:0 0 10px; font-weight:700;
@@ -621,8 +626,54 @@ $('#gCardQ').oninput = () => {
 }
 
 // ---- 按对战码看一个账号 -------------------------------------------------
-$('#gLook').onclick = async () => {
-  const who = $('#gWho').value.trim()
+//
+// The far side of every trade is a link: clicking it opens that account in
+// the same box, and 「返回」 walks back. 「这张彩卡是谁卖给他的，那个人又是
+// 谁」 is two clicks rather than two database queries.
+const gTrail = []
+const gFmt = (n) => Number(n || 0).toLocaleString('zh-CN')
+const gWhen = (t) => (t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '—')
+const gShort = (t) => (t ? new Date(t).toLocaleString('zh-CN', {
+  month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+}) : '—')
+function gAfter(from, to) {
+  const s = Math.max(0, Math.round((new Date(to) - new Date(from)) / 1000))
+  return s < 120 ? s + ' 秒' : s < 7200 ? Math.round(s / 60) + ' 分钟' : Math.round(s / 3600) + ' 小时'
+}
+const gLink = (p) => (p
+  ? '<a href="#" class="look" data-code="' + esc(p.code) + '">' + esc(p.name) + '</a>'
+  : '（账号不在了）')
+function gSource(f) {
+  if (!f) return '<span class="dim">没有转手记录，应是开包开的</span>'
+  const at = gShort(f.at) + ' '
+  if (f.how === 'buy') return at + '从 ' + gLink(f.who) + ' 买的，' + gFmt(f.price)
+  if (f.how === 'swap') return at + '和 ' + gLink(f.who) + ' 换的'
+  if (f.how === 'gift') return at + gLink(f.who) + ' 送的'
+  return at + '后台发的'
+}
+function gTrade(t) {
+  const far = t.price >= 10 * t.ask
+  return gShort(t.at) + ' ' + (t.side === 'buy' ? '买入' : '卖出') + ' <b>' + esc(t.card) + '</b>'
+    + (t.rarityCn ? '（' + esc(t.rarityCn) + '）' : '')
+    + ' · 起拍 ' + gFmt(t.ask) + (t.buyout != null ? ' · 一口价 ' + gFmt(t.buyout) : '')
+    + ' · 成交 ' + (far ? '<b class="hot">' + gFmt(t.price) + '</b>' : gFmt(t.price))
+    + ' · 挂出 ' + gAfter(t.listed, t.at) + '后成交 · ' + (t.side === 'buy' ? '卖家 ' : '买家 ') + gLink(t.who)
+}
+function gPartner(p) {
+  const did = []
+  if (p.buys) did.push('买入 ' + p.buys + ' 笔共 ' + gFmt(p.paid))
+  if (p.sells) did.push('卖出 ' + p.sells + ' 笔共 ' + gFmt(p.received))
+  if (p.mythicIn || p.mythicOut) did.push('彩卡买入 ' + p.mythicIn + ' 卖出 ' + p.mythicOut)
+  if (p.swaps) did.push('交换 ' + p.swaps + ' 次')
+  if (p.gifts) did.push('赠送 ' + p.gifts + ' 次')
+  const a = p.account
+  return gLink(p) + ' · ' + did.join(' · ')
+    + (a ? '<br><span class="dim">对方 ' + gShort(a.created) + ' 建号 · 抽了 ' + a.pulls + ' 次 · 天梯 ' + a.matches + ' 场 · '
+      + gFmt(a.coins) + ' 金币 · 彩卡 ' + a.mythics + ' 张 · 一共成交 ' + a.deals + ' 笔'
+      + (a.suspect ? ' · <b>已标可疑</b>' : '') + '</span>' : '')
+}
+
+async function gOpen(who) {
   const box = $('#gAcct')
   box.style.display = ''
   if (!/^[0-9a-fA-F]{8}$/.test(who)) { box.textContent = '查账号要用 8 位对战码'; return }
@@ -631,19 +682,54 @@ $('#gLook').onclick = async () => {
     const r = await fetch('/api/admin/account?code=' + who, { headers: auth() })
     const j = await r.json()
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
-    const when = (t) => (t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '—')
     const owns = gCard ? (j.owned || []).some((o) => o.cardId === gCard.id) : null
-    box.innerHTML = '<b>' + esc(j.who) + '</b> · ' + esc(j.ladderName || '') + ' · ' + j.wins + '胜' + j.losses + '负'
+    const mythics = (j.owned || []).filter((o) => o.rarity === 'mythic')
+    const trades = j.trades || []
+    const partners = j.partners || []
+    let html = (gTrail.length ? '<a href="#" id="gBack">← 返回 ' + esc(gTrail[gTrail.length - 1]) + '</a><br>' : '')
+      + '<b>' + esc(j.who) + '</b> · ' + esc(j.ladderName || '') + ' · ' + j.wins + '胜' + j.losses + '负'
       + ' · ' + j.cards + ' 张卡 · ' + j.coins + ' 金币 · 抽了 ' + j.pulls + ' 次'
+      + (j.mythicDry != null ? ' · 连续 ' + j.mythicDry + ' 抽没出彩卡' : '')
       + (j.suspect ? ' · <b>已标可疑</b>' : '')
       + (j.untaken ? ' · 信箱里还有 ' + j.untaken + ' 件没收' : '')
       + (gCard ? '<br>' + (owns ? '他已经有 ' : '他还没有 ') + '<b>' + esc(gCard.name) + '</b>' : '')
-      + '<br>建号 ' + when(j.created) + ' · 最后保存 ' + when(j.saved)
-      + '<div style="margin-top:4px">' + (j.log || []).slice(0, 8).map((e) => esc(when(e.at) + '  ' + e.text)).join('<br>') + '</div>'
+      + '<br>建号 ' + gWhen(j.created) + ' · 最后保存 ' + gWhen(j.saved)
+    if (mythics.length) {
+      html += '<div class="acct-h">彩卡 ' + mythics.length + ' 张</div>'
+        + mythics.map((o) => '<b>' + esc(o.card) + '</b> · ' + gSource(o.from)).join('<br>')
+    }
+    if (partners.length) {
+      html += '<div class="acct-h">交易对手 ' + partners.length + ' 个，按金额排</div>'
+        + '<div id="gPartners">' + partners.slice(0, 10).map(gPartner).join('<br>') + '</div>'
+        + (partners.length > 10 ? '<a href="#" id="gPartnersAll">看全部 ' + partners.length + ' 个</a>' : '')
+    }
+    if (trades.length) {
+      html += '<div class="acct-h">成交 ' + trades.length + ' 笔</div>'
+        + '<div id="gTrades">' + trades.slice(0, 15).map(gTrade).join('<br>') + '</div>'
+        + (trades.length > 15 ? '<a href="#" id="gTradesAll">看全部 ' + trades.length + ' 笔</a>' : '')
+    }
+    html += '<div class="acct-h">最近</div>'
+      + (j.log || []).slice(0, 8).map((e) => esc(gWhen(e.at) + '  ' + e.text)).join('<br>')
+    box.innerHTML = html
+    const wire = () => {
+      for (const a of box.querySelectorAll('a.look')) {
+        a.onclick = (e) => { e.preventDefault(); gTrail.push(j.code); $('#gWho').value = a.dataset.code; gOpen(a.dataset.code) }
+      }
+    }
+    const expand = (btn, list, rows, draw) => {
+      const b = $(btn)
+      if (b) b.onclick = (e) => { e.preventDefault(); $(list).innerHTML = rows.map(draw).join('<br>'); b.remove(); wire() }
+    }
+    wire()
+    expand('#gPartnersAll', '#gPartners', partners, gPartner)
+    expand('#gTradesAll', '#gTrades', trades, gTrade)
+    const back = $('#gBack')
+    if (back) back.onclick = (e) => { e.preventDefault(); const c = gTrail.pop(); $('#gWho').value = c; gOpen(c) }
   } catch (e) {
     box.textContent = '查不到：' + e.message
   }
 }
+$('#gLook').onclick = () => { gTrail.length = 0; gOpen($('#gWho').value.trim()) }
 
 // ---- 微信群二维码 -------------------------------------------------------
 //

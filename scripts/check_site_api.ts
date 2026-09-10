@@ -175,21 +175,108 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   void goldId
   const { ALL_CARDS } = await import('../src/engine/cards')
   const card = ALL_CARDS.find((c) => c.kind === 'player' && c.rarity === 'gold')!
-  await sql`insert into card_accounts (id_hash, name, state) values (${idHash}, '查我',
-    ${JSON.stringify({ coins: 1234, pulls: 60, cards: { [card.id]: { id: card.id, dupes: 0 } } })})`
+  // four days old: past the market's age gate as well as its pull gate
+  await sql`insert into card_accounts (id_hash, name, state, created) values (${idHash}, '查我',
+    ${JSON.stringify({ coins: 1234, pulls: 60, cards: { [card.id]: { id: card.id, dupes: 0 } } })}, now() - interval '4 days')`
   const lres = { code: 0, body: {} as Record<string, unknown> }
   await market.route({ body: JSON.stringify({ id: ID, cardId: card.id, ask: 3000 }), method: 'POST' } as never, lres as never, '/api/market/list', 't')
-  check('（准备）挂牌成功', lres.body.ok === true, JSON.stringify(lres.body))
+  // (these five had their arguments the wrong way round — a string where the
+  // boolean goes is always truthy, so none of them could ever have failed)
+  check(lres.body.ok === true, '（准备）挂牌成功', JSON.stringify(lres.body))
   const r = await call(`/api/admin/account?code=${idHash.slice(0, 8).toUpperCase()}`, { token: TOKEN })
   const b = r.body as { ok: boolean; who: string; coins: number; cards: number; listings: { card: string; status: string; ask: number }[]; untaken: number }
-  check('带 token 能按对战码找到账号', r.code === 200 && b.ok === true && /查我 #/.test(b.who), JSON.stringify(r.body).slice(0, 120))
-  check('看得到金币和卡数（挂出去的那张已经不在手里）', b.coins === 1234 && b.cards === 0, `${b.coins} / ${b.cards}`)
-  check('看得到那张挂牌，带选手名和状态', b.listings.length === 1 && b.listings[0].status === 'open'
-    && b.listings[0].ask === 3000 && b.listings[0].card === card.ign, JSON.stringify(b.listings))
+  check(r.code === 200 && b.ok === true && /查我 #/.test(b.who), '带 token 能按对战码找到账号', JSON.stringify(r.body).slice(0, 120))
+  check(b.coins === 1234 && b.cards === 0, '看得到金币和卡数（挂出去的那张已经不在手里）', `${b.coins} / ${b.cards}`)
+  check(b.listings.length === 1 && b.listings[0].status === 'open'
+    && b.listings[0].ask === 3000 && b.listings[0].card === card.ign, '看得到那张挂牌，带选手名和状态', JSON.stringify(b.listings))
   const bad = await call('/api/admin/account?code=zz', { token: TOKEN })
-  check('对战码格式不对就说不对', (bad.body as { why?: string }).why === '填 8 位对战码', JSON.stringify(bad.body))
+  check((bad.body as { why?: string }).why === '填 8 位对战码', '对战码格式不对就说不对', JSON.stringify(bad.body))
   const none = await call('/api/admin/account?code=00000000', { token: TOKEN })
-  check('没有的账号就说没有', (none.body as { why?: string }).why === '找不到这个账号', JSON.stringify(none.body))
+  check((none.body as { why?: string }).why === '找不到这个账号', '没有的账号就说没有', JSON.stringify(none.body))
+
+  // ---- 交易对手：谁卖给他的，那个人又是谁 ------------------------------
+  //
+  // The case that asked for it: ten 彩卡 on an account that had pulled 230
+  // times, bought at buy-now prices the moment they were listed. Both sides
+  // have to name each other by battle code, a 彩卡 has to say where it came
+  // from, and one with no trade behind it has to say so rather than borrow
+  // somebody else's.
+  const { askFloor } = await import('../market-api.js')
+  const { LEGEND_CARDS } = await import('../src/engine/cards')
+  const [legend, pulled, swapped] = LEGEND_CARDS
+  const SELLER = idHash.slice(0, 8).toUpperCase()
+  const BUYER_ID = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'
+  const buyerHash = createHash('sha256').update(BUYER_ID).digest('hex')
+  const BUYER = buyerHash.slice(0, 8).toUpperCase()
+  const setState = async (h: string, edit: (s: { cards: Record<string, unknown>; mythicDry?: number }) => void) => {
+    const row = await sql`select state from card_accounts where id_hash = ${h}`
+    const s = row[0].state
+    edit(s)
+    await sql`update card_accounts set state = ${JSON.stringify(s)} where id_hash = ${h}`
+  }
+  await setState(idHash, (s) => { s.cards[legend.id] = { id: legend.id, level: 0, dupes: 0 } })
+  await sql`insert into card_accounts (id_hash, name, state, created) values (${buyerHash}, '对手',
+    ${JSON.stringify({ coins: 400_000, pulls: 200, cards: {} })}, now() - interval '4 days')`
+  const ask = askFloor(legend.rarity)
+  const PRICE = Math.min(500_000, Math.max(Math.ceil(ask * 1.2), 290_000))
+  const l2 = { code: 0, body: {} as Record<string, unknown> }
+  await market.route({ body: JSON.stringify({ id: ID, cardId: legend.id, ask, buyout: PRICE }), method: 'POST' } as never, l2 as never, '/api/market/list', 't')
+  check(l2.body.ok === true, '（准备）彩卡挂出去，带一口价', JSON.stringify(l2.body))
+  const o2 = { code: 0, body: {} as Record<string, unknown> }
+  await market.route({ body: JSON.stringify({ id: BUYER_ID, listing: l2.body.id, price: PRICE }), method: 'POST' } as never, o2 as never, '/api/market/offer', 't')
+  check(o2.body.ok === true && o2.body.bought === true, '（准备）对手按一口价买下', JSON.stringify(o2.body))
+
+  type Who = { code: string; name: string } | null
+  type Acct = {
+    mythicDry: number | null
+    listings: { cardId: string; status: string; who: Who }[]
+    offers: { who: Who }[]
+    trades: { side: string; cardId: string; price: number; ask: number; buyout: number | null; who: Who }[]
+    partners: {
+      code: string; buys: number; sells: number; paid: number; received: number
+      mythicIn: number; mythicOut: number; swaps: number; account: { pulls: number; deals: number } | null
+    }[]
+    owned: { cardId: string; rarity: string | null; from?: { how: string; price: number | null; who: Who } | null }[]
+  }
+  const look = async (code: string) => (await call(`/api/admin/account?code=${code}`, { token: TOKEN })).body as unknown as Acct
+
+  const s = await look(SELLER)
+  const sold = s.trades.find((t) => t.cardId === legend.id)
+  check(s.trades.length === 1 && sold?.side === 'sell' && sold.price === PRICE && sold.ask === ask && sold.buyout === PRICE,
+    '卖家的成交记录里有这一笔，起拍价、一口价、成交价都在', JSON.stringify(s.trades))
+  check(sold?.who?.code === BUYER && /^对手 #/.test(sold.who.name), '成交记录写着买家的名字和对战码', JSON.stringify(sold?.who))
+  check(s.listings.find((l) => l.cardId === legend.id)?.who?.code === BUYER
+    && s.listings.find((l) => l.cardId === card.id)?.who === null,
+  '卖掉的挂牌带买家，还在拍的没有', JSON.stringify(s.listings.map((l) => [l.cardId, l.status, l.who])))
+  const sp = s.partners[0]
+  check(s.partners.length === 1 && sp.code === BUYER && sp.sells === 1 && sp.received === PRICE && sp.mythicOut === 1,
+    '交易对手汇总：卖给对手一张彩卡，收了多少钱', JSON.stringify(s.partners))
+  check(sp?.account?.pulls === 200 && sp.account.deals === 1, '对手自己的账号：抽了多少、一共成交过几笔', JSON.stringify(sp?.account))
+
+  // The card reaches the buyer through the inbox; stand in for taking it, and
+  // give the buyer one 彩卡 from a swap and one from nowhere at all.
+  await sql`insert into card_swaps (from_h, to_h, give_id, want_id, status, settled)
+    values (${idHash}, ${buyerHash}, ${swapped.id}, ${card.id}, 'done', now())`
+  await setState(buyerHash, (st) => {
+    for (const c of [legend, pulled, swapped, card]) st.cards[c.id] = { id: c.id, level: 0, dupes: 0, seen: 1, got: '2026-09-10' }
+    st.mythicDry = 77
+  })
+  const v = await look(BUYER)
+  check(v.trades.length === 1 && v.trades[0].side === 'buy' && v.trades[0].who?.code === SELLER,
+    '买家那边是一笔买入，卖家对得上', JSON.stringify(v.trades))
+  check(v.offers[0]?.who?.code === SELLER, '出价记录也带卖家', JSON.stringify(v.offers))
+  const vp = v.partners[0]
+  check(v.partners.length === 1 && vp.buys === 1 && vp.paid === PRICE && vp.mythicIn === 1 && vp.swaps === 1,
+    '同一个对手的买入和交换汇总在一起', JSON.stringify(v.partners))
+  const own = (id: string) => v.owned.find((o) => o.cardId === id)
+  check(own(legend.id)?.rarity === 'mythic' && own(legend.id)?.from?.how === 'buy'
+    && own(legend.id)?.from?.who?.code === SELLER && own(legend.id)?.from?.price === PRICE,
+  '买来的彩卡写着从谁那里、多少钱买的', JSON.stringify(own(legend.id)))
+  check(own(swapped.id)?.from?.how === 'swap' && own(swapped.id)?.from?.who?.code === SELLER,
+    '换来的彩卡写着和谁换的', JSON.stringify(own(swapped.id)))
+  check(own(pulled.id)?.from === null, '没有转手记录的彩卡不借别人的来历', JSON.stringify(own(pulled.id)))
+  check(!!own(card.id) && !('from' in own(card.id)!), '普通卡不带来历', JSON.stringify(own(card.id)))
+  check(v.mythicDry === 77, '服务器记的连续没出彩卡的抽数也在', String(v.mythicDry))
 }
 
 // ---- 后台按名字搜卡 -----------------------------------------------------
