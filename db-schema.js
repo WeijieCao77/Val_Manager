@@ -41,6 +41,37 @@ const SCHEMA_LOCK = 5150409
 const SCHEMA_HASH = createHash('sha1').update(SCHEMAS.join('\n')).digest('hex')
 const MARK_TABLE = `create table if not exists schema_marks (hash text primary key, at timestamptz not null default now())`
 
+// What the list declares, read off its text: the tables, the columns each
+// `add column if not exists` would add, the indexes. Checked against the
+// catalogs before a single DDL statement is sent — `alter table … add column
+// if not exists` takes its exclusive lock BEFORE it looks for the column, and
+// on `events`, which is written every second, that wait never ends inside a
+// lock timeout and holds every telemetry insert (and so the pool) while it lasts.
+const DECLARED = (() => {
+  const t = SCHEMAS.join('\n').toLowerCase()
+  return {
+    tables: [...new Set([...t.matchAll(/create table if not exists (\w+)/g)].map((m) => m[1]))],
+    columns: [...t.matchAll(/alter table (\w+) add column if not exists (\w+)/g)].map((m) => [m[1], m[2]]),
+    indexes: [...new Set([...t.matchAll(/create (?:unique )?index if not exists (\w+)/g)].map((m) => m[1]))],
+  }
+})()
+
+async function nothingToDo(sql) {
+  const cols = await sql.unsafe(`select table_name, column_name from information_schema.columns where table_schema = 'public'`)
+  const have = new Set((Array.isArray(cols) ? cols : []).map((r) => `${r.table_name}.${r.column_name}`))
+  const tables = new Set((Array.isArray(cols) ? cols : []).map((r) => r.table_name))
+  if (DECLARED.tables.some((t) => !tables.has(t))) return false
+  if (DECLARED.columns.some(([t, c]) => !have.has(`${t}.${c}`))) return false
+  const idx = await sql.unsafe(`select indexname from pg_indexes where schemaname = 'public'`)
+  const names = new Set((Array.isArray(idx) ? idx : []).map((r) => r.indexname))
+  return DECLARED.indexes.every((i) => names.has(i))
+}
+
+async function mark(sql) {
+  await sql.unsafe(MARK_TABLE)
+  await sql.unsafe(`insert into schema_marks (hash) values ('${SCHEMA_HASH}') on conflict do nothing`)
+}
+
 async function alreadyApplied(sql) {
   const [t] = await sql.unsafe(`select to_regclass('public.schema_marks') as t`)
   if (!t?.t) return false
@@ -54,8 +85,15 @@ export async function applySchema(sql) {
       console.log('analytics: schema already at this version, nothing to lock')
       return
     }
+    if (await nothingToDo(sql)) {
+      // every table, column and index is already there: record the version
+      // and never send the DDL — that is what a boot under traffic must do
+      await mark(sql)
+      console.log('analytics: schema complete by the catalogs, version recorded, nothing locked')
+      return
+    }
   } catch (err) {
-    console.warn('analytics: schema mark unreadable —', err.message)
+    console.warn('analytics: schema pre-check failed —', err.message)
   }
   for (let attempt = 1; attempt <= 4; attempt++) {
     try {
@@ -64,9 +102,8 @@ export async function applySchema(sql) {
         await tx.unsafe(`set local lock_timeout = '5s'`)
         await tx.unsafe(`select pg_advisory_xact_lock(${SCHEMA_LOCK})`)
         for (const schema of SCHEMAS) await tx.unsafe(schema)
-        await tx.unsafe(MARK_TABLE)
-        await tx.unsafe(`insert into schema_marks (hash) values ('${SCHEMA_HASH}') on conflict do nothing`)
       })
+      await mark(sql)
       console.log('analytics: connected, schema ready')
       return
     } catch (err) {
