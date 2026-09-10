@@ -1,37 +1,45 @@
 ign,scheme,2025-kickoff,2025-stage-1,2025-stage-2,2026-kickoff,2026-stage-1,2026-stage-2,today
-Chronicle,decay,87,84,78,70,67,66,71
-Chronicle,stage,85,80,77,70,66,66,72
-Chronicle,split,87,83,78,69,67,66,71
-Chronicle,stage soft-sym,85,80,77,66,66,66,72
-CHICHOO,decay,80,83,83,76,73,74,77
-CHICHOO,stage,77,82,82,75,71,71,74
-CHICHOO,split,80,83,83,76,73,74,77
-CHICHOO,stage soft-sym,77,82,82,75,71,71,74
-Less,decay,68,70,66,66,66,67,64
-Less,stage,68,70,67,66,66,67,65
-Less,split,67,70,66,66,66,67,64
-Less,stage soft-sym,68,70,67,66,66,67,65
-Boaster,decay,65,68,66,60,56,60,56
-Boaster,stage,62,68,67,61,57,62,57
-Boaster,split,64,68,67,60,56,60,56
-Boaster,stage soft-sym,62,68,67,61,57,62,57
-Boo,decay,81,79,78,78,79,80,79
-Boo,stage,79,78,76,77,78,76,75
-Boo,split,81,79,78,78,79,79,78
-Boo,stage soft-sym,79,78,76,77,78,76,75
-Ethan,decay,81,83,82,85,74,76,80
-Ethan,stage,81,83,82,84,74,75,79
-Ethan,split,81,83,82,85,74,75,80
-Ethan,stage soft-sym,81,83,82,84,69,75,79
-nobody,decay,62,59,57,56,49,56,57
-nobody,stage,60,57,56,55,46,53,54
-nobody,split,62,59,57,56,49,55,56
-nobody,stage soft-sym,60,57,56,55,46,53,54
-artzin,decay,61,55,54,58,62,66,66
-artzin,stage,60,56,52,56,62,65,65
-artzin,split,61,55,54,58,62,66,66
-artzin,stage soft-sym,60,56,52,56,62,65,67
-deLb,decay,68,67,57,59,60,65,72
-deLb,stage,67,66,55,58,59,63,68
-deLb,split,68,67,56,59,60,64,71
-deLb,stage soft-sym,67,66,55,58,59,63,71
+Chronicle,decay,90,87,80,72,69,68,74
+Chronicle,stage,88,84,79,72,68,69,74
+Chronicle,split,90,87,80,71,69,68,74
+Chronicle,stage soft-sym,88,84,79,68,68,69,74
+CHICHOO,decay,82,84,85,78,76,79,81
+CHICHOO,stage,80,83,84,78,75,77,79
+CHICHOO,split,82,84,85,78,76,78,81
+CHICHOO,stage soft-sym,80,83,84,78,75,77,79
+Less,decay,73,72,69,69,69,69,66
+Less,stage,71,70,68,68,68,69,66
+Less,split,72,71,68,68,68,69,65
+Less,stage soft-sym,71,70,68,68,68,69,66
+Boaster,decay,69,70,67,61,57,61,56
+Boaster,stage,68,70,67,62,58,63,57
+Boaster,split,69,70,67,61,57,61,56
+Boaster,stage soft-sym,68,70,67,62,58,63,57
+Boo,decay,80,77,75,76,78,82,80
+Boo,stage,78,75,73,75,77,77,77
+Boo,split,79,77,75,76,78,80,79
+Boo,stage soft-sym,79,75,73,75,77,77,77
+Ethan,decay,90,89,88,89,80,81,86
+Ethan,stage,88,88,87,88,79,79,84
+Ethan,split,89,89,88,89,79,80,86
+Ethan,stage soft-sym,88,88,87,88,74,79,84
+nobody,decay,64,62,62,61,54,60,61
+nobody,stage,63,61,61,60,52,57,59
+nobody,split,64,62,62,61,54,60,61
+nobody,stage soft-sym,63,61,61,60,52,57,59
+BuZz,decay,72,77,72,66,67,72,79
+BuZz,stage,71,75,70,65,67,72,77
+BuZz,split,70,76,71,65,67,72,78
+BuZz,stage soft-sym,71,75,70,65,67,72,80
+bang,decay,74,73,79,77,77,83,85
+bang,stage,71,70,76,74,75,80,83
+bang,split,72,72,78,77,77,82,85
+bang,stage soft-sym,71,70,76,74,75,80,85
+stew,decay,74,81,79,84,82,79,79
+stew,stage,75,81,79,84,82,80,79
+stew,split,74,81,79,84,82,79,79
+stew,stage soft-sym,75,81,79,84,82,78,77
+Estrella,decay,73,78,72,70,70,69,69
+Estrella,stage,71,77,73,71,71,70,70
+Estrella,split,73,78,72,70,70,69,69
+Estrella,stage soft-sym,71,77,73,68,68,68,68

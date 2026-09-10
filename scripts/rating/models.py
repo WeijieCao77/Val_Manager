@@ -323,7 +323,10 @@ def new_scheme(records: list[Record], cutoff: date, P: Params, mapping: dict | N
 
 def current_scheme(records: list[Record], cutoff: date) -> dict[str, Rated]:
     lines = aggregate(records, cutoff, lambda age: build_world_recency(age / 365.25))
-    Ls = [L for L in lines.values() if L.rnd_raw > 0]
+    # the real build_world ranks the modelled population (tier one and the
+    # Challengers sides it keeps), not every national league vlr ever listed;
+    # with 2022's legs in the cache the pool is held to men with tier-one rounds
+    Ls = [L for L in lines.values() if L.rnd_raw > 0 and L.top_rounds() >= 100]
     if not Ls:
         return {}
 
@@ -384,7 +387,7 @@ def current_scheme(records: list[Record], cutoff: date) -> dict[str, Rated]:
 
 def simple_baseline(records: list[Record], cutoff: date, half_life: float) -> dict[str, Rated]:
     lines = aggregate(records, cutoff, lambda age: half_life_weight(age, half_life))
-    Ls = [L for L in lines.values() if L.mean("rating2") is not None]
+    Ls = [L for L in lines.values() if L.mean("rating2") is not None and L.top_rounds() >= 100]
     xs = [L.mean("rating2") for L in Ls]
     mu, sd = mean_sd(xs)
     out = {}

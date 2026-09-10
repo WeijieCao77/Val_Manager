@@ -117,8 +117,9 @@ def main() -> None:
             rated = rate2(records, cut, P, maps["all"], ledger, ids, callers_by_cut[cut])
             preds[name] = {k: r.overall for k, r in rated.items()}
             if P.igl_weight == 0 and P.honour_cap == 0:
-                recent_share[name].extend(r.recent_share for r in rated.values() if r.n_events >= 3)
-                for r in rated.values():
+                active = [r for r in rated.values() if r.n_events >= 3 and r.key in targets[eid]]
+                recent_share[name].extend(r.recent_share for r in active)
+                for r in active:
                     regime_counts[name][r.regime.split("@")[0].replace("(not applied)", "")] += 1
         callers_now = {n for n, idn in ids.items() if idn.grade(cut) == "A"}
         for row in evaluate_same(preds, targets[eid], windows[eid], callers_now, ign_of):
@@ -163,7 +164,11 @@ def main() -> None:
         return f"{held} placements inside the 2024-26 cache, {len(vct_like)} outside it (older or non-VCT)"
 
     ladders = []
-    movers = sorted((r for r in final.values() if r.ign.lower() in world and r.n_events >= 6),
+    recent_n = {}
+    for r in records:
+        if r.end and r.end >= today - timedelta(days=730):
+            recent_n[r.key] = recent_n.get(r.key, 0) + 1
+    movers = sorted((r for r in final.values() if r.ign.lower() in world and r.n_events >= 6 and recent_n.get(r.key, 0) >= 3),
                     key=lambda r: r.overall - world[r.ign.lower()]["overall"])
     names = NAMED + [r.ign for r in movers[-6:]][::-1] + [r.ign for r in movers[:6]]
     seen = set()
@@ -269,7 +274,7 @@ def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regim
     for r in grid:
         if r["model"].startswith(("current", "baseline")) or "regime=" in r["model"]:
             L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['mae'])} | {fmt(r['entry_resid'])} | " + " | ".join(fmt(r[f'rho_{x}']) for x in ROLES) + f" | {r['n']} | {r['n_180d']} |")
-    L.append("\n| 融合 / 阶段 | 30 天权重份额 中位数 / 90 分位（≥3 场） | 阶段判定 none / growth / decline（人×截止点） |")
+    L.append("\n| 融合 / 阶段 | 30 天权重份额 中位数 / 90 分位（目标样本内、≥3 场） | 阶段判定 none / growth / decline（目标样本内，人×截止点） |")
     L.append("|---|---|---|")
     for name in [n for n in recent_share if "regime=" in n]:
         rs = sorted(recent_share[name])
@@ -309,17 +314,26 @@ def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regim
     for r in traj:
         L.append(f"| {r['ign']} | {r['scheme']} | " + " | ".join(fmt(r.get(t)) for t in tags) + " |")
     L.append("\n前七人是点名的；之后是 stage soft-sym 在今天判为成长 / 衰退的例子（≥8 场），若无则说明该规则今天没有触发。")
-    L.append("\n## 引擎侧\n")
-    L.append("- 现状（match.ts）：队伍强度 = 五人 overall 加权均值 + 主指挥加成 (指挥−60)×0.09（中局另 ×0.06）+ 默契 + 教练 + 阵容 + …；一队只有一人喊指挥。")
-    L.append("- 已做的单点实测（scripts/rating/sim_igl.ts，经理模式，LEV 对 NRG，300 场 bo3）：主指挥指挥 +15 → +6.3 个百分点，总评 +5 → +5.7，两者同时 +8.7，非指挥队员指挥 +15 → 0，五人全标指挥不叠加。它只说明现引擎里指挥属性单独计价且不叠加；两项合计不等于相加是 logistic 的非线性，不能作为重复计算的证据——重复与否要看代码路径：卡面总评若含指挥权重，而引擎又把 overall 读进五人均值、再按指挥属性加成，那就是同一价值走了两条路。")
-    L.append("- 待做（第 5 步）：分别在经理模式与开瓦包 arena 路径上，多组对阵、不同强弱差、不同等级，测「作战分进均值、指挥分进指挥加成」的拆分；系数由那组实验定，不由本单点定。荣誉是否进引擎未定，不在此定稿。")
-    L.append("\n## 结论（修订版，第 1～3 步）\n")
-    L.append("1. **荣誉账本修正后**：2024 两站 Masters 不再算 Champions，八个赛段赛事归入 league，小组第一不再算冠军，只计有日期且本人出场的。CHICHOO、nobody 各 6.0（封顶，含 2024 冠军赛与四个赛区冠军），Chronicle、Boaster 2.34，Ethan 3.0（2023 冠军无日期、2026 美洲 Stage 2 只是小组第一，都不计）。荣誉对预测力 +0.007，对个人 1～6 分；「不改变排序」上一版说过头了，它在同档间会改。")
-    L.append("2. **时间融合隔离后三者持平**：属性、各项收缩、映射固定，只换权重，decay / stage / split 的 ρ 在 0.364～0.370（下一赛事）、0.429～0.447（180 天），差在噪声内。上一版「stage 不如 decay」是收缩没统一造成的，撤回。split 的赛段内归一没有改变结果，说明当前数据里没有哪个赛段因为场次多而压过别的赛段。")
-    L.append("3. **阶段变化**：按赛段确认的软规则在 15404 人次里触发 105 次（成长 26、衰退 79），对预测无影响；对称与非对称也无差别。它现在是保守的，没有一个点名选手被判定；轨迹表里 Chronicle 从 2025 Kickoff 的 87～89 平滑落到 2026 的 69～75，CHICHOO 从 85 到 75～80 再回 78～80，都是平滑基线自己完成的，不需要硬重置。")
-    L.append("4. **指挥**：A 级 120 人次。新方案在不加权重时已把 A 级指挥高估 0.23 z（他们的作战画像高于其后 Rating），加权重后更高（w=.35 时 −0.36），因为指挥分与个人 Rating 无关且普遍高于作战分；这不是它错了的证据，也不是它对了的证据——指挥分是模型估计（逐人依据表：Boaster 15 场任内赛事、资历 5.6 年、名次残差 +0.64 → 95；valyn 96；saadhak、Rossy 资历不足一年、残差有但收缩后只有 57/51）。它是否合理只能在引擎里看（第 5 步）。")
-    L.append("5. **点名选手**：荣誉修正后 Chronicle 92→75（+荣誉 78）、Less 89→67、CHICHOO 94→78～80（+荣誉 84）、nobody 77→60（+指挥 71、+荣誉 77）、Boaster 65→59（+指挥 72）。三种融合下作战分差不超过 2，说明这些落差不来自时间方案。来自哪里还不能定：世界分含 2021～2023 生涯表与大赛加成（缓存外名次记录 Chronicle 29、Boaster 24、Spring 31、Rossy 32 条，Less 只有 8 条），控场 APR 模板权重（第一轮已指出）。2022～2023 赛事页正在补抓，补齐后按「近两年」「近两年+弱历史」「同一数据开/关英雄校正」三组重跑，再谈原因。")
-    L.append("\n**下一步（第 4～5 步）**：(4) 补齐 2022～2023 后重跑覆盖对照；同英雄校正需要「选手 × 英雄 × 赛事」交叉数据，现在只能开/关「按位置中心化」作为近似，会明确标注。(5) 引擎测试改为经理模式与开瓦包 arena 两条路径、多组对阵与强弱差，测「作战进均值、指挥分进指挥加成」的拆分；荣誉是否进引擎留待产品规则。")
+    L.append("\n## 引擎侧（第 5 步，两种模式、三组对阵）\n")
+    L.append("- 现状（match.ts）：队伍强度 = 五人 overall 加权均值 + 主指挥加成 (指挥−60)×0.09（中局另 ×0.06）+ 默契 + 教练 + 阵容 + …；一队只有一人喊指挥。开瓦包 arena 落座的是卡（card.rating、card.attrs），属性再向 70 压缩 0.6 倍后走同一套比赛引擎。")
+    L.append("- scripts/rating/sim_igl2.ts，一次只动一个数，同一组种子。经理模式 600 场 bo3 / 格，arena 400 个种子 / 格（每格标准误约 2 / 2.5 个百分点）。胜率变化（百分点）：")
+    L.append("\n| 模式 | 对阵 | 基准 | 主指挥 指挥+15 | 主指挥 总评+5 | 两者 | 非指挥 指挥+15 | 非指挥 总评+5 |")
+    L.append("|---|---|---|---|---|---|---|---|")
+    L.append("| 经理 | LEV v NRG 势均力敌 | 45.3% | +4.7 | +3.7 | +7.5 | 0.0 | +2.8 |")
+    L.append("| 经理 | G2 v PRX 弱 4 分 | 26.0% | +9.3 | +7.0 | +12.2 | 0.0 | +7.5 |")
+    L.append("| 经理 | PRX v G2 强 4 分 | 70.2% | +4.0 | +2.0 | +7.7 | 0.0 | +2.5 |")
+    L.append("| 开瓦包 | LEV v NRG 势均力敌 | 45.0% | +4.7 | +3.5 | +6.7 | 0.0 | +2.5 |")
+    L.append("| 开瓦包 | G2 v PRX 弱 4 分 | 32.8% | +2.2 | +2.5 | +4.5 | 0.0 | +2.2 |")
+    L.append("| 开瓦包 | PRX v G2 强 4 分 | 64.0% | +2.7 | +3.0 | +4.0 | 0.0 | +3.0 |")
+    L.append("\n读法：两种模式里非指挥的指挥属性都是 0，指挥加成只走一个人；主指挥指挥 +15 的价值在经理模式约为一人总评 +5 的 1.3 倍，在 arena 里约为 1 倍（压缩后指挥属性的差被缩小）。「两者」小于两项相加是 logistic 的非线性，不是重复计算的证据。重复计算看代码路径：卡面总评若含 w×指挥分，而引擎把它读进五人均值、再按指挥属性加成，同一价值就走了两条路。拆分方案仍是「作战分进均值、指挥分进指挥加成」；系数应按两种模式分别标定，使卡面上 w 所表示的价值比与这两张表一致（w=.35 时指挥分 15 分 ≈ 总评 5 分，经理模式已接近、arena 偏低）。荣誉是否进引擎未定，不在此定稿。")
+    L.append("\n## 结论（修订版；缓存含 2022～2026）\n")
+    L.append("1. **荣誉账本修正后**：分类取缓存的赛事类型与赛事 ID，只算决赛阶段第一，只计有日期且本人出场的。CHICHOO、nobody 6.0（封顶），Chronicle、Boaster 3.66（含 2023 LOCK//IN 与东京 Masters，按第三年三分之二计），Ethan 3.99，Less 1.33。荣誉对预测力 +0.009～+0.012，对个人 1～6 分；它在同档间改排序，上一版说「不改排序」是错的。")
+    L.append("2. **时间融合隔离后三者持平**：属性、各项收缩、映射固定，只换权重，decay / stage / split 的 ρ 在 0.360～0.371（下一赛事）、0.427～0.447（180 天），差在噪声内；上一版「stage 不如 decay」是收缩没统一造成的，撤回。split 的赛段内归一没有改变结果。")
+    L.append("3. **阶段变化**：按赛段确认的软规则在目标样本里触发很少，对预测没有影响，对称与非对称无差别；点名选手无一被判定。轨迹表里老将的回落由平滑基线自己完成。")
+    L.append("4. **指挥**：新方案在不加权重时已把 A 级指挥高估 0.25 z，加权重后到 -0.38（w=.35）；指挥分与个人 Rating 无关且普遍高于作战分，这既不是它错的证据也不是对的证据。指挥分是模型估计：Boaster 91、nobody 88、Boo 88、Ethan 81（依据表：任内赛事、资历、名次残差）。它是否合理只能在引擎里看，见「引擎侧」。")
+    L.append("5. **点名选手**：Chronicle 92→74（+荣誉 78）、Less 89→66、CHICHOO 94→79～81（+荣誉 85）、nobody 77→59～61（+指挥 69、+荣誉 75）、Boaster 65→57（+指挥 69、+荣誉 73）。三种融合下作战分差不超过 2；补齐 2022～2023 后按半衰期衰减只抬 2～3 分（见 report_history.md）。落差的来源因此不在时间方案与覆盖，而在世界分自带的生涯表、大赛加成、冠军项，以及控场的属性模板（同英雄校正未做）。")
+    L.append("6. **尺度**：候选分锚在「70 = 普通一级选手」，世界分的一级中位约 80，两把尺子差 9～12 分；本报告的候选分未平移，也不应拿来直接和世界分比绝对值。")
+    L.append("\n**下一步**：(a) 同英雄 APR/KAST 校正需要「选手 × 英雄 × 赛事」交叉数据，是控场/先锋对调的根因，优先于调模板；(b) 引擎按「作战进均值、指挥分进指挥加成」拆分并按两种模式分别标定；(c) 上线前的映射以世界建模人群为参考池重拟合冻结；(d) 荣誉与指挥权重的取值在 (a)(b) 之后定。")
     L.append("\n## 读法与限制\n")
     L.append("- 指挥身份没有历史证据，A 级也是外推，所有指挥结果是敏感性分析。")
     L.append("- 阶段软规则要两个完整赛段同向，2026 年内才开始的变化不会被判定；这是有意的保守。")

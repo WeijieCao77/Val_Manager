@@ -23,6 +23,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from .dataset import tier_override
+
 ROOT = Path(__file__).resolve().parents[2]
 RECORDS = ROOT / "src" / "data" / "records.json"
 WORLD = ROOT / "src" / "data" / "world.json"
@@ -94,7 +96,7 @@ def build_ledger() -> tuple[dict[str, list[Honour]], set[str]]:
             seen.add(eid)               # one event is one entry, whichever stage row listed it
             meta = events.get(eid)
             if meta:
-                tier = meta["tier"]
+                tier = tier_override(meta["slug"], int(meta["year"]), meta["tier"])
                 if tier not in VALUE:
                     continue            # Challengers and the like are not honours here
                 if meta.get("end"):

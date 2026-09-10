@@ -140,7 +140,10 @@ def levels(cutoff: date, ids: dict[str, IglIdentity] | None = None) -> dict[str,
             if len(vals) < 10:
                 continue
             mu, sd = mean_sd(list(vals.values()))
-            team_z = statistics.fmean((r["rating2"] - mu) / sd for r in rows if r.get("club") == club and r.get("rating2") is not None and (r.get("rnd") or 0) >= 60)
+            team = [(r["rating2"] - mu) / sd for r in rows if r.get("club") == club and r.get("rating2") is not None and (r.get("rnd") or 0) >= 60]
+            if len(team) < 3:
+                continue            # a club whose five barely played here says nothing about its caller
+            team_z = statistics.fmean(team)
             clubs = {r.get("club") for r in rows if r.get("club")}
             rank = placed.get((eid, tag_of.get(_key(club), _key(club))))
             if rank is None or len(clubs) < 4:

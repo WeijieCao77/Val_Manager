@@ -15,6 +15,30 @@ from datetime import date
 from pathlib import Path
 
 from .common import AGENT_ROLE, ROLES, TIER_GROUP, parse_date
+import re as _re
+
+# vlr's 2022 and 2023 season pages list everything under the VCT banner —
+# national legs, sub-regional qualifiers, promotions — and the cache's
+# tier_of reads all of it as 'league'. The 2022 format: each region's
+# Challengers main event (NA, EMEA, BR, KR, JP playoffs, APAC playoffs, LATAM
+# playoffs) was the top regional tier that fed Masters; the national and
+# sub-regional legs below it were not. 2023 LOCK//IN was an international.
+TIER_2022_23 = [
+    (r"skyesports|conquerors|oceania|road-to-vct|promotion", "challengers"),
+    (r"(philippines|vietnam|thailand|indonesia|malaysia-singapore|hong-kong-taiwan|cis|turkey|europe)-stage-\d-challengers", "challengers"),
+    (r"latin-america-(north|south)-stage-\d-challengers", "challengers"),
+    (r"japan-stage-\d-challengers-week", "challengers"),
+    (r"lock-in", "masters"),
+]
+
+
+def tier_override(slug: str, year: int, tier: str) -> str:
+    if year > 2023:
+        return tier
+    for pat, t in TIER_2022_23:
+        if _re.search(pat, slug):
+            return t
+    return tier
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / "scripts" / "cache" / "vlr_event_stats.json"
@@ -90,6 +114,7 @@ def load_records() -> list[Record]:
                     start, end = parse_date(f"{ev['year']}-{a}"), parse_date(f"{ev['year']}-{b}")
                     estimated = True
                     break
+        tier = tier_override(ev["slug"], int(ev["year"]), ev["tier"])
         for r in rows:
             key = (eid, r.get("vlrId") or r.get("ign", "").lower())
             if key in seen or not r.get("rnd"):
@@ -97,8 +122,8 @@ def load_records() -> list[Record]:
             seen.add(key)
             agents = [(a, (p or 0) / 100.0) for a, p in (r.get("agents") or [])]
             out.append(Record(
-                eid=eid, slug=ev["slug"], year=int(ev["year"]), tier=ev["tier"],
-                group=TIER_GROUP.get(ev["tier"], "vct"), start=start, end=end, date_estimated=estimated,
+                eid=eid, slug=ev["slug"], year=int(ev["year"]), tier=tier,
+                group=TIER_GROUP.get(tier, "vct"), start=start, end=end, date_estimated=estimated,
                 vlr_id=r.get("vlrId"), ign=r.get("ign", ""), club=r.get("club", ""), nat=r.get("nat", ""),
                 maps=r.get("maps") or 0.0, rnd=float(r["rnd"]),
                 rating2=r.get("rating2"), acs=r.get("acs"), kast=r.get("kast"), adr=r.get("adr"), hs=r.get("hs"),

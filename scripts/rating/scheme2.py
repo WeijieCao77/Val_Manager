@@ -131,10 +131,16 @@ def split_of(r: Record) -> str:
 
 
 class EventEnv:
-    def __init__(self, recs: list[Record], min_rnd: float = 60.0):
+    def __init__(self, recs: list[Record], min_rnd: float = 60.0, by_role: bool = True):
         self.t: dict[tuple, dict[str, tuple[float, float]]] = {}
+        self.by_role = by_role
         pool = [(r, _metrics(r)) for r in recs if r.rnd >= min_rnd]
-        for keyf in (lambda r: (_role(r), r.group), lambda r: (_role(r),), lambda r: ()):
+        # Normal levels are per season as well as per (role, tier group): a
+        # 2022 KAST or APR is not a 2026 one (agents, assist rules, the field
+        # itself). Season first, then the pooled seasons, then role, then all.
+        keyfs = ((lambda r: (_role(r), r.group, r.year), lambda r: (_role(r), r.group), lambda r: (_role(r),), lambda r: ())
+                 if by_role else (lambda r: (r.year,), lambda r: ()))
+        for keyf in keyfs:
             b: dict[tuple, list] = {}
             for r, m in pool:
                 b.setdefault(keyf(r), []).append(m)
@@ -149,7 +155,7 @@ class EventEnv:
         v = m.get(met)
         if v is None:
             return None
-        for k in ((_role(r), r.group), (_role(r),), ()):
+        for k in (((_role(r), r.group, r.year), (_role(r), r.group), (_role(r),), ()) if self.by_role else ((r.year,), ())):
             if met in self.t.get(k, {}):
                 mu, sd = self.t[k][met]
                 return (v - mu) / sd
@@ -250,8 +256,8 @@ def regime_factor(lines: list[EventLine], P: P2) -> tuple[list[float], str]:
 
 # ------------------------------------------------------------------ the composition
 
-def _reference_lines(recs: list[Record], cutoff: date):
-    env = EventEnv([r for r in recs if r.end and not r.date_estimated and r.end < cutoff])
+def _reference_lines(recs: list[Record], cutoff: date, by_role: bool = True):
+    env = EventEnv([r for r in recs if r.end and not r.date_estimated and r.end < cutoff], by_role=by_role)
     return event_lines(recs, cutoff, env)
 
 
@@ -282,6 +288,13 @@ def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, I
     Pref = P2(fusion="stage", regime="off", half_life=P.half_life)
     combats, abil = [], {k: [] for k in STAT_ABILITIES}
     for ls in lines.values():
+        # the scale is anchored on tier-one players (most weighted rounds in
+        # vct/intl events); with 2022's national legs in the cache the pool
+        # would otherwise be thousands of sub-regional lines and "average"
+        # would slide down to them
+        top = sum(e.rnd for e in ls if e.group in ("vct", "intl"))
+        if top < sum(e.rnd for e in ls) * 0.5:
+            continue
         got = _fuse(ls, ref_cutoff, Pref)
         if not got or got[2] < 100:
             continue
@@ -307,7 +320,7 @@ def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, I
 
 def rate2(recs: list[Record], cutoff: date, P: P2, mapping: dict, ledger: dict[str, list[Honour]],
           ids: dict[str, IglIdentity], callers: dict[str, IglLevel]) -> dict[str, Rated2]:
-    lines = _reference_lines(recs, cutoff)
+    lines = _reference_lines(recs, cutoff, P.center_by_role)
     a, b = mapping["overall"]
     who: dict[str, tuple[str, str, date]] = {}
     for r in recs:
