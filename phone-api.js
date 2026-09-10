@@ -143,7 +143,7 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     let dev = false
     try {
       if (sender) await sender(phone)
-      else if (smsConfigured()) await sendVerify(phone)
+      else if (smsConfigured()) { await sendVerify(phone); console.log(`sms: sent ****${phone.slice(-4)}`) }
       else if (devMode()) {
         const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
         devCodes.unshift({ last4: phone.slice(-4), code, at: new Date().toISOString() })
@@ -250,7 +250,19 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
 
   async function adminCodes(req, res, url) {
     if (!admin(req, url, res)) return
-    json(res, 200, { ok: true, configured: smsConfigured(), dev: devMode(), codes: devCodes })
+    // enough to see from outside that the sender works: how many codes went
+    // out and how many numbers came back to bind, never the numbers
+    let stats = null
+    if (sql) {
+      const [a] = await sql`select
+        (select count(*)::int from card_sms where sent > now() - interval '1 day') as sent24,
+        (select max(sent) from card_sms) as last_sent,
+        (select count(*)::int from card_phones) as bound,
+        (select count(*)::int from card_phones where bound > now() - interval '1 day') as bound24,
+        (select max(bound) from card_phones) as last_bound`
+      stats = a
+    }
+    json(res, 200, { ok: true, configured: smsConfigured(), dev: devMode(), codes: devCodes, stats })
   }
 
   return {

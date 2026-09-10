@@ -121,6 +121,7 @@ r = await call(phone, '/api/admin/verify', {}, 'admin', `token=wrong&code=${hash
 check('没有口令看不到后台路由', r.code === 0 || r.code === 404)
 r = await call(phone, '/api/admin/sms', {}, 'admin', 'token=tok')
 check('后台能看开发模式的验证码', r.body.ok === true && Array.isArray(r.body.codes))
+check('后台能看发码与绑定的数量，不见号码', r.body.stats && r.body.stats.sent24 >= 1 && r.body.stats.bound >= 1 && !JSON.stringify(r.body.stats).includes('138'))
 
 // ---- the Aliyun 号码认证 requests, without sending ---------------------------
 {
