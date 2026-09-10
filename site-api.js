@@ -362,7 +362,12 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     // could not say where a collection came from: the day this was written,
     // six of one account's ten 彩卡 were older than the window, and a mail
     // names the other side only by what that person typed into a box.
-    const trades = await sql`
+    // One past the cap is read so the reply can say the list was cut. The
+    // first cap, 500, was passed by the very account this was written for, and
+    // its two oldest 彩卡 read 「应是开包开的」 because their trades were
+    // simply further back than the list went.
+    const TRADES_SHOWN = 2000
+    const tradeRows = await sql`
       select 'sell' as side, l.card_id, l.level, l.ask, l.buyout, l.created as listed,
              o.settled as at, o.price, o.buyer_h as other
       from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
@@ -372,7 +377,9 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
              o.settled as at, o.price, l.seller_h as other
       from card_offers o join card_listings l on l.id = o.listing
       where o.buyer_h = ${h} and o.status = 'accepted'
-      order by at desc nulls last limit 500`
+      order by at desc nulls last limit ${TRADES_SHOWN + 1}`
+    const tradesCapped = tradeRows.length > TRADES_SHOWN
+    const trades = tradesCapped ? tradeRows.slice(0, TRADES_SHOWN) : tradeRows
     const mail = await sql`
       select id, kind, card_id, coins, made, taken from card_mail
       where to_h = ${h} order by made desc limit 20`
@@ -479,6 +486,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         id: String(o.id), listing: String(o.listing), card: ign(o.card_id), price: o.price,
         status: o.status, made: o.made, settled: o.settled, who: who(o.other),
       })),
+      tradesCapped,
       trades: trades.map((t) => ({
         side: t.side, cardId: t.card_id, card: ign(t.card_id), rarity: rarityOf(t.card_id),
         rarityCn: engine?.RARITY_CN?.[rarityOf(t.card_id)] ?? null, level: t.level,

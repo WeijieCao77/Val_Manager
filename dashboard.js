@@ -643,7 +643,8 @@ function gAfter(from, to) {
 const gLink = (p) => (p
   ? '<a href="#" class="look" data-code="' + esc(p.code) + '">' + esc(p.name) + '</a>'
   : '（账号不在了）')
-function gSource(f) {
+function gSource(f, capped) {
+  if (!f && capped) return '<span class="dim">最近 ' + capped + ' 笔成交里没有它，更早的没列出</span>'
   if (!f) return '<span class="dim">没有转手记录，应是开包开的</span>'
   const at = gShort(f.at) + ' '
   if (f.how === 'buy') return at + '从 ' + gLink(f.who) + ' 买的，' + gFmt(f.price)
@@ -696,7 +697,7 @@ async function gOpen(who) {
       + '<br>建号 ' + gWhen(j.created) + ' · 最后保存 ' + gWhen(j.saved)
     if (mythics.length) {
       html += '<div class="acct-h">彩卡 ' + mythics.length + ' 张</div>'
-        + mythics.map((o) => '<b>' + esc(o.card) + '</b> · ' + gSource(o.from)).join('<br>')
+        + mythics.map((o) => '<b>' + esc(o.card) + '</b> · ' + gSource(o.from, j.tradesCapped ? trades.length : 0)).join('<br>')
     }
     if (partners.length) {
       html += '<div class="acct-h">交易对手 ' + partners.length + ' 个，按金额排</div>'
@@ -704,7 +705,7 @@ async function gOpen(who) {
         + (partners.length > 10 ? '<a href="#" id="gPartnersAll">看全部 ' + partners.length + ' 个</a>' : '')
     }
     if (trades.length) {
-      html += '<div class="acct-h">成交 ' + trades.length + ' 笔</div>'
+      html += '<div class="acct-h">成交 ' + trades.length + ' 笔' + (j.tradesCapped ? '（只列最近这些，更早的没列出）' : '') + '</div>'
         + '<div id="gTrades">' + trades.slice(0, 15).map(gTrade).join('<br>') + '</div>'
         + (trades.length > 15 ? '<a href="#" id="gTradesAll">看全部 ' + trades.length + ' 笔</a>' : '')
     }
