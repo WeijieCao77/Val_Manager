@@ -46,8 +46,16 @@ export default function ShareSquad({ onClose }: { onClose: () => void }) {
     return () => { alive = false }
   }, [g])
 
-  const blob = async (): Promise<Blob | null> =>
-    new Promise((resolve) => canvas.current?.toBlob((b) => resolve(b), 'image/png') ?? resolve(null))
+  // toBlob hands the blob to its callback and RETURNS undefined, so the old
+  // `canvas.current?.toBlob(cb) ?? resolve(null)` took the fallback on every
+  // call and resolved null before the callback ever ran: 保存图片 and 分享
+  // always answered 「图片还没画好，稍等一下」 however long you waited.
+  // "Not painted yet" is `png`, which the paint effect sets when it is done.
+  const blob = async (): Promise<Blob | null> => {
+    const el = canvas.current
+    if (!el || !png) return null
+    return new Promise((resolve) => el.toBlob((b) => resolve(b), 'image/png'))
+  }
 
   const save = async () => {
     const b = await blob()
