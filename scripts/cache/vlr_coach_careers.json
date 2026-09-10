@@ -1,0 +1,3669 @@
+{
+ "ANGE1": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-12",
+    "role": "head coach",
+    "team": "Natus Vincere",
+    "to": null,
+    "vlrTeamId": "4915"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": null,
+    "team": "Natus Vincere",
+    "to": "2025-09",
+    "vlrTeamId": "4915"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Team CIS",
+    "to": null,
+    "vlrTeamId": "6442"
+   },
+   {
+    "current": false,
+    "from": "2020-08",
+    "role": null,
+    "team": "FunPlus Phoenix",
+    "to": "2022-11",
+    "vlrTeamId": "628"
+   },
+   {
+    "current": false,
+    "from": "2020-05",
+    "role": null,
+    "team": "PartyParrots",
+    "to": "2020-07",
+    "vlrTeamId": "96"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "reserv",
+    "to": null,
+    "vlrTeamId": "40"
+   }
+  ],
+  "via": "search",
+  "vlrId": "109"
+ },
+ "Afr0nfire": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-03",
+    "role": "head coach",
+    "team": "Eternal Fire",
+    "to": null,
+    "vlrTeamId": "6392"
+   },
+   {
+    "current": false,
+    "from": "2026-01",
+    "role": "head coach",
+    "team": "ULF Esports",
+    "to": "2026-03",
+    "vlrTeamId": "18019"
+   },
+   {
+    "current": false,
+    "from": "2025-03",
+    "role": "head coach",
+    "team": "ULF Esports",
+    "to": "2025-07",
+    "vlrTeamId": "18019"
+   },
+   {
+    "current": false,
+    "from": "2023-03",
+    "role": "head coach",
+    "team": "Fire Flux Esports",
+    "to": "2024-07",
+    "vlrTeamId": "20085"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "head coach",
+    "team": "Parla Esports",
+    "to": null,
+    "vlrTeamId": "6751"
+   },
+   {
+    "current": false,
+    "from": "2021-07",
+    "role": "head coach",
+    "team": "Surreal Esports",
+    "to": "2022-04",
+    "vlrTeamId": "4696"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Anatolia Esports",
+    "to": null,
+    "vlrTeamId": "935"
+   }
+  ],
+  "vlrId": "4891"
+ },
+ "AfteR": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-10",
+    "role": "head coach",
+    "team": "Titan Esports Club",
+    "to": null,
+    "vlrTeamId": "14137"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Chinese Taipei",
+    "to": null,
+    "vlrTeamId": "22784"
+   },
+   {
+    "current": false,
+    "from": "2020-06",
+    "role": "head coach",
+    "team": "EDward Gaming",
+    "to": null,
+    "vlrTeamId": "1120"
+   }
+  ],
+  "vlrId": "8643"
+ },
+ "Anaks": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-06",
+    "role": "head coach",
+    "team": "Bilibili Gaming",
+    "to": null,
+    "vlrTeamId": "12010"
+   },
+   {
+    "current": false,
+    "from": "2026-02",
+    "role": "head coach",
+    "team": "ARETE",
+    "to": "2026-06",
+    "vlrTeamId": "20978"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": "head coach",
+    "team": "JD Gaming",
+    "to": "2024-08",
+    "vlrTeamId": "13576"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "coach",
+    "team": "DRX Academy",
+    "to": "2024-03",
+    "vlrTeamId": "9749"
+   },
+   {
+    "current": false,
+    "from": "2022-09",
+    "role": "coach",
+    "team": "KIWOOM DRX",
+    "to": "2022-10",
+    "vlrTeamId": "8185"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "coach",
+    "team": "Maru Gaming",
+    "to": "2022-08",
+    "vlrTeamId": "8086"
+   },
+   {
+    "current": false,
+    "from": "2021-06",
+    "role": null,
+    "team": "GoNGo Prince",
+    "to": "2021-08",
+    "vlrTeamId": "2806"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": null,
+    "team": "TUBEPLE Gaming",
+    "to": "2021-03",
+    "vlrTeamId": "1140"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": null,
+    "team": "T1 Korea",
+    "to": "2020-12",
+    "vlrTeamId": "614"
+   }
+  ],
+  "vlrId": "2331"
+ },
+ "Autumn": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "EDward Gaming",
+    "to": null,
+    "vlrTeamId": "1120"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": "head coach",
+    "team": "T1",
+    "to": "2025-10",
+    "vlrTeamId": "14"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "head coach",
+    "team": "Cloud9",
+    "to": "2022-05",
+    "vlrTeamId": "188"
+   },
+   {
+    "current": false,
+    "from": "2020-08",
+    "role": "assistant coach",
+    "team": "Cloud9 Korea",
+    "to": "2020-12",
+    "vlrTeamId": "651"
+   }
+  ],
+  "vlrId": "2504"
+ },
+ "Biank": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": null,
+    "role": "coach",
+    "team": "Unsettled Resentment",
+    "to": null,
+    "vlrTeamId": "21919"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": null,
+    "team": "Trace Esports",
+    "to": "2025-12",
+    "vlrTeamId": "12685"
+   },
+   {
+    "current": false,
+    "from": "2023-04",
+    "role": null,
+    "team": "Bilibili Gaming",
+    "to": "2024-06",
+    "vlrTeamId": "12010"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Dragon Ranger Gaming",
+    "to": null,
+    "vlrTeamId": "11981"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "O2 Gaming",
+    "to": null,
+    "vlrTeamId": "5504"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Invictus Gaming",
+    "to": null,
+    "vlrTeamId": "5461"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "ex-O2 Gaming",
+    "to": null,
+    "vlrTeamId": "805"
+   }
+  ],
+  "via": "search",
+  "vlrId": "3021"
+ },
+ "Cody": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "assistant coach",
+    "team": "Slovakia",
+    "to": null,
+    "vlrTeamId": "22869"
+   },
+   {
+    "current": false,
+    "from": "2026-03",
+    "role": "coach",
+    "team": "QoR",
+    "to": "2026-07",
+    "vlrTeamId": "6985"
+   },
+   {
+    "current": false,
+    "from": "2025-10",
+    "role": "assistant coach",
+    "team": "SaD Esports",
+    "to": "2026-03",
+    "vlrTeamId": "13920"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Berzerkers",
+    "to": null,
+    "vlrTeamId": "7711"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "LaB Artemis",
+    "to": null,
+    "vlrTeamId": "19200"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "MVSK Hearts",
+    "to": null,
+    "vlrTeamId": "17853"
+   }
+  ],
+  "vlrId": "53761"
+ },
+ "ColdFish": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": null,
+    "role": null,
+    "team": "KeepBest Gaming",
+    "to": null,
+    "vlrTeamId": "12784"
+   },
+   {
+    "current": false,
+    "from": "2026-05",
+    "role": null,
+    "team": "KeepBest Gaming",
+    "to": "2026-06",
+    "vlrTeamId": "12784"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": null,
+    "team": "TYLOO",
+    "to": null,
+    "vlrTeamId": "731"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": null,
+    "team": "Wolves Esports",
+    "to": "2024-05",
+    "vlrTeamId": "13790"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": null,
+    "team": "TOP Esports",
+    "to": "2024-01",
+    "vlrTeamId": "13532"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Gank Gaming",
+    "to": null,
+    "vlrTeamId": "12202"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "TYLOO",
+    "to": null,
+    "vlrTeamId": "731"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Tales of Eastern",
+    "to": null,
+    "vlrTeamId": "908"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "KONE eSports Club",
+    "to": null,
+    "vlrTeamId": "5443"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Suning Gaming",
+    "to": null,
+    "vlrTeamId": "907"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Royal Never Give Up",
+    "to": null,
+    "vlrTeamId": "804"
+   }
+  ],
+  "vlrId": "3020"
+ },
+ "ED101": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-06",
+    "role": "head coach",
+    "team": "All Gamers",
+    "to": null,
+    "vlrTeamId": "1119"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Qing Jiu Club",
+    "to": null,
+    "vlrTeamId": "6093"
+   }
+  ],
+  "vlrId": "40619"
+ },
+ "Egi": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": null,
+    "role": "head coach",
+    "team": "REJECT",
+    "to": null,
+    "vlrTeamId": "104"
+   },
+   {
+    "current": false,
+    "from": "2023-07",
+    "role": "coach",
+    "team": "CREST GAMING Zst",
+    "to": null,
+    "vlrTeamId": "294"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "analyst",
+    "team": "Hexad",
+    "to": "2022-03",
+    "vlrTeamId": "3275"
+   }
+  ],
+  "vlrId": "25138"
+ },
+ "Engh": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-05",
+    "role": "head coach",
+    "team": "FNATIC",
+    "to": null,
+    "vlrTeamId": "2593"
+   },
+   {
+    "current": false,
+    "from": "2023-12",
+    "role": "head coach",
+    "team": "Karmine Corp",
+    "to": "2026-05",
+    "vlrTeamId": "8877"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "TSM",
+    "to": "2023-06",
+    "vlrTeamId": "106"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": "head coach",
+    "team": "bonk",
+    "to": "2022-12",
+    "vlrTeamId": "377"
+   },
+   {
+    "current": false,
+    "from": "2022-03",
+    "role": "head coach",
+    "team": "M3 Champions",
+    "to": "2022-09",
+    "vlrTeamId": "8326"
+   },
+   {
+    "current": false,
+    "from": "2020-09",
+    "role": "coach",
+    "team": "Gambit Esports",
+    "to": "2022-03",
+    "vlrTeamId": "682"
+   },
+   {
+    "current": false,
+    "from": "2020-06",
+    "role": "coach",
+    "team": "FishkaVTom",
+    "to": "2020-08",
+    "vlrTeamId": "110"
+   }
+  ],
+  "vlrId": "460"
+ },
+ "Euler": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2022-12",
+    "role": "head coach",
+    "team": "FENNEL",
+    "to": null,
+    "vlrTeamId": "2934"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "coach",
+    "team": "FENNEL GC",
+    "to": null,
+    "vlrTeamId": "9516"
+   },
+   {
+    "current": false,
+    "from": "2022-04",
+    "role": "coach",
+    "team": "Quintette Shizuoka",
+    "to": null,
+    "vlrTeamId": "8465"
+   }
+  ],
+  "vlrId": "26200"
+ },
+ "Ewok": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-02",
+    "role": "head coach",
+    "team": "Sentinels",
+    "to": null,
+    "vlrTeamId": "2"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Morocco",
+    "to": null,
+    "vlrTeamId": "22821"
+   },
+   {
+    "current": false,
+    "from": "2022-09",
+    "role": "head coach",
+    "team": "Rex Regum Qeon",
+    "to": "2025-10",
+    "vlrTeamId": "878"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "coach",
+    "team": "ONIC G",
+    "to": "2022-09",
+    "vlrTeamId": "2032"
+   },
+   {
+    "current": false,
+    "from": "2020-09",
+    "role": "coach",
+    "team": "White Rabbit Gaming",
+    "to": null,
+    "vlrTeamId": "2212"
+   }
+  ],
+  "vlrId": "8347"
+ },
+ "FrosT": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-07",
+    "role": "head coach",
+    "team": "FULL SENSE",
+    "to": null,
+    "vlrTeamId": "4050"
+   },
+   {
+    "current": false,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "Global Esports",
+    "to": "2026-06",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2023-12",
+    "role": "head coach",
+    "team": "TALON",
+    "to": "2025-09",
+    "vlrTeamId": "8304"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "manager",
+    "team": "FURIA",
+    "to": null,
+    "vlrTeamId": "2406"
+   },
+   {
+    "current": false,
+    "from": "2022-04",
+    "role": "coach",
+    "team": "Nearest Airport",
+    "to": "2024-09",
+    "vlrTeamId": "8264"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "head coach",
+    "team": "100 Thieves",
+    "to": "2021-11",
+    "vlrTeamId": "120"
+   }
+  ],
+  "vlrId": "8707"
+ },
+ "JoshRT": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2023-09",
+    "role": "head coach",
+    "team": "G2 Esports",
+    "to": null,
+    "vlrTeamId": "11058"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "United States of America",
+    "to": null,
+    "vlrTeamId": "22778"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "head coach",
+    "team": "The Guard",
+    "to": "2023-08",
+    "vlrTeamId": "6675"
+   },
+   {
+    "current": false,
+    "from": "2021-05",
+    "role": "head coach",
+    "team": "NRG",
+    "to": "2022-09",
+    "vlrTeamId": "1034"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Headshot Percentage",
+    "to": null,
+    "vlrTeamId": "2209"
+   },
+   {
+    "current": false,
+    "from": "2020-06",
+    "role": null,
+    "team": "Prospects",
+    "to": null,
+    "vlrTeamId": "15"
+   }
+  ],
+  "vlrId": "52"
+ },
+ "Jovi": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "Rex Regum Qeon",
+    "to": null,
+    "vlrTeamId": "878"
+   },
+   {
+    "current": false,
+    "from": "2025-01",
+    "role": "assistant coach",
+    "team": "TALON",
+    "to": "2025-10",
+    "vlrTeamId": "8304"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": "coach",
+    "team": "FlyQuest RED",
+    "to": "2025-01",
+    "vlrTeamId": "6456"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "Evil Geniuses GC",
+    "to": "2023-12",
+    "vlrTeamId": "9547"
+   },
+   {
+    "current": false,
+    "from": "2022-09",
+    "role": "coach",
+    "team": "The Barbers",
+    "to": "2023-01",
+    "vlrTeamId": "9967"
+   },
+   {
+    "current": false,
+    "from": "2022-07",
+    "role": "analyst",
+    "team": "FUSION",
+    "to": "2022-08",
+    "vlrTeamId": "7269"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": "analyst",
+    "team": "OpTic Gaming",
+    "to": "2022-07",
+    "vlrTeamId": "8127"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "head coach",
+    "team": "100 Thieves",
+    "to": "2022-03",
+    "vlrTeamId": "120"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "analyst",
+    "team": "100 Thieves",
+    "to": "2022-01",
+    "vlrTeamId": "120"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "The Clappening",
+    "to": null,
+    "vlrTeamId": "1706"
+   }
+  ],
+  "vlrId": "6570"
+ },
+ "KDG": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-10",
+    "role": "head coach",
+    "team": "T1",
+    "to": null,
+    "vlrTeamId": "14"
+   },
+   {
+    "current": false,
+    "from": "2025-06",
+    "role": "head coach",
+    "team": "T1 Academy",
+    "to": "2025-10",
+    "vlrTeamId": "15578"
+   },
+   {
+    "current": false,
+    "from": "2023-03",
+    "role": "head coach",
+    "team": "Gwangju Shadow",
+    "to": "2023-12",
+    "vlrTeamId": "11707"
+   }
+  ],
+  "vlrId": "37518"
+ },
+ "KEY": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "BBL Esports",
+    "to": null,
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "head coach",
+    "team": "Türkiye",
+    "to": null,
+    "vlrTeamId": "22781"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "coach",
+    "team": "BBL PCIFIC",
+    "to": "2025-11",
+    "vlrTeamId": "16616"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": "coach",
+    "team": "PCIFIC Esports",
+    "to": "2024-10",
+    "vlrTeamId": "3478"
+   },
+   {
+    "current": false,
+    "from": "2022-04",
+    "role": "coach",
+    "team": "FUT Female",
+    "to": "2022-05",
+    "vlrTeamId": "6210"
+   },
+   {
+    "current": false,
+    "from": "2021-10",
+    "role": "coach",
+    "team": "Oxygen Esports",
+    "to": "2022-02",
+    "vlrTeamId": "921"
+   },
+   {
+    "current": false,
+    "from": "2022-07",
+    "role": "coach",
+    "team": "Natus Vincere Celestials",
+    "to": "2023-12",
+    "vlrTeamId": "9408"
+   },
+   {
+    "current": false,
+    "from": "2021-04",
+    "role": "head coach",
+    "team": "XFlow Esports",
+    "to": "2021-08",
+    "vlrTeamId": "3268"
+   }
+  ],
+  "vlrId": "15042"
+ },
+ "KUNDIKUNDI": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-05",
+    "role": "head coach",
+    "team": "Gentle Mates",
+    "to": null,
+    "vlrTeamId": "12694"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Finland",
+    "to": null,
+    "vlrTeamId": "22785"
+   },
+   {
+    "current": false,
+    "from": "2025-11",
+    "role": "assistant coach",
+    "team": "Gentle Mates",
+    "to": "2026-05",
+    "vlrTeamId": "12694"
+   },
+   {
+    "current": false,
+    "from": "2025-10",
+    "role": "coach",
+    "team": "FOKUS",
+    "to": "2025-10",
+    "vlrTeamId": "6882"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "MOUZ",
+    "to": "2025-10",
+    "vlrTeamId": "8044"
+   },
+   {
+    "current": false,
+    "from": "2021-11",
+    "role": "head coach",
+    "team": "BIG",
+    "to": "2022-11",
+    "vlrTeamId": "472"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "STAGA",
+    "to": null,
+    "vlrTeamId": "2340"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "elukat",
+    "to": null,
+    "vlrTeamId": "357"
+   }
+  ],
+  "vlrId": "1363"
+ },
+ "Kapio": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2021-06",
+    "role": "coach",
+    "team": "CGN Esports",
+    "to": null,
+    "vlrTeamId": "5214"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "head coach",
+    "team": "Germany",
+    "to": null,
+    "vlrTeamId": "22847"
+   },
+   {
+    "current": false,
+    "from": "2023-10",
+    "role": "coach",
+    "team": "Team Germany",
+    "to": null,
+    "vlrTeamId": "14037"
+   }
+  ],
+  "vlrId": "16431"
+ },
+ "LEGIJA": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-06",
+    "role": "head coach",
+    "team": "FunPlus Phoenix",
+    "to": null,
+    "vlrTeamId": "11328"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "head coach",
+    "team": "BLEED",
+    "to": "2024-10",
+    "vlrTeamId": "6387"
+   }
+  ],
+  "vlrId": "22782"
+ },
+ "Larsson": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-12",
+    "role": "head coach",
+    "team": "Joblife",
+    "to": null,
+    "vlrTeamId": "11232"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": "head coach",
+    "team": "Zerance",
+    "to": "2024-08",
+    "vlrTeamId": "9559"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "coach",
+    "team": "beGenius",
+    "to": "2022-07",
+    "vlrTeamId": "8067"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Les Zinzins De Lespace",
+    "to": null,
+    "vlrTeamId": "4877"
+   }
+  ],
+  "vlrId": "20578"
+ },
+ "LohaN": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-10",
+    "role": "head coach",
+    "team": "Team Liquid",
+    "to": null,
+    "vlrTeamId": "474"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": "head coach",
+    "team": "Joblife",
+    "to": "2024-09",
+    "vlrTeamId": "11232"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "head coach",
+    "team": "GTZ Esports",
+    "to": "2023-06",
+    "vlrTeamId": "9762"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "coach",
+    "team": "DSYRE",
+    "to": "2022-12",
+    "vlrTeamId": "6538"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "coach",
+    "team": "Sector One",
+    "to": "2022-09",
+    "vlrTeamId": "7963"
+   },
+   {
+    "current": false,
+    "from": "2021-05",
+    "role": null,
+    "team": "EGN Esports",
+    "to": null,
+    "vlrTeamId": "4671"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "WhynotVLR",
+    "to": null,
+    "vlrTeamId": "2418"
+   },
+   {
+    "current": false,
+    "from": "2020-12",
+    "role": null,
+    "team": "ehehxd",
+    "to": "2020-12",
+    "vlrTeamId": "2035"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": null,
+    "team": "All Day Long",
+    "to": "2020-11",
+    "vlrTeamId": "1187"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "YUMPERIGO",
+    "to": null,
+    "vlrTeamId": "739"
+   }
+  ],
+  "via": "search",
+  "vlrId": "2881"
+ },
+ "NaThanD": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-03",
+    "role": "head coach",
+    "team": "Dragon Ranger Gaming",
+    "to": null,
+    "vlrTeamId": "11981"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "China",
+    "to": null,
+    "vlrTeamId": "19874"
+   },
+   {
+    "current": false,
+    "from": "2022-06",
+    "role": "head coach",
+    "team": "FunPlus Phoenix",
+    "to": "2025-02",
+    "vlrTeamId": "11328"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "EDward Gaming",
+    "to": null,
+    "vlrTeamId": "1120"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "KaiXin Esports",
+    "to": null,
+    "vlrTeamId": "905"
+   }
+  ],
+  "vlrId": "3532"
+ },
+ "Nbs": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "100 Thieves",
+    "to": null,
+    "vlrTeamId": "120"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Lithuania",
+    "to": null,
+    "vlrTeamId": "22786"
+   },
+   {
+    "current": false,
+    "from": "2024-11",
+    "role": "head coach",
+    "team": "TSM",
+    "to": "2025-11",
+    "vlrTeamId": "106"
+   },
+   {
+    "current": false,
+    "from": "2021-03",
+    "role": "coach",
+    "team": "Acend",
+    "to": "2024-09",
+    "vlrTeamId": "3531"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "coach",
+    "team": "Raise Your Edge",
+    "to": "2021-03",
+    "vlrTeamId": "2577"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "manager",
+    "team": "nolpenki",
+    "to": null,
+    "vlrTeamId": "326"
+   }
+  ],
+  "vlrId": "1622"
+ },
+ "Onur": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "LEVIATÁN",
+    "to": null,
+    "vlrTeamId": "2359"
+   },
+   {
+    "current": false,
+    "from": "2024-12",
+    "role": "coach",
+    "team": "LEVIATÁN Academy",
+    "to": "2025-11",
+    "vlrTeamId": "9425"
+   },
+   {
+    "current": false,
+    "from": "2023-11",
+    "role": "coach",
+    "team": "Case Esports",
+    "to": "2024-04",
+    "vlrTeamId": "6149"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "coach",
+    "team": "LEVIATÁN",
+    "to": "2023-08",
+    "vlrTeamId": "2359"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "coach",
+    "team": "KRÜ Esports",
+    "to": "2021-12",
+    "vlrTeamId": "2355"
+   },
+   {
+    "current": false,
+    "from": "2020-08",
+    "role": "coach",
+    "team": "Estral Esports",
+    "to": "2020-12",
+    "vlrTeamId": "368"
+   }
+  ],
+  "vlrId": "2455"
+ },
+ "PAL": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "coach",
+    "team": "Team Vitality",
+    "to": null,
+    "vlrTeamId": "2059"
+   },
+   {
+    "current": true,
+    "from": null,
+    "role": "coach",
+    "team": "EverSoWavyGang",
+    "to": null,
+    "vlrTeamId": "10151"
+   },
+   {
+    "current": false,
+    "from": "2025-06",
+    "role": "head coach",
+    "team": "BBL Esports",
+    "to": "2025-11",
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "assistant coach",
+    "team": "BBL Esports",
+    "to": "2025-06",
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2024-08",
+    "role": "assistant coach",
+    "team": "Team Vitality",
+    "to": "2024-08",
+    "vlrTeamId": "2059"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Team United Kingdom",
+    "to": null,
+    "vlrTeamId": "10126"
+   },
+   {
+    "current": false,
+    "from": "2023-10",
+    "role": "head coach",
+    "team": "FOKUS",
+    "to": "2024-07",
+    "vlrTeamId": "6882"
+   },
+   {
+    "current": false,
+    "from": "2023-04",
+    "role": "head coach",
+    "team": "WYLDE",
+    "to": "2023-10",
+    "vlrTeamId": "8128"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "Fire Flux Esports",
+    "to": "2023-04",
+    "vlrTeamId": "20085"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": "coach",
+    "team": "eMasters",
+    "to": "2023-01",
+    "vlrTeamId": "9436"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Saints eSports",
+    "to": null,
+    "vlrTeamId": "10324"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Skelp NYX",
+    "to": null,
+    "vlrTeamId": "9874"
+   }
+  ],
+  "vlrId": "30280"
+ },
+ "Platoon": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-06",
+    "role": "head coach",
+    "team": "Global Esports",
+    "to": null,
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2025-12",
+    "role": "analyst",
+    "team": "Global Esports",
+    "to": "2026-06",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2025-11",
+    "role": "assistant coach",
+    "team": "Global Esports",
+    "to": "2025-08",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2025-10",
+    "role": "coach",
+    "team": "Global Esports Spotlight",
+    "to": null,
+    "vlrTeamId": "20189"
+   },
+   {
+    "current": false,
+    "from": "2025-05",
+    "role": "analyst",
+    "team": "Global Esports",
+    "to": "2025-08",
+    "vlrTeamId": "918"
+   }
+  ],
+  "vlrId": "54685"
+ },
+ "Relife": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-02",
+    "role": "head coach",
+    "team": "QT DIG∞",
+    "to": null,
+    "vlrTeamId": "18299"
+   },
+   {
+    "current": false,
+    "from": "2025-04",
+    "role": "coach",
+    "team": "QT DIG∞",
+    "to": "2026-02",
+    "vlrTeamId": "18299"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": "coach",
+    "team": "Sengoku Gaming",
+    "to": "2025-04",
+    "vlrTeamId": "283"
+   },
+   {
+    "current": false,
+    "from": "2022-12",
+    "role": "head coach",
+    "team": "Sengoku Gaming",
+    "to": "2023-09",
+    "vlrTeamId": "283"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": "coach",
+    "team": "FENNEL",
+    "to": "2022-07",
+    "vlrTeamId": "2934"
+   }
+  ],
+  "vlrId": "20401"
+ },
+ "Romanilly": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-12",
+    "role": "head coach",
+    "team": "LOUD",
+    "to": null,
+    "vlrTeamId": "6961"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "head coach",
+    "team": "Argentina",
+    "to": null,
+    "vlrTeamId": "22522"
+   },
+   {
+    "current": false,
+    "from": "2025-01",
+    "role": "head coach",
+    "team": "E-Xolos LAZER",
+    "to": "2025-10",
+    "vlrTeamId": "724"
+   },
+   {
+    "current": false,
+    "from": "2022-08",
+    "role": "coach",
+    "team": "9z Globant",
+    "to": "2024-08",
+    "vlrTeamId": "367"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "coach",
+    "team": "PAMPAS",
+    "to": "2022-06",
+    "vlrTeamId": "5562"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "head coach",
+    "team": "LEVIATÁN",
+    "to": "2021-07",
+    "vlrTeamId": "2359"
+   }
+  ],
+  "vlrId": "20833"
+ },
+ "SilKanoN": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-11",
+    "role": "head coach",
+    "team": "Nongshim RedForce",
+    "to": null,
+    "vlrTeamId": "11060"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "South Korea",
+    "to": null,
+    "vlrTeamId": "22779"
+   },
+   {
+    "current": false,
+    "from": "2023-12",
+    "role": "head coach",
+    "team": "Sin Prisa Gaming",
+    "to": "2024-11",
+    "vlrTeamId": "14422"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": "head coach",
+    "team": "Gwangju Shadow",
+    "to": "2023-12",
+    "vlrTeamId": "11707"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Challenge",
+    "to": null,
+    "vlrTeamId": "1060"
+   }
+  ],
+  "vlrId": "4124"
+ },
+ "Spin": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-07",
+    "role": "head coach",
+    "team": "Team Secret",
+    "to": null,
+    "vlrTeamId": "6199"
+   },
+   {
+    "current": false,
+    "from": "2026-01",
+    "role": "coach",
+    "team": "Motiv Esports",
+    "to": "2026-05",
+    "vlrTeamId": "18117"
+   },
+   {
+    "current": false,
+    "from": "2025-05",
+    "role": "head coach",
+    "team": "Motiv Esports",
+    "to": "2025-10",
+    "vlrTeamId": "18117"
+   },
+   {
+    "current": false,
+    "from": "2025-04",
+    "role": "head coach",
+    "team": "VIT.Revolution",
+    "to": "2025-05",
+    "vlrTeamId": "18376"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "coach",
+    "team": "DVM Esport",
+    "to": "2025-04",
+    "vlrTeamId": "14318"
+   },
+   {
+    "current": false,
+    "from": "2023-09",
+    "role": "head coach",
+    "team": "Global Esports",
+    "to": "2024-07",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2022-12",
+    "role": "assistant coach",
+    "team": "Global Esports",
+    "to": "2023-09",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2022-04",
+    "role": "coach",
+    "team": "MAD Lions",
+    "to": "2022-11",
+    "vlrTeamId": "8726"
+   },
+   {
+    "current": false,
+    "from": "2021-05",
+    "role": "coach",
+    "team": "TENSTAR",
+    "to": "2022-04",
+    "vlrTeamId": "4663"
+   },
+   {
+    "current": false,
+    "from": "2021-05",
+    "role": "coach",
+    "team": "Tarren Mill",
+    "to": "2021-05",
+    "vlrTeamId": "1090"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": "coach",
+    "team": "Finest",
+    "to": "2021-04",
+    "vlrTeamId": "673"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Washington Muscle",
+    "to": null,
+    "vlrTeamId": "689"
+   }
+  ],
+  "vlrId": "4355"
+ },
+ "Stunner": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-03",
+    "role": "head coach",
+    "team": "ENVY",
+    "to": null,
+    "vlrTeamId": "427"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Canada",
+    "to": null,
+    "vlrTeamId": "22780"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "RANKERS",
+    "to": null,
+    "vlrTeamId": "16806"
+   },
+   {
+    "current": false,
+    "from": "2021-04",
+    "role": "coach",
+    "team": "T1",
+    "to": "2024-07",
+    "vlrTeamId": "14"
+   }
+  ],
+  "vlrId": "13109"
+ },
+ "Veer": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-07",
+    "role": "head coach",
+    "team": "Cloud9",
+    "to": null,
+    "vlrTeamId": "188"
+   },
+   {
+    "current": false,
+    "from": "2026-04",
+    "role": "assistant coach",
+    "team": "Cloud9",
+    "to": "2026-07",
+    "vlrTeamId": "188"
+   },
+   {
+    "current": false,
+    "from": "2026-03",
+    "role": "head coach",
+    "team": "Nightblood Gaming",
+    "to": "2026-04",
+    "vlrTeamId": "5601"
+   },
+   {
+    "current": false,
+    "from": "2025-05",
+    "role": "assistant coach",
+    "team": "Shopify Rebellion Gold",
+    "to": "2026-01",
+    "vlrTeamId": "14278"
+   },
+   {
+    "current": false,
+    "from": "2025-03",
+    "role": "coach",
+    "team": "Funhavers",
+    "to": "2025-05",
+    "vlrTeamId": "16121"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Prosperity Esports",
+    "to": null,
+    "vlrTeamId": "17401"
+   },
+   {
+    "current": false,
+    "from": "2024-08",
+    "role": "head coach",
+    "team": "Lemonade Stand",
+    "to": null,
+    "vlrTeamId": "13277"
+   },
+   {
+    "current": false,
+    "from": "2024-03",
+    "role": "head coach",
+    "team": "Winthrop University",
+    "to": null,
+    "vlrTeamId": "10448"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Paragons",
+    "to": null,
+    "vlrTeamId": "15101"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Final Form Entertainment",
+    "to": null,
+    "vlrTeamId": "10182"
+   },
+   {
+    "current": false,
+    "from": "2023-05",
+    "role": null,
+    "team": "Veracity",
+    "to": "2023-06",
+    "vlrTeamId": "12766"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Team Revenge",
+    "to": null,
+    "vlrTeamId": "9212"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "head coach",
+    "team": "ODU Monarchs",
+    "to": null,
+    "vlrTeamId": "10472"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": null,
+    "team": "GONJO",
+    "to": null,
+    "vlrTeamId": "8627"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Phoenix2",
+    "to": null,
+    "vlrTeamId": "8623"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "TN",
+    "to": null,
+    "vlrTeamId": "995"
+   }
+  ],
+  "vlrId": "3877"
+ },
+ "Vlad": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-03",
+    "role": "head coach",
+    "team": "FUT Esports",
+    "to": null,
+    "vlrTeamId": "1184"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "assistant coach",
+    "team": "Türkiye",
+    "to": null,
+    "vlrTeamId": "22781"
+   },
+   {
+    "current": false,
+    "from": "2025-07",
+    "role": "head coach",
+    "team": "ULF Esports",
+    "to": "2025-12",
+    "vlrTeamId": "18019"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": "analyst",
+    "team": "Natus Vincere",
+    "to": "2024-09",
+    "vlrTeamId": "4915"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "head coach",
+    "team": "BBL Esports",
+    "to": "2023-04",
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": "analyst",
+    "team": "Giants Gaming",
+    "to": "2022-10",
+    "vlrTeamId": "2304"
+   },
+   {
+    "current": false,
+    "from": "2022-04",
+    "role": "analyst",
+    "team": "BBL Esports",
+    "to": "2022-05",
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2021-09",
+    "role": "head coach",
+    "team": "BBL Esports",
+    "to": "2022-04",
+    "vlrTeamId": "397"
+   }
+  ],
+  "vlrId": "19814"
+ },
+ "Vorz": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-01",
+    "role": "head coach",
+    "team": "DetonatioN FocusMe",
+    "to": null,
+    "vlrTeamId": "278"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Japan",
+    "to": null,
+    "vlrTeamId": "22790"
+   },
+   {
+    "current": false,
+    "from": "2023-12",
+    "role": "coach",
+    "team": "RIDDLE ORDER",
+    "to": "2026-01",
+    "vlrTeamId": "14375"
+   },
+   {
+    "current": false,
+    "from": "2021-12",
+    "role": "coach",
+    "team": "ZETA DIVISION Academy",
+    "to": "2023-11",
+    "vlrTeamId": "6997"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": "coach",
+    "team": "NORTHEPTION",
+    "to": "2021-12",
+    "vlrTeamId": "2988"
+   }
+  ],
+  "vlrId": "19725"
+ },
+ "XQQ": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-04",
+    "role": "assistant coach",
+    "team": "ZETA DIVISION",
+    "to": null,
+    "vlrTeamId": "5448"
+   },
+   {
+    "current": false,
+    "from": "2025-02",
+    "role": "head coach",
+    "team": "ZETA DIVISION",
+    "to": "2026-04",
+    "vlrTeamId": "5448"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "assistant coach",
+    "team": "ZETA DIVISION",
+    "to": "2025-02",
+    "vlrTeamId": "5448"
+   },
+   {
+    "current": false,
+    "from": "2021-07",
+    "role": "head coach",
+    "team": "ZETA DIVISION",
+    "to": "2023-09",
+    "vlrTeamId": "5448"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": "head coach",
+    "team": "Absolute JUPITER",
+    "to": "2021-07",
+    "vlrTeamId": "279"
+   }
+  ],
+  "vlrId": "6717"
+ },
+ "York": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-03",
+    "role": "assistant coach",
+    "team": "FunPlus Phoenix",
+    "to": null,
+    "vlrTeamId": "11328"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "assistant coach",
+    "team": "FunPlus Phoenix",
+    "to": "2025-03",
+    "vlrTeamId": "11328"
+   },
+   {
+    "current": false,
+    "from": "2024-06",
+    "role": null,
+    "team": "Titan Esports Club",
+    "to": "2024-10",
+    "vlrTeamId": "14137"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": "assistant coach",
+    "team": "Titan Esports Club",
+    "to": "2024-06",
+    "vlrTeamId": "14137"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Shenzhen NTER",
+    "to": null,
+    "vlrTeamId": "4462"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "EDward Gaming",
+    "to": null,
+    "vlrTeamId": "1120"
+   }
+  ],
+  "vlrId": "6021"
+ },
+ "ZE1SH": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-05",
+    "role": "head coach",
+    "team": "Karmine Corp",
+    "to": null,
+    "vlrTeamId": "8877"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Egypt",
+    "to": null,
+    "vlrTeamId": "22814"
+   },
+   {
+    "current": false,
+    "from": "2023-12",
+    "role": "coach",
+    "team": "Karmine Corp",
+    "to": "2026-05",
+    "vlrTeamId": "8877"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": null,
+    "team": "Karmine Corp",
+    "to": "2023-12",
+    "vlrTeamId": "8877"
+   },
+   {
+    "current": false,
+    "from": "2021-09",
+    "role": "assistant coach",
+    "team": "Team Vitality",
+    "to": "2022-04",
+    "vlrTeamId": "2059"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Anubis Gaming",
+    "to": null,
+    "vlrTeamId": "1466"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "L'institut",
+    "to": null,
+    "vlrTeamId": "61"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "OldTownRoad",
+    "to": null,
+    "vlrTeamId": "78"
+   }
+  ],
+  "vlrId": "302"
+ },
+ "ZONYK": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-07",
+    "role": "head coach",
+    "team": "KRÜ Esports",
+    "to": null,
+    "vlrTeamId": "2355"
+   },
+   {
+    "current": false,
+    "from": "2025-01",
+    "role": "coach",
+    "team": "OXEN",
+    "to": "2025-07",
+    "vlrTeamId": "9427"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": "coach",
+    "team": "All Knights",
+    "to": null,
+    "vlrTeamId": "364"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": "head coach",
+    "team": "Six Karma",
+    "to": "2025-12",
+    "vlrTeamId": "4094"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Motion Team",
+    "to": null,
+    "vlrTeamId": "4355"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Odin Gaming",
+    "to": null,
+    "vlrTeamId": "786"
+   }
+  ],
+  "vlrId": "2933"
+ },
+ "_unconfirmed": {
+  "742": {
+   "candidates": [],
+   "expected": [
+    "a",
+    "at"
+   ]
+  },
+  "Ann": {
+   "candidates": [
+    {
+     "current": [
+      "Lost Puppies GC",
+      "OUTCASTS"
+     ],
+     "vlrId": "14310"
+    },
+    {
+     "current": [
+      "Barça eSports GC"
+     ],
+     "vlrId": "16196"
+    },
+    {
+     "current": [
+      "FULL SENSE SISU"
+     ],
+     "vlrId": "52180"
+    },
+    {
+     "current": [
+      "maui wowie"
+     ],
+     "vlrId": "6575"
+    }
+   ],
+   "expected": [
+    "world sports invictus",
+    "wsig"
+   ]
+  },
+  "Lêv": {
+   "candidates": [
+    {
+     "current": [
+      "FULL SENSE"
+     ],
+     "vlrId": "27254"
+    },
+    {
+     "current": [],
+     "vlrId": "49999"
+    },
+    {
+     "current": [
+      "World Sports Invictus Gaming",
+      "Bilibili Gaming"
+     ],
+     "vlrId": "40845"
+    },
+    {
+     "current": [],
+     "vlrId": "4386"
+    }
+   ],
+   "expected": [
+    "ffe",
+    "fire flux"
+   ]
+  },
+  "Metasla": {
+   "candidates": [],
+   "expected": [
+    "reje",
+    "reject"
+   ]
+  },
+  "Pablo": {
+   "candidates": [
+    {
+     "current": [],
+     "vlrId": "1294"
+    },
+    {
+     "current": [
+      "LAZER"
+     ],
+     "vlrId": "593"
+    },
+    {
+     "current": [
+      "Suzaku Esports"
+     ],
+     "vlrId": "33031"
+    },
+    {
+     "current": [
+      "MIAU",
+      "Sportia Khore"
+     ],
+     "vlrId": "36638"
+    }
+   ],
+   "expected": [
+    "team heretics",
+    "th"
+   ]
+  },
+  "Sunshine": {
+   "candidates": [
+    {
+     "current": [],
+     "vlrId": "14453"
+    },
+    {
+     "current": [
+      "AaB Esport Denmark"
+     ],
+     "vlrId": "27020"
+    },
+    {
+     "current": [],
+     "vlrId": "27428"
+    },
+    {
+     "current": [
+      "Fact Revolution"
+     ],
+     "vlrId": "54865"
+    }
+   ],
+   "expected": [
+    "any questions",
+    "aq",
+    "edg",
+    "edward"
+   ]
+  },
+  "TK9_주": {
+   "candidates": [],
+   "expected": [
+    "varrel",
+    "vl"
+   ]
+  },
+  "heav1n": {
+   "candidates": [
+    {
+     "current": [],
+     "vlrId": "51243"
+    }
+   ],
+   "expected": [
+    "victory no limits",
+    "vlg"
+   ]
+  },
+  "style": {
+   "candidates": [
+    {
+     "current": [
+      "Division One"
+     ],
+     "vlrId": "10878"
+    },
+    {
+     "current": [],
+     "vlrId": "42768"
+    },
+    {
+     "current": [],
+     "vlrId": "29072"
+    },
+    {
+     "current": [],
+     "vlrId": "131"
+    }
+   ],
+   "expected": [
+    "sad",
+    "se"
+   ]
+  },
+  "xiuyueer": {
+   "candidates": [],
+   "expected": [
+    "octagonal disposition",
+    "odg"
+   ]
+  }
+ },
+ "alecks": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2021-02",
+    "role": "coach",
+    "team": "Paper Rex",
+    "to": null,
+    "vlrTeamId": "624"
+   }
+  ],
+  "vlrId": "9804"
+ },
+ "alexRr": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-05",
+    "role": "head coach",
+    "team": "Wolves Esports",
+    "to": null,
+    "vlrTeamId": "13790"
+   },
+   {
+    "current": false,
+    "from": "2026-03",
+    "role": "head coach",
+    "team": "Nova Esports",
+    "to": "2026-05",
+    "vlrTeamId": "12064"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "head coach",
+    "team": "Enterprise Esports",
+    "to": null,
+    "vlrTeamId": "876"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": "head coach",
+    "team": "Disguised",
+    "to": "2025-01",
+    "vlrTeamId": "14773"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "cowana Gaming",
+    "to": null,
+    "vlrTeamId": "6211"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Bloodh0nd Gang",
+    "to": null,
+    "vlrTeamId": "8920"
+   },
+   {
+    "current": false,
+    "from": "2022-06",
+    "role": null,
+    "team": "Sissi State Punks",
+    "to": "2022-06",
+    "vlrTeamId": "5233"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Team zonixx",
+    "to": null,
+    "vlrTeamId": "202"
+   },
+   {
+    "current": false,
+    "from": "2020-07",
+    "role": null,
+    "team": "BIG",
+    "to": "2021-07",
+    "vlrTeamId": "472"
+   }
+  ],
+  "vlrId": "1163"
+ },
+ "bail": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "JD Gaming",
+    "to": null,
+    "vlrTeamId": "13576"
+   },
+   {
+    "current": false,
+    "from": "2024-03",
+    "role": "head coach",
+    "team": "Bilibili Gaming",
+    "to": "2025-10",
+    "vlrTeamId": "12010"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Octagonal Disposition Gaming",
+    "to": null,
+    "vlrTeamId": "12785"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "coach",
+    "team": "Gen.G",
+    "to": "2023-09",
+    "vlrTeamId": "17"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "head coach",
+    "team": "NORTHEPTION",
+    "to": "2022-10",
+    "vlrTeamId": "2988"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": "head coach",
+    "team": "TNL Esports",
+    "to": "2022-01",
+    "vlrTeamId": "1970"
+   },
+   {
+    "current": false,
+    "from": "2020-06",
+    "role": "head coach",
+    "team": "Quantum Strikers",
+    "to": "2020-11",
+    "vlrTeamId": "261"
+   }
+  ],
+  "vlrId": "980"
+ },
+ "bonkar": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-10",
+    "role": "head coach",
+    "team": "NRG",
+    "to": null,
+    "vlrTeamId": "1034"
+   },
+   {
+    "current": false,
+    "from": "2023-03",
+    "role": "head coach",
+    "team": "Oxygen Esports",
+    "to": "2024-08",
+    "vlrTeamId": "10725"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": null,
+    "team": "bonk",
+    "to": "2023-03",
+    "vlrTeamId": "377"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": null,
+    "team": "Finest",
+    "to": "2022-10",
+    "vlrTeamId": "673"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": null,
+    "team": "Tundra Esports",
+    "to": "2022-03",
+    "vlrTeamId": "8145"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "YONK",
+    "to": null,
+    "vlrTeamId": "7092"
+   },
+   {
+    "current": false,
+    "from": "2020-10",
+    "role": null,
+    "team": "Guild Esports",
+    "to": "2021-11",
+    "vlrTeamId": "1209"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "bonk",
+    "to": null,
+    "vlrTeamId": "377"
+   },
+   {
+    "current": false,
+    "from": "2020-04",
+    "role": null,
+    "team": "Ninjas in Pyjamas",
+    "to": "2020-06",
+    "vlrTeamId": "3"
+   }
+  ],
+  "vlrId": "7"
+ },
+ "destroyeR": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2023-04",
+    "role": "head coach",
+    "team": "Trace Esports",
+    "to": null,
+    "vlrTeamId": "12685"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": null,
+    "team": "Bilibili Gaming",
+    "to": "2023-04",
+    "vlrTeamId": "12010"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "LIZHI",
+    "to": null,
+    "vlrTeamId": "4463"
+   }
+  ],
+  "vlrId": "15249"
+ },
+ "effys": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-12",
+    "role": "head coach",
+    "team": "Shopify Rebellion Black",
+    "to": null,
+    "vlrTeamId": "9353"
+   },
+   {
+    "current": false,
+    "from": "2023-11",
+    "role": "head coach",
+    "team": "Shopify Rebellion Gold",
+    "to": "2025-12",
+    "vlrTeamId": "14278"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "Version1",
+    "to": "2023-11",
+    "vlrTeamId": "11201"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": null,
+    "team": "Version1",
+    "to": "2022-12",
+    "vlrTeamId": "2815"
+   },
+   {
+    "current": false,
+    "from": "2020-05",
+    "role": null,
+    "team": "Gen.G",
+    "to": "2020-10",
+    "vlrTeamId": "17"
+   }
+  ],
+  "vlrId": "65"
+ },
+ "fRoD": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-06",
+    "role": "head coach",
+    "team": "MIBR",
+    "to": null,
+    "vlrTeamId": "7386"
+   },
+   {
+    "current": false,
+    "from": "2023-10",
+    "role": "coach",
+    "team": "MIBR",
+    "to": "2024-06",
+    "vlrTeamId": "7386"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": "head coach",
+    "team": "LOUD",
+    "to": "2023-10",
+    "vlrTeamId": "6961"
+   },
+   {
+    "current": false,
+    "from": "2021-08",
+    "role": "head coach",
+    "team": "Pioneers",
+    "to": "2022-03",
+    "vlrTeamId": "4940"
+   },
+   {
+    "current": false,
+    "from": "2021-06",
+    "role": "coach",
+    "team": "FPL-C",
+    "to": "2021-06",
+    "vlrTeamId": "4672"
+   },
+   {
+    "current": false,
+    "from": "2021-03",
+    "role": "head coach",
+    "team": "beastcoast",
+    "to": "2021-04",
+    "vlrTeamId": "631"
+   },
+   {
+    "current": false,
+    "from": "2020-05",
+    "role": "coach",
+    "team": "T1",
+    "to": "2021-01",
+    "vlrTeamId": "14"
+   }
+  ],
+  "vlrId": "145"
+ },
+ "gainpe": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-09",
+    "role": "coach",
+    "team": "IGZIST",
+    "to": null,
+    "vlrTeamId": "6869"
+   },
+   {
+    "current": false,
+    "from": "2024-08",
+    "role": "analyst",
+    "team": "IGZIST",
+    "to": "2025-09",
+    "vlrTeamId": "6869"
+   }
+  ],
+  "vlrId": "51137"
+ },
+ "gya9": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2020-11",
+    "role": "analyst",
+    "team": "ZETA DIVISION",
+    "to": null,
+    "vlrTeamId": "5448"
+   }
+  ],
+  "vlrId": "31170"
+ },
+ "hvoya": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-11",
+    "role": "head coach",
+    "team": "Xi Lai Gaming",
+    "to": null,
+    "vlrTeamId": "13581"
+   },
+   {
+    "current": false,
+    "from": "2024-03",
+    "role": "head coach",
+    "team": "Xi Lai Gaming",
+    "to": "2025-11",
+    "vlrTeamId": "13581"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Irregulars",
+    "to": null,
+    "vlrTeamId": "14536"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Reckoning Esports",
+    "to": null,
+    "vlrTeamId": "1033"
+   },
+   {
+    "current": false,
+    "from": "2022-05",
+    "role": null,
+    "team": "beGenius",
+    "to": "2023-03",
+    "vlrTeamId": "8067"
+   },
+   {
+    "current": false,
+    "from": "2021-09",
+    "role": null,
+    "team": "KPI Gaming",
+    "to": "2022-04",
+    "vlrTeamId": "6313"
+   },
+   {
+    "current": false,
+    "from": "2021-07",
+    "role": null,
+    "team": "Team Singularity",
+    "to": "2021-08",
+    "vlrTeamId": "1341"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "AG",
+    "to": null,
+    "vlrTeamId": "4518"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "CrowСrowd",
+    "to": null,
+    "vlrTeamId": "1020"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "unsigned",
+    "to": null,
+    "vlrTeamId": "1071"
+   }
+  ],
+  "vlrId": "1348"
+ },
+ "hypnotizing": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-06",
+    "role": "head coach",
+    "team": "TYLOO",
+    "to": null,
+    "vlrTeamId": "731"
+   },
+   {
+    "current": false,
+    "from": "2024-12",
+    "role": "assistant coach",
+    "team": "TYLOO",
+    "to": "2025-06",
+    "vlrTeamId": "731"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": "assistant coach",
+    "team": "JD Gaming",
+    "to": "2024-12",
+    "vlrTeamId": "13576"
+   },
+   {
+    "current": false,
+    "from": "2024-04",
+    "role": "assistant coach",
+    "team": "All Gamers",
+    "to": "2024-10",
+    "vlrTeamId": "1119"
+   }
+  ],
+  "vlrId": "48568"
+ },
+ "kaplan": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-03",
+    "role": "head coach",
+    "team": "M80",
+    "to": null,
+    "vlrTeamId": "11001"
+   },
+   {
+    "current": false,
+    "from": "2023-04",
+    "role": "head coach",
+    "team": "Sentinels",
+    "to": "2026-02",
+    "vlrTeamId": "2"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "coach",
+    "team": "Sentinels",
+    "to": "2023-04",
+    "vlrTeamId": "2"
+   },
+   {
+    "current": false,
+    "from": "2022-09",
+    "role": "coach",
+    "team": "Ghostbusters",
+    "to": "2022-10",
+    "vlrTeamId": "9758"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": "coach",
+    "team": "Ghost Gaming",
+    "to": "2022-08",
+    "vlrTeamId": "2291"
+   },
+   {
+    "current": false,
+    "from": "2020-08",
+    "role": null,
+    "team": "Spacestation Gaming",
+    "to": "2020-12",
+    "vlrTeamId": "674"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Bloom",
+    "to": null,
+    "vlrTeamId": "572"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Code7",
+    "to": null,
+    "vlrTeamId": "195"
+   }
+  ],
+  "vlrId": "757"
+ },
+ "mCe": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2023-11",
+    "role": "head coach",
+    "team": "Maryville University",
+    "to": null,
+    "vlrTeamId": "12900"
+   },
+   {
+    "current": false,
+    "from": "2026-01",
+    "role": "head coach",
+    "team": "NRG Academy",
+    "to": "2026-08",
+    "vlrTeamId": "21049"
+   },
+   {
+    "current": false,
+    "from": "2025-05",
+    "role": "assistant coach",
+    "team": "Global Esports",
+    "to": "2025-08",
+    "vlrTeamId": "918"
+   },
+   {
+    "current": false,
+    "from": "2022-10",
+    "role": "head coach",
+    "team": "Cloud9",
+    "to": "2023-09",
+    "vlrTeamId": "188"
+   },
+   {
+    "current": false,
+    "from": "2021-11",
+    "role": "coach",
+    "team": "The Guard",
+    "to": "2022-10",
+    "vlrTeamId": "6675"
+   },
+   {
+    "current": false,
+    "from": "2021-02",
+    "role": "coach",
+    "team": "Gen.G",
+    "to": "2021-08",
+    "vlrTeamId": "17"
+   }
+  ],
+  "vlrId": "7874"
+ },
+ "madC": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": null,
+    "role": "assistant coach",
+    "team": "Hostile",
+    "to": null,
+    "vlrTeamId": "23327"
+   },
+   {
+    "current": true,
+    "from": "2024-12",
+    "role": "head coach",
+    "team": "Mandatory",
+    "to": null,
+    "vlrTeamId": "7967"
+   },
+   {
+    "current": false,
+    "from": "2023-04",
+    "role": "head coach",
+    "team": "Gentle Mates",
+    "to": "2024-09",
+    "vlrTeamId": "12694"
+   }
+  ],
+  "vlrId": "38412"
+ },
+ "meisoN": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2024-01",
+    "role": "head coach",
+    "team": "Barça eSports",
+    "to": null,
+    "vlrTeamId": "14461"
+   },
+   {
+    "current": false,
+    "from": "2022-12",
+    "role": "coach",
+    "team": "Falcons",
+    "to": "2023-07",
+    "vlrTeamId": "11177"
+   },
+   {
+    "current": false,
+    "from": "2022-09",
+    "role": null,
+    "team": "FIVE Media Clan",
+    "to": "2022-12",
+    "vlrTeamId": "9508"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": null,
+    "team": "BISONS ECLUB",
+    "to": null,
+    "vlrTeamId": "7922"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Einheit",
+    "to": null,
+    "vlrTeamId": "6134"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "QLASH",
+    "to": null,
+    "vlrTeamId": "1316"
+   }
+  ],
+  "vlrId": "8819"
+ },
+ "neilzinho": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2022-11",
+    "role": "head coach",
+    "team": "Team Heretics",
+    "to": null,
+    "vlrTeamId": "1001"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "coach",
+    "team": "Great Britain",
+    "to": null,
+    "vlrTeamId": "22783"
+   },
+   {
+    "current": false,
+    "from": "2022-08",
+    "role": "analyst",
+    "team": "FunPlus Phoenix",
+    "to": "2022-11",
+    "vlrTeamId": "628"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "coach",
+    "team": "Dark Ratio",
+    "to": null,
+    "vlrTeamId": "9504"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "head coach",
+    "team": "DarkZero Esports",
+    "to": "2022-07",
+    "vlrTeamId": "4346"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": "coach",
+    "team": "G2 Esports",
+    "to": "2021-12",
+    "vlrTeamId": "257"
+   },
+   {
+    "current": false,
+    "from": "2020-07",
+    "role": "coach",
+    "team": "Rix.GG",
+    "to": "2020-11",
+    "vlrTeamId": "529"
+   }
+  ],
+  "vlrId": "2039"
+ },
+ "nokaze37": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": false,
+    "from": "2026-01",
+    "role": "coach",
+    "team": "RIDDLE ORDER",
+    "to": "2026-09",
+    "vlrTeamId": "14375"
+   },
+   {
+    "current": false,
+    "from": "2025-01",
+    "role": "coach",
+    "team": "REJECT",
+    "to": null,
+    "vlrTeamId": "104"
+   },
+   {
+    "current": false,
+    "from": "2023-11",
+    "role": "analyst",
+    "team": "ZETA DIVISION",
+    "to": "2024-11",
+    "vlrTeamId": "5448"
+   }
+  ],
+  "vlrId": "41740"
+ },
+ "nolozy": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-01",
+    "role": "analyst",
+    "team": "FENNEL",
+    "to": null,
+    "vlrTeamId": "2934"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "analyst",
+    "team": "Arena Internet Cafe",
+    "to": null,
+    "vlrTeamId": "15289"
+   },
+   {
+    "current": false,
+    "from": "2024-05",
+    "role": "analyst",
+    "team": "SCARZ",
+    "to": "2024-08",
+    "vlrTeamId": "282"
+   }
+  ],
+  "vlrId": "45851"
+ },
+ "pipsoN": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2023-12",
+    "role": "head coach",
+    "team": "GIANTX",
+    "to": null,
+    "vlrTeamId": "14419"
+   },
+   {
+    "current": false,
+    "from": "2022-11",
+    "role": "head coach",
+    "team": "Giants Gaming",
+    "to": "2023-12",
+    "vlrTeamId": "2304"
+   },
+   {
+    "current": false,
+    "from": "2021-12",
+    "role": "coach",
+    "team": "G2 Esports",
+    "to": "2022-10",
+    "vlrTeamId": "257"
+   },
+   {
+    "current": false,
+    "from": "2021-05",
+    "role": "coach",
+    "team": "Giants Gaming",
+    "to": "2021-11",
+    "vlrTeamId": "2304"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": null,
+    "team": "Giants Gaming",
+    "to": "2021-05",
+    "vlrTeamId": "2304"
+   },
+   {
+    "current": false,
+    "from": "2020-08",
+    "role": null,
+    "team": "Prodigy",
+    "to": "2020-11",
+    "vlrTeamId": "2048"
+   },
+   {
+    "current": false,
+    "from": "2020-11",
+    "role": null,
+    "team": "Orgless",
+    "to": "2021-01",
+    "vlrTeamId": "1971"
+   },
+   {
+    "current": false,
+    "from": "2020-07",
+    "role": null,
+    "team": "Inferno",
+    "to": "2020-09",
+    "vlrTeamId": "562"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "PiP PiP PiP",
+    "to": null,
+    "vlrTeamId": "424"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Worst Players",
+    "to": null,
+    "vlrTeamId": "82"
+   }
+  ],
+  "vlrId": "319"
+ },
+ "potter": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-03",
+    "role": null,
+    "team": "Rare Atom",
+    "to": null,
+    "vlrTeamId": "11985"
+   },
+   {
+    "current": false,
+    "from": "2026-02",
+    "role": null,
+    "team": "Team NKT",
+    "to": "2026-03",
+    "vlrTeamId": "6665"
+   },
+   {
+    "current": false,
+    "from": "2024-10",
+    "role": null,
+    "team": "FULL SENSE",
+    "to": "2025-12",
+    "vlrTeamId": "4050"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": null,
+    "team": "XERXIA Esports",
+    "to": "2024-10",
+    "vlrTeamId": "7397"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": null,
+    "team": "Attack All Around",
+    "to": "2024-01",
+    "vlrTeamId": "497"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Unstoppable",
+    "to": null,
+    "vlrTeamId": "10410"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "Alternative",
+    "to": null,
+    "vlrTeamId": "7689"
+   }
+  ],
+  "vlrId": "23930"
+ },
+ "shaW": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-07",
+    "role": "head coach",
+    "team": "FURIA",
+    "to": null,
+    "vlrTeamId": "2406"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": "head coach",
+    "team": "Brazil",
+    "to": null,
+    "vlrTeamId": "22523"
+   },
+   {
+    "current": false,
+    "from": "2025-01",
+    "role": "head coach",
+    "team": "RED Canids",
+    "to": null,
+    "vlrTeamId": "1124"
+   },
+   {
+    "current": false,
+    "from": "2023-11",
+    "role": "coach",
+    "team": "Galorys",
+    "to": "2024-12",
+    "vlrTeamId": "10755"
+   },
+   {
+    "current": false,
+    "from": "2023-01",
+    "role": "coach",
+    "team": "MIBR GC",
+    "to": null,
+    "vlrTeamId": "8050"
+   },
+   {
+    "current": false,
+    "from": "2021-06",
+    "role": "coach",
+    "team": "Gamelanders Blue",
+    "to": "2022-06",
+    "vlrTeamId": "243"
+   }
+  ],
+  "vlrId": "19156"
+ },
+ "solo": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2025-10",
+    "role": "head coach",
+    "team": "Gen.G",
+    "to": null,
+    "vlrTeamId": "17"
+   },
+   {
+    "current": false,
+    "from": "2024-01",
+    "role": "head coach",
+    "team": "Gen.G",
+    "to": "2025-10",
+    "vlrTeamId": "17"
+   },
+   {
+    "current": false,
+    "from": "2021-12",
+    "role": "head coach",
+    "team": "Dplus Esports",
+    "to": "2023-12",
+    "vlrTeamId": "11348"
+   },
+   {
+    "current": false,
+    "from": "2021-12",
+    "role": "head coach",
+    "team": "DAMWON Gaming",
+    "to": null,
+    "vlrTeamId": "2542"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "NUTURN",
+    "to": null,
+    "vlrTeamId": "2328"
+   },
+   {
+    "current": false,
+    "from": null,
+    "role": null,
+    "team": "PROPARTY",
+    "to": null,
+    "vlrTeamId": "1153"
+   }
+  ],
+  "vlrId": "4562"
+ },
+ "termi": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2022-01",
+    "role": "head coach",
+    "team": "KIWOOM DRX",
+    "to": null,
+    "vlrTeamId": "8185"
+   },
+   {
+    "current": false,
+    "from": "2020-06",
+    "role": "head coach",
+    "team": "Vision Strikers",
+    "to": "2022-01",
+    "vlrTeamId": "198"
+   }
+  ],
+  "vlrId": "775"
+ },
+ "thinkii": {
+  "fetched": "2026-09-10",
+  "stints": [
+   {
+    "current": true,
+    "from": "2026-01",
+    "role": "head coach",
+    "team": "PCIFIC Esports",
+    "to": null,
+    "vlrTeamId": "3478"
+   },
+   {
+    "current": false,
+    "from": "2026-06",
+    "role": "head coach",
+    "team": "Spain",
+    "to": null,
+    "vlrTeamId": "22855"
+   },
+   {
+    "current": false,
+    "from": "2025-06",
+    "role": "assistant coach",
+    "team": "BBL Esports",
+    "to": "2026-01",
+    "vlrTeamId": "397"
+   },
+   {
+    "current": false,
+    "from": "2023-10",
+    "role": "head coach",
+    "team": "UCAM Esports Club",
+    "to": "2025-06",
+    "vlrTeamId": "4616"
+   },
+   {
+    "current": false,
+    "from": "2022-08",
+    "role": "head coach",
+    "team": "Team Queso",
+    "to": "2023-07",
+    "vlrTeamId": "4538"
+   },
+   {
+    "current": false,
+    "from": "2022-02",
+    "role": "coach",
+    "team": "Arctic",
+    "to": "2022-08",
+    "vlrTeamId": "1163"
+   },
+   {
+    "current": false,
+    "from": "2022-01",
+    "role": "coach",
+    "team": "Soldados de Lembo",
+    "to": "2022-02",
+    "vlrTeamId": "7156"
+   },
+   {
+    "current": false,
+    "from": "2021-01",
+    "role": null,
+    "team": "KPI Gaming",
+    "to": "2021-09",
+    "vlrTeamId": "6313"
+   }
+  ],
+  "via": "search",
+  "vlrId": "8810"
+ }
+}

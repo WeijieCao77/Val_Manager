@@ -13,6 +13,9 @@ import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
 import { DOSSIER, coachDossier, faceUrl, legendPhoto } from './dossier'
 import { LEGENDS } from './legends'
+// which players each coach actually coached: a staff role at a club in months the
+// player was on it — scripts/build_coached.py, off vlr.gg careers and Liquipedia tenure
+import COACHED_JSON from '../data/coached.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -293,6 +296,9 @@ export const COACH_CARDS: CoachCard[] = [...buildCoachCards(), ...LEGEND_COACH_C
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...COACH_CARDS]
 
 const byId = new Map(ALL_CARDS.map((c) => [c.id, c]))
+const COACHED: Map<string, Set<string>> = new Map(
+  Object.entries(COACHED_JSON as Record<string, string[][]>).map(([coach, rows]) => [coach, new Set(rows.map((r) => r[0]))]),
+)
 export const cardById = (id: string): Card | undefined => byId.get(id)
 
 export const isPlayerCard = (c: Card | undefined): c is PlayerCard => c?.kind === 'player'
@@ -436,9 +442,17 @@ export function chemistry(squad: Squad): ChemReport {
   if (isCoachCard(coach)) {
     const players = cards.filter(isPlayerCard)
     const sameClub = players.filter((p) => p.clubId && p.clubId === coach.clubId).length
+    // Men this coach has actually coached before, somewhere: a staff role at a
+    // club in months the player was on it. Not everyone who has ever passed
+    // through a club he coaches — 「只有真的和那位教练同时期呆过的人才有默契
+    // 值，而不是在同一个俱乐部过就有」. Worth less than the men he coaches now,
+    // and a man he coaches now is never counted a second time here.
+    const coachedBefore = players.filter((p) => !(p.clubId && p.clubId === coach.clubId)
+      && !!COACHED.get(coach.name)?.has(p.playerId)).length
     const sameRegion = players.filter((p) => p.region === coach.region).length
-    coachBonus = sameClub * 2 + sameRegion
+    coachBonus = sameClub * 2 + coachedBefore + sameRegion
     if (sameClub >= 2) notes.push(`${coach.name} 带过这套阵容里的 ${sameClub} 个人`)
+    if (coachedBefore > 0) notes.push(`${coach.name} 以前还带过其中 ${coachedBefore} 人`)
   }
 
   const misfits: number[] = []
