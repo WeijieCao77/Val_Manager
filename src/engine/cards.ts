@@ -13,6 +13,9 @@ import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
 import { DOSSIER, coachDossier, faceUrl, legendPhoto } from './dossier'
 import { LEGENDS } from './legends'
+// who has played for which league club before the one he is at now —
+// derived from records.json by scripts/build_past_clubs.py, for the coach link
+import PAST_CLUBS_JSON from '../data/pastClubs.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -293,6 +296,7 @@ export const COACH_CARDS: CoachCard[] = [...buildCoachCards(), ...LEGEND_COACH_C
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...COACH_CARDS]
 
 const byId = new Map(ALL_CARDS.map((c) => [c.id, c]))
+const PAST_CLUBS = PAST_CLUBS_JSON as Record<string, string[]>
 export const cardById = (id: string): Card | undefined => byId.get(id)
 
 export const isPlayerCard = (c: Card | undefined): c is PlayerCard => c?.kind === 'player'
@@ -436,9 +440,16 @@ export function chemistry(squad: Squad): ChemReport {
   if (isCoachCard(coach)) {
     const players = cards.filter(isPlayerCard)
     const sameClub = players.filter((p) => p.clubId && p.clubId === coach.clubId).length
+    // Men who used to play for the coach's club have been through that
+    // staff's room — worth something, never as much as the men there now:
+    // 「过去带过的选手应该也有默契值，但是没有现在队伍里的多」. What the data
+    // cannot say is the coach's OWN former clubs; see build_past_clubs.py.
+    const formerClub = players.filter((p) => !(p.clubId && p.clubId === coach.clubId)
+      && !!coach.clubId && (PAST_CLUBS[p.playerId] ?? []).includes(coach.clubId)).length
     const sameRegion = players.filter((p) => p.region === coach.region).length
-    coachBonus = sameClub * 2 + sameRegion
+    coachBonus = sameClub * 2 + formerClub + sameRegion
     if (sameClub >= 2) notes.push(`${coach.name} 带过这套阵容里的 ${sameClub} 个人`)
+    if (formerClub > 0) notes.push(`${formerClub} 人在 ${coach.clubTag ?? coach.name} 待过`)
   }
 
   const misfits: number[] = []
