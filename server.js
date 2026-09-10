@@ -129,7 +129,14 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
       ssl: process.env.DATABASE_URL.includes('railway.internal') ? false : 'require',
       onnotice: () => {},
     })
-    await applySchema(sql)
+    // The schema and the boot chores run AFTER the port is open, not before.
+    // `await applySchema` here held the whole module — and so listen() at
+    // the bottom — for as long as the schema step took, and on 09-10 that
+    // was four lock-timeout retries, about a minute, during which the new
+    // container already had the traffic and every request was a 502. The
+    // tables exist in production and every statement is idempotent, so a
+    // request that arrives before the step finishes is served the same.
+    applySchema(sql).then(() => {
     // Settle what the market owes, before anyone trades. Until 2026-09-03 a
     // listing that died of three ignored offers kept the bids still sitting
     // on it; the sweep refunds now, and this pays back whoever it already
@@ -164,6 +171,10 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
       .catch((e) => console.warn('analytics: prune failed', e.message))
     keep()
     setInterval(keep, 60 * 60 * 1000).unref?.()
+    }).catch((err) => {
+      console.warn('analytics: disabled —', err.message)
+      sql = null
+    })
   } catch (err) {
     console.warn('analytics: disabled —', err.message)
     sql = null

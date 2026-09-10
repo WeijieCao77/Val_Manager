@@ -107,7 +107,11 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
 {
   console.log('\n=== server.js 的接法 ===')
   const src = await import('node:fs').then((fs) => fs.readFileSync('server.js', 'utf8'))
-  check('server.js 用的是这个函数', src.includes('await applySchema(sql)'))
+  check('server.js 用的是这个函数', src.includes('applySchema(sql)'))
+  // 09-10: `await applySchema(sql)` at the top level held listen() for the
+  // whole retry loop — a minute of 502 on every deploy. The step runs after
+  // the port opens now; a failure still nulls `sql` through the .catch.
+  check('建表不再挡住监听', !src.includes('await applySchema(sql)') && /applySchema\(sql\)\.then\(/.test(src))
   check('本地 pglite 用的是同一份清单', src.includes('for (const schema of SCHEMAS)'))
   check('没有人再一条条 unsafe 建表', !/await sql\.unsafe\((SCHEMA|CARD_SCHEMA|SITE_SCHEMA)\)/.test(src))
 }
