@@ -107,7 +107,7 @@ check('没打过的英雄是零', (p.agentPro?.[never] ?? 0) === 0, agentCn(neve
   }
   const d = aiDrillFor(g2, club)
   check('AI 缺哨卫时会挑一个哨卫英雄去练',
-    d.kind === 'agent' && AGENT_ROLE[d.agent] === '哨卫', JSON.stringify(d))
+    d.kind === 'agent' && AGENT_ROLE[d.picks[0].agent] === '哨卫', JSON.stringify(d))
   const learner = squadOf(g2, club.id)[0]
   const pick = pickAgentToLearn(learner, '哨卫')
   check('挑的是现役地图常用的那个',

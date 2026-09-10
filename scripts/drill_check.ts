@@ -49,5 +49,5 @@ run('练英雄', (g) => {
   const p = squadOf(g, g.myTeam)[0]
   const missing = (['决斗者','先锋','控场','哨卫'] as const).find((r) => !(p.roles ?? [p.role]).includes(r))!
   // 练的是一个具体角色，不是整个位置
-  g.drill = { kind: 'agent', playerId: p.id, agent: pickAgentToLearn(p, missing)! }
+  g.drill = { kind: 'agent', picks: [{ playerId: p.id, agent: pickAgentToLearn(p, missing)! }] }
 })

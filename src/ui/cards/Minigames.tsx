@@ -44,6 +44,11 @@ export default function Minigames() {
   const { g, today, act, toast, go } = useCards()
   const [game, setGame] = useState<MiniGame>('aim')
   const [live, setLive] = useState<Live | null>(null)
+  // 3 · 2 · 1 before anything moves. A round used to begin the instant the
+  // button came up — the first target lights 0.8 s later, the first enemy at
+  // once — so the first one was always half-missed by somebody still moving
+  // their hand to the screen.
+  const [armed, setArmed] = useState(false)
   const liveRef = useRef<Live | null>(null)
   const [done, setDone] = useState<Finish | null>(null)
   const [busy, setBusy] = useState(false)
@@ -65,6 +70,7 @@ export default function Minigames() {
     const l = { game: which, seed: res.seed, startedAt: res.startedAt }
     liveRef.current = l
     setDone(null)
+    setArmed(false)
     setLive(l)
   }
   const finish = async (transcript: unknown) => {
@@ -80,7 +86,7 @@ export default function Minigames() {
     track('minigame_finish', { game: res.game, tier: res.tier, score: res.score })
     setDone(res)
   }
-  const quit = () => { liveRef.current = null; setLive(null); toast('这局作废了，用掉的一次不退。') }
+  const quit = () => { liveRef.current = null; setLive(null); setArmed(false); toast('这局作废了，用掉的一次不退。') }
 
   return (
     <>
@@ -123,9 +129,14 @@ export default function Minigames() {
           </>
         )}
 
-        {live && live.game === 'schulte' && <SchulteGame key={live.seed} seed={live.seed} onDone={finish} onQuit={quit} />}
-        {live && live.game === 'aim' && <AimGame key={live.seed} seed={live.seed} onDone={finish} onQuit={quit} />}
-        {live && live.game === 'recon' && <ReconGame key={live.seed} seed={live.seed} onDone={finish} onQuit={quit} />}
+        {live && (
+          <div className="mini-stage">
+            {live.game === 'schulte' && <SchulteGame key={live.seed} seed={live.seed} armed={armed} onDone={finish} onQuit={quit} />}
+            {live.game === 'aim' && <AimGame key={live.seed} seed={live.seed} armed={armed} onDone={finish} onQuit={quit} />}
+            {live.game === 'recon' && <ReconGame key={live.seed} seed={live.seed} armed={armed} onDone={finish} onQuit={quit} />}
+            {!armed && <Countdown color={ROLE_VAR[live.game]} onGo={() => setArmed(true)} />}
+          </div>
+        )}
 
         {done && !live && (
           <div style={{ marginTop: 14, padding: '12px 14px', border: '1px solid var(--line)', borderRadius: 6, background: 'var(--panel-2)' }}>
@@ -159,6 +170,37 @@ const MINI_PACK_OF: Record<MiniGame, PackKind> = { aim: 'duelist', recon: 'initi
 
 const fmt = (ms: number) => `${(ms / 1000).toFixed(1)} s`
 
+/** 3 · 2 · 1 · 开始, per tick */
+const COUNT_MS = 800
+
+/**
+ * The three seconds before a round starts.
+ *
+ * Client-side only, and deliberately so: the server's clock is already running
+ * — it started when it handed out the seed — and every guard it applies gets
+ * MORE slack from the wait, never less. A transcript is only ever shorter than
+ * the server's elapsed time, and the two games that require a minimum elapsed
+ * time can only overshoot it. So a countdown cannot buy anyone anything.
+ */
+function Countdown({ color, onGo }: { color: string; onGo: () => void }) {
+  const [n, setN] = useState(3)
+  const go = useRef(onGo)
+  go.current = onGo
+  useEffect(() => {
+    const id = window.setInterval(() => setN((x) => x - 1), COUNT_MS)
+    return () => window.clearInterval(id)
+  }, [])
+  useEffect(() => { if (n <= 0) { const t = window.setTimeout(() => go.current(), COUNT_MS); return () => window.clearTimeout(t) } }, [n])
+  return (
+    <div className="mini-countdown" aria-live="assertive" aria-atomic="true">
+      <span key={n} className="mini-countdown-n display mono" style={{ color: n > 0 ? color : 'var(--win)' }}>
+        {n > 0 ? n : '开始'}
+      </span>
+      <span className="tiny faint">准备好</span>
+    </div>
+  )
+}
+
 function Strip({ items }: { items: [string, string | number][] }) {
   return (
     <div className="row wrap" style={{ gap: 14, margin: '10px 0 8px', alignItems: 'baseline' }}>
@@ -170,9 +212,9 @@ function Strip({ items }: { items: [string, string | number][] }) {
 }
 
 // ---------------------------------------------------------------- 哨卫 · 舒尔特方格
-function SchulteGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown) => void; onQuit: () => void }) {
+function SchulteGame({ seed, armed, onDone, onQuit }: { seed: number; armed: boolean; onDone: (t: unknown) => void; onQuit: () => void }) {
   const order = useMemo(() => schulteOrder(seed), [seed])
-  const t0 = useRef(performance.now())
+  const t0 = useRef(0)
   const taps = useRef<number[]>([])
   const wrongRef = useRef(0)
   const [next, setNext] = useState(1)
@@ -180,11 +222,13 @@ function SchulteGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unkno
   const [flash, setFlash] = useState<number | null>(null)
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
+    if (!armed) return
+    t0.current = performance.now()
     const id = window.setInterval(() => setElapsed(performance.now() - t0.current), 100)
     return () => window.clearInterval(id)
-  }, [])
+  }, [armed])
   const tap = (n: number, i: number) => {
-    if (n < next) return
+    if (!armed || n < next) return
     if (n === next) {
       taps.current.push(Math.round(performance.now() - t0.current))
       if (n === order.length) onDone({ taps: taps.current, wrong: wrongRef.current })
@@ -212,7 +256,9 @@ function SchulteGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unkno
                 font: '700 clamp(18px, 5vw, 26px)/1 var(--mono)', padding: 0, cursor: gone ? 'default' : 'pointer',
               }}
             >
-              {n}
+              {/* face-down until 开始: three seconds to scan the grid is three
+                  seconds off everyone's time, and the tiers are absolute */}
+              {armed ? n : ''}
             </button>
           )
         })}
@@ -225,13 +271,15 @@ function SchulteGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unkno
 }
 
 // ---------------------------------------------------------------- 决斗者 · 首杀反应
-function AimGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown) => void; onQuit: () => void }) {
+function AimGame({ seed, armed, onDone, onQuit }: { seed: number; armed: boolean; onDone: (t: unknown) => void; onQuit: () => void }) {
   const targets = useMemo(() => aimSchedule(seed), [seed])
-  const t0 = useRef(performance.now())
+  const t0 = useRef(0)
   const hits = useRef<(number | null)[]>(targets.map(() => null))
   const [up, setUp] = useState<number | null>(null)
   const [n, setN] = useState({ hits: 0, shown: 0, left: AIM_ROUND_MS })
   useEffect(() => {
+    if (!armed) return
+    t0.current = performance.now()
     const timers: number[] = []
     targets.forEach((tg, i) => {
       timers.push(window.setTimeout(() => { setUp(i); setN((s) => ({ ...s, shown: i + 1 })) }, tg.at))
@@ -242,9 +290,9 @@ function AimGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown) 
     return () => { timers.forEach((t) => window.clearTimeout(t)); window.clearInterval(tick) }
     // the schedule is fixed by the seed; onDone is the parent's finish, stable for this round
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targets])
+  }, [targets, armed])
   const hit = (i: number) => {
-    if (hits.current[i] != null) return
+    if (!armed || hits.current[i] != null) return
     const r = performance.now() - t0.current - targets[i].at
     if (r < 0 || r > AIM_UP_MS) return
     hits.current[i] = Math.round(r)
@@ -281,13 +329,13 @@ function AimGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown) 
 }
 
 // ---------------------------------------------------------------- 先锋 · 侦察报点
-function ReconGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown) => void; onQuit: () => void }) {
+function ReconGame({ seed, armed, onDone, onQuit }: { seed: number; armed: boolean; onDone: (t: unknown) => void; onQuit: () => void }) {
   const puzzle = useMemo(() => reconPuzzle(seed), [seed])
   const win = puzzle.window
   const W = 760
   const cv = useRef<HTMLCanvasElement>(null)
   const img = useRef<HTMLImageElement | null>(null)
-  const t0 = useRef(performance.now())
+  const t0 = useRef(0)
   const marks = useRef<{ x: number; y: number }[]>([])
   const drag = useRef<number | null>(null)
   const [phase, setPhase] = useState<'show' | 'pick'>('show')
@@ -296,10 +344,16 @@ function ReconGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown
   const lede = phase === 'show' ? `${RECON_MAP_CN[win.map]} · ${win.name}。记住 4 个敌人的位置。` : '点地图标出 4 个位置，可拖动微调，标满后点「报点」。'
 
   useEffect(() => {
+    // The map is drawn from the first frame — orienting yourself on Haven
+    // before the count is over is the point of a count. Only the enemies wait,
+    // which is what `armed` gates below.
+    if (armed) t0.current = performance.now()
     const im = new Image()
     im.src = `${assetBase()}minimaps/${win.map}.png`
     img.current = im
-    const done = window.setTimeout(() => setPhase('pick'), RECON_N * (RECON_SHOW_MS + RECON_GAP_MS) + 200)
+    const done = armed
+      ? window.setTimeout(() => setPhase('pick'), RECON_N * (RECON_SHOW_MS + RECON_GAP_MS) + 200)
+      : 0
     let raf = 0
     const cssVar = (v: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim()
     const toPx = (p: { x: number; y: number }) => ({ x: (p.x - win.x) / win.s * W, y: (p.y - win.y) / win.s * W })
@@ -314,7 +368,7 @@ function ReconGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown
       const c = cv.current
       if (!c) return
       const ctx = c.getContext('2d')!
-      const tt = performance.now() - t0.current
+      const tt = armed ? performance.now() - t0.current : -1
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.fillStyle = cssVar('--panel-2') || '#1e2b39'; ctx.fillRect(0, 0, W, W)
       if (im.complete && im.naturalWidth) {
@@ -336,14 +390,14 @@ function ReconGame({ seed, onDone, onQuit }: { seed: number; onDone: (t: unknown
     }
     raf = requestAnimationFrame(draw)
     return () => { cancelAnimationFrame(raf); window.clearTimeout(done) }
-  }, [puzzle, win])
+  }, [puzzle, win, armed])
 
   const fromEvent = (e: React.PointerEvent) => {
     const r = cv.current!.getBoundingClientRect()
     return { x: win.x + (e.clientX - r.left) / r.width * win.s, y: win.y + (e.clientY - r.top) / r.height * win.s }
   }
   const down = (e: React.PointerEvent) => {
-    if (phase !== 'pick') return
+    if (!armed || phase !== 'pick') return
     e.preventDefault()
     const p = fromEvent(e)
     const r = cv.current!.getBoundingClientRect()

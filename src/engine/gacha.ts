@@ -1855,9 +1855,16 @@ export function checkIn(g: GachaState, today: string): CheckIn {
 
   const coins = 300
   const packs: Partial<Record<PackKind, number>> = { scout: 1 }
+  // The strip on the screen is a cycle of SEVEN — it lights box 3 and box 6 of
+  // each cycle and promises a 选拔包 there. The rewards were read off the
+  // lifetime streak instead, and the two only agree for the first week: on the
+  // tenth day in a row the strip lit box 3 and the streak, 10, is not divisible
+  // by three, so the promised 选拔包 arrived as a 试训包. Reported as
+  // 「每日签到里有一个选拔包实际上发的是试训包」. Both now count the same day.
+  const dayInCycle = ((g.daily.streak - 1) % 7) + 1
   // the seventh day in a row is the one worth coming back for
-  if (g.daily.streak % 7 === 0) packs.ten = 1
-  else if (g.daily.streak % 3 === 0) packs.elite = 1
+  if (dayInCycle === 7) packs.ten = 1
+  else if (dayInCycle % 3 === 0) packs.elite = 1
 
   g.coins += coins
   for (const [k, n] of Object.entries(packs)) {

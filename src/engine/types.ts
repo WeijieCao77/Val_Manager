@@ -113,6 +113,9 @@ export interface Trait {
  * work is separate — two players staying behind to drill together does not
  * stop the other three doing anything.
  */
+/** 一个人这周练的那个英雄。 */
+export interface AgentPick { playerId: string; agent: string }
+
 export type TeamDrill =
   | { kind: 'none' }
   /**
@@ -122,8 +125,14 @@ export type TeamDrill =
   | { kind: 'map'; map: string; map2?: string }
   /** the coach takes them through the tape: reading the game, and calling it */
   | { kind: 'review' }
-  /** 练一个具体英雄——本职的，或者一个他还不会的位置上的 */
-  | { kind: 'agent'; playerId: string; agent: string }
+  /**
+   * 练一个具体英雄——本职的，或者一个他还不会的位置上的。
+   *
+   * 一人一个英雄，一周最多五个人同时练：一周只能开一种团队训练，所以「一次
+   * 只能派一个人去练」把学会一个位置拖成了整个赛季的事，而代价和五个人一起
+   * 练是同一个——都是这一周不跑图、不复盘。
+   */
+  | { kind: 'agent'; picks: AgentPick[] }
 
 /**
  * A club approaching the manager.

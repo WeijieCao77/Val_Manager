@@ -14,6 +14,15 @@ import { rolePeak } from './agents'
 
 /** 一周专练一个英雄涨多少。练一个角色比练一整个位置快，所以比旧值高。 */
 export const AGENT_DRILL = 4.2
+/**
+ * How many of the five can be on a 练英雄 week at once.
+ *
+ * It used to be one, which is the same week's cost for a fifth of the work:
+ * 「练英雄改成一周可以同时五个人练英雄，一个一个太慢了」. The rate per man is
+ * unchanged — what is gone is having to spend five separate weeks to do what
+ * one week of the room already had room for.
+ */
+export const AGENT_DRILL_MAX = 5
 
 /**
  * 练一个英雄。练满 100 时，如果这是他还不会的位置，他就此兼任那个位置。
@@ -54,7 +63,7 @@ export function pickAgentToLearn(p: Player, role: Role): string | undefined {
 }
 import { facilityCost } from './staff'
 import { ATTR_KEYS } from './types'
-import type { Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
+import type { AgentPick, Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
 
 /**
  * The neutral point of the form scale.
@@ -396,32 +405,42 @@ function runDrill(state: GameState, rng: Rng, notes: string[]): void {
       break
     }
     case 'agent': {
-      const p = state.players[drill.playerId]
-      // A learner who was sold, released or retired kept being coached from
-      // afar; one who is injured was coached from the treatment table. The
-      // other drills all filter their squad — this one never did.
-      if (!p || p.teamId !== state.myTeam) {
-        state.drill = { kind: 'none' }
-        notes.push('⚠️ 「练新英雄」的对象已不在队中，本轮团队训练没有效果。')
-        break
+      // Up to five men, one agent each. Each is settled on its own, so a
+      // learner who was sold or is in the treatment room drops out of the
+      // week without taking the other four down with him.
+      const kept: AgentPick[] = []
+      for (const pick of drill.picks) {
+        const p = state.players[pick.playerId]
+        // A learner who was sold, released or retired kept being coached from
+        // afar; one who is injured was coached from the treatment table. The
+        // other drills all filter their squad — this one never did.
+        if (!p || p.teamId !== state.myTeam) {
+          notes.push('⚠️ 「练英雄」的对象已不在队中，他这一份没有效果。')
+          continue
+        }
+        if (p.injuredUntil > state.day) {
+          notes.push(`⚠️ ${p.ign} 伤停中，本轮「练英雄」没有进行。`)
+          kept.push(pick)
+          continue
+        }
+        // Learning a position is a grind, not a switch. A quick learner still
+        // needs the better part of a season, which is what makes buying a real
+        // specialist worth the money.
+        const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
+        const learned = learnAgent(p, pick.agent, gain(AGENT_DRILL) * aptitude)
+        addXp(p, 'utility', gain(4))
+        p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+        if (learned) {
+          notes.push(learned.newRole
+            ? `🎓 ${p.ign} 把${agentCn(pick.agent)}练满了，现在可以兼任${learned.newRole}。`
+            : `🎓 ${p.ign} 把${agentCn(pick.agent)}练满了。`)
+        } else {
+          kept.push(pick)
+        }
       }
-      if (p.injuredUntil > state.day) {
-        notes.push(`⚠️ ${p.ign} 伤停中，本轮「练新英雄」没有进行。`)
-        break
-      }
-      // Learning a position is a grind, not a switch. A quick learner still
-      // needs the better part of a season, which is what makes buying a real
-      // specialist worth the money.
-      const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
-      const learned = learnAgent(p, drill.agent, gain(AGENT_DRILL) * aptitude)
-      addXp(p, 'utility', gain(4))
-      p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
-      if (learned) {
-        notes.push(learned.newRole
-          ? `🎓 ${p.ign} 把${agentCn(drill.agent)}练满了，现在可以兼任${learned.newRole}。`
-          : `🎓 ${p.ign} 把${agentCn(drill.agent)}练满了。`)
-        state.drill = { kind: 'none' }
-      }
+      // whoever finished drops off the plan; an emptied plan frees the slot
+      // instead of leaving a drill with nobody left in it
+      state.drill = kept.length ? { kind: 'agent', picks: kept } : { kind: 'none' }
       break
     }
     default:
@@ -490,7 +509,7 @@ export function aiDrillFor(state: GameState, team: Team): TeamDrill {
       .sort((a, b) => fit(b) - fit(a))[0]
     if (learner) {
       const agent = pickAgentToLearn(learner, missing)
-      if (agent) return { kind: 'agent', playerId: learner.id, agent }
+      if (agent) return { kind: 'agent', picks: [{ playerId: learner.id, agent }] }
     }
   }
   const pool = poolFor(state)
@@ -546,12 +565,16 @@ export function aiClubWeek(state: GameState, team: Team, rng: Rng): void {
       break
     }
     case 'agent': {
-      const p = state.players[drill.playerId]
-      if (!p || p.teamId !== team.id) break
-      const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
-      learnAgent(p, drill.agent, gain(AGENT_DRILL) * aptitude)
-      drilled(p, 'utility', gain(4))
-      p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      // AI clubs only ever plug the one hole their five actually has, so this
+      // is normally a list of one — but it settles the same way ours does.
+      for (const pick of drill.picks) {
+        const p = state.players[pick.playerId]
+        if (!p || p.teamId !== team.id) continue
+        const aptitude = 0.7 + (p.attrs.awareness + p.attrs.utility) / 400 + (p.flex ? 0.2 : 0)
+        learnAgent(p, pick.agent, gain(AGENT_DRILL) * aptitude)
+        drilled(p, 'utility', gain(4))
+        p.fatigue = clamp(p.fatigue + rng.range(3, 7), 0, 100)
+      }
       break
     }
     default:

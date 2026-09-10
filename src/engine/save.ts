@@ -2,7 +2,7 @@ import { canonAgents } from './content'
 import { seedAgentPro } from './agents'
 import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
-import type { GameState } from './types'
+import type { GameState, TeamDrill } from './types'
 
 /**
  * Where saves live. /manager/test plays the 2026 rulebook with its draws
@@ -281,6 +281,18 @@ function migrate(state: GameState): GameState {
     // 熟练度从「位置」搬到「英雄」：老档按常用英雄和旧的位置进度折算，只多不少
     p.agentPro ??= seedAgentPro(p)
     p.injuredUntil ??= 0
+  }
+  // 练英雄 used to hold one learner; it holds up to five now. A save written
+  // before that carries the old single-pick shape, and left alone it would
+  // arrive at runDrill with no `picks` at all — a committed week that trains
+  // nobody. Fold it into a list of one.
+  {
+    const d = state.drill as (TeamDrill & { playerId?: string; agent?: string }) | undefined
+    if (d?.kind === 'agent' && !Array.isArray(d.picks)) {
+      state.drill = d.playerId && d.agent
+        ? { kind: 'agent', picks: [{ playerId: d.playerId, agent: d.agent }] }
+        : { kind: 'none' }
+    }
   }
   repairClocks(state)
   // Old saves serialized drillVoid: true from a mechanic that no longer sets

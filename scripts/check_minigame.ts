@@ -57,10 +57,19 @@ type FinishRes = { tier: string; score: number; reward: { pack: PackKind | null;
   check('再结算一次被拒', !runAction(g, 'minigame_finish', { transcript: { taps, wrong: 0 } }, env(30_000)).ok)
 
   const s2 = runAction(g, 'minigame_start', { game: 'schulte' }, env(40_000)) as { ok: true; result: StartRes }
-  const fast = Array.from({ length: 25 }, (_, i) => 100 + i * 60)   // 60 ms a step
-  const f2 = runAction(g, 'minigame_finish', { transcript: { taps: fast, wrong: 0 } }, env(40_000 + 5_000))
-  check('每步 60 毫秒不像人，拒', !f2.ok && /不像人/.test((f2 as { why: string }).why))
+  const scripted = Array.from({ length: 25 }, (_, i) => 100 + i * 20)   // 20 ms a step
+  const f2 = runAction(g, 'minigame_finish', { transcript: { taps: scripted, wrong: 0 } }, env(40_000 + 5_000))
+  check('每步 20 毫秒不像人，拒', !f2.ok && /不像人/.test((f2 as { why: string }).why))
   check('被拒的局也算用掉，包没发', (g.packs.sentinel ?? 0) === 1 && g.minigame?.plays === 2)
+
+  // 手机上两个拇指一起点，两下之间隔几十毫秒是常事，不是外挂。判定是纯函数，
+  // 直接问它，免得这几条把一天五次的额度用光。
+  const twoThumbs = Array.from({ length: 25 }, (_, i) => 300 + i * 400 - (i % 2 ? 350 : 0))
+  check('两个拇指一起点，50 毫秒一步也算数',
+    judgeMinigame('schulte', 1, { taps: twoThumbs, wrong: 0 }, 11_000).ok)
+  const paced = Array.from({ length: 25 }, (_, i) => 100 + i * 60)   // 每步 60 毫秒，整局 1.5 秒
+  const f2c = judgeMinigame('schulte', 1, { taps: paced, wrong: 0 }, 5_000)
+  check('每步都过线但整局 1.5 秒扫完，还是拒', !f2c.ok && /不像人/.test((f2c as { ok: false; why: string }).why))
 
   const s3 = runAction(g, 'minigame_start', { game: 'schulte' }, env(50_000)) as { ok: true; result: StartRes }
   const f3 = runAction(g, 'minigame_finish', { transcript: { taps, wrong: 0 } }, env(50_000 + 3_000))

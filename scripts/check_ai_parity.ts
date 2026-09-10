@@ -169,7 +169,7 @@ const ai = (g: GameState, pick?: (t: Team) => boolean) =>
   const d1 = aiDrillFor(g, club)
   // 现在练的是一个具体英雄，所以看的是这个英雄属不属于缺的那个位置
   check('a five with no sentinel puts a learner on a sentinel agent',
-    d1.kind === 'agent' && AGENT_ROLE[d1.agent] === '哨卫', JSON.stringify(d1))
+    d1.kind === 'agent' && AGENT_ROLE[d1.picks[0].agent] === '哨卫', JSON.stringify(d1))
   // the pool's weakest map gets run
   for (const p of squadOf(g, club.id)) { p.roles = ['决斗者', '先锋', '控场', '哨卫'] }
   const pool = poolFor(g)

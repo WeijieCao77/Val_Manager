@@ -44,6 +44,25 @@ export const MINI_COINS: Record<Tier, number> = { 金: 200, 银: 0, 铜: 80 }
 export const MINI_PAYS_PACK: Record<Tier, boolean> = { 金: true, 银: true, 铜: false }
 /** no human presses twice this fast; a transcript that does is not a human's */
 export const MIN_STEP_MS = 120
+/**
+ * The same floor for 舒尔特方格, which needs a far lower one.
+ *
+ * 120 ms assumed one finger. Most people play this on a phone with two
+ * thumbs, and two thumbs land on 4 and 5 within a few tens of milliseconds of
+ * each other all the time — so honest runs were being thrown out with
+ * 「有一步快得不像人」. Reported as exactly that.
+ *
+ * A script is not what 40 ms lets through; a script taps in single-digit
+ * milliseconds and would still be caught, and the whole-sweep floor below
+ * catches one that paces itself. What 40 ms lets through is two thumbs.
+ */
+export const SCHULTE_MIN_STEP_MS = 40
+/**
+ * And a floor on the whole sweep, which is what the per-step floor was really
+ * standing in for. The 5×5 world records are around six seconds; nothing
+ * human clears twenty-five cells faster than this.
+ */
+export const SCHULTE_MIN_TOTAL_MS = 4_000
 
 export interface MinigameLive { game: MiniGame; seed: number; startedAt: number }
 export interface MinigameState {
@@ -81,9 +100,12 @@ export function judgeSchulte(t: unknown, elapsedMs: number): Verdict {
   const taps = Array.isArray(tr.taps) ? tr.taps.map(num) : null
   if (!taps || taps.length !== SCHULTE_N || taps.some((x) => x == null || x < 0)) return { ok: false, why: '记录不完整' }
   const ts = taps as number[]
-  for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] < MIN_STEP_MS) return { ok: false, why: '有一步快得不像人' }
+  for (let i = 1; i < ts.length; i++) {
+    if (ts[i] - ts[i - 1] < SCHULTE_MIN_STEP_MS) return { ok: false, why: '有一步快得不像人' }
+  }
   const wrong = Math.max(0, Math.min(200, Math.round(num(tr.wrong) ?? 0)))
   const last = ts[ts.length - 1]
+  if (last < SCHULTE_MIN_TOTAL_MS) return { ok: false, why: '这一局快得不像人' }
   if (last > elapsedMs + 2000) return { ok: false, why: '计时比服务器的钟还快' }
   if (last > 5 * 60_000) return { ok: false, why: '这局放太久了' }
   const ms = last + wrong * SCHULTE_PENALTY_MS

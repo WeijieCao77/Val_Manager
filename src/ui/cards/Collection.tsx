@@ -16,6 +16,7 @@ import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import type { CardFilter } from './Filters'
 
 const coin = (n: number) => n.toLocaleString('en-US')
+const SETS_OPEN = 'valmanager:card:setsOpen'
 
 export default function Collection() {
   const { g, act, toast, openDossier } = useCards()
@@ -97,6 +98,17 @@ export default function Collection() {
   const sets = useMemo(() => clubSets(g), [g, g.cards])
   const doneSets = sets.filter((x) => x.done)
   const [allSets, setAllSets] = useState(false)
+  // 全队收藏 sits above the cards, and on a phone a full shelf of crests was a
+  // whole screen to scroll past before the first player card:
+  // 「全队收藏可以折叠起来，不然收藏多了特别是手机看这档了一整个屏幕」.
+  // Folded by default, and the choice is remembered per device.
+  const [setsOpen, setSetsOpen] = useState(() => {
+    try { return localStorage.getItem(SETS_OPEN) === '1' } catch { return false }
+  })
+  const toggleSets = () => setSetsOpen((v) => {
+    try { localStorage.setItem(SETS_OPEN, v ? '0' : '1') } catch { /* private mode: this session only */ }
+    return !v
+  })
   const sel = open ? cardById(open) : null
   const owned = open ? g.cards[open] : undefined
 
@@ -111,10 +123,31 @@ export default function Collection() {
         actions={
           <div className="row" style={{ gap: 8 }}>
             <span className="tiny muted mono">集齐 {doneSets.length}/{sets.length} 支</span>
-            <button className="sm" onClick={() => setAllSets((v) => !v)}>{allSets ? '只看快齐的' : '看全部'}</button>
+            {setsOpen && (
+              <button className="sm" onClick={() => setAllSets((v) => !v)}>{allSets ? '只看快齐的' : '看全部'}</button>
+            )}
+            <button
+              className="sm"
+              aria-expanded={setsOpen}
+              aria-controls="club-sets-body"
+              onClick={toggleSets}
+            >
+              {setsOpen ? '收起 ▲' : '展开 ▼'}
+            </button>
           </div>
         }
       >
+        {!setsOpen ? (
+          // folded: one line, so the panel still says where you are without
+          // costing a screen of scrolling to get past it
+          <p className="tiny muted" style={{ margin: 0 }}>
+            {doneSets.length
+              ? <>已集齐 <b>{doneSets.slice(0, 6).map((x) => x.tag).join('、')}</b>{doneSets.length > 6 ? ` 等 ${doneSets.length} 支` : ''}。</>
+              : '还没有集齐的队伍。'}
+            {' '}点「展开」看进度。
+          </p>
+        ) : (
+        <div id="club-sets-body">
         <p className="tiny muted" style={{ marginTop: 0 }}>
           集齐一支俱乐部在卡池里的所有选手卡（5–7 张）即可。彩卡算作同一个人。
         </p>
@@ -134,6 +167,8 @@ export default function Collection() {
         </div>
         {!allSets && sets.filter((x) => x.done || x.owned >= Math.max(3, x.total - 2)).length === 0 && (
           <p className="empty">还没有快集齐的队，点「看全部」查看。</p>
+        )}
+        </div>
         )}
       </Panel>
 

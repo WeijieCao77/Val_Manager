@@ -454,7 +454,9 @@ export default function Dashboard() {
             !drill || drill.kind === 'none' ? null
               : drill.kind === 'map' ? `团队跑图 · ${mapCn(drill.map)}`
                 : drill.kind === 'review' ? '教练复盘'
-                  : `${game.players[drill.playerId]?.ign} 练${agentCn(drill.agent)}（${Math.round(game.players[drill.playerId]?.agentPro?.[drill.agent] ?? 0)}%）`
+                  : drill.picks.length === 1
+                    ? `${game.players[drill.picks[0].playerId]?.ign} 练${agentCn(drill.picks[0].agent)}（${Math.round(game.players[drill.picks[0].playerId]?.agentPro?.[drill.picks[0].agent] ?? 0)}%）`
+                    : `${drill.picks.length} 人练英雄 · ${drill.picks.map((x) => game.players[x.playerId]?.ign).filter(Boolean).join('、')}`
           const duoText = drillRunning && game.duo
             ? `双排练 · ${game.players[game.duo.a]?.ign} + ${game.players[game.duo.b]?.ign}`
             : null

@@ -3,7 +3,6 @@ import { CompBoard } from './CompBoard'
 import { useGame } from './ctx'
 import { Crest, Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
-import TacticSliders from './TacticSliders'
 import MapVeto from './MapVeto'
 import MapPlan from './MapPlan'
 import { MatchSim } from '../engine/match'
@@ -261,28 +260,13 @@ export default function MatchLive({
                 稳守 <span className="tiny faint">减少伤亡与波动，适合领先或缺钱</span>
               </button>
             </div>
-            {(() => {
-              // The dials for THIS map were read when it started and cannot
-              // change under a round in progress; what a timeout can still set
-              // is the next map's. Per map now, so it is that map's own
-              // setting being edited, not a general one.
-              const nextMap = sim.maps[sim.mapIndex + 1]
-              return nextMap ? (
-                <>
-                  <div className="small muted" style={{ marginBottom: 6 }}>
-                    下一张图 <b>{mapCn(nextMap)}</b> 的战术：
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <TacticSliders game={game} commit={commit} compact map={nextMap} />
-                  </div>
-                </>
-              ) : (
-                <p className="tiny faint" style={{ marginTop: 0 }}>
-                  最后一张图，战术已定。
-                </p>
-              )
-            })()}
-
+            {/* The four dials used to sit here, set to the NEXT map — which
+                nobody read that way: 「放在这里很容易误解以为是做这张图的调
+                整」. They live in 赛前「各图预案」, one sheet per map, where
+                the map being edited is the one written above the sliders. */}
+            <p className="tiny faint" style={{ marginTop: 0, marginBottom: 14 }}>
+              战术滑杆在赛前的「各图预案」里，一张图一套；暂停只管接下来 3 个回合。
+            </p>
             <div className="small muted" style={{ marginBottom: 6 }}>或者围绕一名选手打：</div>
             <div className="row wrap" style={{ gap: 6 }}>
               {(mySide === 'a' ? map.A : map.B).players.map((p) => (
@@ -292,12 +276,12 @@ export default function MatchLive({
               ))}
             </div>
             <div style={{ marginTop: 12 }}>
-              {/* 「取消」 read as "discard my slider changes" — it never did.
-                  The sliders commit on every drag, and the timeout is only
-                  spent by the three calls above, so leaving costs nothing. */}
+              {/* 「取消」 read as "discard something" — there is nothing here to
+                  discard. A timeout is only spent by the three calls above, so
+                  looking at the two sheets and leaving costs nothing. */}
               <button className="ghost sm" onClick={() => setPhase('watching')}>直接继续比赛</button>
               <p className="tiny faint" style={{ marginTop: 6, marginBottom: 0 }}>
-                滑杆即时保存；选了打法才用掉一次暂停。
+                只看一眼不花暂停，选了打法才用掉一次。
               </p>
             </div>
           </div>

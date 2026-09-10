@@ -5,7 +5,7 @@ import { useGame } from './ctx'
 import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { callerOf, squadOf } from '../engine/roster'
 import { stageName } from '../engine/season'
-import { AGENT_DRILL } from '../engine/training'
+import { AGENT_DRILL, AGENT_DRILL_MAX } from '../engine/training'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import { poolFor } from '../engine/match'
 import { logActivity } from '../engine/agenda'
@@ -19,7 +19,7 @@ import {
   facilityCost, offerToStaff, promoteToHead, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus,
   staffMarket, staffRaw, staffShare, upgradeFacility,
 } from '../engine/staff'
-import type { Attrs, StaffRole } from '../engine/types'
+import type { AgentPick, Attrs, StaffRole } from '../engine/types'
 
 const OPTIONS: { key: keyof Attrs | 'rest'; label: string }[] = [
   { key: 'rest', label: '休息' },
@@ -93,6 +93,17 @@ export default function Training() {
     game.drill = d
     commit()
   }
+  // 练英雄 holds up to five men, one agent each. Changing one man's pick must
+  // leave the other four alone, which a single-learner drill never had to do.
+  const agentPicks: AgentPick[] = drill.kind === 'agent' ? drill.picks : []
+  const setAgentPick = (playerId: string, agent: string) => {
+    const rest = agentPicks.filter((x) => x.playerId !== playerId)
+    const next = agent
+      ? [...rest, { playerId, agent }].slice(-AGENT_DRILL_MAX)
+      : rest
+    setDrill(next.length ? { kind: 'agent', picks: next } : { kind: 'none' },
+      next.length ? `${next.length} 人练英雄` : '取消团队训练')
+  }
   const setDuo = (pair: string[]) => {
     if (locked) return
     setDuoPick(pair)
@@ -107,7 +118,7 @@ export default function Training() {
     const main = !d || d.kind === 'none' ? '不安排团队训练'
       : d.kind === 'map' ? `跑图 ${[d.map, d.map2].filter((m): m is string => !!m).map(mapCn).join('＋')}`
         : d.kind === 'review' ? '教练复盘'
-          : `${game.players[d.playerId]?.ign} 练${agentCn(d.agent)}`
+          : d.picks.map((x) => `${game.players[x.playerId]?.ign} 练${agentCn(x.agent)}`).join('、')
     const duo = game.duo
       ? ` ＋ 双排 ${game.players[game.duo.a]?.ign}/${game.players[game.duo.b]?.ign}`
       : ''
@@ -236,51 +247,63 @@ export default function Training() {
           </div>
 
           <div className="drill-card">
-            <b>练英雄</b>
-            <p className="tiny muted">
-              这个英雄的熟练度每周约 <b>+{AGENT_DRILL}</b>。练满 100 就能把他当本命用；
-              如果不是他的位置，练满还会让他兼任那个位置。
-            </p>
-            <div className="row wrap" style={{ gap: 5 }}>
-              {fit.map((p) => (
-                <select key={p.id} className="sm" style={{ width: 'auto', padding: '4px 7px', fontSize: 12 }}
-                  value={drill.kind === 'agent' && drill.playerId === p.id ? drill.agent : ''}
-                  onChange={(e) => {
-                    const agent = e.target.value
-                    if (!agent) return
-                    setDrill({ kind: 'agent', playerId: p.id, agent }, `${p.ign} 练${agentCn(agent)}`)
-                  }}>
-                  <option value="">{p.ign}…</option>
-                  {ROLES.filter((r) => r !== '自由人').map((r) => (
-                    <optgroup key={r} label={`${r}${(p.roles ?? [p.role]).includes(r) ? '（本职）' : ''}`}>
-                      {(AGENTS[r] ?? []).filter((a) => (p.agentPro?.[a] ?? 0) < 100).map((a) => (
-                        <option key={a} value={a}>
-                          {agentCn(a)} {Math.round(p.agentPro?.[a] ?? 0)}%
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              ))}
+            <div className="row" style={{ alignItems: 'baseline', gap: 8 }}>
+              <b>练英雄</b>
+              <div className="spacer" style={{ flex: 1 }} />
+              <span className="tiny mono muted">本周 {agentPicks.length}/{AGENT_DRILL_MAX} 人</span>
             </div>
-            {drill.kind === 'agent' && (() => {
-              const learner = game.players[drill.playerId]
-              const pro = learner?.agentPro?.[drill.agent] ?? 0
-              const need = AGENT_ROLE[drill.agent]
-              const covers = learner ? (learner.roles ?? [learner.role]).includes(need) : true
-              return (
-                <div style={{ marginTop: 8 }}>
-                  <div className="row" style={{ gap: 8 }}>
-                    <span className="tiny muted">{learner?.ign} 的{agentCn(drill.agent)}</span>
-                    <Bar value={pro} color="var(--controller)" />
-                    <span className="tiny mono">{Math.round(pro)}%</span>
+            <p className="tiny muted">
+              每人挑一个英雄，熟练度每周约 <b>+{AGENT_DRILL}</b>。练满 100 就能把他当本命用；
+              如果不是他的位置，练满还会让他兼任那个位置。
+              <b>一周最多 {AGENT_DRILL_MAX} 个人一起练</b>，不多花一周。
+            </p>
+            {/* One line per man: who, what he is on, and how far along he is.
+                Five selects in a wrapped row could not say which bar belonged
+                to whom once more than one of them was set. */}
+            <div className="agent-drill">
+              {fit.map((p) => {
+                const on = agentPicks.find((x) => x.playerId === p.id)
+                const full = !on && agentPicks.length >= AGENT_DRILL_MAX
+                const pro = on ? p.agentPro?.[on.agent] ?? 0 : 0
+                const need = on ? AGENT_ROLE[on.agent] : null
+                const covers = need ? (p.roles ?? [p.role]).includes(need) : true
+                return (
+                  <div key={p.id} className={`agent-drill-row${on ? ' on' : ''}`}>
+                    <span className="agent-drill-who">{p.ign}</span>
+                    <select
+                      className="sm agent-drill-pick"
+                      aria-label={`${p.ign} 这周练的英雄`}
+                      disabled={full}
+                      value={on?.agent ?? ''}
+                      onChange={(e) => setAgentPick(p.id, e.target.value)}
+                    >
+                      <option value="">{full ? `已满 ${AGENT_DRILL_MAX} 人` : '不练'}</option>
+                      {ROLES.filter((r) => r !== '自由人').map((r) => (
+                        <optgroup key={r} label={`${r}${(p.roles ?? [p.role]).includes(r) ? '（本职）' : ''}`}>
+                          {(AGENTS[r] ?? []).filter((a) => (p.agentPro?.[a] ?? 0) < 100).map((a) => (
+                            <option key={a} value={a}>
+                              {agentCn(a)} {Math.round(p.agentPro?.[a] ?? 0)}%
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    {on ? (
+                      <span className="agent-drill-bar">
+                        <Bar value={pro} color="var(--controller)" />
+                        <span className="tiny mono">{Math.round(pro)}%</span>
+                      </span>
+                    ) : <span className="agent-drill-bar" />}
+                    {on && !covers && (
+                      <span className="tiny faint agent-drill-note">练满可兼任{need}</span>
+                    )}
                   </div>
-                  <div className="tiny faint" style={{ marginTop: 4 }}>
-                    改练别的英雄不会清空进度。{covers ? '' : `练满还能让他兼任${need}。`}
-                  </div>
-                </div>
-              )
-            })()}
+                )
+              })}
+            </div>
+            <div className="tiny faint">
+              改练别的英雄不会清空进度。伤停的人这周自动跳过，下周继续。
+            </div>
           </div>
         </div>
 

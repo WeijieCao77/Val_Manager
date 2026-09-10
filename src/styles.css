@@ -843,6 +843,37 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 .drill-card p { margin: 0; line-height: 1.6; }
 
+/* 练英雄: one line per man — who, the agent he is on, how far along he is.
+   Five wrapped selects could not say which bar belonged to whom once more
+   than one of them was set. The name column is a fixed measure so the
+   selects line up; below 420px the bar drops to its own line rather than
+   squeezing the select down to nothing. */
+.agent-drill { display: flex; flex-direction: column; gap: 6px; }
+.agent-drill-row {
+  display: grid; grid-template-columns: 4.5em minmax(9em, 1fr) minmax(84px, 1.1fr);
+  align-items: center; gap: 8px;
+  padding: 4px 6px; border-radius: var(--radius);
+  border: 1px solid transparent;
+}
+.agent-drill-row.on { background: var(--well); border-color: var(--line-soft); }
+/* The empty part of a Bar is painted in --well, which is exactly the colour a
+   picked row sits on — so on the row that HAS a bar, the track disappeared and
+   0% read as nothing at all. Give it the boundary colour instead, which is
+   defined against a well in all three themes. */
+.agent-drill-row.on .bar { background: var(--line); }
+.agent-drill-who {
+  font-size: 12px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.agent-drill-pick { width: 100%; padding: 6px 7px; font-size: 12px; min-height: 32px; }
+.agent-drill-bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.agent-drill-bar > :first-child { flex: 1; }
+.agent-drill-note { grid-column: 2 / -1; }
+@media (max-width: 460px) {
+  .agent-drill-row { grid-template-columns: 4.5em 1fr; }
+  .agent-drill-bar { grid-column: 2 / -1; }
+}
+
 /* a confirmed training plan is committed: visibly and actually out of reach */
 .drill-group.locked { opacity: .5; pointer-events: none; }
 
@@ -853,6 +884,33 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .bond-grid .bond-self { background: var(--well); color: var(--line); }
 .bond-grid .bond-mirror { background: var(--bg); }
 .bond-key { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
+
+/* 位置小游戏: the three seconds before a round starts.
+   The count sits over the play surface rather than replacing it, so the
+   板子 does not appear from nowhere the instant the clock starts — and it
+   covers the whole stage, 放弃这局 included, because nothing in a round that
+   has not begun is worth pressing. */
+.mini-stage { position: relative; }
+.mini-countdown {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.mini-countdown-n {
+  font-size: clamp(52px, 18vw, 96px); line-height: 1; font-weight: 800;
+  /* Only the scale is animated. A keyframe that starts at opacity 0 leaves the
+     numeral invisible wherever the animation never actually runs — a
+     backgrounded tab, a throttled renderer — and a countdown you cannot read
+     is worse than one that does not move. */
+  animation: mini-count 300ms cubic-bezier(.2, .9, .3, 1);
+}
+@keyframes mini-count {
+  from { transform: scale(1.35); }
+  to   { transform: scale(1); }
+}
 
 /* a clickable line per recent match, scrims included */
 .recent-row {
