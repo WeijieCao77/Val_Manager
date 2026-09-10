@@ -17,6 +17,8 @@ import { Readable } from 'node:stream'
 import {
   CARD_SCHEMA, MAX_CLIENT, battleCode, makeCardApi, normalizeId, serverDay, vetClient,
 } from '../cards-api.js'
+// these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
+process.env.PHONE_GATE = '0'
 
 const db = new PGlite()
 const sql = makeSql(db)

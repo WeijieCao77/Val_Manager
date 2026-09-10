@@ -34,6 +34,8 @@ import { CHALLENGE_COST } from '../src/engine/challenge'
 import { cardById, isPlayerCard, personOf } from '../src/engine/cards'
 import { migrateGacha, openPack } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
+// these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
+process.env.PHONE_GATE = '0'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { makeMarketApi, TRADE_PULLS } = await import('../market-api.js')

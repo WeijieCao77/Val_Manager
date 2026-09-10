@@ -22,12 +22,14 @@ import { createServer } from 'node:http'
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
 import { EVENTS, MAX_BODY, rateLimited, sanitize, tokenOk } from './analytics.js'
 import { engine, makeCardApi, normalizeId } from './cards-api.js'
 import { displayName } from './names.js'
 import { makeProfileApi } from './profile-api.js'
 import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
+import { makePhoneApi } from './phone-api.js'
 import { overview, prune, storage } from './stats.js'
 import { history, rollup } from './rollup.js'
 import { SCHEMAS, applySchema } from './db-schema.js'
@@ -380,6 +382,11 @@ async function stats(req, res, url) {
 }
 
 const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json, staticRoot: ROOT }))
+let _phoneApi
+const phoneApi = () => (_phoneApi ??= makePhoneApi(sql, {
+  readBody, json, rateLimited, normalizeId, hash: (id) => createHash('sha256').update(String(id)).digest('hex'),
+  token: TOKEN, tokenFrom, tokenOk,
+}))
 let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
@@ -503,6 +510,15 @@ function handle(req, res) {
   if (path === '/api/e') {
     if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
     void ingest(req, res)
+    return
+  }
+  if (path.startsWith('/api/card/phone/') || path === '/api/admin/verify' || path === '/api/admin/sms') {
+    void phoneApi().route(req, res, path, bucketOf(req), url).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('phone: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
     return
   }
   if (path.startsWith('/api/card/')) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import PhoneGate from './cards/PhoneGate'
 import type { ComponentType } from 'react'
 import { CardCtx } from './cards/ctx'
 import Packs from './cards/Packs'
@@ -117,6 +118,10 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState('packs')
 
   const [cloud, setCloud] = useState(false)
+  // 「太多人开小号了」: until the server says a phone has answered for this
+  // account, the only screen is the one that asks for one
+  const [verified, setVerified] = useState(true)
+  const [phone, setPhone] = useState<string | null>(null)
   const [booting, setBooting] = useState(true)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [dossierId, setDossierId] = useState<string | null>(null)
@@ -170,6 +175,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
       if (r.ok) {
         gRef.current = r.state
         setCloud(r.cloud)
+        setVerified(r.verified)
+        setPhone(r.phone)
         // the quest board for today, for display; the server rolls the day
         // over itself the moment anything is actually done
         refreshDaily(r.state, r.today)
@@ -281,6 +288,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     today,
     now,
     cloud,
+    phone,
     commit,
     act,
     toast,
@@ -289,7 +297,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     go: setTab,
   // gRef is stable; bump() drives the re-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [commit, act, toast, collect, today, now, cloud, gRef.current, tab])
+  }), [commit, act, toast, collect, today, now, cloud, phone, gRef.current, tab])
 
   if (booting) {
     return <div className="wrap" style={{ padding: 40 }}><p className="muted">正在读取卡牌账号…</p></div>
@@ -301,9 +309,11 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
       <>
       <Gate
         onExit={onExit}
-        onReady={(state, isNew, isCloud, day) => {
+        onReady={(state, isNew, isCloud, day, isVerified, last4) => {
           gRef.current = state
           setCloud(isCloud)
+          setVerified(isVerified)
+          setPhone(last4)
           setNow(serverNow())
           refreshDaily(state, day)
           track('card_start', { fresh: isNew, cloud: isCloud, owned: Object.keys(state.cards).length })
@@ -340,6 +350,20 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     gRef.current = null
     setFresh(false)
     bump()
+  }
+
+  if (!verified) {
+    return (
+      <>
+      <PhoneGate
+        id={g.id}
+        onBound={(last4) => { setVerified(true); setPhone(last4); toast(`绑好了，尾号 ${last4}。`) }}
+        onSignOut={signOut}
+      />
+      <Changelog />
+      <Support />
+      </>
+    )
   }
 
   return (
@@ -416,7 +440,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
 function Gate({
   onReady, onExit,
 }: {
-  onReady: (state: GachaState, isNew: boolean, cloud: boolean, today: string) => void
+  onReady: (state: GachaState, isNew: boolean, cloud: boolean, today: string, verified: boolean, phone: string | null) => void
   onExit: () => void
 }) {
   const [name, setName] = useState('')
@@ -427,6 +451,8 @@ function Gate({
   const [copied, setCopied] = useState(false)
   // the second press, in the page — see the button below
   const [sure, setSure] = useState(false)
+  // 「用手机号进入」 from the front door: the way back into an account whose id is gone
+  const [byPhone, setByPhone] = useState(false)
 
   const create = async () => {
     setBusy(true)
@@ -445,7 +471,7 @@ function Gate({
     setBusy(false)
     if (r.ok) {
       rememberId(r.state.id)
-      onReady(r.state, false, r.cloud, r.today)
+      onReady(r.state, false, r.cloud, r.today, r.verified, r.phone)
     } else {
       setErr({
         bad: 'ID 格式不对：VM- 开头，后面五组四位。',
@@ -453,6 +479,10 @@ function Gate({
         offline: '连不上服务器，本机也没有这个账号的备份。',
       }[r.reason])
     }
+  }
+
+  if (byPhone) {
+    return <PhoneGate onBound={() => {}} onSignOut={() => setByPhone(false)} backLabel="返回" />
   }
 
   if (made) {
@@ -484,7 +514,7 @@ function Gate({
             // the game, dead, with no way to tell it is not simply broken.
             // Asking again in the page always works.
             onClick={() => {
-              if (copied || sure) onReady(made.state, true, made.cloud, made.today)
+              if (copied || sure) onReady(made.state, true, made.cloud, made.today, false, null)
               else setSure(true)
             }}
           >
@@ -546,6 +576,10 @@ function Gate({
             <button style={{ marginTop: 10 }} onClick={signIn} disabled={busy || id.trim().length < 8}>
               {busy ? '读取中…' : '登录'}
             </button>
+            <p className="small muted" style={{ margin: '12px 0 0' }}>
+              ID 找不到了？绑过手机的账号可以
+              <button className="ghost sm" style={{ marginLeft: 6 }} onClick={() => setByPhone(true)}>用手机号进入</button>
+            </p>
             {err && <p className="small" style={{ color: 'var(--loss)' }}>{err}</p>}
           </div>
         </div>

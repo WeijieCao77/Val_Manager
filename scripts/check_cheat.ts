@@ -20,6 +20,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
 import { masterPoints, oppBumpFor } from '../src/engine/gacha'
+// these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
+process.env.PHONE_GATE = '0'
 const { CARD_SCHEMA, MAX_POINTS_PER_WIN, makeCardApi, serverDay } = await import('../cards-api.js')
 
 const db = new PGlite()

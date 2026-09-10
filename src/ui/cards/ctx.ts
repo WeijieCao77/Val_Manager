@@ -16,6 +16,8 @@ export interface CardCtxValue {
   now: number
   /** false when the server cannot be reached: the collection is read-only until it can */
   cloud: boolean
+  /** the last four digits of the phone this account is bound to; null = verified by hand or offline */
+  phone: string | null
   /**
    * Re-render and write the cosmetic fields back; pass true to skip the debounce.
    *

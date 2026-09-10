@@ -22,6 +22,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
 import { ALL_CARDS, SALVAGE } from '../src/engine/cards'
+// these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
+process.env.PHONE_GATE = '0'
 // real cards of each metal: the server reads the metal off the card table now
 const idOf = (rarity: string) => ALL_CARDS.find((c) => c.rarity === rarity && c.kind === 'player')!.id
 const MYTHIC = idOf('mythic'), BRONZE = idOf('bronze'), GOLD = idOf('gold')

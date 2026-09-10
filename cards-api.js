@@ -13,6 +13,7 @@
  * its SHA-256 — so the table is a pile of hashes and game saves, and a copy of
  * it does not let anyone log in as anybody.
  */
+import { isVerified } from './phone-api.js'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
@@ -201,6 +202,27 @@ create table if not exists card_swaps (
 );
 create index if not exists swap_to_idx on card_swaps (to_h) where status = 'open';
 create index if not exists swap_from_idx on card_swaps (from_h) where status = 'open';
+
+-- 「太多人开小号了」: a phone behind every account (phone-api.js). Never the
+-- number: its salted hash, the last four digits, and the account id encrypted
+-- so a login by phone can hand it back.
+create table if not exists card_phones (
+  phone_h  text primary key,
+  id_hash  text not null unique,
+  id_enc   text not null,
+  last4    text not null,
+  bound    timestamptz not null default now()
+);
+create table if not exists card_sms (
+  phone_h  text not null,
+  code_h   text not null,
+  sent     timestamptz not null default now(),
+  tries    int not null default 0,
+  ip       text
+);
+create index if not exists card_sms_phone_idx on card_sms (phone_h, sent desc);
+alter table card_accounts add column if not exists verified timestamptz;
+alter table card_accounts add column if not exists verify_via text;
 `
 
 /**
@@ -339,8 +361,10 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     if (!id) { json(res, 200, { ok: false, bad: true, today }); return }
     try {
       const rows = await sql`
-        select state, rev, name, extract(epoch from coalesce(saved, seen)) * 1000 as saved
-        from card_accounts where id_hash = ${hash(id)}`
+        select a.state, a.rev, a.name, extract(epoch from coalesce(a.saved, a.seen)) * 1000 as saved,
+               a.verified, p.last4
+        from card_accounts a left join card_phones p on p.id_hash = a.id_hash
+        where a.id_hash = ${hash(id)}`
       if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
       // Brought up to the current shape here, and the 体力 meter of a save with
       // no anchor is dated from the last moment the state was WRITTEN — the
@@ -359,6 +383,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       }
       json(res, 200, {
         ok: true, today, now: serverNow(), saved,
+        // 「太多人开小号了」: an account plays only after a phone has answered
+        // a code; the client gates on this and the server refuses act/save
+        verified: !!rows[0].verified || process.env.PHONE_GATE === '0', phone: rows[0].last4 ?? null,
         rev: rows[0].rev, state: stored(state),
         // the client cannot work its own code out — it has the id, not the
         // hash, and hashing in the browser to learn something the server
@@ -400,6 +427,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     const client = vetClient(body?.client ?? body?.state)
     if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
     if (typeof body?.name === 'string') client.name = body.name.slice(0, 40)
+    if (!(await isVerified(sql, hash(id)))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true, today }); return }
     const baseRev = Number.isInteger(body?.baseRev) ? body.baseRev : null
     try {
       const held = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
@@ -540,6 +568,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
     const args = body?.args && typeof body.args === 'object' && !Array.isArray(body.args) ? body.args : {}
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true, today }); return }
     try {
       // One attempt is one transaction. That matters for mail_take: the rows
       // are marked taken and the account that received them is written in

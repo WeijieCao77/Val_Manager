@@ -25,7 +25,7 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 export default function Account({ onSignOut }: { onSignOut: () => void }) {
-  const { g, cloud, toast, commit } = useCards()
+  const { g, cloud, phone, toast, commit } = useCards()
   const [reveal, setReveal] = useState(false)
   const [name, setName] = useState(g.name)
   const prog = collectionProgress(g)
@@ -41,6 +41,9 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
         <div className="acct-id" style={{ filter: reveal ? 'none' : 'blur(7px)' }}>
           {g.id}
         </div>
+        <p className="small muted" style={{ margin: '8px 0 0' }}>
+          {phone ? <>已绑手机 尾号 <b>{phone}</b>。换设备可以在入口点「用手机号进入」，不用记 ID。</> : '这个账号是人工验证的，没有绑手机。'}
+        </p>
         <div className="row" style={{ gap: 8, marginTop: 10 }}>
           <button className="sm" onClick={() => setReveal((v) => !v)}>
             {reveal ? '隐藏' : '显示 ID'}

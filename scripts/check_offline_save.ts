@@ -17,6 +17,8 @@
 process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
+// these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
+process.env.PHONE_GATE = '0'
 const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
 
 // ---- a server -----------------------------------------------------------

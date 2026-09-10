@@ -35,6 +35,7 @@
  * consulted.
  */
 import { createHash } from 'node:crypto'
+import { isVerified } from './phone-api.js'
 
 /** How long a listing takes bids before the top one wins — the seller's choice, within these. */
 export const AUCTION_HOURS = 24
@@ -618,6 +619,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const cardId = String(b?.cardId ?? '').slice(0, 40)
     const ask = Math.round(Number(b?.ask))
     // The card table is the server's now, so neither the metal nor the level
@@ -699,6 +701,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const lid = rowId(b?.listing)
     if (!lid) { json(res, 400, { ok: false, bad: true }); return }
     const out = await tx(async (db) => {
@@ -742,6 +745,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const price = Math.round(Number(b?.price))
     const lid = rowId(b?.listing)
     if (!lid) { json(res, 400, { ok: false, bad: true }); return }
@@ -884,6 +888,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const oid = rowId(b?.offer)
     if (!oid) { json(res, 400, { ok: false, bad: true }); return }
     const out = await tx(async (db) => {
@@ -919,6 +924,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const inbound = await sql`
       select o.id, o.price, o.made, o.buyer_h, l.id as listing, l.card_id, l.ask, l.ignored, l.ends, l.buyout
       from card_offers o join card_listings l on l.id = o.listing
@@ -964,6 +970,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const take = !!b?.accept
     const oid = rowId(b?.offer)
     if (!oid) { json(res, 400, { ok: false, bad: true }); return }
@@ -1037,6 +1044,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     // Taking moved to /api/card/act (mail_take): the server applies a
     // delivery to the account itself now, so a client can no longer be handed
     // mail and asked to keep it. This route only counts.
@@ -1117,6 +1125,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const giveId = String(b?.giveId ?? '').slice(0, 40)
     const wantId = String(b?.wantId ?? '').slice(0, 40)
     const give = engine.cardById(giveId)
@@ -1168,6 +1177,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const inbound = await sql`
       select id, from_h, give_id, give_level, want_id, made from card_swaps
       where to_h = ${me} and status = 'open' order by made desc`
@@ -1206,6 +1216,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const sid = rowId(b?.swap)
     if (!sid) { json(res, 400, { ok: false, bad: true }); return }
     const got = await sql`
@@ -1282,6 +1293,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const id = normalizeId(b?.id)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const sid = rowId(b?.swap)
     if (!sid) { json(res, 400, { ok: false, bad: true }); return }
     const out = await tx(async (db) => {

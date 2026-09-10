@@ -339,7 +339,7 @@ export const dayOf = (ms: number): string => DAY_FMT.format(new Date(ms))
 export const localToday = (): string => dayOf(serverNow())
 
 export type LoadResult =
-  | { ok: true; state: GachaState; today: string; cloud: boolean }
+  | { ok: true; state: GachaState; today: string; cloud: boolean; verified: boolean; phone: string | null }
   | { ok: false; reason: 'missing' | 'bad' | 'offline'; today: string }
 
 /**
@@ -382,14 +382,15 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
       } else {
         writeMirror(state, false)
       }
-      return { ok: true, state, today, cloud: true }
+      return { ok: true, state, today, cloud: true, verified: j.verified === true, phone: typeof j.phone === 'string' ? j.phone : null }
     }
     if (j?.missing) return { ok: false, reason: 'missing', today }
   } catch { /* fall through to the mirror */ }
   // Unreachable: show what this device last saw. Nothing valuable can be done
   // to it until the server is back, and the screens say so.
   const local = readMirror(id)
-  if (local) return { ok: true, state: migrateGacha(local.state, id), today, cloud: false }
+  // offline there is nothing to verify against and nothing to play; the gate stays out of the way
+  if (local) return { ok: true, state: migrateGacha(local.state, id), today, cloud: false, verified: true, phone: null }
   return { ok: false, reason: 'offline', today }
 }
 
@@ -554,4 +555,30 @@ export function flushAccount(state: GachaState): void {
 export function retryPending(state: GachaState): void {
   const m = readMirror(state.id)
   if (m?.dirty) { retries = 0; saveAccount(state, true) }
+}
+
+
+// ---------------------------------------------------------------- phone
+
+/** 「太多人开小号了」: an account plays after a mainland number answers a code. */
+export async function sendCode(phone: string): Promise<{ ok: boolean; why?: string; wait?: number; dev?: boolean }> {
+  try {
+    const r = await fetch(api('phone/send'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) })
+    return await r.json()
+  } catch { return { ok: false, why: '连不上服务器。' } }
+}
+
+export async function bindPhone(id: string, phone: string, code: string): Promise<{ ok: boolean; why?: string; phone?: string; taken?: boolean }> {
+  try {
+    const r = await fetch(api('phone/bind'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, phone, code }) })
+    return await r.json()
+  } catch { return { ok: false, why: '连不上服务器。' } }
+}
+
+/** the account this number holds — its id comes back and this device keeps it */
+export async function loginByPhone(phone: string, code: string): Promise<{ ok: boolean; why?: string; id?: string; none?: boolean }> {
+  try {
+    const r = await fetch(api('phone/login'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code }) })
+    return await r.json()
+  } catch { return { ok: false, why: '连不上服务器。' } }
 }
