@@ -17,6 +17,10 @@ import { CARD_SCHEMA, makeCardApi, normalizeId } from '../cards-api.js'
 import { checkVerify, devCodes, devMode, encryptId, decryptId, makePhoneApi, normalizePhone, sendVerify, smsConfigured } from '../phone-api.js'
 
 process.env.PHONE_GATE = '1'
+// the harness decides the mode, not the machine it runs on: CI carries Railway's
+// variables, a laptop may carry Aliyun keys
+process.env.PHONE_SMS_DEV = '1'
+for (const k of ['ALIYUN_SMS_ACCESS_KEY_ID', 'ALIYUN_SMS_ACCESS_KEY_SECRET', 'ALIYUN_SMS_SIGN_NAME']) delete process.env[k]
 const db = new PGlite()
 const sql = makeSql(db)
 await db.exec(CARD_SCHEMA)
@@ -129,7 +133,7 @@ check('后台能看开发模式的验证码', r.body.ok === true && Array.isArra
   }) as never
   const env = { ALIYUN_SMS_ACCESS_KEY_ID: 'AK', ALIYUN_SMS_ACCESS_KEY_SECRET: 'SK', ALIYUN_SMS_SIGN_NAME: '速通互联验证码' }
   check('三个变量齐了才算配置好', smsConfigured(env) && !smsConfigured({ ALIYUN_SMS_ACCESS_KEY_ID: 'AK' }))
-  check('Railway 上没配置不是开发模式', !devMode({ RAILWAY_ENVIRONMENT: 'production' }) && devMode({}))
+  check('Railway 上没配置不是开发模式，除非测试显式要求', !devMode({ RAILWAY_ENVIRONMENT: 'production' }) && devMode({}) && devMode({ RAILWAY_ENVIRONMENT: 'production', PHONE_SMS_DEV: '1' }))
   const ok = await sendVerify('13800138000', env)
   const u = new URL(seen[0])
   check('SendSmsVerifyCode 走号码认证接口、带齐参数', ok && u.hostname === 'dypnsapi.aliyuncs.com' && u.searchParams.get('Action') === 'SendSmsVerifyCode'

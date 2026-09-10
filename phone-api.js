@@ -106,8 +106,14 @@ export async function checkVerify(phone, code, env = process.env) {
   return d?.Code === 'OK' && d?.Model?.VerifyResult === 'PASS'
 }
 
-/** Local codes only off Railway: on production an unconfigured sender is an error, not a fallback. */
-export const devMode = (env = process.env) => !smsConfigured(env) && !env.RAILWAY_ENVIRONMENT
+/**
+ * Local codes only off Railway: on production an unconfigured sender is an
+ * error, not a fallback. PHONE_SMS_DEV=1 forces the local codes — the test
+ * harness sets it, because the CI job carries Railway's variables and would
+ * otherwise read as production.
+ */
+export const devMode = (env = process.env) =>
+  !smsConfigured(env) && (env.PHONE_SMS_DEV === '1' || !env.RAILWAY_ENVIRONMENT)
 
 // ---------------------------------------------------------------- the api
 
