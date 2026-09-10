@@ -16,10 +16,11 @@ import { TRACKS } from '../data/music'
  * the file. Like the theme, this is about the room the screen is in, not the
  * account, so it never rides along with a save.
  *
- * The <audio> is made by hand rather than rendered, so a track change is one
- * synchronous src-and-play inside the click that asked for it. Safari only
- * trusts a play() it can trace back to a gesture, and a React re-render
- * cannot be traced back to anything.
+ * The <audio> is made by hand rather than rendered, so a track change is a
+ * src-and-play inside the click that asked for it. Safari only trusts a play()
+ * it can trace back to a gesture, and a React re-render cannot be traced back
+ * to anything. A song still downloading gets the click's play() on the empty
+ * element instead — see `load`.
  */
 export type Loop = 'all' | 'one' | 'off'
 const KEY = 'valmgr.music'
@@ -80,6 +81,56 @@ const readPrefs = (): Prefs => {
 const srcOf = (i: number): string =>
   `${typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'}${TRACKS[i].file}`
 
+/**
+ * Each song is downloaded once per device, not once per visit.
+ *
+ * Pointed straight at the file, an <audio> asks for it in ranges, and a
+ * browser seldom answers a range from its cache: every visit and every reload
+ * fetched the whole song again, and some browsers fetched it more than once
+ * for a single play. That was nine tenths of everything the server sent —
+ * 80 GB a day on 2026-09-10, the biggest line on the bill. Fetched whole into
+ * Cache Storage and played from a blob, a returning visit sends nothing.
+ * Wherever that cannot work (no Cache Storage in an in-app browser, a private
+ * window, a full disk, a player that refuses blobs) the element gets the plain
+ * URL, which is what every visit did before.
+ */
+const SONGS = 'bgm'
+const HAS_CACHE = typeof caches !== 'undefined'
+
+/** one key per recording whichever page asked; a new `?v=` is a new recording */
+const keyOf = (i: number): string => `${location.origin}/${TRACKS[i].file}`
+
+/** a song already on this device, as a URL the element can play */
+async function fromCache(i: number): Promise<string | null> {
+  if (!HAS_CACHE) return null
+  try {
+    const hit = await (await caches.open(SONGS)).match(keyOf(i))
+    return hit ? URL.createObjectURL(await hit.blob()) : null
+  } catch {
+    return null
+  }
+}
+
+/** the whole file, kept for next time; the plain URL if any step of that fails */
+async function fromNetwork(i: number): Promise<string> {
+  try {
+    const r = await fetch(srcOf(i))
+    if (!r.ok) return srcOf(i)
+    const blob = await r.blob()
+    try {
+      const c = await caches.open(SONGS)
+      await c.put(keyOf(i), new Response(blob, { headers: { 'Content-Type': blob.type || 'audio/mp4' } }))
+      // a recording whose ?v= has moved on will never be asked for again
+      for (const old of await c.keys()) {
+        if (!TRACKS.some((t) => old.url === `${location.origin}/${t.file}`)) void c.delete(old)
+      }
+    } catch { /* full, or refused: it still plays this visit */ }
+    return URL.createObjectURL(blob)
+  } catch {
+    return srcOf(i)
+  }
+}
+
 /** iOS owns the volume: the slider is ignored there, so it is not shown */
 const IOS = typeof navigator !== 'undefined'
   && (/iP(hone|ad|od)/.test(navigator.userAgent)
@@ -112,15 +163,91 @@ export default function MusicPlayer() {
 
   /** play, and remember whether the browser let us */
   const tryPlay = useCallback((a: HTMLAudioElement) => {
-    a.play().then(() => setBlocked(false)).catch(() => setBlocked(true))
+    a.play().then(() => setBlocked(false)).catch(() => { setBlocked(true); setPlaying(!a.paused) })
   }, [])
+
+  /** the track the element holds, -1 while it holds none */
+  const held = useRef(-1)
+  /** songs in hand, as the URL to give the element */
+  const ready = useRef(new Map<number, string>())
+  /** songs on their way, so a second ask does not fetch the file twice */
+  const coming = useRef(new Map<number, Promise<string>>())
+  /** the latest ask: a song that lands after the listener has moved on is not played */
+  const want = useRef(-1)
+  /** this browser will not play a blob, so it gets the plain URL from here on */
+  const plain = useRef(!HAS_CACHE)
+
+  /** a song the element no longer holds gives its bytes back; coming back reads the cache again */
+  const release = useCallback((j: number) => {
+    const u = ready.current.get(j)
+    if (!u?.startsWith('blob:')) return
+    URL.revokeObjectURL(u)
+    ready.current.delete(j)
+    coming.current.delete(j)
+  }, [])
+
+  const point = useCallback((a: HTMLAudioElement, i: number, url: string) => {
+    if (held.current === i) return
+    const was = held.current
+    a.src = url
+    a.load()
+    held.current = i
+    release(was)
+  }, [release])
 
   /** point the element at a track; `go` plays it too */
   const load = useCallback((i: number, go: boolean) => {
     const a = el()
-    const src = srcOf(i)
-    if (!a.src.endsWith(TRACKS[i].file)) { a.src = src; a.load() }
-    if (go) tryPlay(a)
+    want.current = i
+    if (plain.current) ready.current.set(i, srcOf(i))
+    const url = ready.current.get(i)
+    if (url) {
+      point(a, i, url)
+      if (go) tryPlay(a)
+      return
+    }
+    // Not in hand yet. Safari lets an element play later only if it was asked
+    // to play inside the tap, so the tap spends its play() now, on an empty
+    // element, which then starts by itself once the song lands.
+    if (go && a.paused) {
+      const was = held.current
+      if (a.getAttribute('src')) { a.removeAttribute('src'); a.load(); held.current = -1 }
+      release(was)
+      a.play().catch(() => { /* nothing to play yet: the call was for the permission */ })
+    }
+    let p = coming.current.get(i)
+    if (!p) {
+      p = fromCache(i).then((u) => u ?? fromNetwork(i))
+      coming.current.set(i, p)
+    }
+    void p.then((u) => {
+      ready.current.set(i, u)
+      if (want.current !== i) return
+      point(a, i, u)
+      if (go && !prefsRef.current.off) tryPlay(a)
+    })
+  }, [el, point, release, tryPlay])
+
+  // A browser that will not play a blob gets the plain URL for the rest of the visit.
+  useEffect(() => {
+    const a = el()
+    const onError = () => {
+      if (!a.src.startsWith('blob:')) return
+      plain.current = true
+      const blobs = [...ready.current.values()].filter((u) => u.startsWith('blob:'))
+      ready.current.clear()
+      coming.current.clear()
+      const i = held.current
+      if (i >= 0) {
+        ready.current.set(i, srcOf(i))
+        a.src = srcOf(i)
+        a.load()
+        if (!prefsRef.current.off) tryPlay(a)
+      }
+      blobs.forEach((u) => URL.revokeObjectURL(u))
+    }
+    a.addEventListener('error', onError)
+    return () => a.removeEventListener('error', onError)
   }, [el, tryPlay])
 
   // the element, its listeners, and the first attempt at playing
