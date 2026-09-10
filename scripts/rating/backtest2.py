@@ -226,10 +226,11 @@ def main() -> None:
         L = callers_today.get(ign.lower())
         if idn:
             caller_rows.append({"ign": ign, "club": idn.club, "source": idn.source, "since": idn.since and idn.since.isoformat(),
-                                "grade_today": idn.grade(today), "events_as_caller": L.events if L else 0,
-                                "tenure_years": L.tenure_years if L else None,
+                                "grade_today": idn.grade(today), "events_recorded": L.recorded if L else 0, "events_assumed": L.assumed if L else 0,
                                 "placement_residual": None if not L or L.over_perf is None else round(L.over_perf, 2),
-                                "level_z": L and round(L.z, 2), "score": L and round(maps["all"]["igl"][0] + maps["all"]["igl"][1] * L.z)})
+                                "level_z": L and round(L.z, 2), "range": L and L.range,
+                                "score": L and round(maps["all"]["igl"][0] + maps["all"]["igl"][1] * L.z),
+                                "score_range": L and f"{round(maps['all']['igl'][0] + maps['all']['igl'][1] * (L.z - L.range))}～{round(maps['all']['igl'][0] + maps['all']['igl'][1] * (L.z + L.range))}"})
 
     # ---- write
     def dump(name, rows):
@@ -267,7 +268,7 @@ def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regim
     L.append("- 阶段变化默认关闭。两个软变体按赛段确认：最近两个赛段（各 ≥300 回合）都比之前赛段（≥2 个、≥600 回合）的均值高或低 ≥0.35 z，soft-sym 把更早赛段权重减半，soft-asym 只在成长时减半、衰退交给平滑基线。")
     L.append("- 状态 = 截止日前 30 天赛事相对基线的偏离，单独给出；基线里这 30 天占的权重份额印在下表（中位数与 90 分位，不是最大值，也不等于状态的重复加成量——那要等状态公式定了才能算）。")
     L.append(f"- 荣誉账本：vlr 名次记录只取决赛阶段的第一名，类型取缓存的赛事 tier，日期取赛事结束日，出场以本人在该赛事统计行里有回合为准；Liquipedia 冠军表按赛事名称去重补入、无日期。本次账本：有日期且见出场 {ledger_stats['dated_played']} 条，有日期但未见出场 {ledger_stats['dated_unseen']} 条，无日期（Liquipedia）{ledger_stats['undated']} 条，缓存外（无类型无日期，2024 年前或非 VCT）{ledger_stats['unknown_tier']} 条，无名次记录的选手 {len(unknown)} 人。严格口径只计第一类；其余在拆解表里以「set aside」计数。")
-    L.append(f"- 主指挥：身份 A = 有来源（俱乐部页或人工）且截止日时已在该俱乐部满一年；B = 有来源、不满一年；C = 系统推测；none = 效力开始晚于截止日或未知。今天：A {sum(1 for i in ids.values() if i.grade(date.today()) == 'A')} / B {sum(1 for i in ids.values() if i.grade(date.today()) == 'B')} / C {sum(1 for i in ids.values() if i.grade(date.today()) == 'C')}。**没有任何站点记录指挥从何时开始**，A 级仍是按效力窗口外推的，所以指挥结果全部属于敏感性分析，不是严格历史回测；表里分 A 与 A+B+C 两档给出。指挥能力 = 带队名次相对阵容个人 Rating 残差的三分之一（按赛事数收缩到先验 0）+ 资历（每年 0.15 z，封顶三年），是模型估计；逐人依据见下表。权重 w 对确认身份固定，不乘可靠度。\n")
+    L.append(f"- 主指挥：身份 A = 有来源（俱乐部页或人工）且截止日时已在该俱乐部满一年；B = 有来源、不满一年；C = 系统推测；none = 效力开始晚于截止日或未知。今天：A {sum(1 for i in ids.values() if i.grade(date.today()) == 'A')} / B {sum(1 for i in ids.values() if i.grade(date.today()) == 'B')} / C {sum(1 for i in ids.values() if i.grade(date.today()) == 'C')}。**没有任何站点记录指挥从何时开始**，等级只描述身份可信度，所以指挥结果全部属于敏感性分析。指挥能力 = 带队名次相对阵容个人 Rating 残差的三分之一，按赛事数向先验 0 收缩，证据跟人走、转会不清零，没有资历项；先验落在作战尺子的 70 上。逐人依据见下表。权重 w 对确认身份固定，不乘可靠度。\n")
     L.append("## A. 时间融合（其余全部固定；同一目标样本）\n")
     L.append("| 模型 | ρ(下一赛事) | ρ(180 天) | MAE | 突破手残差 | 决斗 | 先锋 | 控场 | 哨卫 | n | n(180 天) |")
     L.append("|---|---|---|---|---|---|---|---|---|---|---|")
@@ -296,11 +297,11 @@ def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regim
         if r["model"] in ("stage regime=off",) or "hon=" in r["model"]:
             L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['mae'])} | {r['n']} |")
     L.append("\n## 指挥逐人依据（今天）\n")
-    L.append("| 选手 | 俱乐部 | 身份来源 | 效力起 | 今日等级 | 任内赛事 | 资历(年) | 名次残差 | 能力z | 指挥分 |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|")
+    L.append("| 选手 | 俱乐部 | 身份来源 | 效力起 | 今日等级 | 赛事（记录俱乐部 + 其他俱乐部） | 名次残差 | 能力z ± 范围 | 指挥分（范围） |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
     for r in caller_rows:
-        L.append(f"| {r['ign']} | {r['club']} | {r['source']} | {r['since']} | {r['grade_today']} | {r['events_as_caller']} | {r['tenure_years']} | {r['placement_residual']} | {r['level_z']} | {r['score']} |")
-    L.append("\n名次残差 = 该赛事俱乐部名次（换算 ±2）− 阵容个人 Rating 的均值 z，任内赛事平均；它含教练、赛程、对手与运气，只记三分之一并收缩。")
+        L.append(f"| {r['ign']} | {r['club']} | {r['source']} | {r['since']} | {r['grade_today']} | {r['events_recorded']} + {r['events_assumed']} | {r['placement_residual']} | {r['level_z']} ± {r['range']} | {r['score']}（{r['score_range']}） |")
+    L.append("\n指挥证据跟人走：记录他为指挥的俱乐部的赛事全额，他效力过的其他俱乐部的赛事按一半（假定他在那里也指挥，已标注），转会不清零；没有资历项——在一家俱乐部待多久是熟悉度，属于默契，不是指挥水平。能力 = 名次残差的三分之一按赛事数向先验 0（普通职业指挥）收缩；先验 z=0 落在与作战同一把尺子的 70 上，一个 z 的指挥水平 = 一个 z 的作战。范围随证据缩小。手工估计（data-raw/igl_manual.json，需来源）优先于模型，目前没有提供。")
     L.append("\n## 关键选手逐项拆解（今天；固定条件的候选分，不平移）\n")
     L.append("| 选手 | 世界 | 现方案重建 | decay | stage | split | +指挥A .35 | +荣誉6 | 位置 | 场次 | 作战 | 指挥分×权重(等级) | 荣誉 | 状态z | 30天份额 | 覆盖 |")
     L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
@@ -330,7 +331,7 @@ def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regim
     L.append("1. **荣誉账本修正后**：分类取缓存的赛事类型与赛事 ID，只算决赛阶段第一，只计有日期且本人出场的。CHICHOO、nobody 6.0（封顶），Chronicle、Boaster 3.66（含 2023 LOCK//IN 与东京 Masters，按第三年三分之二计），Ethan 3.99，Less 1.33。荣誉对预测力 +0.009～+0.012，对个人 1～6 分；它在同档间改排序，上一版说「不改排序」是错的。")
     L.append("2. **时间融合隔离后三者持平**：属性、各项收缩、映射固定，只换权重，decay / stage / split 的 ρ 在 0.360～0.371（下一赛事）、0.427～0.447（180 天），差在噪声内；上一版「stage 不如 decay」是收缩没统一造成的，撤回。split 的赛段内归一没有改变结果。")
     L.append("3. **阶段变化**：按赛段确认的软规则在目标样本里触发很少，对预测没有影响，对称与非对称无差别；点名选手无一被判定。轨迹表里老将的回落由平滑基线自己完成。")
-    L.append("4. **指挥**：新方案在不加权重时已把 A 级指挥高估 0.25 z，加权重后到 -0.38（w=.35）；指挥分与个人 Rating 无关且普遍高于作战分，这既不是它错的证据也不是对的证据。指挥分是模型估计：Boaster 91、nobody 88、Boo 88、Ethan 81（依据表：任内赛事、资历、名次残差）。它是否合理只能在引擎里看，见「引擎侧」。")
+    L.append("4. **指挥**：修正后指挥分只由名次残差按证据收缩得出，Boaster z 0.15±0.13、Boo/Ethan/nobody 0.11±0.16、saadhak 0.07±0.23（2 场记录俱乐部 + 15 场其他俱乐部，转会不再清零）、Rossy 0.04±0.30；先验 z=0 落在 70，与作战同尺，所以指挥分都在 70～75 之间、范围 ±4～8 分——这才是现有证据能支持的程度。上一版 Boaster 91、Ethan 83 那种差距来自资历项与单独拟合的映射，已撤。加权重后对指挥组预测的影响见 B 表，读作方向。")
     L.append("5. **点名选手**：Chronicle 92→74（+荣誉 78）、Less 89→66、CHICHOO 94→79～81（+荣誉 85）、nobody 77→59～61（+指挥 69、+荣誉 75）、Boaster 65→57（+指挥 69、+荣誉 73）。三种融合下作战分差不超过 2；补齐 2022～2023 后按半衰期衰减只抬 2～3 分（见 report_history.md）。落差的来源因此不在时间方案与覆盖，而在世界分自带的生涯表、大赛加成、冠军项，以及控场的属性模板（同英雄校正未做）。")
     L.append("6. **尺度**：候选分锚在「70 = 普通一级选手」，世界分的一级中位约 80，两把尺子差 9～12 分；本报告的候选分未平移，也不应拿来直接和世界分比绝对值。")
     L.append("\n**下一步**：(a) 同英雄 APR/KAST 校正需要「选手 × 英雄 × 赛事」交叉数据，是控场/先锋对调的根因，优先于调模板；(b) 引擎按「作战进均值、指挥分进指挥加成」拆分并按两种模式分别标定；(c) 上线前的映射以世界建模人群为参考池重拟合冻结；(d) 荣誉与指挥权重的取值在 (a)(b) 之后定。")

@@ -313,8 +313,12 @@ def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, I
     m = {"overall": fit(combats)}
     for k in STAT_ABILITIES:
         m[k] = fit(abil[k])
-    zs = [L.z for L in callers.values() if L.events > 0]
-    m["igl"] = fit(zs) if len(zs) >= 8 else (71.0, 13.0)
+    # the caller level shares the combat scale: z = 0 (an ordinary professional
+    # caller) lands where an ordinary tier-one player lands, and one z of level
+    # is worth one z of combat. Fitting a separate percentile table over the
+    # callers made z = 0 read 47 and three years of tenure read +33 — the
+    # prior and the scale were not the same thing.
+    m["igl"] = m["overall"]
     return m
 
 
@@ -354,7 +358,7 @@ def rate2(recs: list[Record], cutoff: date, P: P2, mapping: dict, ledger: dict[s
                 lvl = L.z if (L is not None) else 0.0        # no evidence: the callers' prior
                 igl_score = clamp(ia + ib * lvl, 30, 97)
                 w = P.igl_weight
-                note = f"grade {grade}, events {L.events if L else 0}, tenure {L.tenure_years if L else 0}y, resid {None if not L or L.over_perf is None else round(L.over_perf, 2)}"
+                note = f"grade {grade}, events {L.recorded if L else 0}+{L.assumed if L else 0}, resid {None if not L or L.over_perf is None else round(L.over_perf, 2)}, z {round(L.z, 2) if L else 0}±{L.range if L else 0.6}"
             else:
                 note = f"grade {grade}, weight not applied"
         pts, hnote = 0.0, "no ledger"

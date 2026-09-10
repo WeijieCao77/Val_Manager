@@ -52,30 +52,46 @@ function winRate(aId: string, bId: string): number {
   return w / N
 }
 type Case = [string, (caller: ReturnType<typeof callerOf> & object, other: ReturnType<typeof callerOf> & object) => void]
+// Moves inside the attribute range, so the engine reads what the case says.
+// The earlier +15 on a caller at 89-91 asked for 104-106, which the manager
+// engine took as written and the arena clamped to 99 before compressing.
 const cases: Case[] = [
   ['基准', () => {}],
-  ['主指挥 指挥+15', (c) => { c.attrs.igl += 15 }],
-  ['主指挥 总评+5', (c) => { c.overall += 5 }],
-  ['主指挥 两者', (c) => { c.overall += 5; c.attrs.igl += 15 }],
-  ['非指挥 指挥+15', (_c, o) => { o.attrs.igl += 15 }],
-  ['非指挥 总评+5', (_c, o) => { o.overall += 5 }],
+  ['主指挥 指挥 70→80', (c) => { c.attrs.igl = 80 }],
+  ['主指挥 指挥 80→90', (c) => { c.attrs.igl = 90 }],
+  ['主指挥 指挥 90→99 封顶', (c) => { c.attrs.igl = 99 }],
+  ['主指挥 总评 80→85', (c) => { c.overall = 85 }],
+  ['主指挥 总评 85→90', (c) => { c.overall = 90 }],
+  ['非指挥 指挥 70→90', (_c, o) => { o.attrs.igl = 90 }],
+  ['非指挥 总评 80→85', (_c, o) => { o.overall = 85 }],
 ]
-console.log(`${'对阵'.padEnd(18)} ${cases.map((c) => c[0].padEnd(14)).join('')}`)
+// every caller starts from the same footing: 指挥 70 (then 80 for the second
+// step) and overall 80 (then 85), so a step is a step and not a cap
+const baseline = (c: { overall: number; attrs: { igl: number } }, o: { overall: number; attrs: { igl: number } }, name: string) => {
+  c.attrs.igl = name.includes('80→90') ? 80 : name.includes('90→99') ? 90 : 70
+  c.overall = name.includes('85→90') ? 85 : 80
+  o.attrs.igl = 70; o.overall = 80
+}
+console.log(`${'对阵'.padEnd(18)} ${cases.map((c) => c[0].padEnd(22)).join('')}`)
 for (const [a, b, label] of pairs) {
   const caller = callerOf(state, a.id)!
   const other = squadOf(state, a.id).find((p) => p.id !== caller.id)!
   const snap = [caller, other].map((p) => ({ p, overall: p.overall, igl: p.attrs.igl }))
   const out: string[] = []
   let base = 0
+  const bases: Record<string, number> = {}
   for (const [name, apply] of cases) {
-    for (const s of snap) { s.p.overall = s.overall; s.p.attrs.igl = s.igl }
+    baseline(caller, other, name)
+    const before = winRate(a.id, b.id)
     apply(caller, other)
+    const read = `指挥${caller.attrs.igl}/总评${caller.overall}`
     const w = winRate(a.id, b.id)
     if (name === '基准') base = w
-    out.push((name === '基准' ? pct(w) : `${(w - base) * 100 >= 0 ? '+' : ''}${((w - base) * 100).toFixed(1)}`).padEnd(14))
+    bases[name] = before
+    out.push((name === '基准' ? pct(w) : `${(w - before) * 100 >= 0 ? '+' : ''}${((w - before) * 100).toFixed(1)}[${read}]`).padEnd(22))
   }
   for (const s of snap) { s.p.overall = s.overall; s.p.attrs.igl = s.igl }
-  console.log(`${`${a.tag} v ${b.tag} ${label}`.padEnd(18)} ${out.join('')}   (主指挥 ${caller.ign} 指挥 ${caller.attrs.igl} 总评 ${caller.overall})`)
+  console.log(`${`${a.tag} v ${b.tag} ${label}`.padEnd(18)} ${out.join('')}   (主指挥 ${caller.ign})`)
 }
 
 // ---------------------------------------------------------------- card mode
@@ -100,7 +116,7 @@ function arenaWin(mine: Squad, rival: RivalSquad): number {
   for (let s = 1; s <= N; s++) { if (playRivalMatch(mine as never, () => 0, rival, 3, s * 7919 + 17).win) w++ }
   return w / N
 }
-console.log(`${'对阵'.padEnd(18)} ${cases.map((c) => c[0].padEnd(14)).join('')}`)
+console.log(`${'对阵'.padEnd(18)} ${cases.map((c) => c[0].padEnd(22)).join('')}`)
 for (const [a, b, label] of pairs) {
   const sa = clubSquad(a.tag), sb = clubSquad(b.tag)
   if (!sa || !sb) { console.log(`${a.tag} v ${b.tag}: 卡组不足五人`); continue }
@@ -117,12 +133,15 @@ for (const [a, b, label] of pairs) {
   const out: string[] = []
   let base = 0
   for (const [name, apply] of cases) {
-    for (const s of snap) { s.c.rating = s.rating; s.c.attrs.igl = s.igl }
+    baseline(pc as never, po as never, name)
+    const before = arenaWin(sa, rivalOf(b.tag, sb))
     apply(pc as never, po as never)
+    // what the arena reads: the card, then squeeze(x) = 70 + (x − 70) × 0.6 on attributes
+    const read = `指挥${callerCard.attrs.igl}→压缩${Math.round(70 + (Math.min(99, callerCard.attrs.igl) - 70) * 0.6)}/卡面${callerCard.rating}`
     const w = arenaWin(sa, rivalOf(b.tag, sb))
     if (name === '基准') base = w
-    out.push((name === '基准' ? pct(w) : `${(w - base) * 100 >= 0 ? '+' : ''}${((w - base) * 100).toFixed(1)}`).padEnd(14))
+    out.push((name === '基准' ? pct(w) : `${(w - before) * 100 >= 0 ? '+' : ''}${((w - before) * 100).toFixed(1)}[${read}]`).padEnd(22))
   }
   for (const s of snap) { s.c.rating = s.rating; s.c.attrs.igl = s.igl }
-  console.log(`${`${a.tag} v ${b.tag} ${label}`.padEnd(18)} ${out.join('')}   (指挥卡 ${callerCard.ign} 指挥 ${callerCard.attrs.igl} 卡面 ${callerCard.rating}，世界 isIgl ${wc.isIgl})`)
+  console.log(`${`${a.tag} v ${b.tag} ${label}`.padEnd(18)} ${out.join('')}   (指挥卡 ${callerCard.ign}，世界 isIgl ${wc.isIgl})`)
 }

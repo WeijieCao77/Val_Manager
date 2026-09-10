@@ -61,9 +61,12 @@ class IglLevel:
     events: int
     tenure_years: float
     over_perf: float | None     # mean placement-vs-roster residual (z), + = club placed better than its men
-    z: float                    # the level estimate in z
+    z: float                    # the level estimate in z, 0 = an ordinary professional caller
     reliability: float          # 0..1
     notes: list[str] = field(default_factory=list)
+    range: float = 0.6          # ± z around the estimate
+    recorded: int = 0           # events at the club that recorded him as caller
+    assumed: int = 0            # events at other clubs, assumed caller
 
 
 def _key(s: str) -> str:
@@ -96,17 +99,26 @@ def _placement_rank(place: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+MANUAL = ROOT / "data-raw" / "igl_manual.json"
+
+
 def levels(cutoff: date, ids: dict[str, IglIdentity] | None = None) -> dict[str, IglLevel]:
-    """the level evidence at a cutoff, from events that ended before it"""
+    """The level evidence at a cutoff, from events that ended before it.
+
+    The evidence follows the man, not the club: every tier-one event he
+    played counts, those at the club that recorded him as its caller at full
+    weight, those at other clubs at half (he is assumed to have called there
+    too — flagged). A transfer therefore keeps his history. No tenure term:
+    time at a club is familiarity, which belongs in chemistry, not level.
+    Level = shrunk placement residual around the prior 0 (an ordinary
+    professional caller); its range narrows with evidence. A hand estimate in
+    data-raw/igl_manual.json ({ign: {z, range, source}}) overrides the model."""
     ids = ids or identities()
     world = json.loads(WORLD.read_text("utf-8"))
-    ign_of = {p["id"]: p["ign"] for p in world["players"]}
     recs = json.loads(RECORDS.read_text("utf-8"))["players"]
     evc = json.loads(EVENTS.read_text("utf-8"))
     events, stats = evc["events"], evc["stats"]
-    # club placement per event, from any player's record of it. vlr names the
-    # club in full on a placement ("LEVIATÁN") and by tag on a stats row
-    # ("LEV"); the world's teams say which is which.
+    manual = json.loads(MANUAL.read_text("utf-8")) if MANUAL.exists() else {}
     tag_of = {}
     for t in world["teams"]:
         tag_of[_key(t.get("name"))] = _key(t.get("tag"))
@@ -120,57 +132,53 @@ def levels(cutoff: date, ids: dict[str, IglIdentity] | None = None) -> dict[str,
                 placed[(e[0], tag_of.get(k, k))] = r
     out = {}
     for ign_l, idn in ids.items():
-        per_event = []
+        rec_ev, other_ev = [], []
         for eid, rows in stats.items():
             meta = events.get(eid)
-            if not meta or not meta.get("end"):
+            if not meta or not meta.get("end") or meta.get("tier") in ("challengers",):
                 continue
             y, m, d = (int(x) for x in meta["end"].split("-"))
-            end = date(y, m, d)
-            if end >= cutoff or (idn.since and end < idn.since):
+            if date(y, m, d) >= cutoff:
                 continue
             mine = next((r for r in rows if (r.get("ign") or "").lower() == ign_l and (r.get("rnd") or 0) > 0), None)
             if not mine:
                 continue
             club = mine.get("club") or ""
-            if _key(club) != _key(idn.club):
-                continue            # not the club he is the recorded caller of
-            # roster strength: mean Rating z of the club's five inside the event
             vals = {r["ign"]: r["rating2"] for r in rows if r.get("rating2") is not None and (r.get("rnd") or 0) >= 60}
             if len(vals) < 10:
                 continue
             mu, sd = mean_sd(list(vals.values()))
             team = [(r["rating2"] - mu) / sd for r in rows if r.get("club") == club and r.get("rating2") is not None and (r.get("rnd") or 0) >= 60]
             if len(team) < 3:
-                continue            # a club whose five barely played here says nothing about its caller
-            team_z = statistics.fmean(team)
+                continue
             clubs = {r.get("club") for r in rows if r.get("club")}
             rank = placed.get((eid, tag_of.get(_key(club), _key(club))))
             if rank is None or len(clubs) < 4:
                 continue
-            place_z = -(rank - (len(clubs) + 1) / 2) / (len(clubs) / 4)    # 1st ≈ +2, last ≈ −2
-            per_event.append(place_z - team_z)
-        tenure = ((cutoff - idn.since).days / 365.25) if idn.since and idn.since < cutoff else 0.0
-        n = len(per_event)
-        over = statistics.fmean(per_event) if per_event else None
-        # A model estimate, not a measurement: (b) the placement residual is
-        # credited at a third and shrunk toward the callers' prior (0 = an
-        # ordinary caller) by events (κ = 6); (a) tenure adds up to +0.45 z
-        # over three years. The residual still holds the coach, the roster
-        # and the draw; the report lists the inputs per man.
-        lam = n / (n + 6.0)
-        z = clamp((over or 0.0) / 3.0 * lam + min(tenure, 3.0) * 0.15, -1.5, 1.5)
-        notes = []
+            place_z = -(rank - (len(clubs) + 1) / 2) / (len(clubs) / 4)
+            resid = place_z - statistics.fmean(team)
+            (rec_ev if _key(club) == _key(idn.club) else other_ev).append(resid)
+        n_eff = len(rec_ev) + 0.5 * len(other_ev)
+        over = ((sum(rec_ev) + 0.5 * sum(other_ev)) / n_eff) if n_eff > 0 else None
+        lam = n_eff / (n_eff + 6.0)
+        z = clamp((over or 0.0) / 3.0 * lam, -1.5, 1.5)
+        rng = round(0.6 * (1 - lam), 2)          # ± z: wide with little evidence, narrow with much
+        notes = [f"recorded-club events {len(rec_ev)}", f"other-club events {len(other_ev)} (assumed caller, half weight)"]
         if idn.source != "verified":
             notes.append("identity:inferred")
         if idn.since is None:
             notes.append("since:unknown")
-        else:
-            notes.append("since:extrapolated-from-tenure")
-        if n == 0:
-            notes.append("no-events-as-caller")
-        rel = clamp(0.5 * lam + 0.5 * min(tenure, 3.0) / 3.0, 0.0, 1.0) * (1.0 if idn.source == "verified" else 0.6)
-        out[ign_l] = IglLevel(idn.ign, n, round(tenure, 2), over, z, rel, notes)
+        rel = clamp(lam, 0.0, 1.0) * (1.0 if idn.source == "verified" else 0.6)
+        man = manual.get(idn.ign) or manual.get(ign_l)
+        if man and isinstance(man.get("z"), (int, float)):
+            z, rng = float(man["z"]), float(man.get("range", 0.3))
+            notes.append(f"manual:{man.get('source', '?')}")
+            rel = 1.0
+        L = IglLevel(idn.ign, len(rec_ev) + len(other_ev), 0.0, over, z, rel, notes)
+        L.range = rng
+        L.recorded = len(rec_ev)
+        L.assumed = len(other_ev)
+        out[ign_l] = L
     return out
 
 
@@ -179,6 +187,6 @@ if __name__ == "__main__":
     print("callers:", len(ids), "verified:", sum(1 for i in ids.values() if i.source == "verified"),
           "with tenure start:", sum(1 for i in ids.values() if i.since))
     lv = levels(date.today(), ids)
-    for n in ("boaster", "boo", "ethan", "nobody", "chronicle", "johnqt"):
+    for n in ("boaster", "boo", "ethan", "nobody", "saadhak", "rossy", "johnqt"):
         L = lv.get(n)
-        print(n, L and (L.events, L.tenure_years, None if L.over_perf is None else round(L.over_perf, 2), round(L.z, 2), round(L.reliability, 2), L.notes))
+        print(n, L and (L.recorded, L.assumed, None if L.over_perf is None else round(L.over_perf, 2), round(L.z, 2), "±", L.range, L.notes[:2]))
