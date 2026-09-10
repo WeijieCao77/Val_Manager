@@ -25,7 +25,8 @@ import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
   AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
-  answerOffer, askFloorOf, bidOn, browseMarket, listCardOnMarket, minBidOf, myOffers, unlistCard, withdrawOffer,
+  answerOffer, askFloorOf, bidOn, browseMarket, gateText, listCardOnMarket, minBidOf, myOffers, unlistCard,
+  waitText, withdrawOffer,
 } from '../../engine/market'
 import type { Gate, Listing, Offer, ShelfQuery, ShelfSort } from '../../engine/market'
 import type { Card } from '../../engine/cards'
@@ -247,7 +248,7 @@ export default function Market() {
     const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity, now2, hours)
     setBusy(false)
     if (!r?.ok) {
-      toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
+      toast(r?.newbie ? gateText(r)
         : r?.notOwned ? '服务器还没同步这张卡，稍后再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? `最多同时挂 ${r.max ?? MAX_LISTINGS} 张，卖掉或撤回一张再挂。`
@@ -269,7 +270,7 @@ export default function Market() {
   /** the shape of a reply to a bid, whichever way it went */
   const afterBid = async (r: Awaited<ReturnType<typeof bidOn>>, price: number) => {
     if (!r?.ok) {
-      toast(r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽就能用交易区了（已开 ${r.have}/${r.need}）。`
+      toast(r?.newbie ? gateText(r)
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
         : r?.leading ? '你已是最高价。'
         : r?.range ? `旧规则挂牌，只能在 ${r.lo} ~ ${r.hi} 之间还价。`
@@ -382,12 +383,15 @@ export default function Market() {
       {gate && (
         <Panel title="交易区还没对你开放">
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
-            开够 <b>{gate.need} 抽</b>才能挂牌和出价，你现在 <b>{gate.have}</b> 抽，
-            还差 <b>{gate.need - gate.have}</b> 抽。签到送的包也算。
+            新账号要建满 <b>{gate.days ?? 3} 天</b>、开够 <b>{gate.need} 抽</b>才能挂牌和出价。
+            {gate.have < gate.need && <>你现在 <b>{gate.have}</b> 抽，还差 <b>{gate.need - gate.have}</b> 抽，签到送的包也算。</>}
+            {(gate.wait ?? 0) > 0 && <>账号还要等 <b>{waitText(gate.wait ?? 0)}</b>。</>}
           </p>
-          <div style={{ height: 5, borderRadius: 3, background: 'var(--panel-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min(100, (gate.have / gate.need) * 100)}%`, height: '100%', background: 'var(--accent)' }} />
-          </div>
+          {gate.have < gate.need && (
+            <div style={{ height: 5, borderRadius: 3, background: 'var(--panel-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, (gate.have / gate.need) * 100)}%`, height: '100%', background: 'var(--accent)' }} />
+            </div>
+          )}
           <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
             这道门槛是防小号的。<b>货架可以随便看</b>，只是还不能买卖。
           </p>
@@ -656,7 +660,7 @@ export default function Market() {
                             className="sm"
                             style={{ flex: '1 1 48px', minHeight: 26 }}
                             disabled={busy || !!gate}
-                            title={gate ? `开够 ${gate.need} 抽才能出价` : undefined}
+                            title={gate ? gateText(gate) : undefined}
                             onClick={() => { setBidOpen(l); setBidPrice(String(min)) }}
                           >
                             出价

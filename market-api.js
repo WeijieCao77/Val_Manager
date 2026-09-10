@@ -116,6 +116,24 @@ export const MAX_LISTINGS = 3
  * see progress.js.
  */
 export const TRADE_PULLS = 50
+
+/**
+ * And how old it has to be.
+ *
+ * Fifty pulls is a week of one person's effort, but one person can spend that
+ * week on several accounts at once. On 2026-09-10 one account's 彩卡 had come
+ * in from other accounts through buy-now listings, each paid back minutes
+ * later by selling a 60-coin bronze to the same account for the same money.
+ * Age is the one requirement that cannot be played faster: three days is three
+ * days however many accounts share them, so an account made tonight is no use
+ * for trading tonight. Measured on the database clock, not the client's.
+ *
+ * `TRADE_DAYS=0` in the environment turns it off, for a local server on an
+ * in-process PGlite: its accounts cannot be backdated from outside, and a
+ * browser walkthrough of the market would otherwise wait three real days.
+ */
+const tradeDaysEnv = Number(process.env.TRADE_DAYS)
+export const TRADE_DAYS = process.env.TRADE_DAYS && Number.isFinite(tradeDaysEnv) && tradeDaysEnv >= 0 ? tradeDaysEnv : 3
 export const MAX_ASK = 500_000
 
 /**
@@ -298,9 +316,16 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    * be able to see what a card goes for long before he can buy one.
    */
   async function tooNew(h) {
-    const r = await sql`select state->>'pulls' as pulls from card_accounts where id_hash = ${h}`
+    const r = await sql`
+      select state->>'pulls' as pulls,
+             ceil(extract(epoch from (created + make_interval(days => ${TRADE_DAYS}) - now())))::int as wait
+      from card_accounts where id_hash = ${h}`
     const pulls = Number(r[0]?.pulls ?? 0)
-    return pulls >= TRADE_PULLS ? null : { need: TRADE_PULLS, have: Math.max(0, Math.floor(pulls)) }
+    // seconds until it is old enough; an account that is not there never is
+    const wait = r.length ? Math.max(0, Number(r[0].wait) || 0) : TRADE_DAYS * 86_400
+    return pulls >= TRADE_PULLS && wait === 0
+      ? null
+      : { need: TRADE_PULLS, have: Math.max(0, Math.floor(pulls)), days: TRADE_DAYS, wait }
   }
 
   const nameOf = async (h, db = sql) => {
@@ -566,7 +591,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       ok: true,
       now: Date.now(),
       sort,
-      gate: mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0 },
+      gate: mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0, days: TRADE_DAYS, wait: TRADE_DAYS * 86_400 },
       // a short page is the end of the shelf; a full one may or may not be, and
       // the cursor costs nothing to hand out and try
       next: rows.length === limit ? cursorOf(sort, rows[rows.length - 1]) : null,
@@ -1104,7 +1129,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const theirYoung = await tooNew(them.row.id_hash)
-    if (theirYoung) { json(res, 200, { ok: false, theyNew: true }); return }
+    if (theirYoung) { json(res, 200, { ok: false, theyNew: true, need: TRADE_PULLS, days: TRADE_DAYS }); return }
     const open = await sql`select count(*)::int as n from card_swaps where from_h = ${me} and status = 'open'`
     if ((open[0]?.n ?? 0) >= MAX_SWAPS) { json(res, 200, { ok: false, full: true, max: MAX_SWAPS }); return }
     // they have to hold what I am asking for, right now — checked again when they accept

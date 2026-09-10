@@ -19,7 +19,7 @@ import type { Card } from '../../engine/cards'
 import { collection, STAMINA_COST, canPlay } from '../../engine/gacha'
 import { fetchFriendCards, myCode, takeServer } from '../../engine/account'
 import type { FriendCard, FriendMiss } from '../../engine/account'
-import { answerSwap, cancelSwap, mySwaps, proposeSwap } from '../../engine/market'
+import { answerSwap, cancelSwap, gateText, mySwaps, proposeSwap } from '../../engine/market'
 import { CardPicker } from './Picker'
 import type { SwapRow } from '../../engine/market'
 
@@ -83,8 +83,8 @@ export default function Swap() {
     setBusy(false)
     if (!r?.ok) {
       toast(r?.rarity ? '只能同等级互换：银换银，金换金。'
-        : r?.newbie ? `再开 ${Number(r.need) - Number(r.have)} 抽才能换卡（已开 ${r.have}/${r.need}）。`
-          : r?.theyNew ? '对方还没开够 50 抽，暂时不能和他换。'
+        : r?.newbie ? gateText(r)
+          : r?.theyNew ? `对方是新账号，建满 ${Number(r.days) || 3} 天、开够 ${Number(r.need) || 50} 抽才能换卡。`
             : r?.theyLack ? '对方没有这张卡。'
               : r?.notOwned ? '你已经没有这张卡了。'
                 : r?.stamina ? `体力不够，换卡要 ${STAMINA_COST.swap} 点。`

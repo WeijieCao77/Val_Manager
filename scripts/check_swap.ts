@@ -27,7 +27,7 @@ import { STAMINA_COST, STAMINA_MAX } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId, battleCode } = await import('../cards-api.js')
-const { makeMarketApi, TRADE_PULLS } = await import('../market-api.js')
+const { makeMarketApi, TRADE_DAYS, TRADE_PULLS } = await import('../market-api.js')
 const { displayName } = await import('../names.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -71,8 +71,10 @@ const owned = (id: string, level = 0, dupes = 0) => ({ id, level, dupes, seen: 1
 
 await call('/api/card/claim', { id: A, name: '甲' })
 await call('/api/card/claim', { id: B, name: '乙' })
-// both have played enough to trade, the way real accounts would
-for (const id of [A, B]) await patch(id, 'pulls', TRADE_PULLS + 5)
+// both have played enough to trade and are old enough to, the way real accounts would
+const age = (id: string, days = TRADE_DAYS + 1) =>
+  sql`update card_accounts set created = now() - make_interval(days => ${days}) where id_hash = ${hashOf(id)}`
+for (const id of [A, B]) { await patch(id, 'pulls', TRADE_PULLS + 5); await age(id) }
 await patch(A, 'cards', { [silver[0]]: owned(silver[0], 2), [silver[1]]: owned(silver[1], 0, 1), [gold[0]]: owned(gold[0]) })
 await patch(B, 'cards', { [silver[2]]: owned(silver[2], 3), [gold[1]]: owned(gold[1]) })
 
@@ -185,6 +187,17 @@ r = await call('/api/market/swap', { id: N, code: codeOf(A), giveId: silver[3], 
 check('新号不能发起', r.newbie === true, JSON.stringify(r))
 r = await call('/api/market/swap', { id: A, code: codeOf(N), giveId: silver[2], wantId: silver[3] })
 check('也不能和新号换', r.theyNew === true, JSON.stringify(r))
+// enough pulls does not open it on the first day
+await patch(N, 'pulls', TRADE_PULLS + 5)
+r = await call('/api/market/swap', { id: N, code: codeOf(A), giveId: silver[3], wantId: silver[2] })
+check(`抽数够了、不满 ${TRADE_DAYS} 天也不能发起`, r.newbie === true && Number(r.wait) > 0 && r.days === TRADE_DAYS, JSON.stringify(r))
+r = await call('/api/market/swap', { id: A, code: codeOf(N), giveId: silver[2], wantId: silver[3] })
+check('也不能和它换', r.theyNew === true && r.days === TRADE_DAYS, JSON.stringify(r))
+// past the age the gate lets it through — asked for a card it does not hold,
+// so the answer is the next check's and nothing goes into escrow
+await age(N)
+r = await call('/api/market/swap', { id: A, code: codeOf(N), giveId: silver[2], wantId: silver[4] })
+check(`满 ${TRADE_DAYS} 天之后门槛就不拦了`, r.theyLack === true, JSON.stringify(r))
 
 // ---- the friend-cards lookup ---------------------------------------------
 const fc = await call('/api/card/friend_cards', { code: codeOf(B) })
@@ -202,7 +215,7 @@ check('没人用过的码是 missing', (await call('/api/card/friend_cards', { c
   const D = 'VM-DDDD-DDDD-DDDD-DDDD-DDDD'
   await call('/api/card/claim', { id: C, name: '丙' })
   await call('/api/card/claim', { id: D, name: '丁' })
-  for (const id of [C, D]) await patch(id, 'pulls', TRADE_PULLS + 5)
+  for (const id of [C, D]) { await patch(id, 'pulls', TRADE_PULLS + 5); await age(id) }
   await patch(C, 'cards', { [silver[5]]: owned(silver[5]) })
   await patch(D, 'cards', { [silver[6]]: owned(silver[6]) })
   for (const id of [C, D]) await patch(id, 'daily', { ...(await stored(id)).daily, stamina: STAMINA_MAX, staminaAt: Date.now() })

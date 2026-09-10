@@ -73,8 +73,37 @@ export interface Offer {
   buyout?: number | null
 }
 
-/** `gate` is null once the account has played enough to trade — see TRADE_PULLS. */
-export interface Gate { need: number; have: number }
+/**
+ * `gate` is null once the account can trade: TRADE_PULLS pulls, and TRADE_DAYS
+ * days since it was made. `wait` is the seconds left on the second, measured
+ * on the server's clock.
+ */
+export interface Gate { need: number; have: number; days?: number; wait?: number }
+
+/** 2 天 5 小时 · 5 小时 · 12 分钟 */
+export function waitText(sec: number): string {
+  const m = Math.ceil(sec / 60)
+  if (m < 60) return `${Math.max(1, m)} 分钟`
+  const h = Math.ceil(sec / 3600)
+  if (h < 24) return `${h} 小时`
+  const d = Math.floor(h / 24)
+  return h % 24 ? `${d} 天 ${h % 24} 小时` : `${d} 天`
+}
+
+/**
+ * Why an account cannot trade yet, in one line. The market and the swap
+ * screen both say it, and a refused request carries the same four numbers.
+ */
+export function gateText(reply: object): string {
+  const g = reply as { need?: unknown; have?: unknown; days?: unknown; wait?: unknown }
+  const need = Number(g.need) || 0
+  const pulls = Math.max(0, need - (Number(g.have) || 0))
+  const days = Number(g.days) || 3
+  const wait = Math.max(0, Number(g.wait) || 0)
+  if (pulls && wait) return `新账号要建满 ${days} 天、开够 ${need} 抽才能交易：还差 ${pulls} 抽，还要等 ${waitText(wait)}。`
+  if (wait) return `新账号要建满 ${days} 天才能交易，还要等 ${waitText(wait)}。`
+  return `开够 ${need} 抽才能交易，还差 ${pulls} 抽。`
+}
 
 /** How many of other people's listings one page of the shelf holds — mirrored
  *  from the server, which is what actually decides it. */

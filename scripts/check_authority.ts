@@ -254,9 +254,10 @@ console.log('\n杯赛与挑战：')
 console.log('\n交易区：')
 {
   await call('/api/card/claim', { id: B, name: '乙' })
-  // both have played enough to trade, the way an old account would
+  // both have played enough to trade and are old enough to, the way an old account would
   for (const id of [A, B]) {
-    await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${String(TRADE_PULLS + 5)}::jsonb) where id_hash = ${hashOf(id)}`
+    await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${String(TRADE_PULLS + 5)}::jsonb),
+      created = now() - interval '4 days' where id_hash = ${hashOf(id)}`
   }
   const sa = await stored(A)
   const mine = Object.keys(sa.cards)[0]

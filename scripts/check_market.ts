@@ -29,7 +29,7 @@ const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js'
 const { displayName } = await import('../names.js')
 const {
   AUCTION_HOURS, AUCTION_MIN_HOURS, AUCTION_MAX_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS,
-  PAGE, PAGE_MAX, SALVAGE_FLOOR, SNIPE_MINUTES, TRADE_PULLS, askFloor, makeMarketApi, minBid,
+  PAGE, PAGE_MAX, SALVAGE_FLOOR, SNIPE_MINUTES, TRADE_DAYS, TRADE_PULLS, askFloor, makeMarketApi, minBid,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -71,12 +71,12 @@ const SELLER = 'VM-SSSS-SSSS-SSSS-SSSS-SSSS'
 const BUYER = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'
 const OTHER = 'VM-CCCC-CCCC-CCCC-CCCC-CCCC'
 
-// Every account here has played enough to trade unless a test says otherwise —
-// the gate is checked on its own further down.
+// Every account here has played enough to trade, and is old enough to, unless
+// a test says otherwise — the gate is checked on its own further down.
 const account = (id: string, name: string, coins: number, cards: Record<string, unknown>,
-  pulls = TRADE_PULLS) =>
-  sql`insert into card_accounts (id_hash, name, state) values (${hashOf(id)}, ${name},
-    ${JSON.stringify({ coins, cards, pulls })})`
+  pulls = TRADE_PULLS, ageDays = TRADE_DAYS + 1) =>
+  sql`insert into card_accounts (id_hash, name, state, created) values (${hashOf(id)}, ${name},
+    ${JSON.stringify({ coins, cards, pulls })}, now() - make_interval(days => ${ageDays}))`
 const coinsOf = async (id: string) => (await sql`select (state->>'coins')::int as coins
   from card_accounts where id_hash = ${hashOf(id)}`)[0].coins as number
 const listingRow = async (lid: string) => (await sql`
@@ -475,6 +475,24 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check(`开够 ${TRADE_PULLS} 抽就能挂了`, x.ok === true, JSON.stringify(x))
   const g2 = await call('/api/market/browse', { id: NEW })
   check('到门槛之后就不再提示了', g2.gate === null, JSON.stringify(g2.gate))
+
+  // Enough pulls is not enough on the first day. Waiting is the one thing that
+  // cannot be done faster by spreading it over several accounts at once.
+  const FRESH = 'VM-FRSH-FRSH-FRSH-FRSH-FRSH'
+  await account(FRESH, '今天的号', 9999, { [GOLD]: { id: GOLD, dupes: 0 } }, TRADE_PULLS + 20, 0)
+  x = await call('/api/market/list', { id: FRESH, cardId: GOLD, ask: 700, rarity: 'gold' })
+  const wait = Number(x.wait)
+  check(`抽数够了、账号不满 ${TRADE_DAYS} 天也挂不了`, x.newbie === true && Number(x.have) >= TRADE_PULLS
+    && x.days === TRADE_DAYS && wait > TRADE_DAYS * 86_400 - 120 && wait <= TRADE_DAYS * 86_400, JSON.stringify(x))
+  const fresh = await call('/api/market/browse', { id: FRESH })
+  check('货架上写着还要等多久', Number((fresh.gate as { wait?: number } | null)?.wait) > 0, JSON.stringify(fresh.gate))
+  x = await call('/api/market/offer', { id: FRESH, listing: anyOpen.id, price: anyOpen.ask })
+  check('不满三天也出不了价', x.newbie === true, JSON.stringify(x))
+  await sql`update card_accounts set created = now() - make_interval(days => ${TRADE_DAYS}, mins => 1)
+            where id_hash = ${hashOf(FRESH)}`
+  x = await call('/api/market/list', { id: FRESH, cardId: GOLD, ask: 700, rarity: 'gold' })
+  check(`满 ${TRADE_DAYS} 天就能挂了`, x.ok === true, JSON.stringify(x))
+  check('满了之后货架不再提示', (await call('/api/market/browse', { id: FRESH })).gate === null)
 }
 
 // ---- 货架分页：全站的牌都够得着，筛选筛的是全站而不是这一页 ----------------

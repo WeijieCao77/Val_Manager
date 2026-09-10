@@ -80,7 +80,11 @@ const silver = ALL_CARDS.filter((c) => c.rarity === 'silver' && c.kind === 'play
 const owned = (id: string, level = 0, dupes = 0) => ({ id, level, dupes, seen: 1 + dupes, got: '2026-09-01' })
 await call(cards, '/api/card/claim', { id: A, name: '甲' })
 await call(cards, '/api/card/claim', { id: B, name: '乙' })
-for (const id of [A, B]) await patch(id, 'pulls', TRADE_PULLS + 5)
+// past both trade gates: enough pulls, and four days old
+for (const id of [A, B]) {
+  await patch(id, 'pulls', TRADE_PULLS + 5)
+  await sql`update card_accounts set created = now() - interval '4 days' where id_hash = ${hashOf(id)}`
+}
 await patch(A, 'cards', { [silver[0]]: owned(silver[0], 2), [silver[1]]: owned(silver[1]) })
 await patch(B, 'cards', { [silver[2]]: owned(silver[2]) })
 await patch(B, 'coins', 5000)

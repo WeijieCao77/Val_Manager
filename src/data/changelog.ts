@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-10',
+    title: '新账号建满 3 天才能交易',
+    changes: [
+      { kind: '调整', text: '<b>开瓦包：新账号要建满 3 天，才能挂牌、出价、和好友换卡。</b>原来只要开够 50 抽，现在两条都要满足。还没满的，交易区会写还要等多久；货架照样随便看。' },
+    ],
+  },
+  {
+    date: '2026-09-10',
     title: '十连包看得见十张了；Masters 八强真的能自己选',
     changes: [
       { kind: '新增', text: '<b>开瓦包：新彩卡「potter · 2023 洛杉矶冠军教练」。</b>EG 3–1 Paper Rex 夺冠时的主教练，第一位带队拿下 VALORANT 世界冠军的女性主教练。在教练包里出。' },
