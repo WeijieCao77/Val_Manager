@@ -28,7 +28,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fetch_vlr_career as vlr  # noqa: E402
-from fetch_vlr_seasons import SEASON_PAGES, tier_of  # noqa: E402
+from fetch_vlr_seasons import SEASON_PAGES as RECENT_PAGES, tier_of  # noqa: E402
+
+# the rating study asked for the seasons before 2024 as well, so a veteran's
+# fall is not read off the years we happen to hold; the same page layout
+SEASON_PAGES = [("2022", "https://www.vlr.gg/vct-2022"), ("2023", "https://www.vlr.gg/vct-2023")] + list(RECENT_PAGES)
 
 vlr.MIN_INTERVAL = 6.0
 ROOT = Path(__file__).resolve().parent.parent

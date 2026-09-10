@@ -1,33 +1,42 @@
 """
-Round two of the offline rating: a stable ability baseline, early data that
-retires, honours on their own ledger, and a main caller's overall.
+Round two/three of the offline rating: one pipeline, with the time fusion
+as the only thing that changes between the baselines.
 
-Three ways to turn dated event lines into an ability, compared, none chosen:
-  decay   one time-decayed pool of counts (round one's new_scheme).
-  stage   each event is rated on its own first (z inside its tier group), then
-          the event ratings are blended by age × reliability, where
-          reliability = min(1, rounds / RND_CAP): a split with three times the
-          maps is more reliable, not three times as loud.
-  regime  stage, plus a change-point test: when the latest block of ≥3 events
-          and ≥600 rounds sits ≥ τ above or below everything before it and at
-          least 80% of that block is on the same side, the baseline resets
-          there and the older events keep only HIST_WEIGHT of their weight.
-          Growth and decline use the one rule; only past events are looked at.
-Form is the last 30 days' deviation from the baseline and is reported apart
-from it; the report also prints how much of the baseline those same 30 days
-already carry, which is the double count the owner asked to see.
+Every event a man played is rated on its own (metric z inside its role × tier
+group, six abilities, a combat number). The baselines differ ONLY in how those
+event lines are weighted:
+  decay   weight = age decay × rounds            (one pooled, decayed count)
+  stage   weight = age decay × min(rounds, 250)  (one event is at most as loud as 250 rounds)
+  split   stage, then normalised inside each split (Kickoff / Stage 1 / Stage
+          2 / Masters / Champions of a year) so a split's total weight is
+          age decay × min(1, its rounds / 500): a split with many events is
+          more reliable, not louder.
+Attributes, the per-ability shrinkage (rounds behind aim/awareness/utility/
+teamwork, first contacts behind reaction, clutch situations behind clutch,
+all age-decayed, none capped) and the frozen score mapping are shared.
 
-The overall of a recorded main caller is
-  (1 − w) × combat + w × caller level + honours (capped),
-with combat and caller level both on the game's 44–98 scale, w a candidate
-(0 / .25 / .35 / .45), the caller's identity taken at the cutoff (unknown
-before his tenure began), and honours only those already won by the cutoff.
+Regime (a change of level) is OFF by default. Two soft variants are kept for
+comparison, confirmed per split rather than per event: the last two splits
+(≥300 rounds each) both sit ≥ τ from the mean of the earlier splits (≥2
+splits, ≥600 rounds) on the same side. soft-sym halves the earlier splits'
+weight either way; soft-asym halves it on growth and leaves decline to the
+smooth baseline.
+
+Form is the last 30 days' deviation from the baseline, reported apart from
+it, with the weight share those days already carry in the baseline.
+
+A recorded main caller's overall = (1 − w) × combat + w × caller level +
+honours, w FIXED for a confirmed identity (A: recorded and a year at the
+club by the cutoff; B: recorded, shorter; C: inferred); the level estimate is
+what is shrunk toward the callers' prior when evidence is thin, not the
+weight. Honours: strict (dated, seen playing) in the back-test.
 """
 from __future__ import annotations
 
+import re
 import statistics
-from dataclasses import dataclass, field, replace
-from datetime import date, timedelta
+from dataclasses import dataclass
+from datetime import date
 
 from .common import ROLES, STAT_ABILITIES, TEMPLATES, clamp, half_life_weight, mean_sd, percentile_map
 from .dataset import Record
@@ -35,30 +44,36 @@ from .honours import Honour, honour_points
 from .igl import IglIdentity, IglLevel
 from .models import Params, _blend
 
-RND_CAP = 250.0          # rounds at which one event is fully reliable
-TAU = 0.35               # z gap that counts as a change of level
-HIST_WEIGHT = 0.15       # what events before a change point keep
-BLOCK_EVENTS, BLOCK_ROUNDS = 3, 600
+RND_CAP = 250.0
+SPLIT_ROUNDS = 500.0
+TAU = 0.35
+SOFT_WEIGHT = 0.5
 
 
 @dataclass
 class P2(Params):
-    time_scheme: str = "stage"      # decay / stage / regime
-    igl_weight: float = 0.0         # 0 / .25 / .35 / .45
-    honour_cap: float = 0.0         # 0 / 3 / 6
+    fusion: str = "stage"            # decay / stage / split
+    regime: str = "off"              # off / soft-sym / soft-asym
+    igl_weight: float = 0.0          # 0 / .25 / .35 / .45, fixed for a confirmed caller
+    igl_grades: str = "A"            # which identity grades count: "A" (strict) or "ABC" (sensitivity)
+    honour_cap: float = 0.0          # 0 / 3 / 6
+    honour_strict: bool = True
     form_days: int = 30
 
 
 @dataclass
 class EventLine:
     end: date
+    split: str
     rnd: float
+    fc: float                # first contacts behind reaction
+    clt: float               # clutch situations behind clutch
     group: str
     role: str
     role_share: dict[str, float]
-    z: dict[str, float]                      # metric z inside (role, group) of the training window
-    abilities: dict[str, float]              # six, unshrunk
-    combat: float                            # template(role) · abilities
+    z: dict[str, float | None]
+    abilities: dict[str, float]
+    combat: float
 
 
 @dataclass
@@ -71,20 +86,19 @@ class Rated2:
     combat: float
     igl_score: float | None
     igl_weight: float
+    igl_grade: str
     igl_note: str
     honours: float
     honours_note: str
     overall: float
     form_z: float | None
-    recent_share: float          # weight share of the last form_days in the baseline
-    regime: str                  # none / growth@date / decline@date
+    recent_share: float
+    regime: str
     n_events: int
     rnd_w: float
     confidence: dict[str, float]
     abilities: dict[str, float]
 
-
-# ------------------------------------------------------------------ per-event lines
 
 METRICS = ("adr", "kpr", "hs", "fc_succ", "kd", "kast", "dpr", "fd_rate", "apr", "cl_rate")
 
@@ -106,9 +120,17 @@ def _role(r: Record) -> str:
     return max(r.role_share, key=r.role_share.get) if r.role_share else "自由人"
 
 
-class EventEnv:
-    """normal levels per metric by (role, tier group) over the training window's event lines"""
+def split_of(r: Record) -> str:
+    s = r.slug
+    for k in ("kickoff", "stage-1", "stage-2", "stage-3"):
+        if k in s:
+            return f"{r.year}-{k}"
+    if r.tier in ("masters", "champions"):
+        return f"{r.year}-{s}"
+    return f"{r.year}-{r.tier}"
 
+
+class EventEnv:
     def __init__(self, recs: list[Record], min_rnd: float = 60.0):
         self.t: dict[tuple, dict[str, tuple[float, float]]] = {}
         pool = [(r, _metrics(r)) for r in recs if r.rnd >= min_rnd]
@@ -150,76 +172,121 @@ def event_lines(recs: list[Record], cutoff: date, env: EventEnv) -> dict[str, li
             "teamwork": _blend([(z["kast"], .5), (z["apr"], .5)]),
         }
         ab = {k: (0.0 if v is None else clamp(v, -3, 3)) for k, v in ab.items()}
-        role = _role(r)
         share = r.role_share or {x: 0.25 for x in ROLES}
         combat = sum(share.get(x, 0.0) * sum(TEMPLATES[x][k] * ab[k] for k in STAT_ABILITIES) for x in ROLES)
-        out.setdefault(r.key, []).append(EventLine(r.end, r.rnd, r.group, role, share, z, ab, combat))
+        out.setdefault(r.key, []).append(EventLine(
+            r.end, split_of(r), r.rnd, (r.fk or 0) + (r.fd or 0), float(r.clt or 0), r.group, _role(r), share, z, ab, combat))
     for v in out.values():
         v.sort(key=lambda e: e.end)
     return out
 
 
-# ------------------------------------------------------------------ blending
+# ------------------------------------------------------------------ fusion weights
 
-def _weights(lines: list[EventLine], cutoff: date, half_life: float) -> list[float]:
-    return [half_life_weight((cutoff - e.end).days, half_life) * min(1.0, e.rnd / RND_CAP) for e in lines]
-
-
-def change_point(lines: list[EventLine], w: list[float]) -> tuple[int | None, str]:
-    """index where the latest consistent shift begins, and its direction.
-
-    Both sides must stand on enough evidence (≥ BLOCK_EVENTS events and
-    ≥ BLOCK_ROUNDS rounds each) and are compared by reliability alone — the
-    time decay in `w` would make any old block look light and any recent
-    block look like a change. Chronicle's two-event 2024 opening (88 rounds at
-    +2.0) read as a baseline he had "declined" from before this rule."""
-    best, best_gap, kind = None, 0.0, "none"
-    rel = [min(1.0, e.rnd / RND_CAP) for e in lines]
-    for j in range(BLOCK_EVENTS, len(lines) - BLOCK_EVENTS + 1):
-        post, pre = lines[j:], lines[:j]
-        if sum(e.rnd for e in post) < BLOCK_ROUNDS or sum(e.rnd for e in pre) < BLOCK_ROUNDS:
+def fusion_weights(lines: list[EventLine], cutoff: date, P: P2) -> list[float]:
+    dec = [half_life_weight((cutoff - e.end).days, P.half_life) for e in lines]
+    if P.fusion == "decay":
+        return [d * e.rnd for d, e in zip(dec, lines)]
+    w = [d * min(e.rnd, RND_CAP) for d, e in zip(dec, lines)]
+    if P.fusion == "stage":
+        return w
+    # split: each split's total weight is its mean decay × min(1, rounds/500)
+    by: dict[str, list[int]] = {}
+    for i, e in enumerate(lines):
+        by.setdefault(e.split, []).append(i)
+    out = list(w)
+    for idxs in by.values():
+        tot = sum(w[i] for i in idxs)
+        if tot <= 0:
             continue
-        pre_mean = sum(e.combat * r for e, r in zip(pre, rel[:j])) / max(1e-9, sum(rel[:j]))
-        post_mean = sum(e.combat * r for e, r in zip(post, rel[j:])) / max(1e-9, sum(rel[j:]))
-        gap = post_mean - pre_mean
-        same = sum(1 for e in post if (e.combat - pre_mean) * gap > 0) / len(post)
-        tail = statistics.fmean(e.combat for e in post[-BLOCK_EVENTS:]) - pre_mean
-        if abs(gap) >= TAU and same >= 0.8 and tail * gap > 0 and abs(tail) >= TAU / 2 and abs(gap) > best_gap:
-            best, best_gap, kind = j, abs(gap), ("growth" if gap > 0 else "decline")
-    return best, kind
+        rounds = sum(lines[i].rnd for i in idxs)
+        target = statistics.fmean(dec[i] for i in idxs) * min(1.0, rounds / SPLIT_ROUNDS)
+        for i in idxs:
+            out[i] = w[i] / tot * target
+    return out
 
 
-def baseline(lines: list[EventLine], cutoff: date, P: P2) -> tuple[dict[str, float], float, float, str, float]:
-    """abilities (six, unshrunk), combat, weighted rounds, regime note, recent-share"""
-    w = _weights(lines, cutoff, P.half_life)
-    regime = "none"
-    if P.time_scheme == "regime":
-        j, kind = change_point(lines, w)
-        if j is not None:
-            w = [ww * (HIST_WEIGHT if i < j else 1.0) for i, ww in enumerate(w)]
-            regime = f"{kind}@{lines[j].end.isoformat()}"
-    tot = sum(w)
-    if tot <= 0:
-        return {k: 0.0 for k in STAT_ABILITIES}, 0.0, 0.0, regime, 0.0
-    ab = {k: sum(e.abilities[k] * ww for e, ww in zip(lines, w)) / tot for k in STAT_ABILITIES}
-    combat = sum(e.combat * ww for e, ww in zip(lines, w)) / tot
-    rnd_w = sum(e.rnd * ww / max(1e-9, min(1.0, e.rnd / RND_CAP)) for e, ww in zip(lines, w))
-    recent = sum(ww for e, ww in zip(lines, w) if (cutoff - e.end).days <= P.form_days) / tot
-    return ab, combat, rnd_w, regime, recent
+def split_series(lines: list[EventLine]) -> list[tuple[str, float, float]]:
+    """(split, combat weighted by reliability, rounds) in time order"""
+    by: dict[str, list[EventLine]] = {}
+    order = []
+    for e in lines:
+        if e.split not in by:
+            order.append(e.split)
+        by.setdefault(e.split, []).append(e)
+    out = []
+    for s in order:
+        es = by[s]
+        rel = [min(1.0, e.rnd / RND_CAP) for e in es]
+        out.append((s, sum(e.combat * r for e, r in zip(es, rel)) / max(1e-9, sum(rel)), sum(e.rnd for e in es)))
+    return out
+
+
+def regime_factor(lines: list[EventLine], P: P2) -> tuple[list[float], str]:
+    """per-event multiplier on the fusion weight, and the verdict"""
+    ones = [1.0] * len(lines)
+    if P.regime == "off":
+        return ones, "none"
+    ser = split_series(lines)
+    if len(ser) < 4:
+        return ones, "none"
+    last = ser[-2:]
+    prior = ser[:-2]
+    if any(r < 300 for _, _, r in last) or len(prior) < 2 or sum(r for _, _, r in prior) < 600:
+        return ones, "none"
+    pm = statistics.fmean(c for _, c, _ in prior)
+    gaps = [c - pm for _, c, _ in last]
+    if all(g >= TAU for g in gaps):
+        kind = "growth"
+    elif all(g <= -TAU for g in gaps):
+        kind = "decline"
+    else:
+        return ones, "none"
+    if kind == "decline" and P.regime == "soft-asym":
+        return ones, f"{kind}(not applied)@{last[0][0]}"
+    cut_splits = {s for s, _, _ in last}
+    return [1.0 if e.split in cut_splits else SOFT_WEIGHT for e in lines], f"{kind}@{last[0][0]}"
 
 
 # ------------------------------------------------------------------ the composition
 
+def _reference_lines(recs: list[Record], cutoff: date):
+    env = EventEnv([r for r in recs if r.end and not r.date_estimated and r.end < cutoff])
+    return event_lines(recs, cutoff, env)
+
+
+def _fuse(ls: list[EventLine], cutoff: date, P: P2):
+    w = fusion_weights(ls, cutoff, P)
+    f, regime = regime_factor(ls, P)
+    w = [a * b for a, b in zip(w, f)]
+    tot = sum(w)
+    if tot <= 0:
+        return None
+    ab = {k: sum(e.abilities[k] * ww for e, ww in zip(ls, w)) / tot for k in STAT_ABILITIES}
+    share_acc: dict[str, float] = {}
+    for e, ww in zip(ls, w):
+        for r, s in e.role_share.items():
+            share_acc[r] = share_acc.get(r, 0.0) + s * ww
+    share = {r: v / tot for r, v in share_acc.items()}
+    dec = [half_life_weight((cutoff - e.end).days, P.half_life) * ff for e, ff in zip(ls, f)]
+    n_rounds = sum(d * e.rnd for d, e in zip(dec, ls))
+    n_fc = sum(d * e.fc for d, e in zip(dec, ls))
+    n_cl = sum(d * e.clt for d, e in zip(dec, ls))
+    recent = sum(ww for e, ww in zip(ls, w) if (cutoff - e.end).days <= P.form_days) / tot
+    return ab, share, n_rounds, n_fc, n_cl, recent, regime
+
+
 def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, IglLevel]) -> dict:
-    """z→score tables fitted once on the reference window (unshrunk), then frozen"""
-    env = EventEnv([r for r in recs if r.end and not r.date_estimated and r.end < ref_cutoff])
-    lines = event_lines(recs, ref_cutoff, env)
+    """z→score tables from the reference window's UNSHRUNK abilities (stage fusion), then frozen"""
+    lines = _reference_lines(recs, ref_cutoff)
+    Pref = P2(fusion="stage", regime="off", half_life=P.half_life)
     combats, abil = [], {k: [] for k in STAT_ABILITIES}
     for ls in lines.values():
-        ab, c, rnd_w, _, _ = baseline(ls, ref_cutoff, replace(P, time_scheme="stage"))
-        if rnd_w < 100:
+        got = _fuse(ls, ref_cutoff, Pref)
+        if not got or got[2] < 100:
             continue
-        combats.append(c)
+        ab, share = got[0], got[1]
+        combats.append(sum(share.get(x, 0.0) * sum(TEMPLATES[x][k] * ab[k] for k in STAT_ABILITIES) for x in ROLES))
         for k in STAT_ABILITIES:
             abil[k].append(ab[k])
 
@@ -233,7 +300,6 @@ def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, I
     m = {"overall": fit(combats)}
     for k in STAT_ABILITIES:
         m[k] = fit(abil[k])
-    # the caller level on the same 44–98 scale, over the callers with evidence
     zs = [L.z for L in callers.values() if L.events > 0]
     m["igl"] = fit(zs) if len(zs) >= 8 else (71.0, 13.0)
     return m
@@ -241,15 +307,9 @@ def reference2(recs: list[Record], ref_cutoff: date, P: P2, callers: dict[str, I
 
 def rate2(recs: list[Record], cutoff: date, P: P2, mapping: dict, ledger: dict[str, list[Honour]],
           ids: dict[str, IglIdentity], callers: dict[str, IglLevel]) -> dict[str, Rated2]:
-    env = EventEnv([r for r in recs if r.end and not r.date_estimated and r.end < cutoff])
-    if P.time_scheme == "decay":
-        # round one's pooled counts, through the same composition
-        from .models import new_scheme
-        base_rated, _ = new_scheme(recs, cutoff, Params(half_life=P.half_life, kappa_rounds=P.kappa_rounds,
-                                                        kappa_fc=P.kappa_fc, kappa_cl=P.kappa_cl), mapping)
-    lines = event_lines(recs, cutoff, env)
+    lines = _reference_lines(recs, cutoff)
     a, b = mapping["overall"]
-    who: dict[str, tuple[str, str]] = {}
+    who: dict[str, tuple[str, str, date]] = {}
     for r in recs:
         if r.end and not r.date_estimated and r.end < cutoff:
             prev = who.get(r.key)
@@ -257,55 +317,45 @@ def rate2(recs: list[Record], cutoff: date, P: P2, mapping: dict, ledger: dict[s
                 who[r.key] = (r.ign, r.club, r.end)
     out = {}
     for key, ls in lines.items():
-        if P.time_scheme == "decay":
-            if key not in base_rated:
-                continue
-            R = base_rated[key]
-            ab, combat_z, rnd_w, regime, recent = R.abilities, R.overall_z, R.rnd_w, "none", 0.0
-            conf = R.confidence
-        else:
-            ab_raw, combat_raw, rnd_w, regime, recent = baseline(ls, cutoff, P)
-            lam = rnd_w / (rnd_w + P.kappa_rounds)
-            fc = sum((e.z.get("fc_succ") is not None) * e.rnd for e in ls)
-            lam_fc = fc / (fc + P.kappa_fc * 5)
-            cl = sum((e.z.get("cl_rate") is not None) * e.rnd for e in ls)
-            lam_cl = cl / (cl + P.kappa_cl * 10)
-            conf = {"aim": lam, "awareness": lam, "utility": lam, "teamwork": lam, "reaction": lam_fc, "clutch": lam_cl}
-            ab = {k: clamp(ab_raw[k] * conf[k], -3, 3) for k in STAT_ABILITIES}
-            combat_z = combat_raw * lam
+        got = _fuse(ls, cutoff, P)
+        if not got:
+            continue
+        ab, share, n_rounds, n_fc, n_cl, recent, regime = got
+        conf = {k: n_rounds / (n_rounds + P.kappa_rounds) for k in ("aim", "awareness", "utility", "teamwork")}
+        conf["reaction"] = n_fc / (n_fc + P.kappa_fc)
+        conf["clutch"] = n_cl / (n_cl + P.kappa_cl) if n_cl > 0 else 0.0
+        shrunk = {k: clamp(ab[k] * conf[k], -3, 3) for k in STAT_ABILITIES}
+        combat_z = sum(share.get(x, 0.0) * sum(TEMPLATES[x][k] * shrunk[k] for k in STAT_ABILITIES) for x in ROLES)
         combat = clamp(a + b * combat_z, 30, 97)
-        # form: the last form_days against the baseline, apart
         recent_lines = [e for e in ls if (cutoff - e.end).days <= P.form_days]
-        form_z = (statistics.fmean(e.combat for e in recent_lines) - (combat_z if P.time_scheme != "decay" else combat_z)) if recent_lines else None
-        # the caller
+        form_z = (statistics.fmean(e.combat for e in recent_lines) - combat_z) if recent_lines else None
         ign, club_now = who[key][0], who[key][1]
         ign_l = ign.lower()
         idn = ids.get(ign_l)
-        igl_score, note, w = None, "not-a-caller", 0.0
-        if idn is not None and P.igl_weight > 0:
-            if idn.since is None or idn.since <= cutoff:
-                L = callers.get(ign_l)
-                if L is not None and L.events > 0:
-                    ia, ib = mapping["igl"]
-                    igl_score = clamp(ia + ib * L.z, 30, 97)
-                    w = P.igl_weight * L.reliability
-                    note = f"caller({idn.source}) rel={L.reliability:.2f} events={L.events}"
-                else:
-                    note = "caller but no evidence at this cutoff"
+        igl_score, note, w, grade = None, "not-a-caller", 0.0, "-"
+        if idn is not None:
+            grade = idn.grade(cutoff)
+            L = callers.get(ign_l)
+            if P.igl_weight > 0 and grade in P.igl_grades:
+                ia, ib = mapping["igl"]
+                lvl = L.z if (L is not None) else 0.0        # no evidence: the callers' prior
+                igl_score = clamp(ia + ib * lvl, 30, 97)
+                w = P.igl_weight
+                note = f"grade {grade}, events {L.events if L else 0}, tenure {L.tenure_years if L else 0}y, resid {None if not L or L.over_perf is None else round(L.over_perf, 2)}"
             else:
-                note = "caller today; tenure began after the cutoff"
-        pts, used = 0.0, []
-        hnote = "no ledger"
+                note = f"grade {grade}, weight not applied"
+        pts, hnote = 0.0, "no ledger"
         if P.honour_cap > 0:
             hs = ledger.get(ign_l)
             if hs is None:
                 hnote = "unknown"
             else:
-                pts, used = honour_points(hs, cutoff, P.honour_cap, played_only=True)
-                hnote = ",".join(f"{h.tier}{h.when.year}" for h in used) or "none"
+                pts, used, aside = honour_points(hs, cutoff, P.honour_cap, strict=P.honour_strict)
+                hnote = (",".join(f"{h.tier}{(h.when or date(1, 1, 1)).year}" for h in used) or "none") + (f" (+{len(aside)} set aside)" if aside else "")
         overall = clamp(round((1 - w) * combat + w * (igl_score if igl_score is not None else combat) + pts), 30, 99)
-        out[key] = Rated2(key=key, ign=ign, club=club_now,
-                          role=ls[-1].role, combat_z=combat_z, combat=combat, igl_score=igl_score, igl_weight=w, igl_note=note,
-                          honours=pts, honours_note=hnote, overall=overall, form_z=form_z, recent_share=recent, regime=regime,
-                          n_events=len(ls), rnd_w=rnd_w, confidence=conf, abilities=ab)
+        role = max(share, key=share.get) if share else ls[-1].role
+        out[key] = Rated2(key=key, ign=ign, club=club_now, role=role, combat_z=combat_z, combat=combat,
+                          igl_score=igl_score, igl_weight=w, igl_grade=grade, igl_note=note, honours=pts, honours_note=hnote,
+                          overall=overall, form_z=form_z, recent_share=recent, regime=regime,
+                          n_events=len(ls), rnd_w=n_rounds, confidence=conf, abilities=shrunk)
     return out

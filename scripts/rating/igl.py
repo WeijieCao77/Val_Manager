@@ -40,6 +40,20 @@ class IglIdentity:
     since: date | None     # start of the tenure at that club; None = unknown
     extrapolated: bool = True
 
+    def grade(self, cutoff: date) -> str:
+        """How much the identity can be trusted AT a cutoff.
+        A: recorded from a source (club infobox / owner) and at this club for a
+           year or more before the cutoff — still extrapolated in time, but the
+           man has been the caller of this club through at least one full season;
+        B: recorded, tenure shorter than a year at the cutoff;
+        C: inferred by build_world from the roster;
+        none: tenure began after the cutoff, or unknown."""
+        if self.since is None or self.since > cutoff:
+            return "none"
+        if self.source != "verified":
+            return "C"
+        return "A" if (cutoff - self.since).days >= 365 else "B"
+
 
 @dataclass
 class IglLevel:
@@ -136,7 +150,11 @@ def levels(cutoff: date, ids: dict[str, IglIdentity] | None = None) -> dict[str,
         tenure = ((cutoff - idn.since).days / 365.25) if idn.since and idn.since < cutoff else 0.0
         n = len(per_event)
         over = statistics.fmean(per_event) if per_event else None
-        # (b) credited at a third, shrunk by events (κ = 6); (a) a year of calling is worth +0.15 z, capped at 3 years
+        # A model estimate, not a measurement: (b) the placement residual is
+        # credited at a third and shrunk toward the callers' prior (0 = an
+        # ordinary caller) by events (κ = 6); (a) tenure adds up to +0.45 z
+        # over three years. The residual still holds the coach, the roster
+        # and the draw; the report lists the inputs per man.
         lam = n / (n + 6.0)
         z = clamp((over or 0.0) / 3.0 * lam + min(tenure, 3.0) * 0.15, -1.5, 1.5)
         notes = []

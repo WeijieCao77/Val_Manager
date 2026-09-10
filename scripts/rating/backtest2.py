@@ -98,13 +98,14 @@ def main() -> None:
     callers_by_cut = {cut: levels(cut, ids) for cut, _, _ in cuts}
     callers_ref = levels(REF, ids)
 
-    configs = [(f"{sch} igl={w} hon={c}", P2(time_scheme=sch, igl_weight=w, honour_cap=c))
-               for sch, w, c in itertools.product(("decay", "stage", "regime"), (0.0, 0.25, 0.35, 0.45), (0.0, 3.0, 6.0))]
-    maps = {sch: reference2(records, REF, P2(time_scheme=sch), callers_ref) for sch in ("decay", "stage", "regime")}
-    # the decay scheme's own reference mapping (round one) for its combat scale
-    from .models import reference_mapping
-    maps["decay"] = {**maps["decay"], **reference_mapping(records, REF, Params())}
-
+    # A. the time fusion, isolated: same attributes, shrinkage and mapping, only the weights differ
+    configs = [(f"{f} regime={r}", P2(fusion=f, regime=r)) for f in ("decay", "stage", "split") for r in ("off", "soft-sym", "soft-asym")]
+    # B. the caller weight, fixed for a confirmed identity: strict = grade A only, sensitivity = A+B+C
+    configs += [(f"stage igl={w} grades={g}", P2(fusion="stage", igl_weight=w, igl_grades=g))
+                for w in (0.25, 0.35, 0.45) for g in ("A", "ABC")]
+    # C. honours, strict ledger (dated and seen playing)
+    configs += [(f"stage hon={c}", P2(fusion="stage", honour_cap=c)) for c in (3.0, 6.0)]
+    maps = {"all": reference2(records, REF, P2(), callers_ref)}
     per_cut: list[dict] = []
     recent_share = defaultdict(list)
     regime_counts = defaultdict(lambda: defaultdict(int))
@@ -113,13 +114,13 @@ def main() -> None:
         preds["current(rebuilt)"] = {k: r.overall_z for k, r in current_scheme(records, cut).items()}
         preds["baseline-R2 hl=270"] = {k: r.overall_z for k, r in simple_baseline(records, cut, 270).items()}
         for name, P in configs:
-            rated = rate2(records, cut, P, maps[P.time_scheme], ledger, ids, callers_by_cut[cut])
+            rated = rate2(records, cut, P, maps["all"], ledger, ids, callers_by_cut[cut])
             preds[name] = {k: r.overall for k, r in rated.items()}
             if P.igl_weight == 0 and P.honour_cap == 0:
-                recent_share[P.time_scheme].extend(r.recent_share for r in rated.values() if r.n_events >= 3)
+                recent_share[name].extend(r.recent_share for r in rated.values() if r.n_events >= 3)
                 for r in rated.values():
-                    regime_counts[P.time_scheme][r.regime.split("@")[0]] += 1
-        callers_now = {n for n, L in callers_by_cut[cut].items() if L.events > 0 or ids[n].since is None or ids[n].since <= cut}
+                    regime_counts[name][r.regime.split("@")[0].replace("(not applied)", "")] += 1
+        callers_now = {n for n, idn in ids.items() if idn.grade(cut) == "A"}
         for row in evaluate_same(preds, targets[eid], windows[eid], callers_now, ign_of):
             row.update({"cutoff": cut.isoformat(), "event": slug})
             per_cut.append(row)
@@ -138,16 +139,16 @@ def main() -> None:
     world = world_players()
     steps = [
         ("current(rebuilt)", None),
-        ("decay(round one)", P2(time_scheme="decay")),
-        ("stage", P2(time_scheme="stage")),
-        ("regime", P2(time_scheme="regime")),
-        ("regime + igl .35", P2(time_scheme="regime", igl_weight=0.35)),
-        ("regime + igl .35 + hon 6", P2(time_scheme="regime", igl_weight=0.35, honour_cap=6.0)),
+        ("decay", P2(fusion="decay")),
+        ("stage", P2(fusion="stage")),
+        ("split", P2(fusion="split")),
+        ("stage + igl A .35", P2(fusion="stage", igl_weight=0.35, igl_grades="A")),
+        ("stage + igl A .35 + hon 6", P2(fusion="stage", igl_weight=0.35, igl_grades="A", honour_cap=6.0)),
     ]
     today_rated = {}
     cur_today = current_scheme(records, today)
     for name, P in steps:
-        today_rated[name] = cur_today if P is None else rate2(records, today, P, maps[P.time_scheme], ledger, ids, callers_today)
+        today_rated[name] = cur_today if P is None else rate2(records, today, P, maps["all"], ledger, ids, callers_today)
     final = today_rated[steps[-1][0]]
     recs_json = json.loads((ROOT / "src" / "data" / "records.json").read_text("utf-8"))["players"]
     evc = json.loads((ROOT / "scripts" / "cache" / "vlr_event_stats.json").read_text("utf-8"))["events"]
@@ -180,7 +181,7 @@ def main() -> None:
         r = final.get(key)
         if r:
             row.update({"role": r.role, "events": r.n_events, "regime_note": r.regime, "combat": round(r.combat), "igl_score": r.igl_score and round(r.igl_score),
-                        "igl_weight": round(r.igl_weight, 2), "igl_note": r.igl_note, "honours": r.honours, "honours_note": r.honours_note,
+                        "igl_weight": round(r.igl_weight, 2), "igl_grade": r.igl_grade, "igl_note": r.igl_note, "honours": r.honours, "honours_note": r.honours_note,
                         "form_z": r.form_z and round(r.form_z, 2), "recent_share": round(r.recent_share, 2),
                         **{f"conf_{a}": round(r.confidence.get(a, 0), 2) for a in STAT_ABILITIES}})
         ladders.append(row)
@@ -194,22 +195,36 @@ def main() -> None:
             seen_stage.add(tag)
             stage_cuts.append((tag, cut))
     stage_cuts.append(("today", today))
+    soft_today = rate2(records, today, P2(fusion="stage", regime="soft-sym"), maps["all"], ledger, ids, callers_today)
     cases = list(NAMED)
     for kind in ("growth", "decline"):
-        cases += [r.ign for r in final.values() if r.regime.startswith(kind) and r.n_events >= 8][:2]
+        cases += [r.ign for r in soft_today.values() if r.regime.startswith(kind) and r.n_events >= 8][:2]
+    variants = [("decay", P2(fusion="decay")), ("stage", P2(fusion="stage")), ("split", P2(fusion="split")),
+                ("stage soft-sym", P2(fusion="stage", regime="soft-sym"))]
     traj = []
-    traj_rated = {(sch, tag): rate2(records, cut, P2(time_scheme=sch), maps[sch], ledger, ids, callers_by_cut.get(cut) or callers_today)
-                  for sch in ("decay", "stage", "regime") for tag, cut in stage_cuts}
+    traj_rated = {(name, tag): rate2(records, cut, P, maps["all"], ledger, ids, callers_by_cut.get(cut) or callers_today)
+                  for name, P in variants for tag, cut in stage_cuts}
     for ign in dict.fromkeys(cases):
         key = next((k for k, v in ign_of.items() if v == ign), None)
         if not key:
             continue
-        for sch in ("decay", "stage", "regime"):
-            row = {"ign": ign, "scheme": sch}
+        for name, _ in variants:
+            row = {"ign": ign, "scheme": name}
             for tag, _ in stage_cuts:
-                r = traj_rated[(sch, tag)].get(key)
+                r = traj_rated[(name, tag)].get(key)
                 row[tag] = r.overall if r else None
             traj.append(row)
+    # the callers' evidence, per man
+    caller_rows = []
+    for ign in ("Boaster", "Boo", "Ethan", "nobody", "johnqt", "valyn", "saadhak", "Rossy"):
+        idn = ids.get(ign.lower())
+        L = callers_today.get(ign.lower())
+        if idn:
+            caller_rows.append({"ign": ign, "club": idn.club, "source": idn.source, "since": idn.since and idn.since.isoformat(),
+                                "grade_today": idn.grade(today), "events_as_caller": L.events if L else 0,
+                                "tenure_years": L.tenure_years if L else None,
+                                "placement_residual": None if not L or L.over_perf is None else round(L.over_perf, 2),
+                                "level_z": L and round(L.z, 2), "score": L and round(maps["all"]["igl"][0] + maps["all"]["igl"][1] * L.z)})
 
     # ---- write
     def dump(name, rows):
@@ -229,67 +244,87 @@ def main() -> None:
     dump("backtest2_cutoffs.csv", per_cut)
     dump("ladders.csv", ladders)
     dump("trajectories.csv", traj)
-    write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regime_counts, unknown, ids, maps)
+    dump("callers.csv", caller_rows)
+    ledger_stats = {"unknown_tier": sum(1 for hs in ledger.values() for h in hs if h.tier == "unknown"),
+                    "undated": sum(1 for hs in ledger.values() for h in hs if h.when is None and h.tier != "unknown"),
+                    "dated_played": sum(1 for hs in ledger.values() for h in hs if h.when is not None and h.played is True),
+                    "dated_unseen": sum(1 for hs in ledger.values() for h in hs if h.when is not None and h.played is not True)}
+    write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regime_counts, unknown, ids, maps, caller_rows, ledger_stats)
 
 
-def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regime_counts, unknown, ids, maps):
+def write_report(cov, cuts, grid, ladders, traj, stage_cuts, recent_share, regime_counts, unknown, ids, maps, caller_rows, ledger_stats):
     L = []
-    L.append("# 选手评分离线回测（第二轮）\n")
-    L.append(f"生成于 {date.today().isoformat()}。只读离线缓存，不改任何线上数据。承接 report.md：这一轮比较稳定能力基线（decay / stage / regime）、早期数据退出、荣誉（上限 0 / 3 / 6）和主指挥权重（0 / .25 / .35 / .45），三者组合共 36 个候选，与现方案重建、Rating 基线放在**同一目标样本**上比较。\n")
+    L.append("# 选手评分离线回测（第二轮，修订版）\n")
+    L.append(f"生成于 {date.today().isoformat()}。只读离线缓存，不改任何线上数据。这一版按核对意见修正：荣誉分类改用缓存的赛事类型与赛事 ID、只算决赛阶段第一、严格口径只计有日期且本人出场的；指挥身份分级、权重固定、能力向先验收缩；三种时间融合共用同一套属性、各项收缩与映射；阶段硬重置停用。\n")
     L.append("## 数据与规则\n")
-    L.append(f"- 记录 {cov['records']} 条，选手 {cov['players']}，赛事 {cov['events']}；回测截止点 {len(cuts)} 个（同第一轮）。每个模型都算完整覆盖后，再取所有模型都覆盖的交集作目标样本，样本数在表里。")
-    L.append("- 三种基线：decay = 第一轮的合并计数按时间衰减；stage = 每场赛事先各自评 z（在它所属层级里），再按「时间衰减 × 可靠度」融合，可靠度 = min(1, 回合/250)，赛事多不等于声音大；regime = stage 之上加阶段变化：最近 ≥3 场且 ≥600 回合的一段，与之前 ≥3 场 ≥600 回合的一段按可靠度比较，差 ≥0.35 z、后段至少八成同向、且最后三场也同向时判为变化，之前的赛事权重降到 0.15。成长和衰退同一条规则，只看截止日以前。")
-    L.append("- 状态：截止日前 30 天的赛事相对基线的偏离，单独给出，不回灌基线。基线里这 30 天占的权重份额也印出来（见下），这就是重复加权的大小。")
-    L.append("- 荣誉：vlr 名次记录 + Liquipedia 冠军表建账，只算第一名，去重到赛事；冠军赛 3、Masters 2、赛区赛段/Kickoff 1、Ascension 0.5，两个赛季内全额、第三年三分之二、第四年三分之一；只计截止日以前已获得且本人在赛事统计里出过场的；封顶后直接加在总评上，不进任何属性。没有名次记录的选手标为 unknown。")
-    L.append(f"- 主指挥：身份取世界的 isIgl（verified {sum(1 for i in ids.values() if i.source == 'verified')} / inferred {sum(1 for i in ids.values() if i.source != 'verified')}），没有任何站点记录他从何时开始指挥，所以只在他现役俱乐部的效力窗口内外推，之前算 unknown。指挥能力 = 三分之一的「带队名次相对阵容个人 Rating 的残差」（按赛事数收缩，κ=6）+ 每年指挥资历 0.15 z（封顶 3 年），映射到 44～98 的指挥分；不用 APR/KAST，不用队友均分。总评 = (1−w·可靠度)×作战 + w·可靠度×指挥分 + 荣誉。")
-    L.append("- 分数映射在 2024 参考窗按未收缩值拟合一次后冻结（作战、各属性、指挥分各一条）；本报告里的候选分**没有**做任何整体平移。\n")
-    L.append("## 预测力（同一目标样本；下一赛事 Rating 与之后 180 天 Rating）\n")
-    L.append("| 模型 | ρ(下一赛事) | ρ(180 天) | MAE | 突破手残差 | 指挥ρ(下一赛事) | 指挥ρ(180 天) | 指挥残差 | 其他残差 | n | n(180 天) | n(指挥) |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    L.append(f"- 记录 {cov['records']} 条，选手 {cov['players']}，赛事 {cov['events']}（2024～2026 VCT + 2026 Challengers）；回测截止点 {len(cuts)} 个。所有模型先各自算完整覆盖，再取交集作目标样本；样本数见表。")
+    L.append("- 每场赛事先各自评级：指标在（位置 × 层级）里标准化，六项能力按模板合成一个作战值。三种融合只换权重：decay = 衰减 × 回合；stage = 衰减 × min(回合, 250)；split = stage 再在赛段内归一，使一个赛段的总权重 = 衰减 × min(1, 赛段回合/500)。各项收缩用各自的证据（回合、首次交战次数、残局次数，按时间衰减、不封顶），映射在 2024 参考窗按未收缩值拟合一次后冻结，三种融合共用。")
+    L.append("- 阶段变化默认关闭。两个软变体按赛段确认：最近两个赛段（各 ≥300 回合）都比之前赛段（≥2 个、≥600 回合）的均值高或低 ≥0.35 z，soft-sym 把更早赛段权重减半，soft-asym 只在成长时减半、衰退交给平滑基线。")
+    L.append("- 状态 = 截止日前 30 天赛事相对基线的偏离，单独给出；基线里这 30 天占的权重份额印在下表（中位数与 90 分位，不是最大值，也不等于状态的重复加成量——那要等状态公式定了才能算）。")
+    L.append(f"- 荣誉账本：vlr 名次记录只取决赛阶段的第一名，类型取缓存的赛事 tier，日期取赛事结束日，出场以本人在该赛事统计行里有回合为准；Liquipedia 冠军表按赛事名称去重补入、无日期。本次账本：有日期且见出场 {ledger_stats['dated_played']} 条，有日期但未见出场 {ledger_stats['dated_unseen']} 条，无日期（Liquipedia）{ledger_stats['undated']} 条，缓存外（无类型无日期，2024 年前或非 VCT）{ledger_stats['unknown_tier']} 条，无名次记录的选手 {len(unknown)} 人。严格口径只计第一类；其余在拆解表里以「set aside」计数。")
+    L.append(f"- 主指挥：身份 A = 有来源（俱乐部页或人工）且截止日时已在该俱乐部满一年；B = 有来源、不满一年；C = 系统推测；none = 效力开始晚于截止日或未知。今天：A {sum(1 for i in ids.values() if i.grade(date.today()) == 'A')} / B {sum(1 for i in ids.values() if i.grade(date.today()) == 'B')} / C {sum(1 for i in ids.values() if i.grade(date.today()) == 'C')}。**没有任何站点记录指挥从何时开始**，A 级仍是按效力窗口外推的，所以指挥结果全部属于敏感性分析，不是严格历史回测；表里分 A 与 A+B+C 两档给出。指挥能力 = 带队名次相对阵容个人 Rating 残差的三分之一（按赛事数收缩到先验 0）+ 资历（每年 0.15 z，封顶三年），是模型估计；逐人依据见下表。权重 w 对确认身份固定，不乘可靠度。\n")
+    L.append("## A. 时间融合（其余全部固定；同一目标样本）\n")
+    L.append("| 模型 | ρ(下一赛事) | ρ(180 天) | MAE | 突破手残差 | 决斗 | 先锋 | 控场 | 哨卫 | n | n(180 天) |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for r in grid:
-        L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['mae'])} | {fmt(r['entry_resid'])} | {fmt(r['rho_callers'])} | {fmt(r['rho_180d_callers'])} | {fmt(r['resid_callers'])} | {fmt(r['resid_others'])} | {r['n']} | {r['n_180d']} | {r['n_callers']} |")
-    L.append("\n残差 = 标准化实际 − 标准化预测，正值为低估。指挥ρ 只在被判定为主指挥的人里算，样本小，读作方向。\n")
-    L.append("## 基线三方案的性质\n")
-    L.append("| 方案 | 30 天在基线里的权重份额（中位数 / 90 分位） | 阶段判定 none / growth / decline |")
+        if r["model"].startswith(("current", "baseline")) or "regime=" in r["model"]:
+            L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['mae'])} | {fmt(r['entry_resid'])} | " + " | ".join(fmt(r[f'rho_{x}']) for x in ROLES) + f" | {r['n']} | {r['n_180d']} |")
+    L.append("\n| 融合 / 阶段 | 30 天权重份额 中位数 / 90 分位（≥3 场） | 阶段判定 none / growth / decline（人×截止点） |")
     L.append("|---|---|---|")
-    for sch in ("decay", "stage", "regime"):
-        rs = sorted(recent_share.get(sch, []))
+    for name in [n for n in recent_share if "regime=" in n]:
+        rs = sorted(recent_share[name])
         med = rs[len(rs) // 2] if rs else 0
         p90 = rs[int(len(rs) * .9)] if rs else 0
-        rc = regime_counts.get(sch, {})
-        L.append(f"| {sch} | {med:.2f} / {p90:.2f} | {rc.get('none', 0)} / {rc.get('growth', 0)} / {rc.get('decline', 0)} |")
-    L.append("\ndecay 的份额在 Line 层不可分，记 0；stage/regime 的份额就是同一段数据既进基线又进状态的比例，状态若再全额叠加，这一份就是重复。\n")
-    L.append("## 关键选手逐项拆解（今天的截止日；各列是固定条件下的候选分，不平移）\n")
-    L.append("| 选手 | 世界 | 现方案重建 | decay | stage | regime | +指挥.35 | +荣誉6 | 位置 | 场次 | 阶段 | 作战 | 指挥分×权重 | 荣誉 | 状态z | 30天份额 | 覆盖 |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+        rc = regime_counts.get(name, {})
+        L.append(f"| {name} | {med:.2f} / {p90:.2f} | {rc.get('none', 0)} / {rc.get('growth', 0)} / {rc.get('decline', 0)} |")
+    L.append("\n## B. 主指挥权重（stage 融合；指挥列只在该档身份的人里算）\n")
+    L.append("| 模型 | ρ(下一赛事) | ρ(180 天) | 指挥ρ(下一赛事) | 指挥ρ(180 天) | 指挥残差 | 其他残差 | n | n(指挥, A 级) |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
+    for r in grid:
+        if r["model"] in ("current(rebuilt)", "baseline-R2 hl=270", "stage regime=off") or "igl=" in r["model"]:
+            L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['rho_callers'])} | {fmt(r['rho_180d_callers'])} | {fmt(r['resid_callers'])} | {fmt(r['resid_others'])} | {r['n']} | {r['n_callers']} |")
+    L.append("\n指挥列的分组是截止日时 A 级身份的人；grades=ABC 的模型把权重也给了 B、C 级，但分组不变，所以两档可比。")
+    L.append("\n## C. 荣誉（stage 融合，严格账本）\n")
+    L.append("| 模型 | ρ(下一赛事) | ρ(180 天) | MAE | n |")
+    L.append("|---|---|---|---|---|")
+    for r in grid:
+        if r["model"] in ("stage regime=off",) or "hon=" in r["model"]:
+            L.append(f"| {r['model']} | {fmt(r['rho_next'])} | {fmt(r['rho_180d'])} | {fmt(r['mae'])} | {r['n']} |")
+    L.append("\n## 指挥逐人依据（今天）\n")
+    L.append("| 选手 | 俱乐部 | 身份来源 | 效力起 | 今日等级 | 任内赛事 | 资历(年) | 名次残差 | 能力z | 指挥分 |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|")
+    for r in caller_rows:
+        L.append(f"| {r['ign']} | {r['club']} | {r['source']} | {r['since']} | {r['grade_today']} | {r['events_as_caller']} | {r['tenure_years']} | {r['placement_residual']} | {r['level_z']} | {r['score']} |")
+    L.append("\n名次残差 = 该赛事俱乐部名次（换算 ±2）− 阵容个人 Rating 的均值 z，任内赛事平均；它含教练、赛程、对手与运气，只记三分之一并收缩。")
+    L.append("\n## 关键选手逐项拆解（今天；固定条件的候选分，不平移）\n")
+    L.append("| 选手 | 世界 | 现方案重建 | decay | stage | split | +指挥A .35 | +荣誉6 | 位置 | 场次 | 作战 | 指挥分×权重(等级) | 荣誉 | 状态z | 30天份额 | 覆盖 |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in ladders:
-        L.append(f"| {r['ign']} | {r.get('world')} | {r.get('current(rebuilt)')} | {r.get('decay(round one)')} | {r.get('stage')} | {r.get('regime')} | {r.get('regime + igl .35')} | {r.get('regime + igl .35 + hon 6')} | {r.get('role')} | {r.get('events')} | {r.get('regime_note')} | {r.get('combat')} | {r.get('igl_score')}×{r.get('igl_weight')} | {r.get('honours')} ({r.get('honours_note')}) | {r.get('form_z')} | {r.get('recent_share')} | {r.get('coverage')} |")
-    L.append("\n列与列之间是逐项切换，不是可加的分解：从「现方案重建」到「decay」换了属性算法、模板、收缩和映射四件事；decay→stage→regime 只换时间方案；后两列只加指挥、荣誉。世界分含大赛加成、冠军底蕴和生涯表，本研究只有 2024 年以来的 VCT 赛事，「覆盖」一列说明每人有多少名次记录落在缓存之外。\n")
-    L.append("## 轨迹（每个赛段开始时的候选分，三种基线）\n")
+        L.append(f"| {r['ign']} | {r.get('world')} | {r.get('current(rebuilt)')} | {r.get('decay')} | {r.get('stage')} | {r.get('split')} | {r.get('stage + igl A .35')} | {r.get('stage + igl A .35 + hon 6')} | {r.get('role')} | {r.get('events')} | {r.get('combat')} | {r.get('igl_score')}×{r.get('igl_weight')}({r.get('igl_grade')}) | {r.get('honours')} ({r.get('honours_note')}) | {r.get('form_z')} | {r.get('recent_share')} | {r.get('coverage')} |")
+    L.append("\n列间是逐项切换，不是可加分解。「现方案重建」到「decay」换了属性算法、模板、收缩与映射；decay/stage/split 只换融合权重；后两列只加指挥、荣誉。「覆盖」说明每人有多少名次记录落在 2024～26 缓存之外——那是「更早或非 VCT」，不等于更早的高水平表现；2022～2023 赛事页正在补抓，补齐后再判断覆盖对降分的贡献。")
+    L.append("\n## 轨迹（每个赛段开始时的候选分）\n")
     tags = [t for t, _ in stage_cuts]
     L.append("| 选手 | 方案 | " + " | ".join(tags) + " |")
     L.append("|---|---|" + "---|" * len(tags))
     for r in traj:
         L.append(f"| {r['ign']} | {r['scheme']} | " + " | ".join(fmt(r.get(t)) for t in tags) + " |")
-    L.append("\n前七人是点名的；之后是今天被 regime 判为成长 / 衰退的例子各两人（≥8 场）。三类情形该看的：早弱后强的人 regime 是否比 stage 更早抬起来；长期强、近两场低迷的人三条线是否都稳；连续下滑的人 regime 是否逐步回落而不是靠旧峰托底。\n")
-    L.append("## 引擎侧：主指挥的贡献现在怎么算，拆分方案\n")
-    L.append("- 现状（match.ts）：队伍强度 = 五人 overall 的加权均值 + 主指挥加成 (指挥−60)×0.09（中局再 ×0.06）+ 默契 + 教练 + 阵容 + …；一队只有一个人喊指挥（俱乐部指定的主指挥，否则指挥最高的 isIgl），其余人的指挥属性不计。")
-    L.append("- 实测（scripts/rating/sim_igl.ts，LEV 对 NRG，300 场 bo3）：主指挥指挥 +15 → 胜率 +6.3 个百分点；主指挥总评 +5 → +5.7；两者同时 → +8.7；非指挥队员指挥 +15 → 0；五人全标指挥、指挥 90 → −2.0（噪声内），不叠加。")
-    L.append("- 拆分方案：卡面总评含指挥权重后，引擎的「五人加权均值」应读**作战分**（combat），不读卡面总评；指挥贡献只由实际喊指挥的那个人按其**指挥分**提供，系数按上面的实测重标，使「作战 +5」和「指挥 +15」对胜率的价值与卡面上的权重一致（w=.35 时指挥分 15 分 ≈ 总评 5 分，与实测 6.3 vs 5.7 已接近）；默契、阵容、教练维持现状。这样一张指挥卡的总评高，进比赛不会先当成枪强再拿指挥加成。荣誉不进引擎。以上为方案，未改引擎。\n")
-    L.append("## 结论（第二轮）\n")
-    L.append("1. **稳定基线**：同一目标样本上，180 天窗口的预测力 Rating 基线 0.56 > 现方案重建 0.53 > decay 0.43 > stage 0.42 > regime 0.38；下一赛事也是同样的次序。stage 没有比 decay 更好，regime 更差——阶段判定在今天的样本上把 8% 的人判成变化（其中衰退是成长的三倍），而轨迹表显示它对一两个赛段的低迷反应过大（CHICHOO 2026 Stage 1 从 76 掉到 69 再回到 79，keznit 今天 68 对 stage 的 73）。它做到了「不永久靠旧峰托底」，但代价是把短期低迷当成了阶段变化；成长一侧（trent、BuZz）三条线差别不大，因为可靠度上限已经让新赛段不会被旧数据淹没。")
-    L.append("2. **早期数据退出**：stage 的可靠度封顶（250 回合）已经使赛事多的赛段不再压过之前的稳定水平；要不要再加阶段变化，取决于接受多少误判。建议下一轮把 regime 的门槛改成需要连续两个赛段（而不是最近三场）同向，并且只在成长方向重置基线、衰退方向按 stage 缓慢回落，然后重跑同一张表。这不是现在能下的结论。")
-    L.append("3. **状态与基线的重复**：截止日前 30 天在 stage/regime 基线里的权重份额中位数为 0（多数截止点前 30 天没有比赛），90 分位 0.25～0.28；也就是说赛段刚结束时，状态若再全额叠加，最多有四分之一的近期表现被数了两次。落地时状态应只叠加「超出基线已吸收部分」的偏离，或者基线在赛段结束统一更新、状态在赛段内使用。")
-    L.append("4. **荣誉**：上限 3 与 6 对预测力的影响都在 +0.005 以内，对个人来说是 1～5 分（CHICHOO +4.7、Ethan +5、nobody +4.7）。它不改变谁比谁强的排序，只在同档之间拉开有冠军的人——这正是它该做的事，预测力表既不支持也不反对它。2024 年以前的冠军因四年衰减已归零，所以 Liquipedia 冠军表目前只影响 2023 年的 Ethan。")
-    L.append("5. **主指挥**：指挥分来自带队残差和资历，Boaster 94、Boo 93、nobody 92、Ethan 83；w=.35 时 Boaster 的总评从 59（作战）到 69，nobody 从 64 到 72。加指挥权重后，指挥组的下一赛事 ρ 略降（0.27→0.22，样本 236），指挥组残差变化不到 0.01——指挥分不是从个人数据推的，本来就不该提高对个人 Rating 的预测。它是否合理只能从游戏效果看：引擎实测一个主指挥指挥 +15 值胜率 +6.3 个百分点，总评 +5 值 +5.7，w=.35 下指挥分 15 分折成总评 5 分，与实测的价值比接近；但引擎必须改为读作战分而不是卡面总评，否则同一份价值付两次（实测同时给两者只多 +8.7，不是 +12）。")
-    L.append("6. **点名选手**：Chronicle（92→74～77）和 Less（89→69～71）的落差主要来自三处：世界分里有本研究没有的 2021～2023 生涯表和大赛加成（他们各有 36 / 17 条名次记录在缓存之外）；控场的 APR 在模板里权重大而两人 APR 低于同位置均值（第一轮已指出，同英雄校正未做）；Chronicle 被 regime 判为 2024-08 后衰退，是他 2024 年 +0.8 z 的高峰对比 2025～26 的 0 附近。CHICHOO（94→79～83）同理，荣誉补回 4.7。Boaster 世界 65、本研究作战 59，指挥权重把他抬到 69～70；nobody 77 → 作战 64、含指挥 72、含荣誉 76。大幅上涨的 Jieni7、Lakia、NaturE 是先锋（APR 高），marteen、kamo 是 regime 判成长的决斗者；下跌的 SUYGETSU、Spring、Rossy、kaajak、heat 多数只有 7～10 场且缓存外名次记录 20～37 条，是覆盖差异先于算法差异。")
-    L.append("\n**建议的下一步**：(a) 先补 2022～2023 的赛事页（vlr 有），让覆盖差异从拆解里消失，再谈算法差异；(b) 同英雄 APR/KAST 校正仍是控场/先锋对调的根因，优先于调模板；(c) regime 改成按赛段判定并区分成长/衰退的处理；(d) 状态只叠加基线未吸收的偏离；(e) 引擎按「作战分进均值、指挥分进指挥加成」拆分后，用 sim_igl 的方法重标系数。荣誉与指挥权重的取值等 (a)(b) 之后再定。")
+    L.append("\n前七人是点名的；之后是 stage soft-sym 在今天判为成长 / 衰退的例子（≥8 场），若无则说明该规则今天没有触发。")
+    L.append("\n## 引擎侧\n")
+    L.append("- 现状（match.ts）：队伍强度 = 五人 overall 加权均值 + 主指挥加成 (指挥−60)×0.09（中局另 ×0.06）+ 默契 + 教练 + 阵容 + …；一队只有一人喊指挥。")
+    L.append("- 已做的单点实测（scripts/rating/sim_igl.ts，经理模式，LEV 对 NRG，300 场 bo3）：主指挥指挥 +15 → +6.3 个百分点，总评 +5 → +5.7，两者同时 +8.7，非指挥队员指挥 +15 → 0，五人全标指挥不叠加。它只说明现引擎里指挥属性单独计价且不叠加；两项合计不等于相加是 logistic 的非线性，不能作为重复计算的证据——重复与否要看代码路径：卡面总评若含指挥权重，而引擎又把 overall 读进五人均值、再按指挥属性加成，那就是同一价值走了两条路。")
+    L.append("- 待做（第 5 步）：分别在经理模式与开瓦包 arena 路径上，多组对阵、不同强弱差、不同等级，测「作战分进均值、指挥分进指挥加成」的拆分；系数由那组实验定，不由本单点定。荣誉是否进引擎未定，不在此定稿。")
+    L.append("\n## 结论（修订版，第 1～3 步）\n")
+    L.append("1. **荣誉账本修正后**：2024 两站 Masters 不再算 Champions，八个赛段赛事归入 league，小组第一不再算冠军，只计有日期且本人出场的。CHICHOO、nobody 各 6.0（封顶，含 2024 冠军赛与四个赛区冠军），Chronicle、Boaster 2.34，Ethan 3.0（2023 冠军无日期、2026 美洲 Stage 2 只是小组第一，都不计）。荣誉对预测力 +0.007，对个人 1～6 分；「不改变排序」上一版说过头了，它在同档间会改。")
+    L.append("2. **时间融合隔离后三者持平**：属性、各项收缩、映射固定，只换权重，decay / stage / split 的 ρ 在 0.364～0.370（下一赛事）、0.429～0.447（180 天），差在噪声内。上一版「stage 不如 decay」是收缩没统一造成的，撤回。split 的赛段内归一没有改变结果，说明当前数据里没有哪个赛段因为场次多而压过别的赛段。")
+    L.append("3. **阶段变化**：按赛段确认的软规则在 15404 人次里触发 105 次（成长 26、衰退 79），对预测无影响；对称与非对称也无差别。它现在是保守的，没有一个点名选手被判定；轨迹表里 Chronicle 从 2025 Kickoff 的 87～89 平滑落到 2026 的 69～75，CHICHOO 从 85 到 75～80 再回 78～80，都是平滑基线自己完成的，不需要硬重置。")
+    L.append("4. **指挥**：A 级 120 人次。新方案在不加权重时已把 A 级指挥高估 0.23 z（他们的作战画像高于其后 Rating），加权重后更高（w=.35 时 −0.36），因为指挥分与个人 Rating 无关且普遍高于作战分；这不是它错了的证据，也不是它对了的证据——指挥分是模型估计（逐人依据表：Boaster 15 场任内赛事、资历 5.6 年、名次残差 +0.64 → 95；valyn 96；saadhak、Rossy 资历不足一年、残差有但收缩后只有 57/51）。它是否合理只能在引擎里看（第 5 步）。")
+    L.append("5. **点名选手**：荣誉修正后 Chronicle 92→75（+荣誉 78）、Less 89→67、CHICHOO 94→78～80（+荣誉 84）、nobody 77→60（+指挥 71、+荣誉 77）、Boaster 65→59（+指挥 72）。三种融合下作战分差不超过 2，说明这些落差不来自时间方案。来自哪里还不能定：世界分含 2021～2023 生涯表与大赛加成（缓存外名次记录 Chronicle 29、Boaster 24、Spring 31、Rossy 32 条，Less 只有 8 条），控场 APR 模板权重（第一轮已指出）。2022～2023 赛事页正在补抓，补齐后按「近两年」「近两年+弱历史」「同一数据开/关英雄校正」三组重跑，再谈原因。")
+    L.append("\n**下一步（第 4～5 步）**：(4) 补齐 2022～2023 后重跑覆盖对照；同英雄校正需要「选手 × 英雄 × 赛事」交叉数据，现在只能开/关「按位置中心化」作为近似，会明确标注。(5) 引擎测试改为经理模式与开瓦包 arena 两条路径、多组对阵与强弱差，测「作战进均值、指挥分进指挥加成」的拆分；荣誉是否进引擎留待产品规则。")
     L.append("\n## 读法与限制\n")
-    L.append(f"- 荣誉账本 unknown（无名次记录）的选手 {len(unknown)} 人；2024 年以前的冠军只有 Liquipedia 冠军表的 21 条，按第四年及以前已经衰减为零，所以今天的荣誉分几乎全部来自 2024～2026。")
-    L.append("- 指挥身份的起始时间是按现役俱乐部效力窗口外推的，换过俱乐部的指挥在旧俱乐部期间被当成 unknown，不计指挥分也不计带队残差。")
-    L.append("- 带队残差把整个五人、教练和换人都算在指挥头上，所以只记三分之一并按赛事数收缩；它仍然是「相关」不是「归因」。")
-    L.append("- 阶段判定要 ≥3+3 场、≥600+600 回合，新人和只有一年数据的人不会被判阶段变化，按现有证据和先验（收缩到均值）处理。")
-    L.append("- 下一赛事 ρ 不能单独评判含荣誉和指挥的总评是否合理；反过来，作战分的预测力若明显变差，也不能用「综合价值不同」回避。两类结果都在上表里分开给。")
+    L.append("- 指挥身份没有历史证据，A 级也是外推，所有指挥结果是敏感性分析。")
+    L.append("- 阶段软规则要两个完整赛段同向，2026 年内才开始的变化不会被判定；这是有意的保守。")
+    L.append("- 缓存外的名次记录没有类型和日期，严格账本不计；补抓 2022～2023 后会进入缓存并得到类型与日期。")
+    L.append("- 下一赛事/180 天 Rating 不能单独评判含荣誉和指挥的总评；作战分预测力若变差也不能用综合价值回避，两类结果分开列。")
     (OUT / "report2.md").write_text("\n".join(L) + "\n", "utf-8")
     print(f"report -> {OUT / 'report2.md'}")
 
