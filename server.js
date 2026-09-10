@@ -476,6 +476,16 @@ function handle(req, res) {
   // what this client will accept, for `json` — see the note on it
   res.acceptEncoding = req.headers['accept-encoding']
 
+  // Railway's health check. Without one a deploy swaps containers the moment
+  // the new process starts, and while it is still retrying the analytics
+  // schema (lock timeouts, tens of seconds) nothing answers — the 502 the
+  // group saw on 09-10 at 16:19 UTC. With this path in railway.json the old
+  // container keeps serving until the new one answers here.
+  if (path === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }).end('ok')
+    return
+  }
+
   if (path === '/api/e') {
     if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
     void ingest(req, res)
