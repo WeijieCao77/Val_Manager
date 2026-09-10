@@ -4,6 +4,7 @@ import { useGame } from './ctx'
 import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
 import ThemeToggle from './ThemeToggle'
+import { Thanks } from './Credit'
 
 export default function Saves() {
   const { game, toast, startTutorial, loadSlot, commit } = useGame()
@@ -164,6 +165,7 @@ export default function Saves() {
       <p className="tiny faint" style={{ textAlign: 'center', marginTop: 20 }}>
         战队与选手数据取自 vlr.gg 与 Liquipedia，均为真实人物。
       </p>
+      <Thanks />
     </>
   )
 }

@@ -8,8 +8,19 @@
  */
 import { AFDIAN } from './Support'
 
-/** 感谢名单 — shown here and in the front page's footer. */
-export const THANKS = ['FranX', 'Song']
+const THANKS = ['FranX', 'Song']
+
+/**
+ * 感谢名单. It sits at the bottom of the manager's 存档 screen and 开瓦包's
+ * 账号 tab rather than in the footer every screen carries.
+ */
+export function Thanks() {
+  return (
+    <p className="tiny faint" style={{ textAlign: 'center', margin: '10px 0 0' }}>
+      感谢名单 <b>{THANKS.join('、')}</b>
+    </p>
+  )
+}
 
 export default function Credit() {
   return (
@@ -19,8 +30,6 @@ export default function Credit() {
       <span>小红书<b>@点点点点点点点点</b></span>
       <span className="sep">·</span>
       <span>抖音<b>@点点点点点点点点</b></span>
-      <span className="sep">·</span>
-      <span>感谢名单 <b>{THANKS.join('、')}</b></span>
       <span className="sep">·</span>
       {/* the corner button can be dismissed for good; this stays, so someone
           who changes their mind later still has a way to find it */}

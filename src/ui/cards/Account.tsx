@@ -3,6 +3,7 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import { collectionProgress } from '../../engine/gacha'
 import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
+import { Thanks } from '../Credit'
 
 /** Copy that works on http:// and on the browsers without a clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
@@ -115,6 +116,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           退出登录
         </button>
       </Panel>
+      <Thanks />
     </>
   )
 }
