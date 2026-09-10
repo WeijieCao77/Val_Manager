@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Coaching careers read off 号角 (web.haojiao.cc) person pages, for the head coaches",
+    "neither vlr.gg nor Liquipedia has a page for. Read from the page's `historys`",
+    "(career_type 2 = staff) in the in-app browser on 2026-09-10; months only, as the",
+    "matching in scripts/build_coached.py works in months. A coach whose only staff",
+    "stint is his current club is listed too, so the gap is known to be real and not",
+    "a missing lookup. Nothing here is invented.",
+    "url: https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/<person_id>"
+  ],
+  "coaches": {
+    "York": [
+      {"team": "Rare Atom", "role": "主教练", "from": "2026-05", "to": null, "person_id": "sF7o6zvNCEYv3NJK"},
+      {"team": "FunPlus Phoenix", "role": "助理教练", "from": "2024-10", "to": "2026-05", "person_id": "sF7o6zvNCEYv3NJK"},
+      {"team": "Titan Esports Club", "role": "教练", "from": "2024-01", "to": "2024-06", "person_id": "sF7o6zvNCEYv3NJK"},
+      {"team": "NTER", "role": "主教练", "from": "2023-05", "to": "2023-09", "person_id": "sF7o6zvNCEYv3NJK"}
+    ],
+    "Sunshine": [
+      {"team": "AQ", "role": "主教练", "from": "2025-08", "to": null, "person_id": "xVRDs8En6ssW79hP"},
+      {"team": "EDward Gaming", "role": "战术教练", "from": "2025-01", "to": "2025-06", "person_id": "xVRDs8En6ssW79hP"},
+      {"team": "TYLOO", "role": "主教练", "from": "2024-06", "to": "2024-12", "person_id": "xVRDs8En6ssW79hP"},
+      {"team": "TYLOO", "role": "助理教练", "from": "2024-03", "to": "2024-06", "person_id": "xVRDs8En6ssW79hP"},
+      {"team": "Weibo Gaming", "role": "教练", "from": "2023-09", "to": "2024-03", "person_id": "xVRDs8En6ssW79hP"}
+    ],
+    "742": [
+      {"team": "A Team", "role": "教练", "from": "2026-03", "to": null, "person_id": "wapFISnLdUO6GzL3"}
+    ],
+    "xiuyueer": [
+      {"team": "ODG", "role": "教练", "from": "2026-03", "to": null, "person_id": "Gkch7xVA82gBLhNK"}
+    ],
+    "ColdFish": [
+      {"team": "KBG", "role": "教练", "from": "2026-09", "to": null, "person_id": "xbrHwizwzIcxtlFA"}
+    ]
+  }
+}

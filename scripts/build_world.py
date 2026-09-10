@@ -41,6 +41,8 @@ VERIFIED = os.path.join(RAW, "births_verified.json")
 COACHES = os.path.join(RAW, "liquipedia_coaches.json")
 VLRAPI = os.path.join(RAW, "vlrapi_teams.json")
 AGENTS_F = os.path.join(RAW, "parsebot_agents.json")
+# every agent a player has played and for how many rounds (scripts/fetch_vlr_agents.py)
+VLR_AGENTS = os.path.join(ROOT, "scripts", "cache", "vlr_agents.json")
 OVERRIDES = os.path.join(RAW, "overrides.json")
 HAND = os.path.join(RAW, "haojiao_players.json")
 # so a hand-entered player's passport agrees with the identity check below
@@ -814,6 +816,7 @@ def main():
             "apr": (st["assists"] / rnd) if rnd and st.get("assists") is not None else None,
             "fkpr": st.get("fkpr"), "fdpr": st.get("fdpr"), "hs": st.get("hs"),
             "hand_agents": [a["en"] for a in agents],
+            "hand_use": {a["en"].lower(): a["rounds"] for a in agents if a.get("rounds")},
         })
         if rec.get("realName") or rec.get("birth"):
             hand_births[ign] = {"real": rec.get("realName"), "birth": rec.get("birth"),
@@ -1279,6 +1282,17 @@ def main():
     def axis(specific, quality):
         return 0.58 * specific + 0.42 * quality
 
+    # 「所有选手的所有英雄都是0%熟练度」: the agent pool was three names, so
+    # everything else was unknown. The career table says how much of each agent
+    # a man has actually played, and that is what proficiency is seeded from.
+    agent_use = {}
+    for ign, rec in load_json(VLR_AGENTS).items():
+        rows_ = rec.get("agents") or []
+        if rows_:
+            agent_use[ign.lower()] = {
+                "use": {x["a"]: x["rnd"] for x in rows_ if x.get("rnd")},
+                "R": {x["a"]: x["R"] for x in rows_ if x.get("R") is not None} or None,
+            }
     built = {}
     by_tag = defaultdict(list)
     ages_known = 0
@@ -1385,6 +1399,8 @@ def main():
             "birth": birth,
             "age": age, "ageEstimated": estimated,
             "attrs": a, "overall": ovr, "stageBonus": stage_bonus,
+            "agentUse": (agent_use.get(ign.lower()) or r.get("hand_use") or {}).get("use") if ign.lower() in agent_use else (r.get("hand_use") or None),
+            "agentR": (agent_use.get(ign.lower()) or {}).get("R") or None,
             "potential": int(clamp(round(ovr + head), ovr, 99)),
             "form": form_for(ign, rng),
             "morale": int(clamp(round(rng.norm(75, 8)), 45, 98)),
@@ -1452,6 +1468,10 @@ def main():
             "contractYears": 0,   # dealt across the squad in deal_contract_years
             "loyalty": p["loyalty"], "ambition": p["ambition"], "vlr": p["vlr"],
         }
+        if p.get("agentUse"):
+            rec["agentUse"] = p["agentUse"]
+            if p.get("agentR"):
+                rec["agentR"] = p["agentR"]
         out_players.append(rec)
         return rec
 

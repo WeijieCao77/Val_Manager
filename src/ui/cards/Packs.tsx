@@ -45,6 +45,14 @@ export default function Packs() {
       .map((p) => { const card = cardById(p.cardId); return card ? { card, dupe: p.dupe, salvage: p.salvage } : null })
       .filter((x): x is Pulled => !!x)
     if (!out.length) { toast('没读到开出的卡，刷新看看收藏。'); return }
+    // A card this page cannot name is a player added to the game after this
+    // page was loaded: the server rolled him, the account holds him, and the
+    // old bundle has no card to draw. 「十连包只有九张」「cn包只有两张」 — the
+    // day 14 CN players went in, a phone still on the previous build lost one
+    // card in a quarter of its ten-packs. Say so instead of drawing nine.
+    if (out.length < wire.length) {
+      toast(`这一包有 ${wire.length - out.length} 张是刚加进游戏的新选手，这个页面还是旧版本画不出来。卡已经在账号里，刷新后在收藏里能看到。`)
+    }
     track('card_pull', {
       kind,
       paid: payWith,

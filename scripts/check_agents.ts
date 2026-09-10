@@ -168,8 +168,11 @@ const mk = (): GameState => {
   const wrong: Record<string, string> = {}
   five.forEach((p) => {
     const mine = p.roles ?? [p.role]
+    // an agent outside his jobs that he has never played either — proficiency
+    // is graded from his career now, so a duelist who has 300 rounds of Omen
+    // is not the test of a bad sheet
     wrong[p.id] = Object.keys(AGENT_ROLE).find(
-      (a) => !mine.includes(AGENT_ROLE[a]) && !Object.values(wrong).includes(a))!
+      (a) => !mine.includes(AGENT_ROLE[a]) && !(p.agentPro?.[a]) && !Object.values(wrong).includes(a))!
   })
   g.agentPicks = { Ascent: wrong }
   const after = buildLineup(g, g.myTeam, 'Ascent').atk

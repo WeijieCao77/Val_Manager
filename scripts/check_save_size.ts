@@ -52,7 +52,13 @@ const store = new Map<string, string>()
 // maps a club) and the shrink below still handles a storage that refuses, so
 // the budget moved by the amount explained rather than the growth being
 // hidden by truncating what the AI knows.
-const BUDGET_KB = 1_600
+// 1,600 until 2026-09-10. That day agent proficiency stopped being 100-or-0
+// on three agents and became a graded table read off each man's career —
+// thirteen entries a player instead of three, bounded by the agent roster
+// (measured on a fresh save: agentPro 30 → 101 KB across 659 players, the
+// peak 1,540 → 1,608 KB). Same reasoning as above: the state is bounded and
+// explained, so the budget moves by what it costs.
+const BUDGET_KB = 1_700
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {

@@ -308,6 +308,9 @@ export default function Market() {
   const buyNow = async (l: Listing) => {
     if (l.buyout == null) return
     if (g.coins < l.buyout) { toast('金币不够。'); return }
+    // 一口价 sits next to 出价 on a phone and settles the moment it is
+    // pressed — a thumb that meant the other button spent the coins. Ask.
+    if (!confirm(`按一口价 ${money(l.buyout)} 金币立刻买下 ${nameOf(l.cardId)}？`)) return
     setBusy(true)
     const r = await bidOn(l.id, l.buyout)
     setBusy(false)

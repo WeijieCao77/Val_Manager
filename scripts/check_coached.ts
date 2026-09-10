@@ -55,6 +55,43 @@ check('没带过的人不会写', !before.notes.some((n) => n.includes('以前�
   check('没有教练算自己带过自己', selfPairs.length === 0, selfPairs.map(([c]) => c).join('、'))
 }
 
+// 「AfteR以前带过ZmjjKK、nobody、CHICHOO、Smoggy，为什么没显示以前带过4人？」
+// vlr 只写了他 2020 年 6 月到 EDG，没写离开；他 2024 年 10 月去了 TEC，那就是
+// EDG 那段的结束。四个人都在这四年里。
+{
+  const after = coachCard('AfteR')!
+  const inAfter = new Set((coached.AfteR ?? []).map(([pid]) => pid))
+  const four = ['ZmjjKK', 'nobody', 'CHICHOO', 'Smoggy'].map((n) => card(n)!)
+  check('AfteR 是 TEC 的教练卡', !!after && after.clubTag === 'TEC', after?.clubTag ?? '没找到')
+  check('AfteR 带过 EDG 的 ZmjjKK、nobody、CHICHOO、Smoggy', four.every((c) => c && inAfter.has(c.playerId)),
+    four.map((c) => `${c?.ign}:${c && inAfter.has(c.playerId) ? '算' : '不算'}`).join(' '))
+  const sq = emptySquad()
+  four.forEach((c, i) => { sq.slots[i] = c.id })
+  sq.coach = after.id
+  const notes = chemistry(sq).notes
+  check('卡组说明写着以前带过 4 人', notes.some((n) => n.includes('AfteR 以前还带过其中 4 人')), notes.join(' | '))
+}
+
+// 「vlr没有准确记录就去haojiao看，haojiao没有可以去thespike看，还有液体百科，
+// 为什么单vlr没有就放弃了？」 Sunshine has no vlr page and no Liquipedia page;
+// 号角 has him as EDG 战术教练 in 2025 and TYLOO head coach in 2024.
+{
+  const sunshine = coachCard('Sunshine')!
+  const inSun = new Set((coached.Sunshine ?? []).map(([pid]) => pid))
+  check('Sunshine 是 AQ 的教练卡', !!sunshine && sunshine.clubTag === 'AQ', sunshine?.clubTag ?? '没找到')
+  check('号角补上的：Sunshine 带过 EDG 的 ZmjjKK 和 TYLOO 的 LuoK1ng',
+    inSun.has(card('ZmjjKK')!.playerId) && inSun.has(card('LuoK1ng')!.playerId))
+  const york = coachCard('York')!
+  const inYork = new Set((coached.York ?? []).map(([pid]) => pid))
+  check('号角补上的：York 在 FPX 当助教时带过 Setrod', !!york && inYork.has(card('Setrod')!.playerId))
+  // Liquipedia, where vlr had no page: potter at EG, TK9_주 at SLT before VL
+  const potter = coachCard('potter')!
+  const inPotter = new Set((coached.potter ?? []).map(([pid]) => pid))
+  check('Liquipedia 补上的：potter 带过 EG 的 Demon1', !!potter && inPotter.has(card('Demon1')!.playerId))
+  // a first-time coach has nobody, and that is the truth rather than a missing lookup
+  check('742 第一次执教，没有前队可配', !(coached['742'] ?? []).length)
+}
+
 // his own club's five is still the ceiling
 {
   const five = ordinary.filter((c) => c.clubId === bail.clubId).slice(0, 5)

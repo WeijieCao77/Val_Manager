@@ -251,6 +251,13 @@ export interface Player {
    * 是 vlr 真正记录过他打的英雄；靠专门练某一个英雄来涨。
    */
   agentPro?: Record<string, number>
+  /**
+   * 生涯每个英雄打过的回合数（vlr 全时段英雄表，CN 次级联赛来自号角），键是
+   * 英雄名或 vlr 的 slug。没有这个字段就是没有这张表，不是没打过。
+   */
+  agentUse?: Record<string, number>
+  /** 同一张表上每个英雄的 rating，只用来给没练满的英雄微调 */
+  agentR?: Record<string, number>
   /** true when they cover a second role for their club */
   flex?: boolean
   /** derived from real statistics, not authored */
@@ -841,6 +848,8 @@ export interface StageObjective {
 
 export interface GameState {
   version: number
+  /** 熟练度已经按生涯回合数分档播过一次——老档迁移只做一遍 */
+  agentProGraded?: boolean
   seed: number
   /** the world's caller data this save has been brought up to — see syncCallersWithWorld */
   callerSync?: string

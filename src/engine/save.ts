@@ -2,6 +2,7 @@ import { canonAgents } from './content'
 import { seedAgentPro } from './agents'
 import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
+import { WORLD_PLAYERS } from './world'
 import type { GameState, TeamDrill } from './types'
 
 /**
@@ -16,6 +17,8 @@ export const saveNamespace = (): string => NAMESPACE.replace(/:$/, '')
 const prefix = () => `valmanager:${NAMESPACE}save:`
 const indexKey = () => `valmanager:${NAMESPACE}index`
 export const SAVE_VERSION = 1
+
+const worldPlayer = new Map(WORLD_PLAYERS.map((p) => [p.id, p]))
 
 /**
  * The scoreboard, written the short way.
@@ -280,8 +283,20 @@ function migrate(state: GameState): GameState {
     p.agentPool = canonAgents(p.agentPool ?? [])
     // 熟练度从「位置」搬到「英雄」：老档按常用英雄和旧的位置进度折算，只多不少
     p.agentPro ??= seedAgentPro(p)
+    // 熟练度从「会/不会」变成按生涯回合数分档：老档里的人没带着那张表，从
+    // 世界数据里按 id 补上，再播一次并合并——只会抬高，练出来的一分不少。
+    if (!state.agentProGraded) {
+      const canon = worldPlayer.get(p.id)
+      if (canon?.agentUse && !p.agentUse) { p.agentUse = canon.agentUse; p.agentR = canon.agentR }
+      const graded = seedAgentPro(p)
+      for (const [a, v] of Object.entries(graded)) p.agentPro[a] = Math.max(p.agentPro[a] ?? 0, v)
+    }
+    // the table was read; it is not part of the save
+    delete p.agentUse
+    delete p.agentR
     p.injuredUntil ??= 0
   }
+  state.agentProGraded = true
   // 练英雄 used to hold one learner; it holds up to five now. A save written
   // before that carries the old single-pick shape, and left alone it would
   // arrive at runDrill with no `picks` at all — a committed week that trains

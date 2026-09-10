@@ -87,18 +87,28 @@ def parse_history(chunk: str) -> list[dict]:
         end_raw = re.sub(r"<[^>]+>", "", when.group(2)).strip()
         # the club link is the last wiki link in the row; the first is the icon
         links = re.findall(r"\[\[([^\]|]+)(?:\|([^\]]*))?\]\]", row)
-        team = None
+        team = page = None
         for target, label in links:
             if target.startswith("File:"):
                 continue
             team = (label or target).strip()
+            page = target.strip()
         if not team:
             continue
-        out.append({
+        # a staff stint carries its role in italics after the club: (Head Coach),
+        # (Coach), (Assistant Coach), (Analyst), (Inactive) …; a playing stint has none
+        role = re.search(r'font-style:italic">\(([^)]*)\)</span>', row)
+        rec = {
             "from": when.group(1),
             "to": None if end_raw.lower().startswith("present") else end_raw,
             "team": team,
-        })
+        }
+        if role:
+            rec["role"] = role.group(1).strip()
+        # the label is often the tag ([[EDward Gaming|EDG]]); the page is the club
+        if page and page != team:
+            rec["page"] = page
+        out.append(rec)
     return out
 
 
@@ -118,22 +128,64 @@ def wanted_players() -> list[str]:
     return list(dict.fromkeys(igns))
 
 
+COACH_OUT = ROOT / "scripts" / "cache" / "liquipedia_coach_tenure.json"
+
+
+def wanted_coaches() -> list[str]:
+    """Every head coach in the world, by the handle the game shows."""
+    world = json.loads((ROOT / "src" / "data" / "world.json").read_text("utf-8"))
+    names = []
+    for t in world["teams"]:
+        n = ((t.get("coach") or {}).get("name") or "").strip()
+        if n and n not in names:
+            names.append(n)
+    return names
+
+
+# a handle whose page is titled differently, found with list=search by hand
+LP_TITLE = {
+    "potter": "Potter (Christine Chi)",
+    "Platoon": "Platoon (Canadian coach)",
+    "TK9_주": "TK9 주",
+}
+
+
+def variants(n: str) -> list[str]:
+    """Liquipedia titles are case-sensitive and capitalised; try the usual spellings."""
+    out = [LP_TITLE[n]] if n in LP_TITLE else []
+    for v in (n, n[:1].upper() + n[1:], n.lower(), n.upper(), n.capitalize()):
+        if v not in out:
+            out.append(v)
+    return out
+
+
 def main() -> int:
+    global OUT
+    coaches = "--coaches" in sys.argv
+    if coaches:
+        OUT = COACH_OUT
     cache = json.loads(OUT.read_text("utf-8")) if OUT.exists() else {}
-    igns = wanted_players()
+    igns = wanted_coaches() if coaches else wanted_players()
     todo = [i for i in igns if i not in cache]
-    print(f"{len(igns)} players, {len(todo)} to fetch "
+    print(f"{len(igns)} {'coaches' if coaches else 'players'}, {len(todo)} to fetch "
           f"in {-(-len(todo) // BATCH)} batches", flush=True)
+
+    # --coaches: a handle's page may be titled in any case (AfteR, Potter,
+    # COLDFISH …), so each name is asked for under its usual spellings and the
+    # first spelling that has a history wins. Keyed by name|title in the text.
+    def asks(n: str) -> list[tuple[str, str]]:
+        return [(n, v) for v in variants(n)] if coaches else [(n, n[:1].upper() + n[1:])]
 
     try:
         for i in range(0, len(todo), BATCH):
             chunk = todo[i:i + BATCH]
+            pairs = [a for n in chunk for a in asks(n)]
             # MediaWiki capitalises the first letter of every page title, and
             # the lookup is case-sensitive: player=basic returns nothing while
             # player=Basic returns five stints. Ask for the capitalised form.
             text = f"{MARK}".join(
-                f"{n}{MARK}{{{{TeamHistoryAuto|player={n[:1].upper() + n[1:]}}}}}"
-                for n in chunk)
+                f"{n}|{t}{MARK}{{{{TeamHistoryAuto|player={t}}}}}"
+                for n, t in pairs)
             d = _post({
                 "action": "expandtemplates", "text": text, "title": chunk[0],
                 "prop": "wikitext", "format": "json", "formatversion": "2",
@@ -142,10 +194,21 @@ def main() -> int:
             parts = body.split(MARK)
             # parts alternate: name, table, name, table, ...
             for j in range(0, len(parts) - 1, 2):
-                name = parts[j].strip()
+                name = parts[j].strip().split("|", 1)[0]
                 if name not in chunk:
                     continue
-                cache[name] = parse_history(parts[j + 1])
+                got = parse_history(parts[j + 1])
+                if coaches:
+                    # every spelling that has a page is a candidate — 'AfteR'
+                    # is the EDG coach and 'After' somebody at NOM Juniors —
+                    # and build_coached keeps the one whose history holds the
+                    # club the game has him at. Nothing is picked by luck here.
+                    title = parts[j].strip().split("|", 1)[1]
+                    cands = cache.setdefault(name, [])
+                    if got and not any(c["title"] == title for c in cands):
+                        cands.append({"title": title, "history": got})
+                else:
+                    cache[name] = got
             OUT.parent.mkdir(parents=True, exist_ok=True)
             OUT.write_text(json.dumps(cache, ensure_ascii=False), "utf-8")
             hit = sum(1 for v in cache.values() if v)

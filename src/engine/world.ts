@@ -16,6 +16,7 @@ import { currentRuleset } from './ruleset'
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
   roles?: string[]; flex?: boolean; agentPool?: string[]; roleSource?: string
+  agentUse?: Record<string, number>; agentR?: Record<string, number>
   traits?: { key: string; label: string; good: boolean }[]
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
   /** YYYY-MM they joined their club, where vlr.gg records it */
@@ -195,7 +196,12 @@ export function createNewGame(
 
   // 熟练度按英雄记，种子是他真正打过的那些角色。自由球员和青训也一起播，
   // 否则签进来的人会一个英雄都不会。
-  for (const p of Object.values(players)) p.agentPro = seedAgentPro(p)
+  // 生涯英雄表只在播种时用一次，不跟着存档走：531 人的表让一份存档多出 200 KB
+  for (const p of Object.values(players)) {
+    p.agentPro = seedAgentPro(p)
+    delete p.agentUse
+    delete p.agentR
+  }
 
   const teams: Record<string, Team> = {}
   for (const rt of WORLD_TEAMS) {

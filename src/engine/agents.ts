@@ -10,8 +10,8 @@
  * Being on an agent he has actually played, rather than merely one from his
  * own role, is worth a little on top.
  */
-import { AGENT_ROLE, AGENTS, MAP_META, agentCn } from './content'
-import { hashStr } from './rng'
+import { AGENT_ROLE, AGENTS, MAP_META, agentCn, canonAgent, canonAgents } from './content'
+import { clamp, hashStr } from './rng'
 import { isArena } from './types'
 import type { GameState, Player, Role } from './types'
 
@@ -60,42 +60,92 @@ export function rolePeak(p: Player, role: Role): number {
  */
 export const POOL_PER_ROLE = 3
 
+/** 一个英雄打满这么多回合就算练满：十几张图的量。 */
+export const FULL_ROUNDS = 300
 /**
- * 从 agentPool 播下每个英雄的熟练度。
+ * 或者占了他生涯这么大的比例。新人的总回合少，按绝对数他什么都不满，可他
+ * 打了三成回合的那个英雄就是他的本命，理应是满的。
+ */
+export const FULL_SHARE = 0.35
+
+/**
+ * 打过多少回合，折成 0-100 的熟练度。
  *
- * 记录在案的英雄他是真会，给满。然后每个他覆盖的位置补到 POOL_PER_ROLE 个，
- * 补的是这个位置在现役图池里最常见的角色——数据少的选手不因此吃亏，而「有些
- * 英雄他没练过」这件事对谁都成立。
+ * 开平方：前面涨得快，后面慢——两张图就能把一个英雄用起来（≈30），真正
+ * 练熟要一个赛季。`r` 是他在这个英雄上的 rating，`career` 是他生涯的：在
+ * 这个英雄上打得比自己平时好就多给一点，差就少给一点，幅度有限，且只动
+ * 没满的——打满的就是满的，数据再难看也不会把一个人的本命扣成生疏。
+ */
+export function proFromUse(rounds: number, total: number, r?: number, career?: number): number {
+  if (!(rounds > 0)) return 0
+  const depth = Math.max(rounds / FULL_ROUNDS, total > 0 ? rounds / total / FULL_SHARE : 0)
+  let v = 100 * Math.sqrt(Math.min(1, depth))
+  if (v < 100 && r != null && career != null) v *= clamp(1 + (r - career) * 0.5, 0.85, 1.15)
+  return Math.round(clamp(v, 0, 100))
+}
+
+/**
+ * 播下每个英雄的熟练度。
+ *
+ * 有生涯英雄表（vlr 全时段 / 号角）的人，按每个英雄打过的回合数分档：打得多
+ * 的满，打得少的按 proFromUse 折算，没碰过的是零。这就是「用选手的生涯玩过
+ * 哪些英雄、哪些玩的多、哪些少来判断」。他现在正在打的那几个（agentPool，
+ * 本赛季用得最多的）无论如何是满的。
+ *
+ * 没有英雄表的人（青训、自由球员、只有一行名字的）退回老办法：记录在案的
+ * 英雄给满，再把每个本职位置补到 POOL_PER_ROLE 个——补的是这个位置在现役图池
+ * 里最常见的角色。数据少的选手不因此吃亏，「有些英雄他没练过」这件事对谁都
+ * 成立。有表的人每个本职位置只保证一个满的：表说他会什么就是什么。
  *
  * 老存档还要把 rolePro 折进来：旧的「练位置」进度对那个位置的任何英雄都算数，
  * 所以按位置摊到该位置的全部英雄上——迁移只会给，不会拿走。
  */
 export function seedAgentPro(p: Player): Record<string, number> {
   const out: Record<string, number> = {}
-  for (const a of p.agentPool ?? []) out[a] = 100
+  // 生涯表：键可能是 vlr 的 slug，先归一
+  const use: [string, number][] = []
+  for (const [a, n] of Object.entries(p.agentUse ?? {})) {
+    const c = canonAgent(a)
+    if (c && n > 0) use.push([c, n])
+  }
+  const total = use.reduce((s, [, n]) => s + n, 0)
+  const rOf: Record<string, number> = {}
+  for (const [a, r] of Object.entries(p.agentR ?? {})) { const c = canonAgent(a); if (c) rOf[c] = r }
+  let rSum = 0, rW = 0
+  for (const [a, n] of use) if (rOf[a] != null) { rSum += rOf[a] * n; rW += n }
+  const career = rW > 0 ? rSum / rW : undefined
+  for (const [a, n] of use) out[a] = Math.max(out[a] ?? 0, proFromUse(n, total, rOf[a], career))
+  const hasTable = use.length > 0
+
+  for (const a of canonAgents(p.agentPool ?? [])) out[a] = 100
   for (const [role, v] of Object.entries(p.rolePro ?? {})) {
     for (const a of AGENTS[role as Role] ?? []) {
       out[a] = Math.max(out[a] ?? 0, v ?? 0)
     }
   }
-  // 每个本职位置补齐到同样的宽度。补哪几个要因人而异——补同一份 meta 列表
-  // 会让全世界的选手会的英雄一模一样，两支队伍排出完全相同的五人，阵容多样性
-  // 和整个打法风格系统一起失效。用选手 id 起一个偏移，稳定且各人不同。
+  // 补哪几个要因人而异——补同一份 meta 列表会让全世界的选手会的英雄一模一样，
+  // 两支队伍排出完全相同的五人，阵容多样性和整个打法风格系统一起失效。用选手
+  // id 起一个偏移，稳定且各人不同。
   const meta = new Set(Object.values(MAP_META).flat())
   const seed = hashStr(p.id ?? p.ign ?? '')
   for (const role of (p.roles?.length ? p.roles : [p.role])) {
     if (role === '自由人') continue
     const all = AGENTS[role] ?? []
-    const want = POOL_PER_ROLE - all.filter((a) => (out[a] ?? 0) >= 100).length
+    const width = hasTable ? 1 : POOL_PER_ROLE
+    let want = width - all.filter((a) => (out[a] ?? 0) >= 100).length
     if (want <= 0 || !all.length) continue
+    // 有表的人先把这个位置上他最拿手的那个补满——他被记成这个位置就是因为它
+    if (hasTable) {
+      const best = all.filter((a) => (out[a] ?? 0) > 0).sort((x, y) => out[y] - out[x])[0]
+      if (best) { out[best] = 100; want-- }
+    }
     // 常见英雄排在前面，但从每个人自己的偏移开始取
     const ranked = all.slice().sort((x, y) => Number(meta.has(y)) - Number(meta.has(x)))
-    let added = 0
-    for (let i = 0; i < ranked.length && added < want; i++) {
+    for (let i = 0; i < ranked.length && want > 0; i++) {
       const a = ranked[(i + seed) % ranked.length]
       if ((out[a] ?? 0) >= 100) continue
       out[a] = 100
-      added++
+      want--
     }
   }
   return out
