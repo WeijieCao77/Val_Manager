@@ -289,6 +289,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     now,
     cloud,
     phone,
+    bound: (last4: string) => { setVerified(true); setPhone(last4) },
     commit,
     act,
     toast,

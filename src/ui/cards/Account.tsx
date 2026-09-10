@@ -4,6 +4,7 @@ import { Panel } from '../common'
 import { collectionProgress } from '../../engine/gacha'
 import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
 import { Thanks } from '../Credit'
+import PhoneGate from './PhoneGate'
 
 /** Copy that works on http:// and on the browsers without a clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
@@ -25,7 +26,7 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 export default function Account({ onSignOut }: { onSignOut: () => void }) {
-  const { g, cloud, phone, toast, commit } = useCards()
+  const { g, cloud, phone, bound, toast, commit } = useCards()
   const [reveal, setReveal] = useState(false)
   const [name, setName] = useState(g.name)
   const prog = collectionProgress(g)
@@ -42,7 +43,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           {g.id}
         </div>
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          {phone ? <>已绑手机 尾号 <b>{phone}</b>。换设备可以在入口点「用手机号进入」，不用记 ID。</> : '这个账号是人工验证的，没有绑手机。'}
+          {phone ? <>已绑手机 尾号 <b>{phone}</b>。换设备可以在入口点「用手机号进入」，不用记 ID。</> : '还没绑手机。绑上以后换设备不用记 ID，用手机号就能进来。'}
         </p>
         <div className="row" style={{ gap: 8, marginTop: 10 }}>
           <button className="sm" onClick={() => setReveal((v) => !v)}>
@@ -106,6 +107,12 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           </div>
         )}
       </Panel>
+
+      {!phone && (
+        <Panel title="绑定手机">
+          <PhoneGate id={g.id} onBound={(last4) => { bound(last4); toast(`绑好了，尾号 ${last4}。`) }} onSignOut={() => {}} backLabel="" embedded />
+        </Panel>
+      )}
 
       <Panel title="退出">
         <p className="small muted" style={{ marginTop: 0 }}>

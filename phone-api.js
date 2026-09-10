@@ -13,12 +13,11 @@
  * last four digits to show, and the account's own id encrypted with a server
  * key so a login can hand it back. Codes are stored hashed, expire in ten
  * minutes, allow five tries, and a number gets one code a minute and five a
- * day. The sender is Aliyun SMS (RPC signature, no SDK) when
- * ALIYUN_SMS_KEY_ID / ALIYUN_SMS_KEY_SECRET / ALIYUN_SMS_SIGN /
- * ALIYUN_SMS_TEMPLATE are set; without them codes go to the server log and to
- * the owner's admin route, which is how the owner verifies a player by hand
- * (overseas numbers cannot receive a mainland template — they message the
- * owner, who calls /api/admin/verify on their battle code).
+ * day. The sender is Aliyun 号码认证服务 · 短信认证 (see below) when
+ * ALIYUN_SMS_ACCESS_KEY_ID / ALIYUN_SMS_ACCESS_KEY_SECRET / ALIYUN_SMS_SIGN_NAME
+ * are set; off Railway without them, codes go to the server log and to the
+ * owner's admin route. Overseas numbers cannot receive a mainland template —
+ * they message the owner, who calls /api/admin/verify on their battle code.
  */
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt } from 'node:crypto'
 
@@ -58,47 +57,61 @@ export function decryptId(enc) {
   return Buffer.concat([d.update(buf.subarray(28)), d.final()]).toString('utf8')
 }
 
-// ---------------------------------------------------------------- senders
+// ---------------------------------------------------------------- Aliyun 号码认证 · 短信认证
+//
+// Not the plain SMS service: a personally-verified Aliyun account cannot get a
+// custom signature there. 号码认证服务's 短信认证 lends a signature
+// (「速通互联验证码」) and a template (100001, 登录/注册) with no paperwork, and
+// it generates, sends, KEEPS and checks the code itself — SendSmsVerifyCode
+// then CheckSmsVerifyCode on dypnsapi.aliyuncs.com. Nothing about the code
+// is stored here; card_sms only remembers when a number was last sent to,
+// for the one-a-minute / five-a-day limits. Same RPC-2017-05-25 signature
+// the owner's other project uses, hand-signed, no SDK.
 
 /** the last codes handed out in dev mode, for the owner's admin route */
 export const devCodes = []
 
 const pct = (s) => encodeURIComponent(s).replace(/\+/g, '%20').replace(/\*/g, '%2A').replace(/%7E/g, '~')
 
-/** Aliyun Dysmsapi SendSms, RPC style signature v1. */
-export async function sendAliyun(phone, code, env = process.env) {
+export async function aliyunRpc(host, action, extra, env = process.env) {
   const params = {
-    AccessKeyId: env.ALIYUN_SMS_KEY_ID, Action: 'SendSms', Format: 'JSON', PhoneNumbers: phone,
-    RegionId: 'cn-hangzhou', SignName: env.ALIYUN_SMS_SIGN, SignatureMethod: 'HMAC-SHA1',
-    SignatureNonce: randomBytes(16).toString('hex'), SignatureVersion: '1.0',
-    TemplateCode: env.ALIYUN_SMS_TEMPLATE, TemplateParam: JSON.stringify({ code }),
-    Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'), Version: '2017-05-25',
+    Action: action, Version: '2017-05-25', RegionId: 'cn-hangzhou', Format: 'JSON',
+    AccessKeyId: env.ALIYUN_SMS_ACCESS_KEY_ID, SignatureMethod: 'HMAC-SHA1', SignatureVersion: '1.0',
+    SignatureNonce: randomBytes(16).toString('hex'), Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    ...extra,
   }
   const canon = Object.keys(params).sort().map((k) => `${pct(k)}=${pct(params[k])}`).join('&')
   const toSign = `GET&${pct('/')}&${pct(canon)}`
-  const sig = createHmac('sha1', `${env.ALIYUN_SMS_KEY_SECRET}&`).update(toSign).digest('base64')
-  const url = `https://dysmsapi.aliyuncs.com/?${canon}&Signature=${pct(sig)}`
-  const r = await fetch(url, { signal: AbortSignal.timeout(10_000) })
-  const j = await r.json().catch(() => ({}))
-  if (j?.Code !== 'OK') throw new Error(`aliyun ${j?.Code || r.status}: ${j?.Message || ''}`)
-  return true
+  const sig = createHmac('sha1', `${env.ALIYUN_SMS_ACCESS_KEY_SECRET}&`).update(toSign).digest('base64')
+  const r = await fetch(`https://${host}/?${canon}&Signature=${pct(sig)}`, { signal: AbortSignal.timeout(12_000) })
+  return r.json().catch(() => ({}))
 }
 
 export const smsConfigured = (env = process.env) =>
-  !!(env.ALIYUN_SMS_KEY_ID && env.ALIYUN_SMS_KEY_SECRET && env.ALIYUN_SMS_SIGN && env.ALIYUN_SMS_TEMPLATE)
+  !!(env.ALIYUN_SMS_ACCESS_KEY_ID && env.ALIYUN_SMS_ACCESS_KEY_SECRET && env.ALIYUN_SMS_SIGN_NAME)
 
-async function send(phone, code, sender) {
-  if (sender) return sender(phone, code)
-  if (smsConfigured()) return sendAliyun(phone, code)
-  devCodes.unshift({ last4: phone.slice(-4), code, at: new Date().toISOString() })
-  devCodes.splice(50)
-  console.log(`sms(dev): ****${phone.slice(-4)} code ${code}`)
+/** Aliyun makes the code, sends it, and keeps it for five minutes. */
+export async function sendVerify(phone, env = process.env) {
+  const d = await aliyunRpc('dypnsapi.aliyuncs.com', 'SendSmsVerifyCode', {
+    PhoneNumber: phone, SignName: env.ALIYUN_SMS_SIGN_NAME, TemplateCode: env.ALIYUN_SMS_TEMPLATE_CODE || '100001',
+    TemplateParam: JSON.stringify({ code: '##code##', min: '5' }), ValidTime: '300', CodeLength: '6',
+  }, env)
+  if (d?.Code !== 'OK') throw new Error(`aliyun ${d?.Code || '?'}: ${d?.Message || ''}`)
   return true
 }
 
+/** Aliyun checks the code the player typed. */
+export async function checkVerify(phone, code, env = process.env) {
+  const d = await aliyunRpc('dypnsapi.aliyuncs.com', 'CheckSmsVerifyCode', { PhoneNumber: phone, VerifyCode: code }, env)
+  return d?.Code === 'OK' && d?.Model?.VerifyResult === 'PASS'
+}
+
+/** Local codes only off Railway: on production an unconfigured sender is an error, not a fallback. */
+export const devMode = (env = process.env) => !smsConfigured(env) && !env.RAILWAY_ENVIRONMENT
+
 // ---------------------------------------------------------------- the api
 
-export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, hash, token, tokenFrom, tokenOk, sender }) {
+export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, hash, token, tokenFrom, tokenOk, sender, checker }) {
   const guard = (res, key, max) => {
     if (rateLimited(key, max)) { json(res, 429, { ok: false, why: '操作太频繁，稍等一下。' }); return true }
     return false
@@ -121,27 +134,44 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
       return
     }
     if (recent.length >= PER_DAY) { json(res, 200, { ok: false, why: '这个号今天发得太多了，明天再试。' }); return }
-    const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+    let dev = false
     try {
-      await send(phone, code, sender)
+      if (sender) await sender(phone)
+      else if (smsConfigured()) await sendVerify(phone)
+      else if (devMode()) {
+        const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+        devCodes.unshift({ last4: phone.slice(-4), code, at: new Date().toISOString() })
+        devCodes.splice(50)
+        console.log(`sms(dev): ****${phone.slice(-4)} code ${code}`)
+        dev = true
+      } else {
+        json(res, 200, { ok: false, why: '短信服务未配置，请联系作者。' })
+        return
+      }
     } catch (err) {
       console.warn('sms: send failed —', err.message)
       json(res, 200, { ok: false, why: '短信没发出去，稍后再试。' })
       return
     }
-    await sql`insert into card_sms (phone_h, code_h, ip) values (${ph}, ${codeHash(ph, code)}, ${bucket})`
-    json(res, 200, { ok: true, wait: 60, dev: !smsConfigured() && !sender })
+    await sql`insert into card_sms (phone_h, code_h, ip) values (${ph}, ${dev ? codeHash(ph, devCodes[0].code) : ''}, ${bucket})`
+    json(res, 200, { ok: true, wait: 60, dev })
   }
 
-  /** the freshest usable code for a number; consumes a try; null = no match */
-  async function verify(ph, code) {
+  /** Aliyun's verdict when configured; the local dev code otherwise. Five tries a code either way. */
+  async function verify(phone, ph, code) {
     const rows = await sql`select ctid, code_h, tries, sent from card_sms where phone_h = ${ph}
                            and sent > now() - interval '10 minutes' order by sent desc limit 1`
     if (!rows.length) return { ok: false, why: '验证码过期了，重新发一个。' }
     const r = rows[0]
     if (r.tries >= MAX_TRIES) return { ok: false, why: '试错太多次了，重新发一个。' }
     await sql`update card_sms set tries = tries + 1 where ctid = ${r.ctid}`
-    if (r.code_h !== codeHash(ph, String(code ?? '').trim())) return { ok: false, why: '验证码不对。' }
+    const typed = String(code ?? '').trim()
+    let pass
+    if (checker) pass = await checker(phone, typed)
+    else if (smsConfigured()) {
+      try { pass = await checkVerify(phone, typed) } catch (err) { console.warn('sms: check failed —', err.message); return { ok: false, why: '校验没连上，稍后再试。' } }
+    } else pass = r.code_h !== '' && r.code_h === codeHash(ph, typed)
+    if (!pass) return { ok: false, why: '验证码不对。' }
     await sql`delete from card_sms where phone_h = ${ph}`
     return { ok: true }
   }
@@ -165,7 +195,7 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     }
     const mine = await sql`select last4 from card_phones where id_hash = ${me}`
     if (mine.length && !held.length) { json(res, 200, { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }); return }
-    const v = await verify(ph, b.code)
+    const v = await verify(phone, ph, b.code)
     if (!v.ok) { json(res, 200, v); return }
     await sql.begin(async (tx) => {
       await tx`insert into card_phones (phone_h, id_hash, id_enc, last4) values (${ph}, ${me}, ${encryptId(id)}, ${phone.slice(-4)})
@@ -185,7 +215,7 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     const ph = phoneHash(phone)
     const held = await sql`select id_enc, last4 from card_phones where phone_h = ${ph}`
     if (!held.length) { json(res, 200, { ok: false, why: '这个手机号还没绑过账号。', none: true }); return }
-    const v = await verify(ph, b.code)
+    const v = await verify(phone, ph, b.code)
     if (!v.ok) { json(res, 200, v); return }
     let id
     try { id = decryptId(held[0].id_enc) } catch { json(res, 200, { ok: false, why: '账号记录读不出来，请联系作者。' }); return }
@@ -214,7 +244,7 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
 
   async function adminCodes(req, res, url) {
     if (!admin(req, url, res)) return
-    json(res, 200, { ok: true, configured: smsConfigured(), codes: devCodes })
+    json(res, 200, { ok: true, configured: smsConfigured(), dev: devMode(), codes: devCodes })
   }
 
   return {

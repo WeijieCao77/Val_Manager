@@ -14,7 +14,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
 import { CARD_SCHEMA, makeCardApi, normalizeId } from '../cards-api.js'
-import { devCodes, encryptId, decryptId, makePhoneApi, normalizePhone, sendAliyun } from '../phone-api.js'
+import { checkVerify, devCodes, devMode, encryptId, decryptId, makePhoneApi, normalizePhone, sendVerify, smsConfigured } from '../phone-api.js'
 
 process.env.PHONE_GATE = '1'
 const db = new PGlite()
@@ -118,17 +118,45 @@ check('没有口令看不到后台路由', r.code === 0 || r.code === 404)
 r = await call(phone, '/api/admin/sms', {}, 'admin', 'token=tok')
 check('后台能看开发模式的验证码', r.body.ok === true && Array.isArray(r.body.codes))
 
-// ---- the Aliyun request, without sending ---------------------------------
+// ---- the Aliyun 号码认证 requests, without sending ---------------------------
 {
   const seen: string[] = []
   const realFetch = globalThis.fetch
-  globalThis.fetch = (async (url: string) => { seen.push(String(url)); return { status: 200, json: async () => ({ Code: 'OK' }) } }) as never
-  const ok = await sendAliyun('13800138000', '123456', { ALIYUN_SMS_KEY_ID: 'AK', ALIYUN_SMS_KEY_SECRET: 'SK', ALIYUN_SMS_SIGN: '猪之家', ALIYUN_SMS_TEMPLATE: 'SMS_1' })
-  globalThis.fetch = realFetch
+  globalThis.fetch = (async (url: string) => {
+    seen.push(String(url))
+    const u = new URL(String(url))
+    return { status: 200, json: async () => (u.searchParams.get('Action') === 'CheckSmsVerifyCode' ? { Code: 'OK', Model: { VerifyResult: 'PASS' } } : { Code: 'OK' }) }
+  }) as never
+  const env = { ALIYUN_SMS_ACCESS_KEY_ID: 'AK', ALIYUN_SMS_ACCESS_KEY_SECRET: 'SK', ALIYUN_SMS_SIGN_NAME: '速通互联验证码' }
+  check('三个变量齐了才算配置好', smsConfigured(env) && !smsConfigured({ ALIYUN_SMS_ACCESS_KEY_ID: 'AK' }))
+  check('Railway 上没配置不是开发模式', !devMode({ RAILWAY_ENVIRONMENT: 'production' }) && devMode({}))
+  const ok = await sendVerify('13800138000', env)
   const u = new URL(seen[0])
-  check('阿里云请求带齐参数', ok && u.hostname === 'dysmsapi.aliyuncs.com' && u.searchParams.get('Action') === 'SendSms'
-    && u.searchParams.get('TemplateParam') === '{"code":"123456"}' && u.searchParams.get('SignName') === '猪之家'
-    && !!u.searchParams.get('Signature') && u.searchParams.get('SignatureMethod') === 'HMAC-SHA1')
+  check('SendSmsVerifyCode 走号码认证接口、带齐参数', ok && u.hostname === 'dypnsapi.aliyuncs.com' && u.searchParams.get('Action') === 'SendSmsVerifyCode'
+    && u.searchParams.get('PhoneNumber') === '13800138000' && u.searchParams.get('SignName') === '速通互联验证码'
+    && u.searchParams.get('TemplateCode') === '100001' && u.searchParams.get('TemplateParam') === '{"code":"##code##","min":"5"}'
+    && u.searchParams.get('ValidTime') === '300' && u.searchParams.get('CodeLength') === '6'
+    && u.searchParams.get('Version') === '2017-05-25' && !!u.searchParams.get('Signature'), u.search.slice(0, 120))
+  const pass = await checkVerify('13800138000', '123456', env)
+  const c = new URL(seen[1])
+  check('CheckSmsVerifyCode 由阿里云判定', pass && c.searchParams.get('Action') === 'CheckSmsVerifyCode' && c.searchParams.get('VerifyCode') === '123456')
+  globalThis.fetch = realFetch
+}
+
+// ---- with the sender and checker injected, the account flow is the same ----
+{
+  const sent: string[] = []
+  const inj = makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, hash, token: 'tok', tokenFrom: (_r: unknown, u: URL) => u.searchParams.get('token'), tokenOk: (a: string, b: string) => a === b,
+    sender: async (p: string) => { sent.push(p) }, checker: async (_p: string, c: string) => c === '424242' } as never)
+  const ID5 = 'VM-5555-5555-5555-5555-5555'
+  await call(cards, '/api/card/claim', { id: ID5, name: '真短信' })
+  await sql`delete from card_sms`
+  let r = await call(inj, '/api/card/phone/send', { phone: '13600136000' }, 'inj')
+  check('配置好时验证码不在本地生成', r.body.ok === true && r.body.dev === false && sent[0] === '13600136000' && devCodes.every((d) => d.last4 !== '6000'))
+  r = await call(inj, '/api/card/phone/bind', { id: ID5, phone: '13600136000', code: '000000' }, 'inj')
+  check('阿里云说不对就不对', r.body.ok === false)
+  r = await call(inj, '/api/card/phone/bind', { id: ID5, phone: '13600136000', code: '424242' }, 'inj')
+  check('阿里云说通过就绑上', r.body.ok === true && r.body.phone === '6000', JSON.stringify(r.body))
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

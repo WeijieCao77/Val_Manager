@@ -10,9 +10,11 @@ import { maskId, rememberId } from '../../engine/cardid'
  * number (which claims it), or walk into the account a number already holds
  * (which is how a lost id comes back). The number itself is never kept.
  */
-export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一个 ID' }: {
+export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一个 ID', embedded = false }: {
   /** the account to bind; absent on the front door, where only 「用手机号进入」 makes sense */
   id?: string; onBound: (last4: string) => void; onSignOut: () => void; backLabel?: string
+  /** inside the 账号 page rather than as the door: no heading, no way out */
+  embedded?: boolean
 }) {
   const [mode, setMode] = useState<'bind' | 'login'>(id ? 'bind' : 'login')
   const [phone, setPhone] = useState('')
@@ -56,8 +58,8 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
 
   const okPhone = /^1[3-9]\d{9}$/.test(phone.replace(/\D/g, '').replace(/^86/, ''))
   return (
-    <div className="wrap phone-gate" style={{ maxWidth: 420, margin: '40px auto', padding: 20 }}>
-      <h2 style={{ marginTop: 0 }}>{mode === 'bind' ? '先绑一个手机号' : '用手机号进入'}</h2>
+    <div className={embedded ? 'phone-gate' : 'wrap phone-gate'} style={embedded ? undefined : { maxWidth: 420, margin: '40px auto', padding: 20 }}>
+      {!embedded && <h2 style={{ marginTop: 0 }}>{mode === 'bind' ? '先绑一个手机号' : '用手机号进入'}</h2>}
       <p className="small muted" style={{ lineHeight: 1.7 }}>
         {mode === 'bind'
           ? <>一个手机号只能有一个账号，绑上就是你的了。当前账号 <span className="mono">{maskId(id ?? '')}</span>。</>
@@ -89,7 +91,7 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
             {mode === 'bind' ? '已经绑过手机？用手机号进入' : '给当前账号绑手机'}
           </button>
         )}
-        <button className="ghost sm" onClick={onSignOut}>{backLabel}</button>
+        {backLabel && <button className="ghost sm" onClick={onSignOut}>{backLabel}</button>}
       </div>
     </div>
   )

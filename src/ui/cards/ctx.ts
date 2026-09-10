@@ -18,6 +18,8 @@ export interface CardCtxValue {
   cloud: boolean
   /** the last four digits of the phone this account is bound to; null = verified by hand or offline */
   phone: string | null
+  /** the account just bound a phone (last four digits) */
+  bound: (last4: string) => void
   /**
    * Re-render and write the cosmetic fields back; pass true to skip the debounce.
    *
