@@ -53,6 +53,15 @@ RECORDS = ROOT / "src" / "data" / "records.json"
 FACES = ROOT / "public" / "faces"
 LOGOS = ROOT / "public" / "logos"
 
+# vlr files staff by handle, and two people answer to "potter": EG's head coach
+# Christine Chi and a Thai player at Rare Atom, whose name, flag and vlr link
+# the staff scrape put under hers (the photo it kept is hers). Checked against
+# her vlr page and Liquipedia's Potter_(Christine_Chi). Keyed by the name
+# world.json uses; these fields win over whatever vlr_staff.json says.
+COACH_FIX: dict[str, dict] = {
+    "potter": {"real": "Christine Chi", "nat": "us", "vlrId": "3104"},
+}
+
 
 def load(p: Path, default):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else default
@@ -168,7 +177,7 @@ def main() -> int:
             coach_photos += 1
             if name in lp["coaches"]:
                 rec["src"] = "lp"
-        v = staff["people"].get(name.lower()) or {}
+        v = {**(staff["people"].get(name.lower()) or {}), **COACH_FIX.get(name, {})}
         if v.get("nat"):
             rec["nat"] = v["nat"]
         if v.get("real"):

@@ -282,6 +282,17 @@ export const LEGENDS: Legend[] = [
     coach: { tactics: 95, development: 88, motivation: 90 },
     note: '2024 年 6 月接任 EDG 主教练，两个月后拿下首尔冠军赛。中国赛区第一个世界冠军是他带的。',
   },
+  // Christine "potter" Chi. Riot's recap has EG opening the Americas league
+  // 1–4 and beating Paper Rex 3–1 in the Los Angeles final; she was the first
+  // woman to coach a team to a VALORANT world title.
+  {
+    id: 'L:potter-champions-2023',
+    ign: 'potter', title: '2023 洛杉矶冠军教练', short: '23 洛杉矶冠军教练',
+    year: 2023, kind: 'icon', clubId: 'T10', clubTag: 'EG',
+    rating: 92,
+    coach: { tactics: 90, development: 94, motivation: 95 },
+    note: 'EG 3–1 Paper Rex 夺冠，联赛开局还是 1 胜 4 负。第一位带队拿下 VALORANT 世界冠军的女性主教练。',
+  },
 ]
 
 export const LEGEND_KIND_CN: Record<LegendKind, string> = {
