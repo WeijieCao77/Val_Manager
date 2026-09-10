@@ -186,11 +186,17 @@ function Countdown({ color, onGo }: { color: string; onGo: () => void }) {
   const [n, setN] = useState(3)
   const go = useRef(onGo)
   go.current = onGo
+  // One timer at a time, each setting up the next. It was an interval
+  // counting down plus a timeout to start the round once the count reached 0
+  // — but the interval kept running past 0, and every tick changed `n`, which
+  // cancelled the start timeout and set it again 800 ms out: the interval's
+  // own beat, and the interval was scheduled first, so it always fired first.
+  // The start never came and the screen sat on 开始: 「321到开始的时候会一直
+  // 卡在开始的地方」.
   useEffect(() => {
-    const id = window.setInterval(() => setN((x) => x - 1), COUNT_MS)
-    return () => window.clearInterval(id)
-  }, [])
-  useEffect(() => { if (n <= 0) { const t = window.setTimeout(() => go.current(), COUNT_MS); return () => window.clearTimeout(t) } }, [n])
+    const t = window.setTimeout(() => { if (n > 0) setN(n - 1); else go.current() }, COUNT_MS)
+    return () => window.clearTimeout(t)
+  }, [n])
   return (
     <div className="mini-countdown" aria-live="assertive" aria-atomic="true">
       <span key={n} className="mini-countdown-n display mono" style={{ color: n > 0 ? color : 'var(--win)' }}>
