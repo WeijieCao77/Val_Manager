@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { natName } from '../engine/nat'
-import { AgentIcon, Bar, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
+import { AgentIcon, Bar, Face, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { Rng, hashStr } from '../engine/rng'
 import { playerAcceptsTerms } from '../engine/transfer'
@@ -87,6 +87,7 @@ export default function PlayerModal(
       wide
       title={
         <span className="row" style={{ gap: 10 }}>
+          <Face id={p.id} size={36} />
           <span>{p.ign}</span>
           <Roles p={p} />
           <OvrBadge value={p.overall} />

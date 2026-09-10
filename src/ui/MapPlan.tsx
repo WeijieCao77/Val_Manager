@@ -20,7 +20,7 @@ import { agentMod, agentRoleGaps, agentWarn, autoAgents, normalizeAgents } from 
 import { COMP_STYLE_CN, compStyle, famBonus, familiarity } from '../engine/comp'
 import type { CompStyle } from '../engine/comp'
 import { AGENT_ROLE, ALL_AGENTS, MAP_META, agentCn, mapCn } from '../engine/content'
-import { AgentIcon, Bar, OvrBadge } from './common'
+import { AgentIcon, Bar, Face, OvrBadge } from './common'
 import TacticSliders from './TacticSliders'
 
 export const STYLE_COLOR: Record<CompStyle, string> = {
@@ -164,7 +164,7 @@ export default function MapPlan({
               return (
                 <tr key={p.id}>
                   <td>
-                    <b>{p.ign}</b> <OvrBadge value={p.overall} />
+                    <Face id={p.id} /><b>{p.ign}</b> <OvrBadge value={p.overall} />
                   </td>
                   <td className="tiny muted">{mine.join(' / ')}</td>
                   <td>

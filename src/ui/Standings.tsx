@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { OvrBadge, Panel, Crest } from './common'
+import { Face, OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
 import { groupTable, sortStandings } from '../engine/league'
 import { DRAW_KIND_CN, drawsOf } from '../engine/draw'
@@ -240,7 +240,7 @@ export default function Standings() {
                       onClick={() => openPlayer(p.id)}
                     >
                       <td className="num muted">{i + 1}</td>
-                      <td><b>{p.ign}</b></td>
+                      <td><Face id={p.id} /><b>{p.ign}</b></td>
                       <td className="small muted">{game.teams[p.teamId ?? '']?.name}</td>
                       <td className="num"><OvrBadge value={p.overall} /></td>
                       <td className="num"><b>{ratingOf(p.season).toFixed(2)}</b></td>

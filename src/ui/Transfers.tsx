@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Club, clubMatches, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
+import { Club, clubMatches, Face, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
   INTEREST_CN, makeOffer, rosterBlock, TRANSFER_WINDOWS, windowBlock, windowOpen,
@@ -173,7 +173,7 @@ export default function Transfers() {
                       return (
                         <tr key={e.id}>
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
-                            <b>{p.ign}</b>
+                            <Face id={p.id} /><b>{p.ign}</b>
                             <span className="name-tags">
                             {p.retiring && <span className="tag warn">退役</span>}
                             </span>
@@ -231,7 +231,7 @@ export default function Transfers() {
                   return (
                     <tr key={o.id}>
                       <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
-                        <b>{p.ign}</b>
+                        <Face id={p.id} /><b>{p.ign}</b>
                         <span className="name-tags">
                         {p.listed && <span className="tag warn">挂牌</span>}
                         {!!p.grievance && p.grievance > 30 && (
@@ -283,7 +283,7 @@ export default function Transfers() {
                   const left = (o.respondOn ?? game.day) - game.day
                   return (
                     <tr key={o.id}>
-                      <td className="sticky-name at-left"><b>{p?.ign ?? '—'}</b></td>
+                      <td className="sticky-name at-left"><Face id={p?.id} /><b>{p?.ign ?? '—'}</b></td>
                       <td className="small muted">
                         <Club id={o.fromTeam} game={game} />
                       </td>
@@ -394,7 +394,7 @@ export default function Transfers() {
                       return (
                         <tr key={p.id}>
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
-                            <b>{p.ign}</b>
+                            <Face id={p.id} /><b>{p.ign}</b>
                             <span className="name-tags">
                             {p.listed && <span className="tag warn">挂牌</span>}
                             {p.retiring && <span className="tag warn" title="本赛季结束后退役">退役</span>}
@@ -462,7 +462,7 @@ export default function Transfers() {
                       return (
                         <tr key={p.id}>
                           <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
-                            <b>{p.ign}</b>
+                            <Face id={p.id} /><b>{p.ign}</b>
                             {starter && <span className="tag" style={{ marginLeft: 5 }}>首发</span>}
                             {p.listed && <span className="tag warn" style={{ marginLeft: 5 }}>挂牌</span>}
                             {p.retiring && <span className="tag warn" style={{ marginLeft: 5 }} title="本赛季结束后退役">退役</span>}
@@ -549,7 +549,7 @@ export default function Transfers() {
               {pool.map((p) => (
                 <tr key={p.id}>
                   <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
-                    <b>{p.ign}</b>
+                    <Face id={p.id} /><b>{p.ign}</b>
                     {p.isIgl && (
                       <span className="tag" style={{ marginLeft: 6 }}
                         title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行' : '队内指挥'}>

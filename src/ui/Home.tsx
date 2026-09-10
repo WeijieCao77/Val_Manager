@@ -20,6 +20,7 @@ import type { Region } from '../engine/types'
 import { Crest } from './common'
 import { maskId } from '../engine/cardid'
 import Support from './Support'
+import { THANKS } from './Credit'
 import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
 import WeChat from './WeChat'
@@ -264,6 +265,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
 
       <footer className="home-foot">
         <span>猪之家出品 · 小红书/抖音 @点点点点点点点点 · @Greenle4f</span>
+        <span>感谢名单 {THANKS.join('、')}</span>
         <span className="faint">游戏全部免费</span>
       </footer>
 

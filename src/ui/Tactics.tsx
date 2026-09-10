@@ -9,7 +9,7 @@
  * its own setting falls back to.
  */
 import { useGame } from './ctx'
-import { Bar, Panel, RoleTag } from './common'
+import { Bar, Face, Panel, RoleTag } from './common'
 import { buildLineup, poolFor, selectLineup, sheetFor } from '../engine/match'
 import { familiarity } from '../engine/comp'
 import { MAPS, mapCn } from '../engine/content'
@@ -82,6 +82,7 @@ export default function Tactics() {
             {lineup.map((p) => (
               <span key={p.id} className="row" style={{ gap: 5 }}>
                 <RoleTag role={p.role} />
+                <Face id={p.id} size={18} />
                 <span className="small">{p.ign}</span>
               </span>
             ))}

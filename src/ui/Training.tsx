@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ask } from './confirm'
 import { AGENTS, AGENT_ROLE, agentCn, mapCn } from '../engine/content'
 import { useGame } from './ctx'
-import { Bar, Condition, money, OvrBadge, Panel, Roles, Potential } from './common'
+import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { callerOf, squadOf } from '../engine/roster'
 import { stageName } from '../engine/season'
 import { AGENT_DRILL, AGENT_DRILL_MAX } from '../engine/training'
@@ -276,7 +276,7 @@ export default function Training() {
                 const covers = need ? (p.roles ?? [p.role]).includes(need) : true
                 return (
                   <div key={p.id} className={`agent-drill-row${on ? ' on' : ''}`}>
-                    <span className="agent-drill-who">{p.ign}</span>
+                    <span className="agent-drill-who"><Face id={p.id} size={18} />{p.ign}</span>
                     <select
                       className="sm agent-drill-pick"
                       aria-label={`${p.ign} 这周练的英雄`}
@@ -333,7 +333,7 @@ export default function Training() {
                         : [...duoPick, p.id].slice(-2)
                       setDuo(next)
                     }}>
-                    {p.ign}
+                    <Face id={p.id} size={16} />{p.ign}
                   </button>
                 )
               })}
@@ -414,7 +414,7 @@ export default function Training() {
                 const xp = focus !== 'rest' ? (p.xp[focus as keyof Attrs] ?? 0) : 0
                 return (
                   <tr key={p.id}>
-                    <td className="clickable" onClick={() => openPlayer(p.id)}><b>{p.ign}</b></td>
+                    <td className="clickable" onClick={() => openPlayer(p.id)}><Face id={p.id} /><b>{p.ign}</b></td>
                     <td><Roles p={p} /></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
                     <td className="num"><Potential p={p} game={game} /></td>
@@ -480,7 +480,7 @@ export default function Training() {
                   }
                 }}
               >
-                💆 {p.ign}
+                💆 <Face id={p.id} size={16} />{p.ign}
                 <span className="tiny faint"> 体能 {Math.round(100 - p.fatigue)}{hurt ? ` · 伤停 ${p.injuredUntil - game.day} 天` : ''}</span>
               </button>
             )

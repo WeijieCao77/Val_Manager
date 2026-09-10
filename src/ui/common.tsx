@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
 import { analystEdge } from '../engine/staff'
-import { crestUrl } from '../engine/dossier'
+import { crestUrl, dossierOf, faceUrl } from '../engine/dossier'
 import { AGENT_ROLE, agentCn, canonAgent } from '../engine/content'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
@@ -97,6 +97,31 @@ export function Crest({
       alt=""
       aria-hidden="true"
       loading="lazy"
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+    />
+  )
+}
+
+/**
+ * A player's photo, small, beside their name.
+ *
+ * Unlike a crest, a missing photo still takes its place as an empty circle:
+ * names sit in columns, and a column where one name in nine starts further
+ * left reads as misaligned rather than as "no photo".
+ */
+export function Face({ id, size = 20 }: { id: string | null | undefined; size?: number }) {
+  const d = id ? dossierOf(id) : undefined
+  if (!d?.img) return <span className="face" aria-hidden="true" style={{ width: size, height: size }} />
+  return (
+    <img
+      className="face"
+      src={faceUrl(d.img, d.v)}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
       width={size}
       height={size}
       style={{ width: size, height: size }}

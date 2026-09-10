@@ -3,7 +3,7 @@ import { ask } from './confirm'
 import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
-import { Bar, Condition, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
+import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { appointIgl, autoStarters } from '../engine/world'
 import { callerOf, squadOf } from '../engine/roster'
 import { statLine } from '../engine/player'
@@ -224,7 +224,7 @@ export default function Squad() {
                       />
                     </td>
                     <td className="clickable sticky-name" onClick={() => openPlayer(p.id)}>
-                      <b>{p.ign}</b>
+                      <Face id={p.id} /><b>{p.ign}</b>
                       {/* The tags beside a name sit on a second line on a phone,
                           so the pinned name column is only as wide as the
                           longest name — beside it, 「推定 IGL」 alone cost the
@@ -349,7 +349,7 @@ export default function Squad() {
             <tbody>
               {squad.map((row, ri) => (
                 <tr key={row.id}>
-                  <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>{row.ign}</th>
+                  <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}><Face id={row.id} size={18} />{row.ign}</th>
                   {squad.map((col, ci) => {
                     if (row.id === col.id) {
                       return <td key={col.id} className="bond-self" title="同一名选手">—</td>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import WhyPanel from './WhyPanel'
 import { mapCn } from '../engine/content'
 import { useGame } from './ctx'
-import { AgentIcon, Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
+import { AgentIcon, Face, Modal, MultiRadar, OvrBadge, Roles, Crest } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import { mapMvp, ratingOf } from '../engine/match'
 import type { Fixture, MapLine, MapScore } from '../engine/types'
@@ -260,7 +260,7 @@ function Performance({
             const on = picked.indexOf(pid)
             return (
               <button key={pid} className={`sm${on >= 0 ? ' primary' : ''}`} onClick={() => toggle(pid)}>
-                {p.ign}
+                <Face id={p.id} size={16} />{p.ign}
                 {on >= 0 && <span className="tiny"> ●</span>}
               </button>
             )
@@ -301,7 +301,7 @@ function Performance({
                   const d = now - base
                   return (
                     <tr key={pid} className="clickable" onClick={() => { setMode('player'); toggle(pid) }}>
-                      <td>{p.ign}</td>
+                      <td><Face id={p.id} />{p.ign}</td>
                       <td className="num mono">{now.toFixed(2)}</td>
                       <td className="num mono muted">{base.toFixed(2)}</td>
                       <td className={`num mono ${d >= 0.08 ? 'pos' : d <= -0.08 ? 'neg' : 'muted'}`}>
@@ -374,7 +374,7 @@ function Scoreboard({
                 return (
                   <tr key={p.id} className="clickable" onClick={() => onPlayer(p.id)}>
                     <td>
-                      <b>{p.ign}</b>
+                      <Face id={p.id} /><b>{p.ign}</b>
                       {mvp === p.id && <span className="tag t1" style={{ marginLeft: 6 }}>MVP</span>}
                       {/* form now moves with nights like this one and decides
                           part of the next scoreboard; a man running hot or
@@ -446,6 +446,7 @@ export function TeamStrip({ ids }: { ids: string[] }) {
         return (
           <span key={id} className="row" style={{ gap: 4 }}>
             <Roles p={p} />
+            <Face id={p.id} size={18} />
             <span className="small">{p.ign}</span>
             <OvrBadge value={p.overall} />
           </span>

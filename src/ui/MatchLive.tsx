@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CompBoard } from './CompBoard'
 import { useGame } from './ctx'
-import { Crest, Modal, OvrBadge, Roles } from './common'
+import { Crest, Face, Modal, OvrBadge, Roles } from './common'
 import RoundRibbon, { RibbonLegend } from './RoundRibbon'
 import MapVeto from './MapVeto'
 import MapPlan from './MapPlan'
@@ -271,7 +271,7 @@ export default function MatchLive({
             <div className="row wrap" style={{ gap: 6 }}>
               {(mySide === 'a' ? map.A : map.B).players.map((p) => (
                 <button key={p.id} className="sm" onClick={() => callTimeout('focus', p.id)}>
-                  {p.ign} <OvrBadge value={p.overall} />
+                  <Face id={p.id} size={16} />{p.ign} <OvrBadge value={p.overall} />
                 </button>
               ))}
             </div>
@@ -313,7 +313,7 @@ export default function MatchLive({
         <div className="row wrap tiny faint" style={{ gap: 10, justifyContent: 'center', marginTop: 10 }}>
           {(mySide === 'a' ? map.A : map.B).players.map((p) => (
             <span key={p.id} className="row" style={{ gap: 4 }}>
-              <Roles p={p} /><span>{p.ign}</span>
+              <Roles p={p} /><Face id={p.id} size={16} /><span>{p.ign}</span>
             </span>
           ))}
         </div>

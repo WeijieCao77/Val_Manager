@@ -2184,6 +2184,17 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* the club in the header wears its crest a size up */
 .brand-club { display: inline-flex; align-items: center; gap: 7px; }
 
+/* A player's photo beside their name. The photos are head-and-shoulders, so
+   the crop keeps the top; a player without one gets an empty circle of the
+   same size, which keeps a column of names lined up. */
+.face {
+  display: inline-block; flex: none; vertical-align: middle;
+  margin: -2px 6px 0 0;
+  border-radius: 50%; object-fit: cover; object-position: 50% 0;
+  background: var(--panel-3);
+}
+.row > .face { margin: 0; }
+
 /* ---------------------------------------------------------------- home
 
    The front page. Two games, one account, and nothing that needs either

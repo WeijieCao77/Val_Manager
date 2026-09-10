@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
-import { Condition, fmtDay, money, OvrBadge, Panel, Stat } from './common'
+import { Condition, Face, fmtDay, money, OvrBadge, Panel, Stat } from './common'
 import {
   bookGig, cancelGig, declineSponsor, endStream, freeDays, openGigs, pitchSponsor, sponsorSlots,
   signSponsor, signStream, SPONSOR_SLOT_TIERS, startVenture, streamOffer, ventureInfo, gigWindow,
@@ -165,7 +165,7 @@ export default function Commercial() {
                         <button key={p.id} className={`sm${vChosen.includes(p.id) ? ' primary' : ''}`}
                           onClick={() => setVChosen((c) =>
                             c.includes(p.id) ? c.filter((x) => x !== p.id) : [...c, p.id].slice(-need))}>
-                          {p.ign}
+                          <Face id={p.id} size={16} />{p.ign}
                         </button>
                       ))}
                     </div>
@@ -264,7 +264,7 @@ export default function Commercial() {
                           onClick={() => toggle(p.id, g.heads)}
                           title={p.injuredUntil > game.day ? '伤停中，仍可出席' : ''}
                         >
-                          {p.ign} <OvrBadge value={p.overall} />
+                          <Face id={p.id} size={16} />{p.ign} <OvrBadge value={p.overall} />
                         </button>
                       ))}
                     </div>
@@ -302,7 +302,7 @@ export default function Commercial() {
                 const used = game.commercialDays?.[p.id] ?? 0
                 return (
                   <tr key={p.id}>
-                    <td><b>{p.ign}</b></td>
+                    <td><Face id={p.id} /><b>{p.ign}</b></td>
                     <td className="num"><OvrBadge value={p.overall} /></td>
                     <td style={{ width: 120 }}><Condition p={p} day={game.day} /></td>
                     <td className="num mono">{Math.round(p.morale)}</td>

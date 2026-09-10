@@ -193,13 +193,15 @@ def main() -> int:
             names.add(c["name"])
     for a in (world.get("meta", {}).get("analysts") or []):
         names.add(a["name"])
+    manual = load(CACHE / "manual_faces.json", {})
     for name in sorted(names):
+        if f"C:{name}" in manual:
+            continue              # the owner supplied this one; leave it alone
         urls = [u for u in [(staff["people"].get(name.lower()) or {}).get("img"),
                             (lp["coaches"].get(name) or {}).get("url")] if u]
         if urls:
             jobs.append((name, coach_file(name), urls))
 
-    manual = load(CACHE / "manual_faces.json", {})
     crops: dict[str, dict] = {}
     for lid, pick in ({} if only else (load(LEGEND, {}).get("picks") or {})).items():
         if lid in manual:

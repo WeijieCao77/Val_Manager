@@ -8,7 +8,7 @@ import { agentCn, mapCn } from '../engine/content'
 import { useGame } from './ctx'
 import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
-import { Bar, Condition, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
+import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
 import { advanceDay, advanceToNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
 import { nextInEvent, upcomingInternational } from '../engine/qualify'
 import type { ScrimFormat } from '../engine/season'
@@ -523,7 +523,7 @@ export default function Dashboard() {
                 if ((game.commercialDays?.[p.id] ?? 0) >= 2) notes.push('本周商务占用多')
                 return (
                   <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
-                    <td><b>{p.ign}</b>{p.isIgl && (
+                    <td><Face id={p.id} /><b>{p.ign}</b>{p.isIgl && (
                       <span className="tag" style={{ marginLeft: 5 }}
                         title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行'
                           : game.teams[game.myTeam]?.igl === p.id ? '主指挥' : '副指挥：主指挥不在场上时由他喊话'}>
@@ -685,7 +685,7 @@ export default function Dashboard() {
                     const s = statLine(p.season)
                     return (
                       <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
-                        <td>{p.ign}</td>
+                        <td><Face id={p.id} />{p.ign}</td>
                         <td className="num"><b>{ratingOf(p.season).toFixed(2)}</b></td>
                         <td className="num">{s.acs.toFixed(0)}</td>
                         <td className="num">{s.kd.toFixed(2)}</td>

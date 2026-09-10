@@ -1,6 +1,6 @@
 import { useGame } from './ctx'
 import { ask } from './confirm'
-import { Bar, Panel, money, moneyFull } from './common'
+import { Bar, Face, Panel, money, moneyFull } from './common'
 import { seasonUpkeep, sponsorIncome } from '../engine/finance'
 import { dropSponsor, sponsorSlots } from '../engine/commercial'
 import {
@@ -165,7 +165,7 @@ export default function Finances() {
             <tbody>
               {squad.map((p) => (
                 <tr key={p.id} className="clickable" onClick={() => openPlayer(p.id)}>
-                  <td><b>{p.ign}</b></td>
+                  <td><Face id={p.id} /><b>{p.ign}</b></td>
                   <td className="num mono">{money(p.salary)}</td>
                   <td>
                     <div className="row" style={{ gap: 8 }}>
