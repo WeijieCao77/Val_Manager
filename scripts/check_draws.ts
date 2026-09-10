@@ -251,6 +251,38 @@ for (let i = 0; i < N; i++) {
   }
 }
 
+// ---- the pick is ready to choose the moment the ceremony opens
+//
+// The screen has no way to advance a pick: its order is drawn whole, so there
+// are no balls to reveal, and DrawCeremony never called finishDraw on one. The
+// choice panel needs status 'awaiting-choice', which only resolvePicks sets —
+// so for a while the panel simply never appeared and the only working control
+// was 「交给教练组」: 「一号种子挑选对手实际并不能挑选」. Whatever hands the
+// draw to the manager must leave it ready to be chosen from.
+{
+  let opened = 0, ready = 0
+  for (const tag of ['PRX', 'T1', 'EDG', 'FNC']) {
+    for (const seed of [4242, 7, 99]) {
+      const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === tag)!.id, 'draws', seed)
+      setupSeason(g)
+      for (let guard = 0; guard < 900 && g.day < SEASON_DAYS - 1; guard++) {
+        const r = advanceDay(g)
+        if (!r.pendingDraw) { if (r.seasonEnded) break; continue }
+        const ev = g.draws!.find((d) => d.id === r.pendingDraw)!
+        if (ev.kind === 'masters-playoff-pick') {
+          opened++
+          // exactly what the screen sees on open — nothing has touched it
+          if (ev.status === 'awaiting-choice' && pickerNow(ev) === g.myTeam) ready++
+          break
+        }
+        finishDraw(g, ev, true)
+      }
+    }
+  }
+  check(opened > 0, `the manager was handed a Masters pick in ${opened} of these runs`)
+  check(opened === ready, `every pick ceremony opens ready for the manager to choose (${ready}/${opened})`)
+}
+
 // ---- the human's pick: the clock waits, the choice is written, the bracket follows
 {
   const g = createNewGame(WORLD_TEAMS.find((t) => t.tag === 'PRX')!.id, 'draws', 4242)

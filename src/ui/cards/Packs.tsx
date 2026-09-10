@@ -447,6 +447,13 @@ export function PackStage({
         )}
         {finished && (
           <>
+            {/* How many cards are in this pack, said out loud. On a phone a
+                ten-pack's last row can still fall below the fold, and without
+                a number there is no way to tell a hidden row from a short
+                pack — which is exactly what got reported. */}
+            <div className="pack-strip-head tiny">
+              这一包 <b>{pulled.length}</b> 张{dupes > 0 ? ` · 重复 ${dupes} 张` : ''}
+            </div>
             <div className="pack-strip">
               {pulled.map((p, i) => (
                 <div key={`${p.card.id}-${i}`} className="pack-card" style={{ animationDelay: `${i * 40}ms` }}>

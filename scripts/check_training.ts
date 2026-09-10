@@ -9,6 +9,7 @@
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
+import { poolFor } from '../src/engine/match'
 import { saveGame, loadGame } from '../src/engine/save'
 
 // save.ts talks to localStorage; give node one
@@ -20,7 +21,7 @@ const mem: Record<string, string> = {}
   key: (i: number) => Object.keys(mem)[i] ?? null,
   get length() { return Object.keys(mem).length },
 }
-import { advanceDay, setupSeason } from '../src/engine/season'
+import { advanceDay, finishDraw, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 import type { GameState } from '../src/engine/types'
 
@@ -144,6 +145,37 @@ const teamworkSum = (g: GameState) =>
   for (let i = 0; i < 8; i++) notes.push(...(advanceDay(g, rng)?.notes ?? []))
   check('at the cap, the drill explains itself',
     notes.some((n) => n.includes('已到上限 95')), notes.filter((n) => n.includes('Sunset')).join(' | '))
+}
+
+// ---- a map that leaves the pool leaves the training plan with it
+//
+// 跑图 holds up to two maps, and the screen only draws a button for maps in
+// the current pool — so a map rotated out mid-plan could not be clicked off
+// again. It kept its slot, and the week after a rotation you could only ever
+// pick one map: 「没法把被轮换的地图的选中取消」.
+{
+  const g = mk()
+  let rotations = 0, stuck = 0, freed = 0
+  for (let i = 0; i < 600; i++) {
+    const before = poolFor(g)
+    if (g.drill?.kind !== 'map') g.drill = { kind: 'map', map: before[0], map2: before[1] }
+    const r = advanceDay(g)
+    if (r?.pendingDraw) {
+      const ev = g.draws!.find((d) => d.id === r.pendingDraw)
+      if (ev) finishDraw(g, ev, true)
+    }
+    const after = poolFor(g)
+    const gone = before.filter((m) => !after.includes(m))
+    if (!gone.length) continue
+    rotations++
+    const d = g.drill
+    const held = d?.kind === 'map' ? [d.map, d.map2].filter((m): m is string => !!m) : []
+    if (held.some((m) => !after.includes(m))) stuck++
+    if (held.length < 2) freed++
+  }
+  check('the season saw the pool rotate', rotations > 0, `${rotations} 次`)
+  check('no plan is left holding a map that left the pool', stuck === 0, `${stuck} 次挂着轮出的图`)
+  check('and dropping it frees the slot for another map', freed > 0, `${freed} 次腾出了位置`)
 }
 
 process.exit(bad ? 1 : 0)

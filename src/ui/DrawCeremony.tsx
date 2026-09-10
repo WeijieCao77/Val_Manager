@@ -13,6 +13,7 @@
  * click, or hands it to the coaches. A pick is written the moment it is
  * made; closing the window does not take it back.
  */
+import { useEffect } from 'react'
 import { useGame } from './ctx'
 import { Crest, Modal, fmtDay } from './common'
 import { DRAW_KIND_CN, choosePick, drawById, pickerNow, revealNext } from '../engine/draw'
@@ -26,7 +27,20 @@ export default function DrawCeremony({ drawId, onClose }: { drawId: string; onCl
   const { game, commit, toast } = useGame()
   const ev = drawById(game, drawId)
   const comp = ev ? game.comps[ev.competitionKey] : undefined
+  // A save written before the pick learned to resolve itself still holds a
+  // 'ready' event; opening the ceremony is the moment to catch that up, or the
+  // choice panel stays invisible for the rest of that Masters. Above the
+  // early return, because a hook cannot sit under one.
+  const stale = ev?.kind === 'masters-playoff-pick' && ev.status === 'ready'
+  useEffect(() => {
+    if (!stale || !ev || !comp) return
+    finishDraw(game, ev)
+    commit()
+    // one catch-up per event; the status it lands on is what drives the panel
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ev?.id, stale])
   if (!ev || !comp) return null
+
   const shown = ev.steps.slice(0, ev.revealed)
   const revealed = new Set(shown.map((s) => s.team))
   const isPick = ev.kind === 'masters-playoff-pick'

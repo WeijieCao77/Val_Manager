@@ -168,8 +168,11 @@ export default function Training() {
             </p>
             <div className="row wrap" style={{ gap: 5 }}>
               {pool.map((m) => {
+                // only maps still in the pool count: a save that crossed a
+                // rotation before the plan learned to drop them would
+                // otherwise spend a slot on a map with no button to unclick
                 const picked = drill.kind === 'map'
-                  ? [drill.map, drill.map2].filter((x): x is string => !!x) : []
+                  ? [drill.map, drill.map2].filter((x): x is string => !!x && pool.includes(x)) : []
                 const on = picked.includes(m)
                 return (
                   <button key={m}
@@ -192,7 +195,11 @@ export default function Training() {
                 )
               })}
               <span className="tiny faint">
-                {drill.kind !== 'map' ? '选一到两张' : drill.map2 ? '两张一起练' : '还能再选一张'}
+                {(() => {
+                  const live = drill.kind === 'map'
+                    ? [drill.map, drill.map2].filter((x): x is string => !!x && pool.includes(x)) : []
+                  return live.length === 0 ? '选一到两张' : live.length === 2 ? '两张一起练' : '还能再选一张'
+                })()}
               </span>
             </div>
           </div>

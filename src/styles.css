@@ -1477,9 +1477,39 @@ html.pack-open, html.pack-open body { overscroll-behavior: none; }
   from { opacity: 0; transform: translateY(26px) scale(.86) rotateY(28deg); }
   to   { opacity: 1; transform: none; }
 }
+/* The recap after the last card is turned over.
+ *
+ * A ten-pack lays out three to a row on a phone, so the tenth card sat alone
+ * on a fourth row — underneath the sticky 收下 bar, which paints an opaque
+ * background over whatever scrolls beneath it. The pack read as nine cards,
+ * and a three-card 赛区包 on a narrow phone read as two:
+ * 「十连包里只有九张卡」「cn包里只有两张卡」. Nothing was ever missing — the
+ * account had all ten — but the screen is where a player checks.
+ *
+ * So the recap is shrunk on a phone until a whole ten-pack fits above the bar,
+ * and the count is printed above it either way. The reveal itself is untouched:
+ * every card is still turned over at full size, one at a time. */
 .pack-strip {
   display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
   max-width: 760px;
+  /* room to scroll the last row out from under the sticky bar on the narrow,
+     short screens where even the shrunk recap does not fit */
+  padding-bottom: 6px;
+}
+.pack-strip-head { color: var(--muted); letter-spacing: .04em; }
+.pack-strip-head b { color: var(--text); font-size: 13px; }
+@media (max-width: 560px) {
+  /* zoom, not transform: it shrinks the layout box too, so the row rewraps
+     four-up instead of three. Where it is not supported the strip simply
+     stays the size it is today and the count line above still tells the
+     truth. */
+  .pack-strip { gap: 6px; }
+  .pack-strip .pack-card { zoom: .78; }
+}
+/* 320-wide phones are still out there, and at .78 a ten-pack goes back to
+   three a row and four rows. Small enough that four fit. */
+@media (max-width: 360px) {
+  .pack-strip .pack-card { zoom: .66; }
 }
 .pack-hint { color: var(--muted); font-size: var(--t-small); }
 .pack-card-focus {

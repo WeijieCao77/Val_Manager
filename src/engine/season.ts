@@ -527,6 +527,15 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
 function holdDraw(state: GameState, ev: DrawEvent, auto: boolean): void {
   if (!auto && needsManager(state, ev)) {
     state.pendingDrawId ??= ev.id
+    // The pick has nothing to reveal ball by ball — its order is drawn whole —
+    // so the only thing the ceremony is FOR is the choice, and the choice
+    // panel only shows once the champions ahead of us have chosen and the
+    // event is waiting on us. Nothing was doing that: the screen never called
+    // finishDraw on a pick, so it opened on a 'ready' event, the panel's
+    // condition was never true, and the only working control was 「交给教练
+    // 组」 — 「一号种子挑选对手实际并不能挑选，只能跳过让系统自己选」. Run it
+    // here, where every draw the manager is asked to hold passes through.
+    if (ev.kind === 'masters-playoff-pick') finishDraw(state, ev)
     return
   }
   finishDraw(state, ev, true)
@@ -1733,6 +1742,25 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
       const line = `🗺️ 图池轮换：${fresh.map(mapCn).join('、')} 加入，${gone.map(mapCn).join('、')} 移出。`
       notes.push(line)
       state.news.push({ day: state.day, kind: 'league', text: line })
+      // A 跑图 plan can be holding a map that just left the pool. The training
+      // screen only draws a button for maps in the pool, so that map could not
+      // be clicked off again — it kept one of the two slots for good, and the
+      // week after a rotation you could only ever choose one map:
+      // 「没法把被轮换的地图的选中取消」. Drop it with the pool it belonged to.
+      const d = state.drill
+      if (d?.kind === 'map') {
+        const had = [d.map, d.map2].filter((m): m is string => !!m)
+        const kept = had.filter((m) => !gone.includes(m))
+        if (kept.length < had.length) {
+          const lost = had.filter((m) => gone.includes(m)).map(mapCn).join('、')
+          state.drill = kept.length ? { kind: 'map', map: kept[0], map2: kept[1] } : { kind: 'none' }
+          // a committed week with nothing left to run is not a week; hand it back
+          if (!kept.length) state.drillLock = undefined
+          notes.push(kept.length
+            ? `🗺️ ${lost} 已轮出图池，跑图计划改为只练 ${kept.map(mapCn).join('＋')}，可以再选一张。`
+            : `🗺️ ${lost} 已轮出图池，跑图计划清空了，去训练页重新安排。`)
+        }
+      }
     }
     settleObjective(state, prevStage, notes)
     setObjective(state, notes)
