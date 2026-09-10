@@ -169,7 +169,10 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
       .then(() => prune(sql, PRUNE_DAYS, MAX_ROWS))
       .then((n) => n && console.log(`analytics: pruned ${n} old events`))
       .catch((e) => console.warn('analytics: prune failed', e.message))
-    keep()
+    // three minutes after boot, not at boot: a redeploy under traffic used
+    // to spend its first seconds rolling up and pruning on the same four
+    // connections the players were waiting on
+    setTimeout(keep, 3 * 60 * 1000).unref?.()
     setInterval(keep, 60 * 60 * 1000).unref?.()
     }).catch((err) => {
       console.warn('analytics: disabled —', err.message)
