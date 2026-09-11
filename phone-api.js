@@ -278,11 +278,24 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
    * The review desk: one account's standing by 对战码, or the queue — who was
    * passed by hand lately, and who has been playing at the door without a
    * number. Names and codes only; a phone shows as its last four.
+   *
+   * A player stuck at the door never sees his 对战码 — it lives inside the
+   * game — but he was told to keep his id when the account was made. So the
+   * desk also takes the id, POSTed as {id}. An id is the whole login: it never
+   * rides in a URL, where logs and history would keep it, and the answer
+   * carries only the code it hashes to.
    */
   async function adminReview(req, res, url) {
     if (!admin(req, url, res)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    const code = String(url.searchParams.get('code') || '').toLowerCase().slice(0, 8)
+    let code = String(url.searchParams.get('code') || '').toLowerCase().slice(0, 8)
+    if (req.method === 'POST') {
+      const b = await body(req, res)
+      if (!b) return
+      const id = normalizeId(b.id)
+      if (!id) { json(res, 400, { ok: false, why: 'ID 格式不对：VM- 开头，后面五组四位' }); return }
+      code = hash(id).slice(0, 8)
+    }
     if (code) {
       if (code.length !== 8) { json(res, 400, { ok: false, why: 'code' }); return }
       const rows = await sql`select a.name, left(a.id_hash, 8) as code, a.created, a.seen, a.verified, a.verify_via as via, p.last4, p.bound

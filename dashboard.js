@@ -191,7 +191,7 @@ export const dashboardHtml = () => `<!doctype html>
   <div class="wx-row">
     <div class="wx-side">
       <div class="row" style="gap:8px">
-        <input type="text" id="rWho" placeholder="8 位对战码" maxlength="8" style="width:140px">
+        <input type="text" id="rWho" placeholder="对战码，或 VM- 开头的 ID" maxlength="40" style="width:230px">
         <button id="rLook" type="button">查状态</button>
         <input type="text" id="rVia" maxlength="50" placeholder="来源备注，比如 抖音@某某（会记下来）" style="flex:1;min-width:200px">
         <button id="rPass" class="on" type="button" disabled>人工通过</button>
@@ -200,7 +200,7 @@ export const dashboardHtml = () => `<!doctype html>
       </div>
       <div id="rAcct" class="acct" style="display:none"></div>
       <p class="why" style="margin:6px 0 10px">
-        绑不了大陆手机号的玩家（海外号）来抖音私信，报对战码，在这里通过。
+        绑不了大陆手机号的玩家（海外号）来抖音私信，在这里通过。他们进不了游戏、看不到对战码，就报建号时记下的 ID（VM- 开头）。
         通过的账号没有手机号，也就没有「用手机号进入」；ID 丢了一样找不回。
         撤销只对人工通过的有效——用验证码绑过的号不撤。
       </p>
@@ -771,19 +771,29 @@ function rvButtons() {
   $('#rPass').disabled = !a || !!a.verified
   $('#rUndo').disabled = !a || !a.verified || a.last4 || !/^manual:/.test(a.via || '')
 }
-async function rvOpen(code) {
+async function rvOpen(who) {
   const box = $('#rAcct')
   rv.code = null; rv.acct = null; rvButtons()
-  if (!/^[0-9a-fA-F]{8}$/.test(code)) { box.style.display = ''; box.textContent = '要 8 位对战码'; return }
   box.style.display = ''
+  // 门外的人看不到对战码，只有建号时记下的 ID。ID 就是账号本身，所以走 POST
+  // 正文、不进网址；服务器只回它对应的对战码，之后通过、撤销都用这个码
+  const byId = !/^[0-9a-fA-F]{8}$/.test(who)
+  if (byId && who.replace(/[^0-9a-z]/gi, '').replace(/^vm/i, '').length !== 20) {
+    box.textContent = '要 8 位对战码，或 VM- 开头的完整 ID'
+    return
+  }
   box.textContent = '查询中…'
   try {
-    const r = await fetch('/api/admin/review?code=' + code, { headers: auth() })
+    const r = byId
+      ? await fetch('/api/admin/review', { method: 'POST', headers: { ...auth(), 'Content-Type': 'application/json' }, body: JSON.stringify({ id: who }) })
+      : await fetch('/api/admin/review?code=' + who, { headers: auth() })
     const j = await r.json()
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
-    if (!j.account) { box.textContent = '没有这个对战码'; return }
+    if (!j.account) { box.textContent = byId ? '没有这个 ID 的账号' : '没有这个对战码'; return }
     const a = j.account
-    rv.code = code; rv.acct = a; rvButtons()
+    rv.code = a.code; rv.acct = a; rvButtons()
+    // 查到就把框里的 ID 换成对战码，屏幕上不留能登录的东西
+    if (byId) $('#rWho').value = a.code
     box.innerHTML = '<b>' + esc(a.name || '（没起名）') + '</b> · ' + esc(a.code)
       + ' · 建号 ' + gWhen(a.created) + ' · 最后活动 ' + gWhen(a.seen)
       + '<br>' + rvStand(a)

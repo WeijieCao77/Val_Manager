@@ -37,9 +37,9 @@ const json = (res: Res, code: number, body: Record<string, unknown>) => { res.co
 const hash = (id: string) => createHash('sha256').update(String(id)).digest('hex')
 const cards = makeCardApi(sql, { rateLimited, readBody, json } as never)
 const phone = makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, hash, token: 'tok', tokenFrom: (_r: unknown, u: URL) => u.searchParams.get('token'), tokenOk: (a: string, b: string) => a === b } as never)
-async function call(api: { route: (...a: never[]) => Promise<boolean> }, path: string, body: unknown, bucket = 'test', query = ''): Promise<Res> {
+async function call(api: { route: (...a: never[]) => Promise<boolean> }, path: string, body: unknown, bucket = 'test', query = '', method?: string): Promise<Res> {
   const res: Res = { code: 0, body: {}, writeHead: () => ({ end: () => {} }) }
-  const req = { body: JSON.stringify(body), method: path.startsWith('/api/admin') ? 'GET' : 'POST' }
+  const req = { body: JSON.stringify(body), method: method ?? (path.startsWith('/api/admin') ? 'GET' : 'POST') }
   await api.route(req as never, res as never, path as never, bucket as never, new URL(`http://x${path}?${query}`) as never)
   return res
 }
@@ -129,6 +129,18 @@ r = await call(phone, '/api/admin/review', {}, 'admin', `token=tok&code=${hash(I
 check('审核台按对战码看状态：人工、来源', r.body.ok === true && r.body.account?.via === 'manual:douyin:abc' && r.body.account?.last4 == null, JSON.stringify(r.body))
 r = await call(phone, '/api/admin/review', {}, 'admin', `token=tok&code=${hash(ID).slice(0, 8)}`)
 check('绑过手机的显示尾号、来源 sms', r.body.account?.last4 === '8000' && r.body.account?.via === 'sms', JSON.stringify(r.body.account))
+// 进不了门的人看不到对战码，只有建号时记下的 ID：审核台也收 ID，走 POST 正文
+r = await call(phone, '/api/admin/review', { id: ID4 }, 'admin', 'token=tok', 'POST')
+check('审核台按 ID 查到同一个账号，只回对战码', r.body.ok === true && r.body.account?.code === hash(ID4).slice(0, 8)
+  && r.body.account?.via === 'manual:douyin:abc' && !JSON.stringify(r.body).includes(ID4), JSON.stringify(r.body))
+r = await call(phone, '/api/admin/review', { id: ' vm-4444 4444-4444-4444-4444 ' }, 'admin', 'token=tok', 'POST')
+check('ID 大小写、空格、少横杠都认', r.body.account?.code === hash(ID4).slice(0, 8), JSON.stringify(r.body))
+r = await call(phone, '/api/admin/review', { id: 'VM-4444-4444' }, 'admin', 'token=tok', 'POST')
+check('ID 不全就说格式不对', r.body.ok === false && String(r.body.why).includes('格式'), JSON.stringify(r.body))
+r = await call(phone, '/api/admin/review', {}, 'admin', `token=tok&id=${ID4}`)
+check('ID 放在网址里不认', r.body.account === undefined, JSON.stringify(r.body).slice(0, 80))
+r = await call(phone, '/api/admin/review', { id: ID4 }, 'admin', 'token=wrong', 'POST')
+check('没有口令按 ID 也查不到', r.code === 0 || r.code === 404)
 r = await call(phone, '/api/admin/review', {}, 'admin', 'token=tok')
 check('审核台列表：人工名单、门口名单、合计', r.body.ok === true
   && r.body.manual.some((a: { code: string }) => a.code === hash(ID4).slice(0, 8))
