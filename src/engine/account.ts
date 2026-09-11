@@ -561,9 +561,10 @@ export function retryPending(state: GachaState): void {
 // ---------------------------------------------------------------- phone
 
 /** 「太多人开小号了」: an account plays after a mainland number answers a code. */
-export async function sendCode(phone: string): Promise<{ ok: boolean; why?: string; wait?: number; dev?: boolean }> {
+/** `for` says what the code is for, so a number that cannot end there is refused before any SMS goes out */
+export async function sendCode(phone: string, opts: { for: 'bind' | 'login'; id?: string }): Promise<{ ok: boolean; why?: string; wait?: number; dev?: boolean; taken?: boolean; none?: boolean }> {
   try {
-    const r = await fetch(api('phone/send'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) })
+    const r = await fetch(api('phone/send'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, for: opts.for, id: opts.id }) })
     return await r.json()
   } catch { return { ok: false, why: '连不上服务器。' } }
 }

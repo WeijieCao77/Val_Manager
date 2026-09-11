@@ -83,10 +83,15 @@ const ID2 = 'VM-2222-2222-2222-2222-2222'
 await call(cards, '/api/card/claim', { id: ID2, name: '小号' })
 rateHits.clear()
 await sql`delete from card_sms`
+const sentBefore = devCodes.length
+r = await call(phone, '/api/card/phone/send', { phone: '13800138000', for: 'bind', id: ID2 }, 'other')
+check('用过的号给第二个账号发码：直接拒，不发', r.body.ok === false && r.body.taken === true && devCodes.length === sentBefore, String(r.body.why))
 r = await call(phone, '/api/card/phone/send', { phone: '13800138000' }, 'other')
-const code2 = devCodes[0].code
-r = await call(phone, '/api/card/phone/bind', { id: ID2, phone: '13800138000', code: code2 })
+check('不带账号也一样拒', r.body.ok === false && r.body.taken === true && devCodes.length === sentBefore, String(r.body.why))
+r = await call(phone, '/api/card/phone/bind', { id: ID2, phone: '13800138000', code: '123456' })
 check('同一个号绑第二个账号被拒', r.body.ok === false && r.body.taken === true, String(r.body.why))
+r = await call(phone, '/api/card/phone/send', { phone: '13900139000', for: 'bind', id: ID }, 'other2')
+check('绑过的账号给第二个号发码：直接拒，不发', r.body.ok === false && r.body.bound === true && devCodes.length === sentBefore, String(r.body.why))
 r = await call(phone, '/api/card/phone/send', { phone: '13900139000' }, 'other2')
 const code3 = devCodes[0].code
 r = await call(phone, '/api/card/phone/bind', { id: ID, phone: '13900139000', code: code3 })
@@ -94,7 +99,10 @@ check('一个账号不能绑第二个号', r.body.ok === false && r.body.bound =
 
 // ---- walking into the account a number holds -----------------------------
 await sql`delete from card_sms`
-r = await call(phone, '/api/card/phone/send', { phone: '13800138000' }, 'login')
+r = await call(phone, '/api/card/phone/send', { phone: '13900139000', for: 'login' }, 'login0')
+check('没绑过的号要登录：直接拒，不发', r.body.ok === false && r.body.none === true, String(r.body.why))
+r = await call(phone, '/api/card/phone/send', { phone: '13800138000', for: 'login' }, 'login')
+check('绑过的号要登录：发', r.body.ok === true, String(r.body.why))
 const code4 = devCodes[0].code
 r = await call(phone, '/api/card/phone/login', { phone: '13800138000', code: code4 })
 check('用手机号进入拿回账号 id', r.body.ok === true && r.body.id === ID, JSON.stringify(r.body))

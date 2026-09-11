@@ -32,9 +32,15 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
 
   const send = async () => {
     setBusy(true); setMsg(null)
-    const r = await sendCode(phone)
+    const r = await sendCode(phone, { for: mode, id: mode === 'bind' ? id : undefined })
     setBusy(false)
-    if (!r.ok) { setMsg(r.why ?? '没发出去。'); if (r.wait) setWait(r.wait); return }
+    if (!r.ok) {
+      setMsg(r.why ?? '没发出去。')
+      if (r.wait) setWait(r.wait)
+      // a used number can only go where it already lives
+      if (r.taken && id) setMode('login')
+      return
+    }
     setWait(r.wait ?? 60)
     setDev(!!r.dev)
     setMsg(r.dev ? '验证码已生成（服务器还没接短信，作者能在后台看到，找作者要）。' : '验证码已发送。')

@@ -134,6 +134,24 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     const phone = normalizePhone(b.phone)
     if (!phone) { json(res, 200, { ok: false, why: '只收中国大陆的 11 位手机号。海外号码请到抖音私信作者人工处理。' }); return }
     const ph = phoneHash(phone)
+    // a number that cannot end in a bind gets no code at all — the refusal
+    // is the answer, and a code to a used number is 0.05 元 spent on nothing
+    const purpose = b.for === 'login' ? 'login' : 'bind'
+    const me = b.id ? hash(normalizeId(b.id) ?? '') : null
+    const held = await sql`select id_hash from card_phones where phone_h = ${ph}`
+    if (purpose === 'bind') {
+      if (held.length && held[0].id_hash !== me) {
+        json(res, 200, { ok: false, why: '这个手机号已经绑过账号了，一个号只能认证一次。要进那个账号，用「用手机号进入」。', taken: true })
+        return
+      }
+      if (me) {
+        const mine = await sql`select last4 from card_phones where id_hash = ${me}`
+        if (mine.length && !held.length) { json(res, 200, { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }); return }
+      }
+    } else if (!held.length) {
+      json(res, 200, { ok: false, why: '这个手机号还没绑过账号。', none: true })
+      return
+    }
     const recent = await sql`select sent from card_sms where phone_h = ${ph} and sent > now() - interval '1 day' order by sent desc`
     if (recent.length && Date.now() - new Date(recent[0].sent).getTime() < PER_MINUTE_MS) {
       json(res, 200, { ok: false, why: '一分钟内只能发一次，稍等。', wait: Math.ceil((PER_MINUTE_MS - (Date.now() - new Date(recent[0].sent).getTime())) / 1000) })
