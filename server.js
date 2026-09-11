@@ -512,7 +512,7 @@ function handle(req, res) {
     void ingest(req, res)
     return
   }
-  if (path.startsWith('/api/card/phone/') || path === '/api/admin/verify' || path === '/api/admin/sms') {
+  if (path.startsWith('/api/card/phone/') || path === '/api/admin/verify' || path === '/api/admin/sms' || path === '/api/admin/review') {
     void phoneApi().route(req, res, path, bucketOf(req), url).then((handled) => {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {

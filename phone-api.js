@@ -261,9 +261,47 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     const code = String(url.searchParams.get('code') || '').toLowerCase().slice(0, 8)
     const via = String(url.searchParams.get('via') || 'manual').slice(0, 60)
     if (code.length !== 8) { json(res, 400, { ok: false, why: 'code' }); return }
-    const rows = await sql`update card_accounts set verified = coalesce(verified, now()), verify_via = ${`manual:${via}`}
-                           where left(id_hash, 8) = ${code} returning name, verified`
-    json(res, 200, { ok: rows.length > 0, matched: rows.length, name: rows[0]?.name ?? null })
+    if (url.searchParams.get('undo') === '1') {
+      // only a hand-made pass can be taken back: a number that answered a
+      // code stays answered
+      const rows = await sql`update card_accounts set verified = null, verify_via = null
+                             where left(id_hash, 8) = ${code} and verify_via like 'manual:%' returning name`
+      json(res, 200, { ok: rows.length > 0, matched: rows.length, name: rows[0]?.name ?? null, undone: true })
+      return
+    }
+    const rows = await sql`update card_accounts set verified = coalesce(verified, now()), verify_via = coalesce(verify_via, ${`manual:${via}`})
+                           where left(id_hash, 8) = ${code} returning name, verified, verify_via`
+    json(res, 200, { ok: rows.length > 0, matched: rows.length, name: rows[0]?.name ?? null, via: rows[0]?.verify_via ?? null })
+  }
+
+  /**
+   * The review desk: one account's standing by 对战码, or the queue — who was
+   * passed by hand lately, and who has been playing at the door without a
+   * number. Names and codes only; a phone shows as its last four.
+   */
+  async function adminReview(req, res, url) {
+    if (!admin(req, url, res)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    const code = String(url.searchParams.get('code') || '').toLowerCase().slice(0, 8)
+    if (code) {
+      if (code.length !== 8) { json(res, 400, { ok: false, why: 'code' }); return }
+      const rows = await sql`select a.name, left(a.id_hash, 8) as code, a.created, a.seen, a.verified, a.verify_via as via, p.last4, p.bound
+                             from card_accounts a left join card_phones p on p.id_hash = a.id_hash
+                             where left(a.id_hash, 8) = ${code}`
+      json(res, 200, { ok: true, found: rows.length, account: rows[0] ?? null })
+      return
+    }
+    const [totals] = await sql`select
+      (select count(*)::int from card_accounts where verified is not null) as verified,
+      (select count(*)::int from card_accounts where verify_via like 'manual:%') as manual,
+      (select count(*)::int from card_accounts where verified is null) as unverified,
+      (select count(*)::int from card_accounts where verified is null and seen > now() - interval '1 day') as knocking24`
+    const manual = await sql`select name, left(id_hash, 8) as code, verified, verify_via as via, seen
+                             from card_accounts where verify_via like 'manual:%' order by verified desc limit 40`
+    const pending = await sql`select name, left(id_hash, 8) as code, created, seen
+                              from card_accounts where verified is null and seen > now() - interval '3 days'
+                              order by seen desc limit 40`
+    json(res, 200, { ok: true, totals, manual, pending })
   }
 
   async function adminCodes(req, res, url) {
@@ -290,6 +328,7 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
       if (path === '/api/card/phone/login') { if (req.method !== 'POST') { json(res, 405, { ok: false }); return true } await login(req, res, bucket); return true }
       if (path === '/api/admin/verify') { await adminVerify(req, res, url); return true }
       if (path === '/api/admin/sms') { await adminCodes(req, res, url); return true }
+      if (path === '/api/admin/review') { await adminReview(req, res, url); return true }
       return false
     },
   }

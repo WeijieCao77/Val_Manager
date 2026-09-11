@@ -186,6 +186,29 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
+<div class="panel" id="review" style="margin-bottom:14px">
+  <h2>人工审核账号 · 海外玩家的门</h2>
+  <div class="wx-row">
+    <div class="wx-side">
+      <div class="row" style="gap:8px">
+        <input type="text" id="rWho" placeholder="8 位对战码" maxlength="8" style="width:140px">
+        <button id="rLook" type="button">查状态</button>
+        <input type="text" id="rVia" maxlength="50" placeholder="来源备注，比如 抖音@某某（会记下来）" style="flex:1;min-width:200px">
+        <button id="rPass" class="on" type="button" disabled>人工通过</button>
+        <button id="rUndo" type="button" disabled>撤销</button>
+        <span id="rMsg" class="muted" style="font-size:12px"></span>
+      </div>
+      <div id="rAcct" class="acct" style="display:none"></div>
+      <p class="why" style="margin:6px 0 10px">
+        绑不了大陆手机号的玩家（海外号）来抖音私信，报对战码，在这里通过。
+        通过的账号没有手机号，也就没有「用手机号进入」；ID 丢了一样找不回。
+        撤销只对人工通过的有效——用验证码绑过的号不撤。
+      </p>
+      <div id="rTotals" class="muted" style="font-size:12px"></div>
+      <div id="rLists" class="acct"></div>
+    </div>
+  </div>
+</div>
 <div id="app"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
                color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
@@ -731,6 +754,93 @@ async function gOpen(who) {
   }
 }
 $('#gLook').onclick = () => { gTrail.length = 0; gOpen($('#gWho').value.trim()) }
+
+// ---- 人工审核 ---------------------------------------------------------------
+//
+// Two calls: /api/admin/review says where an account stands (or lists the
+// queue), /api/admin/verify passes one by hand or takes a hand-made pass back.
+const rv = { code: null, acct: null }
+const rvStand = (a) => {
+  if (!a) return ''
+  if (a.last4) return '<b>已绑手机</b> 尾号 ' + esc(a.last4) + ' · ' + gWhen(a.bound)
+  if (a.verified) return '<b>人工通过</b> ' + gWhen(a.verified) + ' · ' + esc(String(a.via || '').replace(/^manual:/, ''))
+  return '<b class="hot">还没验证</b>，进不了游戏'
+}
+function rvButtons() {
+  const a = rv.acct
+  $('#rPass').disabled = !a || !!a.verified
+  $('#rUndo').disabled = !a || !a.verified || a.last4 || !/^manual:/.test(a.via || '')
+}
+async function rvOpen(code) {
+  const box = $('#rAcct')
+  rv.code = null; rv.acct = null; rvButtons()
+  if (!/^[0-9a-fA-F]{8}$/.test(code)) { box.style.display = ''; box.textContent = '要 8 位对战码'; return }
+  box.style.display = ''
+  box.textContent = '查询中…'
+  try {
+    const r = await fetch('/api/admin/review?code=' + code, { headers: auth() })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
+    if (!j.account) { box.textContent = '没有这个对战码'; return }
+    const a = j.account
+    rv.code = code; rv.acct = a; rvButtons()
+    box.innerHTML = '<b>' + esc(a.name || '（没起名）') + '</b> · ' + esc(a.code)
+      + ' · 建号 ' + gWhen(a.created) + ' · 最后活动 ' + gWhen(a.seen)
+      + '<br>' + rvStand(a)
+  } catch (e) {
+    box.textContent = '查不到：' + e.message
+  }
+}
+async function rvAct(undo) {
+  if (!rv.code) return
+  const via = ($('#rVia').value || '').trim()
+  if (!undo && !via) { $('#rMsg').textContent = '先写来源备注，以后好查是谁放进来的'; $('#rVia').focus(); return }
+  if (undo && !confirm('撤销这个人工通过？他会回到绑手机那一页。')) return
+  $('#rMsg').textContent = '…'
+  try {
+    const q = '/api/admin/verify?code=' + rv.code + (undo ? '&undo=1' : '&via=' + encodeURIComponent(via))
+    const r = await fetch(q, { headers: auth() })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.why || (j.matched === 0 ? '没有这个账号' : 'HTTP ' + r.status))
+    $('#rMsg').textContent = (undo ? '已撤销 ' : '已通过 ') + (j.name || '') + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    await rvOpen(rv.code)
+    await rvList()
+  } catch (e) {
+    $('#rMsg').textContent = '没成：' + e.message
+  }
+}
+const rvRow = (a, more) => '<a href="#" class="rlook" data-code="' + esc(a.code) + '">' + esc(a.name || '（没起名）') + '</a>'
+  + ' <span class="dim">' + esc(a.code) + '</span> · ' + more
+async function rvList() {
+  try {
+    const r = await fetch('/api/admin/review', { headers: auth() })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
+    const t = j.totals || {}
+    $('#rTotals').textContent = '已验证 ' + gFmt(t.verified) + '（其中人工 ' + gFmt(t.manual) + '） · 没验证 ' + gFmt(t.unverified)
+      + ' · 24 小时内在门口的 ' + gFmt(t.knocking24)
+    let html = ''
+    if ((j.pending || []).length) {
+      html += '<div class="acct-h">最近 3 天来过、还没绑的 ' + j.pending.length + ' 个</div>'
+        + j.pending.map((a) => rvRow(a, '建号 ' + gShort(a.created) + ' · 最后 ' + gShort(a.seen))).join('<br>')
+    }
+    if ((j.manual || []).length) {
+      html += '<div class="acct-h">人工通过的 ' + j.manual.length + ' 个</div>'
+        + j.manual.map((a) => rvRow(a, gShort(a.verified) + ' · ' + esc(String(a.via || '').replace(/^manual:/, '')))).join('<br>')
+    }
+    $('#rLists').innerHTML = html || '<span class="dim">门口没人，也还没人工放过谁</span>'
+    for (const a of $('#rLists').querySelectorAll('a.rlook')) {
+      a.onclick = (e) => { e.preventDefault(); $('#rWho').value = a.dataset.code; rvOpen(a.dataset.code) }
+    }
+  } catch (e) {
+    $('#rLists').textContent = '列表没拿到：' + e.message
+  }
+}
+$('#rLook').onclick = () => rvOpen($('#rWho').value.trim())
+$('#rWho').onkeydown = (e) => { if (e.key === 'Enter') rvOpen($('#rWho').value.trim()) }
+$('#rPass').onclick = () => rvAct(false)
+$('#rUndo').onclick = () => rvAct(true)
+rvList()
 
 // ---- 微信群二维码 -------------------------------------------------------
 //
