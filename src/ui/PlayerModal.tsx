@@ -19,6 +19,7 @@ import { expectedSalary, statLine } from '../engine/player'
 import { askingPrice } from '../engine/transfer'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../engine/types'
 import { agentCn } from '../engine/content'
+import { byPro, proLabel } from '../engine/agents'
 import type { Stats } from '../engine/types'
 
 export default function PlayerModal(
@@ -191,16 +192,20 @@ export default function PlayerModal(
             labels={ATTR_KEYS.map((k) => ATTR_CN[k])}
             size={236}
           />
-          {p.agentPool.length > 0 && (
-            <div className="row wrap tiny muted" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-              <span>常用英雄：</span>
-              {p.agentPool.map((a) => (
-                <span key={a} className="row" style={{ gap: 3, alignItems: 'center' }}>
-                  <AgentIcon name={a} size={18} />{agentCn(a)}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* 他练过哪些英雄、各练到多少——和训练页、各图预案里写的是同一个数 */}
+          {(() => {
+            const known = byPro(p, Object.keys(p.agentPro ?? {}).filter((a) => (p.agentPro?.[a] ?? 0) > 0))
+            return known.length > 0 && (
+              <div className="row wrap tiny muted" style={{ gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                <span>英雄熟练度：</span>
+                {known.map((a) => (
+                  <span key={a} className="row" style={{ gap: 3, alignItems: 'center' }}>
+                    <AgentIcon name={a} size={18} />{agentCn(a)} {proLabel(p, a)}
+                  </span>
+                ))}
+              </div>
+            )
+          })()}
           {p.vlr?.rating != null && (
             <div className="tiny faint center" style={{ lineHeight: 1.7 }}>
               属性来源 · vlr.gg 2026 赛季<br />

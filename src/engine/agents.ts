@@ -40,6 +40,20 @@ export function agentFit(p: Player, agent: string | undefined): number {
   return Math.min(1, Math.max(floor, pro / 100))
 }
 
+/**
+ * 列表里写他这个英雄练到多少。满了写「练满」；没满向下取整，免得 99.6 显示成
+ * 100% 却还能再练。
+ */
+export function proLabel(p: Player, agent: string): string {
+  const v = p.agentPro?.[agent] ?? 0
+  return v >= 100 ? '练满' : `${Math.floor(v)}%`
+}
+
+/** 一组英雄按他的熟练度从高到低排，一样高的保持原来的顺序。 */
+export function byPro(p: Player, agents: string[]): string[] {
+  return agents.slice().sort((x, y) => (p.agentPro?.[y] ?? 0) - (p.agentPro?.[x] ?? 0))
+}
+
 /** 这个位置上他最拿手的英雄练到了多少——自动排阵和 AI 选人靠它挑人。 */
 export function rolePeak(p: Player, role: Role): number {
   let best = 0

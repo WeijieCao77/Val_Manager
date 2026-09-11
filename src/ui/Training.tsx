@@ -8,6 +8,7 @@ import { stageName } from '../engine/season'
 import { AGENT_DRILL, AGENT_DRILL_MAX } from '../engine/training'
 import { ATTR_CN, ATTR_KEYS, ROLES } from '../engine/types'
 import { poolFor } from '../engine/match'
+import { byPro, proLabel } from '../engine/agents'
 import { logActivity } from '../engine/agenda'
 import {
   doPhysio, MAP_DECAY_AFTER, MAP_DECAY_FLOOR, MAP_DECAY_PER_WEEK, mapIdleDays, physioBlock, PHYSIO_COST,
@@ -287,9 +288,10 @@ export default function Training() {
                       <option value="">{full ? `已满 ${AGENT_DRILL_MAX} 人` : '不练'}</option>
                       {ROLES.filter((r) => r !== '自由人').map((r) => (
                         <optgroup key={r} label={`${r}${(p.roles ?? [p.role]).includes(r) ? '（本职）' : ''}`}>
-                          {(AGENTS[r] ?? []).filter((a) => (p.agentPro?.[a] ?? 0) < 100).map((a) => (
-                            <option key={a} value={a}>
-                              {agentCn(a)} {Math.round(p.agentPro?.[a] ?? 0)}%
+                          {/* 练满的也列着，只是点不了——藏起来就分不清是练满了还是没了 */}
+                          {byPro(p, AGENTS[r] ?? []).map((a) => (
+                            <option key={a} value={a} disabled={(p.agentPro?.[a] ?? 0) >= 100}>
+                              {agentCn(a)} {proLabel(p, a)}
                             </option>
                           ))}
                         </optgroup>
@@ -298,7 +300,7 @@ export default function Training() {
                     {on ? (
                       <span className="agent-drill-bar">
                         <Bar value={pro} color="var(--controller)" />
-                        <span className="tiny mono">{Math.round(pro)}%</span>
+                        <span className="tiny mono">{proLabel(p, on.agent)}</span>
                       </span>
                     ) : <span className="agent-drill-bar" />}
                     {on && !covers && (

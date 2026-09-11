@@ -16,10 +16,11 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { selectLineup, sheetFor } from '../engine/match'
-import { agentMod, agentRoleGaps, agentWarn, autoAgents, normalizeAgents } from '../engine/agents'
+import { agentMod, agentRoleGaps, agentWarn, autoAgents, byPro, normalizeAgents, proLabel } from '../engine/agents'
 import { COMP_STYLE_CN, compStyle, famBonus, familiarity } from '../engine/comp'
 import type { CompStyle } from '../engine/comp'
-import { AGENT_ROLE, ALL_AGENTS, MAP_META, agentCn, mapCn } from '../engine/content'
+import { AGENT_ROLE, AGENTS, MAP_META, agentCn, mapCn } from '../engine/content'
+import { ROLES } from '../engine/types'
 import { AgentIcon, Bar, Face, OvrBadge } from './common'
 import TacticSliders from './TacticSliders'
 
@@ -100,6 +101,7 @@ export default function MapPlan({
   const planned = !!game.mapAgents?.[cur]
   const oppTeam = opp ? game.teams[opp] : undefined
   const oppStyle = oppTeam ? sheetFor(game, oppTeam.id, cur).style : null
+  const meta = MAP_META[cur] ?? []
 
   return (
     <div>
@@ -170,21 +172,28 @@ export default function MapPlan({
                   <td>
                     <span className="row" style={{ gap: 6, alignItems: 'center' }}>
                       {a && <AgentIcon name={a} size={26} />}
+                      {/* 每个英雄后面是他练到多少，和训练页「练英雄」是同一个数。
+                          常用之外按位置分组，组里练得最熟的在最上面 */}
                       <select
                         value={a ?? ''}
                         onChange={(e) => set(cur, p.id, e.target.value)}
-                        style={{ maxWidth: 160 }}
+                        style={{ maxWidth: 200 }}
                       >
                         <optgroup label={`${mapCn(cur)} 常用`}>
-                          {(MAP_META[cur] ?? []).map((x) => (
-                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）</option>
+                          {byPro(p, meta).map((x) => (
+                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）{proLabel(p, x)}</option>
                           ))}
                         </optgroup>
-                        <optgroup label="全部英雄">
-                          {ALL_AGENTS.filter((x) => !(MAP_META[cur] ?? []).includes(x)).map((x) => (
-                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x] ?? '—'}）</option>
-                          ))}
-                        </optgroup>
+                        {ROLES.filter((r) => r !== '自由人').map((r) => {
+                          const rest = byPro(p, (AGENTS[r] ?? []).filter((x) => !meta.includes(x)))
+                          return rest.length > 0 && (
+                            <optgroup key={r} label={`${r}${mine.includes(r) ? '（本职）' : ''}`}>
+                              {rest.map((x) => (
+                                <option key={x} value={x}>{agentCn(x)}（{r}）{proLabel(p, x)}</option>
+                              ))}
+                            </optgroup>
+                          )
+                        })}
                       </select>
                     </span>
                   </td>
