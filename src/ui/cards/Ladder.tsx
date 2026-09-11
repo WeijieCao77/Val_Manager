@@ -325,6 +325,7 @@ export default function Ladder() {
               {shown.out.promoted && <span className="chiplet" style={{ color: 'var(--win)' }}>升段 → {rankName(L.div, L.stars, L.points ?? 0)}</span>}
               {shown.out.demoted && <span className="chiplet" style={{ color: 'var(--loss)' }}>掉段 → {rankName(L.div, L.stars, 0)}</span>}
               {shown.out.pack && <span className="chiplet" style={{ color: 'var(--warn)' }}>升段奖励：{PACKS[shown.out.pack].name}</span>}
+              {shown.out.milestone && <span className="chiplet" style={{ color: 'var(--warn)' }}>第 {shown.out.milestoneWins} 胜：{PACKS[shown.out.milestone].name} +1</span>}
             </div>
           }
         />

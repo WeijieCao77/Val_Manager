@@ -234,7 +234,16 @@ export const MYTHIC_FLOOR = 1200
  * promotion, a cup title — are not capped, because those are already once-a-day
  * things and taking them away twice would just be mean.
  */
-export const STAMINA_MAX = 20
+export const STAMINA_MAX = 30
+/**
+ * The ladder pays in packs as well as coins: a 试训包 every fifth win, a 选拔包
+ * every twentieth (2026-09-10, with the cap at 30 — 「很多人觉得资源太少了，
+ * 所以才开很多小号」: the shortage was the reason for the alts, and a phone
+ * number now stands between a player and a second account, so the game can
+ * afford to be more generous). Promotion packs come on top.
+ */
+export const LADDER_WIN_PACK_EVERY = 5
+export const LADDER_WIN_PACK_BIG_EVERY = 20
 /**
  * A ladder match, the cup's ticket — one payment for the whole bracket — and
  * a card swap with a friend, charged to each side when they act.
@@ -250,9 +259,10 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * One every 30 minutes, cap 20 (2026-09-06, the owner's call): a ladder match
- * every hour sustained, ten in a row from a full meter, 10 hours to fill it,
- * and 48 points a day if you check in through the day.
+ * One every 30 minutes, cap 30 (2026-09-10, the owner's call; 20 from
+ * 2026-09-06): a ladder match every hour sustained, fifteen in a row from a
+ * full meter or six cups, 15 hours to fill it, and 48 points a day if you
+ * check in through the day.
  *
  * Before that, one every 50 minutes with a cap of 15: a match every 100
  * minutes, seven from a full meter, 12.5 hours to fill, 28.8 points a day.
@@ -1447,6 +1457,9 @@ export interface LadderOutcome {
   demoted: boolean
   coins: number
   pack?: PackKind
+  /** the pack every fifth win brings, and which win it was */
+  milestone?: PackKind
+  milestoneWins?: number
   /** 大师 only: how the score moved, and what it is called now */
   points?: number
   pointsDelta?: number
@@ -1530,6 +1543,13 @@ export function recordLadder(
       out.pack = L.div >= 4 ? 'ten' : L.div >= 2 ? 'elite' : 'scout'
       g.packs[out.pack] = (g.packs[out.pack] ?? 0) + 1
     }
+    // every fifth win a 试训包, every twentieth a 选拔包 instead — the ladder
+    // is where the hours go, and it should hand back cards, not only coins
+    if (L.wins % LADDER_WIN_PACK_EVERY === 0) {
+      out.milestone = L.wins % LADDER_WIN_PACK_BIG_EVERY === 0 ? 'elite' : 'scout'
+      out.milestoneWins = L.wins
+      g.packs[out.milestone] = (g.packs[out.milestone] ?? 0) + 1
+    }
     bumpQuest(g, 'win2', 1)
   } else {
     L.losses++
@@ -1577,7 +1597,8 @@ export function recordLadder(
     + (out.pointsDelta != null
       ? `，${out.pointsDelta >= 0 ? '+' : ''}${out.pointsDelta} 分（${out.title} ${out.points}）`
       : out.promoted ? `，升到${rankName(L.div, L.stars, L.points ?? 0)}`
-        : out.demoted ? `，掉到${rankName(L.div, L.stars, 0)}` : ''))
+        : out.demoted ? `，掉到${rankName(L.div, L.stars, 0)}` : '')
+    + (out.milestone ? `，第 ${out.milestoneWins} 胜，${PACKS[out.milestone].name} +1` : ''))
   return out
 }
 
@@ -1674,10 +1695,28 @@ export function enterCup(g: GachaState, squadRating: number, now: number): CupSt
 
 export interface CupOutcome {
   coins: number
+  /** the headline pack; `packs` has all of them */
   pack?: PackKind
+  packs?: Partial<Record<PackKind, number>>
   done: boolean
   won: boolean
 }
+
+/**
+ * What a cup run is worth in packs (2026-09-10). Two rounds won and out:
+ * a 试训包. The title: a 选拔包 for three rounds, a 选拔包 and a 试训包 for
+ * four, a 十连包 for the five-round bracket — the deepest run the cup can
+ * ask for, paid with the pack that is otherwise only a promotion away.
+ */
+export const cupExitPacks = (won: number): Partial<Record<PackKind, number>> =>
+  won >= 2 ? { scout: 1 } : {}
+export const cupTitlePacks = (rounds: number): Partial<Record<PackKind, number>> =>
+  rounds >= 5 ? { ten: 1 } : rounds >= 4 ? { elite: 1, scout: 1 } : { elite: 1 }
+const givePacks = (g: GachaState, packs: Partial<Record<PackKind, number>>): string =>
+  (Object.entries(packs) as [PackKind, number][]).map(([k, n]) => {
+    g.packs[k] = (g.packs[k] ?? 0) + n
+    return `${PACKS[k].name} +${n}`
+  }).join('，')
 
 export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
   const cup = g.cup
@@ -1688,8 +1727,10 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
     cup.done = true
     const coins = cupExitPrize(cup.round)
     g.coins += coins
-    note(g, `杯赛止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}`)
-    return { coins, done: true, won: false }
+    const packs = cupExitPacks(cup.round)
+    const given = givePacks(g, packs)
+    note(g, `杯赛止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}${given ? `，${given}` : ''}`)
+    return { coins, packs, pack: (Object.keys(packs) as PackKind[])[0], done: true, won: false }
   }
   cup.round++
   if (cup.round >= cup.path.length) {
@@ -1697,9 +1738,9 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
     cup.won = true
     const coins = cupTitlePrize(cup.path.length)
     g.coins += coins
-    g.packs.elite = (g.packs.elite ?? 0) + 1
-    note(g, `杯赛冠军（${cup.path.length} 轮），奖金 ${coins}，选拔包 +1`)
-    return { coins, pack: 'elite', done: true, won: true }
+    const packs = cupTitlePacks(cup.path.length)
+    note(g, `杯赛冠军（${cup.path.length} 轮），奖金 ${coins}，${givePacks(g, packs)}`)
+    return { coins, packs, pack: (Object.keys(packs) as PackKind[])[0], done: true, won: true }
   }
   return { coins: 0, done: false, won: false }
 }

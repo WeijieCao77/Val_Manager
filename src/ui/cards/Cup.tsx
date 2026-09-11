@@ -6,7 +6,7 @@ import {
   CUP_MAX_ROUNDS, CUP_MIN_ROUNDS, PACKS, STAMINA_COST, canPlay, cupBo, cupExitPrize, cupOpponent,
   cupRoundName, cupTitlePrize, levelOf, staminaNow,
 } from '../../engine/gacha'
-import type { CupOutcome } from '../../engine/gacha'
+import type { CupOutcome, PackKind } from '../../engine/gacha'
 import type { ArenaResult } from '../../engine/arena'
 import { squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
@@ -71,8 +71,9 @@ export default function Cup() {
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           <b>{STAMINA_COST.cup} 点体力入场</b>，{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，<b>之后每轮免费</b>。
           对手按阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
-          出局按赢的轮数给金币（{cupExitPrize(0)} 起，每轮多 150）；
-          冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + 一个{PACKS.elite.name}</b>。
+          出局按赢的轮数给金币（{cupExitPrize(0)} 起，每轮多 150），赢满两轮再送一个{PACKS.scout.name}；
+          冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + {PACKS.elite.name}</b>，
+          4 轮的再加一个{PACKS.scout.name}，5 轮的换成一个<b>{PACKS.ten.name}</b>。
         </p>
 
         {!cup && (
@@ -147,7 +148,9 @@ export default function Cup() {
             <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
               {shown.out.won && <span className="chiplet" style={{ color: 'var(--warn)' }}>🏆 杯赛冠军</span>}
               {shown.out.coins > 0 && <span className="chiplet">+{shown.out.coins} 金币</span>}
-              {shown.out.pack && <span className="chiplet" style={{ color: 'var(--warn)' }}>{PACKS[shown.out.pack].name} ×1</span>}
+              {(Object.entries(shown.out.packs ?? {}) as [PackKind, number][]).map(([k, n]) => (
+                <span key={k} className="chiplet" style={{ color: 'var(--warn)' }}>{PACKS[k].name} ×{n}</span>
+              ))}
               {!shown.out.done && <span className="chiplet">晋级下一轮 · 不扣体力</span>}
             </div>
           }

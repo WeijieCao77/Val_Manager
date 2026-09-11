@@ -434,7 +434,12 @@ export function chemistry(squad: Squad): ChemReport {
   // of it, which is the wrong way round: a legend plays with anybody, but five
   // people who have actually practised together should still be better than a
   // pile of names.
-  const MYTHIC_CHEM = 4
+  //
+  // Two since 2026-09-10 (the owner's call, after a second measurement in
+  // analysis/mythic_chem_summary.txt): four had five legends at 默契 66, over
+  // the club five, and a hand of legends was winning on names again. At two,
+  // five of them sit near 37 and three near 27 — fieldable, not finished.
+  const MYTHIC_CHEM = 2
   raw += cards.filter((c) => isPlayerCard(c) && c.rarity === 'mythic').length * MYTHIC_CHEM
 
   const coach = squad.coach ? cardById(squad.coach) : undefined
