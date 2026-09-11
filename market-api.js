@@ -661,12 +661,15 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       where seller_h = ${me} and card_id = ${cardId} and status = 'open'`
     // one listing per card id: two would both escrow "the" card and the second
     // sale would have nothing behind it
-    const held = Number(owned.dupes ?? 0) + 1
+    const held = Number(owned.dupes ?? 0) + (Array.isArray(owned.spares) ? owned.spares.length : 0) + 1
     if ((already[0]?.n ?? 0) >= held) { json(res, 200, { ok: false, alreadyListed: true }); return }
-    // The card leaves the collection HERE, on the server's copy — a spare
-    // first, at level 0; the card itself otherwise, at the level it holds.
-    // It used to leave on the client's copy after this reply, which meant a
-    // client that skipped that step listed a card it still held.
+    // The card leaves the collection HERE, on the server's copy — a duplicate
+    // first, at level 0, then the lowest upgraded spare; the card itself
+    // otherwise, at the level it holds. The request's `level` is not read: a
+    // client sends the card's own level there, and honouring it would send the
+    // card out ahead of a duplicate. It used to leave on the client's copy
+    // after this reply, which meant a client that skipped that step listed a
+    // card it still held.
     const out = await tx(async (db) => {
       for (let attempt = 0; attempt < 3; attempt++) {
         const row = await db`select state, rev from card_accounts where id_hash = ${me}`

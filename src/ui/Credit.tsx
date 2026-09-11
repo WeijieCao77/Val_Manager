@@ -8,7 +8,7 @@
  */
 import { AFDIAN } from './Support'
 
-const THANKS = ['FranX', 'Song']
+const THANKS = ['FranX', 'Song', 'IDIOT', 'simon', '睡在song上铺的戈门']
 
 /**
  * 感谢名单. It sits at the bottom of the manager's 存档 screen and 开瓦包's

@@ -90,8 +90,8 @@ const show = (g: GachaState) => {
   const h = fresh('KEP2')
   own(h, 3, 0)
   applyMail(h, [item(2)])
-  check('收到的 +2 比手上的 +3 低：留着高的那张',
-    h.cards[CARD].level === 3 && h.cards[CARD].dupes === 1, show(h))
+  check('收到的 +2 比手上的 +3 低：留着高的那张，+2 留作备用卡',
+    h.cards[CARD].level === 3 && h.cards[CARD].dupes === 0 && JSON.stringify(h.cards[CARD].spares) === '[2]', show(h))
 }
 
 // ---- nothing owned yet: it arrives at the level it left with

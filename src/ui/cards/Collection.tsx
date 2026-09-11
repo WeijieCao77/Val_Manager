@@ -4,6 +4,8 @@ import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
 import { collection, salvagePlan, upgradeCost, SWEEPABLE } from '../../engine/gacha'
 import { clubSets } from '../../engine/clubSets'
+import { dismantleFee, dismantleYield } from '../../engine/dismantle'
+import { sparesOf } from '../../engine/inbox'
 import { crestUrl } from '../../engine/dossier'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
@@ -270,7 +272,7 @@ export default function Collection() {
                 key={card.id}
                 card={card}
                 level={o?.level ?? 0}
-                dupes={o?.dupes ?? 0}
+                dupes={(o?.dupes ?? 0) + (o ? sparesOf(o).length : 0)}
                 dimmed={missing}
                 selected={bulk && picked.has(card.id)}
                 onClick={missing ? undefined : bulk ? () => togglePick(card.id) : () => setOpen(card.id)}
@@ -368,7 +370,11 @@ export default function Collection() {
                       等级 <b>+{owned.level}</b> / +{MAX_LEVEL}
                       <span className="faint"> · 评分 {ratingAt(sel.rating, owned.level)}</span>
                     </div>
-                    <div className="tiny faint">重复卡 {owned.dupes} 张 · 累计抽到 {owned.seen} 次</div>
+                    <div className="tiny faint">
+                      重复卡 {owned.dupes} 张
+                      {sparesOf(owned).length > 0 && ` · 备用卡 ${sparesOf(owned).map((l) => `+${l}`).join('、')}`}
+                      {' '}· 累计抽到 {owned.seen} 次
+                    </div>
                   </div>
                 </div>
                 <Upgrade cardId={sel.id} />
@@ -385,6 +391,7 @@ export default function Collection() {
                     全部分解（+{SALVAGE[sel.rarity] * owned.dupes} 金币）
                   </button>
                 )}
+                <Spares cardId={sel.id} />
               </div>
             </div>
           </div>
@@ -410,5 +417,39 @@ function Upgrade({ cardId }: { cardId: string }) {
     >
       升到 +{cost.to}（{cost.dupes} 张重复 + {cost.coins} 金币）
     </button>
+  )
+}
+
+/**
+ * The upgraded copies kept beside the card, each a button that takes it apart
+ * into duplicates for the card you play.
+ */
+function Spares({ cardId }: { cardId: string }) {
+  const { g, act, toast } = useCards()
+  const owned = g.cards[cardId]
+  const spares = owned ? sparesOf(owned) : []
+  if (!spares.length) return null
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="tiny faint" style={{ marginBottom: 6 }}>
+        备用卡是同一张卡多出来的升级版。拆解后变成重复卡，可以拿去升级。
+      </div>
+      <div className="row wrap" style={{ gap: 6 }}>
+        {spares.map((lv, i) => (
+          <button
+            key={i}
+            className="sm"
+            disabled={g.coins < dismantleFee(lv)}
+            title={g.coins < dismantleFee(lv) ? '金币不够' : undefined}
+            onClick={async () => {
+              const r = await act('dismantle', { cardId, level: lv })
+              toast(r.ok ? `拆了一张 +${lv}，多了 ${dismantleYield(lv)} 张重复卡。` : r.why)
+            }}
+          >
+            拆解 +{lv}（{dismantleFee(lv)} 金币，得 {dismantleYield(lv)} 张重复卡）
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

@@ -1,0 +1,43 @@
+/* 赛事预测 — a group drawn as three columns: 首轮, the two second-round
+   matches, and the decider with the finish beside it */
+.pd-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(540px, 100%), 1fr)); gap: 0 14px; }
+/* a grid item is as wide as its content unless told otherwise, and the
+   bracket's content is wider than a phone — this keeps it scrolling inside */
+.pd-groups > * { min-width: 0; }
+.pd-bracket { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 10px 14px; overflow-x: auto; }
+.pd-col { display: flex; flex-direction: column; gap: 8px; min-width: 160px; }
+.pd-col-title {
+  font-size: 11px; color: var(--muted); text-align: center;
+  padding: 3px 0; border-radius: 3px; background: var(--panel-2);
+}
+.pd-match { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
+.pd-when {
+  display: flex; justify-content: space-between; gap: 6px;
+  font: 11px var(--mono); color: var(--muted);
+  padding: 3px 8px; border-bottom: 1px solid var(--line-soft);
+}
+button.pd-team {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 34px;
+  padding: 6px 8px; margin: 0; border: 0; border-radius: 0;
+  background: transparent; color: var(--text); font: inherit; text-align: left;
+}
+button.pd-team + button.pd-team { border-top: 1px solid var(--line-soft); }
+button.pd-team:disabled { cursor: default; color: var(--text); }
+button.pd-team img, .pd-nocrest { width: 18px; height: 18px; object-fit: contain; flex: none; }
+button.pd-team b { min-width: 34px; }
+button.pd-team span { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.pd-team.won { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+button.pd-team.lost { opacity: .42; }
+.pd-result { font-size: 12px; line-height: 2; margin-top: 2px; }
+.pd-rank {
+  display: inline-block; font-size: 10px; padding: 0 5px; margin-right: 6px;
+  border-radius: 3px; border: 1px solid var(--accent-line); color: var(--accent);
+}
+@media (max-width: 720px) {
+  .pd-groups { grid-template-columns: 1fr; }
+  /* a phone fits the three columns once the full names go: the crest and the
+     tag are what anyone reads on a bracket anyway */
+  .pd-bracket { grid-template-columns: repeat(3, minmax(112px, 1fr)); }
+  .pd-col { min-width: 112px; }
+  button.pd-team span { display: none; }
+}

@@ -23,19 +23,48 @@ export interface MailItem {
   at: number
 }
 
+/** The upgraded copies kept beside a card, lowest first; an old row has none. */
+export const sparesOf = (owned: { spares?: unknown }): number[] =>
+  (Array.isArray(owned.spares) ? owned.spares : [])
+    .map((x) => Math.trunc(Number(x) || 0))
+    .filter((x) => x >= 1 && x <= MAX_LEVEL)
+    .sort((a, b) => a - b)
+
+export function setSpares(owned: { spares?: number[] }, spares: number[]): void {
+  if (spares.length) owned.spares = [...spares].sort((a, b) => a - b)
+  else delete owned.spares
+}
+
 /**
  * Take a card off this side, ready to be listed.
  *
- * A spare goes first and goes out unupgraded — upgrading consumes duplicates,
- * so a duplicate is by definition level 0. Only when there is no spare does the
- * card itself leave, and then it carries whatever it was raised to.
+ * The copy asked for leaves when this side holds one; otherwise the least of
+ * them — a duplicate first, unupgraded (upgrading consumes duplicates, so a
+ * duplicate is by definition level 0), then the lowest upgraded spare, and
+ * the card itself last, carrying whatever it was raised to. When the card
+ * itself leaves with spares behind it, the best spare steps up into its place.
  */
-export function escrowCard(g: GachaState, cardId: string): { ok: boolean; level: number } {
+export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: boolean; level: number } {
   const owned = g.cards[cardId]
   if (!owned) return { ok: false, level: 0 }
-  if ((owned.dupes ?? 0) > 0) { owned.dupes -= 1; return { ok: true, level: 0 } }
+  const dupes = owned.dupes ?? 0
+  const spares = sparesOf(owned)
   // a row written by an early client may have no level at all
   const level = Math.max(0, Math.trunc(Number(owned.level) || 0))
+  const holds = (lv: number) => (lv === 0 ? dupes > 0 : spares.includes(lv)) || lv === level
+  const pick = want != null && holds(want) ? want : dupes > 0 ? 0 : spares.length ? spares[0] : level
+  if (pick === 0 && dupes > 0) { owned.dupes = dupes - 1; return { ok: true, level: 0 } }
+  const at = spares.indexOf(pick)
+  if (pick > 0 && at >= 0) {
+    spares.splice(at, 1)
+    setSpares(owned, spares)
+    return { ok: true, level: pick }
+  }
+  if (spares.length) {
+    owned.level = spares.pop()!
+    setSpares(owned, spares)
+    return { ok: true, level }
+  }
   delete g.cards[cardId]
   // and it cannot still be in the five it was just taken out of
   g.squad = {
@@ -55,19 +84,18 @@ export function escrowCard(g: GachaState, cardId: string): { ok: boolean; level:
 /**
  * Put a card in, at the level it arrives with.
  *
- * The collection holds one level per card and a pile of spares beside it, so
- * two copies at two different levels cannot both be kept: one of them is the
- * card and the other is a spare. The one worth keeping is the higher, and
- * the copy that steps down was never worth more than a spare anyway.
+ * Two copies of one card at two levels: the higher is the card, and the other
+ * is kept as it is — a plain copy as a duplicate, a raised one as an upgraded
+ * spare that can be taken apart into duplicates (engine/dismantle.ts).
  *
- * This used to make every arrival a plain spare and throw its level away,
- * which quietly destroyed whatever the other side had raised. Reported from
- * the group: a plain BABYBAY in the collection, a +1 bought in the market,
- * and the +1 landed as an ordinary duplicate — so the upgrade pressed right
- * afterwards ate it to raise the plain one to +1, and a whole copy was gone
- * for nothing. The same hole swallowed your own card coming home: list your
- * only +3, pull a plain copy out of a pack while it sits on the shelf, and
- * the +3 came back as a spare.
+ * Arrivals used to become plain duplicates with their level thrown away, which
+ * quietly destroyed whatever the other side had raised. Reported from the
+ * group twice: a plain BABYBAY and a +1 bought in the market, where the
+ * upgrade pressed afterwards ate the +1 to raise the plain one; and two +2
+ * Smoggy that could never make a +3, because the second one's levels were
+ * simply gone. The same hole swallowed your own card coming home: list your
+ * only +3, pull a plain copy while it sits on the shelf, and the +3 came back
+ * as a duplicate.
  */
 export function restoreCard(g: GachaState, cardId: string, level: number): void {
   // never a card the game does not have — a row with a bad id (a grant typed
@@ -76,9 +104,12 @@ export function restoreCard(g: GachaState, cardId: string, level: number): void 
   const lv = Math.min(MAX_LEVEL, Math.max(0, Math.trunc(Number(level) || 0)))
   const had = g.cards[cardId]
   if (had) {
-    had.dupes++
     had.seen++
-    if (lv > (Math.trunc(Number(had.level) || 0))) had.level = lv
+    const main = Math.max(0, Math.trunc(Number(had.level) || 0))
+    const low = Math.min(lv, main)
+    had.level = Math.max(lv, main)
+    if (low > 0) setSpares(had, [...sparesOf(had), low])
+    else had.dupes++
     return
   }
   g.cards[cardId] = {

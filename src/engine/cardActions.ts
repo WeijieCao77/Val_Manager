@@ -42,6 +42,8 @@ import { cardById, isPlayerCard, personOf, squadRating } from './cards'
 import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { markMailSeen } from './inbox'
+import { dismantle } from './dismantle'
+import { setPicks } from './predict'
 
 /** What the server knows that the rules need. */
 export interface ActEnv {
@@ -62,7 +64,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
-  'minigame_start', 'minigame_finish',
+  'minigame_start', 'minigame_finish', 'dismantle', 'predict',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -191,6 +193,17 @@ function dispatch(
       const cardId = str(a.cardId)
       if (!upgrade(g, cardId)) return { ok: false, why: '还升不了' }
       return { ok: true, result: { level: levelOf(g, cardId) } }
+    }
+    case 'dismantle': {
+      const r = dismantle(g, str(a.cardId), Number(a.level))
+      if (!r.ok) return r
+      return { ok: true, result: { dupes: r.dupes, coins: r.coins } }
+    }
+    case 'predict': {
+      // the server's clock decides whether the group has started, not the client's
+      const r = setPicks(g, str(a.event), str(a.group, 4), a.picks, env.now)
+      if (!r.ok) return r
+      return { ok: true, result: { picks: r.picks } }
     }
     case 'ladder_draw': {
       const league = isLeague(a.league) ? a.league : 'open'

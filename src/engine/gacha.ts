@@ -10,6 +10,8 @@ import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
 import { REGION_CN } from './types'
 import type { Role } from './types'
+import { cleanPredictions } from './predict'
+import type { Picks } from './predict'
 import {
   ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
@@ -336,6 +338,13 @@ export interface OwnedCard {
   level: number
   /** spare copies, spent on levelling or sold */
   dupes: number
+  /**
+   * Upgraded copies kept beside the card, by level, lowest first. A second
+   * copy arriving with a level of its own (bought, swapped) used to be
+   * flattened into one duplicate; it waits here and can be taken apart
+   * (engine/dismantle.ts).
+   */
+  spares?: number[]
   /** total copies ever pulled, for the collection stats */
   seen: number
   /** ISO date of the first copy */
@@ -676,6 +685,8 @@ export interface GachaState {
   presets?: (SquadPreset | null)[]
   /** what the inbox has delivered, newest first — see MailEntry */
   mail?: MailEntry[]
+  /** 赛事预测 — picks per event and group, see engine/predict.ts */
+  predict?: Record<string, Record<string, { picks: Picks; at: number }>>
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
@@ -2156,6 +2167,20 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.series ??= {}
   g.friends ??= []
   g.presets ??= undefined
+  // upgraded spares beside a card (restoreCard); whatever a hand-edited row
+  // put there that is not a level goes
+  for (const owned of Object.values(g.cards)) {
+    const raw = (owned as { spares?: unknown } | null)?.spares
+    if (raw === undefined) continue
+    const clean = (Array.isArray(raw) ? raw : []).map((x) => Math.trunc(Number(x) || 0))
+      .filter((x) => x >= 1 && x <= MAX_LEVEL).sort((a, b) => a - b).slice(0, 99)
+    if (clean.length) owned.spares = clean
+    else delete owned.spares
+  }
+  // 赛事预测: only picks the rules allow, for events the game knows
+  const predict = cleanPredictions(g.predict)
+  if (predict) g.predict = predict
+  else delete g.predict
   g.seed = typeof g.seed === 'number' && Number.isFinite(g.seed) ? g.seed >>> 0 : hashStr(id + g.createdAt) >>> 0
   return clampState(g)
 }
@@ -2172,7 +2197,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed', 'predict',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

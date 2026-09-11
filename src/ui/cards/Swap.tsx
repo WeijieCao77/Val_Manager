@@ -17,8 +17,10 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard, RARITY_CN } from '../../engine/cards'
 import type { Card } from '../../engine/cards'
 import { collection, STAMINA_COST, canPlay } from '../../engine/gacha'
+import type { OwnedCard } from '../../engine/gacha'
 import { fetchFriendCards, myCode, takeServer } from '../../engine/account'
 import type { FriendCard, FriendMiss } from '../../engine/account'
+import { sparesOf } from '../../engine/inbox'
 import { answerSwap, cancelSwap, gateText, mySwaps, proposeSwap } from '../../engine/market'
 import { CardPicker } from './Picker'
 import type { SwapRow } from '../../engine/market'
@@ -31,9 +33,24 @@ const MISS: Record<FriendMiss, string> = {
   empty: '这个人还没有卡。',
 }
 
+/**
+ * Which card, not only whose. 「nAts 换他的 CHICHOO」 said nothing once both
+ * of them had a 彩卡 or two beside the ordinary card, so a 彩卡 names its
+ * night and an ordinary card its club and metal.
+ */
 const nameOf = (id: string) => {
   const c = cardById(id)
-  return c ? (isPlayerCard(c) ? c.ign : c.name) : id
+  if (!c) return id
+  const who = isPlayerCard(c) ? c.ign : c.name
+  return c.legend ? `${who}（${c.legend.short} 彩卡）` : `${who}（${c.clubTag ?? '无队'}·${RARITY_CN[c.rarity]}）`
+}
+
+/** The copy that leaves when this card is offered — the same order escrowCard takes. */
+const leavingLevel = (o: OwnedCard | undefined): number => {
+  if (!o) return 0
+  if (o.dupes > 0) return 0
+  const spares = sparesOf(o)
+  return spares.length ? spares[0] : o.level
 }
 
 export default function Swap() {
@@ -64,11 +81,11 @@ export default function Swap() {
     if (r.ok) { setFriend(r); setCode(r.code) } else setWhy(MISS[r.why])
   }
 
-  // what I can put up: anything I hold, spare or not; a spare goes first at +0
+  // what I can put up: anything I hold; a duplicate goes first at +0, then the
+  // lowest upgraded spare, and the card itself last
   const sellable = collection(g).sort((a, b) => b.rating - a.rating)
   const giveCard = give ? cardById(give) : null
-  const giveOwned = give ? g.cards[give] : undefined
-  const giveLevel = giveOwned ? (giveOwned.dupes > 0 ? 0 : giveOwned.level) : 0
+  const giveLevel = leavingLevel(give ? g.cards[give] : undefined)
   // theirs, of the same metal — the only ones the server would accept
   const theirs = (friend?.cards ?? [])
     .map((c) => ({ ...c, card: cardById(c.id) }))
@@ -94,7 +111,7 @@ export default function Swap() {
     }
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
-    toast(`已向 ${friend.name} 发出交换：${nameOf(give)} 换 ${nameOf(want)}。${days} 天没答复自动退回。`)
+    toast(`已向 ${friend.name} 发出交换：${nameOf(give)} +${giveLevel} 换 ${nameOf(want)}。${days} 天没答复自动退回。`)
     setGive(''); setWant('')
     void refresh()
   }
@@ -114,7 +131,7 @@ export default function Swap() {
     if (r.state) takeServer(g, r.state, r.rev)
     void commit()
     if (accept) await collect(true)
-    toast(accept ? `成交，${nameOf(s.give)} 已入库。` : '已拒绝，卡退回对方。')
+    toast(accept ? `成交，${nameOf(s.give)} +${s.giveLevel} 已入库。` : '已拒绝，卡退回对方。')
     void refresh()
   }
 
@@ -123,7 +140,7 @@ export default function Swap() {
     const r = await cancelSwap(s.id)
     setBusy(false)
     if (r?.ok) await collect(true)
-    toast(r?.ok ? `已撤回，${nameOf(s.give)} 回到了收藏。` : '这个交换已经结束了。')
+    toast(r?.ok ? `已撤回，${nameOf(s.give)} +${s.giveLevel} 回到了收藏。` : '这个交换已经结束了。')
     void refresh()
   }
 
@@ -141,7 +158,7 @@ export default function Swap() {
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
           用一张卡换朋友的一张，<b>只能同等级互换</b>。
           发起扣你 {STAMINA_COST.swap} 点体力，对方接受扣他 {STAMINA_COST.swap} 点，两张卡各进信箱。
-          有重复先换重复那张（+0），只有一张时连强化等级一起换出。
+          有重复卡先换重复卡（+0），其次是等级最低的备用卡，最后才是这张卡本身。
         </p>
         <div className="row" style={{ gap: 6, marginBottom: 10 }}>
           <input
@@ -168,7 +185,9 @@ export default function Swap() {
                 <CardPicker
                   rows={sellable.map(({ card, owned }) => ({
                     card,
-                    note: owned.dupes > 0 ? `多 ${owned.dupes} 张` : owned.level > 0 ? `+${owned.level}` : '仅此一张',
+                    note: owned.dupes > 0 ? `多 ${owned.dupes} 张`
+                      : sparesOf(owned).length ? `备用 +${sparesOf(owned)[0]}`
+                        : owned.level > 0 ? `+${owned.level}` : '仅此一张',
                   }))}
                   value={give}
                   onChange={(id) => { setGive(id); setWant('') }}
@@ -222,8 +241,8 @@ export default function Swap() {
           {inbound.map((s) => (
             <div key={s.id} className="row wrap" style={{ gap: 8, padding: '7px 0', borderBottom: '1px solid var(--line-soft)' }}>
               <div style={{ flex: '1 1 240px' }}>
-                <b>{s.who}</b> 想用 <b>{nameOf(s.give)}</b>{s.giveLevel > 0 ? ` +${s.giveLevel}` : ''} 换你的 <b>{nameOf(s.want)}</b>
-                <div className="tiny muted">接受要 {STAMINA_COST.swap} 点体力；{g.cards[s.want] ? '' : '你已经没有这张卡了。'}</div>
+                <b>{s.who}</b> 想用 <b>{nameOf(s.give)} +{s.giveLevel}</b> 换你的 <b>{nameOf(s.want)}</b>
+                <div className="tiny muted">接受要 {STAMINA_COST.swap} 点体力；{g.cards[s.want] ? `你交出去的是 +${leavingLevel(g.cards[s.want])}。` : '你已经没有这张卡了。'}</div>
               </div>
               <button className="sm primary" disabled={busy || !g.cards[s.want]} onClick={() => void answer(s, true)}>接受</button>
               <button className="sm" disabled={busy} onClick={() => void answer(s, false)}>拒绝</button>
@@ -232,7 +251,7 @@ export default function Swap() {
           {outbound.map((s) => (
             <div key={s.id} className="row wrap" style={{ gap: 8, padding: '7px 0', borderBottom: '1px solid var(--line-soft)' }}>
               <div style={{ flex: '1 1 240px' }}>
-                给 <b>{s.who}</b>：<b>{nameOf(s.give)}</b>{s.giveLevel > 0 ? ` +${s.giveLevel}` : ''} 换他的 <b>{nameOf(s.want)}</b>
+                给 <b>{s.who}</b>：<b>{nameOf(s.give)} +{s.giveLevel}</b> 换他的 <b>{nameOf(s.want)}</b>
                 <div className="tiny muted">等他答复 · 卡托管中</div>
               </div>
               <button className="sm ghost" disabled={busy} onClick={() => void cancel(s)}>撤回</button>

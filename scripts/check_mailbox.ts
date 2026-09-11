@@ -86,8 +86,8 @@ check('旧的已读被挤掉，新的未读都在', unreadMail(g) === MAIL_MAX)
     over?.level === 1 && over.dupes === 1, JSON.stringify(over))
 
   const under = buy({ [CARD]: { id: CARD, level: 3, dupes: 0, seen: 1, got: '2026-09-02' } }, 1)
-  check('本来有 +3，买来 +1 只当重复卡，+3 不动',
-    under?.level === 3 && under.dupes === 1, JSON.stringify(under))
+  check('本来有 +3，买来 +1 留作备用卡，+3 不动',
+    under?.level === 3 && under.dupes === 0 && JSON.stringify(under.spares) === '[1]', JSON.stringify(under))
 
   const home = buy({}, 5)
   check('自己挂出去的满级卡回来还是满级', home?.level === 5, JSON.stringify(home))
