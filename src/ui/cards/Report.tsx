@@ -147,7 +147,7 @@ function SquadRow({
         <b style={{ fontSize: 13 }}>{title}</b>
         <span className={`tag ${won ? 't1' : ''}`}>{won ? '胜' : '负'}</span>
       </div>
-      <div className="row wrap" style={{ gap: 8 }}>
+      <div className="report-cards">
         {ids.map((id) => {
           const card = cardById(id)
           if (!card) return null
@@ -156,14 +156,13 @@ function SquadRow({
               key={id}
               card={card}
               level={level(id)}
-              size="sm"
               footer={id === mvp ? '全场最佳' : undefined}
               selected={id === mvp}
             />
           )
         })}
         {coach && cardById(coach) && (
-          <CardFace card={cardById(coach)!} level={level(coach)} size="sm" footer="教练" />
+          <CardFace card={cardById(coach)!} level={level(coach)} footer="教练" />
         )}
       </div>
     </div>

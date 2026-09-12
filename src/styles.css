@@ -1751,6 +1751,23 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   .cm-squad .cf-name { font-size: 12px; }
 }
 
+/* The match report's fives take the modal's width the way the squad grid does. Fixed 96px cards
+   left two a row and a third of the modal empty on a phone; now the columns share the width,
+   capped at 150px, so a phone gets two ~146px cards a row and a desktop gets six. */
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  justify-items: center;
+}
+.report-cards .cardface { width: 100%; max-width: 150px; }
+.report-cards .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+@media (max-width: 420px) {
+  .report-cards { gap: 6px; }
+  .report-cards .cf-attrs { grid-template-columns: repeat(2, 1fr); font-size: 9px; }
+  .report-cards .cf-name { font-size: 12px; }
+}
+
 /* ---- the flip ---------------------------------------------------------
  *
  * A card that simply appears has no moment in it. The pack is worth opening

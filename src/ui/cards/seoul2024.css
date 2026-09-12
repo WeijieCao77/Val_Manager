@@ -51,6 +51,11 @@
   .sc24 .sc24-stats b{font-size:8px}
   .sc24 .sc24-head{font-size:4px}.sc24 .sc24-head b{font-size:6px}.sc24 .sc24-head .seoul-mark{width:16px;height:16px}
 }
+/* Phones set to a large minimum font size lift this card's tiny print into the rating box. Measured by
+   raising every font below 9–10px: the team row collides under ~158px and the head text under ~126px, so
+   both step aside there (the tag stays in the side text, the mark stays in the corner). */
+@container (width < 158px){ .sc24 .sc24-team{display:none} }
+@container (width < 126px){ .sc24 .sc24-head>span{display:none} .sc24 .sc24-stats{gap:6%} }
 .sc24-pack-object{position:relative;width:220px;aspect-ratio:2/3;isolation:isolate}
 .sc24-pack-object>.pack-pouch{inset:-8% -12%;filter:drop-shadow(8px 16px 12px #0009)}
 .seoul-shelf-art>.sc24-pack-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
