@@ -16,6 +16,8 @@ import { playPackCue } from '../packAudio'
 import CardTilt from './CardTilt'
 import PackPouch from './PackPouch'
 import { SeoulCardBack } from './SeoulDesign'
+import SalvageConfirm from './SalvageConfirm'
+import type { SalvageAsk } from './SalvageConfirm'
 import SeoulPackDisplay from './SeoulPackDisplay'
 import { SEOUL_CARDS } from '../../engine/cards'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
@@ -30,6 +32,8 @@ export default function Packs() {
   const [openingKind, setOpeningKind] = useState<PackKind | null>(null)
   const [shown, setShown] = useState(0)
   const [busy, setBusy] = useState(false)
+  /** the reveal's 分解重复卡, waiting for the player to read the list */
+  const [ask, setAsk] = useState<SalvageAsk | null>(null)
 
   refreshDaily(g, today)
   const prog = collectionProgress(g)
@@ -394,16 +398,30 @@ export default function Packs() {
           // and swallowed every click
           onNext={() => setShown((n) => Math.min(n + 1, opening.length + 1))}
           onDone={done}
-          onSellAll={async () => {
-            const cardIds = opening.filter((p) => p.dupe).map((p) => p.card.id)
-            if (!cardIds.length) { toast('这一包没有重复卡。'); return }
-            const r = await act('salvage_dupes', { cardIds })
-            if (!r.ok) { toast(r.why); return }
-            const coins = (r.result as { coins: number }).coins
-            toast(coins ? `重复卡已分解，+${coins} 金币。` : '这一包的重复卡已经分解过了。')
+          onSellAll={() => {
+            // one spare per card named, which is what salvage_dupes sells —
+            // a pack holding the same dupe twice still lists it once
+            const seen = new Set<string>()
+            const lines = opening
+              .filter((p) => p.dupe && !seen.has(p.card.id) && seen.add(p.card.id))
+              .map((p) => ({ cardId: p.card.id, count: 1, coins: p.salvage }))
+            if (!lines.length) { toast('这一包没有重复卡。'); return }
+            setAsk({
+              lines,
+              onConfirm: async () => {
+                setBusy(true)
+                const r = await act('salvage_dupes', { cardIds: lines.map((l) => l.cardId) })
+                setBusy(false)
+                setAsk(null)
+                if (!r.ok) { toast(r.why); return }
+                const coins = (r.result as { coins: number }).coins
+                toast(coins ? `重复卡已分解，+${coins} 金币。` : '这一包的重复卡已经分解过了。')
+              },
+            })
           }}
         />
       )}
+      {ask && <SalvageConfirm ask={ask} busy={busy} onClose={() => { if (!busy) setAsk(null) }} />}
     </>
   )
 }

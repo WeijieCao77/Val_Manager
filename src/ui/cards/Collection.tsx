@@ -3,6 +3,8 @@ import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
 import { Panel } from '../common'
 import { collection, salvagePlan, upgradeCost, SWEEPABLE } from '../../engine/gacha'
+import SalvageConfirm from './SalvageConfirm'
+import type { SalvageAsk } from './SalvageConfirm'
 import { clubSets } from '../../engine/clubSets'
 import { dismantleFee, dismantleYield } from '../../engine/dismantle'
 import { sparesOf } from '../../engine/inbox'
@@ -10,7 +12,7 @@ import { crestUrl } from '../../engine/dossier'
 import {
   ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
 } from '../../engine/cards'
-import type { Card } from '../../engine/cards'
+import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
 import { LEGEND_KIND_CN } from '../../engine/legends'
 import { legendPhoto } from '../../engine/dossier'
@@ -88,15 +90,25 @@ export default function Collection() {
     return next
   })
 
-  const runSalvage = async (args: Record<string, unknown>, ask: string, after?: () => void) => {
-    if (busy || !confirm(ask)) return
-    setBusy(true)
-    const r = await act('salvage_bulk', { ...args, keepForUpgrade: keepUp })
-    setBusy(false)
-    if (!r.ok) { toast(r.why); return }
-    const got = r.result as { coins: number; dupes: number }
-    toast(`分解 ${got.dupes} 张，+${coin(got.coins)} 金币。`)
-    after?.()
+  // Nothing is sold on the first tap: the sheet names every card first.
+  const [ask, setAsk] = useState<SalvageAsk | null>(null)
+  const runSalvage = (args: { rarities?: Rarity[]; cardIds?: string[] }, after?: () => void) => {
+    if (busy) return
+    const lines = salvagePlan(g, { ...args, keepForUpgrade: keepUp })
+    if (!lines.length) { toast('没有可分解的重复卡。'); return }
+    setAsk({
+      lines,
+      onConfirm: async () => {
+        setBusy(true)
+        const r = await act('salvage_bulk', { ...args, keepForUpgrade: keepUp })
+        setBusy(false)
+        setAsk(null)
+        if (!r.ok) { toast(r.why); return }
+        const got = r.result as { coins: number; dupes: number }
+        toast(`分解 ${got.dupes} 张，+${coin(got.coins)} 金币。`)
+        after?.()
+      },
+    })
   }
 
   const sets = useMemo(() => clubSets(g), [g, g.cards])
@@ -228,10 +240,7 @@ export default function Collection() {
                   key={s.rarity}
                   className="sm"
                   disabled={busy || !s.dupes}
-                  onClick={() => void runSalvage(
-                    { rarities: [s.rarity] },
-                    `分解 ${s.dupes} 张重复${RARITY_CN[s.rarity]}，换 ${coin(s.coins)} 金币？`,
-                  )}
+                  onClick={() => runSalvage({ rarities: [s.rarity] })}
                 >
                   {RARITY_CN[s.rarity]} {s.dupes} 张 · +{coin(s.coins)}
                 </button>
@@ -249,11 +258,7 @@ export default function Collection() {
               <button
                 className="primary sm"
                 disabled={busy || !pickedPlan.dupes}
-                onClick={() => void runSalvage(
-                  { cardIds: [...picked] },
-                  `分解选中的 ${pickedPlan.dupes} 张重复卡，换 ${coin(pickedPlan.coins)} 金币？`,
-                  () => setPicked(new Set()),
-                )}
+                onClick={() => runSalvage({ cardIds: [...picked] }, () => setPicked(new Set()))}
               >
                 分解选中
               </button>
@@ -291,6 +296,8 @@ export default function Collection() {
           <p className="tiny faint" style={{ marginTop: 10 }}>只显示前 240 张，可搜索缩小范围。</p>
         )}
       </Panel>
+
+      {ask && <SalvageConfirm ask={ask} busy={busy} onClose={() => { if (!busy) setAsk(null) }} />}
 
       {sel && owned && (
         <div className="modal-bg" onClick={() => setOpen(null)}>
@@ -392,10 +399,19 @@ export default function Collection() {
                   <button
                     className="sm"
                     style={{ marginLeft: 8 }}
-                    onClick={async () => {
+                    disabled={busy}
+                    onClick={() => {
                       const n = owned.dupes
-                      const r = await act('salvage', { cardId: sel.id, count: n })
-                      toast(r.ok ? `分解 ${n} 张，+${(r.result as { coins: number }).coins} 金币。` : r.why)
+                      setAsk({
+                        lines: [{ cardId: sel.id, count: n, coins: SALVAGE[sel.rarity] * n }],
+                        onConfirm: async () => {
+                          setBusy(true)
+                          const r = await act('salvage', { cardId: sel.id, count: n })
+                          setBusy(false)
+                          setAsk(null)
+                          toast(r.ok ? `分解 ${n} 张，+${(r.result as { coins: number }).coins} 金币。` : r.why)
+                        },
+                      })
                     }}
                   >
                     全部分解（+{SALVAGE[sel.rarity] * owned.dupes} 金币）
