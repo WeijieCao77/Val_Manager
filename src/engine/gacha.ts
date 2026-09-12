@@ -45,6 +45,8 @@ export type Series = (typeof SERIES)[number]
 
 export type PackKind =
   | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024'
+  // one 彩卡, nothing else — the reward for a full 图鉴; never sold
+  | 'legend'
   // one per series — same three cards, drawn only from that region
   | 'cn' | 'pac' | 'ame' | 'emea'
   // one per position — a single card that plays it; paid by the 位置小游戏, never sold
@@ -81,8 +83,8 @@ export interface PackDef {
    * one" never was.
    */
   shop?: boolean
-  /** coach packs deal from a different deck; a series deals from one region; a position from its players */
-  pool: 'player' | 'coach' | 'seoul2024' | Series | PackPosition
+  /** coach packs deal from a different deck; a series deals from one region; a position from its players; 'legend' is every 彩卡 */
+  pool: 'player' | 'coach' | 'seoul2024' | 'legend' | Series | PackPosition
 }
 
 /**
@@ -147,6 +149,15 @@ export const PACKS: Record<PackKind, PackDef> = {
     kind: 'emea', name: 'EMEA 包', pool: 'EMEA',
     blurb: '只出欧非中东赛区的选手卡。三张，至少一张银卡起。',
     cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+  },
+  // The 彩卡包. One card, always a 彩卡, dealt from every legend in the game
+  // — players and the booth alike. It is what finishing the whole 图鉴 pays
+  // (see FULL_SET below), and the desk can hand one out. A certainty, so it
+  // stands outside the pity system: it neither spends nor moves the floor.
+  legend: {
+    kind: 'legend', name: '彩卡包', pool: 'legend',
+    blurb: '一张彩卡，只出彩卡。收齐全图鉴的奖励，不卖。',
+    cost: 0, draws: 1, mythic: 1, gold: 0, silver: 0, shop: false,
   },
   coach: {
     kind: 'coach', name: '教练包', pool: 'coach',
@@ -687,6 +698,8 @@ export interface GachaState {
   minigame?: MinigameState
   /** how many series milestones have been collected, per region */
   series?: Partial<Record<Series, number>>
+  /** 1 once the 全图鉴 reward has been collected — see FULL_SET */
+  fullSet?: number
   /** 好友对战房 — see FriendRec */
   friends?: FriendRec[]
   /** saved squad presets — see SQUAD_PRESETS */
@@ -945,6 +958,10 @@ const POOLS = {
   Pacific: seriesPool('Pacific'),
   Americas: seriesPool('Americas'),
   EMEA: seriesPool('EMEA'),
+  legend: {
+    mythic: [...LEGEND_CARDS, ...LEGEND_COACH_CARDS] as Card[],
+    gold: [] as Card[], silver: [] as Card[], bronze: [] as Card[],
+  },
   coach: {
     mythic: LEGEND_COACH_CARDS,
     gold: COACH_CARDS.filter((c) => c.rarity === 'gold'),
@@ -1001,6 +1018,9 @@ export function openPack(
 
   const { rng, done } = roll(g)
   const pool = POOLS[def.pool]
+  // a pack that promises a 彩卡 every time is not a lottery, and the pity
+  // counters belong to the lotteries: it neither resets them nor counts
+  const certain = def.mythic >= 1
   const metals: Rarity[] = []
   for (let i = 0; i < def.draws; i++) {
     const r = rng.next()
@@ -1008,7 +1028,9 @@ export function openPack(
     // the彩卡 roll happens first and on its own budget, so raising the gold
     // rate never quietly changes how rare a legend is
     const owed = def.mythic > 0 && g.mythicDry >= MYTHIC_FLOOR
-    if (owed || r < def.mythic) {
+    if (certain) {
+      metal = 'mythic'
+    } else if (owed || r < def.mythic) {
       metal = 'mythic'
     } else {
       const gc = goldChance(def.gold, g.pity)
@@ -1018,7 +1040,7 @@ export function openPack(
       else if (rest < gc + def.silver) metal = 'silver'
       else metal = 'bronze'
     }
-    if (metal === 'mythic') { g.mythicDry = 0; g.pity = 0 } else {
+    if (certain) { /* outside the pity system */ } else if (metal === 'mythic') { g.mythicDry = 0; g.pity = 0 } else {
       // a pack with no彩卡 in it must not count toward the floor either —
       // otherwise the guarantee could be spent on a deck it can never be paid
       // out of. The coach pack has one now, so it does count.
@@ -1424,6 +1446,50 @@ export function claimSeries(g: GachaState, region: Series): string | null {
     .filter(Boolean)
   note(g, `${REGION_CN[region]}系列进度奖励：${parts.join('，')}`)
   return parts.join('，')
+}
+
+/**
+ * 全图鉴: every card the ordinary packs can deal, held at once.
+ *
+ * Every 选手卡, every coach and every 首尔 card — the 彩卡 are the one thing
+ * left out, because they are what it pays: a 彩卡包, the only pack that
+ * deals nothing else. Like the series ladder this is a landmark rather than
+ * an income; the four regions alone cost some four hundred packs each to
+ * finish, and a prize at the end of that should be the rarest thing the
+ * game has. Once, ever — the card the pack deals goes to the level of the
+ * one you hold if you hold it already.
+ */
+export const FULL_SET_CARDS: ReadonlySet<string> = new Set(
+  ALL_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id),
+)
+export const FULL_SET_REWARD = { pack: 'legend' as PackKind, count: 1 }
+
+export interface FullSetProgress {
+  owned: number
+  total: number
+  /** the reward is waiting to be collected */
+  ready: boolean
+  /** it has been collected */
+  claimed: boolean
+}
+
+export function fullSetProgress(g: GachaState): FullSetProgress {
+  let owned = 0
+  for (const id of Object.keys(g.cards)) if (FULL_SET_CARDS.has(id)) owned++
+  const total = FULL_SET_CARDS.size
+  const claimed = (g.fullSet ?? 0) >= 1
+  return { owned, total, ready: !claimed && owned >= total, claimed }
+}
+
+export function claimFullSet(g: GachaState): string | null {
+  const prog = fullSetProgress(g)
+  if (!prog.ready) return null
+  const { pack, count } = FULL_SET_REWARD
+  g.packs[pack] = (g.packs[pack] ?? 0) + count
+  g.fullSet = 1
+  const got = `${PACKS[pack].name} ×${count}`
+  note(g, `全图鉴集齐：${got}`)
+  return got
 }
 
 // ---------------------------------------------------------------- ladder
@@ -2181,6 +2247,12 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   // an existing collection already sits somewhere on the series ladder; nothing
   // is marked claimed, so whatever it has already earned is waiting on the shelf
   g.series ??= {}
+  // the 全图鉴 flag is 1 or absent; anything else a row carries is dropped
+  if (g.fullSet !== undefined) {
+    const raw: unknown = g.fullSet
+    if (raw === 1 || raw === true) g.fullSet = 1
+    else delete g.fullSet
+  }
   g.friends ??= []
   g.presets ??= undefined
   // upgraded spares beside a card (restoreCard); whatever a hand-edited row
@@ -2213,7 +2285,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

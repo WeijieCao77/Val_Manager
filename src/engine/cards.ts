@@ -490,6 +490,28 @@ export function chemistry(squad: Squad): ChemReport {
 export const NO_IGL_PENALTY = 3
 
 /**
+ * What a point of 默契 is worth on the squad screen, in rating points.
+ *
+ * The same number the server pays. It was 0.06 while the arena paid about
+ * 0.1 — chemistry lands there three times over, in the overall, in the
+ * bond table and in teamwork — so two fives four points apart on paper
+ * with 默契 40 apart were even on the server, and the one with the higher
+ * number could not see why it kept losing. Measured 2026-09-12: at equal
+ * ability, ninety points of 默契 wins three in four, which is what nine
+ * rating points win. scripts/check_gap_curve.ts.
+ */
+export const CHEM_PAPER = 0.1
+
+/**
+ * What a coach's 培养 adds to every card he fields: a level per ten points
+ * above 70, at most two. Read by the arena (arena.ts) and shown in the
+ * squad's number here, so the screen and the server agree on what a
+ * coach is worth.
+ */
+export const coachLift = (development: number): number =>
+  Math.max(0, Math.min(2, Math.floor((development - 70) / 10)))
+
+/**
  * The squad's headline number, after levels, role misfits, chemistry — and
  * whether anyone calls.
  *
@@ -512,5 +534,7 @@ export function squadRating(squad: Squad, level: (id: string) => number = () => 
   // five people who have never met are worth less than the sum of their parts
   const short = (5 - cards.length) * 9
   const uncalled = cards.length === 5 && chem.noIgl ? NO_IGL_PENALTY : 0
-  return Math.max(0, Math.round(mean + (chem.score - 50) * 0.06 - short - uncalled))
+  const coach = squad.coach ? cardById(squad.coach) : undefined
+  const lift = isCoachCard(coach) ? coachLift(coach.development) : 0
+  return Math.max(0, Math.round(mean + lift + (chem.score - 50) * CHEM_PAPER - short - uncalled))
 }

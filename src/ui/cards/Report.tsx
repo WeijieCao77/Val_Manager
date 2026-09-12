@@ -1,5 +1,5 @@
 import CardFace from '../Card'
-import { cardById, isPlayerCard } from '../../engine/cards'
+import { cardById, chemistry, isPlayerCard, squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { ATTR_CN } from '../../engine/types'
 import type { Attrs, Role } from '../../engine/types'
@@ -141,11 +141,19 @@ function SquadRow({
   won: boolean
 }) {
   const ids = [...slots.filter((x): x is string => !!x)]
+  // the two numbers the squad screen shows, for both sides, so 「纸面实力」
+  // is something you can actually compare after the match
+  const squad = { slots, coach }
+  const paper = ids.length ? squadRating(squad, level) : 0
+  const chem = chemistry(squad).score
   return (
     <div style={{ marginBottom: 12 }}>
       <div className="row" style={{ gap: 8, alignItems: 'baseline', marginBottom: 6 }}>
         <b style={{ fontSize: 13 }}>{title}</b>
         <span className={`tag ${won ? 't1' : ''}`}>{won ? '胜' : '负'}</span>
+        {paper > 0 && (
+          <span className="tiny muted">阵容分 <b>{paper}</b> · 默契 <b>{chem}</b></span>
+        )}
       </div>
       <div className="report-cards">
         {ids.map((id) => {

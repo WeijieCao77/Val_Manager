@@ -45,6 +45,19 @@
         "server.js"
       ],
       "port": 8090
+    },
+    {
+      "name": "val-server-admin-8095",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "ANALYTICS_TOKEN=devtoken",
+        "DATABASE_URL=pglite://",
+        "TRADE_DAYS=0",
+        "PORT=8095",
+        "node",
+        "server.js"
+      ],
+      "port": 8095
     }
   ]
 }

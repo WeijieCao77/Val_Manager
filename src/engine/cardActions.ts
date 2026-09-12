@@ -24,7 +24,7 @@
  * lets scripts/check_authority.ts drive every action without a database.
  */
 import {
-  awardMinigame, canPlay, checkIn, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
+  awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LEAGUE_RULES, MASTER_DIV, PACKS, SERIES, STAMINA_COST, SWEEPABLE,
@@ -64,7 +64,7 @@ export type ActResult =
   | { ok: false; why: string }
 
 export const ACTIONS = [
-  'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
+  'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'seoul_start', 'seoul_play', 'seoul_quit',
 ] as const
@@ -163,6 +163,11 @@ function dispatch(
       if (!got) return { ok: false, why: '这个赛区没有可领的奖励' }
       return { ok: true, result: { got } }
     }
+    case 'fullset': {
+      const got = claimFullSet(g)
+      if (!got) return { ok: false, why: '全图鉴还没集齐，或者已经领过了' }
+      return { ok: true, result: { got } }
+    }
     case 'salvage': {
       const cardId = str(a.cardId)
       const count = Math.max(0, Math.min(999, Math.trunc(Number(a.count) || 0)))
@@ -241,7 +246,7 @@ function dispatch(
       if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
       const level = (id: string) => levelOf(g, id)
       const res: ArenaResult = rival
-        ? playRivalMatch(five.squad, level, rival, 3, env.seed)
+        ? playRivalMatch(five.squad, level, rival, 3, env.seed, undefined, true)
         : playArenaMatch(five.squad, level, oppId, 3, env.seed, bump)
       // a real five is worth what its own ladder position says it is worth
       const strength = rival

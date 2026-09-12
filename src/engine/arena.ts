@@ -15,7 +15,7 @@ import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
-  cardById, chemistry, isCoachCard, isPlayerCard, personOf, ratingAt, SQUAD_SLOTS,
+  cardById, chemistry, coachLift, isCoachCard, isPlayerCard, personOf, ratingAt, SQUAD_SLOTS,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -77,7 +77,7 @@ const squeeze = (x: number, pivot: number, spread = SPREAD) =>
  * late rounds (clutch, which the engine reads for kills, deaths and mid-round
  * swings). Both read the card's own number, before the squeeze.
  */
-const devLift = (development: number): number => clamp(Math.floor((development - 70) / 10), 0, 2)
+const devLift = coachLift
 const nerve = (motivation: number): number => Math.round((motivation - 70) * 0.35)
 
 export interface ArenaSquad extends Squad {
@@ -321,6 +321,62 @@ export interface ArenaResult {
   opp?: ArenaOpponent
 }
 
+/**
+ * Every man on a side up (or down) by the same amount, attributes and overall
+ * alike, so the side stays recognisably itself — the 大师 sharpening, the
+ * metal ladders' handicap, and the gap term below all use it.
+ */
+function sharpen(state: GameState, teamId: string, by: number): void {
+  const team = state.teams[teamId]
+  for (const pid of team?.roster ?? []) {
+    const p = state.players[pid]
+    if (!p) continue
+    const attrs = { ...p.attrs }
+    for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
+      attrs[k] = clamp(attrs[k] + by, 1, 99)
+    }
+    state.players[pid] = { ...p, attrs, overall: clamp(p.overall + by, 1, 99) }
+  }
+  if (team) team.rating = clamp(team.rating + by, 1, 99)
+}
+
+/**
+ * How much of a wide gap between two players' fives the match honours.
+ *
+ * The squeeze above halves every gap, and it was tuned so a four-point one
+ * is a favourite rather than a formality. It halves the twelve-point ones
+ * too, and that is what the group kept reporting: 「综合分比对面高，默契也
+ * 比对面高，但也打不过」. Measured 2026-09-12 with every card at level 5
+ * against the same five at level 0 — a five-point paper gap with nothing
+ * else different — the better side won 64% of bo3s, and a random pair of
+ * fives eight to eleven points apart split 73/27.
+ *
+ * What the owner asked for: three or four points apart is still close to a
+ * coin flip, either side can win; much further apart and the stronger side
+ * wins at least seven in ten, more the wider it gets. So the first stretch
+ * of a gap is left squeezed and everything past GAP_FREE (in the engine's
+ * own points, after the squeeze — about three on the squad screen) counts
+ * again at GAP_WIDEN on top. Only between two players' fives: a club
+ * opponent is scaled by the ladder itself, and 首尔征途 plays the 2024
+ * fives as they were. scripts/check_gap_curve.ts is the measurement.
+ */
+const GAP_FREE = 1.5
+const GAP_WIDEN = 0.5
+
+function honourGap(state: GameState, a: string, b: string): void {
+  const strength = (teamId: string): number => {
+    const roster = state.teams[teamId]?.roster ?? []
+    if (!roster.length) return 0
+    return roster.reduce((s, id) => s + (state.players[id]?.overall ?? 0), 0) / roster.length
+  }
+  const gap = strength(a) - strength(b)
+  const extra = Math.sign(gap) * GAP_WIDEN * Math.max(0, Math.abs(gap) - GAP_FREE)
+  if (!extra) return
+  // split between the two so the match is played at the same overall level
+  sharpen(state, a, extra / 2)
+  sharpen(state, b, -extra / 2)
+}
+
 /** Play one card-mode match against a real club and read the scoreboard back. */
 export function playArenaMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
@@ -338,19 +394,7 @@ export function playArenaMatch(
   // wall rather than a ladder; the club that turns up is the same club, a
   // little further off its best. It used to ignore a negative number
   // entirely, which quietly made every league play the open ladder.
-  if (oppBump !== 0) {
-    const opp = state.teams[opponentId]
-    for (const pid of opp?.roster ?? []) {
-      const p = state.players[pid]
-      if (!p) continue
-      const attrs = { ...p.attrs }
-      for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
-        attrs[k] = clamp(attrs[k] + oppBump, 1, 99)
-      }
-      state.players[pid] = { ...p, attrs, overall: clamp(p.overall + oppBump, 1, 99) }
-    }
-    if (opp) opp.rating = clamp(opp.rating + oppBump, 1, 99)
-  }
+  if (oppBump !== 0) sharpen(state, opponentId, oppBump)
 
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
@@ -445,6 +489,8 @@ export function playRivalMatch(
   rival: RivalSquad, bo: 1 | 3 | 5, seed: number,
   /** a fixed map pool — 首尔征途 plays the seven maps of 2024; absent, today's pool */
   pool?: string[],
+  /** honour a wide gap between the two fives — the ladder and the friend room; see honourGap */
+  widen = false,
 ): ArenaResult {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
   const cardOf: Record<string, string> = {}
@@ -459,6 +505,7 @@ export function playRivalMatch(
     ARENA_RIVAL, 'B', theirs,
   )
   state.myTeam = ARENA_TEAM
+  if (widen) honourGap(state, ARENA_TEAM, ARENA_RIVAL)
 
   const rng = new Rng(seed ^ 0x5b1d)
   if (pool) {

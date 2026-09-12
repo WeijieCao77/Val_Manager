@@ -10,7 +10,7 @@ import {
 } from '../../engine/gacha'
 import type { LadderOutcome, LeagueKind } from '../../engine/gacha'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
-import { squadRating } from '../../engine/cards'
+import { chemistry, squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
@@ -195,6 +195,10 @@ export default function Ladder() {
                       <>
                         <span className="tag t1">真人卡组</span>{' '}
                         {rankName(rival.div, 0, rival.points)} · 别的玩家保存的阵容
+                        <br />
+                        阵容分 <b>{squadRating(rival, (id) => rival.levels[id] ?? 0)}</b> · 默契{' '}
+                        <b>{chemistry(rival).score}</b>
+                        {' '}（我 {chemistry(g.squad).score}）
                       </>
                     ) : (
                       <>

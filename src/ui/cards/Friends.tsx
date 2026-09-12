@@ -71,7 +71,7 @@ export default function Friends() {
       // no stamina and no reward, so the seed is the only thing that has to be
       // fresh — a rematch that replayed the same match would be a screenshot
       const seed = (Date.now() ^ (friends.length * 7919)) >>> 0
-      const res = playRivalMatch(g.squad, level, found, 3, seed)
+      const res = playRivalMatch(g.squad, level, found, 3, seed, undefined, true)
       const rec = recordFriend(g, found, res.win, today)
       track('card_match', { mode: 'friend', won: res.win, div: g.ladder.div, rating })
       commit(true)

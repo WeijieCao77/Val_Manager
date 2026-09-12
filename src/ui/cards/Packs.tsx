@@ -5,6 +5,7 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
+  fullSetProgress, FULL_SET_REWARD,
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card } from '../../engine/cards'
@@ -34,6 +35,7 @@ export default function Packs() {
   const prog = collectionProgress(g)
   const series = seriesProgress(g)
   const featured = featuredSeries(today)
+  const fullSet = fullSetProgress(g)
 
   // The pack is rolled on the server and comes back already in the
   // collection; what happens here is the reveal.
@@ -93,6 +95,12 @@ export default function Packs() {
     const r = await act('series', { region })
     if (!r.ok) { toast(r.why); return }
     toast(`系列奖励已领取：${(r.result as { got: string }).got}`)
+  }
+
+  const takeFullSet = async () => {
+    const r = await act('fullset', {})
+    if (!r.ok) { toast(r.why); return }
+    toast(`全图鉴奖励已领取：${(r.result as { got: string }).got}`)
   }
 
   const signedToday = g.daily.claimed === today
@@ -180,6 +188,21 @@ export default function Packs() {
           用金币随时买，不限次数。十连包不卖，靠升段、夺冠或连签七天获得。
         </p>
         <div className="pack-shelf">
+          {(g.packs.legend ?? 0) > 0 && (
+            <div className="pack-box" style={{ borderColor: 'var(--mythic, var(--warn))' }}>
+              <h4>
+                {PACKS.legend.name}
+                <span className="pack-own"> ×{g.packs.legend}</span>
+              </h4>
+              <p>{PACKS.legend.blurb}</p>
+              <div className="row" style={{ gap: 6 }}>
+                <button className="primary sm" onClick={() => void open('legend', 'pack')} disabled={busy}>
+                  打开（{g.packs.legend}）
+                </button>
+                <span className="tiny faint" style={{ alignSelf: 'center' }}>非卖品</span>
+              </div>
+            </div>
+          )}
           {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024').map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
@@ -316,6 +339,47 @@ export default function Packs() {
               </div>
             )
           })}
+        </div>
+        {/* 全图鉴: every card that is not a 彩卡, and the one pack that deals nothing else. */}
+        <div
+          className="row wrap"
+          style={{
+            gap: 10, alignItems: 'center', marginTop: 10, padding: '8px 10px',
+            border: '1px solid var(--line)', borderRadius: 8,
+            borderColor: fullSet.ready ? 'var(--warn)' : undefined,
+          }}
+        >
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+            <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+              <b style={{ fontSize: 13 }}>全图鉴</b>
+              <span className="tiny mono faint">{fullSet.owned}/{fullSet.total}（{Math.floor((fullSet.owned / Math.max(1, fullSet.total)) * 100)}%）</span>
+            </div>
+            <div
+              style={{
+                height: 5, borderRadius: 3, background: 'var(--panel-2)',
+                border: '1px solid var(--line)', overflow: 'hidden', margin: '5px 0',
+              }}
+            >
+              <div
+                style={{
+                  width: `${(fullSet.owned / Math.max(1, fullSet.total)) * 100}%`, height: '100%',
+                  background: fullSet.owned >= fullSet.total ? 'var(--good)' : 'var(--accent)',
+                }}
+              />
+            </div>
+            <span className="tiny faint" style={{ lineHeight: 1.6 }}>
+              {fullSet.claimed
+                ? '全部收齐，彩卡包已领。'
+                : fullSet.ready
+                  ? `全部收齐了：${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count} 可以领`
+                  : `收齐全部选手卡、教练卡和首尔卡（彩卡不计），送${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count}——只出彩卡的包。还差 ${fullSet.total - fullSet.owned} 张。`}
+            </span>
+          </div>
+          {fullSet.ready && (
+            <button className="sm warn" style={{ whiteSpace: 'nowrap' }} onClick={() => void takeFullSet()}>
+              领奖
+            </button>
+          )}
         </div>
       </Panel>
 
