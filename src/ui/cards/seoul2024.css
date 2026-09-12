@@ -1,13 +1,13 @@
 /* Seoul's black / championship gold / refracted blue. All rules scoped to the event. */
 .seoul-mark{width:32px;height:32px;object-fit:contain;flex-shrink:0}
 .sc24-rays{position:absolute;inset:-30%;pointer-events:none;background:repeating-conic-gradient(from 12deg at 50% 42%,transparent 0deg 10deg,#c8b4772b 10.2deg 10.6deg,transparent 10.9deg 20deg);mask-image:radial-gradient(ellipse,#000 0,transparent 65%)}
-.cardface.sc24{--foil:#c7b477;padding:0;aspect-ratio:63/88;border:1px solid var(--foil);border-radius:8px;background:radial-gradient(ellipse at 75% 15%,#4b54824a,transparent 55%),#0c1017;color:#f6edda;isolation:isolate;box-shadow:0 4px 12px #0006,inset 0 0 0 3px #0c1017,inset 0 0 0 4px #c7b47755;overflow:hidden;justify-content:flex-end}
+.cardface.sc24{--foil:#c7b477;padding:0;border:1px solid var(--foil);border-radius:8px;background:radial-gradient(ellipse at 75% 15%,#4b54824a,transparent 55%),#0c1017;color:#f6edda;isolation:isolate;box-shadow:0 4px 12px #0006,inset 0 0 0 3px #0c1017,inset 0 0 0 4px #c7b47755;overflow:hidden;justify-content:flex-end}
 .cardface.sc24-silver{--foil:#a5b7cf}.cardface.sc24-bronze{--foil:#b7977d}
 .cardface.sc24:before{inset:4px;border:1px solid #c7b47755;border-radius:4px;z-index:5;background:linear-gradient(125deg,transparent 30%,#fff1 47%,transparent 60%);pointer-events:none}
 .sc24-head{position:absolute;top:7%;left:9%;right:9%;display:flex;justify-content:space-between;z-index:3;color:var(--foil);font-size:6px;letter-spacing:.12em;line-height:1.5}.sc24-head b{font-size:8px}.sc24-head .seoul-mark{width:24px;height:24px}
 .sc24-side{position:absolute;right:6%;top:28%;writing-mode:vertical-rl;font:6px monospace;letter-spacing:.2em;z-index:3;color:var(--foil)}
 .sc24-portrait{position:absolute;top:14%;left:17%;right:17%;height:38%;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent),linear-gradient(transparent,#000 16%,#000 74%,transparent);mask-composite:intersect}
-.sc24-portrait img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;object-position:center top;filter:saturate(.65) contrast(1.06)}
+.sc24-portrait img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:saturate(.65) contrast(1.06)}
 .sc24-portrait>span{font-size:64px;color:#c7b47755}
 .sc24-rating{position:absolute;top:24%;left:8%;z-index:3;display:flex;flex-direction:column;text-shadow:0 1px 6px #000;background:#0b1016a6;padding:3px 4px;border-left:1px solid var(--foil)}
 .sc24-rating b{font-size:21px;line-height:1}.sc24-rating small{font-size:7px;margin-top:4px;color:var(--foil)}
@@ -30,8 +30,11 @@
 @media(max-width:900px){.seoul-hero{grid-template-columns:1fr;gap:5px;padding:40px 0 20px}.seoul-hero-copy{text-align:center}.seoul-hero-meta{justify-content:center}.seoul-hero-objects{width:450px;max-width:100%;margin:auto}.seoul-card-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 14px}.seoul-hero h1{font-size:48px}}
 @media(max-width:620px){.seoul-exhibit{padding:0 18px}.seoul-nav{height:64px}.seoul-nav>span{font-size:7px}.seoul-nav .seoul-mark{width:23px;height:23px}.seoul-hero h1{font-size:38px}.seoul-hero-objects{height:390px;width:350px}.seoul-object-pack{left:19%;top:38px}.seoul-object-pack .sc24-pack-art{width:194px}.seoul-object-back{width:133px;top:100px}.seoul-object-front{top:161px}.seoul-object-front .cardface.sc24{width:150px}.seoul-roster{padding:36px 0}.seoul-roster h2{font-size:21px}.seoul-roster-head{align-items:start}.seoul-roster-head button{font-size:10px;padding:8px;white-space:nowrap}.seoul-eyebrow{font-size:8px}.seoul-filter{flex-wrap:wrap}.seoul-filter label{flex:1;min-width:135px}.seoul-filter input,.seoul-filter select{width:100%;min-width:0}.seoul-filter>span{width:100%;padding-bottom:0}.seoul-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 15px}.seoul-card-grid .s-lg.sc24 .sc24-ign{font-size:25px}.seoul-card-grid .s-lg.sc24 .sc24-team i{font-size:5px}.seoul-footer{font-size:8px;flex-wrap:wrap}.seoul-footer span{display:none}.seoul-shelf{padding:22px 18px;gap:12px;flex-wrap:wrap}.seoul-shelf-art{min-width:140px;width:140px;height:190px;margin:auto}.seoul-shelf-art .sc24-pack-art{width:120px;left:0}.seoul-shelf-art .sc24-back{width:92px;right:-4px}.seoul-shelf-copy{min-width:200px}.seoul-shelf h3{font-size:23px}.sc24-team i{font-size:4px}}
 @media(prefers-reduced-motion:reduce){.cardface.sc24{transition:none}}
-/* Override the base card's fixed minimum height so the 63:88 print stays proportional. */
-.cardface.sc24{min-height:0;height:auto}
+/* Beside ordinary cards a Seoul card takes the same box: their minimum height for the size, and the row's
+   height where the row stretches (a squad seat grows with its neighbours). A fixed 63:88 left it a head
+   shorter than every card next to it. Only the exhibit page, where every card is a Seoul card, keeps the
+   print ratio. The portrait fills its window, so a taller card shows more face, not a gap. */
+.seoul-exhibit .cardface.sc24{aspect-ratio:63/88;min-height:0;height:auto}
 /* The layout follows the card's real width, not its size class. Under 130px wide (every size-sm use,
    the pack strip zoomed on a phone, and squad seats squeezed to 110px at 390) the rating box sat on
    the team row by up to 10px and on the name by 6px. The tag is already in the side text, so the
