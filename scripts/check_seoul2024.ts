@@ -39,8 +39,18 @@ assert.equal(seen.size, 80, 'Every historical player is reachable')
 g.pity = HARD_PITY; g.mythicDry = MYTHIC_FLOOR
 assert(openPack(g, 'seoul2024', 'coins').some(p => p.card.rarity === 'gold'))
 assert.equal(g.mythicDry, MYTHIC_FLOOR, 'Event packs do not consume or progress mythic pity')
-for (const kind of ['scout', 'cn', 'pac', 'ame', 'emea', 'coach'] as const) {
-  for (let i = 0; i < 30; i++) assert(openPack(g, kind, 'coins').every(p => !(p.card.kind === 'player' && p.card.event)))
+// no other pack deals the event pool: the ones sold, and the ones only earned (十连, position packs)
+const isEvent = (p: { card: { kind: string } }) => p.card.kind === 'player' && !!(p.card as { event?: string }).event
+const earned = (kind: 'ten' | 'duelist' | 'initiator' | 'controller' | 'sentinel') => { g.packs[kind] = 1; return openPack(g, kind, 'pack') }
+for (const kind of ['scout', 'elite', 'cn', 'pac', 'ame', 'emea', 'coach'] as const) {
+  for (let i = 0; i < 30; i++) assert(!openPack(g, kind, 'coins').some(isEvent), `${kind} dealt an event card`)
+}
+for (let i = 0; i < 30; i++) assert(!earned('ten').some(isEvent), '十连包 dealt an event card')
+// position packs deal no 彩卡, so like the Seoul pack they neither move nor spend the 彩卡 floor
+for (const kind of ['duelist', 'initiator', 'controller', 'sentinel'] as const) {
+  g.mythicDry = 100
+  for (let i = 0; i < 30; i++) assert(!earned(kind).some(isEvent), `${kind} dealt an event card`)
+  assert.equal(g.mythicDry, 100, `${kind} moved the 彩卡 floor`)
 }
 const saved = migrateGacha(JSON.parse(JSON.stringify(g)), g.id)
 assert(SEOUL_CARDS.every(c => saved.cards[c.id]))
