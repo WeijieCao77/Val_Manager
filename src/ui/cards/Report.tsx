@@ -16,7 +16,7 @@ import type { PlayerCard, Squad } from '../../engine/cards'
  * than faked.
  */
 export default function MatchReport({
-  result, opponentId, opponentName, mySquad, level, onClose, extra,
+  result, opponentId, opponentName, mySquad, mineTitle, level, onClose, extra,
 }: {
   result: ArenaResult
   opponentId: string
@@ -24,6 +24,8 @@ export default function MatchReport({
   opponentName?: string
   /** the five that played, so the report can lay it out beside theirs */
   mySquad?: Squad
+  /** what to call that five when it is not the player's own — 首尔征途 plays 2024's */
+  mineTitle?: string
   level: (id: string) => number
   onClose: () => void
   extra?: React.ReactNode
@@ -51,7 +53,7 @@ export default function MatchReport({
           {them ? (
             <>
               <SquadRow
-                title="我的卡组"
+                title={mineTitle ?? '我的卡组'}
                 slots={mySquad?.slots ?? result.lines.map((l) => l.cardId)}
                 coach={mySquad?.coach ?? null}
                 level={level}

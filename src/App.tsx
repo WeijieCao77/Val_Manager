@@ -17,6 +17,7 @@ import { setCurrentRuleset } from './engine/ruleset'
  * offers 「继续上次存档」 when there is one, so a returning player is one click
  * from exactly where they were rather than being told their game is gone.
  */
+const SeoulCollection = lazy(() => import('./ui/cards/SeoulCollection'))
 const CardMode = lazy(() => import('./ui/CardMode'))
 const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
@@ -24,8 +25,8 @@ import UpdateNudge from './ui/UpdateNudge'
 import DomainNotice from './ui/DomainNotice'
 import MusicPlayer from './ui/MusicPlayer'
 
-type Mode = 'home' | 'career' | 'career-test' | 'cards'
-const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-test': '/manager/test', cards: '/cards' }
+type Mode = 'home' | 'career' | 'career-test' | 'cards' | 'seoul'
+const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-test': '/manager/test', cards: '/cards', seoul: '/seoul-2024' }
 
 /**
  * Every new career plays the 2026 rulebook with its draws (see
@@ -37,6 +38,7 @@ const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-tes
 const modeOf = (): Mode => {
   if (typeof location === 'undefined') return 'home'
   const p = location.pathname.replace(/\/+$/, '')
+  if (p.endsWith('/seoul-2024')) return 'seoul'
   if (p.endsWith('/cards')) return 'cards'
   if (p.endsWith('/manager/test')) return 'career-test'
   if (p.endsWith('/manager')) return 'career'
@@ -75,6 +77,7 @@ export default function App() {
     <div className="wrap" style={{ padding: 40 }}><p className="muted">载入中…</p></div>
   )
   const page = mode === 'home' ? <Home onOpen={setMode} />
+    : mode === 'seoul' ? <SeoulCollection />
     : mode === 'cards' ? <CardMode onExit={() => setMode('home')} />
       : <ManagerGame key={mode} onHome={() => setMode('home')} testSaves={mode === 'career-test'} />
   return (

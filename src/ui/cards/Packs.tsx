@@ -8,12 +8,15 @@ import {
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card } from '../../engine/cards'
-import { RARITY_CN, cardById } from '../../engine/cards'
+import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 import { playPackCue } from '../packAudio'
 import CardTilt from './CardTilt'
 import PackPouch from './PackPouch'
+import { SeoulCardBack } from './SeoulDesign'
+import SeoulPackDisplay from './SeoulPackDisplay'
+import { SEOUL_CARDS } from '../../engine/cards'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
 import type { PackPosition } from './positionPackDesign'
 
@@ -152,6 +155,17 @@ export default function Packs() {
         </Panel>
       </div>
 
+      <section className="seoul-shelf" aria-label="首尔 2024 冠军赛系列">
+        <div className="seoul-shelf-art"><SeoulPackDisplay /><SeoulCardBack /></div>
+        <div className="seoul-shelf-copy"><span className="seoul-eyebrow">CHAMPIONS SEOUL / 2024 COLLECTION</span>
+          <h3>首尔 2024 冠军赛</h3>
+          <p>16 支战队 · 80 位登场选手 · 专属黑金卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。</p>
+          <a href="/seoul-2024">浏览完整系列 ↗</a><p>已收藏 {SEOUL_CARDS.filter(c => g.cards[c.id]).length} / 80</p>
+          <div className="row"><button disabled={busy || g.coins < PACKS.seoul2024.cost} onClick={() => void open('seoul2024', 'coins')}>{PACKS.seoul2024.cost} 金币 · 开启首尔包</button>
+            {(g.packs.seoul2024 ?? 0) > 0 && <button className="seoul-shelf-secondary" disabled={busy} onClick={() => void open('seoul2024', 'pack')}>打开库存（{g.packs.seoul2024}）</button>}</div>
+        </div>
+      </section>
+
       <Panel
         title="卡包"
         actions={
@@ -166,7 +180,7 @@ export default function Packs() {
           用金币随时买，不限次数。十连包不卖，靠升段、夺冠或连签七天获得。
         </p>
         <div className="pack-shelf">
-          {PACK_ORDER.filter((k) => !seriesOfPack(k)).map((kind) => {
+          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024').map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
             return (
@@ -337,11 +351,11 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children, revealed, kind, position }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition }) {
+function Flip({ children, revealed, kind, position, seoul }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean }) {
   return (
     <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
-        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} /><span className="card-specular" /></div>
+        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} /><span className="card-specular" /></div>
         <div className="flip-face flip-front" aria-hidden={!revealed}>{children}<span className="card-specular" /></div>
       </div>
     </div>
@@ -365,6 +379,7 @@ export function PackStage({
   const [unsealed, setUnsealed] = useState(false)
   const [faceUp, setFaceUp] = useState(false)
   const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
+  const seoul = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'seoul-2024')
   const single = pulled.length === 1
   const finished = shown > pulled.length
   const current = pulled[Math.min(shown, pulled.length) - 1]
@@ -398,7 +413,7 @@ export function PackStage({
 
   return (
     <div className="pack-stage" onClick={advanceReveal}>
-      {!unsealed && <PackTearGate position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
+      {!unsealed && <PackTearGate seoul={seoul} position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (
           <>
@@ -422,7 +437,7 @@ export function PackStage({
                 {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
               <CardTilt>
-                <Flip position={position} kind={current.card.kind} revealed={faceUp}>
+                <Flip seoul={seoul} position={position} kind={current.card.kind} revealed={faceUp}>
                   <CardFace card={current.card} size="lg" />
                 </Flip>
               </CardTilt>
@@ -480,7 +495,7 @@ export function PackStage({
 const REST_POSE = { x: 4, y: -20 }
 
 /** A real pointer-driven foil seal before the first card is revealed. */
-function PackTearGate({ count, kind, position, onOpen }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void }) {
+function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean }) {
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [torn, setTorn] = useState(false)
@@ -590,9 +605,9 @@ function PackTearGate({ count, kind, position, onOpen }: { count: number; kind: 
   }
 
   return (
-    <div className={`pack-tear-scene pack-tear-${kind}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
+    <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
       <div className="pack-tear-aura" aria-hidden="true" />
-      <div className="pack-tear-kicker">{position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}</div>
+      <div className="pack-tear-kicker">{seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}</div>
       <div
         className={`pack-wrapper${dragging ? ' dragging' : ''}`}
         style={{
@@ -614,12 +629,12 @@ function PackTearGate({ count, kind, position, onOpen }: { count: number; kind: 
           }
         }}
       >
-        <PackPouch position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
+        <PackPouch seoul={seoul} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
         <div className="pack-card-emerge" aria-hidden="true">
           {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
             <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />
           ))}
-          <CardBack kind={kind} position={position} />
+          <CardBack kind={kind} position={position} seoul={seoul} />
         </div>
         <div className="pack-tear-track" aria-hidden="true">
           <span className="pack-tear-cut" />

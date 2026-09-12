@@ -12,8 +12,9 @@ import { REGION_CN } from './types'
 import type { Role } from './types'
 import { cleanPredictions } from './predict'
 import type { Picks } from './predict'
+import type { SeoulRouteState } from './seoulRoute'
 import {
-  ALL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, SEOUL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating,
 } from './cards'
@@ -43,7 +44,7 @@ export const SERIES = ['China', 'Pacific', 'Americas', 'EMEA'] as const
 export type Series = (typeof SERIES)[number]
 
 export type PackKind =
-  | 'scout' | 'elite' | 'ten' | 'coach'
+  | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024'
   // one per series — same three cards, drawn only from that region
   | 'cn' | 'pac' | 'ame' | 'emea'
   // one per position — a single card that plays it; paid by the 位置小游戏, never sold
@@ -81,7 +82,7 @@ export interface PackDef {
    */
   shop?: boolean
   /** coach packs deal from a different deck; a series deals from one region; a position from its players */
-  pool: 'player' | 'coach' | Series | PackPosition
+  pool: 'player' | 'coach' | 'seoul2024' | Series | PackPosition
 }
 
 /**
@@ -94,6 +95,13 @@ export interface PackDef {
  * decision the old two-a-day counter took away.
  */
 export const PACKS: Record<PackKind, PackDef> = {
+  seoul2024: {
+    kind: 'seoul2024', name: '首尔 2024 冠军赛包', pool: 'seoul2024',
+    blurb: '16 支战队 · 80 位登场选手。三张首尔赛事卡，至少一张银卡，不出彩卡。',
+    // 23 golds after the caller and initiator credit; at 8% a full set cost 314
+    // packs against 228 before, 12% brings it back (analyze_seoul_rarity.mjs)
+    cost: 3000, draws: 3, mythic: 0, gold: .12, silver: .38, floor: 'silver', shop: true,
+  },
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。多是铜卡，也出金卡。',
@@ -193,7 +201,7 @@ export const seriesOfPack = (kind: PackKind): Series | null =>
         : kind === 'emea' ? 'EMEA' : null
 
 export const PACK_ORDER: PackKind[] = [
-  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea',
+  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024',
 ]
 
 /**
@@ -690,6 +698,8 @@ export interface GachaState {
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
+  /** 首尔征途 — see engine/seoulRoute.ts; absent until the first road */
+  seoulRoute?: SeoulRouteState
 }
 
 /**
@@ -886,7 +896,7 @@ function roll(g: GachaState): { rng: Rng; done: () => void } {
   return { rng, done: () => { g.seed = rng.state } }
 }
 
-const note = (g: GachaState, text: string) => {
+export const note = (g: GachaState, text: string) => {
   g.log.unshift({ at: new Date().toISOString(), text })
   if (g.log.length > 60) g.log.length = 60
 }
@@ -915,6 +925,12 @@ const rolePool = (role: PackPosition) => ({
 })
 
 const POOLS = {
+  seoul2024: {
+    mythic: [] as PlayerCard[],
+    gold: SEOUL_CARDS.filter(c => c.rarity === 'gold'),
+    silver: SEOUL_CARDS.filter(c => c.rarity === 'silver'),
+    bronze: SEOUL_CARDS.filter(c => c.rarity === 'bronze'),
+  },
   决斗者: rolePool('决斗者'),
   先锋: rolePool('先锋'),
   控场: rolePool('控场'),
@@ -1228,7 +1244,7 @@ export interface ClubSet {
 const CLUB_CARDS: Map<string, PlayerCard[]> = (() => {
   const by = new Map<string, PlayerCard[]>()
   for (const c of ALL_CARDS) {
-    if (!isPlayerCard(c) || c.rarity === 'mythic' || !c.clubId) continue
+    if (!isPlayerCard(c) || c.rarity === 'mythic' || c.event || !c.clubId) continue
     const list = by.get(c.clubId) ?? []
     list.push(c)
     by.set(c.clubId, list)
@@ -2197,7 +2213,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed', 'predict',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

@@ -1,0 +1,708 @@
+{
+ "source": "https://www.vlr.gg/event/matches/2097/valorant-champions-2024/?series_id=all",
+ "retrieved": "2026-09-11",
+ "series": [
+  {
+   "id": "378656",
+   "stage": "Group Stage: Opening (A)",
+   "a": "FNC",
+   "b": "BLG",
+   "maps": [
+    [
+     "Bind",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "378657",
+   "stage": "Group Stage: Opening (A)",
+   "a": "DRX",
+   "b": "KRÜ",
+   "maps": [
+    [
+     "Haven",
+     2,
+     13
+    ],
+    [
+     "Abyss",
+     13,
+     6
+    ],
+    [
+     "Bind",
+     13,
+     6
+    ]
+   ]
+  },
+  {
+   "id": "378658",
+   "stage": "Group Stage: Winner's (A)",
+   "a": "FNC",
+   "b": "DRX",
+   "maps": [
+    [
+     "Abyss",
+     11,
+     13
+    ],
+    [
+     "Lotus",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378659",
+   "stage": "Group Stage: Elimination (A)",
+   "a": "BLG",
+   "b": "KRÜ",
+   "maps": [
+    [
+     "Lotus",
+     9,
+     13
+    ],
+    [
+     "Icebox",
+     4,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378660",
+   "stage": "Group Stage: Decider (A)",
+   "a": "FNC",
+   "b": "KRÜ",
+   "maps": [
+    [
+     "Sunset",
+     11,
+     13
+    ],
+    [
+     "Haven",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "378662",
+   "stage": "Group Stage: Opening (B)",
+   "a": "GEN",
+   "b": "SEN",
+   "maps": [
+    [
+     "Haven",
+     13,
+     8
+    ],
+    [
+     "Ascent",
+     13,
+     7
+    ]
+   ]
+  },
+  {
+   "id": "378663",
+   "stage": "Group Stage: Opening (B)",
+   "a": "FPX",
+   "b": "TH",
+   "maps": [
+    [
+     "Abyss",
+     12,
+     14
+    ],
+    [
+     "Bind",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     13,
+     15
+    ]
+   ]
+  },
+  {
+   "id": "378664",
+   "stage": "Group Stage: Winner's (B)",
+   "a": "GEN",
+   "b": "TH",
+   "maps": [
+    [
+     "Abyss",
+     13,
+     11
+    ],
+    [
+     "Lotus",
+     11,
+     13
+    ],
+    [
+     "Bind",
+     10,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378665",
+   "stage": "Group Stage: Elimination (B)",
+   "a": "SEN",
+   "b": "FPX",
+   "maps": [
+    [
+     "Bind",
+     13,
+     8
+    ],
+    [
+     "Lotus",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "378666",
+   "stage": "Group Stage: Decider (B)",
+   "a": "GEN",
+   "b": "SEN",
+   "maps": [
+    [
+     "Lotus",
+     9,
+     13
+    ],
+    [
+     "Icebox",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378667",
+   "stage": "Group Stage: Opening (C)",
+   "a": "LEV",
+   "b": "TLN",
+   "maps": [
+    [
+     "Bind",
+     13,
+     11
+    ],
+    [
+     "Ascent",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "378669",
+   "stage": "Group Stage: Opening (C)",
+   "a": "VIT",
+   "b": "TE",
+   "maps": [
+    [
+     "Ascent",
+     13,
+     15
+    ],
+    [
+     "Sunset",
+     13,
+     7
+    ],
+    [
+     "Bind",
+     7,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378670",
+   "stage": "Group Stage: Winner's (C)",
+   "a": "LEV",
+   "b": "TE",
+   "maps": [
+    [
+     "Bind",
+     10,
+     13
+    ],
+    [
+     "Sunset",
+     13,
+     9
+    ],
+    [
+     "Ascent",
+     5,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378671",
+   "stage": "Group Stage: Elimination (C)",
+   "a": "TLN",
+   "b": "VIT",
+   "maps": [
+    [
+     "Lotus",
+     6,
+     13
+    ],
+    [
+     "Sunset",
+     8,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378672",
+   "stage": "Group Stage: Decider (C)",
+   "a": "LEV",
+   "b": "VIT",
+   "maps": [
+    [
+     "Icebox",
+     14,
+     12
+    ],
+    [
+     "Sunset",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "378673",
+   "stage": "Group Stage: Opening (D)",
+   "a": "EDG",
+   "b": "FUT",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     9
+    ],
+    [
+     "Bind",
+     13,
+     10
+    ]
+   ]
+  },
+  {
+   "id": "378674",
+   "stage": "Group Stage: Opening (D)",
+   "a": "G2",
+   "b": "PRX",
+   "maps": [
+    [
+     "Icebox",
+     13,
+     8
+    ],
+    [
+     "Lotus",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "378675",
+   "stage": "Group Stage: Winner's (D)",
+   "a": "EDG",
+   "b": "G2",
+   "maps": [
+    [
+     "Icebox",
+     13,
+     8
+    ],
+    [
+     "Haven",
+     11,
+     13
+    ],
+    [
+     "Bind",
+     11,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378676",
+   "stage": "Group Stage: Elimination (D)",
+   "a": "FUT",
+   "b": "PRX",
+   "maps": [
+    [
+     "Sunset",
+     11,
+     13
+    ],
+    [
+     "Bind",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378677",
+   "stage": "Group Stage: Decider (D)",
+   "a": "EDG",
+   "b": "PRX",
+   "maps": [
+    [
+     "Icebox",
+     3,
+     13
+    ],
+    [
+     "Sunset",
+     13,
+     8
+    ],
+    [
+     "Lotus",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "378822",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "DRX",
+   "b": "SEN",
+   "maps": [
+    [
+     "Sunset",
+     13,
+     15
+    ],
+    [
+     "Haven",
+     8,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378823",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "TE",
+   "b": "EDG",
+   "maps": [
+    [
+     "Bind",
+     7,
+     13
+    ],
+    [
+     "Sunset",
+     10,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378824",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "G2",
+   "b": "LEV",
+   "maps": [
+    [
+     "Icebox",
+     14,
+     16
+    ],
+    [
+     "Abyss",
+     5,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378825",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "TH",
+   "b": "FNC",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     3
+    ],
+    [
+     "Abyss",
+     14,
+     12
+    ]
+   ]
+  },
+  {
+   "id": "378826",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "SEN",
+   "b": "EDG",
+   "maps": [
+    [
+     "Haven",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     9,
+     13
+    ],
+    [
+     "Sunset",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378827",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "LEV",
+   "b": "TH",
+   "maps": [
+    [
+     "Icebox",
+     15,
+     13
+    ],
+    [
+     "Lotus",
+     13,
+     10
+    ]
+   ]
+  },
+  {
+   "id": "378828",
+   "stage": "Playoffs: Upper Final",
+   "a": "EDG",
+   "b": "LEV",
+   "maps": [
+    [
+     "Icebox",
+     14,
+     16
+    ],
+    [
+     "Lotus",
+     13,
+     4
+    ],
+    [
+     "Abyss",
+     13,
+     11
+    ]
+   ]
+  },
+  {
+   "id": "378829",
+   "stage": "Playoffs: Grand Final",
+   "a": "EDG",
+   "b": "TH",
+   "maps": [
+    [
+     "Haven",
+     6,
+     13
+    ],
+    [
+     "Sunset",
+     13,
+     4
+    ],
+    [
+     "Lotus",
+     13,
+     9
+    ],
+    [
+     "Bind",
+     11,
+     13
+    ],
+    [
+     "Abyss",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "378831",
+   "stage": "Playoffs: Lower Round 1",
+   "a": "DRX",
+   "b": "TE",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     3
+    ],
+    [
+     "Abyss",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "378832",
+   "stage": "Playoffs: Lower Round 1",
+   "a": "G2",
+   "b": "FNC",
+   "maps": [
+    [
+     "Haven",
+     3,
+     13
+    ],
+    [
+     "Bind",
+     11,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "378833",
+   "stage": "Playoffs: Lower Round 2",
+   "a": "TH",
+   "b": "DRX",
+   "maps": [
+    [
+     "Abyss",
+     5,
+     13
+    ],
+    [
+     "Sunset",
+     13,
+     5
+    ],
+    [
+     "Icebox",
+     13,
+     10
+    ]
+   ]
+  },
+  {
+   "id": "378834",
+   "stage": "Playoffs: Lower Round 2",
+   "a": "SEN",
+   "b": "FNC",
+   "maps": [
+    [
+     "Sunset",
+     13,
+     11
+    ],
+    [
+     "Bind",
+     9,
+     13
+    ],
+    [
+     "Lotus",
+     13,
+     6
+    ]
+   ]
+  },
+  {
+   "id": "378835",
+   "stage": "Playoffs: Lower Round 3",
+   "a": "TH",
+   "b": "SEN",
+   "maps": [
+    [
+     "Haven",
+     8,
+     13
+    ],
+    [
+     "Icebox",
+     13,
+     9
+    ],
+    [
+     "Abyss",
+     13,
+     7
+    ]
+   ]
+  },
+  {
+   "id": "378836",
+   "stage": "Playoffs: Lower Final",
+   "a": "LEV",
+   "b": "TH",
+   "maps": [
+    [
+     "Icebox",
+     7,
+     13
+    ],
+    [
+     "Sunset",
+     13,
+     15
+    ],
+    [
+     "Abyss",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     3,
+     13
+    ]
+   ]
+  }
+ ]
+}

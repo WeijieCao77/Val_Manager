@@ -25,6 +25,7 @@ export default function Collection() {
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [dupesOnly, setDupesOnly] = useState(false)
   const [q, setQ] = useState('')
+  const [seoulOnly, setSeoulOnly] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
   // 批量分解: the grid becomes a picker, and the cards with no spare to give
@@ -44,6 +45,7 @@ export default function Collection() {
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase()
     const match = (c: Card) => {
+      if (seoulOnly && !(isPlayerCard(c) && c.event === 'seoul-2024')) return false
       if (!text) return true
       const name = c.kind === 'player' ? `${c.ign} ${c.realName ?? ''} ${c.clubTag ?? ''}` : `${c.name} ${c.clubTag ?? ''}`
       return name.toLowerCase().includes(text)
@@ -56,7 +58,7 @@ export default function Collection() {
     return mine
       .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && (!bulk || owned.dupes > 0)
         && match(card) && matchesFilter(card, filter))
-  }, [mine, pool, filter, dupesOnly, q, missing, bulk])
+  }, [mine, pool, filter, dupesOnly, q, missing, seoulOnly, bulk])
 
   // What each sweep would take, and what the hand-picked ones would. The same
   // function the server runs, so the number on the button is the number.
@@ -200,6 +202,8 @@ export default function Collection() {
           pool={pool}
           extra={
             <>
+              <button className={`sm${seoulOnly ? ' primary' : ''}`} aria-pressed={seoulOnly} onClick={() => setSeoulOnly(v => !v)}>首尔 2024</button>
+              <a className="tiny" href="/seoul-2024">首尔系列图鉴 ↗</a>
               {!missing && (
                 <button className={`sm${dupesOnly ? ' primary' : ''}`} onClick={() => setDupesOnly((v) => !v)}>
                   有重复
@@ -335,7 +339,7 @@ export default function Collection() {
                   {isPlayerCard(sel) ? (
                     <>
                       <div className="small muted" style={{ marginBottom: 8, lineHeight: 1.8 }}>
-                        {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)} · {sel.age} 岁
+                        {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)}{!sel.seoul && ` · ${sel.age} 岁`}
                         <br />
                         {REGION_CN[sel.region]} · {sel.clubTag ?? '自由人'} · {sel.roles.join(' / ')}
                         {sel.isIgl && ' · 指挥'}
@@ -348,9 +352,15 @@ export default function Collection() {
                           </div>
                         ))}
                       </div>
-                      <button className="sm" style={{ marginTop: 12 }} onClick={() => openDossier(sel.playerId)}>
+                      {sel.seoul ? <div className="small muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
+                        <b>首尔 2024 · {String(sel.seoul.number).padStart(3, '0')}/080</b><br />
+                        当届数据：ACS {sel.seoul.acs} · K/D {sel.seoul.kd.toFixed(2)} · {sel.seoul.maps} 张地图<br />
+                        <span className="tiny">能力值由赛事数据换算；头像摄于首尔冠军赛。</span><br />
+                        <a href={sel.seoul.profile} target="_blank" rel="noreferrer">查看选手主页 ↗</a>
+                        {' · '}<a href="/seoul-2024">浏览赛事图鉴 ↗</a>
+                      </div> : <button className="sm" style={{ marginTop: 12 }} onClick={() => openDossier(sel.playerId)}>
                         查看选手资料 →
-                      </button>
+                      </button>}
                     </>
                   ) : (
                     <div className="small muted" style={{ lineHeight: 1.9 }}>

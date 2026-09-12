@@ -44,6 +44,8 @@ import { WORLD_TEAMS } from './teams'
 import { markMailSeen } from './inbox'
 import { dismantle } from './dismantle'
 import { setPicks } from './predict'
+import { SEOUL_TEAMS } from './seoul2024'
+import { SEOUL_FIVES, SEOUL_POOL, SEOUL_ROUTES, quitRoute, recordRoute, routeState, startRoute } from './seoulRoute'
 
 /** What the server knows that the rules need. */
 export interface ActEnv {
@@ -64,7 +66,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
-  'minigame_start', 'minigame_finish', 'dismantle', 'predict',
+  'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'seoul_start', 'seoul_play', 'seoul_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -322,6 +324,34 @@ function dispatch(
       const reward = awardMinigame(g, live.game, verdict.tier)
       m.best[live.game] = Math.max(m.best[live.game] ?? 0, verdict.score)
       return { ok: true, result: { game: live.game, tier: verdict.tier, score: verdict.score, summary: verdict.summary, detail: verdict.detail, reward, playsLeft: MINIGAME_DAILY - m.plays } }
+    }
+    // ---- 首尔征途: 2024's road with 2024's fives — engine/seoulRoute.ts
+    case 'seoul_start': {
+      const out = startRoute(g, a.team, env.now)
+      return out.ok ? { ok: true, result: { route: g.seoulRoute } } : out
+    }
+    case 'seoul_play': {
+      const run = routeState(g).run
+      if (!run) return { ok: false, why: '先选一支队出发' }
+      const st = SEOUL_ROUTES[run.team][run.stage]
+      const name = (tag: string) => SEOUL_TEAMS.find((t) => t.tag === tag)?.name ?? tag
+      // no 体力 and no collection: both sides are the 2024 fives at level 0,
+      // on the 2024 map pool
+      const res = playRivalMatch(
+        { ...SEOUL_FIVES[run.team], name: name(run.team), tag: run.team }, () => 0,
+        { ...SEOUL_FIVES[st.opp], name: name(st.opp), tag: st.opp, levels: {}, div: 0, points: 0 },
+        st.bo, env.seed, SEOUL_POOL,
+      )
+      const out = recordRoute(g, {
+        won: res.mapsWon,
+        lost: res.mapsLost,
+        maps: res.result.maps.map((m) => `${m.map} ${m.scoreA}:${m.scoreB}`),
+      }, env.now)
+      return { ok: true, result: { res, out } }
+    }
+    case 'seoul_quit': {
+      quitRoute(g)
+      return { ok: true }
     }
     default:
       return { ok: false, why: '没有这个操作' }

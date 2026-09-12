@@ -8,9 +8,10 @@
  * calling and cohesion are read by the same code that reads them in a VCT
  * season.
  */
+import { seoulArenaPlayer } from './seoul2024'
 import { createNewGame } from './world'
 import { WORLD_TEAMS } from './teams'
-import { simulateMatch } from './match'
+import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
@@ -181,7 +182,7 @@ function seatSquad(
     if (!isPlayerCard(card)) return
     if (seated.has(personOf(card))) return
     seated.add(personOf(card))
-    const src = state.players[card.playerId]
+    const src = seoulArenaPlayer(card) ?? state.players[card.playerId]
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
@@ -442,6 +443,8 @@ export interface RivalSquad {
 export function playRivalMatch(
   mine: ArenaSquad, level: (cardId: string) => number,
   rival: RivalSquad, bo: 1 | 3 | 5, seed: number,
+  /** a fixed map pool — 首尔征途 plays the seven maps of 2024; absent, today's pool */
+  pool?: string[],
 ): ArenaResult {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
   const cardOf: Record<string, string> = {}
@@ -458,6 +461,14 @@ export function playRivalMatch(
   state.myTeam = ARENA_TEAM
 
   const rng = new Rng(seed ^ 0x5b1d)
+  if (pool) {
+    // vetoed on a stream of its own; the match then skips its own veto and plays these maps.
+    // Dealt in a fresh order each time: with every preference level, runVeto leans on list
+    // position, and the alphabetical 2024 pool sent Sunset to 7% of maps against Haven's 20%.
+    const vetoRng = new Rng(seed ^ 0x9e70)
+    const veto = runVeto(state, ARENA_TEAM, ARENA_RIVAL, bo, vetoRng.shuffle(pool.slice()), vetoRng)
+    state.vetoPlan = { fixtureId: 'pool', maps: veto.maps, log: veto.log }
+  }
   const result = simulateMatch(state, ARENA_TEAM, ARENA_RIVAL, bo, rng)
   return {
     ...readResult(result, cardOf),

@@ -13,6 +13,7 @@ import Friends from './cards/Friends'
 import Market from './cards/Market'
 import Cup from './cards/Cup'
 import Predict from './cards/Predict'
+import SeoulRoute from './cards/SeoulRoute'
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import OddsFab from './cards/OddsFab'
@@ -100,6 +101,7 @@ const TABS: { key: string; label: string; beta?: boolean }[] = [
   { key: 'market', label: '交易' },
   { key: 'cup', label: '杯赛' },
   { key: 'predict', label: '预测', beta: true },
+  { key: 'seoul', label: '首尔征途' },
   { key: 'dossier', label: '资料库' },
   // 概率 used to be here. It is the 🎲 button in the corner now: the tab was
   // ten wide on a phone, and nobody leaves a pack they just opened to go and
@@ -347,6 +349,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     market: Market,
     cup: Cup,
     predict: Predict,
+    seoul: SeoulRoute,
   } as Record<string, ComponentType>)[tab]
 
   const signOut = () => {

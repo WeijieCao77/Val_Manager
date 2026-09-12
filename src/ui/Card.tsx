@@ -1,3 +1,4 @@
+import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
 import { useState } from 'react'
 import { ATTR_CN } from '../engine/types'
 import { RARITY_CN, ratingAt } from '../engine/cards'
@@ -126,6 +127,7 @@ export interface CardFaceProps {
 export default function CardFace({
   card, level = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer,
 }: CardFaceProps) {
+  if (isPlayerCard(card) && card.event === 'seoul-2024') return <SeoulCard {...{ card, level, dupes, size, selected, dimmed, onClick, footer }} />
   const rating = ratingAt(card.rating, level)
   const cls = `cardface r-${card.rarity} s-${size}`
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
@@ -297,7 +299,8 @@ export function PositionCrest({ position }: { position: PackPosition }) {
   </svg>
 }
 
-export function CardBack({ kind = 'player', position }: { kind?: Card['kind']; position?: PackPosition }) {
+export function CardBack({ kind = 'player', position, seoul }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean }) {
+  if (seoul) return <SeoulCardBack />
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined
   return (

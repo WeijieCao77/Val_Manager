@@ -15,7 +15,10 @@ import { playRivalMatch } from '../src/engine/arena'
 import type { RivalSquad } from '../src/engine/arena'
 
 const SEEDS = Number(process.argv[2] ?? 40)   // 20 is too few: a 92% pairing reads 100% at 20
-const players = ALL_CARDS.filter((c): c is PlayerCard => isPlayerCard(c) && c.rarity !== 'mythic')
+// ordinary club cards only, like clubSets: an event card is the same man in
+// another year, and counting both seated CHICHOO in EDG's five twice — the
+// engine plays that side a man short and the check measured a four-man EDG
+const players = ALL_CARDS.filter((c): c is PlayerCard => isPlayerCard(c) && c.rarity !== 'mythic' && !c.event)
 const coaches = ALL_CARDS.filter(isCoachCard)
 
 /** The club's best legal five: each slot takes the strongest card that can play it. */

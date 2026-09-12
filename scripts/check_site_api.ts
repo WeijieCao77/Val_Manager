@@ -357,6 +357,9 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   r = await admin({ who: code, pack: 'nope' })
   check(r.body.ok === false && /没有这种卡包/.test(String(r.body.why)), '不存在的卡包会被拒绝',
     JSON.stringify(r.body))
+  // the Seoul pack is sold in the shop, so the desk has to be able to hand one out too
+  r = await admin({ who: code, pack: 'seoul2024', count: 2 })
+  check(r.body.ok === true, '首尔包也能发', JSON.stringify(r.body))
   r = await admin({ who: code })
   check(r.body.ok === false, '什么都不填也会被拒绝', JSON.stringify(r.body))
   r = await admin({ who: '00000000', pack: 'elite' })
@@ -365,7 +368,7 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const noTok = await admin({ who: code, pack: 'ten' }, 'wrong')
   check(noTok.code === 404, 'token 不对时这个接口是 404', `code ${noTok.code}`)
   const n = await sql`select count(*)::int as n from card_mail where to_h = ${hashOf(P)}`
-  check(n[0].n === 3, '而且没有多发出去任何东西（两个包 + 一张卡）', String(n[0].n))
+  check(n[0].n === 4, '而且没有多发出去任何东西（选拔包、金币、一张卡、首尔包）', String(n[0].n))
 }
 
 // ---- a pardon is a baseline, not just a cleared bit ---------------------

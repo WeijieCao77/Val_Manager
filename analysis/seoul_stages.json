@@ -1,0 +1,2382 @@
+{
+  "labels": {
+    "Group Stage: Opening (A)": {
+      "tier": 0,
+      "n": 2
+    },
+    "Group Stage: Winner's (A)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Elimination (A)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Decider (A)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Opening (B)": {
+      "tier": 0,
+      "n": 2
+    },
+    "Group Stage: Winner's (B)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Elimination (B)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Decider (B)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Opening (C)": {
+      "tier": 0,
+      "n": 2
+    },
+    "Group Stage: Winner's (C)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Elimination (C)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Decider (C)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Opening (D)": {
+      "tier": 0,
+      "n": 2
+    },
+    "Group Stage: Winner's (D)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Elimination (D)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Group Stage: Decider (D)": {
+      "tier": 0,
+      "n": 1
+    },
+    "Playoffs: Upper Quarterfinals": {
+      "tier": 1,
+      "n": 4
+    },
+    "Playoffs: Upper Semifinals": {
+      "tier": 2,
+      "n": 2
+    },
+    "Playoffs: Upper Final": {
+      "tier": 2,
+      "n": 1
+    },
+    "Playoffs: Grand Final": {
+      "tier": 3,
+      "n": 1
+    },
+    "Playoffs: Lower Round 1": {
+      "tier": 1,
+      "n": 2
+    },
+    "Playoffs: Lower Round 2": {
+      "tier": 1,
+      "n": 2
+    },
+    "Playoffs: Lower Round 3": {
+      "tier": 2,
+      "n": 1
+    },
+    "Playoffs: Lower Final": {
+      "tier": 2,
+      "n": 1
+    }
+  },
+  "schemes": {
+    "不加权": {
+      "weights": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "rows": [
+        {
+          "ign": "Derke",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.224,
+          "card": 88
+        },
+        {
+          "ign": "Chronicle",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.213,
+          "card": 88
+        },
+        {
+          "ign": "CHICHOO",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.183,
+          "card": 88
+        },
+        {
+          "ign": "trexx",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.232,
+          "card": 87
+        },
+        {
+          "ign": "RieNs",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 1.149,
+          "card": 87
+        },
+        {
+          "ign": "keznit",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.184,
+          "card": 86
+        },
+        {
+          "ign": "aspas",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.144,
+          "card": 86
+        },
+        {
+          "ign": "Smoggy",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.143,
+          "card": 86
+        },
+        {
+          "ign": "primmie",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 1.221,
+          "card": 85
+        },
+        {
+          "ign": "Meteor",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.174,
+          "card": 85
+        },
+        {
+          "ign": "t3xture",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.143,
+          "card": 85
+        },
+        {
+          "ign": "zekken",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.116,
+          "card": 85
+        },
+        {
+          "ign": "ZmjjKK",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.103,
+          "card": 85
+        },
+        {
+          "ign": "Kai",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.1,
+          "card": 84
+        },
+        {
+          "ign": "TenZ",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.096,
+          "card": 84
+        },
+        {
+          "ign": "Alfajer",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.09,
+          "card": 84
+        },
+        {
+          "ign": "Autumn",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 1.077,
+          "card": 83
+        },
+        {
+          "ign": "Shyy",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.068,
+          "card": 83
+        },
+        {
+          "ign": "mindfreak",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 1.063,
+          "card": 83
+        },
+        {
+          "ign": "kiNgg",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.044,
+          "card": 83
+        },
+        {
+          "ign": "yetujey",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 1.069,
+          "card": 82
+        },
+        {
+          "ign": "Kicks",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.046,
+          "card": 82
+        },
+        {
+          "ign": "LuoK1ng",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.042,
+          "card": 82
+        },
+        {
+          "ign": "Flashback",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.041,
+          "card": 82
+        },
+        {
+          "ign": "heat",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.028,
+          "card": 82
+        },
+        {
+          "ign": "MaKo",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.023,
+          "card": 82
+        },
+        {
+          "ign": "BuZz",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.013,
+          "card": 82
+        },
+        {
+          "ign": "Sayf",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.011,
+          "card": 81
+        },
+        {
+          "ign": "Sacy",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.008,
+          "card": 81
+        },
+        {
+          "ign": "johnqt",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.001,
+          "card": 81
+        },
+        {
+          "ign": "cNed",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.992,
+          "card": 81
+        },
+        {
+          "ign": "Wo0t",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.988,
+          "card": 81
+        },
+        {
+          "ign": "valyn",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.987,
+          "card": 81
+        },
+        {
+          "ign": "S1Mon",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "Karon",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "hiro",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.985,
+          "card": 81
+        },
+        {
+          "ign": "Zellsis",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.984,
+          "card": 81
+        },
+        {
+          "ign": "C0M",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.983,
+          "card": 81
+        },
+        {
+          "ign": "ban",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "AAAAY",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.969,
+          "card": 81
+        },
+        {
+          "ign": "Boo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.979,
+          "card": 80
+        },
+        {
+          "ign": "MiniBoo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.974,
+          "card": 80
+        },
+        {
+          "ign": "leaf",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.973,
+          "card": 80
+        },
+        {
+          "ign": "benjyfishy",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.961,
+          "card": 80
+        },
+        {
+          "ign": "trent",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.96,
+          "card": 80
+        },
+        {
+          "ign": "BerLIN",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.958,
+          "card": 80
+        },
+        {
+          "ign": "Mazino",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.954,
+          "card": 80
+        },
+        {
+          "ign": "Munchkin",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.951,
+          "card": 80
+        },
+        {
+          "ign": "BeYN",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "f0rsakeN",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "FengF",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.946,
+          "card": 80
+        },
+        {
+          "ign": "qRaxs",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.943,
+          "card": 80
+        },
+        {
+          "ign": "Flex1n",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.933,
+          "card": 80
+        },
+        {
+          "ign": "whzy",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.922,
+          "card": 80
+        },
+        {
+          "ign": "icy",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.935,
+          "card": 79
+        },
+        {
+          "ign": "nobody",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.932,
+          "card": 79
+        },
+        {
+          "ign": "something",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.931,
+          "card": 79
+        },
+        {
+          "ign": "Foxy9",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.927,
+          "card": 79
+        },
+        {
+          "ign": "d4v41",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.924,
+          "card": 79
+        },
+        {
+          "ign": "runneR",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.912,
+          "card": 79
+        },
+        {
+          "ign": "Jinggg",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.91,
+          "card": 79
+        },
+        {
+          "ign": "Melser",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.906,
+          "card": 79
+        },
+        {
+          "ign": "ceNder",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.88,
+          "card": 78
+        },
+        {
+          "ign": "JonahP",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.879,
+          "card": 78
+        },
+        {
+          "ign": "mta",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.878,
+          "card": 78
+        },
+        {
+          "ign": "Lysoar",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.853,
+          "card": 78
+        },
+        {
+          "ign": "AtaKaptan",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "Knight",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "tex",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.876,
+          "card": 77
+        },
+        {
+          "ign": "heybay",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.863,
+          "card": 77
+        },
+        {
+          "ign": "MrFaliN",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.779,
+          "card": 77
+        },
+        {
+          "ign": "nephh",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.774,
+          "card": 77
+        },
+        {
+          "ign": "JitBoyS",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.756,
+          "card": 77
+        },
+        {
+          "ign": "Governor",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.754,
+          "card": 77
+        },
+        {
+          "ign": "Biank",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.817,
+          "card": 76
+        },
+        {
+          "ign": "Life",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.704,
+          "card": 75
+        },
+        {
+          "ign": "yosemite",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.61,
+          "card": 74
+        },
+        {
+          "ign": "Boaster",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.715,
+          "card": 72
+        },
+        {
+          "ign": "Lakia",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.612,
+          "card": 72
+        },
+        {
+          "ign": "Crws",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.511,
+          "card": 72
+        }
+      ]
+    },
+    "轻度": {
+      "weights": [
+        1,
+        1.25,
+        1.5,
+        2
+      ],
+      "rows": [
+        {
+          "ign": "Derke",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.226,
+          "card": 88
+        },
+        {
+          "ign": "Chronicle",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.222,
+          "card": 88
+        },
+        {
+          "ign": "trexx",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.232,
+          "card": 87
+        },
+        {
+          "ign": "CHICHOO",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.177,
+          "card": 87
+        },
+        {
+          "ign": "keznit",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.184,
+          "card": 86
+        },
+        {
+          "ign": "ZmjjKK",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.145,
+          "card": 86
+        },
+        {
+          "ign": "aspas",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.129,
+          "card": 86
+        },
+        {
+          "ign": "RieNs",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 1.123,
+          "card": 86
+        },
+        {
+          "ign": "primmie",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 1.221,
+          "card": 85
+        },
+        {
+          "ign": "Meteor",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.174,
+          "card": 85
+        },
+        {
+          "ign": "t3xture",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.143,
+          "card": 85
+        },
+        {
+          "ign": "zekken",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.122,
+          "card": 85
+        },
+        {
+          "ign": "Smoggy",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.12,
+          "card": 85
+        },
+        {
+          "ign": "TenZ",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.102,
+          "card": 85
+        },
+        {
+          "ign": "Kai",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.091,
+          "card": 84
+        },
+        {
+          "ign": "Alfajer",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.089,
+          "card": 84
+        },
+        {
+          "ign": "Autumn",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 1.077,
+          "card": 83
+        },
+        {
+          "ign": "Shyy",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.068,
+          "card": 83
+        },
+        {
+          "ign": "mindfreak",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 1.063,
+          "card": 83
+        },
+        {
+          "ign": "yetujey",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 1.069,
+          "card": 82
+        },
+        {
+          "ign": "Kicks",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.046,
+          "card": 82
+        },
+        {
+          "ign": "Flashback",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.042,
+          "card": 82
+        },
+        {
+          "ign": "LuoK1ng",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.032,
+          "card": 82
+        },
+        {
+          "ign": "heat",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.028,
+          "card": 82
+        },
+        {
+          "ign": "MaKo",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.025,
+          "card": 82
+        },
+        {
+          "ign": "kiNgg",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.024,
+          "card": 82
+        },
+        {
+          "ign": "Sayf",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.011,
+          "card": 81
+        },
+        {
+          "ign": "BuZz",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.996,
+          "card": 81
+        },
+        {
+          "ign": "cNed",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.992,
+          "card": 81
+        },
+        {
+          "ign": "johnqt",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.99,
+          "card": 81
+        },
+        {
+          "ign": "Sacy",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "Karon",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "MiniBoo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.985,
+          "card": 81
+        },
+        {
+          "ign": "S1Mon",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.983,
+          "card": 81
+        },
+        {
+          "ign": "Wo0t",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "ban",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "hiro",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.98,
+          "card": 81
+        },
+        {
+          "ign": "AAAAY",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.969,
+          "card": 81
+        },
+        {
+          "ign": "Zellsis",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.977,
+          "card": 80
+        },
+        {
+          "ign": "C0M",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.973,
+          "card": 80
+        },
+        {
+          "ign": "valyn",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.97,
+          "card": 80
+        },
+        {
+          "ign": "Mazino",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.966,
+          "card": 80
+        },
+        {
+          "ign": "leaf",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.966,
+          "card": 80
+        },
+        {
+          "ign": "Boo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.962,
+          "card": 80
+        },
+        {
+          "ign": "BerLIN",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.958,
+          "card": 80
+        },
+        {
+          "ign": "BeYN",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.957,
+          "card": 80
+        },
+        {
+          "ign": "trent",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.954,
+          "card": 80
+        },
+        {
+          "ign": "benjyfishy",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.953,
+          "card": 80
+        },
+        {
+          "ign": "Munchkin",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.951,
+          "card": 80
+        },
+        {
+          "ign": "f0rsakeN",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "qRaxs",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.943,
+          "card": 80
+        },
+        {
+          "ign": "FengF",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.941,
+          "card": 80
+        },
+        {
+          "ign": "Flex1n",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.933,
+          "card": 80
+        },
+        {
+          "ign": "whzy",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.922,
+          "card": 80
+        },
+        {
+          "ign": "Foxy9",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.934,
+          "card": 79
+        },
+        {
+          "ign": "nobody",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.933,
+          "card": 79
+        },
+        {
+          "ign": "something",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.931,
+          "card": 79
+        },
+        {
+          "ign": "d4v41",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.924,
+          "card": 79
+        },
+        {
+          "ign": "runneR",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.912,
+          "card": 79
+        },
+        {
+          "ign": "icy",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.91,
+          "card": 79
+        },
+        {
+          "ign": "Jinggg",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.91,
+          "card": 79
+        },
+        {
+          "ign": "Melser",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.906,
+          "card": 79
+        },
+        {
+          "ign": "ceNder",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.88,
+          "card": 78
+        },
+        {
+          "ign": "mta",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.878,
+          "card": 78
+        },
+        {
+          "ign": "JonahP",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.876,
+          "card": 78
+        },
+        {
+          "ign": "Lysoar",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.853,
+          "card": 78
+        },
+        {
+          "ign": "AtaKaptan",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "Knight",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "tex",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.875,
+          "card": 77
+        },
+        {
+          "ign": "heybay",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.85,
+          "card": 77
+        },
+        {
+          "ign": "MrFaliN",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.779,
+          "card": 77
+        },
+        {
+          "ign": "nephh",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.774,
+          "card": 77
+        },
+        {
+          "ign": "JitBoyS",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.756,
+          "card": 77
+        },
+        {
+          "ign": "Governor",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.754,
+          "card": 77
+        },
+        {
+          "ign": "Biank",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.804,
+          "card": 76
+        },
+        {
+          "ign": "Life",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.704,
+          "card": 75
+        },
+        {
+          "ign": "yosemite",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.61,
+          "card": 74
+        },
+        {
+          "ign": "Boaster",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.696,
+          "card": 72
+        },
+        {
+          "ign": "Lakia",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.612,
+          "card": 72
+        },
+        {
+          "ign": "Crws",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.511,
+          "card": 72
+        }
+      ]
+    },
+    "中度": {
+      "weights": [
+        1,
+        1.5,
+        2,
+        3
+      ],
+      "rows": [
+        {
+          "ign": "Chronicle",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.23,
+          "card": 88
+        },
+        {
+          "ign": "Derke",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.227,
+          "card": 88
+        },
+        {
+          "ign": "trexx",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.232,
+          "card": 87
+        },
+        {
+          "ign": "CHICHOO",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.174,
+          "card": 87
+        },
+        {
+          "ign": "ZmjjKK",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.167,
+          "card": 87
+        },
+        {
+          "ign": "keznit",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.184,
+          "card": 86
+        },
+        {
+          "ign": "primmie",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 1.221,
+          "card": 85
+        },
+        {
+          "ign": "Meteor",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.174,
+          "card": 85
+        },
+        {
+          "ign": "t3xture",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.143,
+          "card": 85
+        },
+        {
+          "ign": "zekken",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.125,
+          "card": 85
+        },
+        {
+          "ign": "aspas",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.12,
+          "card": 85
+        },
+        {
+          "ign": "RieNs",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 1.108,
+          "card": 85
+        },
+        {
+          "ign": "Smoggy",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.107,
+          "card": 85
+        },
+        {
+          "ign": "TenZ",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.107,
+          "card": 85
+        },
+        {
+          "ign": "Alfajer",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.089,
+          "card": 84
+        },
+        {
+          "ign": "Kai",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.083,
+          "card": 84
+        },
+        {
+          "ign": "Autumn",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 1.077,
+          "card": 83
+        },
+        {
+          "ign": "Shyy",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.068,
+          "card": 83
+        },
+        {
+          "ign": "mindfreak",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 1.063,
+          "card": 83
+        },
+        {
+          "ign": "Flashback",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.043,
+          "card": 83
+        },
+        {
+          "ign": "yetujey",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 1.069,
+          "card": 82
+        },
+        {
+          "ign": "Kicks",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.046,
+          "card": 82
+        },
+        {
+          "ign": "heat",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.028,
+          "card": 82
+        },
+        {
+          "ign": "MaKo",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.026,
+          "card": 82
+        },
+        {
+          "ign": "LuoK1ng",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.024,
+          "card": 82
+        },
+        {
+          "ign": "kiNgg",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.012,
+          "card": 82
+        },
+        {
+          "ign": "Sayf",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.011,
+          "card": 81
+        },
+        {
+          "ign": "cNed",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.992,
+          "card": 81
+        },
+        {
+          "ign": "MiniBoo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.991,
+          "card": 81
+        },
+        {
+          "ign": "Karon",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "johnqt",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.983,
+          "card": 81
+        },
+        {
+          "ign": "BuZz",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.982,
+          "card": 81
+        },
+        {
+          "ign": "S1Mon",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "ban",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "AAAAY",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.969,
+          "card": 81
+        },
+        {
+          "ign": "Wo0t",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.977,
+          "card": 80
+        },
+        {
+          "ign": "hiro",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.975,
+          "card": 80
+        },
+        {
+          "ign": "Mazino",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.973,
+          "card": 80
+        },
+        {
+          "ign": "Sacy",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.972,
+          "card": 80
+        },
+        {
+          "ign": "Zellsis",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.972,
+          "card": 80
+        },
+        {
+          "ign": "C0M",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.967,
+          "card": 80
+        },
+        {
+          "ign": "BeYN",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.964,
+          "card": 80
+        },
+        {
+          "ign": "leaf",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.96,
+          "card": 80
+        },
+        {
+          "ign": "BerLIN",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.958,
+          "card": 80
+        },
+        {
+          "ign": "valyn",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.957,
+          "card": 80
+        },
+        {
+          "ign": "Boo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.953,
+          "card": 80
+        },
+        {
+          "ign": "Munchkin",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.951,
+          "card": 80
+        },
+        {
+          "ign": "trent",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "f0rsakeN",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "qRaxs",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.943,
+          "card": 80
+        },
+        {
+          "ign": "Flex1n",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.933,
+          "card": 80
+        },
+        {
+          "ign": "whzy",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.922,
+          "card": 80
+        },
+        {
+          "ign": "benjyfishy",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.949,
+          "card": 79
+        },
+        {
+          "ign": "Foxy9",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.939,
+          "card": 79
+        },
+        {
+          "ign": "FengF",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.938,
+          "card": 79
+        },
+        {
+          "ign": "nobody",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.934,
+          "card": 79
+        },
+        {
+          "ign": "something",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.931,
+          "card": 79
+        },
+        {
+          "ign": "d4v41",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.924,
+          "card": 79
+        },
+        {
+          "ign": "runneR",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.912,
+          "card": 79
+        },
+        {
+          "ign": "Jinggg",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.91,
+          "card": 79
+        },
+        {
+          "ign": "Melser",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.906,
+          "card": 79
+        },
+        {
+          "ign": "icy",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.89,
+          "card": 78
+        },
+        {
+          "ign": "ceNder",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.88,
+          "card": 78
+        },
+        {
+          "ign": "mta",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.878,
+          "card": 78
+        },
+        {
+          "ign": "JonahP",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.874,
+          "card": 78
+        },
+        {
+          "ign": "Lysoar",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.853,
+          "card": 78
+        },
+        {
+          "ign": "AtaKaptan",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "Knight",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "tex",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.875,
+          "card": 77
+        },
+        {
+          "ign": "heybay",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.838,
+          "card": 77
+        },
+        {
+          "ign": "MrFaliN",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.779,
+          "card": 77
+        },
+        {
+          "ign": "nephh",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.774,
+          "card": 77
+        },
+        {
+          "ign": "JitBoyS",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.756,
+          "card": 77
+        },
+        {
+          "ign": "Governor",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.754,
+          "card": 77
+        },
+        {
+          "ign": "Biank",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.793,
+          "card": 75
+        },
+        {
+          "ign": "Life",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.704,
+          "card": 75
+        },
+        {
+          "ign": "yosemite",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.61,
+          "card": 74
+        },
+        {
+          "ign": "Lakia",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.612,
+          "card": 72
+        },
+        {
+          "ign": "Crws",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.511,
+          "card": 72
+        },
+        {
+          "ign": "Boaster",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.682,
+          "card": 71
+        }
+      ]
+    },
+    "重度": {
+      "weights": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rows": [
+        {
+          "ign": "Chronicle",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.241,
+          "card": 89
+        },
+        {
+          "ign": "Derke",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.228,
+          "card": 88
+        },
+        {
+          "ign": "trexx",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.232,
+          "card": 87
+        },
+        {
+          "ign": "CHICHOO",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.175,
+          "card": 87
+        },
+        {
+          "ign": "ZmjjKK",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.173,
+          "card": 87
+        },
+        {
+          "ign": "keznit",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.184,
+          "card": 86
+        },
+        {
+          "ign": "zekken",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.13,
+          "card": 86
+        },
+        {
+          "ign": "primmie",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 1.221,
+          "card": 85
+        },
+        {
+          "ign": "Meteor",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.174,
+          "card": 85
+        },
+        {
+          "ign": "t3xture",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 1.143,
+          "card": 85
+        },
+        {
+          "ign": "TenZ",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 1.112,
+          "card": 85
+        },
+        {
+          "ign": "aspas",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 1.109,
+          "card": 85
+        },
+        {
+          "ign": "RieNs",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 1.102,
+          "card": 85
+        },
+        {
+          "ign": "Smoggy",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 1.093,
+          "card": 84
+        },
+        {
+          "ign": "Alfajer",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 1.088,
+          "card": 84
+        },
+        {
+          "ign": "Autumn",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 1.077,
+          "card": 83
+        },
+        {
+          "ign": "Kai",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.07,
+          "card": 83
+        },
+        {
+          "ign": "Shyy",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.068,
+          "card": 83
+        },
+        {
+          "ign": "mindfreak",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 1.063,
+          "card": 83
+        },
+        {
+          "ign": "Flashback",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.045,
+          "card": 83
+        },
+        {
+          "ign": "yetujey",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 1.069,
+          "card": 82
+        },
+        {
+          "ign": "Kicks",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.046,
+          "card": 82
+        },
+        {
+          "ign": "heat",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 1.028,
+          "card": 82
+        },
+        {
+          "ign": "MaKo",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 1.027,
+          "card": 82
+        },
+        {
+          "ign": "Sayf",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 1.011,
+          "card": 81
+        },
+        {
+          "ign": "LuoK1ng",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 1.01,
+          "card": 81
+        },
+        {
+          "ign": "MiniBoo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 1.004,
+          "card": 81
+        },
+        {
+          "ign": "kiNgg",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.997,
+          "card": 81
+        },
+        {
+          "ign": "cNed",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.992,
+          "card": 81
+        },
+        {
+          "ign": "Karon",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.986,
+          "card": 81
+        },
+        {
+          "ign": "Mazino",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "ban",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.981,
+          "card": 81
+        },
+        {
+          "ign": "AAAAY",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.969,
+          "card": 81
+        },
+        {
+          "ign": "S1Mon",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.976,
+          "card": 80
+        },
+        {
+          "ign": "johnqt",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.975,
+          "card": 80
+        },
+        {
+          "ign": "BeYN",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.973,
+          "card": 80
+        },
+        {
+          "ign": "Wo0t",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.972,
+          "card": 80
+        },
+        {
+          "ign": "hiro",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.969,
+          "card": 80
+        },
+        {
+          "ign": "Zellsis",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.966,
+          "card": 80
+        },
+        {
+          "ign": "BuZz",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.963,
+          "card": 80
+        },
+        {
+          "ign": "C0M",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.959,
+          "card": 80
+        },
+        {
+          "ign": "BerLIN",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.958,
+          "card": 80
+        },
+        {
+          "ign": "Boo",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.957,
+          "card": 80
+        },
+        {
+          "ign": "Sacy",
+          "team": "SEN",
+          "maps": 17,
+          "weighted": 0.953,
+          "card": 80
+        },
+        {
+          "ign": "leaf",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.951,
+          "card": 80
+        },
+        {
+          "ign": "Munchkin",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.951,
+          "card": 80
+        },
+        {
+          "ign": "f0rsakeN",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.949,
+          "card": 80
+        },
+        {
+          "ign": "Foxy9",
+          "team": "DRX",
+          "maps": 12,
+          "weighted": 0.947,
+          "card": 80
+        },
+        {
+          "ign": "qRaxs",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.943,
+          "card": 80
+        },
+        {
+          "ign": "trent",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.941,
+          "card": 80
+        },
+        {
+          "ign": "Flex1n",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.933,
+          "card": 80
+        },
+        {
+          "ign": "whzy",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.922,
+          "card": 80
+        },
+        {
+          "ign": "benjyfishy",
+          "team": "TH",
+          "maps": 25,
+          "weighted": 0.947,
+          "card": 79
+        },
+        {
+          "ign": "nobody",
+          "team": "EDG",
+          "maps": 21,
+          "weighted": 0.942,
+          "card": 79
+        },
+        {
+          "ign": "valyn",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.936,
+          "card": 79
+        },
+        {
+          "ign": "FengF",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.932,
+          "card": 79
+        },
+        {
+          "ign": "something",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.931,
+          "card": 79
+        },
+        {
+          "ign": "d4v41",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.924,
+          "card": 79
+        },
+        {
+          "ign": "runneR",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.912,
+          "card": 79
+        },
+        {
+          "ign": "Jinggg",
+          "team": "PRX",
+          "maps": 7,
+          "weighted": 0.91,
+          "card": 79
+        },
+        {
+          "ign": "Melser",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.906,
+          "card": 79
+        },
+        {
+          "ign": "ceNder",
+          "team": "VIT",
+          "maps": 7,
+          "weighted": 0.88,
+          "card": 78
+        },
+        {
+          "ign": "mta",
+          "team": "KRÜ",
+          "maps": 8,
+          "weighted": 0.878,
+          "card": 78
+        },
+        {
+          "ign": "JonahP",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.87,
+          "card": 78
+        },
+        {
+          "ign": "Lysoar",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.853,
+          "card": 78
+        },
+        {
+          "ign": "AtaKaptan",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "Knight",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.803,
+          "card": 78
+        },
+        {
+          "ign": "tex",
+          "team": "LEV",
+          "maps": 18,
+          "weighted": 0.875,
+          "card": 77
+        },
+        {
+          "ign": "icy",
+          "team": "G2",
+          "maps": 9,
+          "weighted": 0.859,
+          "card": 77
+        },
+        {
+          "ign": "MrFaliN",
+          "team": "FUT",
+          "maps": 4,
+          "weighted": 0.779,
+          "card": 77
+        },
+        {
+          "ign": "nephh",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.774,
+          "card": 77
+        },
+        {
+          "ign": "JitBoyS",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.756,
+          "card": 77
+        },
+        {
+          "ign": "Governor",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.754,
+          "card": 77
+        },
+        {
+          "ign": "heybay",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.82,
+          "card": 76
+        },
+        {
+          "ign": "Biank",
+          "team": "TE",
+          "maps": 10,
+          "weighted": 0.776,
+          "card": 75
+        },
+        {
+          "ign": "Life",
+          "team": "FPX",
+          "maps": 5,
+          "weighted": 0.704,
+          "card": 75
+        },
+        {
+          "ign": "yosemite",
+          "team": "BLG",
+          "maps": 4,
+          "weighted": 0.61,
+          "card": 74
+        },
+        {
+          "ign": "Lakia",
+          "team": "GEN",
+          "maps": 7,
+          "weighted": 0.612,
+          "card": 72
+        },
+        {
+          "ign": "Crws",
+          "team": "TLN",
+          "maps": 4,
+          "weighted": 0.511,
+          "card": 72
+        },
+        {
+          "ign": "Boaster",
+          "team": "FNC",
+          "maps": 14,
+          "weighted": 0.66,
+          "card": 70
+        }
+      ]
+    }
+  }
+}

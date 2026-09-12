@@ -34,7 +34,7 @@ export interface ClubSet {
 const CLUB_CARDS: Map<string, PlayerCard[]> = (() => {
   const by = new Map<string, PlayerCard[]>()
   for (const c of ALL_CARDS) {
-    if (!isPlayerCard(c) || c.rarity === 'mythic' || !c.clubId) continue
+    if (!isPlayerCard(c) || c.rarity === 'mythic' || c.event || !c.clubId) continue
     const list = by.get(c.clubId) ?? []
     list.push(c)
     by.set(c.clubId, list)

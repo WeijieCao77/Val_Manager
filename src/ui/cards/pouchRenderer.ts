@@ -1,3 +1,4 @@
+import { paintSeoulPack } from './seoulPackTexture'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { pouchGeometry } from './pouchGeometry'
@@ -10,7 +11,7 @@ export interface PouchMotion { progress: number; torn: boolean; pose: { x: numbe
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
 const easeOut = (value: number) => 1 - Math.pow(1 - clamp01(value), 3)
 
-function printTexture(count: number, kind: Card['kind'], back = false, position?: PackPosition) {
+function printTexture(count: number, kind: Card['kind'], back = false, position?: PackPosition, seoul = false, invalidate?: () => void) {
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined
   const canvas = document.createElement('canvas')
@@ -68,12 +69,13 @@ function printTexture(count: number, kind: Card['kind'], back = false, position?
   ctx.textAlign = 'right'; ctx.font = '700 76px sans-serif'; ctx.fillText(String(count), 892, 1320)
   ctx.font = '500 22px "PingFang SC", sans-serif'; ctx.fillText('张收藏卡', 892, 1360)
   const texture = new THREE.CanvasTexture(canvas)
+  if (seoul) paintSeoulPack(ctx, count, back, () => { texture.needsUpdate = true; invalidate?.() })
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = 4
   return texture
 }
 
-export function createPouchRenderer(canvas: HTMLCanvasElement, count: number, kind: Card['kind'], state: () => PouchMotion, onLost: () => void, position?: PackPosition) {
+export function createPouchRenderer(canvas: HTMLCanvasElement, count: number, kind: Card['kind'], state: () => PouchMotion, onLost: () => void, position?: PackPosition, seoul = false) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' })
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75))
   renderer.setClearColor(0x000000, 0)
@@ -91,12 +93,16 @@ export function createPouchRenderer(canvas: HTMLCanvasElement, count: number, ki
   scene.add(new THREE.HemisphereLight(0xfff8ed, 0x172536, .65))
   const key = new THREE.DirectionalLight(0xfff4df, 1.7); key.position.set(-3, 4, 5); scene.add(key)
   const rim = new THREE.DirectionalLight(0xd8e7ff, 1.2); rim.position.set(3, 1, -1); scene.add(rim)
-  const front = printTexture(count, kind, false, position), back = printTexture(count, kind, true, position)
-  const base = { roughness: .4, metalness: .12, clearcoat: .4, clearcoatRoughness: .32, envMapIntensity: .55 }
+  const front = printTexture(count, kind, false, position, seoul, invalidate), back = printTexture(count, kind, true, position, seoul, invalidate)
+  // Dark laminated foil needs a stronger reflected light to reveal the same
+  // filled shoulders and weld creases that show naturally on the cream packs.
+  const base = seoul
+    ? { roughness: .34, metalness: .38, clearcoat: .65, clearcoatRoughness: .23, envMapIntensity: .85 }
+    : { roughness: .4, metalness: .12, clearcoat: .4, clearcoatRoughness: .32, envMapIntensity: .55 }
   const materials = [
     new THREE.MeshPhysicalMaterial({ ...base, map: front }),
     new THREE.MeshPhysicalMaterial({ ...base, map: back }),
-    new THREE.MeshPhysicalMaterial({ ...base, color: 0x978e7c, roughness: .5 }),
+    new THREE.MeshPhysicalMaterial({ ...base, color: seoul ? 0xb09a61 : 0x978e7c, roughness: seoul ? .36 : .5 }),
   ]
   const topMaterials = materials.map(material => material.clone())
   const pouch = new THREE.Group(); scene.add(pouch)
