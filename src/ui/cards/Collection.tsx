@@ -10,7 +10,7 @@ import { dismantleFee, dismantleYield } from '../../engine/dismantle'
 import { sparesOf } from '../../engine/inbox'
 import { crestUrl } from '../../engine/dossier'
 import {
-  ALL_CARDS, MAX_LEVEL, RARITY_CN, SALVAGE, cardById, isPlayerCard, ratingAt,
+  ALL_CARDS, MAX_LEVEL, POWER_PER_LEVEL, RARITY_CN, SALVAGE, cardById, cardPower, isPlayerCard,
 } from '../../engine/cards'
 import type { Card, Rarity } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
@@ -385,7 +385,8 @@ export default function Collection() {
                   <div>
                     <div className="small">
                       等级 <b>+{owned.level}</b> / +{MAX_LEVEL}
-                      <span className="faint"> · 评分 {ratingAt(sel.rating, owned.level)}</span>
+                      <span className="faint"> · 评分 {sel.rating}</span>
+                      {isPlayerCard(sel) && <> · 战力 <b>{coin(cardPower(sel, owned.level))}</b></>}
                     </div>
                     <div className="tiny faint">
                       重复卡 {owned.dupes} 张
@@ -430,7 +431,11 @@ export default function Collection() {
 function Upgrade({ cardId }: { cardId: string }) {
   const { g, act, toast } = useCards()
   const cost = upgradeCost(g, cardId)
+  const card = cardById(cardId)
   if (cost.to == null) return <span className="tiny faint">{cost.why}</span>
+  // a player's level is worth a fixed hundred 战力; a coach's levels do not
+  // reach a match yet, so the button does not name a number for them
+  const player = isPlayerCard(card)
   return (
     <button
       className="primary sm"
@@ -438,10 +443,12 @@ function Upgrade({ cardId }: { cardId: string }) {
       title={cost.why}
       onClick={async () => {
         const r = await act('upgrade', { cardId })
-        toast(r.ok ? `升级成功，现在是 +${(r.result as { level: number }).level}。` : r.why)
+        if (!r.ok) { toast(r.why); return }
+        const level = (r.result as { level: number } | undefined)?.level ?? cost.to ?? 0
+        toast(player && card ? `升级成功，+${level}，战力 ${coin(cardPower(card, level))}。` : `升级成功，现在是 +${level}。`)
       }}
     >
-      升到 +{cost.to}（{cost.dupes} 张重复 + {cost.coins} 金币）
+      升到 +{cost.to}（{player ? `战力 +${POWER_PER_LEVEL} · ` : ''}{cost.dupes} 张重复 + {cost.coins} 金币）
     </button>
   )
 }

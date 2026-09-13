@@ -1,7 +1,7 @@
 import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
 import { useState } from 'react'
 import { ATTR_CN } from '../engine/types'
-import { RARITY_CN, ratingAt } from '../engine/cards'
+import { RARITY_CN } from '../engine/cards'
 import { crestUrl } from '../engine/dossier'
 import { FLAG_AS, natName } from '../engine/nat'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
@@ -128,7 +128,11 @@ export default function CardFace({
   card, level = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer,
 }: CardFaceProps) {
   if (isPlayerCard(card) && card.event === 'seoul-2024') return <SeoulCard {...{ card, level, dupes, size, selected, dimmed, onClick, footer }} />
-  const rating = ratingAt(card.rating, level)
+  // The base rating, always: the number on the face says which card this is
+  // (the 2024 EDG ZmjjKK is a 97 whatever you have done to it), the +N
+  // beside it says what you have done, and 战力 in the detail says what the
+  // two add up to. Folding the levels in here ran into 99 and stopped.
+  const rating = card.rating
   const cls = `cardface r-${card.rarity} s-${size}`
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
   const legend = legendOf(card)

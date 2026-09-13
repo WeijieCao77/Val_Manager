@@ -15,7 +15,7 @@ import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
-  cardById, chemistry, coachLift, isCoachCard, isPlayerCard, personOf, ratingAt, SQUAD_SLOTS,
+  cardById, chemistry, coachLift, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -97,11 +97,13 @@ export interface ArenaSquad extends Squad {
  * same problem in miniature.
  */
 function levelled(
-  p: Player, card: PlayerCard, level: number, misfit: boolean,
+  p: Player, card: PlayerCard, misfit: boolean,
   /** what the coach adds on top of the card's own level, and to its nerve */
   coach: { lift: number; nerve: number } = { lift: 0, nerve: 0 },
 ): Player {
-  const bump = Math.max(0, level) + coach.lift
+  // The card's own levels are NOT here: this is the +0 card. Levels go on
+  // after the squeeze (seatSquad), so nothing rounds or caps them away.
+  const bump = coach.lift
   const attrs = { ...card.attrs }
   for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
     attrs[k] = clamp(Math.round(attrs[k] + bump), 1, 99)
@@ -113,7 +115,7 @@ function levelled(
     // A card standing in a role it does not cover is worse at it. The engine
     // already punishes the resulting hole in the composition; this is the
     // separate cost of the individual being out of position.
-    overall: clamp(ratingAt(card.rating, Math.max(0, level)) + coach.lift - (misfit ? 5 : 0), 1, 99),
+    overall: clamp(card.rating + coach.lift - (misfit ? 5 : 0), 1, 99),
     traits: p.traits ? [...p.traits] : p.traits,
     // cards arrive rested and confident: the card mode has no season to tire
     // anyone out, and form drift would make the same squad a different squad
@@ -186,7 +188,7 @@ function seatSquad(
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
-    const clone = levelled(src, card, level(cardId), misfit, coaching)
+    const clone = levelled(src, card, misfit, coaching)
     // Chemistry lands in two places, and it has to land hard.
     //
     // Routed through teamwork and communication alone it was worth about a
@@ -208,6 +210,22 @@ function seatSquad(
       clone.attrs[k] = squeeze(clone.attrs[k], PIVOT_ATTR, SPREAD_ATTR)
     }
     clone.overall = squeeze(clone.overall, PIVOT_OVERALL)
+    // The levels go on last, scaled like everything else but never rounded
+    // and never capped before the scale. Added before the squeeze, a level
+    // on a 97 was rounded away or cut at 99 — 12 cards had levels that
+    // changed nothing in a match (scripts/check_power_growth.ts) — and the
+    // +0 card came out different from the one every balance check was run
+    // on. This way the +0 state is exactly what it was, and every level is
+    // worth the same half a point of overall and 0.6 of an attribute,
+    // whichever card carries it. 181,728 simulated matches behind the
+    // choice: analysis/power_balance_recheck.md.
+    const growth = growthOf(level(cardId))
+    if (growth > 0) {
+      for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
+        clone.attrs[k] = clamp(clone.attrs[k] + growth * SPREAD_ATTR, 1, 99)
+      }
+      clone.overall = clamp(clone.overall + growth * SPREAD, 1, 99)
+    }
     state.players[id] = { ...clone, id, teamId }
     cardOf[id] = cardId
     roster.push(id)

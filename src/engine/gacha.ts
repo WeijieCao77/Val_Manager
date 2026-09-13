@@ -15,7 +15,7 @@ import type { Picks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
 import {
   ALL_CARDS, SEOUL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
-  SALVAGE, SQUAD_SLOTS, cardById, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
+  SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating,
 } from './cards'
 import type { Card, PlayerCard, Rarity, Squad } from './cards'
@@ -1210,7 +1210,7 @@ export function upgrade(g: GachaState, cardId: string): boolean {
   const card = cardById(cardId)
   if (card) {
     note(g, `${card.kind === 'player' ? card.ign : card.name} 升到 +${owned.level}`
-      + `（${ratingAt(card.rating, owned.level)}）`)
+      + (card.kind === 'player' ? `（战力 ${cardPower(card, owned.level)}）` : ''))
   }
   bumpQuest(g, 'upgrade1', 1)
   return true

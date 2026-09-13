@@ -15,12 +15,12 @@ export function SeoulCard({ card, level = 0, dupes = 0, size = 'md', selected, d
   return <div className={`cardface sc24 s-${size} sc24-${card.rarity}${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
     onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}
     onKeyDown={e => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick() } }}
-    title={`${card.ign} · ${card.clubTag} · 首尔 2024 · 游戏能力 ${Math.min(99, card.rating + level)}`}>
+    title={`${card.ign} · ${card.clubTag} · 首尔 2024 · 游戏能力 ${card.rating}${level > 0 ? `（+${level}）` : ''}`}>
     <div className="sc24-rays" aria-hidden="true" />
     <div className="sc24-head"><span>CHAMPIONS<br /><b>SEOUL 2024</b></span><SeoulMark /></div>
     <span className="sc24-side">{card.clubTag} / {entry.nat.toUpperCase()} / {RARITY_CN[card.rarity]}</span>
     <div className="sc24-portrait">{card.face && !failed ? <img src={card.face} alt={card.ign} loading="lazy" onError={() => setFailed(true)} /> : <span>{card.ign.slice(0, 2)}</span>}</div>
-    <div className="sc24-rating"><b>{Math.min(99, card.rating + level)}</b><small>{card.role.slice(0, 2)}{level > 0 ? ` +${level}` : ''}</small></div>
+    <div className="sc24-rating"><b>{card.rating}</b><small>{card.role.slice(0, 2)}{level > 0 ? ` +${level}` : ''}</small></div>
     <div className="sc24-info"><span className="sc24-team">{card.clubTag}<i>{card.clubTag === 'EDG' ? 'WORLD CHAMPION' : 'SEOUL CONTENDER'}</i></span>
       <strong className="sc24-ign">{card.ign}</strong>
       <div className="sc24-stats"><span><b>{entry.acs}</b>ACS</span><span><b>{entry.kd.toFixed(2)}</b>K/D</span><span><b>{entry.maps}</b>MAPS</span></div>

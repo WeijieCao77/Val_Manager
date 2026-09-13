@@ -349,8 +349,36 @@ export const SALVAGE: Record<Rarity, number> = {
   mythic: 4000, gold: 700, silver: 200, bronze: 60,
 }
 
+/**
+ * The card's rating after its levels, in ability units — the number the
+ * rules read: squad rating, the cup draw, the auto-builder's ordering.
+ *
+ * Not capped at 99 any more (2026-09-13). It was, and a 97 levelled five
+ * times read 99 from +2 on, so the last three levels were paid for and
+ * thrown away: 12 of the 643 player cards had at least one level that did
+ * nothing at all in a match. The card FACE keeps showing the base rating
+ * with the level beside it — nothing a player sees says 102 — and what the
+ * levels are worth is shown as 战力 (cardPower) instead.
+ */
 export const ratingAt = (base: number, level: number): number =>
-  Math.min(99, base + Math.max(0, Math.min(MAX_LEVEL, level)))
+  base + growthOf(level)
+
+/** the levels a card has actually earned, 0–MAX_LEVEL */
+export const growthOf = (level: number): number => Math.max(0, Math.min(MAX_LEVEL, level))
+
+/** one ability point is a hundred 战力 */
+export const POWER_PER_POINT = 100
+/** what a level adds to a player card's 战力 */
+export const POWER_PER_LEVEL = POWER_PER_POINT
+
+/**
+ *战力: the card's strength after levelling, as an integer the player can
+ * watch move. 100 × (base rating + levels) for a player card; a coach card
+ * is its base rating alone, because a coach's levels do not reach a match
+ * yet and the number must not promise what the arena does not pay.
+ */
+export const cardPower = (card: Card, level: number): number =>
+  POWER_PER_POINT * (card.rating + (isPlayerCard(card) ? growthOf(level) : 0))
 
 // ---------------------------------------------------------------- squad
 

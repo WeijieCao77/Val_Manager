@@ -1,0 +1,328 @@
+{
+ "cupsPerCell": 400,
+ "squads": {
+  "四个十连的五人": {
+   "paper": {
+    "0": 87,
+    "5": 92
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      312,
+      175,
+      69,
+      9,
+      1
+     ],
+     "legPlayed": [
+      400,
+      312,
+      175,
+      54,
+      6
+     ],
+     "won": 19
+    },
+    "5": {
+     "legWins": [
+      354,
+      245,
+      122,
+      43,
+      8
+     ],
+     "legPlayed": [
+      400,
+      354,
+      245,
+      94,
+      18
+     ],
+     "won": 61
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 166,
+      "champion": 0.0963855421686747,
+      "coinsPerEntry": 376.8072289156627,
+      "coinsPerStamina": 75.36144578313254,
+      "packsPerEntry": {
+       "scout": 0.23493975903614459,
+       "elite": 0.0963855421686747
+      }
+     },
+     "4": {
+      "cups": 138,
+      "champion": 0.028985507246376812,
+      "coinsPerEntry": 332.9710144927536,
+      "coinsPerStamina": 66.59420289855072,
+      "packsPerEntry": {
+       "scout": 0.391304347826087,
+       "elite": 0.028985507246376812
+      }
+     },
+     "5": {
+      "cups": 96,
+      "champion": 0.03125,
+      "coinsPerEntry": 385.9375,
+      "coinsPerStamina": 77.1875,
+      "packsPerEntry": {
+       "scout": 0.46875,
+       "ten": 0.03125
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 148,
+      "champion": 0.14864864864864866,
+      "coinsPerEntry": 410.47297297297297,
+      "coinsPerStamina": 82.0945945945946,
+      "packsPerEntry": {
+       "elite": 0.14864864864864866,
+       "scout": 0.17567567567567569
+      }
+     },
+     "4": {
+      "cups": 158,
+      "champion": 0.02531645569620253,
+      "coinsPerEntry": 318.67088607594934,
+      "coinsPerStamina": 63.73417721518987,
+      "packsPerEntry": {
+       "scout": 0.3860759493670886,
+       "elite": 0.02531645569620253
+      }
+     },
+     "5": {
+      "cups": 94,
+      "champion": 0.10638297872340426,
+      "coinsPerEntry": 507.4468085106383,
+      "coinsPerStamina": 101.48936170212765,
+      "packsPerEntry": {
+       "ten": 0.10638297872340426,
+       "scout": 0.35106382978723405
+      }
+     }
+    }
+   }
+  },
+  "最好的金卡五人": {
+   "paper": {
+    "0": 89,
+    "5": 93
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      297,
+      127,
+      56,
+      13,
+      1
+     ],
+     "legPlayed": [
+      400,
+      297,
+      127,
+      46,
+      7
+     ],
+     "won": 17
+    },
+    "5": {
+     "legWins": [
+      341,
+      203,
+      111,
+      43,
+      8
+     ],
+     "legPlayed": [
+      400,
+      341,
+      203,
+      87,
+      19
+     ],
+     "won": 56
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 142,
+      "champion": 0.06338028169014084,
+      "coinsPerEntry": 319.71830985915494,
+      "coinsPerStamina": 63.94366197183099,
+      "packsPerEntry": {
+       "elite": 0.06338028169014084,
+       "scout": 0.20422535211267606
+      }
+     },
+     "4": {
+      "cups": 154,
+      "champion": 0.025974025974025976,
+      "coinsPerEntry": 301.94805194805195,
+      "coinsPerStamina": 60.38961038961039,
+      "packsPerEntry": {
+       "scout": 0.33766233766233766,
+       "elite": 0.025974025974025976
+      }
+     },
+     "5": {
+      "cups": 104,
+      "champion": 0,
+      "coinsPerEntry": 288.9423076923077,
+      "coinsPerStamina": 57.78846153846153,
+      "packsPerEntry": {
+       "scout": 0.3269230769230769
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 144,
+      "champion": 0.125,
+      "coinsPerEntry": 387.5,
+      "coinsPerStamina": 77.5,
+      "packsPerEntry": {
+       "scout": 0.2013888888888889,
+       "elite": 0.125
+      }
+     },
+     "4": {
+      "cups": 151,
+      "champion": 0.08609271523178808,
+      "coinsPerEntry": 393.3774834437086,
+      "coinsPerStamina": 78.67549668874173,
+      "packsPerEntry": {
+       "scout": 0.3973509933774834,
+       "elite": 0.08609271523178808
+      }
+     },
+     "5": {
+      "cups": 105,
+      "champion": 0.02857142857142857,
+      "coinsPerEntry": 307.14285714285717,
+      "coinsPerStamina": 61.42857142857143,
+      "packsPerEntry": {
+       "ten": 0.02857142857142857,
+       "scout": 0.3142857142857143
+      }
+     }
+    }
+   }
+  },
+  "彩卡五人": {
+   "paper": {
+    "0": 99,
+    "5": 102
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      304,
+      226,
+      148,
+      58,
+      12
+     ],
+     "legPlayed": [
+      400,
+      304,
+      226,
+      110,
+      18
+     ],
+     "won": 90
+    },
+    "5": {
+     "legWins": [
+      309,
+      219,
+      152,
+      67,
+      14
+     ],
+     "legPlayed": [
+      400,
+      309,
+      219,
+      110,
+      26
+     ],
+     "won": 97
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 141,
+      "champion": 0.3475177304964539,
+      "coinsPerEntry": 663.1205673758865,
+      "coinsPerStamina": 132.6241134751773,
+      "packsPerEntry": {
+       "elite": 0.3475177304964539,
+       "scout": 0.11347517730496454
+      }
+     },
+     "4": {
+      "cups": 162,
+      "champion": 0.2222222222222222,
+      "coinsPerEntry": 614.8148148148148,
+      "coinsPerStamina": 122.96296296296296,
+      "packsPerEntry": {
+       "scout": 0.5246913580246914,
+       "elite": 0.2222222222222222
+      }
+     },
+     "5": {
+      "cups": 97,
+      "champion": 0.13402061855670103,
+      "coinsPerEntry": 579.8969072164948,
+      "coinsPerStamina": 115.97938144329896,
+      "packsPerEntry": {
+       "scout": 0.4536082474226804,
+       "ten": 0.13402061855670103
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 138,
+      "champion": 0.3695652173913043,
+      "coinsPerEntry": 692.3913043478261,
+      "coinsPerStamina": 138.47826086956522,
+      "packsPerEntry": {
+       "elite": 0.3695652173913043,
+       "scout": 0.13768115942028986
+      }
+     },
+     "4": {
+      "cups": 160,
+      "champion": 0.26875,
+      "coinsPerEntry": 694.6875,
+      "coinsPerStamina": 138.9375,
+      "packsPerEntry": {
+       "scout": 0.56875,
+       "elite": 0.26875
+      }
+     },
+     "5": {
+      "cups": 102,
+      "champion": 0.16666666666666666,
+      "coinsPerEntry": 620.0980392156863,
+      "coinsPerStamina": 124.01960784313727,
+      "packsPerEntry": {
+       "scout": 0.37254901960784315,
+       "ten": 0.16666666666666666
+      }
+     }
+    }
+   }
+  }
+ }
+}

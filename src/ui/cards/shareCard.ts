@@ -12,7 +12,7 @@
  * lands outside the canvas or on top of anything else without a canvas to
  * draw on.
  */
-import { cardById, isPlayerCard, ratingAt } from '../../engine/cards'
+import { cardById, isPlayerCard } from '../../engine/cards'
 import type { Card, CoachCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
 import { qrMatrix } from '../../engine/qr'
@@ -229,7 +229,7 @@ function paintSeat(
   ctx.fillStyle = ink
   const rateSize = 21 * k
   ctx.font = font(800, rateSize)
-  const rate = String(ratingAt(card.rating, level))
+  const rate = String(card.rating)
   ctx.fillText(rate, b.x + 9 * k, b.y + 7 * k)
   if (level > 0) {
     ctx.fillStyle = shot ? 'rgba(255,220,220,.95)' : '#7a2018'
