@@ -20,7 +20,8 @@
 import { createHash } from 'node:crypto'
 import { buildArena, playRivalMatch, ARENA_TEAM } from '../src/engine/arena'
 import {
-  ALL_CARDS, MAX_LEVEL, POWER_PER_LEVEL, cardPower, growthOf, isCoachCard, isPlayerCard, ratingAt,
+  ALL_CARDS, COACH_LEVEL_LIFT, MAX_LEVEL, POWER_PER_LEVEL, POWER_PER_SQUAD_POINT, cardPower, growthOf,
+  isCoachCard, isPlayerCard, ratingAt, squadPaper, squadPower, squadRating,
 } from '../src/engine/cards'
 import { migrateGacha, newGacha, levelOf } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
@@ -54,8 +55,8 @@ const coaches = ALL_CARDS.filter(isCoachCard)
     if (ratingAt(c.rating, MAX_LEVEL) !== c.rating + MAX_LEVEL) off++
   }
   check(`${players.length} 张选手卡：每级战力 +${POWER_PER_LEVEL}，满级 +${POWER_PER_LEVEL * MAX_LEVEL}，规则评分不再封 99`, off === 0, `${off} 处不对`)
-  const flat = coaches.every((c) => cardPower(c, MAX_LEVEL) === cardPower(c, 0) && cardPower(c, 0) === 100 * c.rating)
-  check(`${coaches.length} 张教练卡：战力不随等级动（教练等级还没进实战）`, flat)
+  const grows = coaches.every((c) => cardPower(c, MAX_LEVEL) === 100 * c.rating + POWER_PER_LEVEL * MAX_LEVEL)
+  check(`${coaches.length} 张教练卡：每级战力 +${POWER_PER_LEVEL}，和选手一样`, grows)
   check('growthOf 只认 0～5 级', growthOf(-2) === 0 && growthOf(3) === 3 && growthOf(9) === MAX_LEVEL)
 }
 
@@ -95,7 +96,8 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
     const slots = ids.split(',')
     const zero = seated(slots, coach === '-' ? null : coach, () => 0).ps
     for (let l = 1; l <= MAX_LEVEL; l++) {
-      const at = seated(slots, coach === '-' ? null : coach, () => l).ps
+      // the players' levels only — the coach's are measured on their own below
+      const at = seated(slots, coach === '-' ? null : coach, (id) => (id === coach ? 0 : l)).ps
       at.forEach((p, i) => {
         const z = zero[i]
         const wantOv = Math.min(99, z.overall + 0.5 * l)
@@ -134,6 +136,46 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
     }
   }
   check(`${players.length} 张选手卡逐级升，${tested} 次升级每次总评都涨`, dead === 0, `${dead} 次没动${example.length ? '：' + example.join('、') : ''}`)
+}
+
+// ---- a coach's levels reach the match: a fifth of a point on every card, counted once
+{
+  const ids = ['p:P227', 'p:P382', 'p:P95', 'p:P300', 'p:P48']
+  const coach = 'c:Ann'
+  let off = 0, cells = 0
+  const zero = seated(ids, coach, () => 0).ps
+  for (let l = 1; l <= MAX_LEVEL; l++) {
+    // only the coach is levelled: the players stay at +0
+    const at = seated(ids, coach, (id) => (id === coach ? l : 0)).ps
+    at.forEach((p, i) => {
+      const z = zero[i]
+      cells++
+      if (Math.abs(p.overall - Math.min(99, z.overall + COACH_LEVEL_LIFT * l * 0.5)) > 1e-9) off++
+      for (const k of Object.keys(z.attrs)) {
+        const nerve = k === 'clutch' ? 0.35 * l * 0.6 : 0
+        cells++
+        if (Math.abs(p.attrs[k] - Math.min(99, z.attrs[k] + COACH_LEVEL_LIFT * l * 0.6 + nerve)) > 1e-9) off++
+      }
+    })
+  }
+  check(`教练每级给全队总评 +${COACH_LEVEL_LIFT * 0.5}、属性 +${(COACH_LEVEL_LIFT * 0.6).toFixed(2)}，残局另加 0.21（${cells} 项）`, off === 0, `${off} 项不对`)
+  const lvl = (id: string) => (id === coach ? MAX_LEVEL : 0)
+  const paper0 = squadPaper({ slots: ids, coach }, () => 0)
+  const paper5 = squadPaper({ slots: ids, coach }, lvl)
+  check('纸面上教练 +5 = 教练项 +1，阵容战力 +500', Math.abs(paper5.lift - paper0.lift - 1) < 1e-9
+    && squadPower({ slots: ids, coach }, lvl) - squadPower({ slots: ids, coach }, () => 0) === 500)
+}
+
+// ---- 阵容战力 is the paper score at five hundred a point, and one level shows
+{
+  const ids = ['p:P227', 'p:P382', 'p:P95', 'p:P300', 'p:P48']
+  const sq = { slots: ids, coach: null }
+  const p = squadPaper(sq, () => 0)
+  check('阵容战力 = 未取整阵容分 × 500', squadPower(sq) === Math.round(p.score * POWER_PER_SQUAD_POINT) && POWER_PER_SQUAD_POINT === 500)
+  check('阵容分还是四舍五入的那个数', squadRating(sq) === Math.round(p.score))
+  const one = squadPower(sq, (id) => (id === ids[0] ? 1 : 0))
+  check('一张卡升一级，阵容战力 +100，阵容分未必动', one - squadPower(sq) === 100)
+  check('空卡组两个数都是 0', squadPower({ slots: [null, null, null, null, null], coach: null }) === 0 && squadRating({ slots: [null, null, null, null, null], coach: null }) === 0)
 }
 
 // ---- an old save: the level it holds is the level the arena reads

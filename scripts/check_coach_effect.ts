@@ -27,14 +27,16 @@ function clubFive(tag: string): (string | null)[] {
     return pick?.id ?? null
   })
 }
-const rival = (slots: (string | null)[], coach: string | null, level: number): RivalSquad => {
+const rival = (slots: (string | null)[], coach: string | null, level: number, coachLevel = 0): RivalSquad => {
   const levels: Record<string, number> = {}
   for (const id of slots) if (id) levels[id] = level
+  if (coach) levels[coach] = coachLevel
   return { name: 'B', tag: 'B', slots, coach, levels, div: 1, points: 2000 }
 }
-function rate(mine: Squad, theirs: RivalSquad): number {
+function rate(mine: Squad, theirs: RivalSquad, myCoachLevel = 0): number {
   let w = 0
-  for (let s = 1; s <= N; s++) if (playRivalMatch(mine, () => 0, theirs, 3, s * 7919).win) w++
+  const level = (id: string) => (id === mine.coach ? myCoachLevel : 0)
+  for (let s = 1; s <= N; s++) if (playRivalMatch(mine, level, theirs, 3, s * 7919).win) w++
   return w / N
 }
 
@@ -65,3 +67,20 @@ console.log('场景                              我方胜率')
 for (const [label, mine, theirs] of rows) {
   console.log(`${label.padEnd(30)} ${(rate(mine, theirs) * 100).toFixed(1).padStart(7)}%`)
 }
+
+// ---- the coach's own levels (2026-09-13): five levels on the coach against the
+// same coach at +0, across the spread of coaches, so the number is not one
+// man's. The design target was 2–5 points of BO3 win rate for +5.
+console.log('\n教练 +5 对 同一教练 +0（同一套五人）')
+let bad = 0
+for (const c of [own, best, median, worst]) {
+  const r = rate({ slots: five, coach: c.id }, rival(five, c.id, 0, 0), 5)
+  const gain = (r - 0.5) * 100
+  const ok = gain > 0.5 && gain < 10
+  if (!ok) bad++
+  console.log(`${show(c).padEnd(44)} ${(r * 100).toFixed(1).padStart(6)}%  ${ok ? 'ok' : 'FAIL'}`)
+}
+const lvlRow = rate({ slots: five, coach: own.id }, rival(five, own.id, 0, 5), 0)
+console.log(`本队教练 +0 对 本队教练 +5              ${(lvlRow * 100).toFixed(1).padStart(6)}%`)
+console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
+process.exit(bad ? 1 : 0)

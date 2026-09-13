@@ -6,13 +6,14 @@ import {
   SQUAD_PRESETS, autoSquad, clearPreset, collection, levelOf, loadPreset,
   personTaken, presetsOf, renamePreset, savePreset, setSlot,
 } from '../../engine/gacha'
-import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadRating } from '../../engine/cards'
+import { POWER_PER_SQUAD_POINT, SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper, squadPower, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
 import type { CardFilter } from './Filters'
 
 const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
+const fmt = (n: number) => n.toLocaleString('en-US')
 
 export default function SquadScreen() {
   const { g, commit, toast } = useCards()
@@ -33,6 +34,10 @@ export default function SquadScreen() {
   // a slot changes. Ten pairs of comparisons is not worth caching anyway.
   const chem = chemistry(g.squad)
   const rating = squadRating(g.squad, level)
+  const power = squadPower(g.squad, level)
+  const paper = squadPaper(g.squad, level)
+  const pts = (x: number) => Math.round(x * POWER_PER_SQUAD_POINT)
+  const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n))
   const gaps = roleGaps(g.squad)
   const filled = g.squad.slots.filter(Boolean).length
 
@@ -90,7 +95,7 @@ export default function SquadScreen() {
       >
         <div className="row wrap" style={{ gap: 8 }}>
           {presets.map((rec, i) => {
-            const score = rec ? squadRating(rec.squad, level) : 0
+            const score = rec ? squadPower(rec.squad, level) : 0
             const filledN = rec ? rec.squad.slots.filter(Boolean).length : 0
             return (
               <div key={i} className="preset-box">
@@ -112,7 +117,7 @@ export default function SquadScreen() {
                   </button>
                 )}
                 <div className="tiny faint mono">
-                  {rec ? `${filledN}/5 人 · 阵容分 ${score}` : '空'}
+                  {rec ? `${filledN}/5 人 · 战力 ${fmt(score)}` : '空'}
                 </div>
                 <div className="row" style={{ gap: 5, marginTop: 6 }}>
                   <button
@@ -234,10 +239,10 @@ export default function SquadScreen() {
           </div>
 
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div className="row" style={{ gap: 20, marginBottom: 10 }}>
+            <div className="row" style={{ gap: 20, marginBottom: 6 }}>
               <div>
-                <div className="tiny faint">阵容分</div>
-                <div className="display" style={{ fontSize: 34, lineHeight: 1 }}>{rating}</div>
+                <div className="tiny faint">阵容战力</div>
+                <div className="display" style={{ fontSize: 34, lineHeight: 1 }}>{fmt(power)}</div>
               </div>
               <div>
                 <div className="tiny faint">默契</div>
@@ -248,9 +253,28 @@ export default function SquadScreen() {
                   {chem.score}
                 </div>
               </div>
+              <div>
+                <div className="tiny faint">阵容分</div>
+                <div className="display" style={{ fontSize: 34, lineHeight: 1 }}>{rating}</div>
+              </div>
             </div>
+            {/* The terms, so a number like 43,800 can be read: five cards' 战力
+                added up, then what the room does to it. Same terms as 阵容分,
+                at five hundred a point, from the unrounded score — a single
+                level shows as +100 here where the mean-then-round hid it. */}
+            {filled > 0 && (
+              <div className="tiny muted mono" style={{ marginBottom: 8, lineHeight: 1.7 }}>
+                五人 {fmt(pts(paper.mean + paper.misfits * 6 / paper.players))}
+                {paper.misfits > 0 && ` · 错位 ${signed(-pts(paper.misfits * 6 / paper.players))}`}
+                {` · 默契 ${signed(pts(paper.chem))}`}
+                {paper.lift > 0 && ` · 教练 ${signed(pts(paper.lift))}`}
+                {paper.uncalled > 0 && ` · 无指挥 ${signed(-pts(paper.uncalled))}`}
+                {paper.short > 0 && ` · 缺人 ${signed(-pts(paper.short))}`}
+              </div>
+            )}
 
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
+              战力综合反映当前培养与阵容搭配，实际比赛还受对手、战术和临场表现影响。
               默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。默契高的阵容能打赢评分更高的对手。
             </p>
 

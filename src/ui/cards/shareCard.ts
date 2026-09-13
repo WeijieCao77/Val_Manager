@@ -438,7 +438,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   ctx.fill()
   const half = L.stats.w / 2
   const pair: [string, number, string][] = [
-    ['阵容分', model.rating, INK],
+    ['阵容战力', model.rating, INK],
     ['默契', model.chem, model.chem >= 60 ? '#4ade80' : model.chem >= 35 ? '#fbbf24' : '#f87171'],
   ]
   pair.forEach(([label, value, colour], i) => {

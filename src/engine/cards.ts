@@ -373,12 +373,15 @@ export const POWER_PER_LEVEL = POWER_PER_POINT
 
 /**
  *战力: the card's strength after levelling, as an integer the player can
- * watch move. 100 × (base rating + levels) for a player card; a coach card
- * is its base rating alone, because a coach's levels do not reach a match
- * yet and the number must not promise what the arena does not pay.
+ * watch move. 100 × (base rating + levels), player or coach: a coach's
+ * levels reach the match too (COACH_LEVEL_LIFT), so the number moves with
+ * them the same way.
  */
 export const cardPower = (card: Card, level: number): number =>
-  POWER_PER_POINT * (card.rating + (isPlayerCard(card) ? growthOf(level) : 0))
+  POWER_PER_POINT * (card.rating + growthOf(level))
+
+/** a full five's 阵容战力 per point of paper score: five cards at a hundred a point */
+export const POWER_PER_SQUAD_POINT = POWER_PER_POINT * 5
 
 // ---------------------------------------------------------------- squad
 
@@ -540,6 +543,19 @@ export const coachLift = (development: number): number =>
   Math.max(0, Math.min(2, Math.floor((development - 70) / 10)))
 
 /**
+ * What a coach's own levels add to every card he fields, in rating units
+ * before the squeeze: a fifth of a level each. Five coach levels are worth
+ * one player level on all five — 500 阵容战力, the same as levelling one
+ * player to +5 — which is the coach's +100 a level on the squad. Read by the
+ * arena (added after the squeeze, never rounded) and by the paper score, so
+ * the screen and the server agree. Until 2026-09-13 a coach's levels reached
+ * nothing at all: all 76 coach cards built the same match at +5 as at +0.
+ */
+export const COACH_LEVEL_LIFT = 0.2
+export const coachLiftAt = (coach: CoachCard, level: number): number =>
+  coachLift(coach.development) + COACH_LEVEL_LIFT * growthOf(level)
+
+/**
  * The squad's headline number, after levels, role misfits, chemistry — and
  * whether anyone calls.
  *
@@ -549,20 +565,61 @@ export const coachLift = (development: number): number =>
  * happily seat five who all wait to be told. A full five without an IGL is
  * worth three less now, about what a role misfit costs half a man.
  */
-export function squadRating(squad: Squad, level: (id: string) => number = () => 0): number {
+export interface SquadPaper {
+  /** the five's mean rating after levels and misfits, in rating units */
+  mean: number
+  /** the coach's 培养 and levels */
+  lift: number
+  /** 默契, centred on 50 */
+  chem: number
+  /** seats empty */
+  short: number
+  /** nobody calling */
+  uncalled: number
+  /** the sum, unrounded */
+  score: number
+  players: number
+  misfits: number
+}
+
+/** The terms of the squad's number, unrounded — one place for both scales. */
+export function squadPaper(squad: Squad, level: (id: string) => number = () => 0): SquadPaper {
   const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
-  if (!cards.length) return 0
   const chem = chemistry(squad)
+  const coach = squad.coach ? cardById(squad.coach) : undefined
+  const lift = isCoachCard(coach) ? coachLiftAt(coach, level(coach.id)) : 0
+  if (!cards.length) return { mean: 0, lift, chem: 0, short: 0, uncalled: 0, score: 0, players: 0, misfits: 0 }
+  let misfits = 0
   const vals = cards.map((c, i) => {
     const r = ratingAt(c.rating, level(c.id))
     const idx = squad.slots.indexOf(c.id)
-    return chem.misfits.includes(idx === -1 ? i : idx) ? r - 6 : r
+    if (chem.misfits.includes(idx === -1 ? i : idx)) { misfits++; return r - 6 }
+    return r
   })
   const mean = vals.reduce((s, v) => s + v, 0) / cards.length
   // five people who have never met are worth less than the sum of their parts
   const short = (5 - cards.length) * 9
   const uncalled = cards.length === 5 && chem.noIgl ? NO_IGL_PENALTY : 0
-  const coach = squad.coach ? cardById(squad.coach) : undefined
-  const lift = isCoachCard(coach) ? coachLift(coach.development) : 0
-  return Math.max(0, Math.round(mean + lift + (chem.score - 50) * CHEM_PAPER - short - uncalled))
+  const chemTerm = (chem.score - 50) * CHEM_PAPER
+  return {
+    mean, lift, chem: chemTerm, short, uncalled, players: cards.length, misfits,
+    score: mean + lift + chemTerm - short - uncalled,
+  }
+}
+
+export function squadRating(squad: Squad, level: (id: string) => number = () => 0): number {
+  const p = squadPaper(squad, level)
+  return p.players ? Math.max(0, Math.round(p.score)) : 0
+}
+
+/**
+ * 阵容战力: the same terms at five hundred a point, from the unrounded
+ * score, so one card's level shows as +100 where the mean-then-round of
+ * 阵容分 hid it. Five cards' 战力 added up, 默契 ±50 a point around 50, the
+ * coach +500 a 培养 level and +100 a card level, a misfit −600, nobody
+ * calling −1,500, an empty seat −4,500.
+ */
+export function squadPower(squad: Squad, level: (id: string) => number = () => 0): number {
+  const p = squadPaper(squad, level)
+  return p.players ? Math.max(0, Math.round(p.score * POWER_PER_SQUAD_POINT)) : 0
 }

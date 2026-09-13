@@ -15,7 +15,7 @@ import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
-  cardById, chemistry, coachLift, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
+  COACH_LEVEL_LIFT, cardById, chemistry, coachLift, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -177,6 +177,10 @@ function seatSquad(
   const coaching = isCoachCard(coachCard)
     ? { lift: devLift(coachCard.development), nerve: nerve(coachCard.motivation) }
     : { lift: 0, nerve: 0 }
+  // the coach's own levels, applied after the squeeze like the players' —
+  // a fifth of a rating point on every card per level, and his nerve grows
+  // with them; see COACH_LEVEL_LIFT
+  const coachLevel = isCoachCard(coachCard) ? growthOf(level(coachCard.id)) : 0
 
   squad.slots.forEach((cardId, i) => {
     if (!cardId) return
@@ -226,6 +230,14 @@ function seatSquad(
       }
       clone.overall = clamp(clone.overall + growth * SPREAD, 1, 99)
     }
+    if (coachLevel > 0) {
+      const lift = COACH_LEVEL_LIFT * coachLevel
+      for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
+        clone.attrs[k] = clamp(clone.attrs[k] + lift * SPREAD_ATTR, 1, 99)
+      }
+      clone.attrs.clutch = clamp(clone.attrs.clutch + 0.35 * coachLevel * SPREAD_ATTR, 1, 99)
+      clone.overall = clamp(clone.overall + lift * SPREAD, 1, 99)
+    }
     state.players[id] = { ...clone, id, teamId }
     cardOf[id] = cardId
     roster.push(id)
@@ -267,10 +279,11 @@ function seatSquad(
     coach: isCoachCard(coachCard)
       ? {
         name: coachCard.name,
-        // the coach comes in toward the middle like the players do
-        tactics: squeeze(coachCard.tactics, PIVOT_ATTR, SPREAD_ATTR),
-        development: squeeze(coachCard.development, PIVOT_ATTR, SPREAD_ATTR),
-        motivation: squeeze(coachCard.motivation, PIVOT_ATTR, SPREAD_ATTR),
+        // the coach comes in toward the middle like the players do, and his
+        // levels go on after, a point a level before the scale
+        tactics: clamp(squeeze(coachCard.tactics, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
+        development: clamp(squeeze(coachCard.development, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
+        motivation: clamp(squeeze(coachCard.motivation, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
       }
       : null,
     facilities: 60,

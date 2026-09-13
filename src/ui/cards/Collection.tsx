@@ -386,7 +386,7 @@ export default function Collection() {
                     <div className="small">
                       等级 <b>+{owned.level}</b> / +{MAX_LEVEL}
                       <span className="faint"> · 评分 {sel.rating}</span>
-                      {isPlayerCard(sel) && <> · 战力 <b>{coin(cardPower(sel, owned.level))}</b></>}
+                      {' '}· 战力 <b>{coin(cardPower(sel, owned.level))}</b>
                     </div>
                     <div className="tiny faint">
                       重复卡 {owned.dupes} 张
@@ -433,9 +433,7 @@ function Upgrade({ cardId }: { cardId: string }) {
   const cost = upgradeCost(g, cardId)
   const card = cardById(cardId)
   if (cost.to == null) return <span className="tiny faint">{cost.why}</span>
-  // a player's level is worth a fixed hundred 战力; a coach's levels do not
-  // reach a match yet, so the button does not name a number for them
-  const player = isPlayerCard(card)
+  const player = !!card
   return (
     <button
       className="primary sm"
