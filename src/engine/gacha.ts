@@ -1841,6 +1841,39 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
 export const cupOpponent = (g: GachaState): string | null =>
   g.cup && !g.cup.done ? g.cup.path[g.cup.round] ?? null : null
 
+/**
+ * A bracket drawn before a club left the world.
+ *
+ * Weibo Gaming went out of world.json on 2026-09-09 and every cup entered
+ * before that with WBG in it kept the id: the page showed 「?」 for the round,
+ * the server could not put a club it no longer knew across the net, and the
+ * cup — paid for, unfinished — could not be cleared either, so the account
+ * was stuck at that round for good. The club that stands in is the nearest
+ * by rating to the gap it left between its neighbours, never one already in
+ * the bracket, so the climb still climbs. Rounds already played keep their
+ * result whatever name is written on them now.
+ */
+export function repairCup(g: GachaState): void {
+  const cup = g.cup
+  if (!cup || !Array.isArray(cup.path)) return
+  const rating = new Map(WORLD_TEAMS.map((t) => [t.id, t.rating]))
+  if (cup.path.every((id) => rating.has(id))) return
+  const taken = new Set(cup.path.filter((id) => rating.has(id)))
+  cup.path = cup.path.map((id, i) => {
+    if (rating.has(id)) return id
+    const before = cup.path.slice(0, i).map((x) => rating.get(x)).filter((r): r is number => r !== undefined)
+    const after = cup.path.slice(i + 1).map((x) => rating.get(x)).filter((r): r is number => r !== undefined)
+    const lo = before.length ? Math.max(...before) : null
+    const hi = after.length ? Math.min(...after) : null
+    const target = lo !== null && hi !== null ? (lo + hi) / 2 : lo !== null ? lo + 2 : hi !== null ? hi - 2 : 60
+    const pick = WORLD_TEAMS
+      .filter((t) => !taken.has(t.id))
+      .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target) || a.id.localeCompare(b.id))[0]
+    taken.add(pick.id)
+    return pick.id
+  })
+}
+
 // ---------------------------------------------------------------- daily
 
 const QUEST_KEYS = Object.keys(QUESTS) as QuestKey[]
@@ -2269,6 +2302,8 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   const predict = cleanPredictions(g.predict)
   if (predict) g.predict = predict
   else delete g.predict
+  // a cup drawn against a club that has since left the world
+  repairCup(g)
   g.seed = typeof g.seed === 'number' && Number.isFinite(g.seed) ? g.seed >>> 0 : hashStr(id + g.createdAt) >>> 0
   return clampState(g)
 }

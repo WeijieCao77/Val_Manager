@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-13',
+    title: '开瓦包：杯赛里的「?」队伍',
+    changes: [
+      { kind: '修复', text: '<b>杯赛签表里出现「?」的队伍，那一轮打不了。</b>9 月 9 日 Weibo Gaming 从世界里撤掉之后，之前抽到它的签表就卡在那一轮，按「打」只会说没成功。现在会换成评分相近的一支队顶上，签表照常打下去。' },
+    ],
+  },
+  {
     date: '2026-09-12',
     title: '开瓦包：强的一方更该赢，全图鉴送彩卡包',
     changes: [
