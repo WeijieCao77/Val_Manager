@@ -156,30 +156,47 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
    * Addressed by 对战码 for preference. The full account id works too, because
    * a player asking for help will usually paste that — but the id is the whole
    * of his login, and the eight-character code is enough to find him.
+   *
+   * `who` can also be a list — a giveaway's winners pasted from a chat, or a
+   * file — one per line or split by commas and spaces. A list is all or
+   * nothing: one entry that finds nobody sends to nobody, so fixing it and
+   * sending again cannot hand anybody a second copy. The same account twice
+   * gets it once.
    */
-  async function grant(req, res) {
-    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
-    let body
-    try { body = JSON.parse(await readBody(req, 8192)) } catch { json(res, 400, { ok: false }); return }
-
-    const who = String(body?.who ?? '').trim()
-    const bare = who.toUpperCase().replace(/[^0-9A-Z]/g, '')
-    let target = null
+  const GRANT_MAX = 200
+  async function findAccount(who) {
     if (/^[0-9A-Fa-f]{8}$/.test(who)) {
       const r = await sql`
         select id_hash, name from card_accounts where left(id_hash, 8) = ${who.toLowerCase()} limit 2`
-      if (r.length > 1) { json(res, 200, { ok: false, why: '这个对战码对上了不止一个账号' }); return }
-      target = r[0] ?? null
-    } else if (bare.length >= 20) {
+      if (r.length > 1) return { why: '这个对战码对上了不止一个账号' }
+      return r[0] ? { target: r[0] } : { why: '找不到这个账号' }
+    }
+    if (who.toUpperCase().replace(/[^0-9A-Z]/g, '').length >= 20) {
       const id = normalizeId(who)
-      if (!id) { json(res, 200, { ok: false, why: '账号 ID 格式不对' }); return }
+      if (!id) return { why: '账号 ID 格式不对' }
       const r = await sql`select id_hash, name from card_accounts where id_hash = ${hash(id)}`
-      target = r[0] ?? null
-    } else {
-      json(res, 200, { ok: false, why: '填 8 位对战码，或者完整的账号 ID' })
+      return r[0] ? { target: r[0] } : { why: '找不到这个账号' }
+    }
+    return { why: '填 8 位对战码，或者完整的账号 ID' }
+  }
+
+  async function grant(req, res) {
+    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 32_768)) } catch { json(res, 400, { ok: false }); return }
+
+    const whole = String(body?.who ?? '').trim()
+    // a field holding one id is one id, spaces and all: 「VM-4444 4444-…」 —
+    // unless a piece of it is a whole 对战码, which makes it a list
+    const parts = whole.split(/[\s,，;；、|]+/).filter(Boolean)
+    const list = normalizeId(whole) && !/[\n,，;；、|]/.test(whole) && !parts.some((t) => /^[0-9A-Fa-f]{8}$/.test(t))
+      ? [whole]
+      : parts
+    if (!list.length) { json(res, 200, { ok: false, why: '填 8 位对战码，或者完整的账号 ID' }); return }
+    if (list.length > GRANT_MAX) {
+      json(res, 200, { ok: false, why: `一次最多 ${GRANT_MAX} 个号，这里有 ${list.length} 个` })
       return
     }
-    if (!target) { json(res, 200, { ok: false, why: '找不到这个账号' }); return }
 
     const pack = body?.pack ? String(body.pack) : null
     const count = Math.max(1, Math.min(50, Math.round(Number(body?.count) || 1)))
@@ -198,14 +215,45 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     }
     if (!pack && !coins && !cardId) { json(res, 200, { ok: false, why: '什么都没填' }); return }
 
-    await sql`
-      insert into card_mail (to_h, kind, card_id, coins, pack, count, body)
-      values (${target.id_hash}, 'grant', ${cardId}, ${coins}, ${pack}, ${count},
-              ${sql.json({ note })})`
-    const shown = displayName(target.name, target.id_hash)
+    // one lookup per entry, the same query a single grant runs
+    const targets = new Map()
+    const missed = []
+    for (const who of list) {
+      const f = await findAccount(who)
+      if (f.target) targets.set(f.target.id_hash, f.target)
+      // an id is the whole login: only its head goes back into the page
+      else missed.push({ who: who.length > 8 ? `${who.slice(0, 7)}…` : who, why: f.why })
+    }
+    if (list.length === 1 && missed.length) { json(res, 200, { ok: false, why: missed[0].why }); return }
+    if (missed.length) {
+      json(res, 200, {
+        ok: false,
+        why: `有 ${missed.length} 个号对不上，一个都没发：`
+          + missed.slice(0, 10).map((m) => `${m.who}（${m.why}）`).join('、')
+          + (missed.length > 10 ? ` 等` : ''),
+        missed,
+      })
+      return
+    }
+
+    await sql.begin(async (tx) => {
+      for (const t of targets.values()) {
+        await tx`
+          insert into card_mail (to_h, kind, card_id, coins, pack, count, body)
+          values (${t.id_hash}, 'grant', ${cardId}, ${coins}, ${pack}, ${count},
+                  ${sql.json({ note })})`
+      }
+    })
+    const names = [...targets.values()].map((t) => {
+      const shown = displayName(t.name, t.id_hash)
+      return `${shown.name} #${shown.tag}`
+    })
     json(res, 200, {
       ok: true,
-      to: `${shown.name} #${shown.tag}`,
+      to: names.length === 1 ? names[0] : `${names.length} 个号`,
+      accounts: names.length,
+      repeats: list.length - names.length,
+      names,
       sent: { pack, count: pack ? count : undefined, coins: coins || undefined, cardId },
     })
   }

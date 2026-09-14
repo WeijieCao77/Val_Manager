@@ -42,11 +42,12 @@ export const dashboardHtml = () => `<!doctype html>
   .wx-preview img { width:200px; height:200px; object-fit:contain;
                     background:#fff; border-radius:4px; }
   .wx-toggle { display:flex; align-items:center; gap:7px; cursor:pointer; }
-  #grant input[type=text], #grant input[type=number], #grant select,
+  #grant input[type=text], #grant input[type=number], #grant select, #grant textarea,
   #wechat input[type=text], #wechat input[type=file] {
     width:100%; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); border-radius:3px; padding:7px 9px; font:inherit;
   }
+  #grant textarea { resize:vertical; min-height:38px; font-family:var(--mono); font-size:13px; }
   /* the card picker's hits, and the account read-out under the code */
   .pick-list button { display:block; width:100%; text-align:left; background:var(--panel-2);
     color:var(--text); border:1px solid var(--line); border-radius:3px; padding:6px 9px;
@@ -144,14 +145,21 @@ export const dashboardHtml = () => `<!doctype html>
   <h2>给玩家发东西</h2>
   <div class="wx-row">
     <div class="wx-side">
-      <div class="row" style="gap:8px">
-        <input type="text" id="gWho" placeholder="8 位对战码，或者完整的账号 ID">
-        <button id="gLook" type="button" title="按对战码看这个账号：段位、卡、金币、最近做了什么">查账号</button>
+      <div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
+        <textarea id="gWho" rows="2" spellcheck="false" autocomplete="off"
+          placeholder="8 位对战码，或者完整的账号 ID。发给多个号：一行一个，逗号、空格隔开也行"></textarea>
+        <button id="gLook" type="button" style="flex:none" title="按对战码看这个账号：段位、卡、金币、最近做了什么">查账号</button>
+      </div>
+      <div class="row" style="gap:8px;margin-top:6px">
+        <button id="gImport" type="button" title="txt 或 csv，里面的对战码和 ID 都会被挑出来">导入文件</button>
+        <input type="file" id="gFile" accept=".txt,.csv,text/plain,text/csv" hidden>
+        <span id="gWhoN" class="muted" style="font-size:12px"></span>
       </div>
       <div id="gAcct" class="acct" style="display:none"></div>
       <p class="why" style="margin:6px 0 10px">
         <b>优先用对战码</b>（玩家在「好友」页能复制）。账号 ID 也认，但那串是他登录用的，
         能不经手就不经手。
+        多个号一起发时，有一个对不上就一个都不发，改好再发不会重复；同一个号填两次只发一份。
       </p>
       <div class="row" style="gap:8px;flex-wrap:wrap">
         <select id="gPack">
@@ -180,6 +188,7 @@ export const dashboardHtml = () => `<!doctype html>
         <button id="gSend" class="on">发放</button>
         <span id="gMsg" class="muted" style="font-size:12px"></span>
       </div>
+      <div id="gSent" class="acct" style="display:none"></div>
       <p class="why" style="margin-top:10px">
         发放会进玩家的<b>信箱</b>，他下次打开卡池自动收下并看到提示。
         不会直接改他的存档——那是他客户端的事，这条规矩是上次存档被覆盖之后定下的。
@@ -196,14 +205,15 @@ export const dashboardHtml = () => `<!doctype html>
         <button id="rLook" type="button">查状态</button>
         <input type="text" id="rVia" maxlength="50" placeholder="来源备注，比如 抖音@某某（会记下来）" style="flex:1;min-width:200px">
         <button id="rPass" class="on" type="button" disabled>人工通过</button>
-        <button id="rUndo" type="button" disabled>撤销</button>
+        <button id="rUndo" type="button" disabled>撤回通过</button>
         <span id="rMsg" class="muted" style="font-size:12px"></span>
       </div>
       <div id="rAcct" class="acct" style="display:none"></div>
       <p class="why" style="margin:6px 0 10px">
         绑不了大陆手机号的玩家（海外号）来抖音私信，在这里通过。他们进不了游戏、看不到对战码，就报建号时记下的 ID（VM- 开头）。
         通过的账号没有手机号，也就没有「用手机号进入」；ID 丢了一样找不回。
-        撤销只对人工通过的有效——用验证码绑过的号不撤。
+        发现是小号，在下面名单里点「撤回」：他马上回到绑手机那一页，开包、交易都停。
+        撤回的号会留在「撤回过的」名单里，再来找你一查就认得出。用验证码绑过的号撤不了。
       </p>
       <div id="rTotals" class="muted" style="font-size:12px"></div>
       <div id="rLists" class="acct"></div>
@@ -566,22 +576,92 @@ async function load(days) {
 }
 
 // ---- 给玩家发东西 -------------------------------------------------------
+//
+// The box takes one account or a list. gParse splits it the way the server
+// does, so the count under the box is the count that gets sent. (Backslashes
+// in here are doubled: this script is a template literal on the server.)
+function gParse(text) {
+  const whole = String(text || '').trim()
+  const parts = whole.split(/[\\s,，;；、|]+/).filter(Boolean)
+  const isCode = (t) => /^[0-9a-f]{8}$/i.test(t)
+  const idKey = (t) => t.toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/^VM/, '')
+  // one id with spaces in it is still one id
+  const one = idKey(whole).length === 20 && !/[\\n,，;；、|]/.test(whole) && !parts.some(isCode)
+  const list = one ? [whole] : parts
+  const seen = new Set()
+  const odd = []
+  for (const t of list) {
+    if (isCode(t)) seen.add(t.toLowerCase())
+    else if (idKey(t).length === 20) seen.add(idKey(t))
+    else odd.push(t.length > 12 ? t.slice(0, 12) + '…' : t)
+  }
+  return { list, unique: seen.size + odd.length, odd }
+}
+let gArm = null
+function gWhoDraw() {
+  const p = gParse($('#gWho').value)
+  gArm = null
+  $('#gSend').textContent = '发放'
+  const bits = []
+  if (p.list.length > 1) {
+    bits.push(p.unique + ' 个号')
+    if (p.list.length > p.unique) bits.push('重复的 ' + (p.list.length - p.unique) + ' 个只发一次')
+  }
+  if (p.odd.length) {
+    bits.push('<span style="color:var(--warn)">认不出：' + esc(p.odd.slice(0, 5).join('、'))
+      + (p.odd.length > 5 ? ' 等 ' + p.odd.length + ' 个' : '') + '</span>')
+  }
+  $('#gWhoN').innerHTML = bits.join(' · ')
+}
+$('#gWho').oninput = gWhoDraw
+$('#gImport').onclick = () => $('#gFile').click()
+$('#gFile').onchange = () => {
+  const f = $('#gFile').files && $('#gFile').files[0]
+  if (!f) return
+  if (f.size > 512 * 1024) { $('#gMsg').textContent = '文件太大了'; return }
+  const fr = new FileReader()
+  fr.onload = () => {
+    // every 对战码 and id in the file, whatever columns sit around them
+    const found = String(fr.result).match(/VM[-\\s]?(?:[0-9A-Z]{4}[-\\s]?){4}[0-9A-Z]{4}|\\b[0-9a-f]{8}\\b/gi) || []
+    const uniq = [...new Set(found.map((t) => t.replace(/\\s/g, '-')))]
+    $('#gFile').value = ''
+    if (!uniq.length) { $('#gMsg').textContent = f.name + ' 里没找到对战码或 ID'; return }
+    $('#gWho').value = uniq.join('\\n')
+    gWhoDraw()
+    $('#gMsg').textContent = '从 ' + f.name + ' 读到 ' + uniq.length + ' 个号，看一眼再发'
+  }
+  fr.readAsText(f)
+}
+
 $('#gSend').onclick = async () => {
-  const who = $('#gWho').value.trim()
-  if (!who) { $('#gMsg').textContent = '先填对战码或账号 ID'; return }
+  const p = gParse($('#gWho').value)
+  if (!p.list.length) { $('#gMsg').textContent = '先填对战码或账号 ID'; return }
+  const payload = {
+    who: $('#gWho').value.trim(),
+    pack: $('#gPack').value || null,
+    count: Number($('#gCount').value) || 1,
+    coins: Number($('#gCoins').value) || 0,
+    cardId: gCard ? gCard.id : null,
+    note: $('#gNote').value || null,
+  }
+  // a list goes out on the second click, and only if nothing changed between
+  // the two — no confirm(), which a webview can refuse without showing
+  const key = JSON.stringify(payload)
+  if (p.list.length > 1 && gArm !== key) {
+    gArm = key
+    $('#gSend').textContent = '确认发给 ' + p.unique + ' 个号'
+    $('#gMsg').textContent = '再点一次才会发出去'
+    return
+  }
+  gArm = null
+  $('#gSend').textContent = '发放'
+  $('#gSent').style.display = 'none'
   $('#gMsg').textContent = '发送中…'
   try {
     const r = await fetch('/api/admin/grant', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...auth() },
-      body: JSON.stringify({
-        who,
-        pack: $('#gPack').value || null,
-        count: Number($('#gCount').value) || 1,
-        coins: Number($('#gCoins').value) || 0,
-        cardId: gCard ? gCard.id : null,
-        note: $('#gNote').value || null,
-      }),
+      body: JSON.stringify(payload),
     })
     const text = await r.text()
     let j = null
@@ -595,7 +675,12 @@ $('#gSend').onclick = async () => {
     if (j.sent?.cardId && gCard) what.push(gCard.name + ' 一张')
     if (j.sent?.pack) what.push(($('#gPack').selectedOptions[0]?.textContent || j.sent.pack) + ' × ' + j.sent.count)
     if (Number($('#gCoins').value)) what.push($('#gCoins').value + ' 金币')
-    $('#gMsg').textContent = '已发给 ' + j.to + '：' + what.join('、') + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    $('#gMsg').textContent = '已发给 ' + j.to + '：' + what.join('、')
+      + (j.repeats ? '（重复填的 ' + j.repeats + ' 个只发了一份）' : '') + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    if ((j.names || []).length > 1) {
+      $('#gSent').innerHTML = '发给了：' + j.names.map(esc).join('、')
+      $('#gSent').style.display = ''
+    }
     $('#gCoins').value = ''; $('#gNote').value = ''
     gCard = null; drawCard()
   } catch (e) {
@@ -754,21 +839,45 @@ async function gOpen(who) {
     box.textContent = '查不到：' + e.message
   }
 }
-$('#gLook').onclick = () => { gTrail.length = 0; gOpen($('#gWho').value.trim()) }
+$('#gLook').onclick = () => {
+  gTrail.length = 0
+  const p = gParse($('#gWho').value)
+  if (p.list.length > 1) { $('#gAcct').style.display = ''; $('#gAcct').textContent = '查账号一次查一个'; return }
+  gOpen($('#gWho').value.trim())
+}
 
 // ---- 人工审核 ---------------------------------------------------------------
 //
 // Two calls: /api/admin/review says where an account stands (or lists the
 // queue), /api/admin/verify passes one by hand or takes a hand-made pass back.
+// A pass taken back keeps its note as revoked:<note>, so an alt that comes
+// asking again is recognised.
 const rv = { code: null, acct: null }
 const rvStand = (a) => {
   if (!a) return ''
   if (a.last4) return '<b>已绑手机</b> 尾号 ' + esc(a.last4) + ' · ' + gWhen(a.bound)
   if (a.verified) return '<b>人工通过</b> ' + gWhen(a.verified) + ' · ' + esc(String(a.via || '').replace(/^manual:/, ''))
+  if (/^revoked:/.test(a.via || '')) return '<b class="hot">人工通过被撤回过</b>，进不了游戏 · 当时备注 ' + esc(String(a.via).replace(/^revoked:/, ''))
   return '<b class="hot">还没验证</b>，进不了游戏'
+}
+// two clicks instead of confirm(): a webview can answer confirm() with false
+// without ever showing it, and the button just looks dead
+let rvArmed = null
+function rvSure(btn, ask) {
+  if (rvArmed === btn) { rvArmed = null; return true }
+  if (rvArmed) rvArmed.textContent = rvArmed.dataset.label
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent
+  btn.textContent = ask
+  rvArmed = btn
+  setTimeout(() => { if (rvArmed === btn) { btn.textContent = btn.dataset.label; rvArmed = null } }, 5000)
+  return false
 }
 function rvButtons() {
   const a = rv.acct
+  for (const b of [$('#rPass'), $('#rUndo')]) {
+    if (b.dataset.label) b.textContent = b.dataset.label
+    if (rvArmed === b) rvArmed = null
+  }
   $('#rPass').disabled = !a || !!a.verified
   $('#rUndo').disabled = !a || !a.verified || a.last4 || !/^manual:/.test(a.via || '')
 }
@@ -802,19 +911,20 @@ async function rvOpen(who) {
     box.textContent = '查不到：' + e.message
   }
 }
-async function rvAct(undo) {
-  if (!rv.code) return
+async function rvAct(undo, code, btn) {
+  if (!code) return
   const via = ($('#rVia').value || '').trim()
   if (!undo && !via) { $('#rMsg').textContent = '先写来源备注，以后好查是谁放进来的'; $('#rVia').focus(); return }
-  if (undo && !confirm('撤销这个人工通过？他会回到绑手机那一页。')) return
+  if (undo && !rvSure(btn, '确认撤回')) return
+  if (!undo && /^revoked:/.test((rv.acct && rv.acct.via) || '') && !rvSure(btn, '撤回过的，确认再通过')) return
   $('#rMsg').textContent = '…'
   try {
-    const q = '/api/admin/verify?code=' + rv.code + (undo ? '&undo=1' : '&via=' + encodeURIComponent(via))
+    const q = '/api/admin/verify?code=' + code + (undo ? '&undo=1' : '&via=' + encodeURIComponent(via))
     const r = await fetch(q, { headers: auth() })
     const j = await r.json()
-    if (!j.ok) throw new Error(j.why || (j.matched === 0 ? '没有这个账号' : 'HTTP ' + r.status))
-    $('#rMsg').textContent = (undo ? '已撤销 ' : '已通过 ') + (j.name || '') + ' · ' + new Date().toLocaleTimeString('zh-CN')
-    await rvOpen(rv.code)
+    if (!j.ok) throw new Error(j.why || (j.matched === 0 ? (undo ? '不是人工通过的号，或者已经撤回了' : '没有这个账号') : 'HTTP ' + r.status))
+    $('#rMsg').textContent = (undo ? '已撤回 ' : '已通过 ') + (j.name || code) + ' · ' + new Date().toLocaleTimeString('zh-CN')
+    if (rv.code) await rvOpen(rv.code)
     await rvList()
   } catch (e) {
     $('#rMsg').textContent = '没成：' + e.message
@@ -829,7 +939,7 @@ async function rvList() {
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
     const t = j.totals || {}
     $('#rTotals').textContent = '已验证 ' + gFmt(t.verified) + '（其中人工 ' + gFmt(t.manual) + '） · 没验证 ' + gFmt(t.unverified)
-      + ' · 24 小时内在门口的 ' + gFmt(t.knocking24)
+      + ' · 撤回过 ' + gFmt(t.revoked) + ' · 24 小时内在门口的 ' + gFmt(t.knocking24)
     let html = ''
     if ((j.pending || []).length) {
       html += '<div class="acct-h">最近 3 天来过、还没绑的 ' + j.pending.length + ' 个</div>'
@@ -837,11 +947,19 @@ async function rvList() {
     }
     if ((j.manual || []).length) {
       html += '<div class="acct-h">人工通过的 ' + j.manual.length + ' 个</div>'
-        + j.manual.map((a) => rvRow(a, gShort(a.verified) + ' · ' + esc(String(a.via || '').replace(/^manual:/, '')))).join('<br>')
+        + j.manual.map((a) => rvRow(a, gShort(a.verified) + ' · ' + esc(String(a.via || '').replace(/^manual:/, '')))
+          + ' <button type="button" class="rundo" data-code="' + esc(a.code) + '" style="padding:0 8px;margin-left:4px">撤回</button>').join('<br>')
+    }
+    if ((j.revoked || []).length) {
+      html += '<div class="acct-h">撤回过的 ' + j.revoked.length + ' 个</div>'
+        + j.revoked.map((a) => rvRow(a, '最后活动 ' + gShort(a.seen) + ' · 当时备注 ' + esc(String(a.via || '').replace(/^revoked:/, '')))).join('<br>')
     }
     $('#rLists').innerHTML = html || '<span class="dim">门口没人，也还没人工放过谁</span>'
     for (const a of $('#rLists').querySelectorAll('a.rlook')) {
       a.onclick = (e) => { e.preventDefault(); $('#rWho').value = a.dataset.code; rvOpen(a.dataset.code) }
+    }
+    for (const b of $('#rLists').querySelectorAll('button.rundo')) {
+      b.onclick = () => rvAct(true, b.dataset.code, b)
     }
   } catch (e) {
     $('#rLists').textContent = '列表没拿到：' + e.message
@@ -849,8 +967,8 @@ async function rvList() {
 }
 $('#rLook').onclick = () => rvOpen($('#rWho').value.trim())
 $('#rWho').onkeydown = (e) => { if (e.key === 'Enter') rvOpen($('#rWho').value.trim()) }
-$('#rPass').onclick = () => rvAct(false)
-$('#rUndo').onclick = () => rvAct(true)
+$('#rPass').onclick = () => rvAct(false, rv.code, $('#rPass'))
+$('#rUndo').onclick = () => rvAct(true, rv.code, $('#rUndo'))
 rvList()
 
 // ---- 微信群二维码 -------------------------------------------------------

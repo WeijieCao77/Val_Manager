@@ -371,6 +371,47 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   check(n[0].n === 4, '而且没有多发出去任何东西（选拔包、金币、一张卡、首尔包）', String(n[0].n))
 }
 
+// ---- 一次发给一串号 -----------------------------------------------------
+//
+// A giveaway's winners, pasted or imported. All or nothing: a list with one
+// entry that finds nobody sends to nobody, so sending the fixed list again
+// cannot give anybody a second copy.
+{
+  const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
+  const ids = ['VM-2222-2222-2222-2222-2222', 'VM-3333-3333-3333-3333-3333', 'VM-5555-5555-5555-5555-5555']
+  for (const [i, id] of ids.entries()) {
+    await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(id)}, ${'批量' + i},
+      ${JSON.stringify({ coins: 0, cards: {}, packs: {} })})`
+  }
+  const codes = ids.map((id) => hashOf(id).slice(0, 8))
+  const mails = async () => {
+    let n = 0
+    for (const id of ids) n += (await sql`select count(*)::int as n from card_mail where to_h = ${hashOf(id)}`)[0].n
+    return n
+  }
+  const admin = (body: unknown) => call('/api/admin/grant', { method: 'POST', body, token: TOKEN })
+
+  let r = await admin({ who: `${codes[0]}\n${codes[1].toUpperCase()}，${ids[2]} ${codes[0]}`, pack: 'ten', count: 2, note: '群抽奖' })
+  check(r.body.ok === true && r.body.accounts === 3 && r.body.repeats === 1 && r.body.to === '3 个号',
+    '一串号：换行、中文逗号、空格都能分开，同一个号只发一份', JSON.stringify(r.body))
+  const names = (r.body.names ?? []) as string[]
+  check(names.length === 3 && names.every((x) => /^批量\d #/.test(x)), '回执列出每一个人', JSON.stringify(names))
+  check(await mails() === 3, '三个信箱各一份')
+  const got = await sql`select pack, count, body from card_mail where to_h = ${hashOf(ids[1])}`
+  check(got[0].pack === 'ten' && got[0].count === 2 && JSON.stringify(got[0].body).includes('群抽奖'), '每一份都一样', JSON.stringify(got[0]))
+
+  r = await admin({ who: `${codes[0]}\n00000000\nVM-9999-9999-9999-9999-9999\nnope`, coins: 100 })
+  check(r.body.ok === false && /3 个号对不上，一个都没发/.test(String(r.body.why)), '有对不上的就一个都不发，说清楚是哪几个', String(r.body.why))
+  check(!String(r.body.why).includes('9999-9999-9999'), '回话里不带完整的账号 ID', String(r.body.why))
+  check(await mails() === 3, '对不上那一次一份都没多发')
+
+  r = await admin({ who: Array.from({ length: 201 }, () => codes[0]).join('\n'), pack: 'elite' })
+  check(r.body.ok === false && /最多 200/.test(String(r.body.why)), '一次最多 200 个号', String(r.body.why))
+
+  r = await admin({ who: 'VM-2222 2222-2222-2222-2222', pack: 'elite' })
+  check(r.body.ok === true && r.body.accounts === 1 && /^批量0 #/.test(String(r.body.to)), '中间带空格的一个 ID 还是一个号', JSON.stringify(r.body))
+}
+
 // ---- a pardon is a baseline, not just a cleared bit ---------------------
 {
   const st = { version: 1, coins: 0, cards: {}, daily: { claimed: null },

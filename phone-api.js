@@ -224,7 +224,10 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     await sql.begin(async (tx) => {
       await tx`insert into card_phones (phone_h, id_hash, id_enc, last4) values (${ph}, ${me}, ${encryptId(id)}, ${phone.slice(-4)})
                on conflict (phone_h) do nothing`
-      await tx`update card_accounts set verified = coalesce(verified, now()), verify_via = coalesce(verify_via, 'sms') where id_hash = ${me}`
+      // a revoked hand-pass leaves its note behind; a number that answers replaces it
+      await tx`update card_accounts set verified = coalesce(verified, now()),
+               verify_via = case when verified is null then 'sms' else coalesce(verify_via, 'sms') end
+               where id_hash = ${me}`
     })
     json(res, 200, { ok: true, phone: phone.slice(-4) })
   }
@@ -263,13 +266,16 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     if (code.length !== 8) { json(res, 400, { ok: false, why: 'code' }); return }
     if (url.searchParams.get('undo') === '1') {
       // only a hand-made pass can be taken back: a number that answered a
-      // code stays answered
-      const rows = await sql`update card_accounts set verified = null, verify_via = null
+      // code stays answered. The note stays as revoked:<note>, so the same
+      // account asking again is recognised at the desk.
+      const rows = await sql`update card_accounts set verified = null, verify_via = 'revoked:' || substr(verify_via, 8)
                              where left(id_hash, 8) = ${code} and verify_via like 'manual:%' returning name`
       json(res, 200, { ok: rows.length > 0, matched: rows.length, name: rows[0]?.name ?? null, undone: true })
       return
     }
-    const rows = await sql`update card_accounts set verified = coalesce(verified, now()), verify_via = coalesce(verify_via, ${`manual:${via}`})
+    const manual = `manual:${via}`
+    const rows = await sql`update card_accounts set verified = coalesce(verified, now()),
+                           verify_via = case when verified is null then ${manual} else coalesce(verify_via, ${manual}) end
                            where left(id_hash, 8) = ${code} returning name, verified, verify_via`
     json(res, 200, { ok: rows.length > 0, matched: rows.length, name: rows[0]?.name ?? null, via: rows[0]?.verify_via ?? null })
   }
@@ -308,13 +314,18 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
       (select count(*)::int from card_accounts where verified is not null) as verified,
       (select count(*)::int from card_accounts where verify_via like 'manual:%') as manual,
       (select count(*)::int from card_accounts where verified is null) as unverified,
+      (select count(*)::int from card_accounts where verified is null and verify_via like 'revoked:%') as revoked,
       (select count(*)::int from card_accounts where verified is null and seen > now() - interval '1 day') as knocking24`
     const manual = await sql`select name, left(id_hash, 8) as code, verified, verify_via as via, seen
                              from card_accounts where verify_via like 'manual:%' order by verified desc limit 40`
     const pending = await sql`select name, left(id_hash, 8) as code, created, seen
                               from card_accounts where verified is null and seen > now() - interval '3 days'
+                              and (verify_via is null or verify_via not like 'revoked:%')
                               order by seen desc limit 40`
-    json(res, 200, { ok: true, totals, manual, pending })
+    const revoked = await sql`select name, left(id_hash, 8) as code, verify_via as via, seen
+                              from card_accounts where verified is null and verify_via like 'revoked:%'
+                              order by seen desc limit 40`
+    json(res, 200, { ok: true, totals, manual, pending, revoked })
   }
 
   async function adminCodes(req, res, url) {

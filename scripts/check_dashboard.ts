@@ -54,6 +54,30 @@ if (m) {
   for (const key of ['home', 'careers', 'unlocks', 'accounts', 'funnel', 'depth']) {
     check(`面板读了 .${key}`, new RegExp(`\\.${key}\\b`).test(src))
   }
+
+  // 批量发放 splits the box with regexes, and a regex written in a template
+  // literal loses its backslashes unless they are doubled: \s arrives in the
+  // browser as a bare s and still parses. So run the rendered code.
+  const parse = src.match(/function gParse\(text\) \{[\s\S]*?\n\}/)
+  check('找得到 gParse', !!parse)
+  if (parse) {
+    const gParse = new Function(`${parse[0]}; return gParse`)()
+    const a = gParse('aabbccdd\nAABBCCDD，11223344 VM-2222-2222-2222-2222-2222')
+    check('gParse 按换行、逗号、空格分开，重复只算一个', a.list.length === 4 && a.unique === 3 && a.odd.length === 0, JSON.stringify(a))
+    const b = gParse('VM-2222 2222-2222-2222-2222')
+    check('中间带空格的一个 ID 还是一个', b.list.length === 1 && b.unique === 1, JSON.stringify(b))
+    const c = gParse('aabbccdd hello')
+    check('认不出的单列出来', c.odd.length === 1 && c.odd[0] === 'hello', JSON.stringify(c))
+  }
+  const imp = src.match(/\.match\((\/VM[^\n]*?\/gi)\)/)
+  check('找得到导入文件用的正则', !!imp)
+  if (imp) {
+    const re = new Function(`return ${imp[1]}`)()
+    const csv = '名字,对战码\n小明,aabbccdd\n小红,VM-2222-2222-2222-2222-2222\n哈希,' + 'ab'.repeat(32) + '\n'
+    const hits = csv.match(re) || []
+    check('导入 csv 挑出对战码和 ID，别的列不管', hits.length === 2 && hits[0] === 'aabbccdd' && hits[1] === 'VM-2222-2222-2222-2222-2222', JSON.stringify(hits))
+  }
+  check('审核台不用 confirm()', !/rvAct[\s\S]*?confirm\(/.test(src.slice(src.indexOf('人工审核'), src.indexOf('微信群二维码'))))
 }
 
 // The page is a template literal on the server, and its <script> runs in a
