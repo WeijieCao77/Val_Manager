@@ -1,0 +1,3855 @@
+{
+ "VCT/2023/LOCK IN São Paulo": {
+  "year": 2023,
+  "resolved": "VCT/2023/LOCK IN São Paulo",
+  "teams": [
+   {
+    "team": "Fnatic",
+    "players": [
+     "Boaster",
+     "Derke",
+     "Alfajer",
+     "Leo",
+     "Chronicle"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "mini",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "slk",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Anderzz",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "FUT Esports",
+    "players": [
+     "mojj",
+     "qRaxs",
+     "qw1",
+     "MrFaliN",
+     "ATA KAPTAN"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "GAIS",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "NEDNAGG",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Inthra",
+      "pos": "analyst",
+      "flag": "py"
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Giants",
+    "players": [
+     "Fit1nho",
+     "hoody",
+     "nukkye",
+     "rhyme",
+     "Cloud"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "pipsoN",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Milan",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Karmine Corp",
+    "players": [
+     "Shin",
+     "Newzera",
+     "ScreaM",
+     "Nivera",
+     "xms"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "pm",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "ZE1SH",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "KOI",
+    "players": [
+     "koldamenta",
+     "Sheydos",
+     "trexx",
+     "Wolfen",
+     "starxo"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "BARBARR",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "goked",
+      "pos": "strategic coach",
+      "flag": null
+     },
+     {
+      "name": "Bambino",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Natus Vincere",
+    "players": [
+     "ANGE1",
+     "Shao",
+     "Zyppan",
+     "SUYGETSU",
+     "cNed"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "d00mbr0s",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "LATEKS",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Team Heretics",
+    "players": [
+     "keloqz",
+     "mixwell",
+     "zeek",
+     "Boo",
+     "AvovA"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "neilzinho",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "weber",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Team Liquid",
+    "players": [
+     "soulcas",
+     "Jamppi",
+     "Redgar",
+     "nAts",
+     "Sayf"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "eMIL",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Bacon9",
+      "pos": "strategic coach",
+      "flag": "uk"
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "Team Vitality",
+    "players": [
+     "ceNder",
+     "BONECOLD",
+     "MOLSI",
+     "Destrian",
+     "Twisten"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Salah",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Gorilla",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "EMEA Partner Team"
+   },
+   {
+    "team": "100 Thieves",
+    "players": [
+     "Asuna",
+     "Derrek",
+     "stellar",
+     "bang",
+     "Cryocells"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Mikes",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "JamezIRL",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Kaimera",
+      "pos": "analyst",
+      "flag": "us"
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "Cloud9",
+    "players": [
+     "leaf",
+     "Xeppaa",
+     "Vanity",
+     "Zellsis",
+     "yay"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "mCe",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "Evil Geniuses",
+    "players": [
+     "Boostio",
+     "Ethan",
+     "jawgemo",
+     "C0M",
+     "BcJ"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "potter",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Zikz",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "FURIA Esports",
+    "players": [
+     "qck",
+     "Khalil",
+     "mazin",
+     "dgzin",
+     "mwzera"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Carlão",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "KRÜ Esports",
+    "players": [
+     "NagZ",
+     "xand",
+     "Daveeys",
+     "Melser",
+     "axeddy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Leazo",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ddx",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "Leviatán",
+    "players": [
+     "kiNgg",
+     "Tacolilla",
+     "Shyy",
+     "Nozwerr",
+     "Mazino"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Onur",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "LOUD",
+    "players": [
+     "aspas",
+     "Less",
+     "Saadhak",
+     "cauanzin",
+     "tuyz"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "fRoD",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "stk",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "MIBR",
+    "players": [
+     "jzz",
+     "frz",
+     "heat",
+     "murizzz",
+     "RgLM"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "bzkA",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Iara",
+      "pos": "analyst",
+      "flag": "br"
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "NRG",
+    "players": [
+     "s0m",
+     "FNS",
+     "crashies",
+     "Victor",
+     "ardiis"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Chet",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "trainer",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "krueger",
+      "pos": "analyst",
+      "flag": "non"
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "Sentinels",
+    "players": [
+     "TenZ",
+     "zekken",
+     "Sacy",
+     "pANcada",
+     "dephh"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "SyykoNT",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "kaplan",
+      "pos": "strategic coach",
+      "flag": null
+     },
+     {
+      "name": "DrewSpark",
+      "pos": "analyst",
+      "flag": "uk"
+     }
+    ],
+    "qualifier": "Americas Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:80%\">Detonation FocusMe</span>",
+    "players": [
+     "takej",
+     "Reita",
+     "xnfri",
+     "Anthem",
+     "Suggest"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "HSK",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Melofovia",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "DRX",
+    "players": [
+     "stax",
+     "Rb",
+     "Zest",
+     "BuZz",
+     "MaKo"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Argency",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "glow",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "Gen.G",
+    "players": [
+     "Meteor",
+     "k1Ng",
+     "TS",
+     "eKo",
+     "Secret"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Elmapuddy",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "bail",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "Global Esports",
+    "players": [
+     "SkRossi",
+     "AYRIN",
+     "t3xture",
+     "Monyet",
+     "Bazzi"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Eraser",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Spin",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "BigTime",
+      "pos": "assistant coach",
+      "flag": "uk"
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "Paper Rex",
+    "players": [
+     "mindfreak",
+     "f0rsakeN",
+     "Benkai",
+     "d4v41",
+     "Jinggg"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "alecks",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:90%\">Rex Regum Qeon</span>",
+    "players": [
+     "Emman",
+     "EJAY",
+     "Tehbotol",
+     "fl1pzjder",
+     "Lmemore"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Ewok",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "yb",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "T1",
+    "players": [
+     "xeta",
+     "Munchkin",
+     "ban",
+     "Sayaplayer",
+     "Carpe"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Autumn",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Stunner",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "TALON",
+    "players": [
+     "Crws",
+     "foxz",
+     "sushiboys",
+     "garnetS",
+     "JitboyS"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Zeus",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Creative",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "Team Secret",
+    "players": [
+     "JessieVash",
+     "DubsteP",
+     "BORKUM",
+     "Jremy",
+     "invy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Warbirds",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "ZETA DIVISION",
+    "players": [
+     "Laz",
+     "crow",
+     "Dep",
+     "SugarZ3ro",
+     "TENNN"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "XQQ",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "JUNiOR",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "gya9",
+      "pos": "analyst",
+      "flag": "jp"
+     }
+    ],
+    "qualifier": "Pacific Partner Team"
+   },
+   {
+    "team": "EDward Gaming",
+    "players": [
+     "Haodong",
+     "CHICHOO",
+     "nobody",
+     "ZmjjKK",
+     "Smoggy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "AfteR",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Muggle",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "China Invited Team"
+   },
+   {
+    "team": "FunPlus Phoenix",
+    "players": [
+     "AAAAY",
+     "BerLIN",
+     "TZH",
+     "WudiYuChEn",
+     "Yuicaw"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "NaThanD",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Billyo",
+      "pos": "coach",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "China Invited Team"
+   }
+  ]
+ },
+ "VCT/2023/Americas League": {
+  "year": 2023,
+  "resolved": "VCT/2023/Americas League",
+  "teams": [
+   {
+    "team": "100 Thieves",
+    "players": [
+     "Asuna",
+     "Derrek",
+     "stellar",
+     "bang",
+     "Cryocells"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Mikes",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Kaimera",
+      "pos": "analyst",
+      "flag": "us"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Cloud9",
+    "players": [
+     "leaf",
+     "Xeppaa",
+     "Zellsis",
+     "jakee",
+     "runi"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "mCe",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Evil Geniuses",
+    "players": [
+     "Boostio",
+     "Ethan",
+     "jawgemo",
+     "C0M",
+     "Demon1"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "potter",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Zikz",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FURIA Esports",
+    "players": [
+     "qck",
+     "Khalil",
+     "mazin",
+     "dgzin",
+     "mwzera"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Carlão",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KRÜ Esports",
+    "players": [
+     "Klaus",
+     "NagZ",
+     "Daveeys",
+     "Melser",
+     "keznit"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Atom",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ddx",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Leviatán",
+    "players": [
+     "kiNgg",
+     "Tacolilla",
+     "Shyy",
+     "Nozwerr",
+     "Mazino"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Onur",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "LOUD",
+    "players": [
+     "aspas",
+     "Less",
+     "Saadhak",
+     "cauanzin",
+     "tuyz"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "fRoD",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "stk",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "MIBR",
+    "players": [
+     "jzz",
+     "frz",
+     "heat",
+     "murizzz",
+     "RgLM"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "bzkA",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Iara",
+      "pos": "analyst",
+      "flag": "br"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "NRG",
+    "players": [
+     "s0m",
+     "FNS",
+     "crashies",
+     "Victor",
+     "ardiis"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Chet",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "trainer",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "krueger",
+      "pos": "analyst",
+      "flag": "non"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Sentinels",
+    "players": [
+     "zekken",
+     "Sacy",
+     "pANcada",
+     "TenZ",
+     "Marved"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "kaplan",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "DrewSpark",
+      "pos": "assistant coach",
+      "flag": "uk"
+     }
+    ],
+    "qualifier": "Partner Team"
+   }
+  ]
+ },
+ "VCT/2023/EMEA League": {
+  "year": 2023,
+  "resolved": "VCT/2023/EMEA League",
+  "teams": [
+   {
+    "team": "BBL Esports",
+    "players": [
+     "AsLanM4shadoW",
+     "QutionerX",
+     "Turko",
+     "Brave",
+     "SouhcNi"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Epic",
+      "pos": "head coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Fnatic",
+    "players": [
+     "Boaster",
+     "Derke",
+     "Alfajer",
+     "Leo",
+     "Chronicle"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "mini",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "slk",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Anderzz",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FUT Esports",
+    "players": [
+     "mojj",
+     "qRaxs",
+     "qw1",
+     "MrFaliN",
+     "ATA KAPTAN"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "GAIS",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Inthra",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "bASER",
+      "pos": "analyst",
+      "flag": "tr"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Giants",
+    "players": [
+     "Fit1nho",
+     "hoody",
+     "nukkye",
+     "rhyme",
+     "Cloud"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "pipsoN",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Milan",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Karmine Corp",
+    "players": [
+     "Shin",
+     "ScreaM",
+     "Nivera",
+     "xms",
+     "ZE1SH"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "pm",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KOI",
+    "players": [
+     "koldamenta",
+     "Sheydos",
+     "trexx",
+     "Wolfen",
+     "starxo"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "BARBARR",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "goked",
+      "pos": "strategic coach",
+      "flag": null
+     },
+     {
+      "name": "Bambino",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Natus Vincere",
+    "players": [
+     "ANGE1",
+     "Shao",
+     "Zyppan",
+     "SUYGETSU",
+     "cNed"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "d00mbr0s",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "LATEKS",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Heretics",
+    "players": [
+     "keloqz",
+     "mixwell",
+     "weber",
+     "Boo",
+     "AvovA"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "neilzinho",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Liquid",
+    "players": [
+     "soulcas",
+     "Jamppi",
+     "Redgar",
+     "nAts",
+     "Sayf"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "eMIL",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Bacon9",
+      "pos": "strategic coach",
+      "flag": "uk"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Vitality",
+    "players": [
+     "ceNder",
+     "BONECOLD",
+     "MOLSI",
+     "Destrian",
+     "Twisten"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Salah",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Gorilla",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   }
+  ]
+ },
+ "VCT/2023/Pacific League": {
+  "year": 2023,
+  "resolved": "VCT/2023/Pacific League",
+  "teams": [
+   {
+    "team": "<span style=\"font-size:80%\">DetonatioN FocusMe</span>",
+    "players": [
+     "takej",
+     "Reita",
+     "xnfri",
+     "Anthem",
+     "Suggest"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "HSK",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Melofovia",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "DRX",
+    "players": [
+     "stax",
+     "Rb",
+     "BuZz",
+     "MaKo",
+     "Foxy9"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Argency",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "glow",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Gen.G",
+    "players": [
+     "Meteor",
+     "k1Ng",
+     "TS",
+     "GodDead",
+     "Sylvan"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Elmapuddy",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "bail",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Global Esports",
+    "players": [
+     "SkRossi",
+     "AYRIN",
+     "t3xture",
+     "Monyet",
+     "Bazzi"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Eraser",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Spin",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "BigTime",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Paper Rex",
+    "players": [
+     "mindfreak",
+     "f0rsakeN",
+     "Benkai",
+     "d4v41",
+     "Jinggg"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "alecks",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:95%\">Rex Regum Qeon</span>",
+    "players": [
+     "EJAY",
+     "2ge",
+     "xffero",
+     "fl1pzjder",
+     "Lmemore"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Ewok",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "yb",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "T1",
+    "players": [
+     "xeta",
+     "Munchkin",
+     "ban",
+     "Sayaplayer",
+     "Carpe"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Autumn",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Stunner",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "CheongGak",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "TALON",
+    "players": [
+     "Crws",
+     "foxz",
+     "sushiboys",
+     "garnetS",
+     "JitboyS"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Zeus",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "b0i",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Secret",
+    "players": [
+     "JessieVash",
+     "DubsteP",
+     "BORKUM",
+     "Jremy",
+     "invy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Warbirds",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "ZETA DIVISION",
+    "players": [
+     "Laz",
+     "crow",
+     "Dep",
+     "SugarZ3ro",
+     "TENNN"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "XQQ",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "JUNiOR",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "gya9",
+      "pos": "analyst",
+      "flag": "jp"
+     }
+    ],
+    "qualifier": "Partner Team"
+   }
+  ]
+ },
+ "VCT/2023/Champions/China Qualifier": {
+  "year": 2023,
+  "resolved": "VCT/2023/Champions/China Qualifier",
+  "teams": []
+ },
+ "VCT/2023/China Qualifier": {
+  "year": 2023,
+  "resolved": "VCT/2023/China Qualifier",
+  "teams": []
+ },
+ "VCT/2024/Americas League/Kickoff": {
+  "year": 2024,
+  "resolved": "VCT/2024/Americas League/Kickoff",
+  "teams": [
+   {
+    "team": "LOUD",
+    "players": [
+     "Less",
+     "Saadhak",
+     "cauanzin",
+     "tuyz",
+     "qck"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "peu",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "stk",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "NRG",
+    "players": [
+     "crashies",
+     "Victor",
+     "Demon1",
+     "Ethan",
+     "Marved"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Tanizhq",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "vladk0r",
+      "pos": "analyst",
+      "flag": "ru"
+     },
+     {
+      "name": "yeboislays",
+      "pos": "analyst",
+      "flag": "ca"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Evil Geniuses",
+    "players": [
+     "jawgemo",
+     "Apoth",
+     "Derrek",
+     "NaturE",
+     "supamen"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "potter",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "pho",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Cloud9",
+    "players": [
+     "jakee",
+     "Xeppaa",
+     "OXY",
+     "vanity",
+     "wippie"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Immi",
+      "pos": "head coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Leviatán",
+    "players": [
+     "kiNgg",
+     "Mazino",
+     "aspas",
+     "tex",
+     "C0M"
+    ],
+    "subs": [
+     "Nozwerr"
+    ],
+    "staff": [
+     {
+      "name": "goked",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Itopata",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FURIA Esports",
+    "players": [
+     "Khalil",
+     "mwzera",
+     "kon4n",
+     "liazzi",
+     "havoc"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Koy",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "lukzera",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Sentinels",
+    "players": [
+     "zekken",
+     "Sacy",
+     "TenZ",
+     "johnqt",
+     "Zellsis"
+    ],
+    "subs": [
+     "pANcada"
+    ],
+    "staff": [
+     {
+      "name": "kaplan",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "DrewSpark",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "100 Thieves",
+    "players": [
+     "Asuna",
+     "bang",
+     "Cryocells",
+     "eeiu",
+     "Boostio"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Zikz",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Mikes",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Kaimera",
+      "pos": "analyst",
+      "flag": "us"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "MIBR",
+    "players": [
+     "Jzz",
+     "frz",
+     "RgLM",
+     "Mazin",
+     "Artzin"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "bzkA",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "fRoD",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "Iara",
+      "pos": "analyst",
+      "flag": "br"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KRÜ Esports",
+    "players": [
+     "Melser",
+     "Shyy",
+     "mta",
+     "keznit",
+     "Klaus"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Atom",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ddx",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "G2 Esports",
+    "players": [
+     "JonahP",
+     "neT",
+     "trent",
+     "valyn",
+     "leaf"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "shhhack",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2023/Ascension/Americas|Ascension 2023]]"
+   }
+  ]
+ },
+ "VCT/2024/EMEA League/Kickoff": {
+  "year": 2024,
+  "resolved": "VCT/2024/EMEA League/Kickoff",
+  "teams": [
+   {
+    "team": "BBL Esports",
+    "players": [
+     "QutionerX",
+     "Brave",
+     "Elite",
+     "pAura",
+     "reazy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Epic",
+      "pos": "head coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Fnatic",
+    "players": [
+     "Boaster",
+     "Derke",
+     "Alfajer",
+     "Leo",
+     "Chronicle"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Elmapuddy",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "mini",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FUT Esports",
+    "players": [
+     "MrFaliN",
+     "qRaxs",
+     "ATA KAPTAN",
+     "yetujey",
+     "cNed"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "GAIS",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "sw4y",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Karmine Corp",
+    "players": [
+     "Shin",
+     "Magnum",
+     "marteen",
+     "N4RRATE",
+     "tomaszy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Engh",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ZE1SH",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "fistie",
+      "pos": "coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KOI",
+    "players": [
+     "Sheydos",
+     "starxo",
+     "GRUBINHO",
+     "kamo",
+     "ShadoW"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "BARBARR",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "aer0z",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Bambino",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Natus Vincere",
+    "players": [
+     "ANGE1",
+     "SUYGETSU",
+     "Shao",
+     "Zyppan",
+     "ardiis"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "LATEKS",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Heretics",
+    "players": [
+     "Boo",
+     "benjyfishy",
+     "MiniBoo",
+     "RieNs",
+     "paTiTek"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "neilzinho",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "weber",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "Pablo",
+      "pos": "analyst",
+      "flag": "es"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Liquid",
+    "players": [
+     "Jamppi",
+     "nAts",
+     "Enzo",
+     "Keiko",
+     "Mistic"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "eMIL",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Bacon9",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Vitality",
+    "players": [
+     "ceNder",
+     "runneR",
+     "Kicks",
+     "Sayf",
+     "Destrian"
+    ],
+    "subs": [
+     "trexx"
+    ],
+    "staff": [
+     {
+      "name": "Salah",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Gorilla",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Gentle Mates",
+    "players": [
+     "beyAz",
+     "nataNk",
+     "logaN",
+     "TakaS",
+     "Wailers"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Ex6TenZ",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "madcoach",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Derly",
+      "pos": "assistant coach",
+      "flag": "fr"
+     }
+    ],
+    "qualifier": "[[VCL/2023/Ascension/EMEA|Ascension 2023]]"
+   }
+  ]
+ },
+ "VCT/2024/Pacific League/Kickoff": {
+  "year": 2024,
+  "resolved": "VCT/2024/Pacific League/Kickoff",
+  "teams": [
+   {
+    "team": "<span style=\"font-size:93%\">DetonatioN FocusMe</span>",
+    "players": [
+     "neth",
+     "Meiy",
+     "SSeeS",
+     "Anthem",
+     "Medusa"
+    ],
+    "subs": [
+     "popogachi"
+    ],
+    "staff": [
+     {
+      "name": "Astell",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Melofovia",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "NorthernLights",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "DRX",
+    "players": [
+     "stax",
+     "BuZz",
+     "MaKo",
+     "Foxy9",
+     "Flashback"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "termi",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Argency",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "glow",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Gen.G",
+    "players": [
+     "Meteor",
+     "t3xture",
+     "Lakia",
+     "Munchkin",
+     "Karon"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "solo",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "HSK",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Global Esports",
+    "players": [
+     "Lightningfast",
+     "Russ",
+     "blaZek1ng",
+     "Polvi",
+     "Benkai"
+    ],
+    "subs": [
+     "Bazzi"
+    ],
+    "staff": [
+     {
+      "name": "Spin",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "BigTime",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Paper Rex",
+    "players": [
+     "mindfreak",
+     "f0rsakeN",
+     "d4v41",
+     "something",
+     "Monyet"
+    ],
+    "subs": [
+     "Jinggg"
+    ],
+    "staff": [
+     {
+      "name": "alecks",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Rex Regum Qeon",
+    "players": [
+     "xffero",
+     "fl1pzjder",
+     "Lmemore",
+     "Estrella",
+     "Jemkin"
+    ],
+    "subs": [
+     "2ge"
+    ],
+    "staff": [
+     {
+      "name": "Ewok",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Voxize",
+      "pos": "analyst",
+      "flag": "us"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "T1",
+    "players": [
+     "Sayaplayer",
+     "Carpe",
+     "xccurate",
+     "iZu",
+     "Rossy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Autumn",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Stunner",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "CheongGak",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "Daeda",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "TALON",
+    "players": [
+     "Crws",
+     "JitboyS",
+     "ban",
+     "Governor",
+     "lenne"
+    ],
+    "subs": [
+     "Surf",
+     "patt"
+    ],
+    "staff": [
+     {
+      "name": "FrosT",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "b0i",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Secret",
+    "players": [
+     "BORKUM",
+     "JessieVash",
+     "Jremy",
+     "invy",
+     "NDG"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Warbirds",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "ZETA DIVISION",
+    "players": [
+     "Laz",
+     "Dep",
+     "SugarZ3ro",
+     "hiroronn",
+     "Yuran"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Carlão",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "JUNiOR",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "crow",
+      "pos": "coach",
+      "flag": null
+     },
+     {
+      "name": "gya9",
+      "pos": "analyst",
+      "flag": null
+     },
+     {
+      "name": "sieg",
+      "pos": "analyst",
+      "flag": "jp"
+     },
+     {
+      "name": "nokaze37",
+      "pos": "analyst",
+      "flag": "jp"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Bleed Esports",
+    "players": [
+     "Deryeon",
+     "crazyguy",
+     "sScary",
+     "Egoist",
+     "yay"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "LEGIJA",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Ominous",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2023/Ascension/Pacific|Ascension 2023]]"
+   }
+  ]
+ },
+ "VCT/2024/China League/Kickoff": {
+  "year": 2024,
+  "resolved": "VCT/2024/China League/Kickoff",
+  "teams": [
+   {
+    "team": "All Gamers",
+    "players": [
+     "Bunt",
+     "deLb",
+     "Monk",
+     "Spitfires",
+     "sword9"
+    ],
+    "subs": [
+     "x3b"
+    ],
+    "staff": [
+     {
+      "name": "Ego",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Luminous",
+      "pos": "analyst",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Bilibili Gaming",
+    "players": [
+     "whzy",
+     "Biank",
+     "Knight",
+     "yosemite",
+     "B3Ar"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Xpz",
+      "pos": "head coach",
+      "flag": "cn"
+     },
+     {
+      "name": "JeXeN",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "EDward Gaming",
+    "players": [
+     "Haodong",
+     "CHICHOO",
+     "nobody",
+     "ZmjjKK",
+     "Smoggy"
+    ],
+    "subs": [
+     "Muggle"
+    ],
+    "staff": [],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FunPlus Phoenix",
+    "players": [
+     "AAAAY",
+     "BerLIN",
+     "Lysoar",
+     "Autumn",
+     "Life"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "NaThanD",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "JD Gaming",
+    "players": [
+     "YiHao",
+     "Viva",
+     "MarT1n",
+     "stew",
+     "jkuro"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "ValAnalysis",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Billyo",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Nova Esports",
+    "players": [
+     "o0o0o",
+     "OBONE",
+     "PangH",
+     "cb",
+     "GuanG"
+    ],
+    "subs": [
+     "neveR"
+    ],
+    "staff": [],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "TYLOO",
+    "players": [
+     "LuoK1ng",
+     "Ninebody",
+     "AAK",
+     "ICEKING",
+     "hfmi0dzjc9z7"
+    ],
+    "subs": [
+     "slowly",
+     "mikiya"
+    ],
+    "staff": [
+     {
+      "name": "Yiyee",
+      "pos": "",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Titan Esports Club",
+    "players": [
+     "kawaii",
+     "qiuye",
+     "Abo",
+     "LockM",
+     "Rb"
+    ],
+    "subs": [
+     "B1ack",
+     "Shameless"
+    ],
+    "staff": [
+     {
+      "name": "3water",
+      "pos": "head coach",
+      "flag": "cn"
+     },
+     {
+      "name": "YorkMonster",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Trace Esports",
+    "players": [
+     "FengF",
+     "Flex1n",
+     "HeiB",
+     "YoU",
+     "Kai"
+    ],
+    "subs": [
+     "cxyy"
+    ],
+    "staff": [],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Wolves Esports",
+    "players": [
+     "aluba",
+     "COLDFISH",
+     "pl1xx",
+     "Spring",
+     "Yuicaw"
+    ],
+    "subs": [
+     "Babyblue",
+     "Cyah",
+     "FFs"
+    ],
+    "staff": [
+     {
+      "name": "jungleDSL",
+      "pos": "",
+      "flag": "cn"
+     },
+     {
+      "name": "Naint",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:85%\">Dragon Ranger Gaming</span>",
+    "players": [
+     "TvirusLuke",
+     "Nicc",
+     "vo0kashu",
+     "Dingwei",
+     "TZH"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "LT",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "YuChEn",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCT/2023/Ascension/China|Ascension 2023]]"
+   }
+  ]
+ },
+ "VCT/2025/Americas League/Kickoff": {
+  "year": 2025,
+  "resolved": "VCT/2025/Americas League/Kickoff",
+  "teams": [
+   {
+    "team": "100 Thieves",
+    "players": [
+     "Asuna",
+     "Cryocells",
+     "eeiu",
+     "Boostio",
+     "Zander"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Zikz",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "frenya",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "rudi",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Kaimera",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Cloud9",
+    "players": [
+     "Xeppaa",
+     "OXY",
+     "v1c",
+     "mitch",
+     "neT"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Immi",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "GUGLi",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Evil Geniuses",
+    "players": [
+     "Derrek",
+     "NaturE",
+     "supamen",
+     "icy",
+     "yay"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "potter",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "pho",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FURIA",
+    "players": [
+     "khalil",
+     "mwzera",
+     "havoc",
+     "heat",
+     "raafa"
+    ],
+    "subs": [
+     "add3r",
+     "bdog",
+     "jakee",
+     "penny",
+     "stellar"
+    ],
+    "staff": [
+     {
+      "name": "peu",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "lukzera",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KRÜ Esports",
+    "players": [
+     "Melser",
+     "keznitdeuS",
+     "Shyy",
+     "adverso",
+     "Mazino"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Atom",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ddx",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Leviatán",
+    "players": [
+     "kiNgg",
+     "tex",
+     "C0M",
+     "Demon1",
+     "nataNk"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "itopata",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Desmo",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "LOUD",
+    "players": [
+     "cauanzin",
+     "tuyz",
+     "pANcada",
+     "dgzin",
+     "v1nNy"
+    ],
+    "subs": [
+     "lukxo"
+    ],
+    "staff": [
+     {
+      "name": "stk",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "mat",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "MIBR",
+    "players": [
+     "artziN",
+     "xenom",
+     "cortezia",
+     "nzr",
+     "aspas"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "fRoD",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Iara",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "NRG",
+    "players": [
+     "Ethan",
+     "FNS",
+     "s0m",
+     "mada",
+     "Verno"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "bonkar",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Strong",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Sentinels",
+    "players": [
+     "zekken",
+     "johnqt",
+     "Zellsis",
+     "bang",
+     "N4RRATE"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "kaplan",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "GUNTER",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "G2 Esports",
+    "players": [
+     "JonahP",
+     "trent",
+     "valyn",
+     "leaf",
+     "jawgemo"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "JoshRT",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "shhhack",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2023/Ascension/Americas|Ascension 2023]]"
+   },
+   {
+    "team": "2GAME Esports",
+    "players": [
+     "lz",
+     "pryze",
+     "silentzz",
+     "zap",
+     "gobera"
+    ],
+    "subs": [
+     "spikeziN"
+    ],
+    "staff": [
+     {
+      "name": "faithz0r",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Yushi",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2024/Ascension/Americas|Ascension 2024]]"
+   }
+  ]
+ },
+ "VCT/2025/EMEA League/Kickoff": {
+  "year": 2025,
+  "resolved": "VCT/2025/EMEA League/Kickoff",
+  "teams": [
+   {
+    "team": "BBL Esports",
+    "players": [
+     "LêwN",
+     "Jamppi",
+     "PROFEK",
+     "sociablEE",
+     "vakk"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "marqnue",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "PAL",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Scuttt",
+      "pos": "analyst",
+      "flag": "ie"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Fnatic",
+    "players": [
+     "Boaster",
+     "Alfajer",
+     "Chronicle",
+     "kaajak",
+     "crashies"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Elmapuddy",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Milan",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FUT Esports",
+    "players": [
+     "qRaxs",
+     "MrFaliN",
+     "ATA KAPTAN",
+     "yetujey",
+     "xeus"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "GAIS",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "sw4y",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "GIANTX",
+    "players": [
+     "Cloud",
+     "purp0",
+     "runneR",
+     "tomaszy",
+     "westside"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "pipsoN",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "wayLander",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Mew",
+      "pos": "assistant coach",
+      "flag": "fr"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Karmine Corp",
+    "players": [
+     "marteen",
+     "avez",
+     "Elite",
+     "SUYGETSU",
+     "Saadhak"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Engh",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ZE1SH",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "fistie",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "KOI",
+    "players": [
+     "GRUBINHO",
+     "Sheydos",
+     "Filu",
+     "flyuh",
+     "soulcas"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Gorilla",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Bambino",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "temoc",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Natus Vincere",
+    "players": [
+     "ANGE1",
+     "Shao",
+     "hiro",
+     "koalanoob",
+     "Ruxic"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Happy",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Heretics",
+    "players": [
+     "Boo",
+     "benjyfishy",
+     "MiniBoo",
+     "RieNs",
+     "Wo0t"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "neilzinho",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "weber",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Pablo",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Liquid",
+    "players": [
+     "nAts",
+     "keiko",
+     "kamo",
+     "kamyk",
+     "paTiTek"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "LohaN",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "yaotziN",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Vitality",
+    "players": [
+     "Kicks",
+     "Sayf",
+     "trexx",
+     "Less",
+     "Derke"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Faded",
+      "pos": "",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Gentle Mates",
+    "players": [
+     "K4DAVRA",
+     "Click",
+     "Minny",
+     "RobbieBk",
+     "Zyppan"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "goked",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "McJuankar",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "jtay",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2023/Ascension/EMEA|Ascension 2023]]"
+   },
+   {
+    "team": "Apeks",
+    "players": [
+     "AvovA",
+     "hype",
+     "MOLSI",
+     "florescent",
+     "batujnax"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "DANNYTO",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "oderus",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2024/Ascension/EMEA|Ascension 2024]]"
+   }
+  ]
+ },
+ "VCT/2025/Pacific League/Kickoff": {
+  "year": 2025,
+  "resolved": "VCT/2025/Pacific League/Kickoff",
+  "teams": [
+   {
+    "team": "<span style=\"font-size:90%\">DetonatioN FocusMe</span>",
+    "players": [
+     "Meiy",
+     "akame",
+     "Art",
+     "gyen",
+     "Jinboong"
+    ],
+    "subs": [
+     "SSeeS"
+    ],
+    "staff": [
+     {
+      "name": "Melofovia",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "NorthernLights",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "DRX",
+    "players": [
+     "MaKo",
+     "Flashback",
+     "free1ng",
+     "HYUNMIN",
+     "BeYN"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "termi",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Argency",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "glow",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Gen.G Esports",
+    "players": [
+     "t3xture",
+     "Karon",
+     "Munchkin",
+     "yoman",
+     "Foxy9"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "solo",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "peri",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "HSK",
+      "pos": "strategic coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Global Esports",
+    "players": [
+     "kellyS",
+     "Kr1stal",
+     "PapiChulo",
+     "UdoTan",
+     "Deryeon"
+    ],
+    "subs": [
+     "patrickWHO"
+    ],
+    "staff": [
+     {
+      "name": "Juv3nile",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Elevated",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Paper Rex",
+    "players": [
+     "d4v41",
+     "f0rsakeN",
+     "mindfreak",
+     "Jinggg",
+     "something"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "alecks",
+      "pos": "head coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Rex Regum Qeon",
+    "players": [
+     "xffero",
+     "Estrella",
+     "Jemkin",
+     "monyet",
+     "Kushy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Ewok",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Warbirds",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "T1",
+    "players": [
+     "iZu",
+     "stax",
+     "Sylvan",
+     "Meteor",
+     "BuZz"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Autumn",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "CheongGak",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "indigo",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "TALON",
+    "players": [
+     "Crws",
+     "JitboyS",
+     "ban",
+     "Governor",
+     "Primmie"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "FrosT",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Jovi",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Team Secret",
+    "players": [
+     "JessieVash",
+     "Jremy",
+     "invy",
+     "2GE",
+     "Wild0reoo"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "meow",
+      "pos": "",
+      "flag": null
+     },
+     {
+      "name": "Rbtx",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "ZETA DIVISION",
+    "players": [
+     "Dep",
+     "SugarZ3ro",
+     "CLZ",
+     "SyouTa",
+     "Xdll"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Johnta",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "XQQ",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Carlão",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "gya9",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:90%\">Nongshim RedForce</span>",
+    "players": [
+     "Dambi",
+     "Francis",
+     "Ivy",
+     "margaret",
+     "Persia"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "SilKanoN",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ValAnalysis",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCL/2024/Ascension/Pacific|Ascension 2024]]"
+   },
+   {
+    "team": "BOOM Esports",
+    "players": [
+     "BerserX",
+     "famouz",
+     "Shiro",
+     "NcSlasher",
+     "dos9"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "6fingers",
+      "pos": "head coach",
+      "flag": "id"
+     },
+     {
+      "name": "Fields",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Replacement Invite"
+   }
+  ]
+ },
+ "VCT/2025/China League/Kickoff": {
+  "year": 2025,
+  "resolved": "VCT/2025/China League/Kickoff",
+  "teams": [
+   {
+    "team": "All Gamers",
+    "players": [
+     "deLb",
+     "monk",
+     "K1ra",
+     "Lsn",
+     "TZH"
+    ],
+    "subs": [
+     "Bunt",
+     "XiYiJi"
+    ],
+    "staff": [
+     {
+      "name": "Fire3",
+      "pos": "head coach",
+      "flag": "cn"
+     },
+     {
+      "name": "Septem7",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "Oi",
+      "pos": "assistant coach",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Bilibili Gaming",
+    "players": [
+     "whzy",
+     "Knight",
+     "Levius",
+     "nephh",
+     "rushia"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "bail",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "JeXeN",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "EDward Gaming",
+    "players": [
+     "CHICHOO",
+     "nobody",
+     "ZmjjKK",
+     "Smoggy",
+     "S1Mon"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Century",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "FunPlus Phoenix",
+    "players": [
+     "AAAAY",
+     "BerLIN",
+     "autumn",
+     "Life",
+     "yosemite"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "NaThanD",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "YorkMonster",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "JD Gaming",
+    "players": [
+     "jkuro",
+     "stew",
+     "Z1Yan",
+     "Babyblue",
+     "MrCANI"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Ego",
+      "pos": "head coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Nova Esports",
+    "players": [
+     "cb",
+     "o0o0o",
+     "GuanG",
+     "Swerl",
+     "Ezeir"
+    ],
+    "subs": [
+     "OBONE"
+    ],
+    "staff": [
+     {
+      "name": "24K",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "fore",
+      "pos": "assistant coach",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Titan Esports Club",
+    "players": [
+     "B1ack",
+     "Abo",
+     "Rb",
+     "Haodong",
+     "dynamite"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "AfteR",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "3water",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Trace Esports",
+    "players": [
+     "FengF",
+     "HeiB",
+     "Kai",
+     "LuoK1ng",
+     "Biank"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "destroyeR",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Yiyee",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "TYLOO",
+    "players": [
+     "Ninebody",
+     "hfmi0dzjc9z7",
+     "Eren",
+     "slowly",
+     "5CM"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "sword9",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Billyo",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "hypnotizing",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "Wolves Esports",
+    "players": [
+     "Spring",
+     "Yuicaw",
+     "SiuFatBB",
+     "Lysoar",
+     "juicy"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "Fayde",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "Ominous",
+      "pos": "analyst",
+      "flag": null
+     }
+    ],
+    "qualifier": "Partner Team"
+   },
+   {
+    "team": "<span style=\"font-size:80%\">Dragon Ranger Gaming</span>",
+    "players": [
+     "Nicc",
+     "TvirusLuke",
+     "vo0kashu",
+     "SpiritZ1",
+     "Flex1n"
+    ],
+    "subs": [
+     "Cangshu"
+    ],
+    "staff": [
+     {
+      "name": "LT",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "JKH",
+      "pos": "assistant coach",
+      "flag": null
+     }
+    ],
+    "qualifier": "[[VCT/2023/Ascension/China|Ascension 2023]]"
+   },
+   {
+    "team": "XLG Esports",
+    "players": [
+     "Rarga",
+     "happywei",
+     "YoU",
+     "coconut",
+     "Viva"
+    ],
+    "subs": [],
+    "staff": [
+     {
+      "name": "hvoya",
+      "pos": "head coach",
+      "flag": null
+     },
+     {
+      "name": "ANXiOS",
+      "pos": "assistant coach",
+      "flag": null
+     },
+     {
+      "name": "snowave",
+      "pos": "analyst",
+      "flag": "cn"
+     }
+    ],
+    "qualifier": "[[VCT/2024/Ascension/China|Ascension 2024]]"
+   }
+  ]
+ }
+}

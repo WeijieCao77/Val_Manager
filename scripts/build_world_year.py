@@ -45,6 +45,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_event_stats.json")
 BIRTHS_2026 = os.path.join(ROOT, "data-raw", "liquipedia_players.json")
 BIRTHS_HIST = os.path.join(ROOT, "scripts", "cache", "liquipedia_births_hist.json")
+STAFF = os.path.join(ROOT, "scripts", "cache", "liquipedia_event_staff.json")
+COACH_CAREERS = os.path.join(ROOT, "scripts", "cache", "vlr_coach_careers.json")
+CHALLENGERS = os.path.join(ROOT, "scripts", "cache", "vlr_challengers_hist.json")
 WORLD_2026 = os.path.join(ROOT, "src", "data", "world.json")
 UA = "ValManagerGameBuild/0.1 (hobby esports-manager project; contact yankejing711@gmail.com)"
 API = "https://liquipedia.net/valorant/api.php"
@@ -245,16 +248,79 @@ def main():
             line["stage_rounds"] = sum((row.get("rnd") or 0) for _, row in big)
         return line
 
-    # ---- the population to rank: everyone on an opening roster
+    # ---- the second tier: that year's Challengers opening splits, where fetched
+    #
+    # scripts/fetch_vlr_challengers_hist.py reads the opening split of every
+    # Challengers league of the year. A club needs five men with thirty rounds
+    # in it; the eight strongest per region (top-five mean rating, weighted
+    # by rounds) make the tier-two league, which is the 2026 world's shape.
+    # China has no Challengers table on vlr: 2024 uses the clubs of the 2023
+    # Champions China qualifier that were not partners, 2025 falls back to
+    # the 2026 placeholder.
+    chal = load(CHALLENGERS, {"events": {}, "stats": {}})
+    t2_rosters = {}   # tag -> {region, rows}
+    t2_source = {}
+    partners = set(rosters)
+    for eid, ev in chal["events"].items():
+        if ev.get("year") != Y:
+            continue
+        for row in chal["stats"].get(eid, []):
+            tag = row.get("club")
+            if not tag or tag in partners or (row.get("rnd") or 0) < 30:
+                continue
+            r = t2_rosters.setdefault(tag, {"region": ev["region"], "rows": {}, "sub": True})
+            cur = r["rows"].get(row["ign"].lower())
+            if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
+                r["rows"][row["ign"].lower()] = row
+    if Y == 2024:
+        for eid, ev in cache["events"].items():
+            if ev.get("year") == 2023 and "champions-china-qualifier" in str(ev.get("slug") or ""):
+                for row in cache["stats"].get(eid, []):
+                    tag = row.get("club")
+                    if not tag or tag in partners or (row.get("rnd") or 0) < 30:
+                        continue
+                    r = t2_rosters.setdefault(tag, {"region": "China", "rows": {}, "sub": True})
+                    r["rows"][row["ign"].lower()] = row
+    # keep the eight strongest per region
+    def club_strength(r):
+        top = sorted(r["rows"].values(), key=lambda x: -(x.get("rating2") or 0))[:5]
+        return sum((x.get("rating2") or 0) * (x.get("rnd") or 0) for x in top) / max(1, sum((x.get("rnd") or 0) for x in top))
+    # a man on a tier-one opening roster is not also a Challengers man
+    t1_men = {k for r in rosters.values() for k in r["rows"]}
+    for r in t2_rosters.values():
+        for k in [k for k in r["rows"] if k in t1_men]:
+            del r["rows"][k]
+    # ranked candidates per region; the eight strongest that can still field
+    # five are taken when the clubs are built (a man who played two splits
+    # belongs to the stronger club and may leave the other short)
+    t2_ranked = {}
+    for region in ("Americas", "EMEA", "Pacific", "China"):
+        cands = [(tag, r) for tag, r in t2_rosters.items() if r["region"] == region and len(r["rows"]) >= 5]
+        cands.sort(key=lambda x: -club_strength(x[1]))
+        t2_ranked[region] = cands
+    t2_rosters = {tag: r for cands in t2_ranked.values() for tag, r in cands}
+    print(f"tier two: {sum(len(c) for c in t2_ranked.values())} Challengers candidates from the year's tables ({', '.join(f'{r}:{sum(1 for t in t2_rosters.values() if t['region'] == r)}' for r in ('Americas', 'EMEA', 'Pacific', 'China'))})")
+
+    # ---- the population to rank: everyone on an opening roster, both tiers
     people = {}
     rookies = 0
-    for tag, r in rosters.items():
+    for tag, r in list(rosters.items()) + list(t2_rosters.items()):
         for k, row in r["rows"].items():
+            if k in people:
+                continue
             line = aggregate(k)
             if not line:
                 line = aggregate(k, fallback_rows=[row])
                 line["rookie"] = True
                 rookies += 1
+            if r.get("sub"):
+                # a Challengers line is a Challengers line: translated like the
+                # sub-tier events above, whichever year it came from
+                if line.get("rookie"):
+                    for key, f in bw.SUBTIER_TO_VCT.items():
+                        if line.get(key) is not None:
+                            line[key] = line[key] * f
+                line["tier2"] = True
             line["ign"] = row["ign"]
             line["nat"] = row.get("nat") or ""
             line["tag"] = tag
@@ -425,10 +491,53 @@ def main():
         }
     print(f"ages: {ages_known}/{len(built)} real birthdates, {wrong} Liquipedia pages refused on nationality")
 
+    # ---- who coached whom: Liquipedia's participant cards for the opening
+    # event, matched to a vlr roster by three shared names; the head coach is
+    # the one marked head coach, else the plain "coach" (older cards carry
+    # no position); vlr's staff careers cover a club the cards leave blank
+    staff = load(STAFF, {})
+    cards = []
+    for title, page in staff.items():
+        if page.get("year") == Y:
+            cards.extend(page.get("teams") or [])
+    careers = load(COACH_CAREERS, {})
+
+    def head_of(card):
+        st = card.get("staff") or []
+        pick = next((s for s in st if "head" in s["pos"]), None) \
+            or next((s for s in st if s["pos"] in ("coach", "") and "assistant" not in s["pos"]), None)
+        if not pick:
+            return None, []
+        rest = [s["name"] for s in st if s is not pick and ("coach" in s["pos"] or s["pos"] == "")]
+        return pick["name"], rest
+
+    def coach_for(tag, display, roster_igns):
+        low = {i.lower() for i in roster_igns}
+        best, shared = None, 0
+        for c in cards:
+            n = len({p.lower() for p in c["players"] + c.get("subs", [])} & low)
+            if n > shared:
+                best, shared = c, n
+        if best and shared >= 3:
+            name, rest = head_of(best)
+            if name:
+                return name, rest, "liquipedia"
+        # vlr's staff pages: a stint at this club that covers the January
+        for name, rec in careers.items():
+            for s in rec.get("stints") or []:
+                team = str(s.get("team") or "").lower()
+                if not (display.lower() in team or team in display.lower()):
+                    continue
+                if (s.get("from") or "9999") <= f"{Y}-01" and (not s.get("to") or s["to"] >= f"{Y}-01") \
+                        and (s.get("role") or "coach") in ("head coach", "coach"):
+                    return name, [], "vlr"
+        return None, [], None
+
     # ---- clubs
     out_players, out_teams = [], []
     issued_h = 0
     team_ids = set()
+    coached = {"liquipedia": 0, "vlr": 0}
 
     def emit(p, team_id, tier, region):
         nonlocal issued_h
@@ -448,6 +557,8 @@ def main():
             "contractYears": 0, "loyalty": p["loyalty"], "ambition": p["ambition"], "vlr": p["vlr"],
             "agentUse": p["agentUse"],
         }
+        if tier == 2:
+            rec["_t2"] = True
         out_players.append(rec)
         return rec
 
@@ -478,22 +589,69 @@ def main():
             p["potential"] = int(bw.clamp(max(p["potential"], p["overall"]), 30, 99))
         rating = int(round(sum(sorted((p["overall"] for p in squad), reverse=True)[:5]) / 5))
         rng = bw.Rng(bw.seed_of(f"ht{Y}:" + display))
+        cname, assistants, via = coach_for(tag, display, [p["ign"] for p in squad])
+        coach = None
+        if cname:
+            coached[via] += 1
+            coach = {
+                "name": cname, "assistants": assistants,
+                "tactics": int(bw.clamp(round(rng.norm(rating - 6, 6)), 35, 95)),
+                "development": int(bw.clamp(round(rng.norm(rating - 8, 7)), 30, 95)),
+                "motivation": int(bw.clamp(round(rng.norm(rating - 7, 7)), 30, 95)),
+            }
         out_teams.append({
             "id": tid, "name": display, "tag": tag, "region": r["region"], "tier": 1,
             "league": f"VCT {r['region']}", "rating": rating,
             "budget": int(rng.range(2_000_000, 8_500_000)),
             "reputation": int(bw.clamp(round(rating), 20, 99)),
-            "roster": [p["id"] for p in squad], "coach": None,
+            "roster": [p["id"] for p in squad], "coach": coach,
             "facilities": int(bw.clamp(round(rng.norm(rating - 5, 8)), 20, 94)),
         })
     if short:
         print(f"clubs short of five on the opening event: {', '.join(short)}")
 
-    # ---- the second tier: 2026's Challengers population, minus this year's tier-one men
+    # ---- the second tier: the year's real Challengers clubs where the tables
+    # were fetched, the 2026 placeholder for a region they were not
     placed = {p["ign"].lower() for p in out_players}
     t2_players = 0
+    real_t2_regions = set()
+    t2_built = 0
+    for region, cands in t2_ranked.items():
+        filled = 0
+        for tag, r in cands:
+            if filled >= 8:
+                break
+            squad_src = sorted((built[k] for k in r["rows"] if k in built and k not in placed), key=lambda x: -(x["vlr"]["rating"] or 0))
+            if len(squad_src) < 5:
+                continue
+            filled += 1
+            t2_built += 1
+            real_t2_regions.add(region)
+            tid, name = prev_tid.get(tag, (None, None))
+            if not tid or tid in team_ids:
+                tid = f"HT{len([t for t in out_teams if t['id'].startswith('HT')])}"
+            team_ids.add(tid)
+            display = name or NAMES.get(tag, tag)
+            squad = [emit(p, tid, 2, r["region"]) for p in squad_src[:7]]
+            for p in squad:
+                placed.add(p["ign"].lower())
+            bw.deal_contract_years(squad)
+            igl = max(squad[:5], key=lambda p: p["attrs"]["igl"] + (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
+            igl["isIgl"] = True
+            igl["iglSource"] = "inferred"
+            rating = int(round(sum(sorted((p["overall"] for p in squad), reverse=True)[:5]) / 5))
+            rng = bw.Rng(bw.seed_of(f"ht{Y}:" + display))
+            out_teams.append({
+                "id": tid, "name": display, "tag": tag, "region": r["region"], "tier": 2,
+                "league": f"Challengers {r['region']}", "rating": rating,
+                "budget": int(rng.range(240_000, 900_000)),
+                "reputation": int(bw.clamp(round(rating * 0.72), 20, 99)),
+                "roster": [p["id"] for p in squad], "coach": None,
+                "facilities": int(bw.clamp(round(rng.norm(rating - 18, 8)), 20, 94)),
+            })
+            t2_players += len(squad)
     for t in world26["teams"]:
-        if t["tier"] != 1:
+        if t["tier"] != 1 and t["region"] not in real_t2_regions:
             roster = [p for p in world26["players"] if p["teamId"] == t["id"] and p["ign"].lower() not in placed]
             if len(roster) < 5:
                 continue
@@ -531,6 +689,7 @@ def main():
             raw = p["overall"] - p["stageBonus"]
             if raw <= 0:
                 continue
+            p["_raw"] = p["overall"]
             factor = (target - p["stageBonus"]) / raw
             for k in bw.ATTRS:
                 p["attrs"][k] = int(bw.clamp(round(p["attrs"][k] * factor), 20, 99))
@@ -540,15 +699,39 @@ def main():
             p["overall"] = new
             p["salary"] = bw.salary_for(new, 1)
             p["value"] = bw.value_for(new, p["age"], p["potential"])
+        # The year's tier-two men are ranked among themselves and placed on
+        # 2026's own tier-two ruler (median 67, top 88). Rated through the
+        # tier-one ruler they came out too high: the South Asia and Oceania
+        # splits are enormous events whose leaders keep a thousand rounds,
+        # and the flat Challengers → VCT factor (measured on the men who got
+        # called up) leaves them at 88 — RNTX rated 78, a tier-one median club.
+        ref26_t2 = sorted(p["overall"] for p in world26["players"]
+                          if p.get("teamId") in {t["id"] for t in world26["teams"] if t["tier"] == 2})
+        t2_men = sorted((p for p in out_players if p.get("_t2")), key=lambda p: (p["overall"], p["vlr"]["rating"] or 0))
+        m2 = len(t2_men)
+        for i, p in enumerate(t2_men):
+            new = ref26_t2[min(len(ref26_t2) - 1, int(round(i / max(1, m2 - 1) * (len(ref26_t2) - 1))))] if ref26_t2 else p["overall"]
+            factor = new / max(1, p["overall"])
+            for k in bw.ATTRS:
+                p["attrs"][k] = int(bw.clamp(round(p["attrs"][k] * factor), 20, 99))
+            p["potential"] = int(bw.clamp(p["potential"] + (new - p["overall"]), new, 99))
+            p["overall"] = new
+            p["salary"] = bw.salary_for(new, 2)
+            p["value"] = bw.value_for(new, p["age"], p["potential"])
         for t in out_teams:
-            if t["tier"] != 1:
-                continue
             ovrs = sorted((p["overall"] for p in out_players if p["teamId"] == t["id"]), reverse=True)[:5]
+            if not ovrs:
+                continue
             t["rating"] = int(round(sum(ovrs) / len(ovrs)))
-            t["reputation"] = int(bw.clamp(t["rating"], 20, 99))
+            t["reputation"] = int(bw.clamp(round(t["rating"] * (1.0 if t["tier"] == 1 else 0.72)), 20, 99))
+        for p in out_players:
+            p.pop("_raw", None)
+            p.pop("_t2", None)
         med = mine[len(mine) // 2]["overall"]
         print(f"scale: tier-one overalls matched to 2026's distribution (median now {med}, 2026's {ref26[len(ref26) // 2]})")
 
+    print(f"coaches: {coached['liquipedia']} from Liquipedia cards, {coached['vlr']} from vlr staff pages, "
+          f"{sum(1 for t in out_teams if t['tier'] == 1 and not t['coach'])} tier-one clubs without one")
     t1 = [t for t in out_teams if t["tier"] == 1]
     by_region = defaultdict(int)
     for t in t1:
@@ -568,7 +751,7 @@ def main():
     }
     out = os.path.join(ROOT, "src", "data", f"world_{Y}.json")
     json.dump(world, open(out, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print(f"teams {len(out_teams)} (T1 {len(t1)}: {dict(by_region)}, T2 {len(out_teams) - len(t1)} placeholder)")
+    print(f"teams {len(out_teams)} (T1 {len(t1)}: {dict(by_region)}, T2 {len(out_teams) - len(t1)}: {t2_built} real, {len(out_teams) - len(t1) - t2_built} carried over from 2026)")
     print(f"players {len(out_players)} ({len(out_players) - t2_players} tier one, {issued_h} new H-ids, {t2_players} tier-two carried over)")
     top = sorted((p for p in out_players if p["teamId"] and any(t["id"] == p["teamId"] and t["tier"] == 1 for t in out_teams)), key=lambda p: -p["overall"])[:12]
     print("top: " + ", ".join(f"{p['ign']}({p['overall']})" for p in top))

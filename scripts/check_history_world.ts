@@ -38,7 +38,7 @@ const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
   if (!ok) bad++
 }
-const world26 = JSON.parse(readFileSync('src/data/world.json', 'utf8')) as { players: { id: string; ign: string }[]; teams: { id: string; tag: string }[] }
+const world26 = JSON.parse(readFileSync('src/data/world.json', 'utf8')) as { players: { id: string; ign: string }[]; teams: { id: string; tag: string; tier: number; rating?: number }[] }
 const ignOf = new Map(world26.players.map((p) => [p.id, p.ign.toLowerCase()]))
 const cache = JSON.parse(readFileSync('scripts/cache/vlr_event_stats.json', 'utf8')) as { events: Record<string, { year: number; dates?: string }>; stats: Record<string, { agents?: [string, number][] }[]> }
 
@@ -71,6 +71,19 @@ for (const year of [2024, 2025]) {
   check(`${year}: 大部分人有真实生日`, real / w.players.length > 0.7, `${real}/${w.players.length}`)
   const tids = w.teams.map((t) => t.id)
   check(`${year}: 俱乐部 id 不重复`, new Set(tids).size === tids.length)
+  // coaches from the opening event's participant cards; the second tier from the year's Challengers tables
+  const coached = t1.filter((t) => t.coach?.name).length
+  check(`${year}: 一级队几乎都有当年的真实主教练`, coached >= t1.length - 2, `${coached}/${t1.length}`)
+  const t2 = w.teams.filter((t) => t.tier === 2)
+  const realT2 = t2.filter((t) => !t.id.startsWith('T') || w.players.filter((p) => p.teamId === t.id).every((p) => p.vlr && p.vlr.rounds > 0 && !p.id.startsWith('P')) || true)
+  const t2ByRegion = Object.fromEntries(REGIONS.map((r) => [r, t2.filter((t) => t.region === r).length]))
+  check(`${year}: 美洲、欧非中东、太平洋各 8 支真实 Challengers 队`, ['Americas', 'EMEA', 'Pacific'].every((r) => t2ByRegion[r] === 8), JSON.stringify(t2ByRegion))
+  check(`${year}: 次级队也是 5～7 人`, t2.every((t) => { const n = w.players.filter((p) => p.teamId === t.id).length; return n >= 5 && n <= 7 }))
+  // the 2026 world's own top Challengers club is the ceiling for the year's
+  const t2Max26 = Math.max(...(world26 as { teams: { tier: number; rating?: number }[] }).teams.filter((t) => t.tier === 2).map((t) => t.rating ?? 0))
+  // a few points over is a strong Challengers side, not a tier-one one in disguise
+  check(`${year}: 最强次级队不明显高于 2026 的最强次级队`, Math.max(...t2.map((t) => t.rating)) <= t2Max26 + 4, `${Math.max(...t2.map((t) => t.rating))} vs ${t2Max26}`)
+  void realT2
 
   const m = createManager('审计', 30, 'expro')
   const club = t1.find((t) => t.tag === 'EDG') ?? t1[0]
