@@ -37,6 +37,8 @@ import { REGIONS } from './types'
 import { recordJoin, recordLeave, recordTitle } from './history'
 import { SEASON_DAYS } from './clock'
 import { tickDisputes } from './disputes'
+import { rulebookOf, stageAtIn, stagesOf } from './rulebook'
+import type { StageDef } from './rulebook'
 import { tickBirthdays } from './birthdays'
 import { tickLife } from './managerLife'
 import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, Tier } from './types'
@@ -88,12 +90,7 @@ export const LEAGUE_DAYS: Record<'kickoff' | 'stage1' | 'stage2' | 'challengers1
 /** Days between an international's last match and the next league's first. */
 export const BREAK_AFTER_INTERNATIONAL = 14
 
-export interface StageDef {
-  key: StageKey
-  name: string
-  start: number
-  end: number
-}
+export type { StageDef }
 
 export const STAGES: StageDef[] = [
   { key: 'preseason', name: '季前准备', start: 0, end: 20 },
@@ -119,8 +116,8 @@ export const INTERNATIONAL_OPEN: Record<'masters1' | 'masters2' | 'champions', n
 export const stageAt = (day: number): StageKey =>
   STAGES.find((s) => day >= s.start && day <= s.end)?.key ?? 'offseason'
 
-export const stageName = (key: StageKey): string =>
-  STAGES.find((s) => s.key === key)?.name ??
+export const stageName = (key: StageKey, state?: { rulesetId?: GameState['rulesetId'] }): string =>
+  (state ? stagesOf(state) : STAGES).find((s) => s.key === key)?.name ??
   ({ challengers1: 'Challengers 第一赛段', challengers2: 'Challengers 第二赛段', ascension: 'Ascension' } as Record<string, string>)[key] ??
   key
 
@@ -180,9 +177,27 @@ export function setupSeason(state: GameState, notes?: string[]): void {
   const rng = new Rng(hashStr(`season:${state.seed}:${state.year}`))
   resetDrawSeq(0)
 
+  const book = rulebookOf(state)
+  const LD = book.leagueDays
   for (const region of REGIONS) {
     const t1 = tier1Of(state, region)
     const t2 = tier2Of(state, region)
+
+    // ---- vct-2023: one league stage of a single round robin per region —
+    // China's is its domestic circuit, which fed Tokyo and Los Angeles
+    // through qualifiers rather than a league — the LCQ later, and LOCK//IN
+    // once for everyone below
+    if (book.lockin) {
+      const s1 = makeComp(state, 'stage1', region === 'China' ? '中国进化赛' : `VCT ${region} · 联赛`, t1, region, 1)
+      state.fixtures.push(...scheduleRegularSeason(s1, 'stage1', ...LD.stage1, 3, rng, '常规赛', Math.max(1, t1.length - 1)))
+      if (t2.length >= 2) {
+        const c1 = makeComp(state, 'challengers1', `Challengers ${region} · 第一赛段`, t2, region, 2)
+        state.fixtures.push(...scheduleRegularSeason(c1, 'challengers1', ...LD.challengers1, 3, rng, '常规赛'))
+        const c2 = makeComp(state, 'challengers2', `Challengers ${region} · 第二赛段`, t2, region, 2)
+        state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', ...LD.challengers2, 3, rng, '常规赛'))
+      }
+      continue
+    }
 
     // ---- vct-2026: Kickoff drawn as a twelve-team triple elimination; the
     // two stages are shells until their groups are drawn (see openStage1Draw)
@@ -226,7 +241,26 @@ export function setupSeason(state: GameState, notes?: string[]): void {
       state.fixtures.push(...scheduleRegularSeason(c2, 'challengers2', ...LEAGUE_DAYS.challengers2, 3, rng, '常规赛'))
     }
   }
+  if (book.lockin) createLockIn(state)
   seedMarket(state, notes)
+}
+
+/**
+ * LOCK//IN: every league side and the two strongest Chinese clubs in one
+ * single-elimination bracket, seeded by strength. startBracket already
+ * builds and advanceBracket already drives a 32-team knockout — 32强 to
+ * the final over five rounds, the final a BO5 — so the whole event is one
+ * competition in the Kickoff slot, region-less.
+ */
+function createLockIn(state: GameState): void {
+  const league = REGIONS.filter((r) => r !== 'China').flatMap((r) => tier1Of(state, r))
+  const china = tier1Of(state, 'China').slice(0, 2)
+  const field = [...league, ...china].sort((a, b) => (state.teams[b]?.rating ?? 0) - (state.teams[a]?.rating ?? 0))
+  if (field.length < 8) return
+  const comp = makeComp(state, 'kickoff', 'VCT LOCK//IN', field)
+  comp.city = '圣保罗'
+  comp.plannedStart = rulebookOf(state).leagueDays.kickoff[0]
+  state.fixtures.push(...startBracket(comp, field, 'kickoff', comp.plannedStart, 3))
 }
 
 export const PLAYOFF_CUT: Partial<Record<StageKey, number>> = {
@@ -246,6 +280,7 @@ const byPoints = (state: GameState) => (x: string, y: string) =>
  * Swiss, seeded so that round one crosses a second with a third.
  */
 export function mastersField(state: GameState, feeder: StageKey): { byes: string[]; swiss: string[] } {
+  if (rulebookOf(state).lockin) return mastersField2023(state)
   const byes: string[] = []
   const seconds: string[] = []
   const thirds: string[] = []
@@ -262,6 +297,68 @@ export function mastersField(state: GameState, feeder: StageKey): { byes: string
 }
 
 /**
+ * Masters Tokyo's twelve: the three league champions and the LOCK//IN
+ * winner (or, if he is also a league champion, his league's runner-up) go
+ * straight to the playoffs; the other two from each of the three leagues
+ * and the top two of China's domestic circuit open in the Swiss round —
+ * which is the 3/4/3/2 Tokyo actually had.
+ */
+function mastersField2023(state: GameState): { byes: string[]; swiss: string[] } {
+  const cmp = byPoints(state)
+  const leagues = REGIONS.filter((r) => r !== 'China')
+  const byes: string[] = []
+  const rest: string[] = []
+  for (const region of leagues) {
+    const comp = state.comps[compKey('stage1', region)]
+    if (!comp?.finished.length) continue
+    const [a, b, c] = comp.finished
+    if (a) byes.push(a)
+    if (b) rest.push(b)
+    if (c) rest.push(c)
+  }
+  const lockin = state.comps.kickoff?.champion
+  if (lockin && !byes.includes(lockin)) {
+    byes.push(lockin)
+    const i = rest.indexOf(lockin)
+    if (i >= 0) rest.splice(i, 1)
+  } else if (lockin) {
+    const region = state.teams[lockin]?.region
+    const comp = region ? state.comps[compKey('stage1', region)] : undefined
+    const fourth = comp?.finished[3]
+    if (fourth) rest.push(fourth)
+  }
+  const cn = state.comps[compKey('stage1', 'China')]
+  for (const t of (cn?.finished ?? []).slice(0, 2)) rest.push(t)
+  while (byes.length > 4) rest.unshift(byes.pop()!)
+  return { byes: byes.sort(cmp), swiss: rest.sort(cmp).slice(0, 8) }
+}
+
+/**
+ * The LCQs: in each league, the sides not already through to Champions —
+ * everyone but the top three on the year's points — in one knockout; in
+ * China, every club of the domestic circuit for the three Champions places.
+ * Both live in the Stage 2 slot, so points, prizes and the schedule read
+ * them as the stage they are.
+ */
+function createLcqs(state: GameState, day: number): void {
+  for (const region of REGIONS) {
+    const key = compKey('stage2', region)
+    if (state.comps[key]) continue
+    const all = tier1Of(state, region)
+    const through = region === 'China' ? [] : all.slice().sort(byPoints(state)).slice(0, 3)
+    const field = all.filter((t) => !through.includes(t)).sort(byPoints(state))
+    if (field.length < 2) continue
+    const comp = makeComp(state, 'stage2', region === 'China' ? '冠军赛中国资格赛' : `${region} LCQ`, field, region, 1)
+    comp.plannedStart = day
+    state.fixtures.push(...startBracket(comp, field, 'stage2', day, 3))
+    state.news.push({
+      day: state.day, kind: 'league', important: region === state.teams[state.myTeam]?.region,
+      text: `${comp.name}名单：${field.map((t) => state.teams[t]?.name).join('、')}${region === 'China' ? '，前三名去 Champions。' : '，冠军拿最后一个 Champions 名额。'}`,
+    })
+  }
+}
+
+/**
  * Champions' sixteen, per region and best first: the Stage 2 playoff's top
  * two go straight in, then the two highest on the season's points among the
  * rest. Callable before Stage 2 ends — the qualification panel asks it who
@@ -269,6 +366,30 @@ export function mastersField(state: GameState, feeder: StageKey): { byes: string
  */
 export function championsField(state: GameState): Record<Region, string[]> {
   const out = {} as Record<Region, string[]>
+  if (rulebookOf(state).lockin) {
+    // 2023: three on the year's points and the LCQ winner from each league,
+    // the qualifier's top three from China, and one more for the Tokyo
+    // champion's league — sixteen
+    const tokyo = state.comps.masters2?.champion
+    for (const region of REGIONS) {
+      const all = tier1Of(state, region)
+      const lcq = state.comps[compKey('stage2', region)]
+      if (region === 'China') {
+        out[region] = (lcq?.finished ?? []).slice(0, 3)
+        continue
+      }
+      const direct = all.slice().sort(byPoints(state)).slice(0, 3)
+      const winner = lcq?.champion
+      const list = [...direct]
+      if (winner && !list.includes(winner)) list.push(winner)
+      if (tokyo && state.teams[tokyo]?.region === region) {
+        const extra = all.slice().sort(byPoints(state)).find((t) => !list.includes(t))
+        if (extra) list.push(extra)
+      }
+      out[region] = list
+    }
+    return out
+  }
   for (const region of REGIONS) {
     const s2 = state.comps[compKey('stage2', region)]
     const direct = (s2?.finished ?? []).slice(0, 2)
@@ -314,8 +435,16 @@ function createChampions(state: GameState, name: string, day: number): void {
   // Champions opened 美洲一号 vs 中国四号 and EMEA vs 太平洋. Seed order now,
   // so the opener is the 1v4 and 2v3 a GSL group is supposed to be.
   const square = championsGroupSquare(new Rng(hashStr(`champions:${state.seed}:${state.year}:groups`)))
-  const groups = square.map((row) =>
+  let groups = square.map((row) =>
     row.map((r, seed) => field[REGIONS[r]][seed]).filter((t): t is string => !!t))
+  if (REGIONS.some((r) => field[r].length !== 4)) {
+    // an uneven field (2023: 4/5/4/3) is laid out by seed — the sixteen on
+    // the year's points, snaked into four groups
+    const flat = REGIONS.flatMap((r) => field[r]).sort(byPoints(state)).slice(0, 16)
+    groups = [[], [], [], []]
+    flat.forEach((t, i) => { const g = Math.floor(i / 4) % 2 === 0 ? i % 4 : 3 - (i % 4); groups[g].push(t) })
+    groups = groups.filter((g) => g.length)
+  }
   const all = groups.flat()
   if (all.length < 8) return
   const comp = makeComp(state, 'champions', name, all)
@@ -400,7 +529,8 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
 
   awardPrize(state, comp.stage, comp.finished)
 
-  const pts = CHAMP_POINTS[comp.stage]
+  // the LCQ is a door, not a stage: no points for it
+  const pts = rulebookOf(state).lockin && comp.stage === 'stage2' ? undefined : CHAMP_POINTS[comp.stage]
   if (pts) {
     comp.finished.forEach((teamId, i) => {
       const t = state.teams[teamId]
@@ -917,14 +1047,27 @@ function progressCompetitions(state: GameState, notes: string[] = [], autoPick =
   }
 
   // international events unlock as their feeder stages conclude
+  const book = rulebookOf(state)
+  const OPEN = book.internationalOpen
+  if (book.lockin) {
+    // 2023: the leagues feed Tokyo; Tokyo done, the LCQs and China's
+    // qualifier are drawn among the sides not yet through; those done,
+    // Champions
+    const s1Done = REGIONS.every((r) => state.comps[compKey('stage1', r)]?.champion)
+    if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, OPEN.masters2))
+    if (state.comps.masters2?.champion) createLcqs(state, Math.max(state.day + 3, book.leagueDays.stage2[0]))
+    const lcqDone = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
+    if (lcqDone) createChampions(state, CHAMPIONS, Math.max(state.day + 4, OPEN.champions))
+    return
+  }
   const kickoffDone = REGIONS.every((r) => state.comps[compKey('kickoff', r)]?.champion)
-  if (kickoffDone) createMasters(state, 'masters1', MASTERS_1, 'kickoff', Math.max(state.day + 3, INTERNATIONAL_OPEN.masters1))
+  if (kickoffDone) createMasters(state, 'masters1', MASTERS_1, 'kickoff', Math.max(state.day + 3, OPEN.masters1))
 
   const s1Done = REGIONS.every((r) => state.comps[compKey('stage1', r)]?.champion)
-  if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, INTERNATIONAL_OPEN.masters2))
+  if (s1Done) createMasters(state, 'masters2', MASTERS_2, 'stage1', Math.max(state.day + 3, OPEN.masters2))
 
   const s2Done = REGIONS.every((r) => state.comps[compKey('stage2', r)]?.champion)
-  if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, INTERNATIONAL_OPEN.champions))
+  if (s2Done) createChampions(state, CHAMPIONS, Math.max(state.day + 4, OPEN.champions))
 }
 
 /**
@@ -955,7 +1098,7 @@ function keepBreaks(state: GameState): void {
       const rr = state.fixtures.filter((f) =>
         f.comp === compKey(next, region) && !f.played && !f.label.startsWith('KO:'))
       if (!rr.length || Math.min(...rr.map((f) => f.day)) >= floor) continue
-      respaceRounds(rr, floor, Math.max(floor, LEAGUE_DAYS[next][1]))
+      respaceRounds(rr, floor, Math.max(floor, rulebookOf(state).leagueDays[next][1]))
     }
   }
 }
@@ -989,6 +1132,8 @@ const JUDGED: StageKey[] = ['kickoff', 'stage1', 'stage2']
 function judgedCompKey(state: GameState, stage: StageKey): string | null {
   const me = state.teams[state.myTeam]
   if (!me) return null
+  // 2023: a 32-team bracket and a qualifier are not a table to be judged on
+  if (rulebookOf(state).lockin && stage !== 'stage1') return null
   if (me.tier === 1) return `${stage}:${me.region}`
   // the two Challengers splits conclude around Stage 1 and Stage 2
   if (stage === 'stage1') return `challengers1:${me.region}`
@@ -1758,7 +1903,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   tickDisputes(state, notes)
   tickLife(state, notes)
 
-  state.stage = stageAt(state.day)
+  state.stage = stageAtIn(state, state.day)
   const stageChanged = state.stage !== prevStage
   if (stageChanged) {
     notes.push(`—— 进入 ${stageName(state.stage)} ——`)

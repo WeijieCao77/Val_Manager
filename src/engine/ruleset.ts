@@ -21,11 +21,12 @@
  */
 import type { GameState } from './types'
 
-export type RulesetId = 'vct-2025' | 'vct-2026'
+export type RulesetId = 'vct-2025' | 'vct-2026' | 'vct-2023'
 
 export const RULESET_CN: Record<RulesetId, string> = {
   'vct-2025': '经典赛制',
   'vct-2026': 'VCT 2026 赛制（抽签版）',
+  'vct-2023': 'VCT 2023 赛制（LOCK//IN、单赛段、东京 Masters、LCQ）',
 }
 
 export const rulesetOf = (state: Pick<GameState, 'rulesetId'>): RulesetId => state.rulesetId ?? 'vct-2025'

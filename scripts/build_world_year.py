@@ -78,12 +78,23 @@ def load(path, default):
 
 
 def opening_events(cache, year):
-    """The events whose rosters define the season's start: the Kickoffs."""
+    """The events whose rosters define the season's start: the Kickoffs —
+    or, in 2023, the three leagues and China's Champions qualifier (the
+    domestic circuit's field, the closest thing to a Chinese league that
+    year; the ten with the most rounds are its tier one)."""
     out = []
     for eid, ev in cache["events"].items():
         if ev.get("year") != year:
             continue
         slug = ev.get("slug", "")
+        if year == 2023:
+            if slug.endswith("-league"):
+                region = next((v for k, v in REGION_OF.items() if k in slug), None)
+                if region:
+                    out.append((eid, ev, region))
+            elif "champions-china-qualifier" in slug:
+                out.append((eid, ev, "China"))
+            continue
         if ev.get("tier") == "kickoff":
             region = next((v for k, v in REGION_OF.items() if k in slug), None)
             if region:
@@ -189,6 +200,15 @@ def main():
             cur = r["rows"].get(row["ign"].lower())
             if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
                 r["rows"][row["ign"].lower()] = row
+    if Y == 2023:
+        # ten a league: China's tier one is the ten clubs of the qualifier
+        # with the most rounds, and a league page that lists a stand-in
+        # side or two keeps its ten regulars the same way
+        for region in ("Americas", "EMEA", "Pacific", "China"):
+            cn = [(tag, r) for tag, r in rosters.items() if r["region"] == region]
+            cn.sort(key=lambda x: -sum((row.get("rnd") or 0) for row in x[1]["rows"].values()))
+            for tag, _ in cn[10:]:
+                del rosters[tag]
     print(f"{Y}: {len(opening)} opening events, {len(rosters)} clubs")
 
     # ---- evidence: every line before the season, per player
@@ -313,9 +333,10 @@ def main():
                 line = aggregate(k, fallback_rows=[row])
                 line["rookie"] = True
                 rookies += 1
-            if r.get("sub"):
+            if r.get("sub") or (Y == 2023 and r["region"] == "China"):
                 # a Challengers line is a Challengers line: translated like the
-                # sub-tier events above, whichever year it came from
+                # sub-tier events above, whichever year it came from; so is a
+                # 2023 Chinese club's, whose only evidence is the qualifier
                 if line.get("rookie"):
                     for key, f in bw.SUBTIER_TO_VCT.items():
                         if line.get(key) is not None:

@@ -10,6 +10,7 @@
  * Pure: reads the state, writes nothing.
  */
 import { INTERNATIONAL_OPEN, PLAYOFF_CUT, championsField, compKey, mastersField } from './season'
+import { rulebookOf } from './rulebook'
 import { drawRules } from './ruleset'
 import { sortStandings } from './league'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from './endings'
@@ -132,16 +133,17 @@ export interface Upcoming {
 export function upcomingInternational(state: GameState): Upcoming | null {
   const me = state.teams[state.myTeam]
   if (!me || me.tier !== 1) return null
+  const book = rulebookOf(state)
   const order: { key: 'masters1' | 'masters2' | 'champions'; feeder: StageKey; name: string }[] = [
     { key: 'masters1', feeder: 'kickoff', name: MASTERS_1 },
     { key: 'masters2', feeder: 'stage1', name: MASTERS_2 },
     { key: 'champions', feeder: 'stage2', name: CHAMPIONS },
-  ]
+  ].filter((e) => !(book.lockin && e.key === 'masters1')) as { key: 'masters1' | 'masters2' | 'champions'; feeder: StageKey; name: string }[]
   for (const ev of order) {
     if (state.comps[ev.key]) continue
     const feeder = state.comps[compKey(ev.feeder, me.region)]
     if (!feeder) continue
-    const start = Math.max(state.day + 3, INTERNATIONAL_START[ev.key])
+    const start = Math.max(state.day + 3, book.internationalOpen[ev.key])
     if (!feeder.champion) {
       // The stage is still running, but a place can already be sealed: a
       // side beaten in the lower final is third whatever the final says.

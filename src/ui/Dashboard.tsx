@@ -9,7 +9,8 @@ import { useGame } from './ctx'
 import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName, STAGES } from '../engine/season'
+import { advanceDay, advanceToNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName } from '../engine/season'
+import { stagesOf } from '../engine/rulebook'
 import { nextInEvent, upcomingInternational } from '../engine/qualify'
 import type { ScrimFormat } from '../engine/season'
 import { poolFor } from '../engine/match'
@@ -167,7 +168,7 @@ export default function Dashboard() {
 
   const starters = me.starters.map((id) => game.players[id]).filter(Boolean)
   const agenda = agendaFor(game)
-  const stageDef = STAGES.find((x) => x.key === game.stage)
+  const stageDef = stagesOf(game).find((x) => x.key === game.stage)
   // counted the same way the transfer window counts, today included: two
   // panels giving 20 and 21 for the same span reads like a lost turn
   const daysLeft = stageDef ? stageDef.end - game.day + 1 : 0

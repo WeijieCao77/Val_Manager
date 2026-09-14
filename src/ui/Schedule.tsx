@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useGame } from './ctx'
 import { Panel, fmtDay, Crest } from './common'
-import { STAGES, fixturesFor, stageName } from '../engine/season'
-import { INTERNATIONAL_START, eventRounds, nextInEvent, upcomingInternational } from '../engine/qualify'
+import { fixturesFor, stageName } from '../engine/season'
+import { rulebookOf, stagesOf } from '../engine/rulebook'
+import {  eventRounds, nextInEvent, upcomingInternational } from '../engine/qualify'
 import { hostCity } from '../engine/hosts'
 import { CHAMPIONS, MASTERS_1, MASTERS_2 } from '../engine/endings'
 import { REGIONS, REGION_CN } from '../engine/types'
@@ -46,12 +47,16 @@ interface Row {
 
 interface Group { key: string; title: string; day: number; dim?: boolean; note?: string; rows: Row[] }
 
-const INTL: { key: 'masters1' | 'masters2' | 'champions'; name: string }[] = [
+const INTL_ALL: { key: 'masters1' | 'masters2' | 'champions'; name: string }[] = [
   { key: 'masters1', name: MASTERS_1 }, { key: 'masters2', name: MASTERS_2 }, { key: 'champions', name: CHAMPIONS },
 ]
 
 export default function Schedule() {
   const { game, openMatch } = useGame()
+  // 2023 has no Masters I; its Masters is in the second slot and its LCQ in Stage 2's
+  const book = rulebookOf(game)
+  const INTL = INTL_ALL.filter((e) => !(book.lockin && e.key === 'masters1'))
+  const INTERNATIONAL_START = book.internationalOpen
   const [scope, setScope] = useState<'mine' | 'all'>('mine')
   const [region, setRegion] = useState<Region | 'all'>('all')
   const me = game.myTeam
@@ -180,7 +185,7 @@ export default function Schedule() {
     <>
       <Panel title="赛季日历">
         <div className="row wrap" style={{ gap: 6 }}>
-          {STAGES.map((s) => {
+          {stagesOf(game).map((s) => {
             const active = game.stage === s.key
             const done = game.day > s.end
             return (

@@ -24,7 +24,7 @@
 import type { RawTeam } from './teams'
 import type { RawPlayer } from './world'
 
-export const HISTORICAL_YEARS = [2024, 2025] as const
+export const HISTORICAL_YEARS = [2023, 2024, 2025] as const
 export type StartYear = (typeof HISTORICAL_YEARS)[number] | 2026
 export const DEFAULT_START_YEAR = 2026
 
@@ -35,6 +35,7 @@ export interface RawWorld {
 }
 
 export async function loadWorld(year: number): Promise<RawWorld | null> {
+  if (year === 2023) return (await import('../data/world_2023.json')).default as unknown as RawWorld
   if (year === 2024) return (await import('../data/world_2024.json')).default as unknown as RawWorld
   if (year === 2025) return (await import('../data/world_2025.json')).default as unknown as RawWorld
   return null
@@ -50,6 +51,7 @@ export const midYearOf = (s: { startYear?: number }): number => startYearOf(s) +
 export const finalYearOf = (s: { startYear?: number }): number => startYearOf(s) + 10
 
 export const ERA_CN: Record<number, string> = {
+  2023: '2023 赛季起 · 历史生涯档（LOCK//IN、单赛段联赛、东京 Masters、LCQ）',
   2024: '2024 赛季起 · 历史生涯档',
   2025: '2025 赛季起 · 历史生涯档',
   2026: '2026 赛季起',

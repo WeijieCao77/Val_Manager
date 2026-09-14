@@ -2614,5 +2614,359 @@
   "real": "Soumyadeep Dey",
   "country": "India",
   "page": true
+ },
+ "balua": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "Link": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "DaveeyS": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "MOJJ": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "Clutch_Fi": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "RazzieBinx": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "AYRIN": {
+  "birth": "1996-04-04",
+  "real": "Jordan He",
+  "country": "Canada",
+  "page": true
+ },
+ "AsLanM4shadoW": {
+  "birth": "1994-04-21",
+  "real": "Ali Osman Balta",
+  "country": "Turkey",
+  "page": true
+ },
+ "axeddy": {
+  "birth": "2003-06-11",
+  "real": "Carlos Alberto",
+  "country": "Brazil",
+  "page": true
+ },
+ "BONECOLD": {
+  "birth": "1998-10-13",
+  "real": "Santeri Heikki Juhani Sassi",
+  "country": "Finland",
+  "page": true
+ },
+ "Bazzi": {
+  "birth": "1999-03-24",
+  "real": "박준기",
+  "country": "South Korea",
+  "page": true
+ },
+ "BcJ": {
+  "birth": "2000-07-04",
+  "real": "Brendan Jensen",
+  "country": "United States",
+  "page": true
+ },
+ "Bunny": {
+  "birth": "1998-04-14",
+  "real": "Garrett Molle",
+  "country": "United States",
+  "page": true
+ },
+ "Core": {
+  "birth": null,
+  "real": "Adnan Dzinic",
+  "country": "Bosnia and Herzegovina",
+  "page": true
+ },
+ "crow": {
+  "birth": "1997-11-28",
+  "real": "丸岡 智明",
+  "country": "Japan",
+  "page": true
+ },
+ "Cyah": {
+  "birth": "2003-03-27",
+  "real": "鄧恩平",
+  "country": "Hong Kong",
+  "page": true
+ },
+ "dephh": {
+  "birth": "1991-12-23",
+  "real": "Rory Jackson",
+  "country": "United Kingdom",
+  "page": true
+ },
+ "Harmii": {
+  "birth": null,
+  "real": "Nico Harms",
+  "country": "Germany",
+  "page": true
+ },
+ "iNTRO": {
+  "birth": "2002-02-02",
+  "real": "강승균",
+  "country": "South Korea",
+  "page": true
+ },
+ "Ichiro": {
+  "birth": "2001-10-08",
+  "real": "Илья Коробушкин",
+  "country": "Belarus",
+  "page": true
+ },
+ "keloqz": {
+  "birth": "2003-03-26",
+  "real": "Wassim Cista",
+  "country": "France",
+  "page": true
+ },
+ "koldamenta": {
+  "birth": "1993-05-24",
+  "real": "José Luis Aranguren Herrero",
+  "country": "Spain",
+  "page": true
+ },
+ "maizi": {
+  "birth": "2000-07-30",
+  "real": "沈翔鹏",
+  "country": "China",
+  "page": true
+ },
+ "Mixwell": {
+  "birth": "1995-10-10",
+  "real": "Óscar Cañellas",
+  "country": "Spain",
+  "page": true
+ },
+ "Muj": {
+  "birth": "2001-10-24",
+  "real": "Serhat Yüksel",
+  "country": "Turkey",
+  "page": true
+ },
+ "Newzera": {
+  "birth": null,
+  "real": "Alexis Humbert",
+  "country": "France",
+  "page": true
+ },
+ "Nivera": {
+  "birth": "2001-06-10",
+  "real": "Nabil Benrlitom",
+  "country": "Belgium",
+  "page": true
+ },
+ "PAULTATO": {
+  "birth": null,
+  "real": "杨为盛",
+  "country": "Taiwan",
+  "page": true
+ },
+ "qw1": {
+  "birth": "2002-06-10",
+  "real": "Konuralp Şahin",
+  "country": "Turkey",
+  "page": true
+ },
+ "rhyme": {
+  "birth": "1999-01-12",
+  "real": "Emir Muminovic",
+  "country": "Norway",
+  "page": true
+ },
+ "runi": {
+  "birth": "1999-01-19",
+  "real": "Dylan Cade",
+  "country": "United States",
+  "page": true
+ },
+ "ScreaM": {
+  "birth": "1994-07-02",
+  "real": "Adil Benrlitom",
+  "country": "Belgium",
+  "page": true
+ },
+ "SouhcNi": {
+  "birth": "1999-11-23",
+  "real": "İbrahim Sağır",
+  "country": "Turkey",
+  "page": true
+ },
+ "SuperBusS": {
+  "birth": "1996-07-14",
+  "real": "Nattawat Yoosawat",
+  "country": "Thailand",
+  "page": true
+ },
+ "suyjing": {
+  "birth": "2003-04-01",
+  "real": "王斯澄",
+  "country": "China",
+  "page": true
+ },
+ "TENNN": {
+  "birth": "2001-10-19",
+  "real": null,
+  "country": "Japan",
+  "page": true
+ },
+ "Tacolilla": {
+  "birth": "2000-10-03",
+  "real": "Vicente Compagnon",
+  "country": "Chile",
+  "page": true
+ },
+ "Turko": {
+  "birth": "1999-01-15",
+  "real": "Mehmet Özen",
+  "country": "Turkey",
+  "page": true
+ },
+ "Twisten": {
+  "birth": "2003-12-04",
+  "real": "Karel Ašenbrener",
+  "country": "Czech Republic",
+  "page": true
+ },
+ "WRONSKI": {
+  "birth": null,
+  "real": "Michael Wronski",
+  "country": "Australia",
+  "page": true
+ },
+ "weber": {
+  "birth": "1993-12-08",
+  "real": "Brandon William Weber",
+  "country": "United Kingdom",
+  "page": true
+ },
+ "xeta": {
+  "birth": "1997-06-03",
+  "real": "손선호",
+  "country": "South Korea",
+  "page": true
+ },
+ "xms": {
+  "birth": "1997-05-24",
+  "real": "Alexandre Forté",
+  "country": "France",
+  "page": true
+ },
+ "xnfri": {
+  "birth": "1999-03-09",
+  "real": null,
+  "country": "Japan",
+  "page": true
+ },
+ "ZE1SH": {
+  "birth": "1999-06-26",
+  "real": "Ahmed El Sheikh",
+  "country": "Egypt",
+  "page": true
+ },
+ "Zeno": {
+  "birth": "2000-03-28",
+  "real": "余智竣",
+  "country": "Singapore",
+  "page": true
+ },
+ "Zest": {
+  "birth": "2000-12-27",
+  "real": "김기석",
+  "country": "South Korea",
+  "page": true
+ },
+ "Cgrs": {
+  "birth": "1996-07-04",
+  "real": "ปฏิภาณ โพธิ์ศรี",
+  "country": "Thailand",
+  "page": true
+ },
+ "DK": {
+  "birth": "1998-05-18",
+  "real": "李乐炜",
+  "country": "China",
+  "page": true
+ },
+ "TxoziN": {
+  "birth": null,
+  "real": "André Rafael Max Saidel",
+  "country": "Brazil",
+  "page": true
+ },
+ "DubsteP": {
+  "birth": "1992-09-21",
+  "real": "Jayvee Paguirigan",
+  "country": "Philippines",
+  "page": true
+ },
+ "EJAY": {
+  "birth": null,
+  "real": "Eroll Jule R. Delfin",
+  "country": "Philippines",
+  "page": true
+ },
+ "GodDead": {
+  "birth": "1998-01-09",
+  "real": "김성신",
+  "country": "South Korea",
+  "page": true
+ },
+ "Patiphan": {
+  "birth": "2003-09-03",
+  "real": "ปฏิภาณ ไชยวงษ์",
+  "country": "Thailand",
+  "page": true
+ },
+ "Reita": {
+  "birth": "1994-12-11",
+  "real": "Ryumon Oshiro",
+  "country": "Japan",
+  "page": true
+ },
+ "Suggest": {
+  "birth": "2002-09-30",
+  "real": "서재영",
+  "country": "South Korea",
+  "page": true
+ },
+ "TS": {
+  "birth": "1995-02-25",
+  "real": "유태석",
+  "country": "South Korea",
+  "page": true
+ },
+ "takej": {
+  "birth": "2000-12-17",
+  "real": "竹森 祥悟",
+  "country": "Japan",
+  "page": true
+ },
+ "YuRiHaNa": {
+  "birth": "2005-03-26",
+  "real": "강진주",
+  "country": "South Korea",
+  "page": true
  }
 }

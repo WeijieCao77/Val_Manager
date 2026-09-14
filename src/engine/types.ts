@@ -856,7 +856,7 @@ export interface GameState {
   /** the world's caller data this save has been brought up to — see syncCallersWithWorld */
   callerSync?: string
   /** which rulebook this career plays by — see engine/ruleset.ts; absent is vct-2025 */
-  rulesetId?: 'vct-2025' | 'vct-2026'
+  rulesetId?: 'vct-2025' | 'vct-2026' | 'vct-2023'
   /** every draw held in this career — see engine/draw.ts */
   draws?: import('./draw').DrawEvent[]
   /** a draw the manager has to hold — reveal or skip, or pick — before the clock moves */

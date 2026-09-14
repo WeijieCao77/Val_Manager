@@ -4,7 +4,8 @@ import { Face, OvrBadge, Panel, Crest } from './common'
 import Bracket from './Bracket'
 import { groupTable, sortStandings } from '../engine/league'
 import { DRAW_KIND_CN, drawsOf } from '../engine/draw'
-import { PLAYOFF_CUT, STAGES } from '../engine/season'
+import { PLAYOFF_CUT } from '../engine/season'
+import { stagesOf } from '../engine/rulebook'
 import { POINTS_NOTE, qualification } from '../engine/qualify'
 import { ratingOf } from '../engine/match'
 import { statLine } from '../engine/player'
@@ -102,7 +103,7 @@ export default function Standings() {
   }
   // calendar position; the two Challengers splits straddle Stage 1 and Stage 2
   const order = (c: Competition): number => {
-    const i = STAGES.findIndex((s) => s.key === c.stage)
+    const i = stagesOf(game).findIndex((s) => s.key === c.stage)
     if (i >= 0) return i
     return c.stage === 'challengers1' ? 3.5 : c.stage === 'challengers2' ? 5.5 : 9
   }

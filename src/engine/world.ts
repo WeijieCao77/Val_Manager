@@ -288,7 +288,7 @@ export function createNewGame(
     lastResults: [],
     boardConfidence: 62,
     // a past season plays the classic rulebook, which is that circuit's shape
-    rulesetId: startYear < 2026 ? 'vct-2025' : currentRuleset(),
+    rulesetId: startYear === 2023 ? 'vct-2023' : startYear < 2026 ? 'vct-2025' : currentRuleset(),
     birthdays: [],
     disputes: [],
   }
