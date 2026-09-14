@@ -1809,14 +1809,15 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
     // rankings. Pinned to the absolute table instead, the final was the best
     // club on earth whoever entered, so a new account went 0 for 100 and the
     // cup was a tax on not having a finished collection. The climb runs from
-    // eight below the five to eight above it whatever the depth, so a longer
+    // nine below the five to seven above it whatever the depth. This slightly
+    // eases the locked-lineup cup throughout its rounds; a longer
     // bracket is more matches, not a harder final.
     //
     // Drawn from the six clubs nearest the target, never from the whole
     // table: the first version took "within five points" and, when nobody
     // was, any club on earth — which is how a squad in the sixties drew LOUD
     // in the quarters, Heretics in the semi, and a 66 in the final.
-    const target = squadRating - 8 + (16 / (rounds - 1)) * round
+    const target = squadRating - 9 + (16 / (rounds - 1)) * round
     const near = sorted
       .filter((t) => !taken.has(t.id))
       .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target))

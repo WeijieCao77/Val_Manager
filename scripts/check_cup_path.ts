@@ -12,6 +12,7 @@
  */
 import { newGacha, enterCup, STAMINA_MAX } from '../src/engine/gacha'
 import { WORLD_TEAMS } from '../src/engine/teams'
+import { Rng, hashStr } from '../src/engine/rng'
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -48,11 +49,11 @@ for (let squad = 40; squad <= 96; squad += 4) {
     if (rs.some((r, k) => k > 0 && r < rs[k - 1])) notClimbing++
     if (rs[rs.length - 1] !== Math.max(...rs)) finalNotTop++
     if (new Set(cup.path).size !== cup.path.length) repeats++
-    // the climb is squad−8 … squad+8, clamped to the world's own range — a
+    // the climb is squad−9 … squad+7, clamped to the world's own range — a
     // squad below the weakest club plays the weakest clubs — and the six
     // nearest can sit a few points off the exact target
-    const lo = Math.min(Math.min(Math.max(lowest, squad - 8), highest) - 6, ceilingBand)
-    const hi = Math.max(Math.max(Math.min(highest, squad + 8), lowest) + 6, floorBand)
+    const lo = Math.min(Math.min(Math.max(lowest, squad - 9), highest) - 6, ceilingBand)
+    const hi = Math.max(Math.max(Math.min(highest, squad + 7), lowest) + 6, floorBand)
     if (rs.some((r) => r < lo || r > hi)) farOff++
     if (example.length < 4 && i === 0) example.push(`${squad}: ${rs.join(' → ')}`)
   }
@@ -63,5 +64,43 @@ check('一支队不会在同一张签表出现两次', repeats === 0, `${repeats
 check('整张签表都在阵容分附近，不会抽到全世界最强', farOff === 0, `${farOff} 张跑远了`)
 check('3～5 轮都抽得到', !!depths[3] && !!depths[4] && !!depths[5], JSON.stringify(depths))
 console.log('  例：' + example.join(' | '))
+
+// Historical draw oracle: compare the same RNG stream against the old curve,
+// including depth odds and the six-nearest, without-replacement selection.
+function previousDraw(seed: number, score: number) {
+  const rng = new Rng(seed)
+  rng.next()
+  const dice = rng.next()
+  const rounds = dice < .35 ? 3 : dice < .75 ? 4 : 5
+  const sorted = WORLD_TEAMS.slice().sort((a, b) => a.rating - b.rating)
+  const path: string[] = []
+  for (let i = 0; i < rounds; i++) {
+    const target = score - 8 + 16 * i / (rounds - 1)
+    const near = sorted.filter(t => !path.includes(t.id))
+      .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target)).slice(0, 6)
+    path.push(rng.pick(near).id)
+  }
+  return path.sort((a, b) => ratingOf.get(a)! - ratingOf.get(b)!)
+}
+let sameDepth = true, delta = 0, compared = 0
+for (const score of [65, 73, 80]) {
+  for (let i = 0; i < 200; i++) {
+    const seed = hashStr(`cup-easing-draw:${score}:${i}`)
+    const old = previousDraw(seed, score)
+    g.cup = null; g.seed = seed; g.daily.stamina = STAMINA_MAX
+    const current = enterCup(g, score, now)
+    sameDepth &&= current.path.length === old.length
+    delta += old.reduce((s, id) => s + ratingOf.get(id)!, 0) / old.length
+      - current.path.reduce((s, id) => s + ratingOf.get(id)!, 0) / current.path.length
+    compared++
+  }
+}
+check('同一种子保留原来的杯赛轮数', sameDepth)
+check('中低档签表平均小幅降低，未变成大幅降难', delta / compared > .3 && delta / compared < 1.7, `平均降低 ${(delta / compared).toFixed(2)} 分`)
+// An already paid-for old bracket must not be re-drawn or charged again.
+g.cup = { path: previousDraw(12345, 73), round: 0, legs: [], done: false, won: false, entry: 0 }
+const oldState = JSON.stringify(g)
+enterCup(g, 107, now)
+check('旧杯赛重复报名保留签表、种子和体力', JSON.stringify(g) === oldState)
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
 process.exit(bad ? 1 : 0)
