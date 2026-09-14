@@ -13,6 +13,7 @@ import { Bar, Face, Panel, RoleTag } from './common'
 import { buildLineup, poolFor, selectLineup, sheetFor } from '../engine/match'
 import { familiarity } from '../engine/comp'
 import { MAPS, mapCn } from '../engine/content'
+import { mapReleased } from '../engine/eras'
 import MapPlan, { StyleTag } from './MapPlan'
 import TacticSliders from './TacticSliders'
 import { PatchPanel } from './PatchNotes'
@@ -106,7 +107,7 @@ export default function Tactics() {
               </tr>
             </thead>
             <tbody>
-              {MAPS.map((m) => {
+              {MAPS.filter((m) => pool.includes(m) || mapReleased(game, m)).map((m) => {
                 const v = Math.round(me.mapPrefs[m] ?? 50)
                 const inPool = pool.includes(m)
                 const sheet = sheetFor(game, game.myTeam, m)

@@ -201,12 +201,19 @@ def main():
             if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
                 r["rows"][row["ign"].lower()] = row
     if Y == 2023:
-        # ten a league: China's tier one is the ten clubs of the qualifier
-        # with the most rounds, and a league page that lists a stand-in
-        # side or two keeps its ten regulars the same way
+        # ten a league. China had no league that year, so its tier one is the
+        # qualifier's field: first the clubs China sent abroad (EDG and FPX to
+        # LOCK//IN, EDG and ASE to Tokyo, EDG and BLG to Los Angeles), then the
+        # most rounds. By rounds alone EDG was thirteenth — a club at Masters
+        # plays fewer qualifier rounds — and was left out of its own year. A
+        # league page that lists a stand-in side or two keeps its ten regulars
+        # the same way.
+        abroad = {row.get("club") for eid, ev in cache["events"].items()
+                  if ev.get("year") == 2023 and (ev.get("tier") in ("masters", "champions") or "lock-in" in str(ev.get("slug") or ""))
+                  for row in cache["stats"].get(eid, [])}
         for region in ("Americas", "EMEA", "Pacific", "China"):
             cn = [(tag, r) for tag, r in rosters.items() if r["region"] == region]
-            cn.sort(key=lambda x: -sum((row.get("rnd") or 0) for row in x[1]["rows"].values()))
+            cn.sort(key=lambda x: (region == "China" and x[0] not in abroad, -sum((row.get("rnd") or 0) for row in x[1]["rows"].values())))
             for tag, _ in cn[10:]:
                 del rosters[tag]
     print(f"{Y}: {len(opening)} opening events, {len(rosters)} clubs")
@@ -274,9 +281,9 @@ def main():
     # Challengers league of the year. A club needs five men with thirty rounds
     # in it; the eight strongest per region (top-five mean rating, weighted
     # by rounds) make the tier-two league, which is the 2026 world's shape.
-    # China has no Challengers table on vlr: 2024 uses the clubs of the 2023
-    # Champions China qualifier that were not partners, 2025 falls back to
-    # the 2026 placeholder.
+    # China has no Challengers split on vlr: 2023 and 2024 use the clubs of
+    # the 2023 Champions China qualifier outside tier one, 2025 the clubs of
+    # the 2024 China Ascension. A region with no table has no second tier.
     chal = load(CHALLENGERS, {"events": {}, "stats": {}})
     t2_rosters = {}   # tag -> {region, rows}
     t2_source = {}
@@ -292,7 +299,7 @@ def main():
             cur = r["rows"].get(row["ign"].lower())
             if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
                 r["rows"][row["ign"].lower()] = row
-    if Y == 2024:
+    if Y in (2023, 2024):
         for eid, ev in cache["events"].items():
             if ev.get("year") == 2023 and "champions-china-qualifier" in str(ev.get("slug") or ""):
                 for row in cache["stats"].get(eid, []):
@@ -671,19 +678,10 @@ def main():
                 "facilities": int(bw.clamp(round(rng.norm(rating - 18, 8)), 20, 94)),
             })
             t2_players += len(squad)
-    for t in world26["teams"]:
-        if t["tier"] != 1 and t["region"] not in real_t2_regions:
-            roster = [p for p in world26["players"] if p["teamId"] == t["id"] and p["ign"].lower() not in placed]
-            if len(roster) < 5:
-                continue
-            out_teams.append({**t, "roster": [p["id"] for p in roster]})
-            for p in roster:
-                q = dict(p)
-                q["age"] = int(max(16, p["age"] - (2026 - Y)))
-                q["contractYears"] = max(1, min(3, p.get("contractYears") or 1))
-                out_players.append(q)
-                placed.add(p["ign"].lower())
-                t2_players += 1
+    # A region without a table of its own gets no second tier. It used to
+    # borrow 2026's Challengers clubs with the ages wound back, which put
+    # clubs that did not exist yet (ODG in 2023) into a year they never
+    # played; fewer clubs beats invented ones (2026-09-14).
     # ---- one scale with 2026. The percentiles above rank the year's 220-odd
     # tier-one men among themselves and stretch them over 44–98, while the
     # 2026 world ranks its tier-one men inside a pool of ~800 that includes
@@ -761,7 +759,7 @@ def main():
         "meta": {
             "season": Y, "historical": True,
             "openingEvents": [ev.get("slug") for _, ev, _ in opening],
-            "tier2": "2026 Challengers population carried over as a placeholder; ages shifted back",
+            "tier2": "the year's own Challengers clubs where a table exists (vlr opening splits; China from the 2023 qualifier or the 2024 Ascension); none where it does not",
             "sources": {"vlr.gg": "rosters from the opening events, all performance stats", "liquipedia": "birthdates, real names"},
             "derived": "attributes percentile-mapped from real per-round statistics of the seasons before the start",
             "everyoneReal": True,
@@ -772,8 +770,12 @@ def main():
     }
     out = os.path.join(ROOT, "src", "data", f"world_{Y}.json")
     json.dump(world, open(out, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print(f"teams {len(out_teams)} (T1 {len(t1)}: {dict(by_region)}, T2 {len(out_teams) - len(t1)}: {t2_built} real, {len(out_teams) - len(t1) - t2_built} carried over from 2026)")
-    print(f"players {len(out_players)} ({len(out_players) - t2_players} tier one, {issued_h} new H-ids, {t2_players} tier-two carried over)")
+    t2_by_region = defaultdict(int)
+    for t in out_teams:
+        if t["tier"] == 2:
+            t2_by_region[t["region"]] += 1
+    print(f"teams {len(out_teams)} (T1 {len(t1)}: {dict(by_region)}, T2 {t2_built}: {dict(t2_by_region)})")
+    print(f"players {len(out_players)} ({len(out_players) - t2_players} tier one, {issued_h} new H-ids, {t2_players} tier two)")
     top = sorted((p for p in out_players if p["teamId"] and any(t["id"] == p["teamId"] and t["tier"] == 1 for t in out_teams)), key=lambda p: -p["overall"])[:12]
     print("top: " + ", ".join(f"{p['ign']}({p['overall']})" for p in top))
     print(f"→ {out} {os.path.getsize(out) // 1024} KB")

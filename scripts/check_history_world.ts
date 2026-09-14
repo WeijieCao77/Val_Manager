@@ -27,9 +27,9 @@ import { advanceDay, finishDraw, setupSeason, continuePastFive, dateLabel } from
 import { exportSave, importSave } from '../src/engine/save'
 import { createManager } from '../src/engine/manager'
 import { hostCities } from '../src/engine/hosts'
-import { AGENT_SINCE, agentAvailable, finalYearOf, midYearOf, seasonsOf } from '../src/engine/eras'
+import { AGENT_SINCE, agentAvailable, finalYearOf, mapReleased, midYearOf, seasonsOf } from '../src/engine/eras'
 import type { RawWorld } from '../src/engine/eras'
-import { sheetFor, poolFor, selectLineup } from '../src/engine/match'
+import { activePool, poolPhaseOf, sheetFor, poolFor, selectLineup } from '../src/engine/match'
 import { REGIONS } from '../src/engine/types'
 import type { GameState } from '../src/engine/types'
 
@@ -84,6 +84,19 @@ for (const year of [2024, 2025]) {
   // a few points over is a strong Challengers side, not a tier-one one in disguise
   check(`${year}: 最强次级队不明显高于 2026 的最强次级队`, Math.max(...t2.map((t) => t.rating)) <= t2Max26 + 4, `${Math.max(...t2.map((t) => t.rating))} vs ${t2Max26}`)
   void realT2
+  // no 2026 club carried back: every tier-two man is a line in the year's
+  // Challengers tables — China's from the 2023 qualifier (2024) or the 2024
+  // Ascension (2025)
+  {
+    type Rows = { events: Record<string, { year: number; slug?: string }>; stats: Record<string, { ign: string }[]> }
+    const chal = JSON.parse(readFileSync('scripts/cache/vlr_challengers_hist.json', 'utf8')) as Rows
+    const vct = cache as unknown as Rows
+    const lines = new Set<string>()
+    for (const [id, e] of Object.entries(chal.events)) if (e.year === year) for (const r of chal.stats[id] ?? []) lines.add(r.ign.toLowerCase())
+    if (year === 2024) for (const [id, e] of Object.entries(vct.events)) if (e.slug?.includes('2023-champions-china-qualifier')) for (const r of vct.stats[id] ?? []) lines.add(r.ign.toLowerCase())
+    const invented = w.players.filter((p) => t2.some((t) => t.id === p.teamId) && !lines.has(p.ign.toLowerCase()))
+    check(`${year}: 次级队都是当年真实的队和人，没有 2026 年的占位队`, invented.length === 0 && !t2.some((t) => t.tag === 'ODG'), `${invented.length} 人对不上 ${invented.slice(0, 4).map((p) => p.ign).join(',')}`)
+  }
 
   const m = createManager('审计', 30, 'expro')
   const club = t1.find((t) => t.tag === 'EDG') ?? t1[0]
@@ -111,13 +124,30 @@ for (const year of [2024, 2025]) {
   // a whole season
   const releases: string[] = []
   let guard = 0
+  const poolOn: Record<string, string> = {}
+  let poolBad = 0
   while (g.year === year && guard++ < 420) {
     const rep = advanceDay(g, { autoResolveDrawDecisions: true })
+    if (g.year === year) {
+      const pool = poolFor(g)
+      if (pool.length !== 7 || pool.some((m) => !mapReleased(g, m))) poolBad++
+      poolOn[new Date(Date.UTC(year, 0, 1 + g.day)).toISOString().slice(0, 10)] = pool.join()
+    }
     for (const n of rep.notes ?? []) if (n.startsWith('🆕')) releases.push(n)
     if (g.midReview) continuePastFive(g)
     if (g.pendingDrawId) finishDraw(g, g.pendingDrawId)
   }
   check(`${year}: 一整季推进到 ${year + 1}`, g.year === year + 1, `${g.year} day ${g.day}`)
+  check(`${year}: 每天的图池都是 7 张、都已上线`, poolBad === 0, `${poolBad} 天不对`)
+  if (year === 2024) {
+    check('2024: Kickoff 用当年图池（微风岛屿、日落之城在）', poolOn['2024-02-16'] === 'Ascent,Bind,Breeze,Icebox,Lotus,Split,Sunset', poolOn['2024-02-16'])
+    check('2024: 冠军赛用当年图池（幽邃地窟已进）', poolOn['2024-08-01'] === 'Abyss,Ascent,Bind,Haven,Icebox,Lotus,Sunset', poolOn['2024-08-01'])
+  } else {
+    check('2025: Kickoff 用当年图池', poolOn['2025-01-16'] === 'Abyss,Bind,Fracture,Haven,Lotus,Pearl,Split', poolOn['2025-01-16'])
+    check('2025: Stage 2 有盐海矿镇（6 月 25 日上线）', poolOn['2025-07-18'] === 'Ascent,Bind,Corrode,Haven,Icebox,Lotus,Sunset', poolOn['2025-07-18'])
+    check('2025: 冠军赛用当年图池', poolOn['2025-09-12'] === 'Abyss,Ascent,Bind,Corrode,Haven,Lotus,Sunset', poolOn['2025-09-12'])
+  }
+  check(`${year}: 全年图池里没有天枢云阙`, !Object.values(poolOn).some((p) => p.includes('Summit')))
   if (year === 2024) check('2024: 三月有 Clove（暮蝶）上线的消息，八月有 Vyse（维斯）', releases.length === 2 && releases[0].includes('暮蝶') && releases[1].includes('维斯'), releases.join(' | '))
   // Tejo's January patch is the day the save opens, so it is simply there; Waylay (幻棱) lands in March and Veto (禁灭) in November
   if (year === 2025) check('2025: 三月 Waylay、十一月 Veto 上线，Tejo 开档就在', releases.length === 2 && releases[0].includes('幻棱') && releases[1].includes('禁灭'), releases.join(' | '))
@@ -138,6 +168,7 @@ for (const year of [2024, 2025]) {
 {
   const g = createNewGame(WORLD_TEAMS[0].id, '审计', 1, createManager('审计', 30, 'expro'))
   check('默认开档还是 2026，不记起始年，抽签赛制', g.year === 2026 && g.startYear === undefined && midYearOf(g) === 2030 && finalYearOf(g) === 2036)
+  check('默认 2026 开档的图池照旧按种子发', poolFor(g).join() === activePool(g.seed + g.year, poolPhaseOf(g.stage)).join())
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

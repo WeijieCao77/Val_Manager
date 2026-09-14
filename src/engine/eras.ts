@@ -105,3 +105,52 @@ export function agentsReleasedToday(s: { year: number; day: number }): string[] 
   const m = d.getUTCMonth() + 1
   return Object.entries(AGENT_SINCE).filter(([, [y, mm]]) => y === s.year && mm === m).map(([a]) => a)
 }
+
+/**
+ * When each map shipped, from Liquipedia's map pages. A map not listed was in
+ * the game before any world this game can start in.
+ */
+export const MAP_SINCE: Record<string, string> = {
+  Lotus: '2023-01-10', Sunset: '2023-08-29', Abyss: '2024-06-12', Corrode: '2025-06-25', Summit: '2026-06-24',
+}
+
+/**
+ * The competitive pool Riot actually ran in 2023–2025, from each date on: the
+ * map lists of that year's events on Liquipedia, and the rotations their
+ * pages date — Bind for Icebox from week 5 of the 2023 leagues, Haven for
+ * Breeze in week 2 of 2024 Stage 2 and Abyss for Split at its playoffs. The
+ * first entry is the 2022 Champions pool, which held until Lotus shipped.
+ * Other years have no table and keep the dealt pool (match.activePool).
+ */
+export const REAL_POOLS: [string, string[]][] = [
+  ['2023-01-01', ['Ascent', 'Bind', 'Breeze', 'Fracture', 'Haven', 'Icebox', 'Pearl']],
+  ['2023-01-10', ['Ascent', 'Fracture', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split']],
+  ['2023-04-29', ['Ascent', 'Bind', 'Fracture', 'Haven', 'Lotus', 'Pearl', 'Split']],
+  ['2024-01-01', ['Ascent', 'Bind', 'Breeze', 'Icebox', 'Lotus', 'Split', 'Sunset']],
+  ['2024-06-22', ['Ascent', 'Bind', 'Haven', 'Icebox', 'Lotus', 'Split', 'Sunset']],
+  ['2024-07-12', ['Abyss', 'Ascent', 'Bind', 'Haven', 'Icebox', 'Lotus', 'Sunset']],
+  ['2025-01-01', ['Abyss', 'Bind', 'Fracture', 'Haven', 'Lotus', 'Pearl', 'Split']],
+  ['2025-03-13', ['Ascent', 'Fracture', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split']],
+  ['2025-06-07', ['Ascent', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split', 'Sunset']],
+  ['2025-07-03', ['Ascent', 'Bind', 'Corrode', 'Haven', 'Icebox', 'Lotus', 'Sunset']],
+  ['2025-09-12', ['Abyss', 'Ascent', 'Bind', 'Corrode', 'Haven', 'Lotus', 'Sunset']],
+]
+
+const isoOf = (s: { year: number; day: number }): string => {
+  const d = new Date(Date.UTC(s.year, 0, 1))
+  d.setUTCDate(d.getUTCDate() + s.day)
+  return d.toISOString().slice(0, 10)
+}
+
+/** the real pool on this game date, or null for a year without a table */
+export function realPool(s: { year: number; day: number }): string[] | null {
+  if (s.year < 2023 || s.year > 2025) return null
+  const iso = isoOf(s)
+  let pool: string[] | null = null
+  for (const [from, maps] of REAL_POOLS) if (from <= iso) pool = maps
+  return pool && pool.slice()
+}
+
+/** is this map in the game on this game date */
+export const mapReleased = (s: { year: number; day: number }, map: string): boolean =>
+  !MAP_SINCE[map] || isoOf(s) >= MAP_SINCE[map]

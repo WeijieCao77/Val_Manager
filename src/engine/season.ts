@@ -14,7 +14,7 @@ import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { MAP_META, agentCn, mapCn } from './content'
 import { FAM_MATCH, FAM_SCRIM, learnComp, rollPatch } from './comp'
 import { CHAMPIONS, endingsFor, MASTERS_1, MASTERS_2, tenureCn } from './endings'
-import { agentAvailable, agentsReleasedToday, finalYearOf, midYearOf, seasonsOf, startYearOf } from './eras'
+import { agentAvailable, agentsReleasedToday, finalYearOf, midYearOf, realPool, seasonsOf, startYearOf } from './eras'
 import { agentCn as agentName } from './content'
 import { hostCity } from './hosts'
 import { applyMatchBonds } from './bonds'
@@ -316,19 +316,34 @@ function mastersField2023(state: GameState): { byes: string[]; swiss: string[] }
     if (b) rest.push(b)
     if (c) rest.push(c)
   }
+  // The LOCK//IN winner's league sends four. Both branches used to lose one:
+  // a winner who also won his league left the fourth bye empty and pushed a
+  // ninth into an eight-team Swiss, and a winner who finished second or third
+  // took his Swiss place with him — eleven either way, and a Masters of eleven
+  // never finishes its Swiss, so Tokyo, the LCQs and Champions never came.
   const lockin = state.comps.kickoff?.champion
-  if (lockin && !byes.includes(lockin)) {
-    byes.push(lockin)
-    const i = rest.indexOf(lockin)
-    if (i >= 0) rest.splice(i, 1)
-  } else if (lockin) {
+  if (lockin) {
     const region = state.teams[lockin]?.region
     const comp = region ? state.comps[compKey('stage1', region)] : undefined
-    const fourth = comp?.finished[3]
-    if (fourth) rest.push(fourth)
+    const place = comp?.finished.indexOf(lockin) ?? -1
+    if (byes.includes(lockin)) {
+      const runnerUp = comp?.finished[1]
+      if (runnerUp) {
+        byes.push(runnerUp)
+        rest.splice(rest.indexOf(runnerUp), 1)
+      }
+    } else {
+      byes.push(lockin)
+      const i = rest.indexOf(lockin)
+      if (i >= 0) rest.splice(i, 1)
+    }
+    if (region !== 'China' && place >= 0 && place <= 2) {
+      const fourth = comp?.finished[3]
+      if (fourth) rest.push(fourth)
+    }
   }
   const cn = state.comps[compKey('stage1', 'China')]
-  for (const t of (cn?.finished ?? []).slice(0, 2)) rest.push(t)
+  for (const t of (cn?.finished ?? []).filter((t) => !byes.includes(t)).slice(0, 2)) rest.push(t)
   while (byes.length > 4) rest.unshift(byes.pop()!)
   return { byes: byes.sort(cmp), swiss: rest.sort(cmp).slice(0, 8) }
 }
@@ -375,7 +390,10 @@ export function championsField(state: GameState): Record<Region, string[]> {
       const all = tier1Of(state, region)
       const lcq = state.comps[compKey('stage2', region)]
       if (region === 'China') {
-        out[region] = (lcq?.finished ?? []).slice(0, 3)
+        // a Chinese Tokyo champion is China's extra place, as any league's would be
+        const cnTokyo = tokyo && state.teams[tokyo]?.region === 'China' ? tokyo : undefined
+        const q = (lcq?.finished ?? []).filter((t) => t !== cnTokyo).slice(0, 3)
+        out[region] = cnTokyo ? [cnTokyo, ...q] : q
         continue
       }
       const direct = all.slice().sort(byPoints(state)).slice(0, 3)
@@ -1937,11 +1955,16 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
 
   state.stage = stageAtIn(state, state.day)
   const stageChanged = state.stage !== prevStage
-  if (stageChanged) {
-    notes.push(`—— 进入 ${stageName(state.stage)} ——`)
-    // The pool rotates when a new window opens — say which maps moved, or a
-    // manager walks into a veto to find a map he trained all stage is gone.
-    const prevPool = activePool(state.seed + state.year, poolPhaseOf(prevStage))
+  if (stageChanged) notes.push(`—— 进入 ${stageName(state.stage)} ——`)
+  // The pool rotates when a new window opens — or, in 2023–2025, on the day
+  // Riot rotated it, which can fall inside a stage or on New Year's Day — say
+  // which maps moved, or a manager walks into a veto to find a map he trained
+  // all stage is gone.
+  const real = realPool(state)
+  if (real || stageChanged) {
+    const prevPool = real
+      ? (state.day > 1 ? realPool({ year: state.year, day: state.day - 1 }) : realPool({ year: state.year - 1, day: 364 })) ?? real
+      : activePool(state.seed + state.year, poolPhaseOf(prevStage))
     const nowPool = poolFor(state)
     const gone = prevPool.filter((m) => !nowPool.includes(m))
     const fresh = nowPool.filter((m) => !prevPool.includes(m))
@@ -1969,6 +1992,8 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
         }
       }
     }
+  }
+  if (stageChanged) {
     settleObjective(state, prevStage, notes)
     setObjective(state, notes)
     offerJobs(state, notes)

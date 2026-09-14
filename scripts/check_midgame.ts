@@ -77,8 +77,8 @@ for (const seed of [1, 42, 777]) {
 if (poolPhaseOf('kickoff') !== 0 || poolPhaseOf('stage1') !== 1 || poolPhaseOf('champions') !== 2) {
   fail('poolPhaseOf 的赛段映射不对')
 }
-const p0 = poolFor({ seed: g.seed, year: g.year, stage: 'kickoff' })
-const p2 = poolFor({ seed: g.seed, year: g.year, stage: 'stage2' })
+const p0 = poolFor({ seed: g.seed, year: g.year, stage: 'kickoff', day: 0 })
+const p2 = poolFor({ seed: g.seed, year: g.year, stage: 'stage2', day: 0 })
 console.log(`✅ 图池轮换：Kickoff [${p0.join(' ')}]`)
 console.log(`            Stage 2 [${p2.join(' ')}]`)
 

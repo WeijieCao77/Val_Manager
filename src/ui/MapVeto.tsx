@@ -42,7 +42,7 @@ export default function MapVeto({
   const steps = useMemo(() => vetoSteps(fixture.bo, edge), [fixture.bo, edge])
   const order = useMemo(() => steps.map((s) => s.action), [steps])
   const pool = useMemo(
-    () => poolFor(game), [game.seed, game.year, game.stage])
+    () => poolFor(game), [game.seed, game.year, game.stage, game.day])
   const rng = useMemo(
     () => new Rng(hashStr(`veto:${game.seed}:${fixture.id}`)), [game.seed, fixture.id])
 

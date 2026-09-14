@@ -1,5 +1,6 @@
 import { Rng, clamp } from './rng'
 import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
+import { realPool } from './eras'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
 import { isArena } from './types'
 import {
@@ -396,9 +397,12 @@ export function activePool(seed: number, phase: PoolPhase = 0): string[] {
   return pool.sort()
 }
 
-/** Today's pool for this save — the one every veto and every screen must use. */
-export const poolFor = (state: Pick<GameState, 'seed' | 'year' | 'stage'>): string[] =>
-  activePool(state.seed + state.year, poolPhaseOf(state.stage))
+/**
+ * Today's pool for this save — the one every veto and every screen must use.
+ * 2023–2025 play the pool Riot actually ran on that date (eras.REAL_POOLS).
+ */
+export const poolFor = (state: Pick<GameState, 'seed' | 'year' | 'stage' | 'day'>): string[] =>
+  realPool(state) ?? activePool(state.seed + state.year, poolPhaseOf(state.stage))
 
 export function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
   // 7-map pool
