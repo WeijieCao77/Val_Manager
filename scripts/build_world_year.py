@@ -93,6 +93,28 @@ def evidence_events(cache, year):
     return [(eid, ev) for eid, ev in cache["events"].items() if (ev.get("year") or 0) < year]
 
 
+def top_flight(ev):
+    """Was this event the top of its year?
+
+    Masters and Champions always. From 2023 the franchised leagues, Kickoffs
+    and stages are. In 2022 the regional Challengers of Europe and North
+    America were the circuit's main leagues; the smaller regions' Challengers
+    (Turkey, CIS, Brazil, LATAM, Japan, Korea, SEA, Oceania...) and every
+    2023 Last Chance Qualifier and the China qualifier were not — a 1.32 in
+    Turkey Challengers is not a 1.32 in VCT, which is what put Elite at 91
+    off 425 rounds. Lines from those events are translated with the same
+    factors build_world measured for Challengers → VCT.
+    """
+    tier, slug, year = ev.get("tier"), str(ev.get("slug") or ""), ev.get("year") or 0
+    if tier in ("masters", "champions"):
+        return True
+    if "last-chance" in slug or "qualifier" in slug:
+        return False
+    if year >= 2023:
+        return tier in ("league", "kickoff")
+    return "champions-tour-europe" in slug or "champions-tour-north-america" in slug
+
+
 def fetch_births(igns, store):
     """Batched Liquipedia page reads, gzip, identified, 2.5 s apart; a 429 aborts."""
     todo = [i for i in igns if i.lower() not in {k.lower() for k in store}]
@@ -176,6 +198,12 @@ def main():
             first_seen[k] = min(first_seen.get(k, 9999), y)
             if y < Y:
                 age = Y - bw.event_time(ev)
+                if not top_flight(ev):
+                    row = dict(row)
+                    for key, f in bw.SUBTIER_TO_VCT.items():
+                        src = "rating2" if key == "R" else key
+                        if row.get(src) is not None:
+                            row[src] = row[src] * f
                 ev_rows[k].append((max(0.0, (row.get("rnd") or 0)) * bw.recency(age), row, ev))
 
     def aggregate(k, fallback_rows=()):
@@ -240,8 +268,11 @@ def main():
         line["roles"] = roles or ["自由人"]
         line["role"] = line["roles"][0]
 
-    # shrink toward the unproven anchor (30th percentile) by rounds, like build_world
-    SHRINK = 400.0
+    # shrink toward the unproven anchor (30th percentile) by rounds. Harder
+    # than build_world's 400: a start in 2024 has one or two seasons of
+    # evidence behind it where 2026 has four, so a short line proves less —
+    # keiko rated 87 off 165 rounds and runneR 90 off 174 at 400.
+    SHRINK = 900.0
     pool = {}
     for key in bw.STAT_KEYS:
         vals = sorted(l[key] for l in people.values() if l.get(key) is not None)
@@ -251,7 +282,7 @@ def main():
         m = dict(line)
         rnd = m.get("rnd") or 0
         if m.get("rookie"):
-            rnd = min(rnd, 150)   # an opening split is not a record
+            rnd = min(rnd, 100)   # an opening split is not a record
         trust = rnd / (rnd + SHRINK)
         for key in bw.STAT_KEYS:
             if m.get(key) is None or pool.get(key) is None:
@@ -290,6 +321,36 @@ def main():
         print(f"births: {len(missing)} players have no Liquipedia birthdate on file (pass --fetch-births)")
     DEBUT_AGE = {2020: 19, 2021: 18, 2022: 17, 2023: 17, 2024: 18, 2025: 19, 2026: 20}
 
+    # 冠军底蕴, from the real placements in records.json for the men the 2026
+    # world knows (build_world's values and fade, faded from the start year):
+    # Champions 3, Masters 2, a regional title 1, two seasons full, then 2/3, 1/3.
+    records = load(os.path.join(ROOT, "src", "data", "records.json"), {"events": {}, "players": {}})
+    TITLE_VALUE = {"champions": 3.0, "masters": 2.0, "league": 1.0}
+    TITLE_FADE = {0: 1.0, 1: 1.0, 2: 0.67, 3: 0.33}
+
+    def title_credit(pid):
+        rec = records["players"].get(pid)
+        if not rec:
+            return 0.0
+        seen = set()
+        total = 0.0
+        for row in rec.get("ev") or []:
+            eid, place = row[0], row[1]
+            name, y = (records["events"].get(str(eid)) or [None, None])[:2]
+            if place != "1st" or not name or not y or y >= Y:
+                continue
+            kind = ("champions" if re.match(r"^Valorant Champions \d{4}$", name)
+                    else "masters" if re.search(r"Masters|LOCK//IN", name)
+                    else "league" if re.search(r"^(Champions Tour \d{4}: |VCT \d{4}: )(Americas|EMEA|Pacific|China) (Stage \d|Kickoff|League)$", name) else None)
+            if not kind:
+                continue
+            key = (y, kind) if kind != "league" else (y, kind, name)
+            if key in seen:
+                continue
+            seen.add(key)
+            total += TITLE_VALUE[kind] * TITLE_FADE.get(Y - 1 - y, 0.0)
+        return min(6.0, total)
+
     ROLE_UTIL = {"控场": 1.0, "先锋": 0.95, "哨卫": 0.7, "自由人": 0.55, "决斗者": 0.25}
     ROLE_COMM = {"控场": 0.8, "先锋": 0.85, "哨卫": 0.6, "自由人": 0.7, "决斗者": 0.4}
 
@@ -324,6 +385,7 @@ def main():
         lift, big = line.get("stage_lift"), line.get("stage_rounds") or 0
         stage_w = big / (big + SHRINK)
         stage_bonus = round(bw.clamp((lift - 1) * 26 * stage_w, -4, 5), 2) if lift else 0.0
+        stage_bonus = round(stage_bonus + title_credit(prev_pid.get(k, "")), 2)
         ovr = int(round(bw.clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign.lower()) or {}
@@ -458,8 +520,14 @@ def main():
     mine = sorted((p for p in out_players if p["teamId"] in t1_ids), key=lambda p: (p["overall"], p["vlr"]["rating"] or 0))
     if ref26 and mine:
         n = len(mine)
+        med26 = ref26[len(ref26) // 2]
         for i, p in enumerate(mine):
             target = ref26[min(len(ref26) - 1, int(round(i / max(1, n - 1) * (len(ref26) - 1))))]
+            # the upper half is pulled in by a fifth: two seasons of evidence
+            # do not separate a 95 from a 90 the way four do, and the owner
+            # read the first cut — 27 men at 90+ in January 2024 — as too many
+            if target > med26:
+                target = med26 + (target - med26) * 0.8
             raw = p["overall"] - p["stageBonus"]
             if raw <= 0:
                 continue
