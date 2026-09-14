@@ -58,7 +58,7 @@ export default function Support({ raised = false }: { raised?: boolean }) {
           className={`support-fab${open ? ' on' : ''}${raised ? ' raised' : ''}`}
           onClick={() => setOpen((x) => !x)}
           aria-expanded={open}
-          title="游戏永久免费，愿意的话支持一下"
+          title="VCT电竞经理和开瓦包永久免费，愿意的话支持一下"
         >
           <span className="ico" aria-hidden="true">⚡</span>
           <span className="lbl">支持作者</span>
@@ -70,12 +70,12 @@ export default function Support({ raised = false }: { raised?: boolean }) {
           <div className="support-veil" onClick={() => setOpen(false)} />
           <div className="support-card" role="dialog" aria-label="支持作者">
             <div className="support-head">
-              <h3>游戏是免费的，以后也是</h3>
+              <h3>支持作者</h3>
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted">
-              这个游戏<b>永久免费，不卖数值、不卖抽卡</b>。
-              喜欢的话可以请我喝杯咖啡；不请也没关系，在群里提 bug 和建议就是支持。
+              VCT电竞经理和开瓦包<b>永久免费，不卖数值、不卖抽卡</b>。
+              喜欢的话可以支持一下；不支持也没关系，在群里提 bug 和建议就是支持。
             </p>
             <div className="support-body">
               <Qr />
@@ -85,7 +85,7 @@ export default function Support({ raised = false }: { raised?: boolean }) {
                 </a>
                 <p className="tiny faint" style={{ margin: 0 }}>
                   手机扫码，或点上面的按钮。<br />
-                  ¥10/月 可提前玩新版本、进专属群；也可以自选金额，一次即可。
+                  ¥10/月 可进专属群，体验正在做的选手生涯模拟游戏。还是开发测试版，会有 bug，介意的话先不用体验。也可以自选金额，一次即可。
                 </p>
               </div>
             </div>
