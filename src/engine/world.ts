@@ -143,6 +143,25 @@ function startingFunds(m?: Manager): number {
   return o?.startingFunds ?? 0
 }
 
+/**
+ * How far a save's ceiling for a player may sit from the database's.
+ *
+ * world.json carries one potential per man, so every career had the same
+ * 99s in the same places — 「潜力值每个档都是固定的，玩多了很无聊」. Each new
+ * save now draws a small offset per player from its own seed: normal, sd
+ * 1.5, cut at ±3, never below his current overall and never past 99. The
+ * mean is zero, so the world's growth bands (scripts/check_ai_growth.ts)
+ * hold; only who the gems are moves. Existing saves are not touched — a
+ * career's ceilings are part of that career.
+ */
+export const POTENTIAL_JITTER = { sd: 1.5, max: 3 } as const
+export function potentialJitter(seed: number, playerId: string): number {
+  const r = new Rng(hashStr(`pot:${seed}:${playerId}`))
+  return Math.round(clamp(r.norm(0, POTENTIAL_JITTER.sd), -POTENTIAL_JITTER.max, POTENTIAL_JITTER.max))
+}
+const jitteredPotential = (seed: number, id: string, overall: number, base: number, cap = 99): number =>
+  clamp(base + potentialJitter(seed, id), overall, cap)
+
 export function createNewGame(
   myTeamId: string, managerName: string, seed?: number, manager?: Manager,
 ): GameState {
@@ -168,6 +187,8 @@ export function createNewGame(
       // attrs re-taught it when a test that rolled many worlds watched its
       // "fresh" players arrive pre-trained by the previous world's seasons.
       attrs: { ...rp.attrs },
+      // this save's ceiling for him — see potentialJitter
+      potential: jitteredPotential(s, rp.id, rp.overall, rp.potential),
       traits: rp.traits ? [...rp.traits] : rp.traits,
       // the scrape leaves this null when vlr does not record a join date
       joined: rp.joined ?? undefined,
@@ -195,7 +216,9 @@ export function createNewGame(
   // market lists them, AI sides short of five sign them — which is the whole
   // point, because a world of 518 that only ages runs out of people.
   for (const p of freeAgentPool(2026)) {
-    if (!players[p.id]) players[p.id] = p
+    if (players[p.id]) continue
+    p.potential = jitteredPotential(s, p.id, p.overall, p.potential, 97)
+    players[p.id] = p
   }
 
   // 熟练度按英雄记，种子是他真正打过的那些角色。自由球员和青训也一起播，
