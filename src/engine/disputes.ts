@@ -117,8 +117,10 @@ export function openDispute(
 export const openDisputes = (state: GameState): Dispute[] =>
   (state.disputes ?? []).filter((d) => d.status === 'open')
 
-const lastPaid = (d: Dispute): DisputeAttempt | undefined =>
-  d.attempts.filter((x) => costsAction(x.choice)).at(-1)
+const lastPaid = (d: Dispute): DisputeAttempt | undefined => {
+  const paid = d.attempts.filter((x) => costsAction(x.choice))
+  return paid[paid.length - 1]
+}
 
 /** why this choice cannot be taken right now — null when it can */
 export function disputeBlock(state: GameState, id: string, choice: DisputeChoice, target?: string): string | null {

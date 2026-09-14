@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-14',
+    title: '经理模式：旧版 Chrome 读不了存档',
+    changes: [
+      { kind: '修复', text: '<b>旧版 Chrome 上「继续上次存档」没反应、导入存档报错。</b>存档检查用了旧版 Chrome 不认识的写法，现已改掉。存档本身没坏，刷新页面即可继续。' },
+    ],
+  },
+  {
+    date: '2026-09-14',
     title: '开瓦包：杯赛与真人卡组统一实力口径',
     changes: [
       { kind: '修复', text: '<b>杯赛不再只压缩玩家一侧的能力。</b>此前玩家卡组经过能力压缩，俱乐部却直接使用经理模式原始数据；现在俱乐部也以现役五张普通卡和主教练（均为 +0）参赛，双方使用真人卡组相同的数值、状态、地图和大分差处理。' },
