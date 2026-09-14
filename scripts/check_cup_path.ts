@@ -11,7 +11,7 @@
  * the squad rather than at the top of the world.
  */
 import { newGacha, enterCup, STAMINA_MAX } from '../src/engine/gacha'
-import { WORLD_TEAMS } from '../src/engine/teams'
+import { CUP_TEAMS } from '../src/engine/cupTeams'
 import { Rng, hashStr } from '../src/engine/rng'
 
 let bad = 0
@@ -19,15 +19,15 @@ const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
   if (!ok) bad++
 }
-const ratingOf = new Map(WORLD_TEAMS.map((t) => [t.id, t.rating]))
-const lowest = Math.min(...WORLD_TEAMS.map((t) => t.rating))
-const highest = Math.max(...WORLD_TEAMS.map((t) => t.rating))
+const ratingOf = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
+const lowest = Math.min(...CUP_TEAMS.map((t) => t.rating))
+const highest = Math.max(...CUP_TEAMS.map((t) => t.rating))
 // A squad below every club plays the weakest clubs, and the draw takes the
 // six nearest AFTER the ones already in the bracket are set aside, so a
 // five-round bracket can reach the tenth-weakest club. How far that is
 // depends on how bunched the bottom of the table is — 66 today, 65 before
 // the 2026-09-03 rebuild — so the window is read off the table, not fixed.
-const ladder = WORLD_TEAMS.map((t) => t.rating).sort((a, b) => a - b)
+const ladder = CUP_TEAMS.map((t) => t.rating).sort((a, b) => a - b)
 const floorBand = ladder[Math.min(9, ladder.length - 1)]
 const ceilingBand = ladder[Math.max(0, ladder.length - 10)]
 
@@ -49,11 +49,11 @@ for (let squad = 40; squad <= 96; squad += 4) {
     if (rs.some((r, k) => k > 0 && r < rs[k - 1])) notClimbing++
     if (rs[rs.length - 1] !== Math.max(...rs)) finalNotTop++
     if (new Set(cup.path).size !== cup.path.length) repeats++
-    // the climb is squad−9 … squad+7, clamped to the world's own range — a
+    // the climb is squad−12 … squad, clamped to the cup pool's range — a
     // squad below the weakest club plays the weakest clubs — and the six
     // nearest can sit a few points off the exact target
-    const lo = Math.min(Math.min(Math.max(lowest, squad - 9), highest) - 6, ceilingBand)
-    const hi = Math.max(Math.max(Math.min(highest, squad + 7), lowest) + 6, floorBand)
+    const lo = Math.min(Math.min(Math.max(lowest, squad - 12), highest) - 6, ceilingBand)
+    const hi = Math.max(Math.max(Math.min(highest, squad), lowest) + 6, floorBand)
     if (rs.some((r) => r < lo || r > hi)) farOff++
     if (example.length < 4 && i === 0) example.push(`${squad}: ${rs.join(' → ')}`)
   }
@@ -72,7 +72,7 @@ function previousDraw(seed: number, score: number) {
   rng.next()
   const dice = rng.next()
   const rounds = dice < .35 ? 3 : dice < .75 ? 4 : 5
-  const sorted = WORLD_TEAMS.slice().sort((a, b) => a.rating - b.rating)
+  const sorted = CUP_TEAMS.slice().sort((a, b) => a.rating - b.rating)
   const path: string[] = []
   for (let i = 0; i < rounds; i++) {
     const target = score - 8 + 16 * i / (rounds - 1)
@@ -96,7 +96,7 @@ for (const score of [65, 73, 80]) {
   }
 }
 check('同一种子保留原来的杯赛轮数', sameDepth)
-check('中低档签表平均小幅降低，未变成大幅降难', delta / compared > .3 && delta / compared < 1.7, `平均降低 ${(delta / compared).toFixed(2)} 分`)
+check('统一综合分后降低抽签目标，避免沿用旧区间把难度推高', delta / compared > 2 && delta / compared < 8, `相对旧区间平均降低 ${(delta / compared).toFixed(2)} 分`)
 // An already paid-for old bracket must not be re-drawn or charged again.
 g.cup = { path: previousDraw(12345, 73), round: 0, legs: [], done: false, won: false, entry: 0 }
 const oldState = JSON.stringify(g)

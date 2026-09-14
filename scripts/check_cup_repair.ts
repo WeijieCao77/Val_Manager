@@ -13,7 +13,7 @@
 import { migrateGacha, newGacha, openPack, autoSquad, STAMINA_MAX } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { runAction } from '../src/engine/cardActions'
-import { WORLD_TEAMS } from '../src/engine/teams'
+import { CUP_TEAMS } from '../src/engine/cupTeams'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }) = {
@@ -29,7 +29,7 @@ const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
   if (!ok) bad++
 }
-const rating = new Map(WORLD_TEAMS.map((t) => [t.id, t.rating]))
+const rating = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
 const known = (id: string) => rating.has(id)
 const DEAD = 'T77' // Weibo Gaming, struck 2026-09-09
 check('T77 真的已经不在世界里了', !known(DEAD))
@@ -70,8 +70,8 @@ const fresh = (): GachaState => {
   check('后面两轮也没动', cup.path[2] === 'T65' && cup.path[3] === 'T73')
   const sub = cup.path[1]
   const r = rating.get(sub)!
-  check('顶上的队评分在 59 和 63 之间，签表还是一轮比一轮强', r >= 59 && r <= 63,
-    `${WORLD_TEAMS.find((t) => t.id === sub)?.name} ${r}`)
+  check('顶上的队综合分在前后两轮之间，签表还是一轮比一轮强', r >= rating.get('T56')! && r <= rating.get('T65')!,
+    `${CUP_TEAMS.find((t) => t.id === sub)?.name} ${r}`)
   check('顶上的队不是签表里已有的', new Set(cup.path).size === 4)
   const again = migrateGacha(JSON.parse(JSON.stringify(m)), m.id)
   check('再加载一次不会再换', again.cup!.path.join() === cup.path.join())

@@ -9,9 +9,9 @@ import { ALL_CARDS, SQUAD_SLOTS, isPlayerCard, personOf, squadRating } from '../
 import { enterCup, levelOf, newGacha, STAMINA_COST, STAMINA_MAX } from '../src/engine/gacha'
 import type { CupRegistration, GachaState } from '../src/engine/gacha'
 import type { ArenaResult } from '../src/engine/arena'
-import { playArenaMatch } from '../src/engine/arena'
+import { playCupMatch } from '../src/engine/arena'
 import { runAction } from '../src/engine/cardActions'
-import { WORLD_TEAMS } from '../src/engine/teams'
+import { CUP_TEAMS } from '../src/engine/cupTeams'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { makeMarketApi, TRADE_PULLS } = await import('../market-api.js')
@@ -86,7 +86,7 @@ try {
   const drawStrong = structuredClone(initial)
   drawStrong.squad = structuredClone(strong)
   enterCup(drawStrong, squadRating(strong), Date.now())
-  const rating = (ids: string[]) => ids.map(id => WORLD_TEAMS.find(t => t.id === id)!.rating)
+  const rating = (ids: string[]) => ids.map(id => CUP_TEAMS.find(t => t.id === id)!.rating)
   assert(Math.max(...rating(path)) < Math.min(...rating(drawStrong.cup!.path)), 'Fixture demonstrates why weak-entry/strong-play would be profitable')
 
   // These are real actions: upgrade the registered player and coach, then put
@@ -110,7 +110,7 @@ try {
   // registered levels actually reach the simulation, rather than just storage.
   const env = { now: Date.now(), today, seed: 33145 }
   const deterministic = structuredClone(changed)
-  const expected = playArenaMatch(registered.squad, id => registered.levels[id] ?? 0, path[0], 3, env.seed)
+  const expected = playCupMatch(registered.squad, id => registered.levels[id] ?? 0, path[0], 3, env.seed)
   const simulated = runAction(deterministic, 'cup_play', {}, env)
   assert(simulated.ok)
   assert.deepEqual((simulated.result as { res: ArenaResult }).res, expected)

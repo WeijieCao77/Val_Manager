@@ -8,6 +8,7 @@
  */
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
+import { CUP_TEAMS } from './cupTeams'
 import { REGION_CN } from './types'
 import type { Role } from './types'
 import { cleanPredictions } from './predict'
@@ -1794,7 +1795,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   if (g.cup && !g.cup.done) return g.cup
   if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够，入场要 ${STAMINA_COST.cup} 点`)
   const { rng, done } = roll(g)
-  const sorted = WORLD_TEAMS.slice().sort((a, b) => a.rating - b.rating)
+  const sorted = CUP_TEAMS.slice().sort((a, b) => a.rating - b.rating)
   let rounds = CUP_MIN_ROUNDS
   let dice = rng.next()
   for (const [n, p] of CUP_ROUND_ODDS) {
@@ -1809,15 +1810,16 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
     // rankings. Pinned to the absolute table instead, the final was the best
     // club on earth whoever entered, so a new account went 0 for 100 and the
     // cup was a tax on not having a finished collection. The climb runs from
-    // nine below the five to seven above it whatever the depth. This slightly
-    // eases the locked-lineup cup throughout its rounds; a longer
+    // twelve below the five to level with it on the shared card scale.
+    // The old +7 final used a raw club average; applying it to the new full
+    // squad score silently made the corrected cup much harder. A longer
     // bracket is more matches, not a harder final.
     //
     // Drawn from the six clubs nearest the target, never from the whole
     // table: the first version took "within five points" and, when nobody
     // was, any club on earth — which is how a squad in the sixties drew LOUD
     // in the quarters, Heretics in the semi, and a 66 in the final.
-    const target = squadRating - 9 + (16 / (rounds - 1)) * round
+    const target = squadRating - 12 + (12 / (rounds - 1)) * round
     const near = sorted
       .filter((t) => !taken.has(t.id))
       .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target))
@@ -1906,7 +1908,7 @@ export const cupOpponent = (g: GachaState): string | null =>
 export function repairCup(g: GachaState): void {
   const cup = g.cup
   if (!cup || !Array.isArray(cup.path)) return
-  const rating = new Map(WORLD_TEAMS.map((t) => [t.id, t.rating]))
+  const rating = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
   if (cup.path.every((id) => rating.has(id))) return
   const taken = new Set(cup.path.filter((id) => rating.has(id)))
   cup.path = cup.path.map((id, i) => {
@@ -1916,7 +1918,7 @@ export function repairCup(g: GachaState): void {
     const lo = before.length ? Math.max(...before) : null
     const hi = after.length ? Math.min(...after) : null
     const target = lo !== null && hi !== null ? (lo + hi) / 2 : lo !== null ? lo + 2 : hi !== null ? hi - 2 : 60
-    const pick = WORLD_TEAMS
+    const pick = CUP_TEAMS
       .filter((t) => !taken.has(t.id))
       .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target) || a.id.localeCompare(b.id))[0]
     taken.add(pick.id)

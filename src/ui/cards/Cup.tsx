@@ -9,7 +9,7 @@ import {
 import type { CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
 import type { ArenaResult } from '../../engine/arena'
 import { cardById, cardName, squadRating } from '../../engine/cards'
-import { WORLD_TEAMS } from '../../engine/teams'
+import { CUP_TEAMS } from '../../engine/cupTeams'
 import { track } from '../../engine/telemetry'
 
 /**
@@ -70,7 +70,8 @@ export default function Cup() {
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           <b>{STAMINA_COST.cup} 点体力入场</b>，{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，<b>之后每轮免费</b>。
-          对手按阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
+          新签表按双方综合分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
+          俱乐部使用现役普通卡和主教练（均为 +0），综合分同样包含默契、教练和位置；双方按真人卡组规则计算比赛。
           <b>本届固定使用报名时的五人、教练和等级</b>；之后换阵容、升级或出售卡牌，都不影响本届参赛。
           出局按赢的轮数给金币（{cupExitPrize(0)} 起，每轮多 150），赢满两轮再送一个{PACKS.scout.name}；
           冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + {PACKS.elite.name}</b>，
@@ -100,7 +101,7 @@ export default function Cup() {
             ) : null}
             <div className="grid" style={{ gap: 8, marginTop: 4 }}>
               {cup.path.map((oppId, i) => {
-                const t = WORLD_TEAMS.find((x) => x.id === oppId)
+                const t = CUP_TEAMS.find((x) => x.id === oppId)
                 const leg = cup.legs[i]
                 const isNow = live && cup.round === i
                 const cls = leg ? (leg.win ? 'won' : 'lost') : isNow ? 'now' : ''
@@ -110,7 +111,7 @@ export default function Cup() {
                     <b style={{ width: 48 }}>{cupRoundName(rounds, i)}</b>
                     <span style={{ flex: 1 }}>
                       {t?.name ?? '?'}
-                      <span className="tiny faint"> · 评分 {t?.rating}</span>
+                      <span className="tiny faint"> · 综合分 {t?.rating}</span>
                       {final && <span className="tag t1" style={{ marginLeft: 6 }}>BO5</span>}
                     </span>
                     {leg ? (

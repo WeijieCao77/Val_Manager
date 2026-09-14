@@ -34,7 +34,7 @@ import {
 } from './minigame'
 import type { MiniGame } from './minigame'
 import type { GachaState, QuestKey, Series } from './gacha'
-import { playArenaMatch, playRivalMatch } from './arena'
+import { playArenaMatch, playCupMatch, playRivalMatch } from './arena'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, guessChallenge } from './challenge'
 import { hashStr } from './rng'
@@ -283,7 +283,7 @@ function dispatch(
       }
       // the ticket was the whole price: nothing is charged per round
       const level = (id: string) => cup.registration!.levels[id] ?? 0
-      const res = playArenaMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed)
+      const res = playCupMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })

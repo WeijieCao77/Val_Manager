@@ -22,7 +22,7 @@ import {
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 import { ALL_CARDS, isPlayerCard, MAX_LEVEL, squadRating } from '../src/engine/cards'
-import { playArenaMatch } from '../src/engine/arena'
+import { playCupMatch } from '../src/engine/arena'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }) = {
@@ -79,7 +79,7 @@ function playCup(g: GachaState, seed: number): CupRun {
   let k = 0
   while (g.cup && !g.cup.done) {
     const opp = cupOpponent(g)!
-    const res = playArenaMatch(g.squad, level, opp, cupBo(g.cup), (seed * 31 + k++) >>> 0)
+    const res = playCupMatch(g.squad, level, opp, cupBo(g.cup), (seed * 31 + k++) >>> 0)
     recordCup(g, { opponent: opp, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost })
   }
   return { rounds: cup.path.length, reached: cup.round, won: cup.won, coins: g.coins - coins0, packs: diffPacks(packs0, packsOf(g)) }
@@ -110,7 +110,7 @@ function fixedBracket(g: GachaState, level: number, paths: string[][]): { legWin
     while (g.cup && !g.cup.done) {
       const r = g.cup.round
       const opp = cupOpponent(g)!
-      const res = playArenaMatch(g.squad, level, opp, cupBo(g.cup), ((5000 + i) * 31 + k++) >>> 0)
+      const res = playCupMatch(g.squad, level, opp, cupBo(g.cup), ((5000 + i) * 31 + k++) >>> 0)
       legPlayed[r]++
       if (res.win) legWins[r]++
       recordCup(g, { opponent: opp, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost })

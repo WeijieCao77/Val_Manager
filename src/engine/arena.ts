@@ -11,6 +11,7 @@
 import { seoulArenaPlayer } from './seoul2024'
 import { createNewGame } from './world'
 import { WORLD_TEAMS } from './teams'
+import { cupTeam } from './cupTeams'
 import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
@@ -371,9 +372,9 @@ function sharpen(state: GameState, teamId: string, by: number): void {
  * wins at least seven in ten, more the wider it gets. So the first stretch
  * of a gap is left squeezed and everything past GAP_FREE (in the engine's
  * own points, after the squeeze — about three on the squad screen) counts
- * again at GAP_WIDEN on top. Only between two players' fives: a club
- * opponent is scaled by the ladder itself, and 首尔征途 plays the 2024
- * fives as they were. scripts/check_gap_curve.ts is the measurement.
+ * again at GAP_WIDEN on top. Ranked PvP and cup card rosters use it; the
+ * legacy ladder club opponent is scaled by the ladder itself, and 首尔征途
+ * plays the 2024 fives as they were. check_gap_curve is the measurement.
  */
 const GAP_FREE = 1.5
 const GAP_WIDEN = 0.5
@@ -414,6 +415,28 @@ export function playArenaMatch(
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
 
+  return { ...readResult(result, cardOf), result }
+}
+
+/** Both sides of a cup use the same card seating and wide-gap rules as PvP. */
+export function buildCupArena(
+  squad: ArenaSquad, level: (cardId: string) => number, opponentId: string, seed: number,
+): Arena {
+  const club = cupTeam(opponentId)
+  if (!club) throw new Error('杯赛对手不存在')
+  const arena = buildArena(squad, level, seed)
+  seatSquad(arena.state, { ...club.squad, name: club.name, tag: club.tag }, () => 0, opponentId, 'B', {})
+  honourGap(arena.state, ARENA_TEAM, opponentId)
+  return arena
+}
+
+/** Same wide-gap treatment as ranked card-vs-card play, on both sides. */
+export function playCupMatch(
+  squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
+  bo: 1 | 3 | 5, seed: number,
+): ArenaResult {
+  const { state, cardOf } = buildCupArena(squad, level, opponentId, seed)
+  const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, new Rng(seed ^ 0x5b1d))
   return { ...readResult(result, cardOf), result }
 }
 

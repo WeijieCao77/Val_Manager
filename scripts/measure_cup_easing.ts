@@ -6,12 +6,12 @@ import { autoSquad, newGacha, openPack, levelOf } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
 import { runAction } from '../src/engine/cardActions'
 import { hashStr } from '../src/engine/rng'
-import { WORLD_TEAMS } from '../src/engine/teams'
+import { CUP_TEAMS } from '../src/engine/cupTeams'
 const N = Number(process.argv[2] ?? 200)
 const output = process.argv[3] ?? '/tmp/cup-easing.json'
 const comparison = process.argv[4] ? JSON.parse(readFileSync(process.argv[4], 'utf8')) : null
 const now = Date.parse('2026-09-15T12:00:00Z'), today = '2026-09-15'
-const ratings = new Map(WORLD_TEAMS.map(t => [t.id, t.rating]))
+const ratings = new Map(CUP_TEAMS.map(t => [t.id, t.rating]))
 function own(g: GachaState, ids: string[], level = 0) {
   for (const id of ids) g.cards[id] = { id, level, dupes: 0, seen: 1, got: today }
   g.squad = autoSquad(g)
