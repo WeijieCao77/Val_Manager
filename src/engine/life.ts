@@ -24,7 +24,8 @@ import type { GameState, Player } from './types'
 
 /** A day's worth of things that simply happened. */
 export function dailyLife(state: GameState, notes: string[]): void {
-  birthdays(state, notes)
+  // birthdays are events now — engine/birthdays.ts, called from advanceDay
+  void state; void notes
 }
 
 /** A week's worth of things that build up. */
@@ -36,31 +37,6 @@ export function weeklyLife(state: GameState, rng: Rng, notes: string[]): void {
 }
 
 // ---------------------------------------------------------------- birthdays
-
-/** Day-of-year for an ISO date, ignoring the year. */
-function dayOfYear(iso: string): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (!m) return null
-  const month = Number(m[2])
-  const day = Number(m[3])
-  if (!month || !day) return null
-  return Math.round(
-    (Date.UTC(2001, month - 1, day) - Date.UTC(2001, 0, 1)) / 86_400_000,
-  )
-}
-
-/**
- * 366 players carry a real birthdate. Using it costs nothing and is the
- * cheapest thing in the game that makes a squad feel like people.
- */
-function birthdays(state: GameState, notes: string[]): void {
-  for (const p of squadOf(state, state.myTeam)) {
-    if (!p.birth) continue
-    if (dayOfYear(p.birth) !== state.day % 365) continue
-    p.morale = clamp(p.morale + 3, 0, 100)
-    notes.push(`🎂 ${p.ign} 今天 ${p.age} 岁生日。`)
-  }
-}
 
 // ---------------------------------------------------------------- milestones
 

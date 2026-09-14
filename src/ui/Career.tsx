@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { LIFE, LIFE_ACTS, doLifeAct, lifeBlock, lifeMod, managerAge, monthlyPay, setAutoMeal } from '../engine/managerLife'
+import type { LifeAct } from '../engine/managerLife'
+import { fromCareerDay } from '../engine/clock'
 import { ask as askConfirm } from './confirm'
 import { useGame } from './ctx'
 import { Bar, money, Panel, Stat } from './common'
@@ -65,7 +68,7 @@ export default function Career() {
         <Panel title="个人档案">
           <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
             <b style={{ fontSize: 16 }}>{m.name}</b>
-            <span className="tag">{m.age} 岁</span>
+            <span className="tag" title={`开档时 ${m.age} 岁，每个赛季长一岁`}>{managerAge(game)} 岁</span>
             <span className="tag">{origin?.label}</span>
           </div>
           {(Object.keys(SKILL_CN) as (keyof typeof SKILL_CN)[]).map((k) => (
@@ -85,6 +88,8 @@ export default function Career() {
             </div>
           )}
         </Panel>
+
+        <LifePanel />
 
         <Panel title="我的合同">
           <div className="row wrap" style={{ gap: 8, marginBottom: 10 }}>
@@ -236,5 +241,94 @@ export default function Career() {
         </p>
       </Panel>
     </>
+  )
+}
+
+
+/**
+ * 经理生活: the wallet, the two numbers, and what to do about them.
+ *
+ * Salary lands here monthly (engine/managerLife.ts). 饱腹 and 心情 move
+ * once per game day, never by the wall clock, and only nudge the
+ * manager's own work within ±8% — the point is a person, not a chore. The
+ * auto supply keeps 饱腹 up without a click a day, inside a monthly budget
+ * the manager sets; a refusal costs nothing.
+ */
+function LifePanel() {
+  const { game, commit, toast } = useGame()
+  const l = game.life
+  const [budget, setBudget] = useState(l?.auto.budget ?? 600)
+  if (!l) return null
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
+  const mod = lifeMod(game)
+  const bar = (v: number) => (v >= 60 ? 'var(--win)' : v >= 30 ? 'var(--warn)' : 'var(--loss)')
+  const run = (act: LifeAct) => {
+    const r = doLifeAct(game, act)
+    toast(r.text)
+    if (r.ok) commit()
+  }
+  return (
+    <Panel title="经理生活" actions={<span className="tiny faint">个人钱包和俱乐部资金分开记</span>}>
+      <div className="grid c4" style={{ gap: 10, marginBottom: 10 }}>
+        <div className="stat"><span className="k">个人余额</span><span className="v sm">{fmt(l.wallet)}</span></div>
+        <div className="stat"><span className="k">月薪</span><span className="v sm">{fmt(monthlyPay(game))}</span></div>
+        <div className="stat"><span className="k">生涯累计收入</span><span className="v sm">{fmt(game.tally?.earned ?? 0)}</span></div>
+        <div className="stat"><span className="k">状态修正</span><span className="v sm">{mod >= 1 ? '+' : ''}{((mod - 1) * 100).toFixed(1)}%</span></div>
+      </div>
+      <div className="grid c2" style={{ gap: 10, marginBottom: 8 }}>
+        <div>
+          <div className="small muted">饱腹 <span className="tiny faint">100 是吃饱，每天 −{LIFE.HUNGER_PER_DAY}</span></div>
+          <div className="row" style={{ gap: 8 }}><Bar value={l.hunger} color={bar(l.hunger)} /><span className="mono small">{Math.round(l.hunger)}</span></div>
+        </div>
+        <div>
+          <div className="small muted">心情 <span className="tiny faint">每天 −{LIFE.MOOD_PER_DAY} 到 {LIFE.MOOD_FLOOR} 为止，饿着再 −{LIFE.HUNGRY_MOOD}</span></div>
+          <div className="row" style={{ gap: 8 }}><Bar value={l.mood} color={bar(l.mood)} /><span className="mono small">{Math.round(l.mood)}</span></div>
+        </div>
+      </div>
+      <p className="tiny muted" style={{ marginTop: 0 }}>
+        两个数只影响你自己的工作：本队训练收益和更衣室谈话的成功率，最多 ±{LIFE.MOD_MAX * 100}%。不影响选手能力，也不限制比赛。
+      </p>
+      <div className="row wrap" style={{ gap: 6, marginBottom: 8 }}>
+        {(Object.keys(LIFE_ACTS) as LifeAct[]).map((k) => {
+          const a = LIFE_ACTS[k]
+          const why = lifeBlock(game, k)
+          return (
+            <button key={k} className="sm" disabled={!!why} title={why ?? a.blurb} onClick={() => run(k)}>
+              {a.label}{a.price ? ` $${a.price}` : ' 免费'}
+              <span className="tiny faint"> {a.hunger ? `饱腹 +${a.hunger} ` : ''}{a.mood ? `心情 +${a.mood}` : ''}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div className="row wrap small" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}>
+        <span className="muted">自动补给（饱腹低于 {LIFE.AUTO_AT} 时自动买）：</span>
+        <div className="seg">
+          {([['null', '关'], ['cheap', '便饭'], ['good', '好好吃']] as const).map(([v, label]) => (
+            <button key={v} className={(l.auto.meal ?? 'null') === v ? 'on' : ''}
+              onClick={() => { setAutoMeal(game, v === 'null' ? null : v, budget); commit() }}>{label}</button>
+          ))}
+        </div>
+        <span className="muted">每月预算 $</span>
+        <input type="number" value={budget} min={0} step={50} style={{ width: 80 }}
+          onChange={(e) => setBudget(Number(e.target.value))}
+          onBlur={() => { setAutoMeal(game, l.auto.meal, budget); commit() }} />
+        <span className="tiny faint">本月已用 ${l.auto.spent}；余额不够或预算用完会停，并在推进摘要里提醒。</span>
+      </div>
+      {l.ledger.length > 0 && (
+        <details className="small">
+          <summary className="muted">个人收支（最近 {Math.min(12, l.ledger.length)} 条）</summary>
+          {l.ledger.slice(-12).reverse().map((x, i) => {
+            const at = fromCareerDay(x.cd)
+            return (
+              <div key={i} className="row" style={{ gap: 8 }}>
+                <span className="tiny faint mono" style={{ width: 70 }}>{at.year}/{at.day + 1}日</span>
+                <span style={{ flex: 1 }}>{x.label}</span>
+                <span className={`mono ${x.amount >= 0 ? 'pos' : 'neg'}`}>{x.amount >= 0 ? '+' : ''}{fmt(x.amount)}</span>
+              </div>
+            )
+          })}
+        </details>
+      )}
+    </Panel>
   )
 }

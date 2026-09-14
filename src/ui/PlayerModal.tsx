@@ -20,6 +20,9 @@ import { askingPrice } from '../engine/transfer'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../engine/types'
 import { agentCn } from '../engine/content'
 import { byPro, proLabel } from '../engine/agents'
+import { titleClub } from '../engine/history'
+import { BIRTHDAY, BIRTHDAY_CHOICE_CN, birthdayBlock, birthdayFor, handleBirthday } from '../engine/birthdays'
+import type { BirthdayChoice } from '../engine/birthdays'
 import type { Stats } from '../engine/types'
 
 export default function PlayerModal(
@@ -124,6 +127,48 @@ export default function PlayerModal(
             {p.listed && <span className="tag warn">已挂牌</span>}
             {p.retiring && <span className="tag warn">📢 本赛季后退役</span>}
           </div>
+          {mine && birthdayFor(game, p.id) && (() => {
+            const e = birthdayFor(game, p.id)!
+            const opts: [BirthdayChoice, string, string][] = [
+              ['wish', BIRTHDAY_CHOICE_CN.wish, `免费 · 士气 +${BIRTHDAY.wish.morale}，信任 +${BIRTHDAY.wish.trust}`],
+              ['gift', BIRTHDAY_CHOICE_CN.gift, `经理个人掏 $${BIRTHDAY.gift.price} · 士气 +${BIRTHDAY.gift.morale}，信任 +${BIRTHDAY.gift.trust}`],
+              ['party', BIRTHDAY_CHOICE_CN.party, `俱乐部经费 $${BIRTHDAY.party.cost.toLocaleString('en-US')} + 1 行动力 · 他士气 +${BIRTHDAY.party.morale}、信任 +${BIRTHDAY.party.trust}，全队士气 +${BIRTHDAY.party.squadMorale}，和他关系 +${BIRTHDAY.party.bond}`],
+              ['skip', BIRTHDAY_CHOICE_CN.skip, '什么也不发生'],
+            ]
+            const run = (c: BirthdayChoice) => {
+              const why = birthdayBlock(game, e.id, c)
+              if (why) { toast(why); return }
+              const go = () => {
+                const r = handleBirthday(game, e.id, c)
+                toast(r.text)
+                if (r.ok && c !== 'skip') logActivity(game, 'locker', `${p.ign} 生日：${BIRTHDAY_CHOICE_CN[c]}`)
+              }
+              if (c === 'party') act('venture', go)
+              else { go(); commit() }
+            }
+            const left = BIRTHDAY.WINDOW_DAYS - (game.day - e.day)
+            return (
+              <div className="panel own" style={{ marginBottom: 10 }}>
+                <div className="panel-head"><h2>🎂 {p.ign} {e.day === game.day ? '今天' : `${game.day - e.day} 天前`}过 {e.age} 岁生日</h2></div>
+                <div className="panel-body">
+                  <p className="small muted" style={{ marginTop: 0 }}>
+                    还有 {Math.max(0, left)} 天可以表示。礼物从经理个人钱包出，庆祝走俱乐部财务并花 1 行动力，钱不够就不会扣。
+                  </p>
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {opts.map(([key, label, hint]) => {
+                      const why = birthdayBlock(game, e.id, key)
+                      return (
+                        <button key={key} className="sm" title={why ?? hint} disabled={!!why && key !== 'skip'} onClick={() => run(key)}>
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="tiny faint" style={{ marginTop: 6 }}>{opts.map(([, l, h]) => `${l}：${h}`).join(' ｜ ')}</div>
+                </div>
+              </div>
+            )
+          })()}
           {p.retiring && (
             <div className="panel own" style={{ marginBottom: 12 }}>
               <div className="panel-body">
@@ -221,6 +266,57 @@ export default function PlayerModal(
         <StatBlock title="本赛季" s={p.season} />
         <StatBlock title="生涯" s={p.career} />
       </div>
+
+      {/* What happened to him HERE — the titles the champion's roster was
+          credited with as they were won, at the club that won them, and the
+          clubs he has served since 2026. Separate from the real-world record
+          the 资料库 keeps; nothing from that page is mixed in, and an old
+          save's title that never recorded its club says so instead of
+          borrowing the club he is at today. */}
+      {(() => {
+        const titles = (p.titles ?? []).slice().reverse()
+        const stints = (p.clubHist ?? [])
+        return (
+          <div className="panel">
+            <div className="panel-head">
+              <h2>本存档荣誉 · 游戏内履历</h2>
+              <div className="spacer" />
+              <span className="tiny faint">2026 起在这个存档里发生的事，现实生涯在资料库</span>
+            </div>
+            <div className="panel-body">
+              {titles.length === 0 && stints.length === 0 && (
+                <p className="small muted" style={{ margin: 0 }}>还没有记录。</p>
+              )}
+              {titles.length > 0 && (
+                <div style={{ marginBottom: stints.length ? 10 : 0 }}>
+                  <div className="small muted" style={{ marginBottom: 4 }}>冠军 · {titles.length} 座{titles.some((t) => t.intl) && `，其中国际赛 ${titles.filter((t) => t.intl).length} 座`}</div>
+                  {titles.map((t, i) => (
+                    <div key={t.key ? `${t.key}-${t.year}` : i} className="small" style={{ padding: '2px 0' }}>
+                      🏆 {t.year} · {t.title}
+                      <span className="faint"> · {titleClub(game, t)}</span>
+                      {t.part === 'squad' && <span className="tag" style={{ marginLeft: 6 }}>替补席</span>}
+                      {!t.team && <span className="tiny faint">（早期存档，未记俱乐部）</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {stints.length > 0 && (
+                <div>
+                  <div className="small muted" style={{ marginBottom: 4 }}>效力经历</div>
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {stints.map((s, i) => (
+                      <span key={i} className="chiplet">
+                        {game.teams[s.team]?.name ?? s.team}
+                        <span className="faint"> {s.from === s.to ? s.from : `${s.from}–${s.to}`}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="panel">
         <div className="panel-head"><h2>合同</h2></div>

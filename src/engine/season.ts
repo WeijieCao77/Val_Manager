@@ -32,6 +32,11 @@ import type { DrawEvent } from './draw'
 import { importBlock } from './imports'
 import { contractLength, expectedSalary } from './player'
 import { REGIONS } from './types'
+import { recordJoin, recordLeave, recordTitle } from './history'
+import { SEASON_DAYS } from './clock'
+import { tickDisputes } from './disputes'
+import { tickBirthdays } from './birthdays'
+import { tickLife } from './managerLife'
 import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, Tier } from './types'
 import { track } from './telemetry'
 import {
@@ -53,7 +58,7 @@ import {
  * weeks off after the Masters before the next league starts (see
  * LEAGUE_DAYS, and keepBreaks for the rule that holds it whatever happens).
  */
-export const SEASON_DAYS = 364
+export { SEASON_DAYS } from './clock'
 
 /**
  * The days each regional regular season is spread over.
@@ -354,21 +359,37 @@ function createChampions(state: GameState, name: string, day: number): void {
  *
  * 只动现役图池里出场的英雄——没人玩的角色改了也没人知道。
  */
-export function applyPatch(state: GameState, big: boolean): void {
+export function applyPatch(state: GameState, big: boolean, notes: string[] = [], stage?: StageKey): void {
   const pool = Array.from(new Set(poolFor(state).flatMap((m) => MAP_META[m] ?? [])))
   if (!pool.length) return
+  const id = `${state.year}-${stage ?? (big ? 'offseason' : 'mid')}-${state.day}`
+  // the same settlement twice must not roll twice — the competition's own
+  // `awarded` flag guards the caller, and this guards the log
+  if (state.patch?.id === id) return
   const rng = new Rng(hashStr(`patch:${state.seed}:${state.year}:${state.day}`))
   const name = big ? `${state.year} 休赛期大改` : `${state.year} 赛中调整`
-  state.patch = rollPatch(state.patch, pool, state.day, name, big, rng)
+  // what the patch is FOR: the phase that follows the event just settled —
+  // never the event itself, whose matches were played on the old numbers
+  const after = stage === 'masters1' ? '第二赛段起'
+    : stage === 'masters2' ? '冠军赛起'
+    : stage === 'champions' ? `${state.year + 1} 赛季起`
+    : '下一阶段起'
+  state.patch = { ...rollPatch(state.patch, pool, state.day, name, big, rng), id, year: state.year, after }
+  state.patchLog = [...(state.patchLog ?? []), state.patch].slice(-8)
   const say = (list: string[]) => list.map(agentCn).join('、')
   const parts: string[] = []
   if (state.patch.buffed.length) parts.push(`加强 ${say(state.patch.buffed)}`)
   if (state.patch.nerfed.length) parts.push(`削弱 ${say(state.patch.nerfed)}`)
-  if (!parts.length) return
-  state.news.push({
-    day: state.day, kind: 'league', important: big,
-    text: `🔧 ${name}：${parts.join('；')}。逆着版本排阵容要吃亏。`,
-  })
+  const line = parts.length
+    ? `🔧 ${name}（${after}）：${parts.join('；')}。逆着版本排阵容要吃亏，战术页有本队建议。`
+    : `🔧 ${name}（${after}）：只有微调，没有明显加强或削弱。`
+  state.news.push({ day: state.day, kind: 'league', important: big, text: line })
+  notes.push(line)
+}
+
+/** the manager has read the current patch; the 「新」 mark on 总览 goes out */
+export function markPatchSeen(state: GameState): void {
+  if (state.patch?.id) state.patchSeen = state.patch.id
 }
 
 export function settleCompetition(state: GameState, comp: Competition, notes: string[] = []): void {
@@ -393,17 +414,12 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
   // 版本以国际赛为分界线更替 —— 一年一次大改（Champions 之后，进休赛期），
   // 中间的大师赛之后是中小改。地区赛不改版本。
   if (comp.stage === 'masters1' || comp.stage === 'masters2' || comp.stage === 'champions') {
-    applyPatch(state, comp.stage === 'champions')
+    applyPatch(state, comp.stage === 'champions', notes, comp.stage)
   }
   // every man on the winning roster carries this title from now on — the
-  // farewell card reads it, and it is entirely a thing that happened here
-  for (const pid of champ?.roster ?? []) {
-    const winner = state.players[pid]
-    if (!winner) continue
-    winner.titles ??= []
-    winner.titles.push({ year: state.year, title: comp.name })
-    if (winner.titles.length > 40) winner.titles.splice(0, winner.titles.length - 40)
-  }
+  // farewell card and the player's page read it, and it is entirely a
+  // thing that happened here (engine/history.ts)
+  recordTitle(state, comp, comp.champion)
 
   // Everyone who was in the room when it was won, at whichever club won it —
   // a trophy is the shared history that loyalty is made of, and the AI's
@@ -1499,7 +1515,11 @@ export function commitFixture(
     const isA = f.teamA === state.myTeam
     const won = (result.mapsWonA > result.mapsWonB) === isA
     trustAfterMatch(state, won, (isA ? result.lineups?.a : result.lineups?.b) ?? [])
-    applyMatchBonds(state, result, state.myTeam, isA, rng, room)
+    const oppId = isA ? f.teamB : f.teamA
+    const score = isA ? `${result.mapsWonA}–${result.mapsWonB}` : `${result.mapsWonB}–${result.mapsWonA}`
+    applyMatchBonds(state, result, state.myTeam, isA, rng, room, {
+      fixtureId: f.id, opponent: state.teams[oppId]?.name ?? oppId, score,
+    })
     for (const t of room) {
       state.news.push({ day: state.day, kind: 'club', important: true, text: t })
       notes.push(t)
@@ -1727,6 +1747,9 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
 
   dailyLife(state, notes)
+  tickBirthdays(state, notes)
+  tickDisputes(state, notes)
+  tickLife(state, notes)
 
   state.stage = stageAt(state.day)
   const stageChanged = state.stage !== prevStage
@@ -1886,6 +1909,7 @@ function retirePlayer(state: GameState, p: Player, notes: string[]): string {
   if (t) {
     t.roster = t.roster.filter((id) => id !== p.id)
     t.starters = t.starters.filter((id) => id !== p.id)
+    recordLeave(state, p)
   }
   state.retireFeed ??= []
   state.retireFeed.push({
@@ -2002,8 +2026,9 @@ export function settleAtFive(state: GameState): void {
   if (!state.midReview) return
   state.midReview = false
   state.midReviewDone = true
+  // the manager's pay is monthly now (engine/managerLife.ts); a season's
+  // end banks nothing, or every year would be paid twice
   state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
-  state.tally.earned += state.managerContract?.salary ?? 0
   const earned = endingsFor(state)
   state.finished = true
   state.gameOver = earned[0]
@@ -2046,8 +2071,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // a number on the contract screen that nothing ever read — and it is the
   // one figure in the game that belongs to the person rather than the club.
   // Counted before the finale check, because the last season was worked.
+  // the manager's pay is monthly now (engine/managerLife.ts); a season's
+  // end banks nothing, or every year would be paid twice
   state.tally ??= { signed: 0, hired: 0, earned: 0, commercial: 0 }
-  state.tally.earned += state.managerContract?.salary ?? 0
 
   // Ten seasons is the whole story: 2036 is the last campaign played, and when
   // it is settled the career ends on its own terms rather than running on until
@@ -2173,6 +2199,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         if (p.expiredYear != null && p.expiredYear < state.year) {
           team.roster = team.roster.filter((id) => id !== p.id)
           team.starters = team.starters.filter((id) => id !== p.id)
+          recordLeave(state, p)
           p.teamId = null
           p.expiredYear = undefined
           state.news.push({
@@ -2192,6 +2219,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
       } else if (team) {
         team.roster = team.roster.filter((id) => id !== p.id)
         team.starters = team.starters.filter((id) => id !== p.id)
+        recordLeave(state, p)
         p.teamId = null
         // one batched line, not one per man: a winter shakes dozens loose
         released.push(`${p.ign}（${team.tag}）`)
@@ -2438,6 +2466,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
       target.contractYears = contractLength(target, rng, team.roster.map((id) => state.players[id]))
       target.salary = expectedSalary(target, team.tier)
       team.roster.push(target.id)
+      recordJoin(state, target, team.id)
       // offseason emergency signings go on the record like any other move
       state.news.push({
         day: state.day, kind: 'transfer',

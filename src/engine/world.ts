@@ -12,6 +12,8 @@ import { freeAgentPool } from './prospects'
 import { WORLD_TEAMS, type RawTeam } from './teams'
 import { squadOf, callerOf } from './roster'
 import { currentRuleset } from './ruleset'
+import { isCoolingOff } from './clock'
+import { newLife } from './managerLife'
 
 interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
@@ -80,8 +82,10 @@ export function autoStarters(state: GameState, teamId: string): string[] {
     // rates: "已自动排出最佳首发" used to hand back a five with three injured
     // men in it, and the same screen then warned the caller was unavailable.
     // He is still eligible — a squad with nobody fit must field somebody.
+    // and a man told to cool off queues behind the injured: the whole point
+    // of the bench was that 自动首发 must not put him straight back
     .sort((a, b) => {
-      const fit = (x: Player) => (x.injuredUntil > state.day ? 1 : 0)
+      const fit = (x: Player) => (isCoolingOff(state, x) ? 2 : x.injuredUntil > state.day ? 1 : 0)
       return fit(a) - fit(b) || confidentRating(b) - confidentRating(a)
     })
 
@@ -251,7 +255,10 @@ export function createNewGame(
     lastResults: [],
     boardConfidence: 62,
     rulesetId: currentRuleset(),
+    birthdays: [],
+    disputes: [],
   }
+  if (manager) state.life = newLife(state)
 
   for (const id of Object.keys(teams)) {
     // Static data may honestly leave a club's real caller unknown. AI clubs

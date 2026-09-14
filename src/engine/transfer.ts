@@ -1,4 +1,5 @@
 import { Rng, clamp, hashStr } from './rng'
+import { recordJoin, recordLeave } from './history'
 import { contractLength, expectedSalary, marketValue, refreshValue } from './player'
 import { autoStarters, ensureCaller } from './world'
 import { squadOf, wageBill } from './roster'
@@ -350,6 +351,7 @@ export function doTransfer(
         cover.contractYears = contractLength(cover, new Rng(hashStr(`cover:${state.seed}:${state.year}:${state.day}:${cover.id}`)), squadOf(state, from.id))
         cover.salary = expectedSalary(cover, from.tier)
         from.roster.push(cover.id)
+        recordJoin(state, cover, from.id)
         state.news.push({
           day: state.day, kind: 'transfer',
           text: `${from.name} 紧急签下自由人 ${cover.ign}（${cover.overall}）填补空缺。`,
@@ -363,6 +365,8 @@ export function doTransfer(
     }
   }
 
+  // the old line closes before the new one opens
+  recordLeave(state, p)
   to.roster.push(p.id)
   to.budget -= fee
   if (to.id === state.myTeam) {
@@ -405,11 +409,7 @@ export function doTransfer(
   p.joinedYear = state.year
   // the in-save CV: a new club opens a new line (year granularity — the
   // season sweep in endSeason extends it while he stays)
-  p.clubHist ??= []
-  const lastStint = p.clubHist[p.clubHist.length - 1]
-  if (!lastStint || lastStint.team !== toTeamId) {
-    p.clubHist.push({ team: toTeamId, from: state.year, to: state.year })
-  }
+  recordJoin(state, p, toTeamId)
   refreshValue(p)
 
   // An AI club that pays for a player intends to field him: the five is
@@ -468,6 +468,7 @@ export function releasePlayer(state: GameState, p: Player): string {
       state.finances.log.push({ day: state.day, label: `解约 ${p.ign}`, amount: -payoff })
     }
   }
+  recordLeave(state, p)
   p.teamId = null
   p.contractYears = 0
   p.listed = false

@@ -9,6 +9,7 @@ import type { StyleMix } from './comp'
 import type { CompStyle } from './comp'
 import { callerOf, coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
+import { isCoolingOff } from './clock'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'
 import type {
@@ -125,7 +126,7 @@ export function selectLineup(state: GameState, teamId: string): Player[] {
   const team = state.teams[teamId]
   const all = team.roster
     .map((id) => state.players[id])
-    .filter((p): p is Player => !!p && p.injuredUntil <= state.day)
+    .filter((p): p is Player => !!p && p.injuredUntil <= state.day && !isCoolingOff(state, p))
 
   const chosen: Player[] = []
   for (const id of team.starters) {
@@ -138,9 +139,11 @@ export function selectLineup(state: GameState, teamId: string): Player[] {
     // reserve who is 30 points worse, and a real backup beats him — which is
     // what carrying a bench is supposed to buy. Excluding the injured outright
     // forced a weak substitute on and made depth cost MORE than an injury.
+    // a man sent to cool off is not in the pool either; the emergency pass
+    // below still finds him if the club cannot otherwise field five
     const pool = team.roster
       .map((id) => state.players[id])
-      .filter((p): p is Player => !!p && !chosen.includes(p))
+      .filter((p): p is Player => !!p && !chosen.includes(p) && !isCoolingOff(state, p))
     // Filled one at a time, and a man who plugs a job the five is missing is
     // worth more than his rating says — the same judgement compositionScore
     // makes about the finished lineup. Ranking on rating alone benched an

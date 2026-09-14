@@ -154,7 +154,7 @@ export interface Activity {
   /** the season it happened in — day alone repeats every year */
   year?: number
   day: number
-  kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics' | 'commercial'
+  kind: 'training' | 'scrim' | 'transfer' | 'squad' | 'tactics' | 'commercial' | 'locker'
   text: string
 }
 
@@ -342,14 +342,16 @@ export interface Player {
   retiring?: boolean
   /** clubs served IN THIS SAVE, year granularity — the farewell card's CV */
   clubHist?: { team: string; from: number; to: number }[]
-  /** titles lifted IN THIS SAVE — credited to the champion's roster as they happen */
-  titles?: { year: number; title: string }[]
+  /** titles lifted IN THIS SAVE — credited to the champion's roster as they happen; see engine/history.ts */
+  titles?: import('./history').Title[]
   /** the manager already made his case once; a man's mind is his own after that */
   persuaded?: boolean
   /** the season he joined his current club — a fresh signing is not shopped */
   joinedYear?: number
   /** the season his loyalty was last docked for being listed — see loyalty.ts */
   loyaltyHitYear?: number
+  /** sitting out to cool off after an argument, as a career day — see engine/disputes.ts */
+  coolOffUntil?: number
 }
 
 export interface Coach {
@@ -1016,6 +1018,16 @@ export interface GameState {
    * 没有这个字段的老存档按「没有任何英雄被调整过」处理。
    */
   patch?: Patch
+  /** dressing-room arguments and what was done about them — engine/disputes.ts */
+  disputes?: import('./disputes').Dispute[]
+  /** the managed squad's birthdays this season and what was done about them — engine/birthdays.ts */
+  birthdays?: import('./birthdays').BirthdayEvent[]
+  /** the manager's own age, wallet and state — engine/managerLife.ts */
+  life?: import('./managerLife').ManagerLife
+  /** 最近几个版本，最新在后；老存档从当前版本起记 */
+  patchLog?: Patch[]
+  /** 经理看过的最新版本 id；和 patch.id 不同就在总览上亮「新」 */
+  patchSeen?: string
   /**
    * 这是开瓦包对战借用的一次性世界，不是一局经理生涯。
    *

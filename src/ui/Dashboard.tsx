@@ -19,6 +19,7 @@ import { SKILL_CN, SKILL_HINT } from '../engine/manager'
 import { useAction } from './useAction'
 import { cycleDays } from '../engine/actions'
 import Digest from './Digest'
+import { PatchCard } from './PatchNotes'
 import { squadOf, wageBill } from '../engine/roster'
 import { ATTR_CN } from '../engine/types'
 
@@ -266,6 +267,7 @@ export default function Dashboard() {
         </Panel>
         <Panel><Stat k="资金" v={money(game.finances.balance)} /></Panel>
         <Panel><Stat k="赛季薪资" v={money(bill)} /></Panel>
+        <PatchCard />
         <Panel>
           <Stat k="董事会信任" v={`${Math.round(game.boardConfidence)}%`} />
           <div className="tiny" style={{ marginTop: 2 }}>

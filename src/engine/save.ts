@@ -1,4 +1,5 @@
 import { canonAgents } from './content'
+import { migrateLife } from './managerLife'
 import { seedAgentPro } from './agents'
 import { pruneMatchDetail, stripToTheBone } from './match'
 import { WORLD_TEAMS } from './teams'
@@ -244,6 +245,18 @@ function migrate(state: GameState): GameState {
   state.lastResults ??= []
   state.training ??= {}
   state.boardConfidence ??= 60
+  // a patch from before it carried an id and a year: give it both from what
+  // the save does know, and start the log from it — history before that is
+  // not recoverable and is not invented
+  if (state.patch) {
+    state.patch.year ??= state.year
+    state.patch.id ??= `${state.patch.year}-${state.patch.big ? 'offseason' : 'mid'}-${state.patch.since}`
+    state.patch.after ??= '本赛段起'
+  }
+  state.patchLog ??= state.patch ? [state.patch] : []
+  state.disputes ??= []
+  state.birthdays ??= []
+  if (state.manager) migrateLife(state)
 
   // The three "as you found it" marks, for careers that began before they
   // existed. Missing, they do not read as unknown — they read as zero, which

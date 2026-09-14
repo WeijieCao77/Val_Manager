@@ -4,6 +4,8 @@ import { nextFixtureFor, noticeHint, stageName } from './season'
 import { gigWindow } from './commercial'
 import { nextInEvent, qualification, upcomingInternational } from './qualify'
 import type { Activity, GameState, StageKey } from './types'
+import { openDisputes } from './disputes'
+import { pendingBirthdays } from './birthdays'
 
 /** Record something the manager did today. */
 export function logActivity(state: GameState, kind: Activity['kind'], text: string): void {
@@ -105,6 +107,23 @@ export function agendaFor(state: GameState): AgendaItem[] {
   }
 
   // ---- urgent: things that are actively costing you
+  for (const d of openDisputes(state).slice(0, 2)) {
+    const a = state.players[d.a]
+    const b = state.players[d.b]
+    if (!a || !b) continue
+    items.push({
+      key: `dispute:${d.id}`, tone: 'urgent', go: 'squad',
+      text: `${a.ign} 和 ${b.ign} 赛后争执${d.flareUps ? `（又吵了 ${d.flareUps} 次）` : ''}，去更衣室处理。`,
+    })
+  }
+  for (const e of pendingBirthdays(state).slice(0, 2)) {
+    const p = state.players[e.playerId]
+    if (!p) continue
+    items.push({
+      key: `birthday:${e.id}`, tone: 'todo', go: 'squad',
+      text: `${p.ign} ${e.day === state.day ? '今天' : `${state.day - e.day} 天前`}过 ${e.age} 岁生日，点开他的页面表示一下。`,
+    })
+  }
   if (squad.length < 5) {
     items.push({
       key: 'thin', tone: 'urgent', go: 'transfers',

@@ -437,6 +437,12 @@ export interface Patch {
   /** 生效那天 */
   since: number
   name: string
+  /** 生效那年（老存档没有：按当前年份读） */
+  year?: number
+  /** 唯一标识，`年-赛段-天`，两次「赛中调整」靠它分开 */
+  id?: string
+  /** 从哪个阶段起影响比赛——刚打完的那个赛事用的还是上一版 */
+  after?: string
   /** 英雄 → 版本系数 [-1, 1]，没有的就是 0 */
   coef: Record<string, number>
   /** 加强了谁、削弱了谁，给收件箱用 */

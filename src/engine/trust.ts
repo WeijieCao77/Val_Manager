@@ -27,6 +27,8 @@ export const trustOf = (p: Player): number => p.trust ?? TRUST_START
 function shift(p: Player, delta: number): void {
   p.trust = clamp(trustOf(p) + delta, 0, 100)
 }
+/** the same clamp, for engines that decide a delta of their own (disputes) */
+export const trustShift = (p: Player, delta: number): void => shift(p, delta)
 
 /** A reading a manager can act on. */
 export function trustLabel(v: number): string {

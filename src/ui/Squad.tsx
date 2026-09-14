@@ -13,6 +13,13 @@ import { bondBetween, notableBonds, squadHarmony } from '../engine/bonds'
 import { departureImpact, trustLabel, trustOf, trustOnBench } from '../engine/trust'
 import { ATTR_CN, ATTR_KEYS } from '../engine/types'
 import type { Player } from '../engine/types'
+import { useAction } from './useAction'
+import { fmtDay } from './common'
+import { careerDayOf, fromCareerDay, isCoolingOff } from '../engine/clock'
+import {
+  DISPUTE, DISPUTE_CHOICE_CN, benchBlock, costsAction, disputeBlock, endCoolOff, handleDispute,
+} from '../engine/disputes'
+import type { Dispute, DisputeChoice } from '../engine/disputes'
 
 type SortKey = 'overall' | 'age' | 'form' | 'salary' | 'rating' | 'role'
 
@@ -35,6 +42,7 @@ export default function Squad() {
   })
 
   const toggleStarter = (p: Player) => {
+    if (isCoolingOff(game, p)) { toast(`${p.ign} 在冷静期，先在更衣室恢复他。`); return }
     const idx = me.starters.indexOf(p.id)
     if (idx >= 0) {
       // benching someone who is playing well reads as arbitrary, and costs trust
@@ -242,6 +250,11 @@ export default function Squad() {
                         </span>
                       )}
                       {p.listed && <span className="tag warn">挂牌</span>}
+                      {isCoolingOff(game, p) && (
+                        <span className="tag warn" title={`暂时替补冷静，到 ${fmtDay(fromCareerDay(p.coolOffUntil!).day, fromCareerDay(p.coolOffUntil!).year)}；更衣室里可以提前恢复`}>
+                          冷静中
+                        </span>
+                      )}
                       {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役">退役</span>}
                       {(p.grievance ?? 0) > 45 && !p.listed && (
                         <span className="tag warn"
@@ -338,6 +351,7 @@ export default function Squad() {
           每两名选手之间有独立的关系值。一起打得越久、同国籍、位置上要配合、年纪相仿，关系越高。
           赢球拉近所有人；输球时打得差的一方会被记账，矛盾会滚雪球。<b>双排练</b>是最直接的修复手段。
         </p>
+        <Disputes />
         <div className="table-wrap">
           <table className="bond-grid">
             <thead>
@@ -390,5 +404,126 @@ export default function Squad() {
         </div>
       </Panel>
     </>
+  )
+}
+
+
+/**
+ * The room's arguments, as things to do.
+ *
+ * Each open record names the match it came out of and the two men, and
+ * offers the five answers with their price on the button. A talk or a
+ * mediation costs an action point and is only charged when the engine says
+ * it will be honoured; the free ones are free. What happened stays on the
+ * card, and the cooling-off bench has its own recovery button here.
+ */
+function Disputes() {
+  const { game, commit, toast, openPlayer } = useGame()
+  const act = useAction()
+  const [target, setTarget] = useState<Record<string, string>>({})
+  const list = (game.disputes ?? []).slice().reverse()
+  const open = list.filter((d) => d.status === 'open')
+  const done = list.filter((d) => d.status !== 'open').slice(0, 4)
+  const cooling = squadOf(game, game.myTeam).filter((p) => isCoolingOff(game, p))
+  if (!open.length && !done.length && !cooling.length) return null
+
+  const run = (d: Dispute, choice: DisputeChoice) => {
+    const who = target[d.id]
+    const why = disputeBlock(game, d.id, choice, who)
+    if (why) { toast(why); return }
+    const go = () => {
+      const r = handleDispute(game, d.id, choice, who)
+      toast(r.text)
+      logActivity(game, 'locker', `${DISPUTE_CHOICE_CN[choice]}：${game.players[d.a]?.ign} 和 ${game.players[d.b]?.ign}`)
+    }
+    if (costsAction(choice)) act(choice as 'talk' | 'mediate', go)
+    else { go(); commit() }
+  }
+  const name = (id: string) => game.players[id]?.ign ?? id
+  const when = (d: Dispute) => fmtDay(d.day, d.year)
+  const STATUS_CN: Record<Dispute['status'], string> = { open: '待处理', handled: '已处理', ignored: '未介入', expired: '过期', closed: '已失效' }
+
+  return (
+    <div style={{ padding: '10px 14px 0' }}>
+      {cooling.length > 0 && (
+        <div className="row wrap small" style={{ gap: 8, marginBottom: 8 }}>
+          {cooling.map((p) => {
+            const at = fromCareerDay(p.coolOffUntil!)
+            return (
+              <span key={p.id} className="row" style={{ gap: 6 }}>
+                <span className="tag warn">{p.ign} 冷静中 · 到 {fmtDay(at.day, at.year)}（还 {p.coolOffUntil! - careerDayOf(game)} 天）</span>
+                <button className="sm ghost" onClick={() => { toast(endCoolOff(game, p.id)); commit() }}>提前恢复</button>
+              </span>
+            )
+          })}
+        </div>
+      )}
+      {open.map((d) => {
+        const a = game.players[d.a]
+        const b = game.players[d.b]
+        if (!a || !b) return null
+        const who = target[d.id]
+        const paid = d.attempts.filter((x) => costsAction(x.choice)).length
+        const sev = ['', '小摩擦', '正面冲突', '更衣室站队'][d.severity]
+        return (
+          <div key={d.id} className="panel alert" style={{ marginBottom: 8 }}>
+            <div className="panel-body">
+              <div className="row wrap" style={{ gap: 8, alignItems: 'baseline' }}>
+                <b>💢 {a.ign} 和 {b.ign} 赛后争执</b>
+                <span className="tag warn">{sev}</span>
+                {d.flareUps > 0 && <span className="tag warn">又吵了 {d.flareUps} 次</span>}
+                <span className="tiny faint">{when(d)}{d.opponent ? ` · 对 ${d.opponent} ${d.score ?? ''}` : ''} · {a.ign} 评分 {d.ratings.a.toFixed(2)}，{b.ign} {d.ratings.b.toFixed(2)} · 现在关系 {bondBetween(game, a.id, b.id).toFixed(0)}</span>
+              </div>
+              <p className="tiny muted" style={{ margin: '4px 0 6px' }}>
+                这是本存档里模拟出来的一场争执，谁对谁错由你判断。谈话和暂时替补要先选人；谈话、调解各花 1 行动力，只在能生效时扣。
+                {paid > 0 && ` 已谈 ${paid}/${DISPUTE.MAX_PAID} 次。`}
+              </p>
+              <div className="row wrap" style={{ gap: 6, marginBottom: 6 }}>
+                <span className="tiny faint">针对：</span>
+                {[a, b].map((p) => (
+                  <button key={p.id} className={`sm${who === p.id ? ' primary' : ''}`} onClick={() => setTarget({ ...target, [d.id]: p.id })}>
+                    {p.ign}
+                  </button>
+                ))}
+                <button className="sm ghost" onClick={() => openPlayer(a.id)}>看 {a.ign}</button>
+                <button className="sm ghost" onClick={() => openPlayer(b.id)}>看 {b.ign}</button>
+              </div>
+              <div className="row wrap" style={{ gap: 6 }}>
+                {(['talk', 'mediate', 'duo', 'bench', 'ignore'] as DisputeChoice[]).map((c) => {
+                  const why = disputeBlock(game, d.id, c, who)
+                  const hint = c === 'talk' ? '1 行动力 · 和选中的人单独谈，成了关系回暖、他更信任你；崩了他信任掉一点'
+                    : c === 'mediate' ? '1 行动力 · 两人一起谈，成了关系大幅回暖、双方都松口；崩了更僵'
+                    : c === 'duo' ? '免费 · 这周的双排练定为他们两个，随团队训练结算'
+                    : c === 'bench' ? `免费 · 选中的人 ${DISPUTE.BENCH_DAYS} 天不上首发，他会不满，但两人有了距离；要有替补`
+                    : '免费 · 不管，两周后更衣室自己下结论'
+                  return (
+                    <button key={c} className="sm" disabled={!!why && !(c === 'talk' || c === 'bench') && why !== '先选一个人。'} title={why ?? hint} onClick={() => run(d, c)}>
+                      {DISPUTE_CHOICE_CN[c]}{costsAction(c) ? ' ⚡' : ''}
+                    </button>
+                  )
+                })}
+              </div>
+              {d.attempts.length > 0 && (
+                <div className="tiny muted" style={{ marginTop: 6 }}>
+                  {d.attempts.map((x, i) => <div key={i}>{x.ok ? '✓' : '✗'} {DISPUTE_CHOICE_CN[x.choice]}{x.target ? `（${name(x.target)}）` : ''}：{x.text}</div>)}
+                </div>
+              )}
+              {who && benchBlock(game, who) && <div className="tiny neg" style={{ marginTop: 4 }}>{benchBlock(game, who)}</div>}
+            </div>
+          </div>
+        )
+      })}
+      {done.length > 0 && (
+        <details className="small" style={{ marginBottom: 6 }}>
+          <summary className="muted">最近处理过的争执（{done.length}）</summary>
+          {done.map((d) => (
+            <div key={d.id} className="tiny muted" style={{ padding: '3px 0' }}>
+              {when(d)} · {name(d.a)} 和 {name(d.b)} · {STATUS_CN[d.status]}
+              {d.attempts.length > 0 && `：${d.attempts.map((x) => `${x.ok ? '✓' : '✗'}${DISPUTE_CHOICE_CN[x.choice]}`).join('、')}`}
+            </div>
+          ))}
+        </details>
+      )}
+    </div>
   )
 }

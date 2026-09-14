@@ -62,7 +62,8 @@ export function pickAgentToLearn(p: Player, role: Role): string | undefined {
     .sort((x, y) => (p.agentPro?.[y] ?? 0) - (p.agentPro?.[x] ?? 0))[0]
 }
 import { facilityCost } from './staff'
-import { ATTR_KEYS } from './types'
+import { ATTR_CN, ATTR_KEYS } from './types'
+import { lifeMod } from './managerLife'
 import type { AgentPick, Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
 
 /**
@@ -82,27 +83,89 @@ export const MORALE_PULL = 0.12
 export const REST_AT = 45
 
 /**
- * The most useful individual focus for this player's actual role.
+ * Where an attribute stops. The one number the training screen, the auto
+ * plan, the weekly gain and the winter growth all read — it used to be a 99
+ * in six clamps and a 97 in the recommendation, and the two disagreed:
+ * 「枪法已经练满，但点自动推荐仍然推荐练枪法」 was a duelist on 98 aim,
+ * excluded by the 97 in one place and still trainable in the other.
+ */
+export const ATTR_MAX = 99
+
+/** why the auto plan chose what it chose — shown beside the pick */
+export interface TrainingAdvice {
+  focus: keyof Attrs | 'rest'
+  /** grow: an attribute with room; recover: rest to bring fatigue down; hold: nothing can grow */
+  kind: 'grow' | 'recover' | 'hold'
+  reason: string
+}
+
+/**
+ * Where an AI club stops polishing an attribute. Not a cap — the engine
+ * trains anyone to ATTR_MAX — but the line the world's growth bands were
+ * tuned on (scripts/check_ai_growth.ts: the top ten peak under 94 across
+ * ten seasons). With the old 97 gone from the recommendation, AI clubs
+ * kept grinding 97s and 98s and the ten-season peak crept to 94.4, so the
+ * stop stays for them, named, and the manager's own club reads the true
+ * ceiling.
+ */
+export const AI_POLISH_STOP = 97
+
+/** an attribute this player can still put a point on */
+export const canGrow = (p: Player, k: keyof Attrs, stopAt = ATTR_MAX): boolean =>
+  (k !== 'igl' || p.isIgl) && p.attrs[k] < stopAt
+
+/**
+ * The most useful individual focus for this player's actual role, and why.
  *
  * Overall is role-weighted, so "train the lowest raw number" is not neutral:
  * it sent duelists to communication (5% of their rating) instead of aim (28%).
- * The training screen's 「按位置分配」 and every AI club use this same
- * judgement — the heaviest attribute that still has somewhere to go, and
- * among equals the one he is worse at. A manager can still override it by
- * hand. Only the caller is ever pointed at 指挥, and anyone tired, hurt or
- * already at his ceiling is rested instead.
+ * The training screen's 「按位置分配」, the dropdown's 建议 mark and every AI
+ * club use this same judgement — the heaviest attribute that still has
+ * somewhere to go, and among equals the one he is worse at. A manager can
+ * still override it by hand. Only the caller is ever pointed at 指挥.
+ *
+ * The order matters and is the order a coach would ask: hurt? tired? at his
+ * ceiling? then which attribute. `day` is the calendar the injury is read
+ * against; without one (the AI's weekly loop, which already skips the
+ * injured) that gate is skipped.
  */
-export function recommendedTrainingFocus(p: Player): keyof Attrs | 'rest' {
-  if (p.potential <= p.overall || p.fatigue >= REST_AT) return 'rest'
+export function trainingAdvice(p: Player, day?: number, stopAt = ATTR_MAX): TrainingAdvice {
+  if (day !== undefined && p.injuredUntil > day) {
+    return { focus: 'rest', kind: 'recover', reason: `伤还没好（还有 ${p.injuredUntil - day} 天），先休息` }
+  }
+  if (p.fatigue >= REST_AT) {
+    return { focus: 'rest', kind: 'recover', reason: `疲劳 ${Math.round(p.fatigue)}，到 ${REST_AT} 就该休息，练也长不动` }
+  }
+  if (p.potential <= p.overall) {
+    return { focus: 'rest', kind: 'hold', reason: `总评 ${p.overall} 已到潜力上限，再练也不涨，休息保状态` }
+  }
   const weights = weightsFor(p)
-  const room = ATTR_KEYS.filter((k) => (k !== 'igl' || p.isIgl) && p.attrs[k] < 97)
-  if (!room.length) return 'rest'
-  return room.reduce((a, b) => {
-    const d = weights[b] - weights[a]
-    if (Math.abs(d) > 0.001) return d > 0 ? b : a
-    return p.attrs[b] < p.attrs[a] ? b : a
-  })
+  const byWeight = ATTR_KEYS.filter((k) => k !== 'igl' || p.isIgl)
+    .slice().sort((a, b) => weights[b] - weights[a] || p.attrs[a] - p.attrs[b])
+  const room = byWeight.filter((k) => canGrow(p, k, stopAt))
+  if (!room.length) {
+    return { focus: 'rest', kind: 'hold', reason: `能练的属性都到 ${stopAt} 了，休息保状态` }
+  }
+  const pick = room[0]
+  const top = byWeight[0]
+  if (top !== pick) {
+    // the role's main number is full: say so, and say what is left
+    const full = byWeight.filter((k) => !canGrow(p, k, stopAt) && weights[k] >= weights[pick])
+    return {
+      focus: pick, kind: 'grow',
+      reason: `${full.map((k) => ATTR_CN[k]).join('、')}已到 ${stopAt}，改练当前可提升的${ATTR_CN[pick]}（${p.attrs[pick]}）`,
+    }
+  }
+  return {
+    focus: pick, kind: 'grow',
+    reason: `${p.role}最吃${ATTR_CN[pick]}，现在 ${p.attrs[pick]}，还有 ${stopAt - p.attrs[pick]} 点空间`,
+  }
 }
+
+/** The focus alone — the older checks read this; the manager's screen reads trainingAdvice. */
+export const recommendedTrainingFocus = (p: Player): keyof Attrs | 'rest' => trainingAdvice(p).focus
+/** what an AI club's weekly loop writes: the same judgement, stopping where its balance was tuned */
+export const aiTrainingFocus = (p: Player): keyof Attrs | 'rest' => trainingAdvice(p, undefined, AI_POLISH_STOP).focus
 
 /**
  * A title makes rival clubs accelerate high-upside youngsters, not every
@@ -138,8 +201,10 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
     p.form = clamp(p.form - rng.range(0, 2), 30, 99)
     return null
   }
-  if (headroom <= 0) {
-    // at the ceiling: practice only holds form together
+  if (headroom <= 0 || p.attrs[attr] >= ATTR_MAX) {
+    // at the ceiling — of the man or of the attribute — practice only holds
+    // form together. A focus left on a full attribute used to bank
+    // progress it could never spend.
     p.fatigue = clamp(p.fatigue + rng.range(4, 9), 0, 100)
     p.form = clamp(p.form + rng.range(0, 2), 30, 99)
     return null
@@ -155,9 +220,10 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
 
   const mine = team.id === state.myTeam
   // 训练 lifts everything; 带新人 only pays on players young enough to grow
+  // and how the manager himself is doing, within ±8% (engine/managerLife.ts)
   const talent = mine
     ? skillMod(state.manager, 'training') *
-      (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1)
+      (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1) * lifeMod(state)
     : 1
   const chasing = aiGrowthMultiplier(state, p, team)
   const gain =
@@ -172,7 +238,7 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
 
   if ((p.xp[attr] ?? 0) >= 100) {
     p.xp[attr] = (p.xp[attr] ?? 0) - 100
-    p.attrs[attr] = clamp(p.attrs[attr] + 1, 20, 99)
+    p.attrs[attr] = clamp(p.attrs[attr] + 1, 20, ATTR_MAX)
     const before = p.overall
     recomputeOverall(p)
     refreshValue(p)
@@ -194,7 +260,7 @@ function addXp(p: Player, k: keyof Attrs, amount: number): boolean {
   p.xp[k] = Math.round(((p.xp[k] ?? 0) + amount) * 100) / 100
   if ((p.xp[k] ?? 0) < 100) return false
   p.xp[k] = Math.round(((p.xp[k] ?? 0) - 100) * 100) / 100
-  p.attrs[k] = clamp(p.attrs[k] + 1, 20, 99)
+  p.attrs[k] = clamp(p.attrs[k] + 1, 20, ATTR_MAX)
   recomputeOverall(p)
   refreshValue(p)
   return true
@@ -666,7 +732,7 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         // the manager's, so a player arrives at a new club with his programme
         // visible; it is a pure function of the player, so it stays put
         // until the attribute has nowhere left to go.
-        state.training[p.id] = recommendedTrainingFocus(p)
+        state.training[p.id] = aiTrainingFocus(p)
         trainPlayer(state, p, team, rng)
       }
 

@@ -15,6 +15,7 @@ import { familiarity } from '../engine/comp'
 import { MAPS, mapCn } from '../engine/content'
 import MapPlan, { StyleTag } from './MapPlan'
 import TacticSliders from './TacticSliders'
+import { PatchPanel } from './PatchNotes'
 
 export default function Tactics() {
   const { game, commit } = useGame()
@@ -26,6 +27,7 @@ export default function Tactics() {
 
   return (
     <>
+      <PatchPanel />
       <Panel
         title="各图预案 · 每张图的英雄阵容和战术"
         className="own"

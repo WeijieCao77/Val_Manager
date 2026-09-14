@@ -4,6 +4,7 @@ import { ratingOf } from './player'
 import { squadOf } from './roster'
 import { skillMod } from './manager'
 import type { GameState, MatchResult, Player } from './types'
+import { openDispute } from './disputes'
 
 /**
  * How the five actually get on with each other.
@@ -159,6 +160,8 @@ export function notableBonds(
  */
 export function applyMatchBonds(
   state: GameState, result: MatchResult, teamId: string, isA: boolean, rng: Rng, notes: string[],
+  /** the match it happened after, so the record can say which */
+  ctx?: { fixtureId: string; opponent: string; score: string },
 ): void {
   const won = (result.mapsWonA > result.mapsWonB) === isA
   const ids = (isA ? result.lineups?.a : result.lineups?.b) ?? state.teams[teamId]?.starters ?? []
@@ -216,10 +219,17 @@ export function applyMatchBonds(
       // off it, and they were already not getting on.
       if (gap >= 0.45 && after < 0) {
         notes.push(
-          `💢 ${carrier.p.ign} 和 ${passenger.p.ign} 在赛后起了争执（${carrier.p.ign} ${carrier.r.toFixed(2)} / ${passenger.p.ign} ${passenger.r.toFixed(2)}）。`,
+          `💢 ${carrier.p.ign} 和 ${passenger.p.ign} 在赛后起了争执（${carrier.p.ign} ${carrier.r.toFixed(2)} / ${passenger.p.ign} ${passenger.r.toFixed(2)}），去阵容页的更衣室处理。`,
         )
         carrier.p.morale = clamp(carrier.p.morale - 5, 0, 100)
         passenger.p.morale = clamp(passenger.p.morale - 9, 0, 100)
+        // only the managed club's room is the manager's to handle
+        if (teamId === state.myTeam) {
+          openDispute(state, {
+            a: carrier.p.id, b: passenger.p.id, ratings: { a: carrier.r, b: passenger.r },
+            gap, bondAfter: after, fixtureId: ctx?.fixtureId, opponent: ctx?.opponent, score: ctx?.score,
+          })
+        }
       }
     }
   }

@@ -11,8 +11,8 @@ import { poolFor } from '../engine/match'
 import { byPro, proLabel } from '../engine/agents'
 import { logActivity } from '../engine/agenda'
 import {
-  doPhysio, MAP_DECAY_AFTER, MAP_DECAY_FLOOR, MAP_DECAY_PER_WEEK, mapIdleDays, physioBlock, PHYSIO_COST,
-  recommendedTrainingFocus, REST_AT, reviewIglXp,
+  ATTR_MAX, doPhysio, MAP_DECAY_AFTER, MAP_DECAY_FLOOR, MAP_DECAY_PER_WEEK, mapIdleDays, physioBlock, PHYSIO_COST,
+  REST_AT, reviewIglXp, trainingAdvice,
 } from '../engine/training'
 import { useAction } from './useAction'
 import {
@@ -69,18 +69,21 @@ export default function Training() {
   }
 
   const autoFocus = () => {
-    let rested = 0
+    // the shared judgement, with the calendar so it can see injuries; the
+    // reasons it gives are the ones printed under each pick
+    let grow = 0, recover = 0, hold = 0
     for (const p of squad) {
-      // the shared judgement rests the tired and the finished; an injury is
-      // the one thing it cannot see without the calendar
-      const focus = p.injuredUntil > game.day ? 'rest' : recommendedTrainingFocus(p)
-      if (focus === 'rest') rested++
-      game.training[p.id] = focus
+      const a = trainingAdvice(p, game.day)
+      game.training[p.id] = a.focus
+      if (a.kind === 'grow') grow++
+      else if (a.kind === 'recover') recover++
+      else hold++
     }
     commit()
-    toast(rested
-      ? `已按位置分配，${rested} 人受伤、疲劳或到潜力上限，改为休息。`
-      : '已按位置重点分配训练。')
+    const parts = [`${grow} 人练成长项`]
+    if (recover) parts.push(`${recover} 人受伤或疲劳，休息恢复`)
+    if (hold) parts.push(`${hold} 人没有可涨的属性，休息保状态`)
+    toast(`已按位置分配：${parts.join('，')}。每人的理由写在训练项下面。`)
   }
 
   const drill = game.drill ?? { kind: 'none' as const }
@@ -414,6 +417,10 @@ export default function Training() {
                 const focus = game.training[p.id] ?? 'rest'
                 const head = p.potential - p.overall
                 const xp = focus !== 'rest' ? (p.xp[focus as keyof Attrs] ?? 0) : 0
+                const advice = trainingAdvice(p, game.day)
+                // a hand-picked focus that cannot grow any more
+                const full = focus !== 'rest' && p.attrs[focus as keyof Attrs] >= ATTR_MAX
+                const capped = focus !== 'rest' && !full && p.potential <= p.overall
                 return (
                   <tr key={p.id}>
                     <td className="clickable" onClick={() => openPlayer(p.id)}><Face id={p.id} /><b>{p.ign}</b></td>
@@ -434,22 +441,31 @@ export default function Training() {
                         onChange={(e) => setFocus(p.id, e.target.value as keyof Attrs | 'rest')}
                         style={{ padding: '4px 7px', fontSize: 12 }}
                         disabled={p.injuredUntil > game.day}
+                        title={`建议：${advice.reason}`}
                       >
                         {OPTIONS.map((o) => (
                           <option key={o.key} value={o.key}>
                             {o.label}{o.key !== 'rest' ? ` (${p.attrs[o.key as keyof Attrs]})` : ''}
-                            {o.key === recommendedTrainingFocus(p) ? ' ◄ 建议' : ''}
+                            {o.key !== 'rest' && p.attrs[o.key as keyof Attrs] >= ATTR_MAX ? ' 已满' : ''}
+                            {o.key === advice.focus ? ' ◄ 建议' : ''}
                           </option>
                         ))}
                       </select>
+                      <div className="tiny muted" style={{ marginTop: 3, maxWidth: 220, lineHeight: 1.4 }}>
+                        {focus === advice.focus ? '' : '建议：'}{advice.reason}
+                      </div>
                     </td>
                     <td>
                       {focus === 'rest'
-                        ? <span className="tiny muted">恢复体能</span>
-                        : <div className="row" style={{ gap: 7 }}>
-                            <Bar value={xp} color="var(--violet)" />
-                            <span className="tiny mono muted">{Math.round(xp)}%</span>
-                          </div>}
+                        ? <span className="tiny muted">{advice.kind === 'hold' ? '保状态' : '恢复体能'}</span>
+                        : full
+                          ? <span className="tiny warn">{ATTR_CN[focus as keyof Attrs]}已到 {ATTR_MAX}，练不动了</span>
+                          : capped
+                            ? <span className="tiny warn">总评到潜力上限，只保状态</span>
+                            : <div className="row" style={{ gap: 7 }}>
+                                <Bar value={xp} color="var(--violet)" />
+                                <span className="tiny mono muted">{Math.round(xp)}%</span>
+                              </div>}
                     </td>
                   </tr>
                 )
