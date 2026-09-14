@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { finalYearOf } from '../engine/eras'
 import { useGame } from './ctx'
 import {
-  DYNASTY_ENDINGS, ENDINGS, ENDING_COUNT, FINAL_YEAR, INTL_TITLES, STORY_ENDINGS,
+  DYNASTY_ENDINGS, ENDINGS, ENDING_COUNT, INTL_TITLES, STORY_ENDINGS,
   endingOf, endingsFor, factsOf,
 } from '../engine/endings'
 import { earnedNow } from '../engine/achievements'
@@ -51,7 +52,7 @@ export default function GameOver({ onRestart }: { onRestart: () => void }) {
     const first = claimCareer(game.seed, id)
     // 「三个十年」 counts ten-year runs, and the five-year settlement now also
     // ends a career `finished` — graded, not sacked, but not a decade either.
-    const fullRun = !!game.finished && game.year >= FINAL_YEAR
+    const fullRun = !!game.finished && game.year >= finalYearOf(game)
     const { fresh: got, profile } = record({
       endings: list.map((e) => e.key),
       // achievements are checked again here: a career can end on the very turn

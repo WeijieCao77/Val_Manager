@@ -1,5 +1,6 @@
 import { Rng, hashStr } from './rng'
 import type { GameState } from './types'
+import { REAL_HOSTS } from './eras'
 
 /**
  * Where the internationals are played.
@@ -18,6 +19,9 @@ const HOST_CITIES = [
 type EventKey = 'masters1' | 'masters2' | 'champions'
 
 export function hostCities(seed: number, year: number): Record<EventKey, string> {
+  // a past season was played where it was played
+  const real = REAL_HOSTS[year]
+  if (real) return real
   let prev: string[] = []
   let cur: string[] = []
   for (let y = 2026; y <= year; y++) {

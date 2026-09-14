@@ -13,7 +13,9 @@ import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsor
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { MAP_META, agentCn, mapCn } from './content'
 import { FAM_MATCH, FAM_SCRIM, learnComp, rollPatch } from './comp'
-import { CHAMPIONS, endingsFor, FINAL_YEAR, MASTERS_1, MASTERS_2, MID_YEAR, tenureCn } from './endings'
+import { CHAMPIONS, endingsFor, MASTERS_1, MASTERS_2, tenureCn } from './endings'
+import { agentAvailable, agentsReleasedToday, finalYearOf, midYearOf, seasonsOf, startYearOf } from './eras'
+import { agentCn as agentName } from './content'
 import { hostCity } from './hosts'
 import { applyMatchBonds } from './bonds'
 import { trustAfterMatch } from './trust'
@@ -360,7 +362,7 @@ function createChampions(state: GameState, name: string, day: number): void {
  * 只动现役图池里出场的英雄——没人玩的角色改了也没人知道。
  */
 export function applyPatch(state: GameState, big: boolean, notes: string[] = [], stage?: StageKey): void {
-  const pool = Array.from(new Set(poolFor(state).flatMap((m) => MAP_META[m] ?? [])))
+  const pool = Array.from(new Set(poolFor(state).flatMap((m) => MAP_META[m] ?? []))).filter((a) => agentAvailable(state, a))
   if (!pool.length) return
   const id = `${state.year}-${stage ?? (big ? 'offseason' : 'mid')}-${state.day}`
   // the same settlement twice must not roll twice — the competition's own
@@ -1169,7 +1171,7 @@ export function judgeTenure(
     state.gameOver = `${club} 董事会决定解除你的职务。${why}`
     track('sacked', {
       day: state.day, year: state.year, stage: state.stage,
-      seasons: state.year - 2026,
+      seasons: seasonsOf(state) - 1,
       confidence: Math.round(state.boardConfidence),
       honours: state.honours.length,
     })
@@ -1393,7 +1395,7 @@ export function moveToClub(state: GameState, teamId: string): string {
   state.tenures ??= []
   const current = state.tenures.find((t) => t.teamId === state.myTeam && !t.toYear)
   if (current) current.toYear = state.year
-  else state.tenures.push({ teamId: state.myTeam, fromYear: 2026, toYear: state.year })
+  else state.tenures.push({ teamId: state.myTeam, fromYear: startYearOf(state), toYear: state.year })
   state.tenures.push({ teamId: to.id, fromYear: state.year })
 
   state.myTeam = to.id
@@ -1747,6 +1749,11 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
 
   dailyLife(state, notes)
+  for (const a of agentsReleasedToday(state)) {
+    const line = `🆕 新英雄 ${agentName(a)} 加入游戏，可以进预案和训练了。`
+    state.news.push({ day: state.day, kind: 'league', text: line })
+    notes.push(line)
+  }
   tickBirthdays(state, notes)
   tickDisputes(state, notes)
   tickLife(state, notes)
@@ -2032,8 +2039,8 @@ export function settleAtFive(state: GameState): void {
   const earned = endingsFor(state)
   state.finished = true
   state.gameOver = earned[0]
-    ? `${tenureCn(state.year)}年之约到期，你选择功成身退——${earned[0].title}`
-    : `${tenureCn(state.year)}年之约到期，你选择功成身退。`
+    ? `${tenureCn(state.year, startYearOf(state))}年之约到期，你选择功成身退——${earned[0].title}`
+    : `${tenureCn(state.year, startYearOf(state))}年之约到期，你选择功成身退。`
   state.news.push({ day: state.day, kind: 'club', important: true, text: state.gameOver })
 }
 
@@ -2061,9 +2068,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // would have matched 2030 exactly never — the one question the career is
   // built around, silently unreachable for precisely the players who had
   // played longest. Asked late is right; not asked at all is not.
-  if (state.year >= MID_YEAR && state.year < FINAL_YEAR && !state.midReviewDone) {
+  if (state.year >= midYearOf(state) && state.year < finalYearOf(state) && !state.midReviewDone) {
     state.midReview = true
-    notes.push(`⏳ ${tenureCn(state.year)}年之期已到：现在收官拿结局，还是带到 2036？`)
+    notes.push(`⏳ ${tenureCn(state.year, startYearOf(state))}年之期已到：现在收官拿结局，还是带到 ${finalYearOf(state)}？`)
     return
   }
 
@@ -2089,7 +2096,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   // There is no 2037 to prepare for, so none of that should happen at all: the
   // record ends with the last season, and the last season's squad is the one
   // that gets judged.
-  if (state.year >= FINAL_YEAR) {
+  if (state.year >= finalYearOf(state)) {
     const earned = endingsFor(state)
     state.finished = true
     state.gameOver = earned[0]
@@ -2241,7 +2248,7 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   }
 
   track('season_done', {
-    year: state.year, seasons: state.year - 2026 + 1,
+    year: state.year, seasons: seasonsOf(state),
     honours: state.honours.length,
     confidence: Math.round(state.boardConfidence),
   })

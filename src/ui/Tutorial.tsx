@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useGame } from './ctx'
 import type { GameState } from '../engine/types'
 import { packState, TUTORIAL_SNAPSHOT, unpackState } from '../engine/save'
-import { FINAL_YEAR, MID_YEAR } from '../engine/endings'
 
 /**
  * A guided trial day, played in a sandbox.
@@ -62,8 +61,10 @@ const STEPS: Step[] = [
       // Worth saying on the first screen rather than discovering it in 2036:
       // this career has an end, and the end is graded. Interpolated from
       // MID_YEAR / FINAL_YEAR so the sentence cannot drift away from the engine.
-      + `🏁 打完 ${MID_YEAR} 赛季有一次「五年之约」，可以收官领结局，也可以继续；`
-      + `生涯最长到 ${FINAL_YEAR} 年，走完十年有单独的成就。`,
+      // counted from the career's own start year (a historical save starts
+      // earlier), so the sentence names the count and not a calendar year
+      + '🏁 打完第五个赛季有一次「五年之约」，可以收官领结局，也可以继续；'
+      + '生涯最长十个赛季，走完十年有单独的成就。',
   },
   {
     title: '下面用一天试一遍',

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { DEFAULT_START_YEAR, ERA_CN, HISTORICAL_YEARS, loadWorld } from '../engine/eras'
+import type { RawWorld } from '../engine/eras'
 import { RULESET_CN, currentRuleset } from '../engine/ruleset'
 import { ask } from './confirm'
 import { createNewGame, WORLD_PLAYERS } from '../engine/world'
@@ -27,6 +29,21 @@ export default function NewGame({ onHome,
   const [originKey, setOriginKey] = useState<string | null>(null)
   const [region, setRegion] = useState<Region>('China')
   const [teamId, setTeamId] = useState<string | null>(null)
+  // 历史生涯档: start in a past season from that season's real rosters, then
+  // simulate. The world file is fetched when the year is picked.
+  const [startYear, setStartYear] = useState<number>(DEFAULT_START_YEAR)
+  const [era, setEra] = useState<RawWorld | null>(null)
+  const [eraLoading, setEraLoading] = useState(false)
+  useEffect(() => {
+    let live = true
+    setTeamId(null)
+    if (startYear === DEFAULT_START_YEAR) { setEra(null); return }
+    setEraLoading(true)
+    loadWorld(startYear).then((w) => { if (live) { setEra(w); setEraLoading(false) } })
+    return () => { live = false }
+  }, [startYear])
+  const worldTeams = era ? era.teams : WORLD_TEAMS
+  const worldPlayers = era ? era.players : WORLD_PLAYERS
   const [err, setErr] = useState<string | null>(null)
   const [importLimit, setImportLimit] = useState(false)
 
@@ -52,33 +69,33 @@ export default function NewGame({ onHome,
 
   const squadStrength = useMemo(() => {
     const by: Record<string, number> = {}
-    for (const t of WORLD_TEAMS) {
-      const s = WORLD_PLAYERS.filter((p) => p.teamId === t.id)
+    for (const t of worldTeams) {
+      const s = worldPlayers.filter((p) => p.teamId === t.id)
         .sort((a, b) => b.overall - a.overall).slice(0, 5)
       by[t.id] = s.length ? Math.round(s.reduce((n, p) => n + p.overall, 0) / s.length) : 0
     }
     return by
-  }, [])
+  }, [worldTeams, worldPlayers])
 
   // the strongest three in each league are never on offer at the start
   const lockedTop = useMemo(() => {
     const set = new Set<string>()
     for (const r of REGIONS) {
-      WORLD_TEAMS.filter((t) => t.region === r && t.tier === 1)
+      worldTeams.filter((t) => t.region === r && t.tier === 1)
         .sort((a, b) => b.rating - a.rating).slice(0, 3)
         .forEach((t) => set.add(t.id))
     }
     return set
-  }, [])
+  }, [worldTeams])
 
   const byTier = useMemo(() => {
-    const inRegion = WORLD_TEAMS.filter((t) => t.region === region)
+    const inRegion = worldTeams.filter((t) => t.region === region)
       .sort((a, b) => (squadStrength[b.id] ?? 0) - (squadStrength[a.id] ?? 0))
     return {
       1: inRegion.filter((t) => t.tier === 1),
       2: inRegion.filter((t) => t.tier === 2),
     }
-  }, [region, squadStrength])
+  }, [region, squadStrength, worldTeams])
 
   // Earned once, good forever: a three-peat, a ten-year run or reputation 90
   // on THIS account opens every club — the reputation gate and the locked top
@@ -88,12 +105,13 @@ export default function NewGame({ onHome,
   const available = (t: (typeof WORLD_TEAMS)[number]) =>
     !!manager && (veteran || canManage(manager.reputation, t.reputation, lockedTop.has(t.id)))
 
-  const selected = teamId ? WORLD_TEAMS.find((t) => t.id === teamId) : null
+  const selected = teamId ? worldTeams.find((t) => t.id === teamId) : null
 
   const begin = () => {
     if (!manager) return setErr('请先选择一个出身。')
     if (!teamId) return setErr('请先选择一支战队。')
-    const g = createNewGame(teamId, manager.name, undefined, manager)
+    if (startYear !== DEFAULT_START_YEAR && !era) return setErr('那一年的世界还在加载。')
+    const g = createNewGame(teamId, manager.name, undefined, manager, era ? { world: era, year: startYear } : {})
     g.importLimit = importLimit
     setupSeason(g)
     track('career_start', {
@@ -102,6 +120,7 @@ export default function NewGame({ onHome,
       region: selected?.region ?? null,
       origin: originKey,
       age,
+      era: startYear,
     })
     onStart(g)
   }
@@ -251,6 +270,22 @@ export default function NewGame({ onHome,
             <div className="empty">先选年龄和出身，再看哪些俱乐部愿意请你。</div>
           ) : (
             <>
+              <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                <span className="small muted">起始赛季</span>
+                <div className="seg">
+                  {[DEFAULT_START_YEAR, ...[...HISTORICAL_YEARS].sort((a, b) => b - a)].map((y) => (
+                    <button key={y} className={startYear === y ? 'on' : ''} onClick={() => setStartYear(y)}>
+                      {y}{y === DEFAULT_START_YEAR ? '' : ' 历史档'}
+                    </button>
+                  ))}
+                </div>
+                {startYear !== DEFAULT_START_YEAR && (
+                  <span className="tiny muted">
+                    {ERA_CN[startYear]}：开档名单和能力按当年真实数据，之后由引擎模拟。经典赛制，次级联赛暂沿用 2026 名单。
+                    {eraLoading && ' 加载中…'}
+                  </span>
+                )}
+              </div>
               <div className="seg" style={{ marginBottom: 14 }}>
                 {REGIONS.map((r) => (
                   <button key={r} className={region === r ? 'on' : ''}

@@ -18,7 +18,7 @@ export default function MidReview() {
   const facts = factsOf(game)
   // Careers that were already past 2030 when this shipped get the same
   // question, dated honestly: 「七年之约 · 2026–2032」, not a hardcoded five.
-  const cn = tenureCn(game.year)
+  const cn = tenureCn(game.year, game.startYear ?? 2026)
 
   const choose = (settle: boolean) => {
     track('mid_review', { settle: settle ? 1 : 0, honours: game.honours.length })

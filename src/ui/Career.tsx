@@ -12,7 +12,6 @@ import {
   applyForJob, defaultContract, managerSalaryFor, openness, renegotiate, takeAcceptedJob,
 } from '../engine/career'
 import { acceptJob, declineJob } from '../engine/season'
-import { WORLD_TEAMS } from '../engine/teams'
 import type { Team } from '../engine/types'
 
 /**
@@ -237,7 +236,7 @@ export default function Career() {
           <div className="empty">目前没有球队会考虑你，先做出成绩。</div>
         )}
         <p className="tiny faint" style={{ marginBottom: 0 }}>
-          共 {WORLD_TEAMS.length} 支球队，其中 {candidates.length} 支愿意考虑你。
+          共 {Object.keys(game.teams).length} 支球队，其中 {candidates.length} 支愿意考虑你。
         </p>
       </Panel>
     </>

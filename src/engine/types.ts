@@ -1018,6 +1018,8 @@ export interface GameState {
    * 没有这个字段的老存档按「没有任何英雄被调整过」处理。
    */
   patch?: Patch
+  /** the season the career began in; absent means 2026 — engine/eras.ts */
+  startYear?: number
   /** dressing-room arguments and what was done about them — engine/disputes.ts */
   disputes?: import('./disputes').Dispute[]
   /** the managed squad's birthdays this season and what was done about them — engine/birthdays.ts */

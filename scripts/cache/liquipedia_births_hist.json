@@ -1,0 +1,650 @@
+{
+ "YOU": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "QiuYe": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "B3ar": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "AtaKaptan": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "ANGE1": {
+  "birth": "1989-09-10",
+  "real": "Кирило Карасьов",
+  "country": "Ukraine",
+  "page": true
+ },
+ "ardiis": {
+  "birth": "1998-05-01",
+  "real": "Ardis Svarenieks",
+  "country": "Latvia",
+  "page": true
+ },
+ "beyAz": {
+  "birth": "1996-11-04",
+  "real": "Beyazıt Körpe",
+  "country": "France",
+  "page": true
+ },
+ "Boostio": {
+  "birth": "2000-11-14",
+  "real": "Kelden Elric Pupello",
+  "country": "United States",
+  "page": true
+ },
+ "bunt": {
+  "birth": "2004-03-27",
+  "real": "姜河",
+  "country": "China",
+  "page": true
+ },
+ "ceNder": {
+  "birth": "2001-10-30",
+  "real": "Jokūbas Labutis",
+  "country": "Lithuania",
+  "page": true
+ },
+ "Destrian": {
+  "birth": "1999-05-28",
+  "real": "Tomas Linikas",
+  "country": "Lithuania",
+  "page": true
+ },
+ "Elite": {
+  "birth": "2005-04-06",
+  "real": "Efe Teber",
+  "country": "Turkey",
+  "page": true
+ },
+ "Enzo": {
+  "birth": "1996-06-12",
+  "real": "Enzo Mestari",
+  "country": "France",
+  "page": true
+ },
+ "hoody": {
+  "birth": "1998-09-17",
+  "real": "Aaro Peltokangas",
+  "country": "Finland",
+  "page": true
+ },
+ "ICEKING": {
+  "birth": "2001-04-01",
+  "real": "程万鹏",
+  "country": "China",
+  "page": true
+ },
+ "jakee": {
+  "birth": "2003-02-21",
+  "real": "Jake Anderson",
+  "country": "United States",
+  "page": true
+ },
+ "Khalil": {
+  "birth": "2004-06-11",
+  "real": "Khalil Schmidt Faour Auad",
+  "country": "Brazil",
+  "page": true
+ },
+ "kon4n": {
+  "birth": "1999-02-12",
+  "real": "Vitor Hugo Conceição De Souza",
+  "country": "Brazil",
+  "page": true
+ },
+ "Leo": {
+  "birth": "2003-12-15",
+  "real": "Leo Jannesson",
+  "country": "Sweden",
+  "page": true
+ },
+ "LockM": {
+  "birth": "2002-09-29",
+  "real": "邢福凌",
+  "country": "China",
+  "page": true
+ },
+ "logaN": {
+  "birth": "1998-06-18",
+  "real": "Logan Corti",
+  "country": "France",
+  "page": true
+ },
+ "MarT1n": {
+  "birth": null,
+  "real": "卓政杰",
+  "country": "China",
+  "page": true
+ },
+ "Marved": {
+  "birth": "2000-02-24",
+  "real": "Jimmy Nguyen",
+  "country": "Canada",
+  "page": true
+ },
+ "Melser": {
+  "birth": "1995-05-12",
+  "real": "Marco Eliot Machuca Almaro",
+  "country": "Chile",
+  "page": true
+ },
+ "Mistic": {
+  "birth": "2001-11-12",
+  "real": "James Orfila",
+  "country": "United Kingdom",
+  "page": true
+ },
+ "Ninebody": {
+  "birth": "2002-11-04",
+  "real": "丁毅",
+  "country": "China",
+  "page": true
+ },
+ "nukkye": {
+  "birth": "1997-11-05",
+  "real": "Žygimantas Chmieliauskas",
+  "country": "Lithuania",
+  "page": true
+ },
+ "o0o0o": {
+  "birth": "1997-06-07",
+  "real": "叶晓栋",
+  "country": "China",
+  "page": true
+ },
+ "pAura": {
+  "birth": "1997-10-27",
+  "real": "Melih Karaduran",
+  "country": "Turkey",
+  "page": true
+ },
+ "PangH": {
+  "birth": "2000-03-29",
+  "real": "宋文豪",
+  "country": "China",
+  "page": true
+ },
+ "pl1xx": {
+  "birth": "1997-10-25",
+  "real": "Christopher Li",
+  "country": "Australia",
+  "page": true
+ },
+ "qRaxs": {
+  "birth": "2000-05-02",
+  "real": "Doğukan Balaban",
+  "country": "Turkey",
+  "page": true
+ },
+ "QutionerX": {
+  "birth": "2001-06-03",
+  "real": "Doğukan Dural",
+  "country": "Turkey",
+  "page": true
+ },
+ "Redgar": {
+  "birth": "1997-10-17",
+  "real": "Игорь Власов",
+  "country": "Russia",
+  "page": true
+ },
+ "Sacy": {
+  "birth": "1997-12-02",
+  "real": "Gustavo Henrique Rossi da Silva",
+  "country": "Brazil",
+  "page": true
+ },
+ "Sayf": {
+  "birth": "2001-01-01",
+  "real": "Saif Jibraeel",
+  "country": "Sweden",
+  "page": true
+ },
+ "ShadoW": {
+  "birth": "1995-06-11",
+  "real": "Tobias Flodström",
+  "country": "Sweden",
+  "page": true
+ },
+ "TenZ": {
+  "birth": "2001-05-05",
+  "real": "Tyson Van Ngo",
+  "country": "Canada",
+  "page": true
+ },
+ "tomaszy": {
+  "birth": "2005-08-19",
+  "real": "Tomás Machado",
+  "country": "Portugal",
+  "page": true
+ },
+ "TvirusLuke": {
+  "birth": "1999-09-06",
+  "real": "陳振慶",
+  "country": "Taiwan",
+  "page": true
+ },
+ "vanity": {
+  "birth": "1998-12-04",
+  "real": "Shane Anthony Malaspina",
+  "country": "United States",
+  "page": true
+ },
+ "Victor": {
+  "birth": "1996-09-14",
+  "real": "Victor Wong",
+  "country": "United States",
+  "page": true
+ },
+ "Wailers": {
+  "birth": "1997-11-24",
+  "real": "Wailers Locart",
+  "country": "France",
+  "page": true
+ },
+ "wippie": {
+  "birth": "1999-05-31",
+  "real": "Максим Шепелев",
+  "country": "Russia",
+  "page": true
+ },
+ "YiHao": {
+  "birth": "2000-04-17",
+  "real": "陈一豪",
+  "country": "China",
+  "page": true
+ },
+ "zjc": {
+  "birth": "2001-06-11",
+  "real": "张峻程",
+  "country": "China",
+  "page": true
+ },
+ "AAK": {
+  "birth": "2001-08-21",
+  "real": "施叶凯",
+  "country": "China",
+  "page": true
+ },
+ "Apoth": {
+  "birth": "2003-01-15",
+  "real": "Vincent Le",
+  "country": "Canada",
+  "page": true
+ },
+ "Kawaii": {
+  "birth": null,
+  "real": "朴民",
+  "country": "China",
+  "page": true
+ },
+ "NizhaoTZH": {
+  "birth": "1999-10-02",
+  "real": "唐哲昊",
+  "country": "China",
+  "page": true
+ },
+ "BORKUM": {
+  "birth": "1996-04-18",
+  "real": "Jim Albert Abadiano Timbreza",
+  "country": "Philippines",
+  "page": true
+ },
+ "ban": {
+  "birth": "2000-01-27",
+  "real": "Joseph Oh Seung-min",
+  "country": "South Korea",
+  "page": true
+ },
+ "Benkai": {
+  "birth": "1996-11-10",
+  "real": "Benedict Tan Tze Yang",
+  "country": "Singapore",
+  "page": true
+ },
+ "blaZek1ng": {
+  "birth": "1996-05-03",
+  "real": "Gary Dastin",
+  "country": "Indonesia",
+  "page": true
+ },
+ "Brave": {
+  "birth": "2003-06-28",
+  "real": "Eren Kasırga",
+  "country": "Turkey",
+  "page": true
+ },
+ "carpe": {
+  "birth": "1998-10-14",
+  "real": "이재혁",
+  "country": "South Korea",
+  "page": true
+ },
+ "Egoist": {
+  "birth": "2001-06-05",
+  "real": "Javier Chua Dong Qing",
+  "country": "Singapore",
+  "page": true
+ },
+ "Estrella": {
+  "birth": "1999-05-17",
+  "real": "박건",
+  "country": "South Korea",
+  "page": true
+ },
+ "fl1pzjder": {
+  "birth": "1999-07-27",
+  "real": "Saibani Rahmad",
+  "country": "Indonesia",
+  "page": true
+ },
+ "Flashback": {
+  "birth": "2005-11-15",
+  "real": "조민혁",
+  "country": "South Korea",
+  "page": true
+ },
+ "Laz": {
+  "birth": "1995-11-26",
+  "real": "牛田 浩二",
+  "country": "Japan",
+  "page": true
+ },
+ "lenne": {
+  "birth": "1999-11-13",
+  "real": "Lionel Lim You Xiang",
+  "country": "Singapore",
+  "page": true
+ },
+ "Lightningfast": {
+  "birth": "2000-12-07",
+  "real": "Abhirup Paul Choudhury",
+  "country": "India",
+  "page": true
+ },
+ "Lmemore": {
+  "birth": "2002-09-06",
+  "real": "Hagai Kristen Yesyurun Tewuh",
+  "country": "Indonesia",
+  "page": true
+ },
+ "Medusa": {
+  "birth": "2001-01-25",
+  "real": "안민철",
+  "country": "South Korea",
+  "page": true
+ },
+ "mindfreak": {
+  "birth": null,
+  "real": "Mindfreak",
+  "country": null,
+  "page": true
+ },
+ "NDG": {
+  "birth": "2004-12-24",
+  "real": "Noel De Guia",
+  "country": "Philippines",
+  "page": true
+ },
+ "neth": {
+  "birth": "1996-05-26",
+  "real": "Yusuke Matsuda",
+  "country": "Japan",
+  "page": true
+ },
+ "Polvi": {
+  "birth": "2000-11-16",
+  "real": "Niko Polvinen",
+  "country": "Finland",
+  "page": true
+ },
+ "Russ": {
+  "birth": "1998-01-17",
+  "real": "Russel Mendes",
+  "country": "United Kingdom",
+  "page": true
+ },
+ "Sayaplayer": {
+  "birth": "1998-07-29",
+  "real": "하정우",
+  "country": "South Korea",
+  "page": true
+ },
+ "xccurate": {
+  "birth": null,
+  "real": "Kevin Susanto",
+  "country": "Indonesia",
+  "page": true
+ },
+ "yay": {
+  "birth": "1998-09-09",
+  "real": "Jaccob Whiteaker",
+  "country": "United States",
+  "page": true
+ },
+ "Papi": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "FiNESSE": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "v1nny": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "SWERL": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": false
+ },
+ "2GE": {
+  "birth": "2001-08-06",
+  "real": "Michael James Lim Goopio",
+  "country": "Philippines",
+  "page": true
+ },
+ "Add3r": {
+  "birth": "2004-02-20",
+  "real": "Jack Hayashi",
+  "country": "United States",
+  "page": true
+ },
+ "adverso": {
+  "birth": "1998-03-13",
+  "real": "Benjamín Poblete",
+  "country": "Chile",
+  "page": true
+ },
+ "Art": {
+  "birth": "1999-04-02",
+  "real": null,
+  "country": "Japan",
+  "page": true
+ },
+ "AvovA": {
+  "birth": "1998-11-05",
+  "real": "Auni Chahade",
+  "country": "Denmark",
+  "page": true
+ },
+ "B1ack": {
+  "birth": "2002-06-08",
+  "real": "李松泰",
+  "country": "China",
+  "page": true
+ },
+ "Babyblue": {
+  "birth": "2002-10-05",
+  "real": "耿浩然",
+  "country": "China",
+  "page": true
+ },
+ "bdog": {
+  "birth": "2002-10-01",
+  "real": "Brandon Sanders",
+  "country": "United States",
+  "page": true
+ },
+ "Click": {
+  "birth": null,
+  "real": null,
+  "country": null,
+  "page": true
+ },
+ "Famouz": {
+  "birth": "1998-06-03",
+  "real": "Fikri Zaki Hamdani",
+  "country": "Indonesia",
+  "page": true
+ },
+ "florescent": {
+  "birth": "2006-09-11",
+  "real": "Ava Eugene",
+  "country": "Canada",
+  "page": true
+ },
+ "hype": {
+  "birth": "1999-09-08",
+  "real": "Tautvydas Paldavicius",
+  "country": "Lithuania",
+  "page": true
+ },
+ "icy": {
+  "birth": "2003-04-30",
+  "real": "Jacob Lange",
+  "country": "United States",
+  "page": true
+ },
+ "Lsn": {
+  "birth": "1993-03-26",
+  "real": "李思南",
+  "country": "China",
+  "page": true
+ },
+ "lz": {
+  "birth": "2003-09-07",
+  "real": "Luiz Reche",
+  "country": "Brazil",
+  "page": true
+ },
+ "MOLSI": {
+  "birth": "1997-01-26",
+  "real": "Michał Łącki",
+  "country": "Poland",
+  "page": true
+ },
+ "mitch": {
+  "birth": null,
+  "real": "Mitchell Semago",
+  "country": "United States",
+  "page": true
+ },
+ "MrCANI": {
+  "birth": "1996-06-14",
+  "real": "陳廷訓",
+  "country": "Taiwan",
+  "page": true
+ },
+ "NcSlasher": {
+  "birth": "2001-07-28",
+  "real": "Sheldon Andersen Chandra",
+  "country": "Indonesia",
+  "page": true
+ },
+ "oderus": {
+  "birth": "1999-06-28",
+  "real": "Chad Miller",
+  "country": "United States",
+  "page": true
+ },
+ "pryze": {
+  "birth": "1999-02-01",
+  "real": "Luis Henrique",
+  "country": "Brazil",
+  "page": true
+ },
+ "RobbieBk": {
+  "birth": "2001-11-07",
+  "real": "Robbie Boerkamp",
+  "country": "Netherlands",
+  "page": true
+ },
+ "s0m": {
+  "birth": "2002-06-07",
+  "real": "Sam Oh",
+  "country": "United States",
+  "page": true
+ },
+ "Shiro": {
+  "birth": null,
+  "real": "Valentina",
+  "country": "Colombia",
+  "page": true
+ },
+ "soulcas": {
+  "birth": "2000-01-02",
+  "real": "Dom Sulcas",
+  "country": "United Kingdom",
+  "page": true
+ },
+ "vakk": {
+  "birth": "2000-07-07",
+  "real": "Vakaris Bebravičius",
+  "country": "Lithuania",
+  "page": true
+ },
+ "Wild0reoo": {
+  "birth": "2003-03-10",
+  "real": "Brheyanne Christ Reyes",
+  "country": "Philippines",
+  "page": true
+ },
+ "yoman": {
+  "birth": "1996-07-11",
+  "real": "채영문",
+  "country": "South Korea",
+  "page": true
+ },
+ "Zap": {
+  "birth": "1997-10-27",
+  "real": "Brenno Roberto",
+  "country": "Brazil",
+  "page": true
+ },
+ "Jinboong": {
+  "birth": "2003-03-01",
+  "real": "김진원",
+  "country": "South Korea",
+  "page": true
+ },
+ "Nzr": {
+  "birth": "1998-05-08",
+  "real": "Agustin Ibarra",
+  "country": "Argentina",
+  "page": true
+ }
+}

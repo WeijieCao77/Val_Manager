@@ -14,6 +14,7 @@
  * the club has or has not practised it.
  */
 import { useState } from 'react'
+import { agentAvailable } from '../engine/eras'
 import { useGame } from './ctx'
 import { selectLineup, sheetFor } from '../engine/match'
 import { agentMod, agentRoleGaps, agentWarn, autoAgents, byPro, normalizeAgents, proLabel } from '../engine/agents'
@@ -180,12 +181,12 @@ export default function MapPlan({
                         style={{ maxWidth: 200 }}
                       >
                         <optgroup label={`${mapCn(cur)} 常用`}>
-                          {byPro(p, meta).map((x) => (
+                          {byPro(p, meta.filter((x) => agentAvailable(game, x))).map((x) => (
                             <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）{proLabel(p, x)}</option>
                           ))}
                         </optgroup>
                         {ROLES.filter((r) => r !== '自由人').map((r) => {
-                          const rest = byPro(p, (AGENTS[r] ?? []).filter((x) => !meta.includes(x)))
+                          const rest = byPro(p, (AGENTS[r] ?? []).filter((x) => !meta.includes(x) && agentAvailable(game, x)))
                           return rest.length > 0 && (
                             <optgroup key={r} label={`${r}${mine.includes(r) ? '（本职）' : ''}`}>
                               {rest.map((x) => (

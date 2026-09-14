@@ -25,7 +25,8 @@
  * they are knowable: a squad shows who is here now, and finances.log keeps
  * only the last 200 lines.
  */
-import { CHAMPIONS, FINAL_YEAR, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
+import { CHAMPIONS, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
+import { finalYearOf } from './eras'
 import { isImport } from './imports'
 import { squadOf } from './roster'
 import { WORLD_TEAMS } from './teams'
@@ -423,7 +424,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     key: 'tenYears', scope: 'run', group: '生涯', title: '走完十年',
     brief: '不在五年之约收官，完整走完 2026 到 2036',
     hard: true,
-    test: (s) => !!s.finished && s.year >= FINAL_YEAR,
+    test: (s) => !!s.finished && s.year >= finalYearOf(s),
   },
   {
     // The other run-scoped key freeTeamChoice reads — reputation is clamped at

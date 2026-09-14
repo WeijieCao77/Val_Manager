@@ -25,6 +25,7 @@
  * edited by hand, answers exactly as one played straight through.
  */
 import type { GameState, Player } from './types'
+import { seasonsOf } from './eras'
 import { squadOf } from './roster'
 import { isImport } from './imports'
 
@@ -45,8 +46,8 @@ export const MID_YEAR = 2030
  * the settlement is offered to careers that were already past 2030 when it
  * shipped, where "五年之约" would be a lie. Those read 「七年之约」 instead.
  */
-export const tenureCn = (year: number): string => {
-  const n = year - 2025
+export const tenureCn = (year: number, startYear = 2026): string => {
+  const n = year - (startYear - 1)
   return ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][n] ?? String(n)
 }
 
@@ -191,7 +192,7 @@ export function factsOf(state: GameState): Facts {
   const startedLow = (state.startTier ?? state.teams[firstClub]?.tier ?? 1) === 2
 
   return {
-    seasons: state.year - 2026 + 1,
+    seasons: seasonsOf(state),
     champYears,
     perfectYears,
     perfectStreak: longestRun(perfectYears),

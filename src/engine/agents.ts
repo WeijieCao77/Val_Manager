@@ -11,6 +11,7 @@
  * own role, is worth a little on top.
  */
 import { AGENT_ROLE, AGENTS, MAP_META, agentCn, canonAgent, canonAgents } from './content'
+import { agentAvailable } from './eras'
 import { clamp, hashStr } from './rng'
 import { isArena } from './types'
 import type { GameState, Player, Role } from './types'
@@ -239,7 +240,12 @@ function matchRoles(five: Player[], roles: Role[]): Map<Role, Player> {
 export function autoAgents(
   state: GameState, teamId: string, five: Player[], map: string,
 ): Record<string, string> {
-  const meta = MAP_META[map] ?? []
+  // only agents that exist on the game date — a 2024 save has no Tejo
+  const have = (a: string) => agentAvailable(state, a)
+  const meta = (MAP_META[map] ?? []).filter(have)
+  const AGENTS_NOW: Record<string, string[]> = Object.fromEntries(
+    Object.entries(AGENTS).map(([r, list]) => [r, list.filter(have)]),
+  )
   const out: Record<string, string> = {}
   const used = new Set<string>()
   const taken = new Set<string>()
@@ -274,11 +280,11 @@ export function autoAgents(
     // 开瓦包借用的世界要逐字走老路径：卡牌天梯的平衡是按那条链调过的，
     // 换一个回退顺序就会挪动卡组强弱（check_leagues 抓到过 83%）。
     const agent = isArena(state)
-      ? (onMap.find(known) ?? onMap[0] ?? (AGENTS[role] ?? []).find((a) => !used.has(a)))
+      ? (onMap.find(known) ?? onMap[0] ?? (AGENTS_NOW[role] ?? []).find((a) => !used.has(a)))
       : (onMap.find(known)
-        ?? (AGENTS[role] ?? []).find((a) => !used.has(a) && known(a))
+        ?? (AGENTS_NOW[role] ?? []).find((a) => !used.has(a) && known(a))
         ?? onMap[0]
-        ?? (AGENTS[role] ?? []).find((a) => !used.has(a)))
+        ?? (AGENTS_NOW[role] ?? []).find((a) => !used.has(a)))
     if (!agent) continue
     out[man.id] = agent
     used.add(agent)
@@ -296,10 +302,10 @@ export function autoAgents(
       meta.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]) && knows(a))
       // 中间这一层同样只在经理模式里加
       ?? (isArena(state) ? undefined
-        : mine.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a) && knows(a)))
+        : mine.flatMap((r) => AGENTS_NOW[r] ?? []).find((a) => !used.has(a) && knows(a)))
       ?? meta.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]))
       ?? p.agentPool.find((a) => !used.has(a) && mine.includes(AGENT_ROLE[a]))
-      ?? mine.flatMap((r) => AGENTS[r] ?? []).find((a) => !used.has(a))
+      ?? mine.flatMap((r) => AGENTS_NOW[r] ?? []).find((a) => !used.has(a))
       ?? meta.find((a) => !used.has(a))
     if (pick) { out[p.id] = pick; used.add(pick); taken.add(p.id) }
   }

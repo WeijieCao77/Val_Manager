@@ -15,7 +15,7 @@ import { currentRuleset } from './ruleset'
 import { isCoolingOff } from './clock'
 import { newLife } from './managerLife'
 
-interface RawPlayer {
+export interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
   roles?: string[]; flex?: boolean; agentPool?: string[]; roleSource?: string
   agentUse?: Record<string, number>; agentR?: Record<string, number>
@@ -162,14 +162,23 @@ export function potentialJitter(seed: number, playerId: string): number {
 const jitteredPotential = (seed: number, id: string, overall: number, base: number, cap = 99): number =>
   clamp(base + potentialJitter(seed, id), overall, cap)
 
+export interface NewGameOptions {
+  /** a past season's world (engine/eras.ts loadWorld) and the year it starts in */
+  world?: { teams: RawTeam[]; players: RawPlayer[] }
+  year?: number
+}
+
 export function createNewGame(
-  myTeamId: string, managerName: string, seed?: number, manager?: Manager,
+  myTeamId: string, managerName: string, seed?: number, manager?: Manager, opts: NewGameOptions = {},
 ): GameState {
   const s = seed ?? (hashStr(myTeamId + managerName + String(Date.now())) >>> 0)
   const rng = new Rng(s)
+  const startYear = opts.year ?? 2026
+  const rawPlayers = opts.world?.players ?? RAW.players
+  const rawTeams = opts.world?.teams ?? WORLD_TEAMS
 
   const players: Record<string, Player> = {}
-  for (const rp of RAW.players) {
+  for (const rp of rawPlayers) {
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
     // world.json was built before the player pages were scraped and is missing
     // a nationality for 178 of the 518, and a real name for rather more. The
@@ -207,7 +216,7 @@ export function createNewGame(
       xp: {},
       // the in-save CV starts on day one — the farewell card reads this,
       // never the real-world record
-      clubHist: rp.teamId ? [{ team: rp.teamId, from: 2026, to: 2026 }] : [],
+      clubHist: rp.teamId ? [{ team: rp.teamId, from: startYear, to: startYear }] : [],
     }
   }
 
@@ -215,7 +224,7 @@ export function createNewGame(
   // leagues, without a club. They are ordinary free agents from day one — the
   // market lists them, AI sides short of five sign them — which is the whole
   // point, because a world of 518 that only ages runs out of people.
-  for (const p of freeAgentPool(2026)) {
+  for (const p of freeAgentPool(startYear)) {
     if (players[p.id]) continue
     p.potential = jitteredPotential(s, p.id, p.overall, p.potential, 97)
     players[p.id] = p
@@ -231,7 +240,7 @@ export function createNewGame(
   }
 
   const teams: Record<string, Team> = {}
-  for (const rt of WORLD_TEAMS) {
+  for (const rt of rawTeams) {
     const trng = new Rng(hashStr(rt.id + 'team') ^ s)
     const mapPrefs: Record<string, number> = {}
     for (const m of MAPS) {
@@ -261,7 +270,8 @@ export function createNewGame(
     version: 1,
     seed: s,
     day: 0,
-    year: 2026,
+    year: startYear,
+    startYear: startYear !== 2026 ? startYear : undefined,
     stage: 'preseason',
     myTeam: myTeamId,
     managerName: manager?.name ?? managerName,
@@ -277,7 +287,8 @@ export function createNewGame(
     honours: [],
     lastResults: [],
     boardConfidence: 62,
-    rulesetId: currentRuleset(),
+    // a past season plays the classic rulebook, which is that circuit's shape
+    rulesetId: startYear < 2026 ? 'vct-2025' : currentRuleset(),
     birthdays: [],
     disputes: [],
   }

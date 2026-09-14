@@ -1,0 +1,511 @@
+#!/usr/bin/env python3
+"""
+A world as it stood at the start of a past season, for the 历史生涯档.
+
+    python3 scripts/build_world_year.py 2024 [--fetch-births]
+
+The 2026 world (build_world.py) is built from this season's tables. A save
+that starts in January 2024 needs the world as it was THEN: who was on
+which roster, rated on what they had done up to that point, at the age they
+were. Everything here is read off caches that already exist:
+
+  scripts/cache/vlr_event_stats.json   every VCT event 2022–2026 with each
+                                       participant's line and agents — the
+                                       rosters come from the year's opening
+                                       events (the four Kickoffs), ability
+                                       from the events before the year
+  data-raw/liquipedia_players.json     birthdates for the 2026 population
+  scripts/cache/liquipedia_births_hist.json
+                                       birthdates fetched for everyone else
+                                       (--fetch-births, batched, 2.5 s apart,
+                                       merged never overwritten)
+  src/data/world.json                  ids — a man keeps his P-id, a club its
+                                       T-id, so cards and the dossier still
+                                       point at the same people; someone the
+                                       2026 world never had gets H<n>
+
+Nothing is invented: every player is a line in a real event's stats table,
+every roster is the one that played the opening event, an unknown birthdate
+is estimated and flagged exactly as build_world does. The second tier is the
+2026 Challengers population carried over as a placeholder (meta.tier2), with
+the men who were in that year's top tier removed — real Challengers tables
+for these years are a later scrape.
+
+Ability is percentile-mapped with build_world's own formulas (imported, not
+copied), from the stat lines of the seasons BEFORE the start year, weighted
+by recency; a rookie with no earlier line is rated on the opening event
+itself, shrunk hard toward the unproven anchor.
+"""
+import argparse, gzip, json, os, re, sys, time, urllib.parse, urllib.request
+from collections import defaultdict
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import build_world as bw  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE = os.path.join(ROOT, "scripts", "cache", "vlr_event_stats.json")
+BIRTHS_2026 = os.path.join(ROOT, "data-raw", "liquipedia_players.json")
+BIRTHS_HIST = os.path.join(ROOT, "scripts", "cache", "liquipedia_births_hist.json")
+WORLD_2026 = os.path.join(ROOT, "src", "data", "world.json")
+UA = "ValManagerGameBuild/0.1 (hobby esports-manager project; contact yankejing711@gmail.com)"
+API = "https://liquipedia.net/valorant/api.php"
+
+# how the opening event of each year names its region
+REGION_OF = {"americas": "Americas", "emea": "EMEA", "pacific": "Pacific", "china": "China"}
+# vlr tags → the club's display name, where the 2026 world does not know the tag
+NAMES = {
+    "LOUD": "LOUD", "LEV": "LEVIATÁN", "SEN": "Sentinels", "NRG": "NRG", "C9": "Cloud9", "EG": "Evil Geniuses",
+    "100T": "100 Thieves", "FUR": "FURIA", "KRÜ": "KRÜ Esports", "MIBR": "MIBR", "G2": "G2 Esports", "2G": "2Game Esports",
+    "FNC": "FNATIC", "TL": "Team Liquid", "MKOI": "KOI", "NAVI": "Natus Vincere", "GIA": "Giants Gaming", "GX": "GIANTX",
+    "BBL": "BBL Esports", "FUT": "FUT Esports", "VIT": "Team Vitality", "KC": "Karmine Corp", "TH": "Team Heretics",
+    "M8": "Gentle Mates", "APK": "Apeks", "PRX": "Paper Rex", "KRX": "DRX", "GE": "Global Esports", "T1": "T1",
+    "ZETA": "ZETA DIVISION", "GEN": "Gen.G", "TS": "Team Secret", "DFM": "DetonatioN FocusMe", "TLN": "TALON",
+    "RRQ": "Rex Regum Qeon", "BLD": "BLEED", "NS": "Nongshim RedForce", "BME": "BOOM Esports", "SPB": "Team Secret",
+    "EDG": "EDward Gaming", "FPX": "FunPlus Phoenix", "BLG": "Bilibili Gaming", "TE": "Trace Esports", "TYL": "TYLOO",
+    "TEC": "Titan Esports Club", "NOVA": "Nova Esports", "JDG": "JD Gaming", "DRG": "Dragon Ranger Gaming",
+    "AG": "All Gamers", "WOL": "Wolves Esports", "XLG": "Xi Lai Gaming",
+}
+
+
+def load(path, default):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def opening_events(cache, year):
+    """The events whose rosters define the season's start: the Kickoffs."""
+    out = []
+    for eid, ev in cache["events"].items():
+        if ev.get("year") != year:
+            continue
+        slug = ev.get("slug", "")
+        if ev.get("tier") == "kickoff":
+            region = next((v for k, v in REGION_OF.items() if k in slug), None)
+            if region:
+                out.append((eid, ev, region))
+    return out
+
+
+def evidence_events(cache, year):
+    """Every cached event played before the season starts."""
+    return [(eid, ev) for eid, ev in cache["events"].items() if (ev.get("year") or 0) < year]
+
+
+def fetch_births(igns, store):
+    """Batched Liquipedia page reads, gzip, identified, 2.5 s apart; a 429 aborts."""
+    todo = [i for i in igns if i.lower() not in {k.lower() for k in store}]
+    print(f"births: {len(todo)} players to look up on Liquipedia")
+    last = 0.0
+    for i in range(0, len(todo), 50):
+        batch = todo[i:i + 50]
+        wait = 2.5 - (time.time() - last)
+        if wait > 0:
+            time.sleep(wait)
+        q = urllib.parse.urlencode({"action": "query", "format": "json", "titles": "|".join(batch),
+                                    "prop": "revisions", "rvprop": "content", "rvslots": "main", "redirects": 1})
+        req = urllib.request.Request(f"{API}?{q}", headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
+        last = time.time()
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+                body = gzip.decompress(raw) if r.headers.get("Content-Encoding") == "gzip" else raw
+        except urllib.error.HTTPError as e:
+            print(f"births: HTTP {e.code} — stopping and keeping what was fetched")
+            break
+        j = json.loads(body)
+        # redirects map the handle we asked for to the page we got
+        asked = {}
+        for rd in j.get("query", {}).get("redirects", []) or []:
+            asked[rd["to"]] = rd["from"]
+        for nm in j.get("query", {}).get("normalized", []) or []:
+            asked[nm["to"]] = nm["from"]
+        for p in j.get("query", {}).get("pages", {}).values():
+            title = p.get("title", "")
+            ign = asked.get(title, title)
+            txt = ((p.get("revisions") or [{}])[0].get("slots", {}).get("main", {}) or {}).get("*", "") or ""
+            b = re.search(r"\|\s*birth_date\s*=\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", txt)
+            name = re.search(r"\|\s*name\s*=\s*([^\n|]+)", txt)
+            country = re.search(r"\|\s*country\s*=\s*([^\n|]+)", txt)
+            store[ign] = {"birth": b.group(1) if b else None,
+                          "real": name.group(1).strip() if name else None,
+                          "country": country.group(1).strip() if country else None,
+                          "page": bool(txt)}
+        print(f"births: {min(i + 50, len(todo))}/{len(todo)}")
+    return store
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("year", type=int)
+    ap.add_argument("--fetch-births", action="store_true")
+    args = ap.parse_args()
+    Y = args.year
+    bw.SEASON_YEAR = Y   # age_from and the recency clock read this
+    cache = load(CACHE, {"events": {}, "stats": {}})
+    world26 = load(WORLD_2026, {"players": [], "teams": []})
+    prev_pid = {p["ign"].lower(): p["id"] for p in world26["players"]}
+    prev_tid = {}
+    for t in world26["teams"]:
+        prev_tid.setdefault(t["tag"], (t["id"], t["name"]))
+
+    # ---- rosters: who played the opening events
+    opening = opening_events(cache, Y)
+    if not opening:
+        sys.exit(f"no opening events cached for {Y}")
+    rosters = {}   # tag -> {region, rows}
+    for eid, ev, region in opening:
+        for row in cache["stats"].get(eid, []):
+            tag = row.get("club")
+            if not tag:
+                continue
+            r = rosters.setdefault(tag, {"region": region, "rows": {}})
+            cur = r["rows"].get(row["ign"].lower())
+            if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
+                r["rows"][row["ign"].lower()] = row
+    print(f"{Y}: {len(opening)} opening events, {len(rosters)} clubs")
+
+    # ---- evidence: every line before the season, per player
+    ev_rows = defaultdict(list)     # ign.lower -> [(weight, row, ev)]
+    first_seen = {}
+    for eid, ev in cache["events"].items():
+        for row in cache["stats"].get(eid, []):
+            k = row["ign"].lower()
+            y = ev.get("year") or 0
+            first_seen[k] = min(first_seen.get(k, 9999), y)
+            if y < Y:
+                age = Y - bw.event_time(ev)
+                ev_rows[k].append((max(0.0, (row.get("rnd") or 0)) * bw.recency(age), row, ev))
+
+    def aggregate(k, fallback_rows=()):
+        rows = ev_rows.get(k) or [(row.get("rnd") or 0, row, None) for row in fallback_rows]
+        if not rows:
+            return None
+        tot = sum(w for w, _, _ in rows) or 1.0
+        line = {}
+        for key in bw.STAT_KEYS:
+            src = "rating2" if key == "R" else key
+            num = den = 0.0
+            for w, row, _ in rows:
+                v = row.get(src)
+                if v is None:
+                    continue
+                if key == "kast" and v > 1:
+                    v /= 100
+                num += v * w
+                den += w
+            line[key] = num / den if den else None
+        line["rnd"] = sum((row.get("rnd") or 0) for _, row, _ in rows)
+        line["wrnd"] = tot
+        # clutch: won over faced, pulled toward the field by how few there were
+        clw = sum((row.get("clw") or 0) for _, row, _ in rows)
+        clt = sum((row.get("clt") or 0) for _, row, _ in rows)
+        line["clw"], line["clt"] = clw, clt
+        # agents, by weighted share
+        use = defaultdict(float)
+        for w, row, _ in rows:
+            for a, share in row.get("agents") or []:
+                use[a] += w * share
+        line["agents"] = [a for a, _ in sorted(use.items(), key=lambda x: -x[1])]
+        # the big stage against the rest of the record
+        big = [(w, row) for w, row, ev in rows if ev and ev.get("tier") in ("masters", "champions")]
+        bigw = sum(w for w, _ in big)
+        if big and bigw:
+            rb = sum((row.get("rating2") or 0) * w for w, row in big) / bigw
+            line["stage_lift"] = rb / line["R"] if line.get("R") else None
+            line["stage_rounds"] = sum((row.get("rnd") or 0) for _, row in big)
+        return line
+
+    # ---- the population to rank: everyone on an opening roster
+    people = {}
+    rookies = 0
+    for tag, r in rosters.items():
+        for k, row in r["rows"].items():
+            line = aggregate(k)
+            if not line:
+                line = aggregate(k, fallback_rows=[row])
+                line["rookie"] = True
+                rookies += 1
+            line["ign"] = row["ign"]
+            line["nat"] = row.get("nat") or ""
+            line["tag"] = tag
+            line["region"] = r["region"]
+            people[k] = line
+    print(f"players: {len(people)} on opening rosters, {rookies} with no earlier VCT line (rated on the opening event, shrunk)")
+
+    # roles from agents
+    for k, line in people.items():
+        roles = bw.roles_from_agents(line["agents"][:4])
+        line["roles"] = roles or ["自由人"]
+        line["role"] = line["roles"][0]
+
+    # shrink toward the unproven anchor (30th percentile) by rounds, like build_world
+    SHRINK = 400.0
+    pool = {}
+    for key in bw.STAT_KEYS:
+        vals = sorted(l[key] for l in people.values() if l.get(key) is not None)
+        pool[key] = vals[int(len(vals) * 0.3)] if vals else None
+    stat_rows = []
+    for k, line in people.items():
+        m = dict(line)
+        rnd = m.get("rnd") or 0
+        if m.get("rookie"):
+            rnd = min(rnd, 150)   # an opening split is not a record
+        trust = rnd / (rnd + SHRINK)
+        for key in bw.STAT_KEYS:
+            if m.get(key) is None or pool.get(key) is None:
+                m[key] = pool.get(key)
+                continue
+            m[key] = m[key] * trust + pool[key] * (1 - trust)
+        stat_rows.append(m)
+    P = {key: bw.pctiles(stat_rows, key) for key in ("acs", "adr", "hs", "kpr", "fkpr", "kast", "apr", "R", "kd")}
+    P["hs"] = bw.pctiles([{"ign": r["ign"], "hs": r.get("hs")} for r in stat_rows] if any(r.get("hs") for r in stat_rows) else stat_rows, "hs")
+    P["fdpr"] = bw.pctiles(stat_rows, "fdpr", invert=True)
+    P["R"] = {}
+    for role in {r["role"] for r in stat_rows}:
+        peers = [r for r in stat_rows if r["role"] == role]
+        P["R"].update(bw.pctiles(peers if len(peers) >= 12 else stat_rows, "R"))
+    # clutch percentile with a prior of twenty situations at the field mean
+    tot_w = sum(l["clw"] for l in people.values())
+    tot_t = sum(l["clt"] for l in people.values())
+    mean_cl = tot_w / tot_t if tot_t else 0.15
+    cl_rows = [{"ign": l["ign"], "clutch_pct": (l["clw"] + 20 * mean_cl) / (l["clt"] + 20)} for l in people.values() if l["clt"]]
+    P["clutch_pct"] = bw.pctiles(cl_rows, "clutch_pct")
+    have_cl = {r["ign"] for r in cl_rows}
+
+    # ---- births
+    births = {k.lower(): v for k, v in load(BIRTHS_2026, {}).items()}
+    hist = load(BIRTHS_HIST, {})
+    for k, v in hist.items():
+        births.setdefault(k.lower(), v)
+    missing = [l["ign"] for l in people.values() if l["ign"].lower() not in births]
+    if args.fetch_births and missing:
+        hist = fetch_births(missing, hist)
+        os.makedirs(os.path.dirname(BIRTHS_HIST), exist_ok=True)
+        json.dump(hist, open(BIRTHS_HIST, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        for k, v in hist.items():
+            births.setdefault(k.lower(), v)
+    else:
+        print(f"births: {len(missing)} players have no Liquipedia birthdate on file (pass --fetch-births)")
+    DEBUT_AGE = {2020: 19, 2021: 18, 2022: 17, 2023: 17, 2024: 18, 2025: 19, 2026: 20}
+
+    ROLE_UTIL = {"控场": 1.0, "先锋": 0.95, "哨卫": 0.7, "自由人": 0.55, "决斗者": 0.25}
+    ROLE_COMM = {"控场": 0.8, "先锋": 0.85, "哨卫": 0.6, "自由人": 0.7, "决斗者": 0.4}
+
+    def scale(p, lo=44, hi=98):
+        return int(round(bw.clamp(lo + (hi - lo) * p, 20, 99)))
+
+    def axis(specific, quality):
+        return 0.58 * specific + 0.42 * quality
+
+    built = {}
+    ages_known = 0
+    wrong = 0
+    for k, line in people.items():
+        ign = line["ign"]
+        rng = bw.Rng(bw.seed_of(f"h{Y}:" + ign))
+        g = lambda key: P[key].get(ign, 0.5)  # noqa: E731
+        q = g("R")
+        role = line["role"]
+        a = {
+            "aim": scale(axis(0.5 * g("acs") + 0.3 * g("adr") + 0.2 * g("hs"), q)),
+            "reaction": scale(axis(0.55 * g("fkpr") + 0.3 * g("kpr") + 0.15 * g("acs"), q)),
+            "awareness": scale(axis(0.5 * g("kast") + 0.35 * g("fdpr") + 0.15 * q, q)),
+            "utility": scale(axis(0.55 * g("apr") + 0.45 * ROLE_UTIL[role], q)),
+            "clutch": scale(axis(0.5 * g("clutch_pct") + 0.3 * q + 0.2 * g("kd"), q)) if ign in have_cl
+            else scale(axis(0.6 * q + 0.4 * g("kd"), q)),
+            "teamwork": scale(axis(0.5 * g("kast") + 0.5 * g("apr"), q)),
+            "communication": scale(axis(0.55 * g("kast") + 0.45 * ROLE_COMM[role], q)),
+            "igl": scale(axis(0.4 * g("apr") + 0.3 * g("kast") + 0.3 * ROLE_COMM[role], q), 35, 84),
+        }
+        w = bw.ROLE_WEIGHT.get(role, bw.ATTR_WEIGHT)
+        ovr = sum(a[key] * w.get(key, bw.ATTR_WEIGHT[key]) for key in bw.ATTRS)
+        lift, big = line.get("stage_lift"), line.get("stage_rounds") or 0
+        stage_w = big / (big + SHRINK)
+        stage_bonus = round(bw.clamp((lift - 1) * 26 * stage_w, -4, 5), 2) if lift else 0.0
+        ovr = int(round(bw.clamp(ovr + stage_bonus, 30, 97)))
+
+        lp = births.get(ign.lower()) or {}
+        if lp and lp.get("country") and not bw.same_person(lp, line["nat"]):
+            wrong += 1
+            lp = {}
+        age = bw.age_from(lp.get("birth"))
+        estimated = age is None
+        if estimated:
+            drawn = int(bw.clamp(round(rng.norm(23.2, 2.7)), 17, 33))
+            debut = first_seen.get(k)
+            age = DEBUT_AGE.get(debut, 18) + (Y - debut) if debut and debut <= Y else drawn
+        else:
+            ages_known += 1
+        age = int(bw.clamp(age, 15, 40))
+        head = (rng.range(7, 16) if age <= 20 else rng.range(3, 10) if age <= 23
+                else rng.range(1, 5) if age <= 26 else rng.range(0, 2))
+        built[k] = {
+            "ign": ign, "tag": line["tag"], "region": line["region"], "nat": line["nat"],
+            "role": role, "roles": line["roles"], "flex": len(line["roles"]) > 1,
+            "traits": bw.traits_for(g),
+            "realName": (lp.get("real") if str(lp.get("real") or "").lower() != ign.lower() else None) or None,
+            "birth": lp.get("birth") if not estimated else None,
+            "age": age, "ageEstimated": estimated,
+            "attrs": a, "overall": ovr, "stageBonus": stage_bonus,
+            "potential": int(bw.clamp(round(ovr + head), ovr, 99)),
+            "form": int(bw.clamp(round(rng.norm(70, 8)), 45, 95)),
+            "morale": int(bw.clamp(round(rng.norm(75, 8)), 45, 98)),
+            "fatigue": int(bw.clamp(round(rng.range(0, 20)), 0, 100)),
+            "loyalty": int(bw.clamp(round(rng.norm(60, 16)), 15, 95)),
+            "ambition": int(bw.clamp(round(rng.norm(62, 15)), 15, 98)),
+            "rounds": int(line.get("rnd") or 0),
+            "agentPool": [x.title() if x != "kayo" else "KAY/O" for x in line["agents"][:6]],
+            "agentUse": {x: 1 for x in line["agents"][:6]},
+            "vlr": {"rating": round(line["R"], 2) if line.get("R") else None, "acs": round(line["acs"]) if line.get("acs") else None, "rounds": int(line.get("rnd") or 0)},
+            "rookie": bool(line.get("rookie")),
+        }
+    print(f"ages: {ages_known}/{len(built)} real birthdates, {wrong} Liquipedia pages refused on nationality")
+
+    # ---- clubs
+    out_players, out_teams = [], []
+    issued_h = 0
+    team_ids = set()
+
+    def emit(p, team_id, tier, region):
+        nonlocal issued_h
+        pid = prev_pid.get(p["ign"].lower())
+        if not pid:
+            pid = f"H{issued_h}"
+            issued_h += 1
+        rec = {
+            "id": pid, "ign": p["ign"], "teamId": team_id, "region": region,
+            "nat": p["nat"], "realName": p["realName"], "birth": p["birth"], "joined": None,
+            "rounds": p["rounds"], "role": p["role"], "roles": p["roles"], "flex": p["flex"],
+            "traits": p["traits"], "agentPool": p["agentPool"], "roleSource": "agents",
+            "age": p["age"], "ageEstimated": p["ageEstimated"], "isIgl": False,
+            "attrs": dict(p["attrs"]), "overall": p["overall"], "stageBonus": p["stageBonus"],
+            "potential": p["potential"], "form": p["form"], "morale": p["morale"], "fatigue": p["fatigue"],
+            "salary": bw.salary_for(p["overall"], tier), "value": bw.value_for(p["overall"], p["age"], p["potential"]),
+            "contractYears": 0, "loyalty": p["loyalty"], "ambition": p["ambition"], "vlr": p["vlr"],
+            "agentUse": p["agentUse"],
+        }
+        out_players.append(rec)
+        return rec
+
+    short = []
+    for tag, r in sorted(rosters.items()):
+        squad_src = sorted((built[k] for k in r["rows"] if k in built), key=lambda x: -(x["vlr"]["rating"] or 0))
+        if len(squad_src) < 5:
+            short.append(f"{tag}({len(squad_src)})")
+            continue
+        tid, name = prev_tid.get(tag, (None, None))
+        if not tid or tid in team_ids:
+            tid = f"HT{len([t for t in out_teams if t['id'].startswith('HT')])}"
+        team_ids.add(tid)
+        display = name or NAMES.get(tag, tag)
+        squad = [emit(p, tid, 1, r["region"]) for p in squad_src[:7]]
+        bw.deal_contract_years(squad)
+        # a caller: the most support-shaped man, flagged inferred
+        igl = max(squad[:5], key=lambda p: p["attrs"]["igl"] + (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
+        igl["isIgl"] = True
+        igl["iglSource"] = "inferred"
+        igl["attrs"]["igl"] = int(bw.clamp(igl["attrs"]["igl"] + 12, 40, 99))
+        top5 = sorted((p["overall"] for p in squad), reverse=True)[:5]
+        level = sum(top5) / len(top5)
+        igl["attrs"]["igl"] = int(bw.clamp(max(igl["attrs"]["igl"], round(level)), 40, 96))
+        igl["attrs"]["communication"] = int(bw.clamp(igl["attrs"]["communication"] + 4, 25, 99))
+        igl["overall"] = int(round(bw.clamp(sum(igl["attrs"][k] * bw.ROLE_WEIGHT.get(igl["role"], bw.ATTR_WEIGHT)[k] for k in bw.ATTRS) + igl["stageBonus"], 30, 97)))
+        for p in squad:
+            p["potential"] = int(bw.clamp(max(p["potential"], p["overall"]), 30, 99))
+        rating = int(round(sum(sorted((p["overall"] for p in squad), reverse=True)[:5]) / 5))
+        rng = bw.Rng(bw.seed_of(f"ht{Y}:" + display))
+        out_teams.append({
+            "id": tid, "name": display, "tag": tag, "region": r["region"], "tier": 1,
+            "league": f"VCT {r['region']}", "rating": rating,
+            "budget": int(rng.range(2_000_000, 8_500_000)),
+            "reputation": int(bw.clamp(round(rating), 20, 99)),
+            "roster": [p["id"] for p in squad], "coach": None,
+            "facilities": int(bw.clamp(round(rng.norm(rating - 5, 8)), 20, 94)),
+        })
+    if short:
+        print(f"clubs short of five on the opening event: {', '.join(short)}")
+
+    # ---- the second tier: 2026's Challengers population, minus this year's tier-one men
+    placed = {p["ign"].lower() for p in out_players}
+    t2_players = 0
+    for t in world26["teams"]:
+        if t["tier"] != 1:
+            roster = [p for p in world26["players"] if p["teamId"] == t["id"] and p["ign"].lower() not in placed]
+            if len(roster) < 5:
+                continue
+            out_teams.append({**t, "roster": [p["id"] for p in roster]})
+            for p in roster:
+                q = dict(p)
+                q["age"] = int(max(16, p["age"] - (2026 - Y)))
+                q["contractYears"] = max(1, min(3, p.get("contractYears") or 1))
+                out_players.append(q)
+                placed.add(p["ign"].lower())
+                t2_players += 1
+    # ---- one scale with 2026. The percentiles above rank the year's 220-odd
+    # tier-one men among themselves and stretch them over 44–98, while the
+    # 2026 world ranks its tier-one men inside a pool of ~800 that includes
+    # every Challengers line, so its median tier-one player sits at 80 and
+    # this one at 73 — and the carried-over 2026 Challengers clubs would
+    # have out-rated half of this year's VCT. So the year's tier-one
+    # overalls are matched quantile for quantile onto 2026's tier-one
+    # distribution (the ORDER is the year's own; only the ruler is 2026's),
+    # attributes scaled with the overall, potential shifted by the same amount.
+    t1_ids = {t["id"] for t in out_teams if t["tier"] == 1}
+    ref26 = sorted(p["overall"] for p in world26["players"]
+                   if p.get("teamId") in {t["id"] for t in world26["teams"] if t["tier"] == 1})
+    mine = sorted((p for p in out_players if p["teamId"] in t1_ids), key=lambda p: (p["overall"], p["vlr"]["rating"] or 0))
+    if ref26 and mine:
+        n = len(mine)
+        for i, p in enumerate(mine):
+            target = ref26[min(len(ref26) - 1, int(round(i / max(1, n - 1) * (len(ref26) - 1))))]
+            raw = p["overall"] - p["stageBonus"]
+            if raw <= 0:
+                continue
+            factor = (target - p["stageBonus"]) / raw
+            for k in bw.ATTRS:
+                p["attrs"][k] = int(bw.clamp(round(p["attrs"][k] * factor), 20, 99))
+            w = bw.ROLE_WEIGHT.get(p["role"], bw.ATTR_WEIGHT)
+            new = int(round(bw.clamp(sum(p["attrs"][k] * w.get(k, bw.ATTR_WEIGHT[k]) for k in bw.ATTRS) + p["stageBonus"], 30, 97)))
+            p["potential"] = int(bw.clamp(p["potential"] + (new - p["overall"]), new, 99))
+            p["overall"] = new
+            p["salary"] = bw.salary_for(new, 1)
+            p["value"] = bw.value_for(new, p["age"], p["potential"])
+        for t in out_teams:
+            if t["tier"] != 1:
+                continue
+            ovrs = sorted((p["overall"] for p in out_players if p["teamId"] == t["id"]), reverse=True)[:5]
+            t["rating"] = int(round(sum(ovrs) / len(ovrs)))
+            t["reputation"] = int(bw.clamp(t["rating"], 20, 99))
+        med = mine[len(mine) // 2]["overall"]
+        print(f"scale: tier-one overalls matched to 2026's distribution (median now {med}, 2026's {ref26[len(ref26) // 2]})")
+
+    t1 = [t for t in out_teams if t["tier"] == 1]
+    by_region = defaultdict(int)
+    for t in t1:
+        by_region[t["region"]] += 1
+    world = {
+        "meta": {
+            "season": Y, "historical": True,
+            "openingEvents": [ev.get("slug") for _, ev, _ in opening],
+            "tier2": "2026 Challengers population carried over as a placeholder; ages shifted back",
+            "sources": {"vlr.gg": "rosters from the opening events, all performance stats", "liquipedia": "birthdates, real names"},
+            "derived": "attributes percentile-mapped from real per-round statistics of the seasons before the start",
+            "everyoneReal": True,
+            "regions": sorted(by_region),
+        },
+        "teams": out_teams,
+        "players": out_players,
+    }
+    out = os.path.join(ROOT, "src", "data", f"world_{Y}.json")
+    json.dump(world, open(out, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    print(f"teams {len(out_teams)} (T1 {len(t1)}: {dict(by_region)}, T2 {len(out_teams) - len(t1)} placeholder)")
+    print(f"players {len(out_players)} ({len(out_players) - t2_players} tier one, {issued_h} new H-ids, {t2_players} tier-two carried over)")
+    top = sorted((p for p in out_players if p["teamId"] and any(t["id"] == p["teamId"] and t["tier"] == 1 for t in out_teams)), key=lambda p: -p["overall"])[:12]
+    print("top: " + ", ".join(f"{p['ign']}({p['overall']})" for p in top))
+    print(f"→ {out} {os.path.getsize(out) // 1024} KB")
+
+
+if __name__ == "__main__":
+    main()

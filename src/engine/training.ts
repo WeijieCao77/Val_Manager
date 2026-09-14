@@ -53,10 +53,10 @@ export function learnAgent(
  * AI 俱乐部补位置缺口时挑哪个英雄：这个位置上现役地图最常用的那个，
  * 优先挑他已经开了个头的。
  */
-export function pickAgentToLearn(p: Player, role: Role): string | undefined {
+export function pickAgentToLearn(p: Player, role: Role, available: (a: string) => boolean = () => true): string | undefined {
   const common = Array.from(new Set(MAPS.flatMap((m) => MAP_META[m] ?? [])))
-    .filter((a) => AGENT_ROLE[a] === role)
-  const list = common.length ? common : (AGENTS[role] ?? [])
+    .filter((a) => AGENT_ROLE[a] === role && available(a))
+  const list = (common.length ? common : (AGENTS[role] ?? [])).filter(available)
   return list
     .filter((a) => (p.agentPro?.[a] ?? 0) < 100)
     .sort((x, y) => (p.agentPro?.[y] ?? 0) - (p.agentPro?.[x] ?? 0))[0]
@@ -64,6 +64,7 @@ export function pickAgentToLearn(p: Player, role: Role): string | undefined {
 import { facilityCost } from './staff'
 import { ATTR_CN, ATTR_KEYS } from './types'
 import { lifeMod } from './managerLife'
+import { agentAvailable } from './eras'
 import type { AgentPick, Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
 
 /**
@@ -574,7 +575,7 @@ export function aiDrillFor(state: GameState, team: Team): TeamDrill {
       .filter((p) => p.injuredUntil <= state.day && !p.isIgl && rolePeak(p, missing) < 100)
       .sort((a, b) => fit(b) - fit(a))[0]
     if (learner) {
-      const agent = pickAgentToLearn(learner, missing)
+      const agent = pickAgentToLearn(learner, missing, (a) => agentAvailable(state, a))
       if (agent) return { kind: 'agent', picks: [{ playerId: learner.id, agent }] }
     }
   }
