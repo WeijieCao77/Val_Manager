@@ -47,6 +47,7 @@ export function upgradeFacility(state: GameState): string {
 export function analystMarket(state: GameState): StaffCandidate[] {
   const taken = new Set([
     ...(state.staff ?? []).map((m) => m.name),
+    ...Object.values(state.teams).flatMap((t) => (t.supportStaff ?? []).map((m) => m.name)),
     ...Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
   ])
   return WORLD_ANALYSTS
@@ -67,6 +68,7 @@ export function staffMarket(state: GameState): StaffCandidate[] {
   // shelf and could be hired again, and again, each time drawing a full salary.
   const taken = new Set([
     ...(state.staff ?? []).map((m) => m.name),
+    ...Object.values(state.teams).flatMap((t) => (t.supportStaff ?? []).map((m) => m.name)),
     ...Object.values(state.teams).map((t) => t.coach?.name).filter(Boolean) as string[],
   ])
   const out: StaffCandidate[] = []

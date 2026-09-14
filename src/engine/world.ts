@@ -70,6 +70,7 @@ export const confidentRating = (p: Player): number =>
 
 export function autoStarters(state: GameState, teamId: string): string[] {
   const team = state.teams[teamId]
+  const fit = (x: Player) => (isCoolingOff(state, x) ? 2 : x.injuredUntil > state.day ? 1 : 0)
   const squad = team.roster
     .map((id) => state.players[id])
     .filter((p): p is Player => !!p)
@@ -85,7 +86,6 @@ export function autoStarters(state: GameState, teamId: string): string[] {
     // and a man told to cool off queues behind the injured: the whole point
     // of the bench was that 自动首发 must not put him straight back
     .sort((a, b) => {
-      const fit = (x: Player) => (isCoolingOff(state, x) ? 2 : x.injuredUntil > state.day ? 1 : 0)
       return fit(a) - fit(b) || confidentRating(b) - confidentRating(a)
     })
 
@@ -120,7 +120,7 @@ export function autoStarters(state: GameState, teamId: string): string[] {
   // than any single role gap costs, so a lineup that drops him is simply a
   // worse lineup. He replaces the lowest-rated starter whose roles someone
   // else still covers.
-  const igl = squad.filter((p) => p.isIgl).sort((a, b) => b.attrs.igl - a.attrs.igl)[0]
+  const igl = squad.filter((p) => p.isIgl).sort((a, b) => fit(a) - fit(b) || b.attrs.igl - a.attrs.igl)[0]
   if (igl && !five.includes(igl)) {
     const covered = (without: Player) => {
       const rest = five.filter((x) => x !== without).concat(igl)
@@ -132,6 +132,14 @@ export function autoStarters(state: GameState, teamId: string): string[] {
       .sort((a, b) => confidentRating(a) - confidentRating(b))
       .find(covered)
     if (drop) five[five.indexOf(drop)] = igl
+  }
+  // Role/caller searches above can jump past the fitness ordering to a lone
+  // injured specialist. Availability comes first: exhaust healthy substitutes
+  // before fielding injured players, and cooling-off players last of all.
+  for (const p of squad) {
+    if (five.includes(p)) continue
+    const drop = five.slice().sort((a, b) => fit(b) - fit(a) || confidentRating(a) - confidentRating(b))[0]
+    if (drop && fit(p) < fit(drop)) five[five.indexOf(drop)] = p
   }
   return five.map((p) => p.id)
 }

@@ -38,7 +38,7 @@ export function awardPrize(state: GameState, stage: StageKey, order: string[]): 
     team.seasonPrize += net
     if (teamId === state.myTeam) {
       state.finances.balance += net
-      state.finances.log.push({ day: state.day, label: `奖金 · ${stage} 第${i + 1}名`, amount: net })
+      state.finances.log.push({ day: state.day, label: `奖金 · ${stage} 第${i + 1}名`, amount })
       if (share > 0) {
         state.finances.log.push({ day: state.day, label: '选手奖金分成', amount: -share })
       }

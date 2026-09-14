@@ -11,13 +11,13 @@
  * the front page, not wonder where it went.
  */
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { hasAutosave, loadAutosave } from '../engine/save'
+import { readCareerPreview } from '../engine/savePreview'
+import { homeCrestUrl, HOME_COUNTS } from '../engine/homeClubs'
 import { ENDING_COUNT } from '../engine/endings'
 import { ACHIEVEMENT_COUNT } from '../engine/achievements'
 import { readProfile, siteId, syncProfile, type Profile } from '../engine/profile'
 import { REGION_CN } from '../engine/types'
 import type { Region } from '../engine/types'
-import { Crest } from './common'
 import { maskId } from '../engine/cardid'
 import Support from './Support'
 import { track } from '../engine/telemetry'
@@ -77,18 +77,9 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
   // Reading the autosave means parsing a whole world, so it happens after the
   // page has painted rather than before it.
   useEffect(() => {
-    if (!hasAutosave()) return
     const t = setTimeout(() => {
       try {
-        const g = loadAutosave()
-        if (g) {
-          setResume({
-            club: g.teams[g.myTeam]?.name ?? null,
-            clubId: g.myTeam,
-            year: g.year,
-            over: !!g.gameOver,
-          })
-        }
+        setResume(readCareerPreview())
       } catch { /* a save this page cannot read is the career screen's problem */ }
     }, 0)
     return () => clearTimeout(t)
@@ -155,10 +146,10 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               接手一支真实战队，从 2026 出发。
               签人、训练、排兵、BP、谈赞助，打满五年可以收官领结局，
               也可以一直带到 2036。
-              524 名选手和 64 名教练全是真人，没有程序生成的。
+              {HOME_COUNTS.players} 名选手和 {HOME_COUNTS.headCoaches} 名已收录主教练全是真人，没有程序生成的。
             </p>
             <ul className="home-facts">
-              <li><b>78</b> 支战队 · 四大赛区与次级联赛</li>
+              <li><b>{HOME_COUNTS.teams}</b> 支战队 · 四大赛区与次级联赛</li>
               <li><b>{ENDING_COUNT}</b> 种结局 · <b>{ACHIEVEMENT_COUNT}</b> 项成就</li>
             </ul>
             <div className="home-go">
@@ -167,7 +158,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               </button>
               {resume && (
                 <span className="home-resume">
-                  {resume.clubId && <Crest id={resume.clubId} size={16} />}
+                  {homeCrestUrl(resume.clubId) && <img className="crest" src={homeCrestUrl(resume.clubId)!} alt="" aria-hidden="true" loading="lazy" width={16} height={16} style={{ width: 16, height: 16 }} />}
                   {resume.club} · {resume.year} 年
                 </span>
               )}

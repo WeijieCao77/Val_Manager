@@ -1,3 +1,6 @@
+import { assertCareerSave } from './saveShape'
+import { savePrefix as prefix, saveIndexKey as indexKey } from './saveKeys'
+export { setSaveNamespace, saveNamespace } from './saveKeys'
 import { canonAgents } from './content'
 import { migrateLife } from './managerLife'
 import { seedAgentPro } from './agents'
@@ -12,11 +15,6 @@ import type { GameState, TeamDrill } from './types'
  * own: a tester's career never overwrites the one at the main address, and
  * the main address never shows a career the old engine cannot run.
  */
-let NAMESPACE = ''
-export function setSaveNamespace(ns: string): void { NAMESPACE = ns ? `${ns}:` : '' }
-export const saveNamespace = (): string => NAMESPACE.replace(/:$/, '')
-const prefix = () => `valmanager:${NAMESPACE}save:`
-const indexKey = () => `valmanager:${NAMESPACE}index`
 export const SAVE_VERSION = 1
 
 const worldPlayer = new Map(WORLD_PLAYERS.map((p) => [p.id, p]))
@@ -74,7 +72,8 @@ export function packState(state: GameState): string {
 
 /** ...and back, whichever of the two shapes it was written in. */
 export function unpackState(raw: string): GameState {
-  const state = JSON.parse(raw) as GameState
+  const state: unknown = JSON.parse(raw)
+  assertCareerSave(state)
   for (const f of state.fixtures ?? []) {
     for (const m of f.result?.maps ?? []) {
       const entries = Object.entries((m.lines ?? {}) as unknown as Record<string, unknown>)
@@ -104,7 +103,11 @@ export interface SaveMeta {
 
 const readIndex = (): SaveMeta[] => {
   try {
-    return JSON.parse(localStorage.getItem(indexKey()) ?? '[]') as SaveMeta[]
+    const raw: unknown = JSON.parse(localStorage.getItem(indexKey()) ?? '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter((m): m is SaveMeta => !!m && typeof m === 'object'
+      && typeof m.slot === 'string' && typeof m.team === 'string' && typeof m.manager === 'string'
+      && Number.isFinite(m.year) && Number.isFinite(m.day) && typeof m.savedAt === 'string')
   } catch {
     return []
   }
@@ -156,7 +159,9 @@ function healIndex(): SaveMeta[] {
   const idx = raw.filter((m) => prefix() + m.slot !== owner())
   const known = new Set(idx.map((m) => m.slot))
   let changed = idx.length !== raw.length
-  for (let i = 0; i < localStorage.length; i++) {
+  let length = 0
+  try { length = localStorage.length } catch { return idx }
+  for (let i = 0; i < length; i++) {
     const key = localStorage.key(i)
     if (!key?.startsWith(prefix())) continue
     const slot = key.slice(prefix().length)
@@ -168,7 +173,7 @@ function healIndex(): SaveMeta[] {
     try {
       const st = JSON.parse(localStorage.getItem(key) ?? '') as GameState
       // ...and anything else under this prefix that is not a career
-      if (!st?.teams || !st.players) continue
+      assertCareerSave(st)
       idx.push({
         slot,
         team: st.teams?.[st.myTeam]?.name ?? '—',
@@ -222,9 +227,9 @@ function unwindTutorial(state: GameState): GameState {
 }
 
 export function loadGame(slot: string): GameState | null {
-  const raw = localStorage.getItem(prefix() + slot)
-  if (!raw) return null
   try {
+    const raw = localStorage.getItem(prefix() + slot)
+    if (!raw) return null
     const state = unpackState(raw)
     return migrate(unwindTutorial(state))
   } catch {
@@ -391,15 +396,18 @@ export function exportSave(state: GameState): string {
 
 export function importSave(text: string): GameState {
   const parsed = JSON.parse(text) as { format?: string; state?: GameState }
-  if (parsed.format !== 'VAL_MANAGER_SAVE' || !parsed.state) {
+  if (parsed?.format !== 'VAL_MANAGER_SAVE' || !parsed.state) {
     throw new Error('这不是一个有效的 VCT电竞经理 存档文件。')
   }
+  assertCareerSave(parsed.state)
   return migrate(parsed.state)
 }
 
 const AUTOSAVE = 'autosave'
 export const loadAutosave = () => loadGame(AUTOSAVE)
-export const hasAutosave = () => localStorage.getItem(prefix() + AUTOSAVE) !== null
+export const hasAutosave = () => {
+  try { return localStorage.getItem(prefix() + AUTOSAVE) !== null } catch { return false }
+}
 
 /**
  * Which tab wrote the autosave last, and how far along it was.

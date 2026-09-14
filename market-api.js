@@ -656,13 +656,9 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     const mine = await sql`select state->'cards' as cards from card_accounts where id_hash = ${me}`
     const owned = mine[0]?.cards?.[cardId]
     if (!owned) { json(res, 200, { ok: false, notOwned: true }); return }
-    const already = await sql`
-      select count(*)::int as n from card_listings
-      where seller_h = ${me} and card_id = ${cardId} and status = 'open'`
-    // one listing per card id: two would both escrow "the" card and the second
-    // sale would have nothing behind it
-    const held = Number(owned.dupes ?? 0) + (Array.isArray(owned.spares) ? owned.spares.length : 0) + 1
-    if ((already[0]?.n ?? 0) >= held) { json(res, 200, { ok: false, alreadyListed: true }); return }
+    // Open listings already hold their cards in escrow. Counting them
+    // against the remaining inventory again refused the third of three
+    // owned copies; escrowCard below is the authoritative inventory check.
     // The card leaves the collection HERE, on the server's copy — a duplicate
     // first, at level 0, then the lowest upgraded spare; the card itself
     // otherwise, at the level it holds. The request's `level` is not read: a
@@ -671,6 +667,12 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // after this reply, which meant a client that skipped that step listed a
     // card it still held.
     const out = await tx(async (db) => {
+      // Serialize new listings for this seller before reading the limit.
+      // This only locks the account, never another listing, so a bidder
+      // holding listing -> account cannot form the opposite lock order here.
+      await db`select id_hash from card_accounts where id_hash = ${me} for update`
+      const count = await db`select count(*)::int as n from card_listings where seller_h = ${me} and status = 'open'`
+      if ((count[0]?.n ?? 0) >= MAX_LISTINGS) return { full: true }
       for (let attempt = 0; attempt < 3; attempt++) {
         const row = await db`select state, rev from card_accounts where id_hash = ${me}`
         if (!row.length) return { notOwned: true }
@@ -690,6 +692,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       }
       return { busy: true }
     })
+    if (out.full) { json(res, 200, { ok: false, full: true, max: MAX_LISTINGS }); return }
     if (out.notOwned) { json(res, 200, { ok: false, notOwned: true }); return }
     if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
     json(res, 200, out)
@@ -1149,6 +1152,11 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     if (!theirs[0]?.cards?.[wantId]) { json(res, 200, { ok: false, theyLack: true }); return }
     const who = await nameOf(me)
     const out = await tx(async (db) => {
+      // Like listing, accepting five offers simultaneously must not bypass
+      // the five-open-swaps limit checked above for the ordinary fast path.
+      await db`select id_hash from card_accounts where id_hash = ${me} for update`
+      const count = await db`select count(*)::int as n from card_swaps where from_h = ${me} and status = 'open'`
+      if ((count[0]?.n ?? 0) >= MAX_SWAPS) return { ok: false, why: 'full' }
       let level = 0
       const r = await editAccount(me, id, (g) => {
         if (!engine.canPlay(g, 'swap', Date.now())) return 'stamina'
@@ -1167,7 +1175,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
       }, db)
       return { ok: true, id: String(ins[0].id), state: r.state, rev: r.rev }
     })
-    if (!out.ok) { json(res, 200, { ok: false, [out.why]: true }); return }
+    if (!out.ok) { json(res, 200, { ok: false, [out.why]: true, ...(out.why === 'full' ? { max: MAX_SWAPS } : {}) }); return }
     json(res, 200, out)
   }
 

@@ -17,6 +17,7 @@ import {
 import { windowDaysLeft } from '../src/engine/agenda'
 import { cycleDays } from '../src/engine/actions'
 import { Rng } from '../src/engine/rng'
+import { defaultContract } from '../src/engine/types'
 
 const club = WORLD_TEAMS.find(t => t.tag === 'KBG')!
 const g = createNewGame(club.id, '审计经理', 20260824)
@@ -46,7 +47,7 @@ setupSeason(g2)
 const rng2 = new Rng(4)
 while (g2.day < 14) advanceDay(g2, rng2)
 const mark = Object.values(g2.players).find(p => p.teamId && p.teamId !== g2.myTeam && p.overall >= 70)!
-const off = makeOffer(g2, mark.id, g2.myTeam, 200000, { salary: 60000, years: 2 } as never)!
+const off = makeOffer(g2, mark.id, g2.myTeam, 200000, defaultContract(60000, 2))!
 console.log(`\n第 14 天（窗口内最后一个回合）报价 ${mark.ign}，对方第 ${off.respondOn} 天答复` +
   ` — 那天窗口${windowOpen(off.respondOn) ? '还开着' : '已经关了'}`)
 while (g2.day <= 30 && off.status === 'pending') advanceDay(g2, rng2)
@@ -65,8 +66,7 @@ const cheap = Object.values(g4.players)
 const was = cheap.teamId
 const fee = Math.round(askingPrice(cheap) * 1.4)
 const big = makeOffer(g4, cheap.id, g4.myTeam, fee,
-  { salary: Math.round(cheap.salary * 1.6), years: 3, signingBonus: 0, bonusShare: 0,
-    releaseClause: 0, promisedRole: 'starter' } as never)!
+  { ...defaultContract(Math.round(cheap.salary * 1.6), 3), bonusShare: 0 })!
 while (g4.day <= 40 && big.status === 'pending') advanceDay(g4, rng4)
 console.log(`\n第 14 天报价 ${cheap.ign}（${g4.teams[was ?? ''].tag}，出价 ${fee}，余额 ${Math.round(g4.finances.balance)}）`
   + ` — 第 ${big.respondOn} 天答复，窗口${windowOpen(big.respondOn ?? 0) ? '开' : '关'}`
@@ -89,7 +89,7 @@ const rng5 = new Rng(12)
 while (g5.day <= 21) advanceDay(g5, rng5)
 const mark2 = Object.values(g5.players).find(p => p.teamId && p.teamId !== g5.myTeam)!
 console.log(`\n窗口关闭后（第 ${g5.day} 天）：`)
-console.log(`  新报价 → ${makeOffer(g5, mark2.id, g5.myTeam, 50000, { salary: 40000, years: 2 } as never)
+console.log(`  新报价 → ${makeOffer(g5, mark2.id, g5.myTeam, 50000, defaultContract(40000, 2))
   ? 'FAIL 居然成功了' : 'ok 被拒绝'}`)
 console.log(`  新问价 → ${enquireAbout(g5, mark2.id)}`)
 // A rival's bid that landed on the last day of the window must still be

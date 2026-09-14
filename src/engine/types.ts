@@ -326,6 +326,8 @@ export interface Player {
   stream?: StreamDeal
   /** the year this player's deal ran out — a second winter and he walks */
   expiredYear?: number
+  /** relationship reward for extending a contract, at most once a season */
+  renewalRewardYear?: number
   /** set when the player has been transfer-listed by their club */
   listed?: boolean
   /** the day they went on the list, so a stale listing can be withdrawn */
@@ -602,6 +604,10 @@ export interface Team {
   starters: string[]
   /** null when no real head coach is on record — never an invented one */
   coach: Coach | null
+  /** Staff retained by a previously managed club while another club is active. */
+  supportStaff?: StaffMember[]
+  /** Club-owned terms and counters parked when its manager changes jobs. */
+  managementBook?: { year: number; leagueDeal?: LeagueDeal; seasonGigs: number; bestPlacing?: number }
   facilities: number
   tactics: Tactics
   sponsors: Sponsor[]

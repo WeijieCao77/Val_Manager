@@ -7,7 +7,7 @@
  * itself — one side with a coach, one without; one side a level up, one
  * not — so the only thing that differs is the thing being measured.
  */
-import { ALL_CARDS, SQUAD_SLOTS, isPlayerCard, isCoachCard, coachRating } from '../src/engine/cards'
+import { ALL_CARDS, SQUAD_SLOTS, isPlayerCard, isCoachCard, coachRating, personOf } from '../src/engine/cards'
 import type { CoachCard, PlayerCard, Squad } from '../src/engine/cards'
 import { playRivalMatch } from '../src/engine/arena'
 import type { RivalSquad } from '../src/engine/arena'
@@ -21,9 +21,9 @@ function clubFive(tag: string): (string | null)[] {
   const pool = players.filter((c) => c.clubTag === tag).sort((a, b) => b.rating - a.rating)
   const used = new Set<string>()
   return SQUAD_SLOTS.map((role) => {
-    const pick = pool.find((c) => !used.has(c.id) && (role === '自由人' || c.roles.includes(role)))
-      ?? pool.find((c) => !used.has(c.id))
-    if (pick) used.add(pick.id)
+    const pick = pool.find((c) => !used.has(personOf(c)) && (role === '自由人' || c.roles.includes(role)))
+      ?? pool.find((c) => !used.has(personOf(c)))
+    if (pick) used.add(personOf(pick))
     return pick?.id ?? null
   })
 }

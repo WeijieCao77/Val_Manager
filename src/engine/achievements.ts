@@ -29,7 +29,7 @@ import { CHAMPIONS, INTL_TITLES, MASTERS_1, MASTERS_2 } from './endings'
 import { finalYearOf } from './eras'
 import { isImport } from './imports'
 import { squadOf } from './roster'
-import { WORLD_TEAMS } from './teams'
+import { HOME_CLUBS } from './homeClubs'
 import type { GameState, Player } from './types'
 import type { CareerRecord } from './profile'
 
@@ -143,8 +143,7 @@ const won = (f: Facts, pred: (t: string) => boolean) => f.honours.some((h) => pr
 
 /** Regions the account has ever managed in, from the clubs it has held. */
 export function regionsManaged(clubs: string[]): string[] {
-  const byId = new Map(WORLD_TEAMS.map((t) => [t.id, t.region as string]))
-  return [...new Set(clubs.map((id) => byId.get(id)).filter((r): r is string => !!r))]
+  return [...new Set(clubs.map((id) => HOME_CLUBS[id]?.region).filter((r): r is string => !!r))]
 }
 
 export const ACHIEVEMENTS: Achievement[] = [

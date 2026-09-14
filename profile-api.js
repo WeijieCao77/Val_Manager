@@ -17,7 +17,7 @@
  * the next one will not restore.
  */
 import { createHash } from 'node:crypto'
-import { normalizeId } from './cards-api.js'
+import { engine, normalizeId } from './cards-api.js'
 
 export const PROFILE_SCHEMA = `
 create table if not exists site_profiles (
@@ -34,14 +34,23 @@ const MAX_BODY = 64 * 1024
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
 /** Keys are short identifiers from the client's own tables; anything else is junk. */
-const keys = (v) => {
+const catalogs = {
+  endings: new Set(engine.PROFILE_KEYS.endings),
+  achievements: new Set(engine.PROFILE_KEYS.achievements),
+}
+const keys = (v, kind) => {
   if (!Array.isArray(v)) return []
-  const out = []
+  const catalog = catalogs[kind]
+  const real = new Set()
+  const historical = new Set()
   for (const k of v) {
-    if (typeof k === 'string' && k.length <= 40 && /^[A-Za-z0-9_]+$/.test(k)) out.push(k)
-    if (out.length >= 200) break
+    if (typeof k !== 'string' || k.length > 40 || !/^[A-Za-z0-9_]+$/.test(k)) continue
+    if (catalog.has(k)) real.add(k)
+    else if (historical.size < 200) historical.add(k)
   }
-  return [...new Set(out)]
+  // Keep both devices' real unlocks even if old unknown keys filled the row.
+  // Scan past the historical allowance: a valid key may follow that junk.
+  return [...real, ...historical].slice(0, Math.max(200, catalog.size))
 }
 
 const count = (v) => {
@@ -63,8 +72,8 @@ function vet(p) {
     ? [...new Set(rec.clubs.filter((c) => typeof c === 'string' && c.length <= 40))].slice(0, 200)
     : []
   return {
-    endings: keys(p?.endings),
-    achievements: keys(p?.achievements),
+    endings: keys(p?.endings, 'endings'),
+    achievements: keys(p?.achievements, 'achievements'),
     record: {
       careers: count(rec.careers),
       finished: count(rec.finished),
@@ -86,8 +95,11 @@ function fold(old, next) {
   const b = next.record ?? {}
   const most = (k) => Math.max(count(a[k]), count(b[k]))
   return {
-    endings: [...new Set([...(old.endings ?? []), ...next.endings])],
-    achievements: [...new Set([...(old.achievements ?? []), ...next.achievements])],
+    // Cap the stored union too: a per-request cap still allowed another
+    // 200 arbitrary identifiers on every save, growing one row without bound.
+    // Known unlocks from both devices come before unknown historical keys.
+    endings: keys([...(old.endings ?? []), ...next.endings], 'endings'),
+    achievements: keys([...(old.achievements ?? []), ...next.achievements], 'achievements'),
     record: {
       careers: most('careers'),
       finished: most('finished'),

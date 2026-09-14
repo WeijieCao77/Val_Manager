@@ -25,3 +25,12 @@ export { matchesFilter, matchesQuery, readFilter, filterActive } from './cardFil
 export type { CardFilter } from './cardFilter'
 export { progressOf } from '../../progress.js'
 export { answerFor, kindFor, imgOf } from './challenge'
+
+// Profile merges prefer real unlocks over unknown historical keys when bounded.
+// Export only identifiers; the HTTP module reuses this already-loaded bundle.
+import { ENDINGS } from './endings'
+import { ACHIEVEMENTS } from './achievements'
+export const PROFILE_KEYS = {
+  endings: ENDINGS.map(({ key }) => key),
+  achievements: ACHIEVEMENTS.map(({ key }) => key),
+}

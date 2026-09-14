@@ -126,83 +126,120 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     try { return JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return null }
   }
 
+  // These locks protect only short database steps. Sending/checking at Aliyun
+  // happens after the transaction releases its connection; a slow SMS provider
+  // must never occupy all four connections needed by matches and saves.
+  const locked = (ph, fn) => sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(5160409, ${parseInt(ph.slice(0, 8), 16) | 0})`
+    return fn(tx)
+  })
+  const busyCode = { ok: false, why: '验证码正在处理中，稍等一下。' }
+  const expiredCode = { ok: false, why: '验证码过期了，重新发一个。' }
+
   async function sendCode(req, res, bucket) {
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    if (guard(res, `ps:${bucket}`, 6)) return
+    if (guard(res, `phone:send:${bucket}`, 6)) return
     const b = await body(req, res)
     if (!b) return
     const phone = normalizePhone(b.phone)
     if (!phone) { json(res, 200, { ok: false, why: '只收中国大陆的 11 位手机号。海外号码请到抖音私信作者人工处理。' }); return }
     const ph = phoneHash(phone)
-    // a number that cannot end in a bind gets no code at all — the refusal
-    // is the answer, and a code to a used number is 0.05 元 spent on nothing
     const purpose = b.for === 'login' ? 'login' : 'bind'
     const me = b.id ? hash(normalizeId(b.id) ?? '') : null
-    const held = await sql`select id_hash from card_phones where phone_h = ${ph}`
-    if (purpose === 'bind') {
-      if (held.length && held[0].id_hash !== me) {
-        json(res, 200, { ok: false, why: '这个手机号已经绑过账号了，一个号只能认证一次。要进那个账号，用「用手机号进入」。', taken: true })
-        return
+    const reservation = `pending:${randomBytes(16).toString('hex')}`
+    const refused = await locked(ph, async (tx) => {
+      const held = await tx`select id_hash from card_phones where phone_h = ${ph}`
+      if (purpose === 'bind') {
+        if (held.length && held[0].id_hash !== me) {
+          return { ok: false, why: '这个手机号已经绑过账号了，一个号只能认证一次。要进那个账号，用「用手机号进入」。', taken: true }
+        }
+        if (me) {
+          const mine = await tx`select last4 from card_phones where id_hash = ${me}`
+          if (mine.length && !held.length) return { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }
+        }
+      } else if (!held.length) return { ok: false, why: '这个手机号还没绑过账号。', none: true }
+      const recent = await tx`select sent from card_sms where phone_h = ${ph} and sent > now() - interval '1 day' order by sent desc`
+      if (recent.length && Date.now() - new Date(recent[0].sent).getTime() < PER_MINUTE_MS) {
+        return { ok: false, why: '一分钟内只能发一次，稍等。', wait: Math.ceil((PER_MINUTE_MS - (Date.now() - new Date(recent[0].sent).getTime())) / 1000) }
       }
-      if (me) {
-        const mine = await sql`select last4 from card_phones where id_hash = ${me}`
-        if (mine.length && !held.length) { json(res, 200, { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }); return }
-      }
-    } else if (!held.length) {
-      json(res, 200, { ok: false, why: '这个手机号还没绑过账号。', none: true })
-      return
-    }
-    const recent = await sql`select sent from card_sms where phone_h = ${ph} and sent > now() - interval '1 day' order by sent desc`
-    if (recent.length && Date.now() - new Date(recent[0].sent).getTime() < PER_MINUTE_MS) {
-      json(res, 200, { ok: false, why: '一分钟内只能发一次，稍等。', wait: Math.ceil((PER_MINUTE_MS - (Date.now() - new Date(recent[0].sent).getTime())) / 1000) })
-      return
-    }
-    if (recent.length >= PER_DAY) { json(res, 200, { ok: false, why: '这个号今天发得太多了，明天再试。' }); return }
+      if (recent.length >= PER_DAY) return { ok: false, why: '这个号今天发得太多了，明天再试。' }
+      // Count the reservation before contacting the sender: simultaneous
+      // requests (including another server process) cannot all buy an SMS.
+      await tx`insert into card_sms (phone_h, code_h, ip) values (${ph}, ${reservation}, ${bucket})`
+      return null
+    })
+    if (refused) { json(res, 200, refused); return }
     let dev = false
+    let localCode = null
     try {
       if (sender) await sender(phone)
       else if (smsConfigured()) { await sendVerify(phone); console.log(`sms: sent ****${phone.slice(-4)}`) }
       else if (devMode()) {
-        const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
-        devCodes.unshift({ last4: phone.slice(-4), code, at: new Date().toISOString() })
+        localCode = String(randomInt(0, 1_000_000)).padStart(6, '0')
+        devCodes.unshift({ last4: phone.slice(-4), code: localCode, at: new Date().toISOString() })
         devCodes.splice(50)
-        console.log(`sms(dev): ****${phone.slice(-4)} code ${code}`)
+        console.log(`sms(dev): ****${phone.slice(-4)} code ${localCode}`)
         dev = true
       } else {
+        await sql`delete from card_sms where phone_h = ${ph} and code_h = ${reservation}`
         json(res, 200, { ok: false, why: '短信服务未配置，请联系作者。' })
         return
       }
+      await sql`update card_sms set code_h = ${dev ? codeHash(ph, localCode) : ''}
+                where phone_h = ${ph} and code_h = ${reservation}`
     } catch (err) {
+      await sql`delete from card_sms where phone_h = ${ph} and code_h = ${reservation}`
       console.warn('sms: send failed —', err.message)
       json(res, 200, { ok: false, why: '短信没发出去，稍后再试。' })
       return
     }
-    await sql`insert into card_sms (phone_h, code_h, ip) values (${ph}, ${dev ? codeHash(ph, devCodes[0].code) : ''}, ${bucket})`
     json(res, 200, { ok: true, wait: 60, dev })
   }
 
-  /** Aliyun's verdict when configured; the local dev code otherwise. Five tries a code either way. */
-  async function verify(phone, ph, code) {
-    const rows = await sql`select ctid, code_h, tries, sent from card_sms where phone_h = ${ph}
-                           and sent > now() - interval '10 minutes' order by sent desc limit 1`
-    if (!rows.length) return { ok: false, why: '验证码过期了，重新发一个。' }
-    const r = rows[0]
-    if (r.tries >= MAX_TRIES) return { ok: false, why: '试错太多次了，重新发一个。' }
-    await sql`update card_sms set tries = tries + 1 where ctid = ${r.ctid}`
-    const typed = String(code ?? '').trim()
-    let pass
-    if (checker) pass = await checker(phone, typed)
-    else if (smsConfigured()) {
-      try { pass = await checkVerify(phone, typed) } catch (err) { console.warn('sms: check failed —', err.message); return { ok: false, why: '校验没连上，稍后再试。' } }
-    } else pass = r.code_h !== '' && r.code_h === codeHash(ph, typed)
-    if (!pass) return { ok: false, why: '验证码不对。' }
-    await sql`delete from card_sms where phone_h = ${ph}`
-    return { ok: true }
+  /** Reserve one of five tries, then atomically consume and perform the login/bind. */
+  async function verify(phone, ph, code, finish) {
+    const reservation = `checking:${randomBytes(16).toString('hex')}`
+    const prepared = await locked(ph, async (tx) => {
+      const rows = await tx`select ctid, code_h, tries from card_sms where phone_h = ${ph}
+                             and sent > now() - interval '10 minutes' order by sent desc limit 1 for update`
+      if (!rows.length || rows[0].code_h === 'used') return expiredCode
+      const r = rows[0]
+      if (/^(pending|checking):/.test(r.code_h)) return busyCode
+      if (r.tries >= MAX_TRIES) return { ok: false, why: '试错太多次了，重新发一个。' }
+      await tx`update card_sms set tries = tries + 1, code_h = ${reservation} where ctid = ${r.ctid}`
+      return { ok: true, previous: r.code_h }
+    })
+    if (!prepared.ok) return prepared
+    const restore = () => sql`update card_sms set code_h = ${prepared.previous}
+                              where phone_h = ${ph} and code_h = ${reservation}`
+    try {
+      const typed = String(code ?? '').trim()
+      let pass = false
+      if (/^\d{6}$/.test(typed)) {
+        if (checker) pass = await checker(phone, typed)
+        else if (smsConfigured()) pass = await checkVerify(phone, typed)
+        else pass = prepared.previous !== '' && prepared.previous === codeHash(ph, typed)
+      }
+      if (!pass) { await restore(); return { ok: false, why: '验证码不对。' } }
+      return await locked(ph, async (tx) => {
+        const consumed = await tx`update card_sms set code_h = 'used'
+                                  where phone_h = ${ph} and code_h = ${reservation}
+                                  returning phone_h`
+        if (!consumed.length) return expiredCode
+        // Keep the row: deleting it erased both the minute/day send quotas.
+        // Account ownership is checked again inside this same transaction.
+        return finish(tx)
+      })
+    } catch (err) {
+      await restore()
+      console.warn('sms: check failed —', err.message)
+      return { ok: false, why: '校验没连上，稍后再试。' }
+    }
   }
 
   async function bind(req, res, bucket) {
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    if (guard(res, `pb:${bucket}`, 20)) return
+    if (guard(res, `phone:bind:${bucket}`, 20)) return
     const b = await body(req, res)
     if (!b) return
     const id = normalizeId(b.id)
@@ -210,31 +247,37 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     if (!id || !phone) { json(res, 200, { ok: false, why: '手机号或账号不对。' }); return }
     const ph = phoneHash(phone)
     const me = hash(id)
-    const acct = await sql`select verified from card_accounts where id_hash = ${me}`
-    if (!acct.length) { json(res, 200, { ok: false, why: '账号还没建好，刷新再试。' }); return }
-    const held = await sql`select id_hash from card_phones where phone_h = ${ph}`
-    if (held.length && held[0].id_hash !== me) {
-      json(res, 200, { ok: false, why: '这个手机号已经绑了另一个账号。一个号只能有一个账号；要进那个账号，用「用手机号进入」。', taken: true })
-      return
+    // Do the cheap ownership checks before spending a provider verification,
+    // and repeat them with the account locked when the code succeeds.
+    const ownership = async (tx, lock = false) => {
+      const acct = lock
+        ? await tx`select verified from card_accounts where id_hash = ${me} for update`
+        : await tx`select verified from card_accounts where id_hash = ${me}`
+      if (!acct.length) return { ok: false, why: '账号还没建好，刷新再试。' }
+      const held = await tx`select id_hash from card_phones where phone_h = ${ph}`
+      if (held.length && held[0].id_hash !== me) return { ok: false, why: '这个手机号已经绑了另一个账号。一个号只能有一个账号；要进那个账号，用「用手机号进入」。', taken: true }
+      const mine = await tx`select last4 from card_phones where id_hash = ${me}`
+      if (mine.length && !held.length) return { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }
+      return null
     }
-    const mine = await sql`select last4 from card_phones where id_hash = ${me}`
-    if (mine.length && !held.length) { json(res, 200, { ok: false, why: `这个账号已经绑了尾号 ${mine[0].last4} 的手机。`, bound: true }); return }
-    const v = await verify(phone, ph, b.code)
-    if (!v.ok) { json(res, 200, v); return }
-    await sql.begin(async (tx) => {
+    const refused = await ownership(sql)
+    if (refused) { json(res, 200, refused); return }
+    const v = await verify(phone, ph, b.code, async (tx) => {
+      const conflict = await ownership(tx, true)
+      if (conflict) return conflict
       await tx`insert into card_phones (phone_h, id_hash, id_enc, last4) values (${ph}, ${me}, ${encryptId(id)}, ${phone.slice(-4)})
                on conflict (phone_h) do nothing`
-      // a revoked hand-pass leaves its note behind; a number that answers replaces it
       await tx`update card_accounts set verified = coalesce(verified, now()),
                verify_via = case when verified is null then 'sms' else coalesce(verify_via, 'sms') end
                where id_hash = ${me}`
+      return { ok: true, phone: phone.slice(-4) }
     })
-    json(res, 200, { ok: true, phone: phone.slice(-4) })
+    json(res, 200, v)
   }
 
   async function login(req, res, bucket) {
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    if (guard(res, `pl:${bucket}`, 20)) return
+    if (guard(res, `phone:login:${bucket}`, 20)) return
     const b = await body(req, res)
     if (!b) return
     const phone = normalizePhone(b.phone)
@@ -242,11 +285,11 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     const ph = phoneHash(phone)
     const held = await sql`select id_enc, last4 from card_phones where phone_h = ${ph}`
     if (!held.length) { json(res, 200, { ok: false, why: '这个手机号还没绑过账号。', none: true }); return }
-    const v = await verify(phone, ph, b.code)
-    if (!v.ok) { json(res, 200, v); return }
-    let id
-    try { id = decryptId(held[0].id_enc) } catch { json(res, 200, { ok: false, why: '账号记录读不出来，请联系作者。' }); return }
-    json(res, 200, { ok: true, id, phone: held[0].last4 })
+    const v = await verify(phone, ph, b.code, async () => {
+      try { return { ok: true, id: decryptId(held[0].id_enc), phone: held[0].last4 } }
+      catch { return { ok: false, why: '账号记录读不出来，请联系作者。' } }
+    })
+    json(res, 200, v)
   }
 
   const admin = (req, url, res) => {

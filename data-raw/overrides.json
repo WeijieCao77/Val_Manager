@@ -39,6 +39,7 @@
   ]
  },
  "_coach_note": [
+  "NOVA: 24K joined as head coach on 2026-06-10; alexRr left for WOL on 2026-05-19. The cached VLR roster already agrees, but the older Liquipedia head coach takes precedence in build_world.py. Verified 2026-09-14 against https://www.vlr.gg/team/transactions/12064/nova-esports/ and https://www.vlr.gg/team/transactions/13790/wolves-esports/; those transaction rows cite official announcements https://weibo.com/6835329208/R3uqlpwvd and https://weibo.com/7888624177/R06TUEJf7. Only the head coach identity is corrected; existing game ability estimates are retained.",
   "RA: York is the current head coach; the cached Liquipedia entry still names mikiya.",
   "TEC: Muggle joined the coaching booth as aim coach in June 2026 (vlr 707183); the cached Liquipedia entry predates it.",
   "The Chinese second tier is read off 号角 team pages (2026-09-09): Liquipedia",
@@ -52,6 +53,9 @@
   "WSIG: Ann is 主教练, rin 副教练."
  ],
  "coaches": {
+  "NOVA": {
+   "name": "24K"
+  },
   "RA": {
    "name": "York",
    "assistants": []

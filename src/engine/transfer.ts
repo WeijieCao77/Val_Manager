@@ -80,6 +80,11 @@ export function askingPrice(p: Player): number {
  * to nothing at seventy percent, as before.
  */
 export function clubAcceptsFee(p: Player, fee: number, rng: Rng): boolean {
+  if (!Number.isFinite(fee) || fee < 0) return false
+  // A release clause is the seller's agreed price, even below market value.
+  // Roster limits and the player's consent are checked by the transfer path.
+  const clause = p.contract?.releaseClause ?? 0
+  if (clause > 0 && fee >= clause) return true
   const ask = askingPrice(p)
   if (ask <= 0) return true
   const ratio = fee / ask
@@ -257,6 +262,59 @@ export function playerAcceptsTerms(
       ? `${p.ign} 拒绝了报价：${s.worst.why}。`
       : `${p.ign} 拒绝了报价，他对目前的处境还算满意。`,
   }
+}
+
+/** Reject malformed terms before they can enter wages or the cash ledger. */
+export function contractTermsBlock(terms: Contract): string | null {
+  if (![terms.salary, terms.signingBonus, terms.releaseClause].every((n) =>
+    Number.isFinite(n) && n >= 0 && n <= Number.MAX_SAFE_INTEGER)) return '合同金额必须是有效的非负数字。'
+  if (!Number.isInteger(terms.years) || terms.years < 1 || terms.years > 4) return '合同年限须为 1–4 年。'
+  if (!Number.isFinite(terms.bonusShare) || terms.bonusShare < 0 || terms.bonusShare > 35) return '奖金分成须为 0–35%。'
+  if (!ROLE_ORDER.includes(terms.promisedRole) ||
+      (terms.noPoach != null && typeof terms.noPoach !== 'boolean')) return '合同条款无效。'
+  return null
+}
+
+/** Renew in place: a contract change is not a transfer or a new arrival. */
+export function renewalBlock(state: GameState, playerId: string, terms: Contract): string | null {
+  const p = state.players[playerId]
+  if (!p || p.teamId !== state.myTeam) return '只能与本队选手续约。'
+  const invalid = contractTermsBlock(terms)
+  if (invalid) return invalid
+  if (terms.signingBonus > state.finances.balance) return '资金不足，无法支付续约签字费。'
+  if (p.contract && p.contractYears === terms.years && p.salary === terms.salary &&
+      (Object.keys(terms) as (keyof Contract)[]).every((k) => p.contract![k] === terms[k])) {
+    return '这与现有合同相同，不需要重复签约。'
+  }
+  return null
+}
+
+export function renewContract(state: GameState, playerId: string, terms: Contract): { ok: boolean; text: string } {
+  const why = renewalBlock(state, playerId, terms)
+  if (why) return { ok: false, text: why }
+  const p = state.players[playerId]
+  const team = state.teams[state.myTeam]
+  const rng = new Rng(hashStr(`renew:${state.seed}:${p.id}:${state.day}`))
+  const verdict = playerAcceptsTerms(state, p, team, terms, rng)
+  if (!verdict.ok) return { ok: false, text: verdict.reason ?? `${p.ign} 拒绝了这份续约。` }
+  // Only extending his commitment earns the relationship reward. Rewriting
+  // the salary repeatedly on the same term must not farm morale or loyalty.
+  if (terms.years > p.contractYears && p.renewalRewardYear !== state.year) {
+    shiftLoyalty(p, RENEWAL_GAIN)
+    p.morale = clamp(p.morale + 8, 0, 100)
+    p.renewalRewardYear = state.year
+  }
+  p.contract = { ...terms }
+  p.salary = terms.salary
+  p.contractYears = terms.years
+  p.expiredYear = undefined
+  p.grievance = 0
+  if (terms.signingBonus > 0) {
+    state.finances.balance -= terms.signingBonus
+    team.budget -= terms.signingBonus
+    state.finances.log.push({ day: state.day, label: `续约签字费 ${p.ign}`, amount: -terms.signingBonus })
+  }
+  return { ok: true, text: `${p.ign} 续约 ${terms.years} 年。` }
 }
 
 /** Coarse, honest read-out of how an offer is likely to land. */
@@ -916,7 +974,7 @@ export function resolveEnquiries(state: GameState, rng: Rng): string[] {
 export function makeOffer(
   state: GameState, playerId: string, toTeam: string, fee: number, terms: Contract,
 ): TransferOffer | null {
-  if (windowBlock(state)) return null
+  if (windowBlock(state) || contractTermsBlock(terms) || !Number.isFinite(fee) || fee < 0) return null
   // nobody signs on the spot: the other side takes a week or so to come back,
   // and a rival can get there first in the meantime
   const rng = new Rng(hashStr(`offer:${state.seed}:${playerId}:${state.day}`))
@@ -1000,6 +1058,12 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
     offer.status = 'rejected'
     return '目标不存在。'
   }
+  const terms = offer.terms ?? defaultContract(offer.salary, offer.years)
+  const invalid = contractTermsBlock(terms)
+  if (invalid || !Number.isFinite(offer.fee) || offer.fee < 0) {
+    offer.status = 'rejected'
+    return invalid ?? '转会费必须是有效的非负数字。'
+  }
   const cost = offer.fee + (offer.terms?.signingBonus ?? 0)
   if (cost > state.finances.balance) {
     offer.status = 'rejected'
@@ -1027,7 +1091,6 @@ export function resolveMyOffer(state: GameState, offer: TransferOffer, rng: Rng)
       return `${state.teams[p.teamId]?.name} 拒绝了报价：出价 $${offer.fee.toLocaleString()} 低于他们的要价 $${ask.toLocaleString()}。`
     }
   }
-  const terms = offer.terms ?? defaultContract(offer.salary, offer.years)
   const verdict = playerAcceptsTerms(state, p, to, terms, rng)
   if (!verdict.ok) {
     offer.status = 'rejected'

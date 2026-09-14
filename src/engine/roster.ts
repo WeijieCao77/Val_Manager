@@ -24,10 +24,9 @@ export const wageBill = (state: GameState, teamId: string): number =>
   squadOf(state, teamId).reduce((s, p) => s + p.salary, 0) +
   // a coach the manager hired is paid like everyone else
   (state.teams[teamId]?.coach?.salary ?? 0) +
-  // assistants and analysts are on the payroll too, for our club only
-  (teamId === state.myTeam
-    ? (state.staff ?? []).reduce((s, m) => s + m.salary, 0)
-    : 0)
+  // Staff stay on their club's payroll when the manager takes another job.
+  (teamId === state.myTeam ? state.staff ?? [] : state.teams[teamId]?.supportStaff ?? [])
+    .reduce((s, m) => s + m.salary, 0)
 
 /**
  * Who calls for a club, among these players (the whole squad by default).

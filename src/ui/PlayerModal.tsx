@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { natName } from '../engine/nat'
 import { AgentIcon, Bar, Face, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Rng, hashStr } from '../engine/rng'
-import { playerAcceptsTerms } from '../engine/transfer'
+import { renewContract, renewalBlock } from '../engine/transfer'
 import { loyaltyOnListed } from '../engine/loyalty'
 import { SQUAD_ROLE_CN, defaultContract } from '../engine/types'
 import type { Contract } from '../engine/types'
@@ -50,25 +49,15 @@ export default function PlayerModal(
   }))
 
   const submitRenewal = () => {
-    const rng = new Rng(hashStr(`renew:${game.seed}:${p.id}:${game.day}`))
-    const verdict = playerAcceptsTerms(game, p, me, terms, rng)
-    if (!verdict.ok) {
-      toast(verdict.reason ?? `${p.ign} 拒绝了这份续约。`)
+    const result = renewContract(game, p.id, terms)
+    if (!result.ok) {
+      toast(result.text)
       return
     }
-    p.contract = { ...terms }
-    p.salary = terms.salary
-    p.contractYears = terms.years
-    p.grievance = 0
-    p.morale = Math.min(100, p.morale + 8)
-    if (terms.signingBonus > 0) {
-      game.finances.balance -= terms.signingBonus
-      game.finances.log.push({ day: game.day, label: `续约签字费 ${p.ign}`, amount: -terms.signingBonus })
-    }
-    commit()
     setRenewing(false)
     logActivity(game, 'transfer', `与 ${p.ign} 续约 ${terms.years} 年（年薪 ${money(terms.salary)}）`)
-    toast(`${p.ign} 续约 ${terms.years} 年。`)
+    commit()
+    toast(result.text)
   }
 
   const toggleList = () => {
@@ -358,12 +347,13 @@ export default function PlayerModal(
                 <ContractTerms terms={terms} onChange={setTerms} want={want} />
                 <OfferVerdict state={game} player={p} team={me} terms={terms} />
                 <div className="row" style={{ gap: 10, marginTop: 16 }}>
-                  <button className="primary" onClick={submitRenewal}>提交</button>
+                  <button className="primary" disabled={!!renewalBlock(game, p.id, terms)} onClick={submitRenewal}>提交</button>
                   <button onClick={() => setRenewing(false)}>取消</button>
                   <span className="right tiny muted">
                     立即支付 {moneyFull(terms.signingBonus)} · 合同总额 {moneyFull(terms.salary * terms.years)}
                   </span>
                 </div>
+                {renewalBlock(game, p.id, terms) && <div className="tiny neg" style={{ marginTop: 8 }}>{renewalBlock(game, p.id, terms)}</div>}
               </div>
             </div>
           )}

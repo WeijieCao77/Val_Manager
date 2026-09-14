@@ -15,7 +15,7 @@ import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
-  COACH_LEVEL_LIFT, cardById, chemistry, coachLift, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
+  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -66,19 +66,9 @@ const PIVOT_OVERALL = 80
 const squeeze = (x: number, pivot: number, spread = SPREAD) =>
   clamp(Math.round(pivot + (x - pivot) * spread), 1, 99)
 
-/**
- * What a coach's other two numbers do on the server.
- *
- * 战术 has always been read by the match engine. 培养 and 激励 were not — in a
- * mode with no season there is nobody to develop and no dressing room to
- * lift — so two thirds of a coach card were decoration and a 55 coached the
- * same match as a 94. Now 培养 is what a coach gets out of the same cards
- * (a level per ten points above 70, at most two) and 激励 is the nerve in the
- * late rounds (clutch, which the engine reads for kills, deaths and mid-round
- * swings). Both read the card's own number, before the squeeze.
- */
-const devLift = coachLift
-const nerve = (motivation: number): number => Math.round((motivation - 70) * 0.35)
+// Coach attributes retain fractions, unlike the legacy base-player squeeze.
+const coachStat = (value: number, level: number): number =>
+  clamp(PIVOT_ATTR + (value + level - PIVOT_ATTR) * SPREAD_ATTR, 1, 99)
 
 export interface ArenaSquad extends Squad {
   /** display name for the assembled club */
@@ -98,24 +88,20 @@ export interface ArenaSquad extends Squad {
  */
 function levelled(
   p: Player, card: PlayerCard, misfit: boolean,
-  /** what the coach adds on top of the card's own level, and to its nerve */
-  coach: { lift: number; nerve: number } = { lift: 0, nerve: 0 },
 ): Player {
   // The card's own levels are NOT here: this is the +0 card. Levels go on
   // after the squeeze (seatSquad), so nothing rounds or caps them away.
-  const bump = coach.lift
   const attrs = { ...card.attrs }
   for (const k of Object.keys(attrs) as (keyof typeof attrs)[]) {
-    attrs[k] = clamp(Math.round(attrs[k] + bump), 1, 99)
+    attrs[k] = clamp(Math.round(attrs[k]), 1, 99)
   }
-  attrs.clutch = clamp(attrs.clutch + coach.nerve, 1, 99)
   return {
     ...p,
     attrs,
     // A card standing in a role it does not cover is worse at it. The engine
     // already punishes the resulting hole in the composition; this is the
     // separate cost of the individual being out of position.
-    overall: clamp(card.rating + coach.lift - (misfit ? 5 : 0), 1, 99),
+    overall: clamp(card.rating - (misfit ? 5 : 0), 1, 99),
     traits: p.traits ? [...p.traits] : p.traits,
     // cards arrive rested and confident: the card mode has no season to tire
     // anyone out, and form drift would make the same squad a different squad
@@ -174,13 +160,10 @@ function seatSquad(
   // so the second copy is dropped here and the side plays short.
   const seated = new Set<string>()
   const coachCard = squad.coach ? cardById(squad.coach) : undefined
-  const coaching = isCoachCard(coachCard)
-    ? { lift: devLift(coachCard.development), nerve: nerve(coachCard.motivation) }
-    : { lift: 0, nerve: 0 }
-  // the coach's own levels, applied after the squeeze like the players' —
-  // a fifth of a rating point on every card per level, and his nerve grows
-  // with them; see COACH_LEVEL_LIFT
   const coachLevel = isCoachCard(coachCard) ? growthOf(level(coachCard.id)) : 0
+  const coaching = isCoachCard(coachCard)
+    ? { lift: coachLiftAt(coachCard, coachLevel), nerve: (coachCard.motivation + coachLevel - 70) * 0.35 }
+    : { lift: 0, nerve: 0 }
 
   squad.slots.forEach((cardId, i) => {
     if (!cardId) return
@@ -192,7 +175,7 @@ function seatSquad(
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
-    const clone = levelled(src, card, misfit, coaching)
+    const clone = levelled(src, card, misfit)
     // Chemistry lands in two places, and it has to land hard.
     //
     // Routed through teamwork and communication alone it was worth about a
@@ -219,7 +202,7 @@ function seatSquad(
     // on a 97 was rounded away or cut at 99 — 12 cards had levels that
     // changed nothing in a match (scripts/check_power_growth.ts) — and the
     // +0 card came out different from the one every balance check was run
-    // on. This way the +0 state is exactly what it was, and every level is
+    // on. This preserves the uncoached +0 state, and every level is
     // worth the same half a point of overall and 0.6 of an attribute,
     // whichever card carries it. 181,728 simulated matches behind the
     // choice: analysis/power_balance_recheck.md.
@@ -230,13 +213,14 @@ function seatSquad(
       }
       clone.overall = clamp(clone.overall + growth * SPREAD, 1, 99)
     }
-    if (coachLevel > 0) {
-      const lift = COACH_LEVEL_LIFT * coachLevel
+    // Base coaching and coach levels use the same paper lift and land after
+    // every base-card rounding/cap. Each ability point now reaches even a 97.
+    if (isCoachCard(coachCard)) {
       for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
-        clone.attrs[k] = clamp(clone.attrs[k] + lift * SPREAD_ATTR, 1, 99)
+        const nerve = k === 'clutch' ? coaching.nerve : 0
+        clone.attrs[k] = clamp(clone.attrs[k] + (coaching.lift + nerve) * SPREAD_ATTR, 1, 99)
       }
-      clone.attrs.clutch = clamp(clone.attrs.clutch + 0.35 * coachLevel * SPREAD_ATTR, 1, 99)
-      clone.overall = clamp(clone.overall + lift * SPREAD, 1, 99)
+      clone.overall = clamp(clone.overall + coaching.lift * SPREAD, 1, 99)
     }
     state.players[id] = { ...clone, id, teamId }
     cardOf[id] = cardId
@@ -281,9 +265,9 @@ function seatSquad(
         name: coachCard.name,
         // the coach comes in toward the middle like the players do, and his
         // levels go on after, a point a level before the scale
-        tactics: clamp(squeeze(coachCard.tactics, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
-        development: clamp(squeeze(coachCard.development, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
-        motivation: clamp(squeeze(coachCard.motivation, PIVOT_ATTR, SPREAD_ATTR) + coachLevel * SPREAD_ATTR, 1, 99),
+        tactics: coachStat(coachCard.tactics, coachLevel),
+        development: coachStat(coachCard.development, coachLevel),
+        motivation: coachStat(coachCard.motivation, coachLevel),
       }
       : null,
     facilities: 60,

@@ -6,9 +6,9 @@ import {
   CUP_MAX_ROUNDS, CUP_MIN_ROUNDS, PACKS, STAMINA_COST, canPlay, cupBo, cupExitPrize, cupOpponent,
   cupRoundName, cupTitlePrize, levelOf, staminaNow,
 } from '../../engine/gacha'
-import type { CupOutcome, PackKind } from '../../engine/gacha'
+import type { CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
 import type { ArenaResult } from '../../engine/arena'
-import { squadRating } from '../../engine/cards'
+import { cardById, cardName, squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { track } from '../../engine/telemetry'
 
@@ -22,12 +22,11 @@ import { track } from '../../engine/telemetry'
 export default function Cup() {
   const { g, now, act, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
-  const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome } | null>(null)
+  const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome; levels: Record<string, number> } | null>(null)
 
-  const level = (id: string) => levelOf(g, id)
   const filled = g.squad.slots.filter(Boolean).length
-  const rating = squadRating(g.squad, level)
   const cup = g.cup
+  const registration = cup?.registration
   const live = cup && !cup.done
   const rounds = cup?.path.length ?? 0
   const can = canPlay(g, 'cup', now)
@@ -42,8 +41,7 @@ export default function Cup() {
     toast(`抽签完成：共 ${drawn} 轮，先打${cupRoundName(drawn, 0)}。`)
   }
 
-  // the bracket is played on the server, against the club it drew, with the
-  // five it knows this account holds; what comes back is the scoreboard
+  // The server fields this cup's registered five, even after inventory changes.
   const play = async () => {
     if (!cupOpponent(g) || !cup) return
     const round = cup.round
@@ -51,9 +49,11 @@ export default function Cup() {
     const r = await act('cup_play')
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
-    const { res, opp, out } = r.result as { res: ArenaResult; opp: string; out: CupOutcome }
+    const { res, opp, out, registration: played } = r.result as { res: ArenaResult; opp: string; out: CupOutcome; registration?: CupRegistration }
+    const levels = played?.levels ?? Object.fromEntries([...g.squad.slots, g.squad.coach].filter((id): id is string => !!id).map(id => [id, levelOf(g, id)]))
+    const rating = squadRating(played?.squad ?? g.squad, id => levels[id] ?? 0)
     track('card_match', { mode: 'cup', won: res.win, round, rating, title: !!out.won })
-    setShown({ res, opp, out })
+    setShown({ res, opp, out, levels })
   }
 
   const clear = async () => {
@@ -71,6 +71,7 @@ export default function Cup() {
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           <b>{STAMINA_COST.cup} 点体力入场</b>，{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮单败淘汰，<b>之后每轮免费</b>。
           对手按阵容分抽签，<b>一轮比一轮强</b>，决赛 <b>BO5</b>。
+          <b>本届固定使用报名时的五人、教练和等级</b>；之后换阵容、升级或出售卡牌，都不影响本届参赛。
           出局按赢的轮数给金币（{cupExitPrize(0)} 起，每轮多 150），赢满两轮再送一个{PACKS.scout.name}；
           冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + {PACKS.elite.name}</b>，
           4 轮的再加一个{PACKS.scout.name}，5 轮的换成一个<b>{PACKS.ten.name}</b>。
@@ -86,6 +87,17 @@ export default function Cup() {
 
         {cup && (
           <>
+            {registration ? (
+              <p className="small muted" style={{ lineHeight: 1.75 }}>
+                本届报名阵容（{squadRating(registration.squad, id => registration.levels[id] ?? 0)} 分）：
+                {[...registration.squad.slots, registration.squad.coach].filter((id): id is string => !!id).map(id => {
+                  const card = cardById(id)
+                  return `${card ? cardName(card) : id} +${registration.levels[id] ?? 0}`
+                }).join(' · ')}
+              </p>
+            ) : live ? (
+              <p className="small muted">这届旧杯赛会在下一场开始时记录当前五人、教练和等级；不重新收费或抽签。</p>
+            ) : null}
             <div className="grid" style={{ gap: 8, marginTop: 4 }}>
               {cup.path.map((oppId, i) => {
                 const t = WORLD_TEAMS.find((x) => x.id === oppId)
@@ -142,7 +154,7 @@ export default function Cup() {
         <MatchReport
           result={shown.res}
           opponentId={shown.opp}
-          level={level}
+          level={id => shown.levels[id] ?? 0}
           onClose={() => setShown(null)}
           extra={
             <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>

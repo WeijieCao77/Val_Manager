@@ -115,13 +115,13 @@ export type Card = PlayerCard | CoachCard
 /**
  * A coach's number.
  *
- * Tactics is what the match engine actually reads off a head coach, so it
- * carries the weight; development and motivation matter over a career the card
- * mode does not have, and are kept in at a discount so a nurturing coach is
- * not simply worse.
+ * The same weighted ability drives the card face and the arena's team lift.
+ * Only the face is rounded; an attribute point must survive into a match.
  */
+const coachAbility = (c: { tactics: number; development: number; motivation: number }): number =>
+  c.tactics * 0.45 + c.development * 0.3 + c.motivation * 0.25
 export const coachRating = (c: { tactics: number; development: number; motivation: number }): number =>
-  Math.round(c.tactics * 0.45 + c.development * 0.3 + c.motivation * 0.25)
+  Math.round(coachAbility(c))
 
 const teamById = new Map(WORLD_TEAMS.map((t) => [t.id, t]))
 
@@ -383,6 +383,12 @@ export const cardPower = (card: Card, level: number): number =>
 /** a full five's 阵容战力 per point of paper score: five cards at a hundred a point */
 export const POWER_PER_SQUAD_POINT = POWER_PER_POINT * 5
 
+/** Stable display rounding, shared by total power and its component labels. */
+export const squadPowerPoints = (score: number): number =>
+  // Weighted abilities can turn an exact x.5 into x.49999999999999. The
+  // tolerance is far below the smallest meaningful displayed increment.
+  Math.round(score * POWER_PER_SQUAD_POINT + 1e-8)
+
 // ---------------------------------------------------------------- squad
 
 export const SQUAD_SLOTS: Role[] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
@@ -534,13 +540,14 @@ export const NO_IGL_PENALTY = 3
 export const CHEM_PAPER = 0.1
 
 /**
- * What a coach's 培养 adds to every card he fields: a level per ten points
- * above 70, at most two. Read by the arena (arena.ts) and shown in the
- * squad's number here, so the screen and the server agree on what a
- * coach is worth.
+ * The coach's three abilities contribute continuously to the whole five.
+ * Ten weighted ability points above 50 are one player level on every seat.
+ * Previously only development's 80/90 thresholds counted on paper, so a
+ * 58-rated and an 85-rated coach could show exactly the same squad power.
+ * The arena adds this after its squeeze; no rounding or early cap eats it.
  */
-export const coachLift = (development: number): number =>
-  Math.max(0, Math.min(2, Math.floor((development - 70) / 10)))
+export const coachLift = (coach: Pick<CoachCard, 'tactics' | 'development' | 'motivation'>): number =>
+  (coachAbility(coach) - 50) * 0.1
 
 /**
  * What a coach's own levels add to every card he fields, in rating units
@@ -553,7 +560,7 @@ export const coachLift = (development: number): number =>
  */
 export const COACH_LEVEL_LIFT = 0.2
 export const coachLiftAt = (coach: CoachCard, level: number): number =>
-  coachLift(coach.development) + COACH_LEVEL_LIFT * growthOf(level)
+  coachLift(coach) + COACH_LEVEL_LIFT * growthOf(level)
 
 /**
  * The squad's headline number, after levels, role misfits, chemistry — and
@@ -568,7 +575,7 @@ export const coachLiftAt = (coach: CoachCard, level: number): number =>
 export interface SquadPaper {
   /** the five's mean rating after levels and misfits, in rating units */
   mean: number
-  /** the coach's 培养 and levels */
+  /** the coach's weighted tactics, development, motivation and levels */
   lift: number
   /** 默契, centred on 50 */
   chem: number
@@ -616,10 +623,10 @@ export function squadRating(squad: Squad, level: (id: string) => number = () => 
  * 阵容战力: the same terms at five hundred a point, from the unrounded
  * score, so one card's level shows as +100 where the mean-then-round of
  * 阵容分 hid it. Five cards' 战力 added up, 默契 ±50 a point around 50, the
- * coach +500 a 培养 level and +100 a card level, a misfit −600, nobody
+ * coach's weighted abilities +50 per point above 50 and +100 a card level, a misfit −600, nobody
  * calling −1,500, an empty seat −4,500.
  */
 export function squadPower(squad: Squad, level: (id: string) => number = () => 0): number {
   const p = squadPaper(squad, level)
-  return p.players ? Math.max(0, Math.round(p.score * POWER_PER_SQUAD_POINT)) : 0
+  return p.players ? Math.max(0, squadPowerPoints(p.score)) : 0
 }

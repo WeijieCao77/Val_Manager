@@ -6,7 +6,7 @@ import {
   SQUAD_PRESETS, autoSquad, clearPreset, collection, levelOf, loadPreset,
   personTaken, presetsOf, renamePreset, savePreset, setSlot,
 } from '../../engine/gacha'
-import { POWER_PER_SQUAD_POINT, SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper, squadPower, squadRating } from '../../engine/cards'
+import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper, squadPower, squadPowerPoints, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
@@ -36,7 +36,7 @@ export default function SquadScreen() {
   const rating = squadRating(g.squad, level)
   const power = squadPower(g.squad, level)
   const paper = squadPaper(g.squad, level)
-  const pts = (x: number) => Math.round(x * POWER_PER_SQUAD_POINT)
+  const pts = squadPowerPoints
   const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n))
   const gaps = roleGaps(g.squad)
   const filled = g.squad.slots.filter(Boolean).length
@@ -267,7 +267,7 @@ export default function SquadScreen() {
                 五人 {fmt(pts(paper.mean + paper.misfits * 6 / paper.players))}
                 {paper.misfits > 0 && ` · 错位 ${signed(-pts(paper.misfits * 6 / paper.players))}`}
                 {` · 默契 ${signed(pts(paper.chem))}`}
-                {paper.lift > 0 && ` · 教练 ${signed(pts(paper.lift))}`}
+                {paper.lift !== 0 && ` · 教练 ${signed(pts(paper.lift))}`}
                 {paper.uncalled > 0 && ` · 无指挥 ${signed(-pts(paper.uncalled))}`}
                 {paper.short > 0 && ` · 缺人 ${signed(-pts(paper.short))}`}
               </div>
@@ -275,6 +275,7 @@ export default function SquadScreen() {
 
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
               战力综合反映当前培养与阵容搭配，实际比赛还受对手、战术和临场表现影响。
+              教练的战术、培养、激励和等级都计入战力，教练带来的默契另算。
               默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。默契高的阵容能打赢评分更高的对手。
             </p>
 

@@ -16,7 +16,7 @@ import type { SeoulRouteState } from './seoulRoute'
 import {
   ALL_CARDS, SEOUL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
-  squadRating,
+  squadRating, squadPower,
 } from './cards'
 import type { Card, PlayerCard, Rarity, Squad } from './cards'
 import { newChallenge } from './challenge'
@@ -370,6 +370,33 @@ export interface OwnedCard {
   got: string
 }
 
+// Old rows can contain numeric strings; invalid values must never become NaN,
+// fractional levels or string concatenation when an upgrade adds one.
+const wholeCount = (raw: unknown): number => {
+  const n = typeof raw === 'number' || typeof raw === 'string' ? Number(raw) : 0
+  return Number.isFinite(n) ? Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.trunc(n))) : 0
+}
+const ownedLevel = (raw: unknown): number => Math.min(MAX_LEVEL, wholeCount(raw))
+
+function cleanOwnedCards(raw: unknown): Record<string, OwnedCard> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, OwnedCard> = {}
+  for (const [id, value] of Object.entries(raw)) {
+    if (Object.prototype.hasOwnProperty.call(Object.prototype, id)
+      || !value || typeof value !== 'object' || Array.isArray(value)) continue
+    const row = value as OwnedCard
+    // Keep structurally valid historical IDs even if today's catalog no longer
+    // contains them. The key is authoritative; a mismatched inner ID isn't.
+    const owned = { ...row, id, level: ownedLevel(row.level), dupes: wholeCount(row.dupes), seen: Math.max(1, wholeCount(row.seen)) }
+    const spares = (Array.isArray(row.spares) ? row.spares : [])
+      .map(x => wholeCount(x)).filter(x => x >= 1 && x <= MAX_LEVEL).sort((a, b) => a - b).slice(0, 99)
+    if (spares.length) owned.spares = spares
+    else delete owned.spares
+    out[id] = owned
+  }
+  return out
+}
+
 export const DIVISIONS = ['青铜', '白银', '黄金', '铂金', '钻石', '大师'] as const
 
 /**
@@ -613,6 +640,20 @@ export interface CupState {
   won: boolean
   /** what the entry fee was, so the payout table can be read against it */
   entry: number
+  /** Server-owned registration; inventory can change without changing this cup. */
+  registration?: CupRegistration
+}
+
+export interface CupRegistration {
+  squad: Squad
+  levels: Record<string, number>
+}
+
+/** Copy the validated five and their current levels; never retain save references. */
+export function registerCupSquad(squad: Squad, level: (id: string) => number): CupRegistration {
+  const registered = { slots: squad.slots.slice(0, 5), coach: squad.coach }
+  const ids = [...registered.slots, registered.coach].filter((id): id is string => !!id)
+  return { squad: registered, levels: Object.fromEntries(ids.map(id => [id, ownedLevel(level(id))])) }
 }
 
 export type QuestKey = 'play3' | 'win2' | 'open2' | 'upgrade1' | 'cup1'
@@ -914,7 +955,7 @@ export const note = (g: GachaState, text: string) => {
   if (g.log.length > 60) g.log.length = 60
 }
 
-export const levelOf = (g: GachaState, cardId: string): number => g.cards[cardId]?.level ?? 0
+export const levelOf = (g: GachaState, cardId: string): number => ownedLevel(g.cards[cardId]?.level)
 export const owns = (g: GachaState, cardId: string): boolean => !!g.cards[cardId]
 
 // ---------------------------------------------------------------- pulling
@@ -1005,6 +1046,7 @@ export interface Pulled {
 export function openPack(
   g: GachaState, kind: PackKind, payWith: 'pack' | 'coins', today?: string,
 ): Pulled[] {
+  if (!isPackKind(kind)) throw new Error('没有这种卡包')
   const def = PACKS[kind]
   if (payWith === 'pack') {
     if ((g.packs[kind] ?? 0) < 1) throw new Error('没有这种卡包')
@@ -1091,6 +1133,9 @@ export function openPack(
       : `${def.name}：${def.draws} 张，没有金卡`)
   return out
 }
+
+export const isPackKind = (kind: unknown): kind is PackKind =>
+  typeof kind === 'string' && Object.prototype.hasOwnProperty.call(PACKS, kind)
 
 // ---------------------------------------------------------------- collection
 
@@ -1186,17 +1231,19 @@ export interface UpgradeCost {
 
 export function upgradeCost(g: GachaState, cardId: string): UpgradeCost {
   const owned = g.cards[cardId]
-  if (!owned) return { dupes: 0, coins: 0, to: null, can: false, why: '还没有这张卡' }
-  if (owned.level >= MAX_LEVEL) return { dupes: 0, coins: 0, to: null, can: false, why: '已经满级' }
-  const dupes = DUPES_FOR[owned.level]
-  const coins = COINS_FOR[owned.level]
-  const can = owned.dupes >= dupes && g.coins >= coins
+  if (!owned || typeof owned !== 'object' || Array.isArray(owned) || !cardById(cardId)) return { dupes: 0, coins: 0, to: null, can: false, why: '还没有这张卡' }
+  const level = levelOf(g, cardId)
+  if (level >= MAX_LEVEL) return { dupes: 0, coins: 0, to: null, can: false, why: '已经满级' }
+  const dupes = DUPES_FOR[level]
+  const coins = COINS_FOR[level]
+  const held = wholeCount(owned.dupes)
+  const can = held >= dupes && Number.isFinite(g.coins) && g.coins >= coins
   return {
     dupes,
     coins,
-    to: owned.level + 1,
+    to: level + 1,
     can,
-    why: can ? undefined : owned.dupes < dupes ? `还差 ${dupes - owned.dupes} 张重复卡` : '金币不够',
+    why: can ? undefined : held < dupes ? `还差 ${dupes - held} 张重复卡` : '金币不够',
   }
 }
 
@@ -1204,7 +1251,7 @@ export function upgrade(g: GachaState, cardId: string): boolean {
   const cost = upgradeCost(g, cardId)
   if (!cost.can || cost.to == null) return false
   const owned = g.cards[cardId]
-  owned.dupes -= cost.dupes
+  owned.dupes = wholeCount(owned.dupes) - cost.dupes
   g.coins -= cost.coins
   owned.level = cost.to
   const card = cardById(cardId)
@@ -1218,10 +1265,11 @@ export function upgrade(g: GachaState, cardId: string): boolean {
 
 /** Everything owned, with the card behind it, ready for the collection grid. */
 export function collection(g: GachaState): { card: Card; owned: OwnedCard; rating: number }[] {
-  return Object.values(g.cards)
-    .map((owned) => {
-      const card = cardById(owned.id)
-      return card ? { card, owned, rating: ratingAt(card.rating, owned.level) } : null
+  return Object.entries(g.cards)
+    .map(([id, owned]) => {
+      if (!owned || typeof owned !== 'object' || Array.isArray(owned)) return null
+      const card = cardById(id)
+      return card ? { card, owned, rating: ratingAt(card.rating, levelOf(g, id)) } : null
     })
     .filter((x): x is { card: Card; owned: OwnedCard; rating: number } => !!x)
     .sort((a, b) => b.rating - a.rating)
@@ -1742,7 +1790,7 @@ export const CUP_WIN = cupTitlePrize(3)
  * Seeded off the account and the number of cups already played, so refreshing
  * the page cannot re-draw an easier bracket. The ticket is paid here.
  */
-export function enterCup(g: GachaState, squadRating: number, now: number): CupState {
+export function enterCup(g: GachaState, squadRating: number, now: number, registration?: CupRegistration): CupState {
   if (g.cup && !g.cup.done) return g.cup
   if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够，入场要 ${STAMINA_COST.cup} 点`)
   const { rng, done } = roll(g)
@@ -1781,6 +1829,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number): CupSt
   const ratingOf = new Map(sorted.map((t) => [t.id, t.rating]))
   path.sort((a, b) => (ratingOf.get(a) ?? 0) - (ratingOf.get(b) ?? 0))
   g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY }
+  if (registration) g.cup.registration = registerCupSquad(registration.squad, id => registration.levels[id] ?? 0)
   done()
   note(g, `报名了一场 ${rounds} 轮的杯赛（−${STAMINA_COST.cup} 体力）`)
   return g.cup
@@ -2180,11 +2229,12 @@ export function autoSquad(g: GachaState): Squad {
   // the coach that fits this five, not simply the highest rated one
   const coaches = collection(g).filter((c) => c.card.kind === 'coach')
   let bestCoach: string | null = null
-  let bestWith = best
+  // Compare the displayed power: rounded squadRating loses small coach gains.
+  let bestWith = squadPower(squad, level)
   for (const c of coaches) {
     squad.coach = c.card.id
-    const score = squadRating(squad, level)
-    if (bestCoach === null || score > bestWith) { bestCoach = c.card.id; bestWith = score }
+    const score = squadPower(squad, level)
+    if (score > bestWith) { bestCoach = c.card.id; bestWith = score }
   }
   squad.coach = bestCoach
   return squad
@@ -2222,7 +2272,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.name = typeof g.name === 'string' ? g.name : '经理'
   g.createdAt = typeof g.createdAt === 'string' ? g.createdAt : new Date().toISOString().slice(0, 10)
   g.coins = typeof g.coins === 'number' && Number.isFinite(g.coins) ? g.coins : 0
-  g.cards = g.cards && typeof g.cards === 'object' ? g.cards : {}
+  g.cards = cleanOwnedCards(g.cards)
   g.packs = g.packs && typeof g.packs === 'object' ? g.packs : {}
   g.pity = typeof g.pity === 'number' ? g.pity : 0
   g.mythicDry ??= 0
@@ -2288,16 +2338,6 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   }
   g.friends ??= []
   g.presets ??= undefined
-  // upgraded spares beside a card (restoreCard); whatever a hand-edited row
-  // put there that is not a level goes
-  for (const owned of Object.values(g.cards)) {
-    const raw = (owned as { spares?: unknown } | null)?.spares
-    if (raw === undefined) continue
-    const clean = (Array.isArray(raw) ? raw : []).map((x) => Math.trunc(Number(x) || 0))
-      .filter((x) => x >= 1 && x <= MAX_LEVEL).sort((a, b) => a - b).slice(0, 99)
-    if (clean.length) owned.spares = clean
-    else delete owned.spares
-  }
   // 赛事预测: only picks the rules allow, for events the game knows
   const predict = cleanPredictions(g.predict)
   if (predict) g.predict = predict

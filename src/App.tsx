@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { setSaveNamespace } from './engine/save'
+import { setSaveNamespace } from './engine/saveKeys'
 import { setCurrentRuleset } from './engine/ruleset'
 
 /**

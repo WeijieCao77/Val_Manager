@@ -665,8 +665,9 @@ function OfferModal({
   const afford = upfront <= game.finances.balance
   // the engine's own line: at the asking price the club sells, under seventy
   // percent of it the club will not talk, in between the odds slide
-  const feeOk = !player.teamId || fee >= ask
-  const feeHopeless = !!player.teamId && fee < ask * 0.7
+  const clauseMet = (player.contract?.releaseClause ?? 0) > 0 && fee >= player.contract!.releaseClause
+  const feeOk = !player.teamId || fee >= ask || clauseMet
+  const feeHopeless = !!player.teamId && !clauseMet && fee < ask * 0.7
 
   return (
     <Modal title={`向 ${player.ign} 报价`} onClose={onClose}>

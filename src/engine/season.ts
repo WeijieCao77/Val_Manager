@@ -1535,8 +1535,29 @@ function played(
 export function moveToClub(state: GameState, teamId: string): string {
   const to = state.teams[teamId]
   if (!to) return '找不到这支球队。'
+  if (to.id === state.myTeam) return '你已经在这支球队任职。'
 
   const from = state.teams[state.myTeam]
+  // These assets belong to the club. Park them there instead of carrying
+  // hired staff, negotiated revenue shares or commercial achievements to a
+  // new employer. Keep the actual cash balance, including manager purchases.
+  if (from) {
+    from.budget = state.finances.balance
+    from.supportStaff = state.staff ?? []
+    from.managementBook = {
+      year: state.year, leagueDeal: state.leagueDeal,
+      seasonGigs: state.seasonGigs ?? 0, bestPlacing: state.bestPlacing,
+    }
+  }
+  state.staff = to.supportStaff ?? []
+  delete to.supportStaff
+  const book = to.managementBook
+  state.leagueDeal = book?.leagueDeal
+  // A previous season's one-off bet cannot become a fresh payout on return.
+  if (state.leagueDeal && book?.year !== state.year) state.leagueDeal.bundleBet = false
+  state.seasonGigs = book?.year === state.year ? book.seasonGigs : 0
+  state.bestPlacing = book?.year === state.year ? book.bestPlacing : undefined
+  delete to.managementBook
   state.tenures ??= []
   const current = state.tenures.find((t) => t.teamId === state.myTeam && !t.toYear)
   if (current) current.toYear = state.year
@@ -1583,6 +1604,17 @@ export function moveToClub(state: GameState, teamId: string): string {
     }
   }
   state.enquiries = []
+  // Hiring and commercial negotiations were made on the former club's
+  // behalf. Their delayed resolvers use myTeam, so leaving them live hires
+  // coaches or awards event income to the new employer. Close those tasks;
+  // personal wallet, relationships, career history and earnings stay intact.
+  state.staffOffers = []
+  state.staffApproaches = []
+  state.sponsorTalks = []
+  state.gigs = []
+  state.ventures = []
+  state.pitchCooldown = undefined
+  state.leagueOffer = undefined
   for (const pid of to.roster) state.training[pid] = 'rest'
 
   state.managerContract = defaultContract(state)

@@ -1,6 +1,6 @@
 /**
- * Levels are worth the same in a match as on the card, and the +0 card is
- * exactly what it was.
+ * Levels are worth the same in a match as on the card. Uncoached +0 cards
+ * preserve the original state; coached fixtures include the 2026-09-14 fix.
  *
  *   npx tsx scripts/check_power_growth.ts
  *
@@ -10,8 +10,8 @@
  * its squeeze so nothing rounds or caps them away. The acceptance list:
  *
  *   - the base rating is fixed: no level changes what the face says
- *   - a player's level is +100 战力, five levels +500; a coach's is +0
- *   - the +0 arena state is byte-for-byte what the old engine built
+ *   - a player's or coach's level is +100 战力, five levels +500
+ *   - uncoached +0 arena state is byte-for-byte what the old engine built
  *   - a level is counted once: +0.5 overall and +0.6 per attribute, flat
  *   - every level on every one of the player cards changes the match state
  *   - an old save's levels are read as they are, no migration needed
@@ -44,7 +44,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 const players = ALL_CARDS.filter(isPlayerCard)
 const coaches = ALL_CARDS.filter(isCoachCard)
 
-// ---- 战力: a hundred a point, a hundred a level, and only for players
+// ---- 战力: a hundred a point, a hundred a level, for players and coaches
 {
   let off = 0
   for (const c of players) {
@@ -60,13 +60,14 @@ const coaches = ALL_CARDS.filter(isCoachCard)
   check('growthOf 只认 0～5 级', growthOf(-2) === 0 && growthOf(3) === 3 && growthOf(9) === MAX_LEVEL)
 }
 
-// ---- the +0 state, pinned on the engine as it was on 2026-09-13 before the change
+// ---- the +0 state: original uncoached fixtures, coached fixtures updated for
+// the continuous three-attribute coaching fix on 2026-09-14.
 const PINNED: Record<string, string> = {
-  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': 'e9fb332d54c5',
+  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': 'e31e559eb402',
   'p:P260,p:P65,p:P360,p:P266,p:P536|-': 'a0240f257957',
-  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '2c17bd30b1e1',
+  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '8a6a8c38ed00',
   'p:P227,p:P382,p:P95,p:P300,p:P48|-': '595896154188',
-  'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': 'b5db95a86eb7',
+  'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': '32470f4bdca0',
   'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'd656dbb960ca',
 }
 type Seated = { overall: number; attrs: Record<string, number>; isIgl?: boolean }
@@ -85,7 +86,7 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
     if (hash === want) same++
     else console.log(`     ${key}: ${hash} ≠ ${want}`)
   }
-  check('六套 +0 阵容的入场状态和改动前逐字节一致', same === Object.keys(PINNED).length, `${same}/${Object.keys(PINNED).length}`)
+  check('六套 +0 入场基线一致（无教练保留旧值，有教练含连续属性修复）', same === Object.keys(PINNED).length, `${same}/${Object.keys(PINNED).length}`)
 }
 
 // ---- one level, counted once: +0.5 overall, +0.6 an attribute, before the 99 wall

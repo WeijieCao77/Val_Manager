@@ -27,13 +27,13 @@ import {
   awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
-  LEAGUE_RULES, MASTER_DIV, PACKS, SERIES, STAMINA_COST, SWEEPABLE,
+  LEAGUE_RULES, MASTER_DIV, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
 } from './minigame'
 import type { MiniGame } from './minigame'
-import type { GachaState, PackKind, QuestKey, Series } from './gacha'
+import type { GachaState, QuestKey, Series } from './gacha'
 import { playArenaMatch, playRivalMatch } from './arena'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, guessChallenge } from './challenge'
@@ -101,7 +101,6 @@ export function squadForPlay(g: GachaState): { ok: true; squad: Squad } | { ok: 
   return { ok: true, squad: { slots, coach } }
 }
 
-const isPack = (k: unknown): k is PackKind => typeof k === 'string' && k in PACKS
 const str = (v: unknown, max = 40): string => (typeof v === 'string' ? v.slice(0, max) : '')
 
 export function runAction(
@@ -123,7 +122,7 @@ function dispatch(
   switch (action) {
     case 'open': {
       const kind = a.kind
-      if (!isPack(kind)) return { ok: false, why: '没有这种卡包' }
+      if (!isPackKind(kind)) return { ok: false, why: '没有这种卡包' }
       const payWith = a.payWith === 'coins' ? 'coins' : 'pack'
       // A pack must not be knowable before it is bought. `seed` lives in the
       // account, the account is handed to the client with every reply, and
@@ -259,30 +258,36 @@ function dispatch(
       }
     }
     case 'cup_enter': {
+      if (g.cup && !g.cup.done) return { ok: true, result: { cup: g.cup } }
       const five = squadForPlay(g)
       if (!five.ok) return five
-      if (g.cup && !g.cup.done) return { ok: true, result: { cup: g.cup } }
       if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够，入场要 ${STAMINA_COST.cup} 点` }
       try {
-        enterCup(g, squadRating(five.squad, (id) => levelOf(g, id)), env.now)
+        const level = (id: string) => levelOf(g, id)
+        enterCup(g, squadRating(five.squad, level), env.now, registerCupSquad(five.squad, level))
         return { ok: true, result: { cup: g.cup } }
       } catch (e) {
         return { ok: false, why: e instanceof Error ? e.message : '报不了名' }
       }
     }
     case 'cup_play': {
-      const five = squadForPlay(g)
-      if (!five.ok) return five
       const cup = g.cup
       const oppId = cupOpponent(g)
       if (!cup || !oppId) return { ok: false, why: '没有进行中的杯赛' }
+      // Older paid brackets acquire their registration on the first actual
+      // match, without charging again or redrawing the opponents.
+      if (!cup.registration) {
+        const five = squadForPlay(g)
+        if (!five.ok) return { ok: false, why: '这届旧杯赛还没有报名阵容，请先凑齐五个人再继续；不会重新收费或抽签。' }
+        cup.registration = registerCupSquad(five.squad, id => levelOf(g, id))
+      }
       // the ticket was the whole price: nothing is charged per round
-      const level = (id: string) => levelOf(g, id)
-      const res = playArenaMatch(five.squad, level, oppId, cupBo(cup), env.seed)
+      const level = (id: string) => cup.registration!.levels[id] ?? 0
+      const res = playArenaMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })
-      return { ok: true, result: { res, opp: oppId, out } }
+      return { ok: true, result: { res, opp: oppId, out, registration: cup.registration } }
     }
     case 'cup_clear': {
       // only a finished bracket can be put away; an unfinished one is a paid
