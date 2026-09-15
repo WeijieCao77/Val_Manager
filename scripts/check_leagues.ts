@@ -15,9 +15,8 @@
  *     cannot enter is refused there, not merely greyed out on the screen
  *   - the records are separate: a win on one ladder moves that ladder and
  *     nothing else, and the open ladder is exactly where it always was
- *   - the handicaps are the measured ones — a middling collection of the
- *     metal wins about as often in 钻石 as a gold five does on the open
- *     ladder, which is the shape the whole ladder was tuned to
+ *   - league handicaps affect the displayed opponent score; win rates follow
+ *     that score gap, including when a weak bronze collection is outmatched
  *   - a save from before any of this loads, plays, and round-trips
  */
 import { runAction } from '../src/engine/cardActions'
@@ -28,10 +27,11 @@ import {
 import type { GachaState, LeagueKind } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
 import {
-  ALL_CARDS, COACH_CARDS, LEGEND_CARDS, PLAYER_CARDS, SQUAD_SLOTS, cardById, isCoachCard, personOf,
+  ALL_CARDS, COACH_CARDS, LEGEND_CARDS, PLAYER_CARDS, SQUAD_SLOTS, cardById, isCoachCard, personOf, squadPaper,
 } from '../src/engine/cards'
 import type { PlayerCard, Squad } from '../src/engine/cards'
 import { ladderPool } from '../src/engine/gacha'
+import { WORLD_TEAMS } from '../src/engine/teams'
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -151,8 +151,14 @@ const SQUADS: Record<string, Squad> = {
       if (playArenaMatch(sq, () => 0, pool[i % pool.length], 3, 6100 + i, LEAGUE_RULES[lg].oppBump).win) w++
     }
     const pct = w / N * 100
-    check(`${LEAGUE_RULES[lg].name}的中游卡组在钻石段打得动，也赢不麻木`,
-      pct >= 40 && pct <= 80, `${pct.toFixed(0)}%`)
+    const gap = squadPaper(sq).score - pool.reduce((sum, id) =>
+      sum + WORLD_TEAMS.find(t => t.id === id)!.rating + LEAGUE_RULES[lg].oppBump, 0) / pool.length
+    // League handicaps are visible score adjustments, not a promise that an
+    // under-rated bronze five gets the same win rate as a higher-rated gold one.
+    const fair = gap < -8 ? pct < 40 : gap > 8 ? pct > 60
+      : Math.abs(gap) <= 3 ? pct >= 30 && pct <= 70 : pct >= 10 && pct <= 90
+    check(`${LEAGUE_RULES[lg].name}胜率遵守实际分差`, fair,
+      `平均分差 ${gap.toFixed(1)}，胜率 ${pct.toFixed(0)}%`)
   }
 }
 

@@ -73,7 +73,8 @@ export default function Ladder() {
     }
   }, [saved, league])
   // past 大师 the world's clubs are not strong enough on their own
-  const bump = master ? oppBumpFor(L.points ?? 0) : 0
+  const masterBump = master ? oppBumpFor(L.points ?? 0) : 0
+  const bump = rule.oppBump + masterBump
 
   /**
    * Who you are playing, drawn once and then pinned — on the server.
@@ -204,9 +205,9 @@ export default function Ladder() {
                       <>
                         {REGION_CN[opp.region as keyof typeof REGION_CN]} · {opp.league} · 评分{' '}
                         {opp.rating + bump}
-                        {bump > 0 && (
+                        {masterBump > 0 && (
                           <span className="tag warn" style={{ marginLeft: 5 }}>
-                            大师加强 +{bump}
+                            大师加强 +{masterBump}
                           </span>
                         )}
                       </>

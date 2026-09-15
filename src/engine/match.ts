@@ -258,6 +258,20 @@ export function buildLineup(
   const { agents: picks, style } = sheetFor(state, teamId, map, players)
   const oppSheet = oppId && state.teams[oppId] ? sheetFor(state, oppId, map) : undefined
   const oppStyle: CompStyle = oppSheet?.style ?? 'standard'
+  const cardStrength = isArena(state) ? state.cardMatchStrength?.[teamId] : undefined
+  if (cardStrength !== undefined) {
+    // Card scores already price roles, chemistry, coaching, levels and calling.
+    // Keep the round/economy/map-form simulation, without career-only bonuses
+    // silently changing the meaning of equal displayed scores.
+    const atk = cardStrength, def = cardStrength + 1.6
+    const mix: StyleMix = [1 / 3, 1 / 3, 1 / 3]
+    return {
+      team, players, agents: picks, style, atk, def, chem: 65, midRound: 0,
+      edge: { base: cardStrength, igl: 0, chem: 0, coach: 0, comp: 0,
+        map: 0, utility: 0, tacticsAtk: 0, tacticsDef: 1.6, atk, def },
+      mix, mixName: styleName(mix), purity: stylePurity(mix),
+    }
+  }
   // 打法风格三角：版本之子 > 阵容合适 > 阵容克制，三项都是回合强度点。
   // 同样只做在经理模式里 —— 开瓦包的对战结构不动。
   const se = isArena(state)

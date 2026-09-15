@@ -855,6 +855,8 @@ export interface StageObjective {
 }
 
 export interface GameState {
+  /** Ephemeral ranked/cup round strength, derived from displayed squad scores. */
+  cardMatchStrength?: Record<string, number>
   version: number
   /** 熟练度已经按生涯回合数分档播过一次——老档迁移只做一遍 */
   agentProGraded?: boolean

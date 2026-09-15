@@ -50,6 +50,11 @@ process.on('uncaughtException', (err) => {
 })
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'dist')
+// A public build fingerprint lets release smoke tests verify the running engine,
+// even when an older frontend or a previous healthy deployment is still served.
+const engineFile = new URL('./dist-server/engine.mjs', import.meta.url)
+const ENGINE_SHA256 = existsSync(engineFile)
+  ? createHash('sha256').update(readFileSync(engineFile)).digest('hex') : 'unavailable'
 const PORT = Number(process.env.PORT) || 8080
 const TOKEN = process.env.ANALYTICS_TOKEN || ''
 
@@ -503,7 +508,7 @@ function handle(req, res) {
   // group saw on 09-10 at 16:19 UTC. With this path in railway.json the old
   // container keeps serving until the new one answers here.
   if (path === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }).end('ok')
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store', 'X-Engine-SHA256': ENGINE_SHA256 }).end('ok')
     return
   }
 

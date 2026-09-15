@@ -55,6 +55,11 @@ jobs:
           RAILWAY_API_TOKEN="$TOKEN" railway up --service val-manager \
             --project "$RAILWAY_PROJECT" --environment "$RAILWAY_ENVIRONMENT" --detach
 
+      - name: Verify live frontend and match engine
+        if: env.HAS_TOKEN != ''
+        run: node scripts/verify_deployment.mjs https://www.vctgames.com
+        timeout-minutes: 10
+
       # Without the secret this workflow used to fail on every single push and
       # mail a failure notice each time. The build above is worth running on its
       # own, so a missing token now skips the deploy instead of failing the run.

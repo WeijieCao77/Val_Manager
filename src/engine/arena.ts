@@ -16,7 +16,7 @@ import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import {
-  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS,
+  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS, squadPaper,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -340,7 +340,7 @@ export interface ArenaResult {
 /**
  * Every man on a side up (or down) by the same amount, attributes and overall
  * alike, so the side stays recognisably itself — the 大师 sharpening, the
- * metal ladders' handicap, and the gap term below all use it.
+ * metal ladders' handicap uses it for individual player stats.
  */
 function sharpen(state: GameState, teamId: string, by: number): void {
   const team = state.teams[teamId]
@@ -357,40 +357,18 @@ function sharpen(state: GameState, teamId: string, by: number): void {
 }
 
 /**
- * How much of a wide gap between two players' fives the match honours.
- *
- * The squeeze above halves every gap, and it was tuned so a four-point one
- * is a favourite rather than a formality. It halves the twelve-point ones
- * too, and that is what the group kept reporting: 「综合分比对面高，默契也
- * 比对面高，但也打不过」. Measured 2026-09-12 with every card at level 5
- * against the same five at level 0 — a five-point paper gap with nothing
- * else different — the better side won 64% of bo3s, and a random pair of
- * fives eight to eleven points apart split 73/27.
- *
- * What the owner asked for: three or four points apart is still close to a
- * coin flip, either side can win; much further apart and the stronger side
- * wins at least seven in ten, more the wider it gets. So the first stretch
- * of a gap is left squeezed and everything past GAP_FREE (in the engine's
- * own points, after the squeeze — about three on the squad screen) counts
- * again at GAP_WIDEN on top. Ranked PvP and cup card rosters use it; the
- * legacy ladder club opponent is scaled by the ladder itself, and 首尔征途
- * plays the 2024 fives as they were. check_gap_curve is the measurement.
+ * Ranked/cup strength comes from the same unrounded score as the UI.
+ * The first three points stay close; beyond that every point counts fully.
+ * Store round strength separately so player attributes still drive scoreboards,
+ * and career-only IGL/chemistry/composition bonuses cannot count a second time.
  */
-const GAP_FREE = 1.5
-const GAP_WIDEN = 0.5
-
-function honourGap(state: GameState, a: string, b: string): void {
-  const strength = (teamId: string): number => {
-    const roster = state.teams[teamId]?.roster ?? []
-    if (!roster.length) return 0
-    return roster.reduce((s, id) => s + (state.players[id]?.overall ?? 0), 0) / roster.length
+function honourGap(state: GameState, a: string, b: string, scoreA: number, scoreB: number): void {
+  const gap = scoreA - scoreB
+  const extra = Math.sign(gap) * 0.65 * Math.max(0, Math.abs(gap) - 3)
+  state.cardMatchStrength = {
+    [a]: 80 + (scoreA - 80) * 0.35 + extra / 2,
+    [b]: 80 + (scoreB - 80) * 0.35 - extra / 2,
   }
-  const gap = strength(a) - strength(b)
-  const extra = Math.sign(gap) * GAP_WIDEN * Math.max(0, Math.abs(gap) - GAP_FREE)
-  if (!extra) return
-  // split between the two so the match is played at the same overall level
-  sharpen(state, a, extra / 2)
-  sharpen(state, b, -extra / 2)
 }
 
 /** Play one card-mode match against a real club and read the scoreboard back. */
@@ -411,6 +389,9 @@ export function playArenaMatch(
   // little further off its best. It used to ignore a negative number
   // entirely, which quietly made every league play the open ladder.
   if (oppBump !== 0) sharpen(state, opponentId, oppBump)
+  const opponent = WORLD_TEAMS.find(t => t.id === opponentId)
+  if (!opponent) throw new Error('天梯对手不存在')
+  honourGap(state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, opponent.rating + oppBump)
 
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
@@ -418,7 +399,7 @@ export function playArenaMatch(
   return { ...readResult(result, cardOf), result }
 }
 
-/** Both sides of a cup use the same card seating and wide-gap rules as PvP. */
+/** Both sides of a cup use the same card seating and score curve as ranked PvP. */
 export function buildCupArena(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string, seed: number,
 ): Arena {
@@ -426,11 +407,11 @@ export function buildCupArena(
   if (!club) throw new Error('杯赛对手不存在')
   const arena = buildArena(squad, level, seed)
   seatSquad(arena.state, { ...club.squad, name: club.name, tag: club.tag }, () => 0, opponentId, 'B', {})
-  honourGap(arena.state, ARENA_TEAM, opponentId)
+  honourGap(arena.state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, squadPaper(club.squad).score)
   return arena
 }
 
-/** Same wide-gap treatment as ranked card-vs-card play, on both sides. */
+/** Same score-based round strength as ranked card-vs-card play, on both sides. */
 export function playCupMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
   bo: 1 | 3 | 5, seed: number,
@@ -527,7 +508,7 @@ export function playRivalMatch(
   rival: RivalSquad, bo: 1 | 3 | 5, seed: number,
   /** a fixed map pool — 首尔征途 plays the seven maps of 2024; absent, today's pool */
   pool?: string[],
-  /** honour a wide gap between the two fives — the ladder and the friend room; see honourGap */
+  /** use the displayed-score curve — the ladder and friend room; historical challenges keep their original rules */
   widen = false,
 ): ArenaResult {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
@@ -543,7 +524,8 @@ export function playRivalMatch(
     ARENA_RIVAL, 'B', theirs,
   )
   state.myTeam = ARENA_TEAM
-  if (widen) honourGap(state, ARENA_TEAM, ARENA_RIVAL)
+  if (widen) honourGap(state, ARENA_TEAM, ARENA_RIVAL,
+    squadPaper(mine, level).score, squadPaper(rival, id => rival.levels[id] ?? 0).score)
 
   const rng = new Rng(seed ^ 0x5b1d)
   if (pool) {
