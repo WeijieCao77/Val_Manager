@@ -302,6 +302,71 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
   }
 
   /**
+   * Take back the copies of a grant that went out more than once.
+   *
+   * 2026-09-17: a grant to 35 accounts timed out at the gateway while the
+   * market sweeps held the pool, the page said 「没发出去」, and every retry
+   * was in fact delivered — eight identical grants an account, none collected
+   * yet. Within the window given, grant mail to one account with the same
+   * contents is one grant: the copy already collected is the one kept (if a
+   * player opened one), otherwise the earliest, and only uncollected extras
+   * are deleted. `apply` false (the default) only counts.
+   */
+  async function grantDedupe(req, res) {
+    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
+    const from = new Date(String(body?.from ?? ''))
+    const to = new Date(String(body?.to ?? ''))
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || to <= from) {
+      json(res, 200, { ok: false, why: '填起止时间（ISO）' })
+      return
+    }
+    if (to.getTime() - from.getTime() > 6 * 3600_000) {
+      json(res, 200, { ok: false, why: '窗口最多 6 小时' })
+      return
+    }
+    const apply = body?.apply === true
+    const out = await sql.begin(async (db) => {
+      const rows = await db`
+        select id, to_h, pack, count, coins, card_id, coalesce(body::text, '') as b, made, taken
+        from card_mail
+        where kind = 'grant' and made >= ${from.toISOString()} and made <= ${to.toISOString()}
+        order by made asc, id asc
+        for update`
+      const groups = new Map()
+      for (const r of rows) {
+        const k = [r.to_h, r.pack, r.count, r.coins, r.card_id, r.b].join('\u0000')
+        groups.set(k, [...(groups.get(k) ?? []), r])
+      }
+      const extra = []
+      const accounts = new Set()
+      const contents = new Map()
+      for (const g of groups.values()) {
+        if (g.length < 2) continue
+        const keep = g.find((r) => r.taken) ?? g[0]
+        const drop = g.filter((r) => r !== keep && !r.taken)
+        if (!drop.length) continue
+        accounts.add(g[0].to_h)
+        extra.push(...drop.map((r) => String(r.id)))
+        const what = `${g[0].pack ?? '-'}×${g[0].count} coins ${g[0].coins} card ${g[0].card_id ?? '-'}`
+        contents.set(what, (contents.get(what) ?? 0) + drop.length)
+      }
+      let removed = 0
+      if (apply && extra.length) {
+        const gone = await db`delete from card_mail where id = any(${extra}::bigint[]) and taken is null returning id`
+        removed = gone.length
+      }
+      return {
+        rows: rows.length, accounts: accounts.size, extra: extra.length, removed,
+        contents: Object.fromEntries(contents),
+        collectedCopies: rows.filter((r) => r.taken).length,
+      }
+    })
+    json(res, 200, { ok: true, apply, ...out })
+  }
+
+  /**
    * Who the 体力 clock has caught, and second thoughts about it.
    *
    * GET lists them. POST with { who, clear: true } puts one back on the
@@ -641,6 +706,15 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         }
         if (req.method !== 'POST') { json(res, 405, { ok: false }); return true }
         await grant(req, res)
+        return true
+      }
+      if (path === '/api/admin/grant_dedupe') {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'POST') { json(res, 405, { ok: false }); return true }
+        await grantDedupe(req, res)
         return true
       }
       if (path === '/api/admin/wechat') {

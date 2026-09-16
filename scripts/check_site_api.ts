@@ -410,6 +410,33 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
 
   r = await admin({ who: 'VM-2222 2222-2222-2222-2222', pack: 'elite' })
   check(r.body.ok === true && r.body.accounts === 1 && /^批量0 #/.test(String(r.body.to)), '中间带空格的一个 ID 还是一个号', JSON.stringify(r.body))
+
+  // 2026-09-17: a timed-out grant retried eight times was delivered eight times
+  const since = new Date(Date.now() - 60_000).toISOString()
+  for (let i = 0; i < 3; i++) await admin({ who: `${codes[1]}\n${codes[2]}`, pack: 'coach', count: 10 })
+  // one of them opened a copy before the cleanup
+  await sql`update card_mail set taken = now() where id = (
+    select max(id) from card_mail where to_h = ${hashOf(ids[2])} and pack = 'coach')`
+  const dedupe = (b: unknown) => call('/api/admin/grant_dedupe', { method: 'POST', body: b, token: TOKEN })
+  const until = new Date(Date.now() + 60_000).toISOString()
+  const coachMail = async (id: string) => (await sql`
+    select count(*)::int as n, count(taken)::int as t from card_mail where to_h = ${hashOf(id)} and pack = 'coach'`)[0]
+  let d = await dedupe({ from: since, to: until })
+  check(d.body.ok === true && d.body.extra === 4 && d.body.removed === 0 && (await coachMail(ids[1])).n === 3,
+    '先数不删：两个号各多出两份', JSON.stringify(d.body))
+  const noToken = await call('/api/admin/grant_dedupe', { method: 'POST', body: { from: since, to: until, apply: true } })
+  check(noToken.code === 404, '没有口令就当没有这个接口', String(noToken.code))
+  d = await dedupe({ from: since, to: until, apply: true })
+  const one = await coachMail(ids[1])
+  const two = await coachMail(ids[2])
+  check(d.body.removed === 4 && one.n === 1 && two.n === 1 && two.t === 1,
+    '删掉多余的，每个号留一份；已经收下的那份就是留下的', JSON.stringify({ body: d.body, one, two }))
+  d = await dedupe({ from: since, to: until, apply: true })
+  check(d.body.removed === 0, '再跑一次什么都不删', JSON.stringify(d.body))
+  const other = await sql`select count(*)::int as n from card_mail where to_h = ${hashOf(ids[0])}`
+  check(other[0].n >= 2, '只发过一份的号不受影响', String(other[0].n))
+  d = await dedupe({ from: '2026-09-01T00:00:00Z', to: '2026-09-02T00:00:00Z' })
+  check(d.body.ok === false, '窗口超过 6 小时不干', JSON.stringify(d.body))
 }
 
 // ---- a pardon is a baseline, not just a cleared bit ---------------------
