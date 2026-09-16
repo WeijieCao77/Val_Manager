@@ -39,6 +39,10 @@ CACHE = ROOT / "scripts" / "cache"
 PROFILES = CACHE / "vlr_profiles.json"
 STAFF = CACHE / "vlr_staff.json"
 LP = CACHE / "lp_faces.json"
+
+# Two real people behind one handle (data-raw/overrides.json `homonyms`): the
+# Liquipedia page under that handle is the other man's, so its photo is too.
+HOMONYMS = {k.lower() for k in (json.loads((ROOT / "data-raw" / "overrides.json").read_text("utf-8")).get("homonyms") or {})}
 LEGEND = CACHE / "legend_faces.json"
 HAOJIAO = CACHE / "haojiao_faces.json"
 WORLD = ROOT / "src" / "data" / "world.json"
@@ -179,7 +183,7 @@ def main() -> int:
             continue
         hj_url = (hj["players"].get(ign) or {}).get("url")
         urls = [u for u in [(profiles.get(ign.lower()) or {}).get("img"),
-                            (lp["players"].get(ign) or {}).get("url"),
+                            None if ign.lower() in HOMONYMS else (lp["players"].get(ign) or {}).get("url"),
                             hj_url] if u]
         if args.prefer_haojiao and hj_url:
             urls = [hj_url] + [u for u in urls if u != hj_url]

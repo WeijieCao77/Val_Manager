@@ -374,8 +374,31 @@ export const swissRecord = (comp: Competition, id: string): { w: number; l: numb
   return { w: r?.w ?? 0, l: r?.l ?? 0 }
 }
 
-/** Pair a pool of teams top against bottom, avoiding a rematch when a swap does. */
+/**
+ * Pair a pool of teams top against bottom, with no rematch whenever any
+ * pairing of the pool has none.
+ *
+ * It used to be greedy: the top team took the lowest one it had not met, and
+ * the last two were paired whatever their history — so a 1-1 pool whose first
+ * choice left two old opponents at the bottom played a rematch, though
+ * swapping partners avoided it. A 1-1 pool of four always has a clean pairing
+ * (the two 1-0 losers never met, nor did the two 0-1 winners); the search
+ * finds it and still prefers top against bottom. Only a pool with no clean
+ * pairing at all falls back to the old order.
+ */
 function pairPool(pool: string[], played: Set<string>): [string, string][] {
+  const search = (rest: string[]): [string, string][] | null => {
+    if (rest.length < 2) return []
+    const [a, ...more] = rest
+    for (let j = more.length - 1; j >= 0; j--) {
+      if (played.has(`${a}|${more[j]}`)) continue
+      const tail = search([...more.slice(0, j), ...more.slice(j + 1)])
+      if (tail) return [[a, more[j]], ...tail]
+    }
+    return null
+  }
+  const clean = search(pool)
+  if (clean) return clean
   const out: [string, string][] = []
   const rest = pool.slice()
   while (rest.length >= 2) {

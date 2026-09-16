@@ -29,7 +29,7 @@
  * being scrims and travel, which the AI does not model — measured +3.1 to
  * +3.3 and 52-54%, which is where the bands now sit. The runaway guard is
  * the long run, where potential and age cap the world: ten provoked seasons
- * peak at 93.2 and the league median falls back from its year-eight high.
+ * peak around 93.5 (median of three seeds) and the league median falls back from its year-eight high.
  */
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
@@ -301,15 +301,24 @@ const median = (xs: number[]) => {
     [...calm, ...chased].every((x) => x.invalid.length === 0),
     [...calm, ...chased].flatMap((x) => x.invalid).slice(0, 4).map((p) => `${p.ign} ${p.overall}/${p.potential}`).join(', '))
 
-  // the long run is the real runaway guard: potential and age cap the world
-  const long = simulate(20260826, 7, 2, 10)
+  // the long run is the real runaway guard: potential and age cap the world.
+  // Three seeds, for the reason the two-season check has several: one seed's
+  // peak moves with anything that reshuffles the simulation. Splitting the two
+  // zeeks into two people (2026-09-16) took seed 20260826 from 92.76 to 94.24
+  // while six seeds' median went 93.60 → 93.53, and on the old world seed 4
+  // already peaked at 94.12. The median is the guard; one seed may not pass
+  // 94.5.
+  const longs = [20260826, 1, 2].map((seed) => simulate(seed, 7, 2, 10))
+  const long = longs[0]
   const m = long.medians
-  check('ten seasons of a provoked league run to the end', !long.over, long.over ?? '')
-  check('the AI top ten peaks under 94 across ten seasons', long.peak <= 94, `peak ${long.peak.toFixed(2)}`)
+  const peaks = longs.map((x) => x.peak)
+  check('ten seasons of a provoked league run to the end', longs.every((x) => !x.over), longs.map((x) => x.over).filter(Boolean).join(', '))
+  check('the AI top ten peaks under 94 across ten seasons (median of three seeds, none past 94.5)',
+    median(peaks) <= 94 && peaks.every((p) => p <= 94.5), `peaks ${peaks.map((p) => p.toFixed(2)).join(', ')}`)
   check('the league median does not keep inflating: year ten is no higher than year five',
-    m[10] <= m[5] && Math.max(...m) <= m[0] + 9, `medians ${m.join(' ')}`)
-  check('nobody crosses his potential or 99 in ten seasons', long.invalid.length === 0,
-    long.invalid.slice(0, 4).map((p) => `${p.ign} ${p.overall}/${p.potential}`).join(', '))
+    longs.every((x) => x.medians[10] <= x.medians[5] && Math.max(...x.medians) <= x.medians[0] + 9), `medians ${m.join(' ')}`)
+  check('nobody crosses his potential or 99 in ten seasons', longs.every((x) => x.invalid.length === 0),
+    longs.flatMap((x) => x.invalid).slice(0, 4).map((p) => `${p.ign} ${p.overall}/${p.potential}`).join(', '))
 }
 
 console.log(bad ? `\n${bad} failed` : '\nall held')

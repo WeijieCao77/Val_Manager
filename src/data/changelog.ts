@@ -27,12 +27,29 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-17',
+    title: '开瓦包变卡的问题',
+    changes: [
+      { kind: '修复', text: '<b>进游戏、打开交易页不再卡很久。</b>很多人同时打开交易页时，结算到期拍卖的操作会互相等待，把整个服务器拖慢。' },
+      { kind: '修复', text: '<b>经理模式：大师赛瑞士轮第三轮不会再遇到打过的对手。</b>' },
+    ],
+  },
+  {
     date: '2026-09-16',
     title: '开瓦包：分享阵容图重新排版',
     changes: [
       { kind: '修复', text: '<b>首尔系列卡在分享图里是首尔卡面。</b>之前画成了普通的金、银、铜卡。' },
       { kind: '调整', text: '<b>战力和默契上下排开，战力加千位分隔。</b>之前两个数字挤在一行，五位数的战力会压到默契上。' },
       { kind: '调整', text: '<b>教练卡和五个选手一样大，二维码缩小。</b>缩小后截图再压缩也扫得出来。' },
+    ],
+  },
+  {
+    date: '2026-09-16',
+    title: '开瓦包：zeek 国籍、教练默契',
+    changes: [
+      { kind: '修复', text: '<b>彩卡 zeek 改回波兰、EMEA。</b>之前和 Nightblood Gaming 的加拿大选手 zeek 当成了一个人，国籍和赛区跟着错了。两人现在可以同时上场。' },
+      { kind: '修复', text: '<b>普通卡 zeek 不再用 Acend zeek 的照片和履历。</b>' },
+      { kind: '修复', text: '<b>默契关系里列出教练。</b>比如 2023 EG 的 Demon1 彩卡配 Potter 是同队，之前加了默契但没显示。' },
     ],
   },
   {

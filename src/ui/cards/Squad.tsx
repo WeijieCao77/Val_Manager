@@ -13,6 +13,7 @@ import ShareSquad from './ShareSquad'
 import type { CardFilter } from './Filters'
 
 const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
+const COACH_WHY_CN = { club: '同队', coached: '带过', region: '同赛区' } as const
 const fmt = (n: number) => n.toLocaleString('en-US')
 
 export default function SquadScreen() {
@@ -288,9 +289,9 @@ export default function SquadScreen() {
               <p className="tiny faint" style={{ marginBottom: 0 }}>{chem.notes.join(' · ')}</p>
             )}
 
-            {!!chem.links.length && (
+            {!!(chem.links.length + chem.coachLinks.length) && (
               <div style={{ marginTop: 12 }}>
-                <div className="tiny faint" style={{ marginBottom: 5 }}>默契关系（{chem.links.length} 条）</div>
+                <div className="tiny faint" style={{ marginBottom: 5 }}>默契关系（{chem.links.length + chem.coachLinks.length} 条）</div>
                 <div className="row wrap" style={{ gap: 5 }}>
                   {chem.links.map((l, i) => {
                     const a = g.squad.slots[l.a] ? cardById(g.squad.slots[l.a]!) : undefined
@@ -304,6 +305,16 @@ export default function SquadScreen() {
                         title={`${a.ign} × ${b.ign}：${WHY_CN[l.why]}`}
                       >
                         {a.ign} × {b.ign} · {WHY_CN[l.why]}
+                      </span>
+                    )
+                  })}
+                  {chem.coachLinks.map((l) => {
+                    const coach = g.squad.coach ? cardById(g.squad.coach) : undefined
+                    const p = g.squad.slots[l.slot] ? cardById(g.squad.slots[l.slot]!) : undefined
+                    if (!isCoachCard(coach) || !isPlayerCard(p)) return null
+                    return (
+                      <span key={`c${l.slot}`} className="trait" data-good="y" title={`教练 ${coach.name} × ${p.ign}：${COACH_WHY_CN[l.why]}`}>
+                        {coach.name} × {p.ign} · {COACH_WHY_CN[l.why]}
                       </span>
                     )
                   })}

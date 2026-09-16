@@ -34,6 +34,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "scripts" / "cache"
 OUT = CACHE / "lp_faces.json"
+
+# Two real people behind one handle (data-raw/overrides.json `homonyms`): the
+# Liquipedia page under that handle is the other man's, so its photo is too.
+HOMONYMS = {k.lower() for k in (json.loads((ROOT / "data-raw" / "overrides.json").read_text("utf-8")).get("homonyms") or {})}
 PROFILES = CACHE / "vlr_profiles.json"
 STAFF = CACHE / "vlr_staff.json"
 WORLD = ROOT / "src" / "data" / "world.json"
@@ -257,7 +261,8 @@ def main() -> int:
     # only the ones still without a face after the two vlr passes
     want_players = [
         p["ign"] for p in world["players"]
-        if not (profiles.get(p["ign"].lower()) or {}).get("img")
+        if p["ign"].lower() not in HOMONYMS
+        and not (profiles.get(p["ign"].lower()) or {}).get("img")
         and (args.refresh or p["ign"] not in cache["players"])
     ]
     names = set()

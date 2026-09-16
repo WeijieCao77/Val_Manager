@@ -63,6 +63,12 @@ COACH_FIX: dict[str, dict] = {
 }
 
 
+# Two real people behind one handle (data-raw/overrides.json `homonyms`). The
+# profile under the handle counts only when it is the vlr id named there, and
+# Liquipedia's page — photo, club history — is the other man's.
+HOMONYMS = {k.lower(): v for k, v in (json.loads((ROOT / "data-raw" / "overrides.json").read_text("utf-8")).get("homonyms") or {}).items()}
+
+
 def load(p: Path, default):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else default
 
@@ -87,6 +93,9 @@ def main() -> int:
     for p in world["players"]:
         pid, ign = p["id"], p["ign"]
         prof = profiles.get(ign.lower()) or {}
+        homonym = HOMONYMS.get(ign.lower())
+        if homonym and str(prof.get("vlrId") or "") != str(homonym["vlr"]):
+            prof = {}
         rec: dict = {}
 
         # the file on disk is the truth: it may have come from vlr or, for the
@@ -102,7 +111,7 @@ def main() -> int:
             # 号角 picture on disk, whatever else was once available
             if pid in hj_players:
                 rec["src"] = "hj"
-            elif ign in lp["players"]:
+            elif ign in lp["players"] and not homonym:
                 rec["src"] = "lp"
         nat = prof.get("nat") or p.get("nat")
         if nat:
@@ -135,7 +144,7 @@ def main() -> int:
             rec["t"] = sum(1 for e in ev if e[1] == "1st")
 
         th = []
-        for t in ten_lc.get(ign.lower()) or []:
+        for t in ([] if homonym else ten_lc.get(ign.lower()) or []):
             if not isinstance(t, dict) or not t.get("team"):
                 continue
             th.append([t.get("from"), t.get("to"), t["team"]])

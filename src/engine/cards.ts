@@ -218,6 +218,22 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
   const out: PlayerCard[] = []
   for (const l of LEGENDS) {
     if (l.coach) continue                 // his card is a coach card, below
+    const photo = legendPhoto(l.id)
+    // the handle in world.json is another man: this card is built on his own record
+    const own = l.person
+    if (own) {
+      out.push({
+        kind: 'player', id: l.id, playerId: own.id, legend: l,
+        ign: l.ign, realName: own.realName, nat: own.nat,
+        face: photo ? faceUrl(photo.img, photo.v) : null,
+        region: own.region, clubId: l.clubId, clubTag: l.clubTag,
+        role: l.roles?.[0] ?? own.roles[0], roles: l.roles ?? own.roles,
+        isIgl: l.isIgl ?? false, age: own.age,
+        attrs: { ...legendAttrs(own.attrs, l.rating - own.overall), ...l.attrs },
+        rating: l.rating, rarity: 'mythic',
+      })
+      continue
+    }
     const base = byIgn.get(l.ign.toLowerCase())
     // A legend with no live player behind it would be a fabricated person,
     // which this project does not have. Skipped loudly rather than invented.
@@ -225,9 +241,8 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
       console.warn(`legend ${l.id}: no player called ${l.ign} in world.json`)
       continue
     }
-    // the picture from that night, where Liquipedia has one; otherwise the
-    // ordinary studio portrait rather than nothing
-    const photo = legendPhoto(l.id)
+    // the picture from that night (above), where Liquipedia has one; otherwise
+    // the ordinary studio portrait rather than nothing
     // A night is never worth less than the everyday card of the same man.
     // The authored number was written against the ordinary rating of its
     // day; ratings move (CHICHOO reached 94 on 2026-09-03 while his 2024
@@ -418,7 +433,22 @@ export interface ChemReport {
   /** true when nobody in the five is a real in-game leader */
   noIgl: boolean
   coachBonus: number
+  /**
+   * The coach's side of the graph, one per player he adds anything for, with
+   * the strongest reason. Only the player pairs used to be listed, so a coach
+   * worth +3 to the 2023 EG Demon1 showed nothing at all next to Potter —
+   * 「Demon1彩卡和Potter没有默契」.
+   */
+  coachLinks: CoachLink[]
   notes: string[]
+}
+
+export interface CoachLink {
+  slot: number
+  /** club: he coaches this club (or did, the night a彩卡 is); coached: he has
+   * coached this man before; region: the same region and nothing more */
+  why: 'club' | 'coached' | 'region'
+  value: number
 }
 
 const LINK_VALUE = { club: 3, nat: 2, region: 1 } as const
@@ -486,6 +516,7 @@ export function chemistry(squad: Squad): ChemReport {
 
   const coach = squad.coach ? cardById(squad.coach) : undefined
   let coachBonus = 0
+  const coachLinks: CoachLink[] = []
   if (isCoachCard(coach)) {
     const players = cards.filter(isPlayerCard)
     const sameClub = players.filter((p) => p.clubId && p.clubId === coach.clubId).length
@@ -498,6 +529,14 @@ export function chemistry(squad: Squad): ChemReport {
       && !!COACHED.get(coach.name)?.has(p.playerId)).length
     const sameRegion = players.filter((p) => p.region === coach.region).length
     coachBonus = sameClub * 2 + coachedBefore + sameRegion
+    cards.forEach((p, slot) => {
+      if (!isPlayerCard(p)) return
+      const club = !!(p.clubId && p.clubId === coach.clubId)
+      const before = !club && !!COACHED.get(coach.name)?.has(p.playerId)
+      const region = p.region === coach.region
+      const value = (club ? 2 : 0) + (before ? 1 : 0) + (region ? 1 : 0)
+      if (value) coachLinks.push({ slot, why: club ? 'club' : before ? 'coached' : 'region', value })
+    })
     if (sameClub >= 2) notes.push(`${coach.name} 带过这套阵容里的 ${sameClub} 个人`)
     if (coachedBefore > 0) notes.push(`${coach.name} 以前还带过其中 ${coachedBefore} 人`)
   }
@@ -520,7 +559,7 @@ export function chemistry(squad: Squad): ChemReport {
   if (misfits.length) notes.push(`${misfits.length} 人不在熟悉的位置`)
   if (noIgl) notes.push('没有人喊指挥')
 
-  return { score, links, misfits, noIgl, coachBonus, notes }
+  return { score, links, misfits, noIgl, coachBonus, coachLinks, notes }
 }
 
 /** A full five with nobody calling gives this much back. */

@@ -22,7 +22,7 @@
  * `fmvp` so the game can be honest about the difference.
  */
 
-import type { Attrs, Role } from './types'
+import type { Attrs, Region, Role } from './types'
 
 export type LegendKind =
   /** Riot's own Finals MVP, or the Champions MVP award */
@@ -79,6 +79,29 @@ export interface Legend {
    * is one of the reasons it was won, which a player card cannot express.
    */
   coach?: { tactics: number; development: number; motivation: number }
+  /**
+   * Set when the man in world.json under this handle is somebody else.
+   *
+   * The Acend zeek of 2021 is Aleksander Zygmunt of Poland; the zeek the 2026
+   * world models is Burair Ali of Canada at Nightblood Gaming. Built on that
+   * record, the彩卡 carried a Canadian flag, an Americas region, and the
+   * Canadian's attribute shape — 「zeek是波兰人，游戏里国籍错了」. A legend with
+   * a `person` is its own man: his own id (so he and the Canadian are two
+   * people in a squad), and the shape of his own stat lines, taken from his
+   * record in the 2023 world (scripts/build_world_year.py), where he is the
+   * Team Heretics zeek. `overall` is that record's, for the shift to `rating`.
+   */
+  person?: {
+    id: string
+    realName: string
+    nat: string
+    region: Region
+    age: number
+    roles: Role[]
+    attrs: Attrs
+    overall: number
+    agents: string[]
+  }
 }
 
 export const LEGENDS: Legend[] = [
@@ -90,6 +113,13 @@ export const LEGENDS: Legend[] = [
     // 65 today, and 90 would be a lie about a man whose case is the trophy
     rating: 88,
     note: 'Acend 3–2 Gambit，VALORANT 史上第一座世界冠军。',
+    person: {
+      id: 'H-zeek-562', realName: 'Aleksander Zygmunt', nat: 'pl', region: 'EMEA', age: 24,
+      roles: ['先锋', '决斗者', '控场'],
+      attrs: { aim: 62, reaction: 69, awareness: 56, utility: 77, clutch: 56, teamwork: 70, communication: 68, igl: 60 },
+      overall: 65,
+      agents: ['KAY/O', 'Raze', 'Omen', 'Viper'],
+    },
   },
   {
     id: 'L:aspas-champions-2022',

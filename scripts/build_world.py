@@ -350,6 +350,24 @@ def load_json(path):
     return {}
 
 
+# Two real people behind one handle (overrides.json `homonyms`). Every cache
+# here is keyed by handle, so without this the Canadian zeek at Nightblood
+# Gaming wore the Polish world champion's photo, birthdate, agent pool and
+# club history.
+HOMONYMS = {str(k).lower(): v for k, v in (load_json(OVERRIDES).get("homonyms") or {}).items()}
+
+
+def homonym(ign):
+    return HOMONYMS.get(str(ign or "").lower())
+
+
+def not_him(ign, vlr_id):
+    """True when a record found under this handle is about the other person:
+    it names a different vlr id, or names none at all and so cannot be told."""
+    h = homonym(ign)
+    return bool(h) and str(vlr_id or "") != str(h["vlr"])
+
+
 def parse_rows():
     rows = []
     with open(SRC, encoding="utf-8") as f:
@@ -655,6 +673,8 @@ def parse_challengers_rows():
     rows, agents, tag_region = [], {}, {}
     for lines in cache.get("stats", {}).values():
         for r in lines:
+            if not_him(r["ign"], r.get("vlrId")):
+                continue
             club = r.get("club") or ""
             # the stats table abbreviates; match it back to a scraped club
             tag = next(
@@ -666,7 +686,7 @@ def parse_challengers_rows():
                 continue
             kast = num(r.get("kast"))
             rows.append({
-                "ign": r["ign"], "tag": vcl_tag(tag), "nat": "", 
+                "ign": r["ign"], "tag": vcl_tag(tag), "nat": (homonym(r["ign"]) or {}).get("nat", ""),
                 "role": (roles_from_agents(r.get("agents")) or ["自由人"])[0],
                 "rnd": num(r.get("maps")) or 0, "R": num(r.get("rating2")),
                 "acs": num(r.get("acs")), "kd": num(r.get("kd")),
@@ -683,8 +703,10 @@ def parse_challengers_rows():
         club = r.get("club")
         if not club or club not in roster_of:
             continue
+        if not_him(r["ign"], r.get("vlrId")):
+            continue
         rows.append({
-            "ign": r["ign"], "tag": vcl_tag(club), "nat": "",
+            "ign": r["ign"], "tag": vcl_tag(club), "nat": (homonym(r["ign"]) or {}).get("nat", ""),
             "role": (roles_from_agents(r.get("agents")) or ["自由人"])[0],
             "rnd": r.get("rnd") or 0, "R": r.get("R"), "acs": r.get("acs"),
             "kd": r.get("kd"), "kast": r.get("kast"), "adr": r.get("adr"),
@@ -880,7 +902,7 @@ def main():
     for path, via in ((VLR_STATS_ALL, "vlr all-time"), (AGENTS_F, "parsebot"), (VLR_STATS_2026, "vlr 2026")):
         src = load_json(path)
         for ign, rec in (src.get("players") if "players" in src else src).items():
-            if rec.get("agents"):
+            if rec.get("agents") and not not_him(ign, rec.get("vlrId")):
                 pools[ign.lower()] = {"agents": list(rec["agents"]), "via": via}
 
     def pool_of(ign):
@@ -1102,7 +1124,8 @@ def main():
 
     def titles_for(ign, nat):
         won = {}
-        rec = lp_titles.get(ign) or {}
+        # a homonym's Liquipedia page is the other man's trophy cabinet
+        rec = {} if homonym(ign) else (lp_titles.get(ign) or {})
         if rec.get("titles") and same_person({"country": rec.get("country")}, nat):
             for t in rec["titles"]:
                 won[(t["year"], t["kind"], t["event"])] = t["event"]
@@ -1230,7 +1253,7 @@ def main():
     cl_src = {}
     for path in (VLR_STATS_ALL, VLR_STATS_2026):
         for ign, r in (load_json(path).get("players") or {}).items():
-            if r.get("clt") and ign not in cl_src:
+            if r.get("clt") and ign not in cl_src and not not_him(ign, r.get("vlrId")):
                 cl_src[ign] = (r["clw"], r["clt"])
     # rib.gg, for the events vlr has no round data for (VCT China 2026): the
     # same two numbers, won and faced, added on top of what vlr has. The
@@ -1287,6 +1310,8 @@ def main():
     # a man has actually played, and that is what proficiency is seeded from.
     agent_use = {}
     for ign, rec in load_json(VLR_AGENTS).items():
+        if not_him(ign, rec.get("vlrId")):
+            continue
         rows_ = rec.get("agents") or []
         if rows_:
             agent_use[ign.lower()] = {
@@ -1351,6 +1376,10 @@ def main():
         ovr = int(round(clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign) or {}
+        if homonym(ign):
+            # the page under this handle is about the other man; the name vlr
+            # gives is all that is known, and the age stays a guess
+            lp = {"real": homonym(ign).get("real")}
         if lp and not same_person(lp, r["nat"], (vlr_prof.get(ign) or {}).get("real") or vlr_names.get(ign)):
             # a real page about a different real person is worse than no page
             wrong_person.append((ign, r["nat"], lp.get("country")))
@@ -1383,7 +1412,7 @@ def main():
 
         # how long they have been at their club, for team-mate chemistry.
         # Liquipedia gives the whole history; the open-ended stint is current.
-        stints = tenure.get(ign) or []
+        stints = [] if homonym(ign) else (tenure.get(ign) or [])
         current = [x for x in stints if not x.get("to")]
         joined = current[0]["from"][:7] if current else None
 

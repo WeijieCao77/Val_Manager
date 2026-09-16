@@ -188,5 +188,28 @@
    "waituu",
    "Hopedawn"
   ]
+ },
+ "_homonyms_note": [
+  "Two real people behind one handle. Everything the builders read by handle",
+  "(vlr's all-time table, Liquipedia's player page, photos, club history) can",
+  "belong to the other one. Keyed by handle: `vlr` is the man in world.json, and",
+  "any record carrying another vlr id, or any Liquipedia page, is not about him.",
+  "zeek (2026-09-16): Nightblood Gaming's zeek is Burair Ali of Canada (vlr 26848).",
+  "Liquipedia's Zeek, the Acend world champion, is Aleksander Zygmunt of Poland",
+  "(vlr 562, Formulation Gaming in 2026) — his photo, birthdate, name, agent pool",
+  "and club history had all been given to the Canadian, and the 2021 彩卡 took",
+  "the Canadian's flag. See src/engine/legends.ts for the彩卡."
+ ],
+ "homonyms": {
+  "zeek": {
+   "vlr": "26848",
+   "nat": "ca",
+   "real": "Burair Ali",
+   "other": {
+    "vlr": "562",
+    "nat": "pl",
+    "real": "Aleksander Zygmunt"
+   }
+  }
  }
 }

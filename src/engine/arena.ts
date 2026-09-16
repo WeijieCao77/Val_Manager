@@ -22,6 +22,27 @@ import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
 import type { GameState, MatchResult, Player, Role } from './types'
 import { defaultTactics } from './types'
+import { emptyStats } from './types'
+
+/**
+ * A 彩卡 whose man is not in the 2026 world (Legend.person): the match gets
+ * him from the card, the way a Seoul card is played. Built on the world's
+ * record of whoever holds the handle today, the 2021 zeek played as the
+ * Canadian at Nightblood Gaming — and with no record at all he would not
+ * have played.
+ */
+function legendArenaPlayer(card: PlayerCard): Player | undefined {
+  const own = card.legend?.person
+  if (!own) return undefined
+  return {
+    id: own.id, ign: card.ign, realName: own.realName, nat: own.nat,
+    teamId: card.clubId, region: own.region, role: card.role, roles: [...card.roles],
+    age: own.age, ageEstimated: false, isIgl: card.isIgl, attrs: { ...card.attrs }, overall: card.rating,
+    potential: card.rating, form: 76, morale: 84, fatigue: 0, salary: 0, value: 0, contractYears: 0,
+    loyalty: 70, ambition: 70, agentPool: [...own.agents],
+    season: emptyStats(), career: emptyStats(), injuredUntil: 0, xp: {},
+  }
+}
 
 export const ARENA_TEAM = 'ARENA'
 
@@ -172,7 +193,7 @@ function seatSquad(
     if (!isPlayerCard(card)) return
     if (seated.has(personOf(card))) return
     seated.add(personOf(card))
-    const src = seoulArenaPlayer(card) ?? state.players[card.playerId]
+    const src = seoulArenaPlayer(card) ?? legendArenaPlayer(card) ?? state.players[card.playerId]
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'

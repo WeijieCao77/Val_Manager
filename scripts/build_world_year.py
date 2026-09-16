@@ -182,6 +182,20 @@ def main():
     cache = load(CACHE, {"events": {}, "stats": {}})
     world26 = load(WORLD_2026, {"players": [], "teams": []})
     prev_pid = {p["ign"].lower(): p["id"] for p in world26["players"]}
+
+    def key_of(row):
+        """Who a stat line is about. The handle, except where two real people
+        share it (overrides.json `homonyms`): then the vlr id comes along, so
+        the Polish zeek of 2023 neither pools his lines with the Canadian's
+        nor takes the Canadian's id from the 2026 world."""
+        ign = row["ign"].lower()
+        return f"{ign}#{row.get('vlrId') or ''}" if bw.homonym(ign) else ign
+
+    def id_from_2026(key):
+        h = bw.homonym(key.split("#")[0])
+        if h and key != f"{key.split('#')[0]}#{h['vlr']}":
+            return None
+        return prev_pid.get(key.split("#")[0])
     prev_tid = {}
     for t in world26["teams"]:
         prev_tid.setdefault(t["tag"], (t["id"], t["name"]))
@@ -197,9 +211,9 @@ def main():
             if not tag:
                 continue
             r = rosters.setdefault(tag, {"region": region, "rows": {}})
-            cur = r["rows"].get(row["ign"].lower())
+            cur = r["rows"].get(key_of(row))
             if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
-                r["rows"][row["ign"].lower()] = row
+                r["rows"][key_of(row)] = row
     if Y == 2023:
         # ten a league. China had no league that year, so its tier one is the
         # qualifier's field: first the clubs China sent abroad (EDG and FPX to
@@ -223,7 +237,7 @@ def main():
     first_seen = {}
     for eid, ev in cache["events"].items():
         for row in cache["stats"].get(eid, []):
-            k = row["ign"].lower()
+            k = key_of(row)
             y = ev.get("year") or 0
             first_seen[k] = min(first_seen.get(k, 9999), y)
             if y < Y:
@@ -296,9 +310,9 @@ def main():
             if not tag or tag in partners or (row.get("rnd") or 0) < 30:
                 continue
             r = t2_rosters.setdefault(tag, {"region": ev["region"], "rows": {}, "sub": True})
-            cur = r["rows"].get(row["ign"].lower())
+            cur = r["rows"].get(key_of(row))
             if not cur or (row.get("rnd") or 0) > (cur.get("rnd") or 0):
-                r["rows"][row["ign"].lower()] = row
+                r["rows"][key_of(row)] = row
     if Y in (2023, 2024):
         for eid, ev in cache["events"].items():
             if ev.get("year") == 2023 and "champions-china-qualifier" in str(ev.get("slug") or ""):
@@ -307,7 +321,7 @@ def main():
                     if not tag or tag in partners or (row.get("rnd") or 0) < 30:
                         continue
                     r = t2_rosters.setdefault(tag, {"region": "China", "rows": {}, "sub": True})
-                    r["rows"][row["ign"].lower()] = row
+                    r["rows"][key_of(row)] = row
     # keep the eight strongest per region
     def club_strength(r):
         top = sorted(r["rows"].values(), key=lambda x: -(x.get("rating2") or 0))[:5]
@@ -479,7 +493,7 @@ def main():
         lift, big = line.get("stage_lift"), line.get("stage_rounds") or 0
         stage_w = big / (big + SHRINK)
         stage_bonus = round(bw.clamp((lift - 1) * 26 * stage_w, -4, 5), 2) if lift else 0.0
-        stage_bonus = round(stage_bonus + title_credit(prev_pid.get(k, "")), 2)
+        stage_bonus = round(stage_bonus + title_credit(id_from_2026(k) or ""), 2)
         ovr = int(round(bw.clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign.lower()) or {}
@@ -498,6 +512,7 @@ def main():
         head = (rng.range(7, 16) if age <= 20 else rng.range(3, 10) if age <= 23
                 else rng.range(1, 5) if age <= 26 else rng.range(0, 2))
         built[k] = {
+            "_key": k,
             "ign": ign, "tag": line["tag"], "region": line["region"], "nat": line["nat"],
             "role": role, "roles": line["roles"], "flex": len(line["roles"]) > 1,
             "traits": bw.traits_for(g),
@@ -567,9 +582,16 @@ def main():
     team_ids = set()
     coached = {"liquipedia": 0, "vlr": 0}
 
+    emitted = set()
+
     def emit(p, team_id, tier, region):
         nonlocal issued_h
-        pid = prev_pid.get(p["ign"].lower())
+        emitted.add(p["_key"])
+        pid = id_from_2026(p["_key"])
+        if not pid and "#" in p["_key"]:
+            # a homonym's other man gets an id of his own that names him, so
+            # the numbered ids of everyone after him stay where saves have them
+            pid = "H-" + p["_key"].replace("#", "-")
         if not pid:
             pid = f"H{issued_h}"
             issued_h += 1
@@ -640,7 +662,7 @@ def main():
 
     # ---- the second tier: the year's real Challengers clubs where the tables
     # were fetched, the 2026 placeholder for a region they were not
-    placed = {p["ign"].lower() for p in out_players}
+    placed = emitted
     t2_players = 0
     real_t2_regions = set()
     t2_built = 0
@@ -661,8 +683,6 @@ def main():
             team_ids.add(tid)
             display = name or NAMES.get(tag, tag)
             squad = [emit(p, tid, 2, r["region"]) for p in squad_src[:7]]
-            for p in squad:
-                placed.add(p["ign"].lower())
             bw.deal_contract_years(squad)
             igl = max(squad[:5], key=lambda p: p["attrs"]["igl"] + (7 if p["role"] in ("控场", "哨卫", "先锋") else 0))
             igl["isIgl"] = True
