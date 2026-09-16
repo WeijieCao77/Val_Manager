@@ -197,12 +197,48 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    * somebody looks, and doing it here means there is no second process whose
    * failure leaves the market wrong.
    */
-  async function sweep() {
+  /**
+   * One sweep at a time, shared by whoever asks while it runs.
+   *
+   * 2026-09-17: every market request ran its own sweep transaction, all of
+   * them reaching for the same ended auctions. The pool has four connections;
+   * a handful of players opening the market held them in each other's row
+   * locks — the shelf took 35-83 s, and every other query on the site queued
+   * behind them (an account load took 4-7 s, a 35-account grant ran past the
+   * gateway and came back as its HTML error page). Callers now join the sweep
+   * already running, so it costs one connection however many are waiting.
+   */
+  let sweeping = null
+  let swept = 0
+  function sweep() {
+    if (!sweeping) {
+      const t0 = Date.now()
+      sweeping = sweepOnce().finally(() => {
+        sweeping = null
+        swept = Date.now()
+        const ms = swept - t0
+        if (ms > 2000) console.warn(`market: sweep took ${ms} ms`)
+      })
+    }
+    return sweeping
+  }
+  /** Buying, bidding, listing: settled as of now. A sweep already running may
+   *  have started before this auction ended, so it is waited out and one more
+   *  run — which everyone arriving meanwhile shares. */
+  async function sweepNow() {
+    if (sweeping) await sweeping.catch(() => {})
+    return sweep()
+  }
+  async function sweepOnce() {
     await tx(async (db) => {
-      // auctions whose time is up: the top bid wins, or the card goes home
+      // auctions whose time is up: the top bid wins, or the card goes home.
+      // A row a buy-now is settling right now is skipped, not waited on: it
+      // is being closed anyway, and the next sweep sees whatever is left.
       const ended = await db`
         select id, seller_h, card_id, level from card_listings
-        where status = 'open' and ends is not null and ends <= now()`
+        where status = 'open' and ends is not null and ends <= now()
+        order by ends
+        for update skip locked`
       for (const l of ended) {
         const top = await db`
           select id, buyer_h, price from card_offers
@@ -475,6 +511,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
     // market is what settles the auctions that are over. Scrolling further
     // down the same market is the same visit: only the first page pays for it,
     // which matters now that reading the shelf takes several requests.
+    // the shelf joins a sweep already running rather than queueing another
     if (!cursor) await sweep()
     const q = typeof b?.q === 'string' ? b.q.slice(0, 60) : ''
     const filter = engine.readFilter(b)
@@ -613,7 +650,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
   /** Put a card up. The card leaves your side now and comes back if it does not sell. */
   async function list(req, res, bucket) {
     if (guard(req, res, `ml:${bucket}`, 30)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -701,7 +738,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
   /** Take it back off the shelf. The card comes home through the inbox. */
   async function unlist(req, res, bucket) {
     if (guard(req, res, `mu:${bucket}`, 30)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -745,7 +782,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function offer(req, res, bucket) {
     if (guard(req, res, `mo:${bucket}`, 40)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -888,7 +925,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function withdraw(req, res, bucket) {
     if (guard(req, res, `mw:${bucket}`, 30)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -924,7 +961,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
   /** Offers on my listings, and my own bids. */
   async function offers(req, res, bucket) {
     if (guard(req, res, `mq:${bucket}`, 90)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -970,7 +1007,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function answer(req, res, bucket) {
     if (guard(req, res, `ma:${bucket}`, 40)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -1044,7 +1081,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function mail(req, res, bucket) {
     if (guard(req, res, `mm:${bucket}`, 90)) return
-    await sweep()
+    await sweepNow()
     let b
     try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)
@@ -1125,7 +1162,7 @@ export function makeMarketApi(sql, { readBody, json, normalizeId, displayName, r
    */
   async function swap(req, res, bucket) {
     if (guard(req, res, `sw:${bucket}`, 30)) return
-    await sweep(); await sweepSwaps()
+    await sweepNow(); await sweepSwaps()
     let b
     try { b = JSON.parse(await readBody(req, 4096)) } catch { json(res, 400, { ok: false }); return }
     const id = normalizeId(b?.id)

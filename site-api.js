@@ -180,6 +180,45 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     return { why: '填 8 位对战码，或者完整的账号 ID' }
   }
 
+  /**
+   * findAccount for a whole list at once: the same answers, entry by entry,
+   * from one query over the 对战码 and one over the full ids.
+   */
+  async function findAccounts(list) {
+    const isCode = (w) => /^[0-9A-Fa-f]{8}$/.test(w)
+    const isId = (w) => !isCode(w) && w.toUpperCase().replace(/[^0-9A-Z]/g, '').length >= 20
+    const codes = [...new Set(list.filter(isCode).map((w) => w.toLowerCase()))]
+    const hashes = [...new Set(list.filter(isId).map((w) => normalizeId(w)).filter(Boolean).map((id) => hash(id)))]
+    const byCode = new Map()
+    if (codes.length) {
+      for (const r of await sql`
+        select id_hash, name, left(id_hash, 8) as code from card_accounts
+        where left(id_hash, 8) = any(${codes}::text[])`) {
+        byCode.set(r.code, [...(byCode.get(r.code) ?? []), { id_hash: r.id_hash, name: r.name }])
+      }
+    }
+    const byHash = new Map()
+    if (hashes.length) {
+      for (const r of await sql`select id_hash, name from card_accounts where id_hash = any(${hashes}::text[])`) {
+        byHash.set(r.id_hash, r)
+      }
+    }
+    return (who) => {
+      if (isCode(who)) {
+        const r = byCode.get(who.toLowerCase()) ?? []
+        if (r.length > 1) return { why: '这个对战码对上了不止一个账号' }
+        return r[0] ? { target: r[0] } : { why: '找不到这个账号' }
+      }
+      if (isId(who)) {
+        const id = normalizeId(who)
+        if (!id) return { why: '账号 ID 格式不对' }
+        const r = byHash.get(hash(id))
+        return r ? { target: r } : { why: '找不到这个账号' }
+      }
+      return { why: '填 8 位对战码，或者完整的账号 ID' }
+    }
+  }
+
   async function grant(req, res) {
     if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
     let body
@@ -215,11 +254,15 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     }
     if (!pack && !coins && !cardId) { json(res, 200, { ok: false, why: '什么都没填' }); return }
 
-    // one lookup per entry, the same query a single grant runs
+    // Every entry resolved in two queries, not one each. One query per entry
+    // meant 35 turns in a four-connection pool's queue; on 2026-09-17, with
+    // the market sweeps holding it, that ran past the gateway's limit and the
+    // page was handed the gateway's HTML error instead of an answer.
+    const found = await findAccounts(list)
     const targets = new Map()
     const missed = []
     for (const who of list) {
-      const f = await findAccount(who)
+      const f = found(who)
       if (f.target) targets.set(f.target.id_hash, f.target)
       // an id is the whole login: only its head goes back into the page
       else missed.push({ who: who.length > 8 ? `${who.slice(0, 7)}…` : who, why: f.why })

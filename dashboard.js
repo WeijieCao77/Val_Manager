@@ -669,6 +669,11 @@ $('#gSend').onclick = async () => {
     // A 200 of HTML means the route did not exist and the static handler
     // answered instead — which is what /api/admin/grant did on the day it
     // shipped, and 「HTTP 200」 was a useless thing to be told about it.
+    // A 5xx page is the gateway giving up on a slow request, not a missing
+    // route — and the server may still finish the grant after it gives up
+    // (2026-09-17: a 35-account grant during the market slowdown). Resending
+    // blind can post everything twice, so say to look first.
+    if (!j && r.status >= 500) throw new Error('服务器超时（HTTP ' + r.status + '）。可能已经发出去了：先查一个号的信箱，没收到再重发')
     if (!j) throw new Error(/^\s*</.test(text) ? '这个接口没接上（服务器返回的是页面，不是数据）' : ('HTTP ' + r.status))
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
     const what = []
