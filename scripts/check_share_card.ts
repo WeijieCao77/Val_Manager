@@ -18,7 +18,7 @@
  * that can rot without anyone looking.
  */
 import { execFileSync } from 'node:child_process'
-import { SHARE_H, SHARE_URL, SHARE_W, shareLayout } from '../src/ui/cards/shareCard'
+import { QR_INSET, QR_QUIET, SHARE_H, SHARE_URL, SHARE_W, shareLayout } from '../src/ui/cards/shareCard'
 import type { Box } from '../src/ui/cards/shareCard'
 import { qrMatrix } from '../src/engine/qr'
 
@@ -68,6 +68,12 @@ const overlaps = (a: Box, b: Box) =>
   check('教练那张卡和五个位置一个形状',
     Math.abs((L.coach.h - 64) / (L.coach.w - 32) - L.seats[0].h / L.seats[0].w) < 0.05,
     `${((L.coach.h - 64) / (L.coach.w - 32)).toFixed(2)} vs ${(L.seats[0].h / L.seats[0].w).toFixed(2)}`)
+  // 「教练比较小」 (2026-09-16): the coach is a card of the five's own size
+  check('教练那张卡和五个位置一样大', L.coach.w - 32 === L.seats[0].w && L.coach.h - 64 === L.seats[0].h,
+    `${L.coach.w - 32}×${L.coach.h - 64} vs ${L.seats[0].w}×${L.seats[0].h}`)
+  // 「二维码也太大了」: it was the biggest block on the row
+  check('二维码比教练那块小', L.qr.w * L.qr.h < L.coach.w * L.coach.h * 0.75,
+    `${L.qr.w}² vs ${L.coach.w}×${L.coach.h}`)
 }
 
 // ---- the code on it scans --------------------------------------------------
@@ -82,31 +88,37 @@ if (!hasCv2) {
   const L = shareLayout()
   const m = qrMatrix(SHARE_URL, 'Q')
   // the same arithmetic paintQr does, so this is the code as it is printed
-  const quiet = 2
-  const cell = Math.floor((L.qr.w - 28) / (m.length + quiet * 2))
+  const quiet = QR_QUIET
+  const cell = Math.floor((L.qr.w - QR_INSET) / (m.length + quiet * 2))
   check('每格至少 6 像素', cell >= 6, `${cell}px 一格，${m.length} 格`)
   check('连白边一起放得进二维码那块', cell * (m.length + quiet * 2) <= L.qr.w,
     `${cell * (m.length + quiet * 2)} ≤ ${L.qr.w}`)
 
+  // Drawn as it is printed: the matrix centred on its white plate, and the
+  // picture's dark background right up to the plate's edge. The plate is the
+  // only white the scanner gets beyond the quiet zone, so the test must not
+  // lend it any more.
   const decode = `
 import sys, json, numpy as np, cv2
-rows, cell, quiet, resize = json.loads(sys.argv[1])
+rows, cell, quiet, plate, resize = json.loads(sys.argv[1])
 n = len(rows)
 side = (n + quiet * 2) * cell
-img = np.full((side, side), 255, np.uint8)
+bg = 22
+img = np.full((plate + 96, plate + 96), bg, np.uint8)
+img[48:48 + plate, 48:48 + plate] = 255
+off = 48 + (plate - side) // 2
 for y, row in enumerate(rows):
     for x, ch in enumerate(row):
         if ch == '1':
-            y0, x0 = (y + quiet) * cell, (x + quiet) * cell
+            y0, x0 = off + (y + quiet) * cell, off + (x + quiet) * cell
             img[y0:y0 + cell, x0:x0 + cell] = 0
 if resize != 1.0:
     img = cv2.resize(img, None, fx=resize, fy=resize, interpolation=cv2.INTER_AREA)
-    img = cv2.copyMakeBorder(img, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
 print(json.dumps(cv2.QRCodeDetector().detectAndDecode(img)[0]))
 `
   const rows = m.map((r) => r.map((c) => (c ? '1' : '0')).join(''))
   const read = (scale: number) => JSON.parse(
-    execFileSync('python3', ['-c', decode, JSON.stringify([rows, cell, quiet, scale])], { encoding: 'utf8' }),
+    execFileSync('python3', ['-c', decode, JSON.stringify([rows, cell, quiet, L.qr.w, scale])], { encoding: 'utf8' }),
   ) as string
   check('原尺寸扫得出来', read(1) === SHARE_URL, read(1) || '扫不出来')
   // a phone screenshot of the picture, and a chat app's re-compress after it

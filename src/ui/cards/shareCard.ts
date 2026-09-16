@@ -12,8 +12,8 @@
  * lands outside the canvas or on top of anything else without a canvas to
  * draw on.
  */
-import { cardById, isPlayerCard } from '../../engine/cards'
-import type { Card, CoachCard, Rarity, Squad } from '../../engine/cards'
+import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
+import type { Card, CoachCard, PlayerCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
 import { qrMatrix } from '../../engine/qr'
 
@@ -54,28 +54,34 @@ export function shareLayout(width = SHARE_W): ShareLayout {
     x: pad + i * (seatW + gap), y: seatsY, w: seatW, h: seatH,
   }))
   const lowerY = seatsY + seatH + 64
-  const qrSide = 260
-  // the coach plate holds a card of the same shape as the five, so it does
-  // not sit there looking squashed next to them
-  const coachW = 182
-  const coachH = 48 + Math.round((coachW - 32) * (212 / 132)) + 16
-  const rowH = Math.max(coachH, 268)
+  // The coach holds a card exactly the size of the five: a coach drawn at two
+  // thirds of a player read as an afterthought. The QR code only has to scan:
+  // eight pixels a module is what survives a 25% thumbnail, and the white
+  // plate around it does the work of most of the quiet zone.
+  const qrSide = 224
+  const coachW = seatW + 32
+  const coachH = 48 + seatH + 16
   // the QR code carries a caption and the address under it
   const qrBlock = qrSide + 80
+  const rowH = Math.max(coachH, qrBlock)
   // The height follows the content. It was a constant, and the constant left
   // four hundred empty pixels above the footer.
-  const footY = lowerY + Math.max(rowH, qrBlock) + 46
+  const footY = lowerY + rowH + 46
   return {
     width,
     height: footY + 76,
     seats,
     coach: { x: pad, y: lowerY, w: coachW, h: coachH },
-    stats: { x: pad + coachW + 40, y: lowerY, w: inner - coachW - 40 - qrSide - 40, h: rowH },
+    stats: { x: pad + coachW + 32, y: lowerY, w: inner - coachW - 32 - qrSide - 32, h: rowH },
     qr: { x: width - pad - qrSide, y: lowerY, w: qrSide, h: qrSide },
     header: { x: pad, y: 76, w: inner, h: 240 },
     footer: { x: pad, y: footY, w: inner, h: 60 },
   }
 }
+
+/** the QR code's inner margin and quiet zone, shared with scripts/check_share_card.ts */
+export const QR_INSET = 8
+export const QR_QUIET = 1
 
 /** the picture's height, which follows its content */
 export const SHARE_H = shareLayout().height
@@ -167,7 +173,9 @@ function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, b: Box): vo
 function paintSeat(
   ctx: CanvasRenderingContext2D, b: Box, card: Card | null, role: string,
   level: number, face: HTMLImageElement | null, crest: HTMLImageElement | null,
+  mark: HTMLImageElement | null = null,
 ): void {
+  if (card && isSeoul(card)) { paintSeoulSeat(ctx, b, card, level, face, mark); return }
   if (!card) {
     ctx.save()
     round(ctx, b, 10)
@@ -335,15 +343,215 @@ function paintSeat(
   ctx.stroke()
 }
 
+const isSeoul = (card: Card): card is PlayerCard & { seoul: NonNullable<PlayerCard['seoul']> } =>
+  isPlayerCard(card) && card.event === 'seoul-2024' && !!card.seoul
+
+/** the Champions mark the Seoul cards carry, as SeoulDesign.tsx loads it */
+const SEOUL_MARK = '/events/seoul-2024/champions.png'
+const SEOUL_FOIL: Record<Rarity, string> = { mythic: '#c7b477', gold: '#c7b477', silver: '#a5b7cf', bronze: '#b7977d' }
+const MONO = (weight: number, size: number) => `${weight} ${size}px ui-monospace, Menlo, Consolas, monospace`
+const IMPACT = (size: number) => `700 ${size}px Impact, "Arial Narrow", "Helvetica Neue", sans-serif`
+
+/**
+ * A 首尔 2024 card, drawn the way SeoulDesign.tsx draws it.
+ *
+ * They are event cards with their own face — black, a foil edge, the
+ * Champions mark, the year's ACS, K/D and maps — and a share picture that
+ * painted them as ordinary gold and silver showed a card nobody owns. The
+ * positions below are the .sc24 stylesheet measured on a 132×212 card, the
+ * size the squad screen shows it at.
+ */
+function paintSeoulSeat(
+  ctx: CanvasRenderingContext2D, b: Box, card: PlayerCard & { seoul: NonNullable<PlayerCard['seoul']> },
+  level: number, face: HTMLImageElement | null, mark: HTMLImageElement | null,
+): void {
+  const k = b.w / 132
+  const X = (n: number) => b.x + n * k
+  const Y = (n: number) => b.y + n * k
+  const foil = SEOUL_FOIL[card.rarity]
+  const entry = card.seoul
+
+  ctx.save()
+  round(ctx, b, 8 * k)
+  ctx.clip()
+  ctx.fillStyle = '#0c1017'
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  const glow = ctx.createRadialGradient(X(99), Y(32), 0, X(99), Y(32), b.w * 0.75)
+  glow.addColorStop(0, 'rgba(75,84,130,.29)')
+  glow.addColorStop(1, 'rgba(75,84,130,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+
+  // the rays: thin spokes from a point above the middle, fading outwards
+  const rcx = b.x + b.w / 2
+  const rcy = b.y + b.h * 0.42
+  const reach = b.h * 0.62
+  for (let deg = 12; deg < 372; deg += 20) {
+    const a0 = ((deg + 10.2 - 90) * Math.PI) / 180
+    const a1 = ((deg + 10.6 - 90) * Math.PI) / 180
+    const fade = ctx.createRadialGradient(rcx, rcy, 0, rcx, rcy, reach)
+    fade.addColorStop(0, 'rgba(200,180,119,.17)')
+    fade.addColorStop(1, 'rgba(200,180,119,0)')
+    ctx.fillStyle = fade
+    ctx.beginPath()
+    ctx.moveTo(rcx, rcy)
+    ctx.arc(rcx, rcy, reach, a0, a1)
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  // the portrait, faded out at its sides and foot as the mask does
+  const pb = { x: X(23.1), y: Y(30.4), w: 85.8 * k, h: 79.8 * k }
+  if (face) {
+    const off = document.createElement('canvas')
+    off.width = Math.ceil(pb.w)
+    off.height = Math.ceil(pb.h)
+    const o = off.getContext('2d')!
+    o.filter = 'saturate(.65) contrast(1.06)'
+    const scale = Math.max(pb.w / face.width, pb.h / face.height)
+    o.drawImage(face, (pb.w - face.width * scale) / 2, 0, face.width * scale, face.height * scale)
+    o.filter = 'none'
+    o.globalCompositeOperation = 'destination-in'
+    const hz = o.createLinearGradient(0, 0, pb.w, 0)
+    hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.22, '#000'); hz.addColorStop(0.78, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)')
+    o.fillStyle = hz
+    o.fillRect(0, 0, pb.w, pb.h)
+    const vt = o.createLinearGradient(0, 0, 0, pb.h)
+    vt.addColorStop(0, 'rgba(0,0,0,0)'); vt.addColorStop(0.16, '#000'); vt.addColorStop(0.74, '#000'); vt.addColorStop(1, 'rgba(0,0,0,0)')
+    o.fillStyle = vt
+    o.fillRect(0, 0, pb.w, pb.h)
+    ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
+  } else {
+    ctx.fillStyle = 'rgba(199,180,119,.33)'
+    ctx.font = IMPACT(48 * k)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(card.ign.slice(0, 2), pb.x + pb.w / 2, pb.y + pb.h / 2)
+  }
+
+  // the head: CHAMPIONS / SEOUL 2024 and the mark
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = foil
+  ctx.letterSpacing = `${0.72 * k}px`
+  ctx.font = font(400, 6 * k)
+  ctx.fillText('CHAMPIONS', X(12.7), Y(16.5))
+  ctx.font = font(700, 8 * k)
+  ctx.letterSpacing = `${0.96 * k}px`
+  ctx.fillText('SEOUL 2024', X(12.7), Y(26))
+  ctx.letterSpacing = '0px'
+  if (mark) ctx.drawImage(mark, X(95.3), Y(15.7), 24 * k, 24 * k)
+
+  // the side line, read top to bottom: the Latin turned on its side, the
+  // rarity's two characters upright, as vertical-rl sets them
+  const latin = `${card.clubTag ?? ''} / ${(entry.nat ?? '').toUpperCase()} / `
+  ctx.save()
+  ctx.translate(X(116), Y(59.8))
+  ctx.rotate(Math.PI / 2)
+  ctx.font = MONO(400, 6 * k)
+  ctx.letterSpacing = `${1.2 * k}px`
+  ctx.fillStyle = foil
+  ctx.textBaseline = 'middle'
+  ctx.fillText(latin, 0, 0)
+  const run = ctx.measureText(latin).width
+  ctx.restore()
+  ctx.letterSpacing = '0px'
+  ctx.fillStyle = foil
+  ctx.font = font(400, 6 * k)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  Array.from(RARITY_CN[card.rarity]).forEach((ch, i) => {
+    ctx.fillText(ch, X(116), Y(59.8) + run + i * 7.2 * k)
+  })
+  ctx.textAlign = 'left'
+
+  // the rating plate
+  ctx.fillStyle = 'rgba(11,16,22,.65)'
+  ctx.fillRect(X(11.4), Y(51.4), 33.8 * k, 41.5 * k)
+  ctx.fillStyle = foil
+  ctx.fillRect(X(11.4), Y(51.4), Math.max(1, k), 41.5 * k)
+  ctx.shadowColor = '#000'
+  ctx.shadowBlur = 6 * k
+  ctx.fillStyle = '#f6edda'
+  ctx.font = font(700, 21 * k)
+  ctx.fillText(String(card.rating), X(16.4), Y(55))
+  ctx.shadowBlur = 0
+  ctx.fillStyle = foil
+  ctx.font = font(400, 7 * k)
+  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, X(16.4), Y(80.5))
+
+  // the info block over its own shade
+  const shade = ctx.createLinearGradient(0, Y(115.1), 0, b.y + b.h)
+  shade.addColorStop(0, 'rgba(10,12,19,0)')
+  shade.addColorStop(0.3, 'rgba(10,12,19,.91)')
+  shade.addColorStop(0.65, '#0a0c13')
+  ctx.fillStyle = shade
+  ctx.fillRect(b.x, Y(115.1), b.w, b.y + b.h - Y(115.1))
+
+  ctx.fillStyle = '#fff9e9'
+  // a long name shrinks rather than running into the side line
+  let ignSize = 21 * k
+  ctx.font = IMPACT(ignSize)
+  while (ignSize > 8 && ctx.measureText(card.ign).width > 106.6 * k) { ignSize -= 0.5; ctx.font = IMPACT(ignSize) }
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillText(card.ign, X(12.7), Y(147))
+  ctx.textBaseline = 'top'
+
+  ctx.fillStyle = 'rgba(199,180,119,.33)'
+  ctx.fillRect(X(12.7), Y(156), 106.6 * k, Math.max(1, k))
+  const stats: [string, string][] = [[String(entry.acs), 'ACS'], [entry.kd.toFixed(2), 'K/D'], [String(entry.maps), 'MAPS']]
+  let sx = X(12.7)
+  stats.forEach(([value, label]) => {
+    ctx.font = MONO(700, 10 * k)
+    const vw = ctx.measureText(value).width
+    ctx.fillStyle = '#e4d5ad'
+    ctx.fillText(value, sx, Y(162.3))
+    ctx.font = MONO(400, 5 * k)
+    const lw = ctx.measureText(label).width
+    ctx.fillStyle = '#a8a7a3'
+    ctx.fillText(label, sx, Y(176))
+    sx += Math.max(vw, lw) + 106.6 * k * 0.14
+  })
+
+  ctx.fillStyle = 'rgba(199,180,119,.19)'
+  ctx.fillRect(X(12.7), Y(189.3), 106.6 * k, Math.max(1, k))
+  ctx.font = MONO(400, 4.5 * k)
+  ctx.fillStyle = '#a6a497'
+  ctx.fillText('01—25 AUG · 2024', X(12.7), Y(195))
+  ctx.textAlign = 'right'
+  ctx.fillStyle = foil
+  ctx.fillText(`${String(entry.number).padStart(3, '0')} / 080`, X(119.3), Y(195))
+  ctx.textAlign = 'left'
+
+  // the sheen and the inner frame, as .cardface.sc24::before
+  const sheen = ctx.createLinearGradient(b.x, b.y, b.x + b.w * 0.57, b.y + b.h * 0.82)
+  sheen.addColorStop(0.3, 'rgba(255,255,255,0)')
+  sheen.addColorStop(0.47, 'rgba(255,255,255,.07)')
+  sheen.addColorStop(0.6, 'rgba(255,255,255,0)')
+  ctx.fillStyle = sheen
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  ctx.restore()
+
+  ctx.textBaseline = 'alphabetic'
+  round(ctx, { x: b.x + 4 * k, y: b.y + 4 * k, w: b.w - 8 * k, h: b.h - 8 * k }, 4 * k)
+  ctx.strokeStyle = 'rgba(199,180,119,.33)'
+  ctx.lineWidth = Math.max(1, k)
+  ctx.stroke()
+  round(ctx, b, 8 * k)
+  ctx.strokeStyle = foil
+  ctx.lineWidth = Math.max(1, k)
+  ctx.stroke()
+}
+
 function paintQr(ctx: CanvasRenderingContext2D, b: Box, url: string): void {
   ctx.fillStyle = '#fff'
-  round(ctx, b, 16)
+  round(ctx, b, 14)
   ctx.fill()
   // Level Q recovers a quarter of the symbol, which is what makes a code
   // printed into a picture survive a screenshot of a screenshot.
   const m = qrMatrix(url, 'Q')
-  const quiet = 2
-  const cell = Math.floor((b.w - 28) / (m.length + quiet * 2))
+  const quiet = QR_QUIET
+  const cell = Math.floor((b.w - QR_INSET) / (m.length + quiet * 2))
   const side = cell * (m.length + quiet * 2)
   const x0 = b.x + (b.w - side) / 2 + cell * quiet
   const y0 = b.y + (b.h - side) / 2 + cell * quiet
@@ -370,7 +578,9 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   const coachCard = model.squad.coach ? cardOf(model.squad.coach) : null
   const all = [...seatCards, coachCard]
   const faces = await Promise.all(all.map((c) => load(c?.face ?? null)))
-  const crests = await Promise.all(all.map((c) => load(c?.clubId ? crestUrl(c.clubId) : null)))
+  // a Seoul card shows the Champions mark, not its club's crest
+  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) ? crestUrl(c.clubId) : null)))
+  const mark = await load(all.some((c) => c && isSeoul(c)) ? SEOUL_MARK : null)
 
   // ---- the plate
   const bg = ctx.createLinearGradient(0, 0, L.width, L.height)
@@ -412,7 +622,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   // ---- the five
   const ROLES = ['决斗者', '先锋', '控场', '哨卫', '自由人']
   L.seats.forEach((b, i) => {
-    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i])
+    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark)
   })
 
   // ---- the coach
@@ -432,29 +642,33 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
     ctx.fillText('没有教练', L.coach.x + 16, L.coach.y + 150)
   }
 
-  // ---- the two numbers
+  // ---- the two numbers, one above the other: side by side, a five-digit
+  // 战力 at 96px ran straight through 默契 (「战力数值很拥挤」)
   ctx.fillStyle = PANEL
   round(ctx, L.stats, 14)
   ctx.fill()
-  const half = L.stats.w / 2
-  const pair: [string, number, string][] = [
-    ['阵容战力', model.rating, INK],
-    ['默契', model.chem, model.chem >= 60 ? '#4ade80' : model.chem >= 35 ? '#fbbf24' : '#f87171'],
-  ]
-  pair.forEach(([label, value, colour], i) => {
-    const cx = L.stats.x + half * i + half / 2
-    ctx.textAlign = 'center'
-    ctx.fillStyle = FAINT
-    ctx.font = font(600, 24)
-    ctx.fillText(label, cx, L.stats.y + 66)
-    ctx.fillStyle = colour
-    ctx.font = font(800, 96)
-    ctx.fillText(String(value), cx, L.stats.y + 172)
-  })
-  ctx.fillStyle = FAINT
-  ctx.font = font(500, 21)
+  const scx = L.stats.x + L.stats.w / 2
+  const valueW = L.stats.w - 56
+  const chemColour = model.chem >= 60 ? '#4ade80' : model.chem >= 35 ? '#fbbf24' : '#f87171'
+  const power = model.rating.toLocaleString('en-US')
   ctx.textAlign = 'center'
-  ctx.fillText('默契来自同队、同国籍、同赛区', L.stats.x + L.stats.w / 2, L.stats.y + 228)
+  ctx.fillStyle = FAINT
+  ctx.font = font(600, 24)
+  ctx.fillText('阵容战力', scx, L.stats.y + 58)
+  ctx.fillStyle = INK
+  ctx.font = font(800, fit(ctx, power, valueW, 800, 84))
+  ctx.fillText(power, scx, L.stats.y + 146)
+  ctx.fillStyle = 'rgba(255,255,255,.08)'
+  ctx.fillRect(L.stats.x + 28, L.stats.y + 180, L.stats.w - 56, 2)
+  ctx.fillStyle = FAINT
+  ctx.font = font(600, 24)
+  ctx.fillText('默契', scx, L.stats.y + 226)
+  ctx.fillStyle = chemColour
+  ctx.font = font(800, 64)
+  ctx.fillText(String(model.chem), scx, L.stats.y + 294)
+  ctx.fillStyle = FAINT
+  ctx.font = font(500, fit(ctx, '默契来自同队、同国籍、同赛区', valueW, 500, 20))
+  ctx.fillText('默契来自同队、同国籍、同赛区', scx, L.stats.y + 332)
 
   // ---- the way back
   paintQr(ctx, L.qr, url)
