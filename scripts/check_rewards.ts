@@ -8,7 +8,7 @@
  * pays by the bracket's depth, and a 彩卡 brings 2 默契 rather than 4.
  */
 import {
-  newGacha, recordLadder, enterCup, recordCup, cupExitPacks, cupTitlePacks,
+  newGacha, recordLadder, enterCup, recordCup, cupOpponent, cupExitPacks, cupTitlePacks,
   STAMINA_MAX, STAMINA_COST, LADDER_WIN_PACK_EVERY, LADDER_WIN_PACK_BIG_EVERY,
 } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
@@ -72,8 +72,10 @@ check('满体力打 15 场天梯或 6 场杯赛', Math.floor(STAMINA_MAX / STAMI
     const cup = enterCup(g, 88, 1)
     const before = packsOf(g)
     let out = recordCup(g, { opponent: cup.path[0], win: true, mapsWon: 2, mapsLost: 0 })
-    for (let i = 1; i < cup.path.length && !out.done; i++) {
-      out = recordCup(g, { opponent: cup.path[i], win: i < wins, mapsWon: i < wins ? 2 : 0, mapsLost: i < wins ? 0 : 2 })
+    // 双败: going out takes two losses, so the rounds after `wins` are lost until the cup says done
+    for (let i = 1; i < cup.path.length + 2 && !out.done; i++) {
+      const win = g.cup!.round < wins
+      out = recordCup(g, { opponent: cupOpponent(g)!, win, mapsWon: win ? 2 : 0, mapsLost: win ? 0 : 2 })
     }
     return { rounds: cup.path.length, out, given: delta(before, packsOf(g)) }
   }

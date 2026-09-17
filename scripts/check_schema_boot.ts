@@ -54,7 +54,7 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
 // ---- the list itself -------------------------------------------------------
 {
   console.log('=== 建表清单 ===')
-  check('五份 schema 都在', SCHEMAS.length === 5, `${SCHEMAS.length} 份`)
+  check('六份 schema 都在', SCHEMAS.length === 6, `${SCHEMAS.length} 份`)
   check('每份都不是空的', SCHEMAS.every((s) => typeof s === 'string' && s.trim().length > 40))
   const all = SCHEMAS.join('\n')
   for (const t of ['card_accounts', 'card_listings', 'events']) {
@@ -70,7 +70,35 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   let threw = ''
   await applySchema(sql as never).catch((e: Error) => { threw = e.message })
   check('第一次失败，第二次成功', !threw && sql.attempts === 2, threw || `${sql.attempts} 次`)
-  check('五份 schema 都真的跑了', SCHEMAS.every((s) => sql.ran.includes(s)))
+  check('六份 schema 都真的跑了', SCHEMAS.every((s) => sql.ran.includes(s)))
+}
+
+// ---- a release that adds tables of its own sends only its own schema --------
+{
+  console.log('\n=== 只跑缺东西的那一份 ===')
+  const { OPEN_CUP_SCHEMA } = await import('../opencup-api.js')
+  const others = SCHEMAS.filter((x) => x !== OPEN_CUP_SCHEMA).join('\n').toLowerCase()
+  const tables = [...others.matchAll(/create table if not exists (\w+)/g)].map((m) => m[1])
+  const columns = [...others.matchAll(/alter table (\w+) add column if not exists (\w+)/g)].map((m) => [m[1], m[2]])
+  const indexes = [...others.matchAll(/create (?:unique )?index if not exists (\w+)/g)].map((m) => m[1])
+  const ran: string[] = []
+  const tx = { unsafe: async (q: string) => { ran.push(q); return [] } }
+  const sql = {
+    begin: async (fn: (t: typeof tx) => Promise<void>) => { await fn(tx) },
+    unsafe: async (q: string) => {
+      ran.push(q)
+      if (q.includes('information_schema.columns')) {
+        return [...tables.map((t) => ({ table_name: t, column_name: 'id' })), ...columns.map(([t, c]) => ({ table_name: t, column_name: c }))]
+      }
+      if (q.includes('pg_indexes')) return indexes.map((i) => ({ indexname: i }))
+      if (q.includes('to_regclass')) return [{ t: null }]
+      return []
+    },
+  }
+  await applySchema(sql as never)
+  check('新加的全服杯 schema 跑了', ran.includes(OPEN_CUP_SCHEMA))
+  check('别的 schema 一条都没重发，热表不会被锁', SCHEMAS.filter((x) => x !== OPEN_CUP_SCHEMA).every((x) => !ran.includes(x)))
+  check('全服杯 schema 里没有 alter table，也不碰别人的表', !/alter table/i.test(OPEN_CUP_SCHEMA) && !/card_accounts|events\b/i.test(OPEN_CUP_SCHEMA.replace(/--.*$/gm, '')))
 }
 
 // ---- the lock and the timeout are actually taken ---------------------------

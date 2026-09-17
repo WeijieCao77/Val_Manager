@@ -630,6 +630,10 @@ export interface CupLeg {
   win: boolean
   mapsWon: number
   mapsLost: number
+  /** which round of the bracket this was — absent on legs played before 双败 */
+  round?: number
+  /** played in the 败者组 */
+  lower?: boolean
 }
 
 export interface CupState {
@@ -643,6 +647,18 @@ export interface CupState {
   entry: number
   /** Server-owned registration; inventory can change without changing this cup. */
   registration?: CupRegistration
+  /**
+   * 双败 (2026-09-17): the first loss drops the five into the 败者组 instead
+   * of out of the cup. Absent on a bracket drawn before it, which plays out
+   * as the single elimination it was sold as.
+   */
+  double?: boolean
+  /** the one loss this five is allowed has been taken */
+  dropped?: boolean
+  /** the 败者组 club in front of the five right now */
+  lower?: string | null
+  /** points every club in this bracket plays below its paper — see CUP_EASE_MAX */
+  ease?: number
 }
 
 export interface CupRegistration {
@@ -1602,6 +1618,8 @@ export interface LadderOutcome {
   /** the pack every fifth win brings, and which win it was */
   milestone?: PackKind
   milestoneWins?: number
+  /** lost to a rival well above this five: no star taken, or half the 大师 points */
+  spared?: boolean
   /** 大师 only: how the score moved, and what it is called now */
   points?: number
   pointsDelta?: number
@@ -1641,6 +1659,14 @@ export const oppBumpFor = (points: number): number =>
   clamp(Math.floor(Math.max(0, points) / 250), 0, 10)
 
 /**
+ * A rival this far above you on paper is a match you were never meant to win:
+ * losing it costs no star, and half the 大师 points. The server looks for a
+ * five within a few points first (cards-api.js pickRival), so this is the
+ * cushion for the evenings when nobody near you is in the pool.
+ */
+export const RIVAL_MERCY_GAP = 6
+
+/**
  * Apply a ladder result.
  *
  * A star a win, two on a hot streak, one back on a loss. The bottom three
@@ -1649,6 +1675,8 @@ export const oppBumpFor = (points: number): number =>
  */
 export function recordLadder(
   g: GachaState, win: boolean, oppRating = 80, league: LeagueKind = 'open',
+  /** the rival was well above this five on paper: a loss costs no star and half the points */
+  mercy = false,
 ): LadderOutcome {
   const L = ladderSlot(g, league)
   // 大师 is where the stars run out and the score takes over
@@ -1702,7 +1730,10 @@ export function recordLadder(
       // which is punishment enough for a bad run — dropping somebody back to
       // 钻石 after the climb they made to get here is how a ladder loses the
       // people who play it most.
-      L.points = Math.max(0, pointsBefore + masterPoints(false, oppRating, 0))
+      if (mercy) out.spared = true
+      L.points = Math.max(0, pointsBefore + (mercy ? -Math.ceil(MASTER_LOSS / 2) : masterPoints(false, oppRating, 0)))
+    } else if (mercy) {
+      out.spared = true
     } else {
       L.stars -= 1
       if (L.stars < 0) {
@@ -1778,8 +1809,56 @@ export const cupTitlePrize = (rounds: number): number => 600 + 300 * rounds
 /** 「32强」…「决赛」, for round `i` of a bracket `rounds` deep. */
 export const cupRoundName = (rounds: number, i: number): string =>
   i >= rounds - 1 ? '决赛' : `${2 ** (rounds - i)}强`
-/** The final is a best of five; everything before it a best of three. */
-export const cupBo = (cup: CupState): 3 | 5 => (cup.round >= cup.path.length - 1 ? 5 : 3)
+/** The final is a best of five; everything before it, and the whole 败者组, a best of three. */
+export const cupBo = (cup: CupState): 3 | 5 => (!cup.lower && cup.round >= cup.path.length - 1 ? 5 : 3)
+/**
+ * The climb, in points of 综合分 relative to the five that entered: the first
+ * round nine under it, the final three over. It was twelve under to level
+ * while one loss was the end; with a second life that bracket was lifted 43%
+ * of the time by a middling five and paid half as much again, so the road got
+ * steeper as the cup got more forgiving. Measured at these numbers
+ * (scripts/measure_cup_experience.ts, 400 cups a five): a title in about
+ * three entries in ten instead of two, a ticket that ends without a win one
+ * time in twenty-five instead of one in seven, four matches a ticket
+ * instead of under three.
+ */
+export const CUP_CLIMB_FROM = 9
+export const CUP_CLIMB_TO = 3
+/**
+ * How far below its paper a whole bracket may be asked to play.
+ *
+ * The draw climbs from well under the five to just over it, and the weakest
+ * club there is sits at 62 — so a new account's 65 met clubs level with it
+ * in the FIRST round and well above it in the final, and went out without
+ * a win 58% of the time (scripts/measure_cup_experience.ts,
+ * 2026-09-17). Nobody weaker exists to be drawn, and nobody is invented:
+ * the clubs such a five draws send a rotation side instead, the same number
+ * of points down in every round, printed on the bracket. A five at 74 or
+ * above never sees it.
+ */
+export const CUP_EASE_MAX = 14
+export const CUP_SHARPEN_MAX = 4
+/**
+ * Where the table effectively starts: the mean of its six weakest clubs,
+ * because six is how many the draw picks a round from. Measured against the
+ * single weakest club, a 62 still opened against sides four points nearer to
+ * it than anybody else's first round, and lifted the cup 22% of the time to
+ * everybody else's 32%.
+ */
+export const cupFloor = (): number => {
+  const low = CUP_TEAMS.map((t) => t.rating).sort((a, b) => a - b).slice(0, 6)
+  return low.reduce((s, r) => s + r, 0) / low.length
+}
+export const cupEaseFor = (squadRating: number): number => {
+  const ratings = CUP_TEAMS.map((t) => t.rating)
+  const ease = clamp(Math.ceil(cupFloor() + CUP_CLIMB_FROM - squadRating), 0, CUP_EASE_MAX)
+  if (ease) return ease
+  // and the other end: the best club there is sits at 99, so a levelled 彩卡
+  // five never met its equal and a second life would have made its cup a
+  // formality. Those clubs turn up at full stretch, a capped number of
+  // points above their paper, printed the same way.
+  return -clamp(Math.floor(squadRating + CUP_CLIMB_TO - Math.max(...ratings)), 0, CUP_SHARPEN_MAX)
+}
 
 /** kept for saves written when a cup was priced in coins; nothing reads it */
 export const CUP_PRIZE = [100, 250, 400]
@@ -1796,6 +1875,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够，入场要 ${STAMINA_COST.cup} 点`)
   const { rng, done } = roll(g)
   const sorted = CUP_TEAMS.slice().sort((a, b) => a.rating - b.rating)
+  const ease = cupEaseFor(squadRating)
   let rounds = CUP_MIN_ROUNDS
   let dice = rng.next()
   for (const [n, p] of CUP_ROUND_ODDS) {
@@ -1810,7 +1890,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
     // rankings. Pinned to the absolute table instead, the final was the best
     // club on earth whoever entered, so a new account went 0 for 100 and the
     // cup was a tax on not having a finished collection. The climb runs from
-    // twelve below the five to level with it on the shared card scale.
+    // CUP_CLIMB_FROM below the five to CUP_CLIMB_TO above it on the shared card scale.
     // The old +7 final used a raw club average; applying it to the new full
     // squad score silently made the corrected cup much harder. A longer
     // bracket is more matches, not a harder final.
@@ -1819,7 +1899,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
     // table: the first version took "within five points" and, when nobody
     // was, any club on earth — which is how a squad in the sixties drew LOUD
     // in the quarters, Heretics in the semi, and a 66 in the final.
-    const target = squadRating - 12 + (12 / (rounds - 1)) * round
+    const target = squadRating - CUP_CLIMB_FROM + ((CUP_CLIMB_FROM + CUP_CLIMB_TO) / (rounds - 1)) * round + ease
     const near = sorted
       .filter((t) => !taken.has(t.id))
       .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target))
@@ -1831,14 +1911,17 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   // whoever was drawn, the bracket climbs: the final is the strongest of them
   const ratingOf = new Map(sorted.map((t) => [t.id, t.rating]))
   path.sort((a, b) => (ratingOf.get(a) ?? 0) - (ratingOf.get(b) ?? 0))
-  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY }
+  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY, double: true }
+  if (ease) g.cup.ease = ease
   if (registration) g.cup.registration = registerCupSquad(registration.squad, id => registration.levels[id] ?? 0)
   done()
-  note(g, `报名了一场 ${rounds} 轮的杯赛（−${STAMINA_COST.cup} 体力）`)
+  note(g, `报名了一场 ${rounds} 轮的双败杯赛（−${STAMINA_COST.cup} 体力）`)
   return g.cup
 }
 
 export interface CupOutcome {
+  /** this loss was the first: the five is in the 败者组, not out */
+  dropped?: boolean
   coins: number
   /** the headline pack; `packs` has all of them */
   pack?: PackKind
@@ -1863,19 +1946,62 @@ const givePacks = (g: GachaState, packs: Partial<Record<PackKind, number>>): str
     return `${PACKS[k].name} +${n}`
   }).join('，')
 
+/**
+ * The club waiting in the 败者组: the nearest on paper to the one that just
+ * won, never one already in the bracket. Read off the table rather than
+ * rolled, so there is nothing to refresh for.
+ */
+function lowerClub(cup: CupState): string {
+  const rating = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
+  const used = new Set([...cup.path, ...cup.legs.map((l) => l.opponent)])
+  const target = rating.get(cup.path[cup.round]) ?? 70
+  const pick = CUP_TEAMS
+    .filter((t) => !used.has(t.id))
+    .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target) || a.id.localeCompare(b.id))[0]
+  return (pick ?? CUP_TEAMS[0]).id
+}
+
+/**
+ * Apply a cup result.
+ *
+ * 双败 since 2026-09-17: 「输一轮就直接淘汰，五点体力浪费」 was the complaint,
+ * and measured it was one ticket in seven ending after a single match. The
+ * first loss now drops the five into the 败者组: one more best of three,
+ * against a club level with the one that beat it, and a win there puts it
+ * back in the next round as if it had never lost. Losing the FINAL is the
+ * real thing — 败者组决赛, then the final again. The second loss, wherever
+ * it comes, is the end. A bracket drawn before this has no `double` and
+ * ends on its first loss, as it was sold.
+ */
 export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
   const cup = g.cup
   if (!cup || cup.done) return { coins: 0, done: true, won: false }
-  cup.legs.push(leg)
+  const inLower = !!cup.double && !!cup.lower
+  const last = cup.path.length - 1
+  cup.legs.push({ ...leg, round: cup.round, ...(inLower ? { lower: true } : {}) })
   bumpQuest(g, 'cup1', 1)
   if (!leg.win) {
+    if (cup.double && !cup.dropped) {
+      cup.dropped = true
+      cup.lower = lowerClub(cup)
+      note(g, `杯赛${cupRoundName(cup.path.length, cup.round)}输了，掉入败者组`)
+      return { coins: 0, done: false, won: false, dropped: true }
+    }
     cup.done = true
+    cup.lower = null
     const coins = cupExitPrize(cup.round)
     g.coins += coins
     const packs = cupExitPacks(cup.round)
     const given = givePacks(g, packs)
     note(g, `杯赛止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}${given ? `，${given}` : ''}`)
     return { coins, packs, pack: (Object.keys(packs) as PackKind[])[0], done: true, won: false }
+  }
+  if (inLower) {
+    cup.lower = null
+    // out of the 败者组 and into the next round; from the 败者组决赛, back
+    // into the final that was lost
+    if (cup.round < last) cup.round++
+    return { coins: 0, done: false, won: false }
   }
   cup.round++
   if (cup.round >= cup.path.length) {
@@ -1891,7 +2017,7 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
 }
 
 export const cupOpponent = (g: GachaState): string | null =>
-  g.cup && !g.cup.done ? g.cup.path[g.cup.round] ?? null : null
+  g.cup && !g.cup.done ? (g.cup.double && g.cup.lower) || (g.cup.path[g.cup.round] ?? null) : null
 
 /**
  * A bracket drawn before a club left the world.
@@ -1909,7 +2035,10 @@ export function repairCup(g: GachaState): void {
   const cup = g.cup
   if (!cup || !Array.isArray(cup.path)) return
   const rating = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
-  if (cup.path.every((id) => rating.has(id))) return
+  if (cup.path.every((id) => rating.has(id))) {
+    if (cup.lower && !rating.has(cup.lower) && !cup.done) cup.lower = lowerClub(cup)
+    return
+  }
   const taken = new Set(cup.path.filter((id) => rating.has(id)))
   cup.path = cup.path.map((id, i) => {
     if (rating.has(id)) return id
@@ -1924,6 +2053,7 @@ export function repairCup(g: GachaState): void {
     taken.add(pick.id)
     return pick.id
   })
+  if (cup.lower && !rating.has(cup.lower) && !cup.done) cup.lower = lowerClub(cup)
 }
 
 // ---------------------------------------------------------------- daily

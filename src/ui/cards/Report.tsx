@@ -16,8 +16,10 @@ import type { PlayerCard, Squad } from '../../engine/cards'
  * than faked.
  */
 export default function MatchReport({
-  result, opponentId, opponentName, mySquad, mineTitle, level, onClose, extra,
+  result, opponentId, opponentName, mySquad, mineTitle, level, onClose, extra, neutral,
 }: {
+  /** somebody else's match — 全服杯: no 「赢了」, both sides by name */
+  neutral?: boolean
   result: ArenaResult
   opponentId: string
   /** when the opponent is a person rather than a club — 真人卡组 and 好友房 */
@@ -39,8 +41,10 @@ export default function MatchReport({
       <div className="modal" style={{ maxWidth: them ? 860 : 700 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>
-            {result.win ? '赢了' : '输了'} · {result.mapsWon}–{result.mapsLost} vs{' '}
-            {opponentName ?? opp?.tag ?? '?'}
+            {neutral
+              ? <>{mineTitle} <span style={{ whiteSpace: 'nowrap' }}>{result.mapsWon}–{result.mapsLost}</span> {opponentName}</>
+              : <>{result.win ? '赢了' : '输了'} · {result.mapsWon}–{result.mapsLost} vs{' '}
+                {opponentName ?? opp?.tag ?? '?'}</>}
           </h2>
           <div className="spacer" />
           <button className="ghost sm" onClick={onClose}>关闭</button>
@@ -69,8 +73,8 @@ export default function MatchReport({
                 won={!result.win}
               />
               <div className="grid c2" style={{ alignItems: 'start', marginTop: 4 }}>
-                <Board title="我方数据" lines={result.lines} mvp={result.mvpCard} level={level} />
-                <Board title="对方数据" lines={them.lines} mvp={them.mvpCard} level={theirLevel} />
+                <Board title={neutral ? `${mineTitle ?? ''} 数据` : '我方数据'} lines={result.lines} mvp={result.mvpCard} level={level} />
+                <Board title={neutral ? `${them.name} 数据` : '对方数据'} lines={them.lines} mvp={them.mvpCard} level={theirLevel} />
               </div>
             </>
           ) : (

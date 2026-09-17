@@ -29,6 +29,7 @@ import { displayName } from './names.js'
 import { makeProfileApi } from './profile-api.js'
 import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
+import { makeOpenCupApi } from './opencup-api.js'
 import { makePhoneApi } from './phone-api.js'
 import { overview, prune, storage } from './stats.js'
 import { history, rollup } from './rollup.js'
@@ -403,6 +404,16 @@ const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk,
 }))
 let _marketApi = null
+// A local server may run the 全服杯 on a fast clock (a cup every N seconds, a
+// round every M) so a whole bracket can be watched in a browser. Read only
+// beside the in-process database: the deployed service cannot be sped up.
+const OPEN_CUP_FAST = process.env.DATABASE_URL?.startsWith('pglite') && Number(process.env.OPEN_CUP_EVERY_SEC) >= 30
+  ? { everySec: Number(process.env.OPEN_CUP_EVERY_SEC), stepSec: Math.max(5, Number(process.env.OPEN_CUP_STEP_SEC) || 15) }
+  : null
+const openCupApi = () => (_openCupApi ??= makeOpenCupApi(sql, {
+  readBody, json, normalizeId, displayName, rateLimited, engine, fast: OPEN_CUP_FAST,
+}))
+let _openCupApi = null
 
 /** Which formats are worth compressing — the rest are already compressed. */
 const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
@@ -475,6 +486,10 @@ createServer((req, res) => {
 }).listen(PORT, () => {
   console.log(`VAL MANAGER serving ${ROOT} on :${PORT}`)
   console.log(`analytics: ${sql ? 'on' : 'off'}, ${EVENTS.size} event names accepted`)
+  // The 全服杯 runs on a clock, not on requests: start its timer once the
+  // port is open and the schema has had its turn, whether or not anybody
+  // has opened the page. A few seconds late costs nothing — it catches up.
+  setTimeout(() => { if (sql) openCupApi() }, OPEN_CUP_FAST ? 500 : 15_000).unref?.()
 })
 
 function handle(req, res) {
@@ -522,6 +537,16 @@ function handle(req, res) {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
       console.warn('phone: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
+    return
+  }
+  if (path === '/api/card/opencup' || path.startsWith('/api/card/opencup/')) {
+    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
+    void openCupApi().route(req, res, path, bucketOf(req)).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('opencup: route failed', err.message)
       if (!res.headersSent) json(res, 500, { ok: false })
     })
     return

@@ -423,21 +423,23 @@ export function playArenaMatch(
 /** Both sides of a cup use the same card seating and score curve as ranked PvP. */
 export function buildCupArena(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string, seed: number,
+  /** points the club plays below its paper — a rotation side, printed on the bracket (gacha.ts CUP_EASE_MAX) */
+  ease = 0,
 ): Arena {
   const club = cupTeam(opponentId)
   if (!club) throw new Error('杯赛对手不存在')
   const arena = buildArena(squad, level, seed)
   seatSquad(arena.state, { ...club.squad, name: club.name, tag: club.tag }, () => 0, opponentId, 'B', {})
-  honourGap(arena.state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, squadPaper(club.squad).score)
+  honourGap(arena.state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, squadPaper(club.squad).score - ease)
   return arena
 }
 
 /** Same score-based round strength as ranked card-vs-card play, on both sides. */
 export function playCupMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
-  bo: 1 | 3 | 5, seed: number,
+  bo: 1 | 3 | 5, seed: number, ease = 0,
 ): ArenaResult {
-  const { state, cardOf } = buildCupArena(squad, level, opponentId, seed)
+  const { state, cardOf } = buildCupArena(squad, level, opponentId, seed, ease)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, new Rng(seed ^ 0x5b1d))
   return { ...readResult(result, cardOf), result }
 }

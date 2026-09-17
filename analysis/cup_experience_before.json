@@ -1,0 +1,88 @@
+{
+ "cups": 300,
+ "rows": {
+  "最弱俱乐部 +0": {
+   "rating": 62,
+   "title": 0.03,
+   "zeroWins": 0.58,
+   "matches": 1.6866666666666668,
+   "wins": 0.7166666666666667,
+   "coins": 238,
+   "coinsPerStamina": 47.6,
+   "packs": {
+    "scout": 0.19,
+    "elite": 0.03
+   }
+  },
+  "下游 +0": {
+   "rating": 75,
+   "title": 0.18333333333333332,
+   "zeroWins": 0.23,
+   "matches": 2.5766666666666667,
+   "wins": 1.76,
+   "coins": 552.1666666666666,
+   "coinsPerStamina": 110.43333333333332,
+   "packs": {
+    "scout": 0.423,
+    "elite": 0.173,
+    "ten": 0.01
+   }
+  },
+  "中游 +0": {
+   "rating": 82,
+   "title": 0.24,
+   "zeroWins": 0.12666666666666668,
+   "matches": 2.8333333333333335,
+   "wins": 2.0733333333333333,
+   "coins": 660.5,
+   "coinsPerStamina": 132.1,
+   "packs": {
+    "ten": 0.023,
+    "scout": 0.49,
+    "elite": 0.217
+   }
+  },
+  "上游 +0": {
+   "rating": 88,
+   "title": 0.2,
+   "zeroWins": 0.15,
+   "matches": 2.8033333333333332,
+   "wins": 2.0033333333333334,
+   "coins": 609.5,
+   "coinsPerStamina": 121.9,
+   "packs": {
+    "scout": 0.497,
+    "ten": 0.023,
+    "elite": 0.177
+   }
+  },
+  "最强俱乐部 +0": {
+   "rating": 99,
+   "title": 0.21,
+   "zeroWins": 0.14666666666666667,
+   "matches": 2.7866666666666666,
+   "wins": 1.9966666666666666,
+   "coins": 621,
+   "coinsPerStamina": 124.2,
+   "packs": {
+    "scout": 0.513,
+    "elite": 0.19,
+    "ten": 0.02
+   }
+  },
+  "最强俱乐部 +5": {
+   "rating": 105,
+   "title": 0.38,
+   "zeroWins": 0.19,
+   "matches": 2.8,
+   "wins": 2.18,
+   "coins": 824.5,
+   "coinsPerStamina": 164.9,
+   "packs": {
+    "scout": 0.397,
+    "elite": 0.34,
+    "ten": 0.04
+   }
+  }
+ }
+}

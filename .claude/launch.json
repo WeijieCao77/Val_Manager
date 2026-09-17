@@ -58,6 +58,22 @@
         "server.js"
       ],
       "port": 8095
+    },
+    {
+      "name": "val-server-cup",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "ANALYTICS_TOKEN=devtoken",
+        "DATABASE_URL=pglite://",
+        "TRADE_DAYS=0",
+        "PHONE_GATE=0",
+        "OPEN_CUP_EVERY_SEC=180",
+        "OPEN_CUP_STEP_SEC=20",
+        "PORT=8097",
+        "node",
+        "server.js"
+      ],
+      "port": 8097
     }
   ]
 }

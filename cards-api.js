@@ -597,7 +597,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
               // that could never come, and every request after them queued
               // behind the deadlock until the process was restarted (2026-09-05,
               // 「网页卡了」 — the card page stuck on 正在读取卡牌账号).
-              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, db)
+              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, db, engine.ladderScore(g))
               out = engine.runAction(g, action, args, env)
             }
             const total = g.ladder.wins + g.ladder.losses
@@ -826,7 +826,21 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     const hit = rivalCache.get(div)
     const rows = hit && Date.now() - hit.at < RIVAL_TTL
       ? hit.rows
-      : await rivalRows(div, db).then((r) => { rivalCache.set(div, { at: Date.now(), rows: r }); return r })
+      : await rivalRows(div, db).then((found) => {
+        // kept as the five and its paper score, not as the account: a row
+        // carries the whole collection, and eighty of those per division
+        // is memory the cache has no use for
+        const r = found.map((x) => {
+          const five = squadOf(x)
+          let score = null
+          if (five.slots.filter(Boolean).length === 5) {
+            try { score = engine.squadRating({ slots: five.slots, coach: five.coach }, (id) => five.levels[id] ?? 0) } catch { score = null }
+          }
+          return { id_hash: x.id_hash, div: x.div, five, score: Number.isFinite(score) ? score : null }
+        })
+        rivalCache.set(div, { at: Date.now(), rows: r })
+        return r
+      })
     const others = rows.filter((r) => r.id_hash !== mine)
     // the query ordered by distance to the division, then by chance; keep
     // the distance and reshuffle the chance for each caller
@@ -857,13 +871,33 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       select id_hash, name, squad, cards, div, points
       from pool
       order by abs(div - ${div}), random()
-      limit 40`
+      limit 80`
   }
 
-  async function pickRival(div, mine, db = sql) {
-    const rows = await rivalPool(div, mine, db)
-    const fives = rows.map(squadOf).filter((x) => x.slots.filter(Boolean).length === 5)
-    return fives.length ? fives[Math.floor(Math.random() * fives.length)] : null
+  /**
+   * A rival for a ladder match: somebody near you on paper.
+   *
+   * It used to be anybody in the division. Sampled off the live pool on
+   * 2026-09-17, 钻石 held fives from 74 to 100 and 大师 from 79 to 104, so a
+   * 90 was dealt a 99 about as often as a 91 — and nine points is a match
+   * lost three times in four before it starts. Now: one of the fives within
+   * RIVAL_NEAR points of yours, at random; failing that the nearest within
+   * RIVAL_FAR; failing that nobody, and the match is against a club of the
+   * division, as it is when the pool is empty. `score` absent (an account
+   * with no five) keeps the old behaviour.
+   */
+  const RIVAL_NEAR = 4
+  const RIVAL_FAR = 8
+  async function pickRival(div, mine, db = sql, score = null) {
+    await rivalPool(div, mine, db)
+    const rows = (rivalCache.get(div)?.rows ?? []).filter((r) => r.id_hash !== mine && r.score !== null)
+    if (!rows.length) return null
+    const any = (list) => list[Math.floor(Math.random() * list.length)].five
+    if (typeof score !== 'number') return any(rows)
+    const near = rows.filter((r) => Math.abs(r.score - score) <= RIVAL_NEAR)
+    if (near.length) return any(near)
+    const nearest = rows.reduce((a, b) => (Math.abs(a.score - score) <= Math.abs(b.score - score) ? a : b))
+    return Math.abs(nearest.score - score) <= RIVAL_FAR ? nearest.five : null
   }
 
   async function rivals(req, res, bucket) {
@@ -880,7 +914,7 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     } catch { /* defaults are fine */ }
     try {
       const rows = await rivalPool(div, mine)
-      json(res, 200, { ok: true, rivals: rows.map(squadOf) })
+      json(res, 200, { ok: true, rivals: rows.map((r) => r.five) })
     } catch (err) {
       console.warn('cards: rivals failed', err.message)
       json(res, 500, { ok: false })

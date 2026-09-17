@@ -110,7 +110,7 @@ try {
   // registered levels actually reach the simulation, rather than just storage.
   const env = { now: Date.now(), today, seed: 33145 }
   const deterministic = structuredClone(changed)
-  const expected = playCupMatch(registered.squad, id => registered.levels[id] ?? 0, path[0], 3, env.seed)
+  const expected = playCupMatch(registered.squad, id => registered.levels[id] ?? 0, path[0], 3, env.seed, changed.cup!.ease ?? 0)
   const simulated = runAction(deterministic, 'cup_play', {}, env)
   assert(simulated.ok)
   assert.deepEqual((simulated.result as { res: ArenaResult }).res, expected)
@@ -123,7 +123,7 @@ try {
   assert.equal((await stored(A)).daily.stamina, changed.daily.stamina)
   console.log('ok API: immutable registration, weak-entry exploit blocked, upgrades, market escrow, client injection, empty daily squad, exact simulation')
 
-  for (let i = 0; i < 5 && !(await stored(A)).cup!.done; i++) assert.equal((await act(A, 'cup_play')).ok, true)
+  for (let i = 0; i < 7 && !(await stored(A)).cup!.done; i++) assert.equal((await act(A, 'cup_play')).ok, true)
   assert.equal((await stored(A)).cup!.done, true)
   assert.equal((await act(A, 'cup_clear')).ok, true)
   assert.equal((await act(A, 'cup_enter', {}, { squad: strong })).ok, true)

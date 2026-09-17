@@ -8,6 +8,7 @@ import {
   LEAGUES, LEAGUE_RULES,
   rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../../engine/gacha'
+import { RIVAL_MERCY_GAP } from '../../engine/gacha'
 import type { LadderOutcome, LeagueKind } from '../../engine/gacha'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { chemistry, squadRating } from '../../engine/cards'
@@ -222,7 +223,7 @@ export default function Ladder() {
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
                 BO3，完整 BAN/PICK 和回合经济，<b>在服务器上打</b>。
                 {rival
-                  ? '　对面是别的玩家保存的阵容，不需要他在线。'
+                  ? `　优先匹配阵容分相差 4 分以内的玩家。对面高出 ${RIVAL_MERCY_GAP} 分以上，输了不掉星，大师分只扣一半。`
                   : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
               </p>
               <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !entry.ok || !canPlay(g, 'ladder', now)}>
@@ -328,6 +329,7 @@ export default function Ladder() {
                 </span>
               )}
               {shown.out.promoted && <span className="chiplet" style={{ color: 'var(--win)' }}>升段 → {rankName(L.div, L.stars, L.points ?? 0)}</span>}
+              {shown.out.spared && <span className="chiplet">对手强出一截 · {shown.out.pointsDelta != null ? '少扣一半' : '不掉星'}</span>}
               {shown.out.demoted && <span className="chiplet" style={{ color: 'var(--loss)' }}>掉段 → {rankName(L.div, L.stars, 0)}</span>}
               {shown.out.pack && <span className="chiplet" style={{ color: 'var(--warn)' }}>升段奖励：{PACKS[shown.out.pack].name}</span>}
               {shown.out.milestone && <span className="chiplet" style={{ color: 'var(--warn)' }}>第 {shown.out.milestoneWins} 胜：{PACKS[shown.out.milestone].name} +1</span>}

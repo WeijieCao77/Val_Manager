@@ -10,7 +10,7 @@
  * strongest of them, nobody appears twice, and the whole bracket sits near
  * the squad rather than at the top of the world.
  */
-import { newGacha, enterCup, STAMINA_MAX } from '../src/engine/gacha'
+import { newGacha, enterCup, STAMINA_MAX, CUP_CLIMB_FROM, CUP_CLIMB_TO, CUP_EASE_MAX, CUP_SHARPEN_MAX, cupFloor } from '../src/engine/gacha'
 import { CUP_TEAMS } from '../src/engine/cupTeams'
 import { Rng, hashStr } from '../src/engine/rng'
 
@@ -34,7 +34,7 @@ const ceilingBand = ladder[Math.max(0, ladder.length - 10)]
 const g = newGacha('VM-CUPP-CUPP-CUPP-CUPP-CUPP', '杯赛签表', '2026-09-02')
 const now = Date.parse('2026-09-02T12:00:00Z')
 let drawn = 0
-let notClimbing = 0, finalNotTop = 0, repeats = 0, farOff = 0
+let notClimbing = 0, finalNotTop = 0, repeats = 0, farOff = 0, badEase = 0
 const depths: Record<number, number> = {}
 const example: string[] = []
 for (let squad = 40; squad <= 96; squad += 4) {
@@ -49,11 +49,14 @@ for (let squad = 40; squad <= 96; squad += 4) {
     if (rs.some((r, k) => k > 0 && r < rs[k - 1])) notClimbing++
     if (rs[rs.length - 1] !== Math.max(...rs)) finalNotTop++
     if (new Set(cup.path).size !== cup.path.length) repeats++
-    // the climb is squad−12 … squad, clamped to the cup pool's range — a
-    // squad below the weakest club plays the weakest clubs — and the six
-    // nearest can sit a few points off the exact target
-    const lo = Math.min(Math.min(Math.max(lowest, squad - 12), highest) - 6, ceilingBand)
-    const hi = Math.max(Math.max(Math.min(highest, squad), lowest) + 6, floorBand)
+    // the climb is squad−9 … squad+3 in points as the bracket PRINTS them
+    // (the club's paper less the bracket's ease), clamped to the cup pool's
+    // range, and the six nearest can sit a few points off the exact target
+    const ease = cup.ease ?? 0
+    if (ease > CUP_EASE_MAX || ease < -CUP_SHARPEN_MAX) badEase++
+    if (squad >= cupFloor() + CUP_CLIMB_FROM && squad + CUP_CLIMB_TO <= highest && ease !== 0) badEase++
+    const lo = Math.min(Math.min(Math.max(lowest, squad - CUP_CLIMB_FROM + ease), highest) - 6, ceilingBand)
+    const hi = Math.max(Math.max(Math.min(highest, squad + CUP_CLIMB_TO + ease), lowest) + 6, floorBand)
     if (rs.some((r) => r < lo || r > hi)) farOff++
     if (example.length < 4 && i === 0) example.push(`${squad}: ${rs.join(' → ')}`)
   }
@@ -62,6 +65,7 @@ check(`每一张签表对手一轮比一轮强（${drawn} 张）`, notClimbing =
 check('决赛永远是签表里最强的', finalNotTop === 0, `${finalNotTop} 张不是`)
 check('一支队不会在同一张签表出现两次', repeats === 0, `${repeats} 张有`)
 check('整张签表都在阵容分附近，不会抽到全世界最强', farOff === 0, `${farOff} 张跑远了`)
+check('让分只给抽不到更弱对手的阵容，加强只给超过最强俱乐部的阵容，都有上限', badEase === 0, `${badEase} 张不对`)
 check('3～5 轮都抽得到', !!depths[3] && !!depths[4] && !!depths[5], JSON.stringify(depths))
 console.log('  例：' + example.join(' | '))
 
@@ -90,13 +94,14 @@ for (const score of [65, 73, 80]) {
     g.cup = null; g.seed = seed; g.daily.stamina = STAMINA_MAX
     const current = enterCup(g, score, now)
     sameDepth &&= current.path.length === old.length
+    // compared in the points the bracket prints: a low five's clubs come with an ease
     delta += old.reduce((s, id) => s + ratingOf.get(id)!, 0) / old.length
-      - current.path.reduce((s, id) => s + ratingOf.get(id)!, 0) / current.path.length
+      - current.path.reduce((s, id) => s + ratingOf.get(id)! - (current.ease ?? 0), 0) / current.path.length
     compared++
   }
 }
 check('同一种子保留原来的杯赛轮数', sameDepth)
-check('统一综合分后降低抽签目标，避免沿用旧区间把难度推高', delta / compared > 2 && delta / compared < 8, `相对旧区间平均降低 ${(delta / compared).toFixed(2)} 分`)
+check('统一综合分后降低抽签目标，避免沿用旧区间把难度推高', delta / compared > 1.5 && delta / compared < 8, `相对旧区间平均降低 ${(delta / compared).toFixed(2)} 分`)
 // An already paid-for old bracket must not be re-drawn or charged again.
 g.cup = { path: previousDraw(12345, 73), round: 0, legs: [], done: false, won: false, entry: 0 }
 const oldState = JSON.stringify(g)

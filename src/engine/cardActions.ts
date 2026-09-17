@@ -27,7 +27,7 @@ import {
   awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
-  LEAGUE_RULES, MASTER_DIV, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
+  LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
@@ -73,6 +73,12 @@ export type ActionName = (typeof ACTIONS)[number]
 /** Whether this action may need a real player's five fetched before it runs. */
 export const wantsRival = (g: GachaState, action: string): boolean =>
   (action === 'ladder' || action === 'ladder_draw') && !pendingOpponent(g) && g.ladder.div >= 4
+
+/** What the five this account would field is worth on paper, for finding it a fair rival. */
+export function ladderScore(g: GachaState): number | null {
+  const five = squadForPlay(g)
+  return five.ok ? squadRating(five.squad, (id) => levelOf(g, id)) : null
+}
 
 /**
  * The five as the server will field it.
@@ -251,7 +257,9 @@ function dispatch(
       const strength = rival
         ? 84 + Math.min(10, Math.floor(rival.points / 250))
         : (opp?.rating ?? 80) + bump
-      const out = recordLadder(g, res.win, strength, league)
+      const mercy = !!rival
+        && squadRating(rival, (id) => rival.levels[id] ?? 0) - squadRating(five.squad, level) >= RIVAL_MERCY_GAP
+      const out = recordLadder(g, res.win, strength, league, mercy)
       return {
         ok: true,
         result: { league, res, opp: oppId, who: rival ? `${rival.name} ${rival.tag}` : undefined, out },
@@ -283,7 +291,7 @@ function dispatch(
       }
       // the ticket was the whole price: nothing is charged per round
       const level = (id: string) => cup.registration!.levels[id] ?? 0
-      const res = playCupMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed)
+      const res = playCupMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed, cup.ease ?? 0)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })

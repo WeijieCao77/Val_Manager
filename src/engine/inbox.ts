@@ -148,6 +148,14 @@ export function mailLine(m: MailItem): string {
     case 'swap_offer': return `${who} 想用 ${nameOf(String(m.body?.give ?? ''))} 换你的 ${nameOf(String(m.body?.want ?? ''))}，去好友页答复`
     case 'swap_in': return `换到了 ${nameAt(m.cardId ?? '', m.level)}（和 ${who} 的交换成交）`
     case 'swap_back': return `${nameAt(m.cardId ?? '', m.level)} 退回来了（${String(m.body?.reason ?? '交换没成')}）`
+    case 'open_cup': {
+      const place = Number(m.body?.place) || 0
+      const head = place === 1 ? '全服杯冠军' : place === 2 ? '全服杯亚军' : place === 4 ? '全服杯四强' : `全服杯赢了 ${Number(m.body?.wins) || 0} 场`
+      const bits = []
+      if (m.coins) bits.push(`${m.coins} 金币`)
+      if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)
+      return `${head}：${bits.join('，')}`
+    }
     case 'grant': {
       const bits = []
       if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)
