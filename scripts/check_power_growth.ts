@@ -68,7 +68,8 @@ const coaches = ALL_CARDS.filter(isCoachCard)
 const PINNED: Record<string, string> = {
   'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': '6b96eb4ef77c',
   'p:P260,p:P65,p:P360,p:P266,p:P536|-': 'a0240f257957',
-  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '8a6a8c38ed00',
+  // re-pinned 2026-09-18: Shao's flag went from vlr's blank "un" to Russia, and a shared flag is part of a bond
+  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '1c1ce08e3d50',
   'p:P227,p:P382,p:P95,p:P300,p:P48|-': '595896154188',
   'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': '32470f4bdca0',
   'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'e27e63094203',

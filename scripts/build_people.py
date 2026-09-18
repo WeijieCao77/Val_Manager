@@ -135,7 +135,9 @@ for vid, q in reg["people"].items():
     # Devanagari…) is shown in the romanisation the same infobox gives
     if l.get("real") and l.get("romanized") and re.search(r"[\u0590-\u08ff\u0900-\u0dff\u0e00-\u0eff]", l["real"]):
         l["real"] = l["romanized"]
-    l_nat = CODE_OF.get(str(l.get("country") or "").strip().lower())
+    # "Non-representing" first and the country second is how Liquipedia lists a
+    # Russian under the neutral flag: the second line is where he is from
+    l_nat = CODE_OF.get(str(l.get("country") or "").strip().lower()) or CODE_OF.get(str(l.get("country2") or "").strip().lower())
     if l.get("page") is False:
         l = {}
     if by_id:
@@ -190,6 +192,11 @@ for vid, q in reg["people"].items():
     if weight:
         top, n = weight.most_common(1)[0]
         if n >= 2 and top != base_nat and n > weight.get(base_nat, 0):
+            nat = top
+        elif base_nat in (None, "", "un"):
+            # vlr's white "un" flag is not a country: it is what vlr shows for a
+            # Russian playing as non-representing (Shao, SUYGETSU) and for anyone
+            # it has no flag for. Any site that names a country beats it.
             nat = top
     if flags_by_hand.get(vid):
         nat = flags_by_hand[vid]          # the owner's call (overrides.json `flags`)

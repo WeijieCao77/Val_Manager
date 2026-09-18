@@ -314,7 +314,37 @@
  "_flags_note": [
   "A flag the owner has decided, keyed by vlr id -> two-letter code. It beats every site.",
   "scripts/build_people.py otherwise takes a weighted majority (Liquipedia proven by vlr id 1.5, 号角 by hand 1.5, vlr 1, thespike 1) and",
-  "lists every disagreement in analysis/people/audit.md; a 1-vs-1 keeps vlr's flag and is marked 待定 there."
+  "lists every disagreement in analysis/people/audit.md; a 1-vs-1 keeps vlr's flag and is marked 待定 there.",
+  "3993 jawgemo = kh: owner, 2026-09-18 「jawgemo是柬埔寨cambodia人」 (Liquipedia and thespike say United States; vlr says Cambodia)."
  ],
- "flags": {}
+ "flags": {
+  "3993": "kh"
+ },
+ "_samePerson_note": [
+  "One man, two vlr.gg player pages. Keyed by the page to fold away -> {vlr: the page that is him now, ign: the handle on it}.",
+  "build_world_year.py rewrites the rows before anything reads them, so his lines pool and he is on a roster once.",
+  "balua/aluba: owner, 2026-09-18 — 「狼队aluba和balua是一个人」. vlr lists both on ME in the 2023 China qualifier (288 + 137 rounds), which put him on that roster twice, rated 87 and 65."
+ ],
+ "samePerson": {
+  "8667": {
+   "vlr": "14441",
+   "ign": "aluba",
+   "was": "balua"
+  }
+ },
+ "_aliases_note": [
+  "Spellings of one handle that differ between sites, for scripts/audit_year_rosters.py only (so the roster report does not list them as two people).",
+  "Owner, 2026-09-18: hfmi0dzjc9z7 = zjc, HeiB = heybay, keznitdeuS = keznit. The game shows the first name of each pair below (vlr's and thespike's)."
+ ],
+ "aliases": {
+  "zjc": [
+   "hfmi0dzjc9z7"
+  ],
+  "heybay": [
+   "HeiB"
+  ],
+  "keznit": [
+   "keznitdeuS"
+  ]
+ }
 }

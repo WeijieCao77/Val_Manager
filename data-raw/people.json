@@ -395,7 +395,7 @@
  "3993": {
   "ign": "jawgemo",
   "handleNow": "jawgemo",
-  "nat": "us",
+  "nat": "kh",
   "real": "Alexander Mor",
   "birth": "1999-06-24",
   "img": "https://owcdn.net/img/64169400bfed7.png",
@@ -3647,14 +3647,14 @@
  "384": {
   "ign": "Shao",
   "handleNow": "Shao",
-  "nat": "un",
+  "nat": "ru",
   "real": "Андрей Кипрский",
   "birth": "2000-01-27",
   "img": "https://owcdn.net/img/6792501581f4f.png",
   "imgSrc": "vlr",
   "src": {
    "nat": {
-    "ru": 1
+    "ru": 2
    },
    "real": "liquipedia",
    "birth": "liquipedia",
@@ -3790,21 +3790,25 @@
  "2858": {
   "ign": "SUYGETSU",
   "handleNow": "SUYGETSU",
-  "nat": "un",
+  "nat": "ru",
   "real": "Дмитрий Илюшин",
   "birth": "2002-07-16",
   "img": "https://owcdn.net/img/642eabfbd9478.png",
   "imgSrc": "vlr",
   "src": {
-   "nat": {},
+   "nat": {
+    "ru": 2
+   },
    "real": "liquipedia",
    "birth": "liquipedia",
-   "spike": null,
-   "spikeHow": null
+   "spike": "2362",
+   "spikeHow": "club"
   },
-  "lastMatch": null,
+  "lastMatch": "2026-08-30",
   "current": [],
-  "spikeCurrent": [],
+  "spikeCurrent": [
+   "Karmine Corp"
+  ],
   "currentRole": null,
   "years": [
    "2023",
@@ -17442,7 +17446,7 @@
  "47852": {
   "ign": "Boomy",
   "handleNow": "Boomy",
-  "nat": "un",
+  "nat": "us",
   "real": null,
   "birth": null,
   "img": null,
@@ -26065,31 +26069,6 @@
   "spikeCurrent": [
    "BESTIA"
   ],
-  "currentRole": null,
-  "years": [
-   "2023"
-  ]
- },
- "8667": {
-  "ign": "balua",
-  "handleNow": "balua",
-  "nat": "cn",
-  "real": null,
-  "birth": null,
-  "img": null,
-  "imgSrc": null,
-  "src": {
-   "nat": {
-    "cn": 1
-   },
-   "real": null,
-   "birth": null,
-   "spike": null,
-   "spikeHow": null
-  },
-  "lastMatch": "2023-06-07",
-  "current": [],
-  "spikeCurrent": [],
   "currentRole": null,
   "years": [
    "2023"

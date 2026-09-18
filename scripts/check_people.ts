@@ -59,6 +59,22 @@ for (const year of [2023, 2024, 2025]) {
   check('2025 NBL 的 k1Ng 是巴基斯坦人，没有韩国 k1Ng 的名字', k?.nat === 'pk' && !/이승원/.test(k.realName ?? ''), `${k?.nat} ${k?.realName}`)
 }
 
+{
+  // owner, 2026-09-18: 「狼队aluba和balua是一个人」 — vlr keeps two pages for him
+  const w23 = J('src/data/world_2023.json') as RawWorld
+  const him = w23.players.filter((p) => ['aluba', 'balua'].includes(p.ign.toLowerCase()))
+  check('2023 ME 的 aluba 只有一个人，用他 2026 的编号', him.length === 1 && him[0].id === 'P220', him.map((p) => `${p.id}:${p.ign}`).join(','))
+  for (const year of [2023, 2024, 2025]) {
+    const w = J(`src/data/world_${year}.json`) as RawWorld
+    const un = w.players.filter((p) => ['Shao', 'SUYGETSU'].includes(p.ign) && p.nat !== 'ru')
+    check(`${year}: Shao、SUYGETSU 是俄罗斯，不是 vlr 的空白旗`, un.length === 0, un.map((p) => `${p.ign}:${p.nat}`).join(','))
+  }
+}
+for (const [ign, nat] of [['Shao', 'ru'], ['SUYGETSU', 'ru'], ['jawgemo', 'kh']]) {
+  const p = WORLD_PLAYERS.find((x) => x.ign === ign)
+  check(`2026：${ign} 的国籍是 ${nat}（世界和档案一致）`, p?.nat === nat && dossierOf(p.id)?.nat === nat, `${p?.nat} / ${p && dossierOf(p.id)?.nat}`)
+}
+
 console.log('\n=== 2026：串了人的四个韩国选手 ===')
 for (const [ign, real] of [['kAyle', '정수용'], ['Ray', '오은혁'], ['Cloudy', '구민재'], ['shu', '윤시후']]) {
   const p = WORLD_PLAYERS.find((x) => (x.handle ?? x.ign) === ign)

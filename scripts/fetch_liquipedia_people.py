@@ -42,6 +42,7 @@ def field(txt, name):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--dry", action="store_true")
     ap.add_argument("--recheck", action="store_true", help="re-read the handle pages build_people.py doubts, for their vlr= field")
+    ap.add_argument("--titles", default="", help="comma-separated page titles to (re)read, e.g. a man vlr flags as 'un'")
     a = ap.parse_args()
     people = json.load(open(P("data-raw", "people.json")))
     handles = json.load(open(P("data-raw", "overrides.json"))).get("handles") or {}
@@ -64,6 +65,8 @@ def main():
     if a.recheck:
         doubt = json.load(open(P("scripts", "cache", "liquipedia_recheck.json")))
         titles = [t for t in doubt if t not in cache]
+    if a.titles:
+        titles = [t.strip() for t in a.titles.split(",") if t.strip()]
     print(f"{len(titles)} titles to ask for, {-(-len(titles) // 50)} requests, {INTERVAL:.0f} s apart")
     if a.dry:
         print(titles[:40]); return 0
@@ -95,7 +98,7 @@ def main():
             player = "Infobox player" in txt or "infobox player" in txt.lower()
             cache[src] = {"page": title if txt else False, "player": player, "birth": field(txt, "birth_date"),
                           "real": field(txt, "name"), "romanized": field(txt, "romanized_name"),
-                          "country": field(txt, "country"), "vlr": field(txt, "vlr"),
+                          "country": field(txt, "country"), "country2": field(txt, "country2"), "vlr": field(txt, "vlr"),
                           "disambig": "{{disambig" in txt.lower() or "may refer to" in txt.lower()}
             got.add(src)
         for t in batch:

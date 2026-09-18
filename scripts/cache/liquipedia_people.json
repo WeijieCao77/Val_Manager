@@ -3368,5 +3368,27 @@
   "country": "China",
   "vlr": null,
   "disambig": false
+ },
+ "SUYGETSU": {
+  "page": "SUYGETSU",
+  "player": true,
+  "birth": "2002-07-16",
+  "real": "Дмитрий Илюшин",
+  "romanized": "Dmitrii Iliushin",
+  "country": "xx",
+  "country2": "Russia",
+  "vlr": "2858",
+  "disambig": false
+ },
+ "Shao": {
+  "page": "Shao",
+  "player": true,
+  "birth": "2000-01-27",
+  "real": "Андрей Кипрский",
+  "romanized": "Andrei Kiprskii",
+  "country": "xx",
+  "country2": "Russia",
+  "vlr": "384",
+  "disambig": false
  }
 }

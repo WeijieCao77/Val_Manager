@@ -129,6 +129,18 @@ def top_flight(ev):
     return "champions-tour-europe" in slug or "champions-tour-north-america" in slug
 
 
+def fold(src):
+    """One man with two vlr pages (overrides.json `samePerson`: balua is aluba)
+    becomes one man before anything reads the rows."""
+    same = bw.load_json(bw.OVERRIDES).get("samePerson") or {}
+    for lines in (src.get("stats") or {}).values():
+        for row in lines:
+            him = same.get(str(row.get("vlrId") or ""))
+            if isinstance(him, dict):
+                row["vlrId"], row["ign"] = him["vlr"], him["ign"]
+    return src
+
+
 def fetch_births(igns, store):
     """Batched Liquipedia page reads, gzip, identified, 2.5 s apart; a 429 aborts."""
     todo = [i for i in igns if i.lower() not in {k.lower() for k in store}]
@@ -180,6 +192,7 @@ def main():
     Y = args.year
     bw.SEASON_YEAR = Y   # age_from and the recency clock read this
     cache = load(CACHE, {"events": {}, "stats": {}})
+    fold(cache)
     world26 = load(WORLD_2026, {"players": [], "teams": []})
     prev_pid = {p["ign"].lower(): p["id"] for p in world26["players"]}
 
@@ -192,7 +205,7 @@ def main():
     # listed by hand; overrides.json `homonyms` still names the ones where a
     # site other than vlr mixes them up too.
     ids_of = defaultdict(set)
-    for src in (cache, load(CHALLENGERS, {"stats": {}})):
+    for src in (cache, fold(load(CHALLENGERS, {"stats": {}}))):
         for lines in (src.get("stats") or {}).values():
             for row in lines:
                 if row.get("vlrId"):
@@ -319,7 +332,7 @@ def main():
     # China has no Challengers split on vlr: 2023 and 2024 use the clubs of
     # the 2023 Champions China qualifier outside tier one, 2025 the clubs of
     # the 2024 China Ascension. A region with no table has no second tier.
-    chal = load(CHALLENGERS, {"events": {}, "stats": {}})
+    chal = fold(load(CHALLENGERS, {"events": {}, "stats": {}}))
     t2_rosters = {}   # tag -> {region, rows}
     t2_source = {}
     partners = set(rosters)

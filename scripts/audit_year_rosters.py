@@ -16,6 +16,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 J = lambda *p: json.load(open(os.path.join(ROOT, *p)))
 cards = J("scripts", "cache", "liquipedia_event_staff.json")
 k = lambda s: re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", s.lower()).encode("ascii", "ignore").decode())
+# spellings of one handle (overrides.json `aliases` and `handles`): HeiB is heybay
+_ov = J("data-raw", "overrides.json")
+SAME = {}
+for main, others in (_ov.get("aliases") or {}).items():
+    for o in others:
+        SAME[k(o)] = k(main)
+for h in (_ov.get("handles") or {}).values():
+    if isinstance(h, dict):
+        SAME[k(h["vlr"])] = k(h["ign"])
+_k = k
+k = lambda s: SAME.get(_k(s), _k(s))  # noqa: E731
 out = []
 for year in (2023, 2024, 2025):
     w = J("src", "data", f"world_{year}.json")
