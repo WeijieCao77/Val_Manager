@@ -355,6 +355,7 @@ def load_json(path):
 # Gaming wore the Polish world champion's photo, birthdate, agent pool and
 # club history.
 HOMONYMS = {str(k).lower(): v for k, v in (load_json(OVERRIDES).get("homonyms") or {}).items()}
+PEOPLE = load_json(os.path.join(ROOT, "data-raw", "people.json")) if os.path.exists(os.path.join(ROOT, "data-raw", "people.json")) else {}
 
 
 def homonym(ign):
@@ -699,11 +700,14 @@ def parse_challengers_rows():
             tag_region[vcl_tag(tag)] = tag_of_region.get(tag, "")
 
     # leagues with no stats tab were filled in from each player's own page
-    for r in cache.get("players", {}).values():
+    for vid, r in cache.get("players", {}).items():
         club = r.get("club")
         if not club or club not in roster_of:
             continue
-        if not_him(r["ign"], r.get("vlrId")):
+        # these rows are keyed by vlr id and do not repeat it inside: read the
+        # key, or a listed homonym (Nana of VLG) is "somebody we cannot tell"
+        # and drops out of the world with the card people own
+        if not_him(r["ign"], r.get("vlrId") or vid):
             continue
         rows.append({
             "ign": r["ign"], "tag": vcl_tag(club), "nat": (homonym(r["ign"]) or {}).get("nat", ""),
@@ -885,6 +889,9 @@ def main():
     # players the owner has struck from the database, by ign: left out of the
     # world entirely, not made free agents (KovaQ came back that way once)
     dropped = {str(n).lower() for n in (ov.get("drop") or [])}
+    now_coach = {str(k).lower(): v for k, v in (ov.get("nowCoach") or {}).items()}
+    shown_as = {str(k): v["ign"] for k, v in (ov.get("handles") or {}).items()
+                if isinstance(v, dict) and SEASON_YEAR <= (v.get("until") or 9999)}
     ov_roles = ov.get("roles", {})
     for key, fixed in (ov.get("coaches") or {}).items():
         coaches[key] = {**coaches.get(key, {}), **fixed}
@@ -1380,10 +1387,26 @@ def main():
             # the page under this handle is about the other man; the name vlr
             # gives is all that is known, and the age stays a guess
             lp = {"real": homonym(ign).get("real")}
-        if lp and not same_person(lp, r["nat"], (vlr_prof.get(ign) or {}).get("real") or vlr_names.get(ign)):
+        # A Challengers row arrives with no flag (the dossier fills it in
+        # later), and same_person treats an unknown flag as no evidence — so
+        # the Korean kAyle, Ray, Cloudy and shu each took the name and birthday
+        # of a Malaysian, an Indonesian, a Cambodian and a Taiwanese player
+        # whose Liquipedia page sits under the same handle. His own vlr page
+        # knows his flag; ask it.
+        nat_known = r["nat"] or (vlr_prof.get(ign) or {}).get("nat") or ""
+        if lp and not same_person(lp, nat_known, (vlr_prof.get(ign) or {}).get("real") or vlr_names.get(ign)):
             # a real page about a different real person is worse than no page
             wrong_person.append((ign, r["nat"], lp.get("country")))
             lp = {}
+        # What no page under his handle could say, the record kept under his
+        # vlr id may (data-raw/people.json, scripts/build_people.py): The Spike
+        # publishes a birthdate for a good many players Liquipedia has no page
+        # for, and an id cannot be the wrong man the way a handle can.
+        who = PEOPLE.get(str((vlr_prof.get(ign) or {}).get("vlrId") or "")) or {}
+        if who.get("birth") and not re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", str(lp.get("birth") or "")):
+            lp = {**lp, "birth": who["birth"]}
+        if who.get("real") and not lp.get("real"):
+            lp = {**lp, "real": who["real"]}
         raw_birth = lp.get("birth")
         age = age_from(raw_birth)
         estimated = age is None
@@ -1417,7 +1440,10 @@ def main():
         joined = current[0]["from"][:7] if current else None
 
         built[ign] = {
-            "ign": ign, "tag": r["tag"], "nat": r["nat"], "role": r["role"],
+            # the flag every site was asked about, where they were (people.json):
+            # a career reads this field, the card reads the dossier, and the two
+            # must not disagree about whether tex is German or American
+            "ign": ign, "tag": r["tag"], "nat": (who.get("nat") if len(str(who.get("nat") or "")) == 2 else None) or r["nat"], "role": r["role"],
             "joined": joined,
             "traits": traits,
             # Liquipedia sometimes fills the name field with the handle when no
@@ -1501,6 +1527,17 @@ def main():
             rec["agentUse"] = p["agentUse"]
             if p.get("agentR"):
                 rec["agentR"] = p["agentR"]
+        vid = str((vlr_prof.get(p["ign"]) or {}).get("vlrId") or "")
+        if vid and shown_as.get(vid) and shown_as[vid] != p["ign"]:
+            # the id he registers under, where vlr prints an alias (overrides.json
+            # `handles`). `ign` stays vlr's: every cache and every save's id is
+            # keyed by it. The game shows `shown`.
+            rec["shown"] = shown_as[vid]
+        if p["ign"].lower() in now_coach:
+            # he played this season and then took a bench (overrides.json
+            # `nowCoach`). His 2026 lines are real, so his card stays; a
+            # manager save must not list the head coach of UR as a free agent.
+            rec["nowCoach"] = now_coach[p["ign"].lower()]
         out_players.append(rec)
         return rec
 

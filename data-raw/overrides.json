@@ -210,6 +210,111 @@
     "nat": "pl",
     "real": "Aleksander Zygmunt"
    }
+  },
+  "shu": {
+   "vlr": "42755",
+   "nat": "kr",
+   "real": "Yoon Si-hoo (윤시후)",
+   "lpIs": "the Taiwanese Shu (Yang Chenwei)"
+  },
+  "kayle": {
+   "vlr": "34727",
+   "nat": "kr",
+   "real": "Jung Soo-yong (정수용)",
+   "lpIs": "the Malaysian kAyle (Ahmad Aqil bin Ariff, vlr 19126; Todak, NEXGA, Kizuna)"
+  },
+  "ray": {
+   "vlr": "60576",
+   "nat": "kr",
+   "real": "Oh Eun-hyuk (오은혁)",
+   "lpIs": "the Indonesian Ray4c (Rayvaldo Chandra)"
+  },
+  "cloudy": {
+   "vlr": "9192",
+   "nat": "kr",
+   "real": "Koo Min-jae (구민재)",
+   "lpIs": "the Cambodian Cloudy (Sova Heng, vlr 24710)"
+  },
+  "luca": {
+   "vlr": "37393",
+   "nat": "jp",
+   "real": null,
+   "lpIs": "the British Luca (vlr 31298; Vexed, EXO Clan, Metizport)"
+  },
+  "coco": {
+   "vlr": "47629",
+   "nat": "cn",
+   "real": "丁达建",
+   "lpIs": "the Filipino Coco (Omar Shariff M. Lopez, vlr 10216; Oasis Gaming)"
+  },
+  "nana": {
+   "vlr": "48171",
+   "nat": "cn",
+   "real": null,
+   "lpIs": "the Egyptian Nana (3BL Female, GnG White)"
   }
- }
+ },
+ "_nowCoach_note": [
+  "Men who played in 2026 and are now a club's coach: one person, two jobs in one season.",
+  "The player row stays in world.json (real 2026 lines, and the 开瓦包 card people already own), marked nowCoach with the club tag;",
+  "a manager save leaves him out of the player pool so the coach of UR cannot also be signed as a free agent.",
+  "Biank: UR 主教练 (号角 and vlr agree). coldfish: KBG 主教练 since 2026-09-01 (号角).",
+  "NOT Autumn (the GE player is Kale Dunne; EDG's coach Autumn is another man) and NOT Potter (RA's Thai player vs EG's Christine Chi)."
+ ],
+ "nowCoach": {
+  "Biank": "UR",
+  "coldfish": "KBG"
+ },
+ "_handles_note": [
+  "The id a player registers under, keyed by vlr id, where vlr.gg prints an alias instead — and prints it on every old page too,",
+  "so the 2023 NRG roster read FiNESSE and FPX's TZH was nizhaoTZH. Listed only where two of the three sites agree against vlr:",
+  "Liquipedia's participant card for the VCT event (scripts/audit_year_rosters.py) and thespike.gg's player slug.",
+  "Left alone on purpose: heybay (vlr and The Spike agree; Liquipedia says HeiB), keznit (Liquipedia's card says keznitdeuS, nobody else does), 2GE (renamed from Tehbotol mid-2023).",
+  "world.json keeps vlr's handle as `ign` (caches and ids are keyed by it) and carries this as `shown`; the 2023-2025 worlds take it as `ign`.",
+  "`until`: the last season he used that id (Nozwerr became nzr by 2025) — later worlds keep vlr's."
+ ],
+ "handles": {
+  "817": {
+   "ign": "FNS",
+   "vlr": "FiNESSE",
+   "seen": "Liquipedia NRG cards 2023 and 2025; thespike /player/fns/607"
+  },
+  "4880": {
+   "ign": "TZH",
+   "vlr": "nizhaoTZH",
+   "seen": "Liquipedia FPX 2023, DRG 2024, AG 2025 cards; thespike slug tzh"
+  },
+  "725": {
+   "ign": "Nozwerr",
+   "vlr": "nzr",
+   "seen": "Liquipedia Leviatán 2023 card says Nozwerr, its MIBR 2025 card says nzr; thespike /player/nozwerr/537",
+   "until": 2024
+  },
+  "5351": {
+   "ign": "RgLM",
+   "vlr": "RgLMeister",
+   "seen": "Liquipedia MIBR 2023 and 2024 cards; thespike /player/rglm/5302"
+  },
+  "2625": {
+   "ign": "Shin",
+   "vlr": "sh1n",
+   "seen": "Liquipedia Karmine Corp 2023 and 2024 cards; thespike slug shin"
+  },
+  "13219": {
+   "ign": "PapiChulo",
+   "vlr": "Papi",
+   "seen": "Liquipedia Global Esports 2025 card; thespike slug papichulo"
+  },
+  "20871": {
+   "ign": "K4DAVRA",
+   "vlr": "Kada",
+   "seen": "Liquipedia Gentle Mates 2025 card; thespike spells it kadavra"
+  }
+ },
+ "_flags_note": [
+  "A flag the owner has decided, keyed by vlr id -> two-letter code. It beats every site.",
+  "scripts/build_people.py otherwise takes a weighted majority (Liquipedia proven by vlr id 1.5, 号角 by hand 1.5, vlr 1, thespike 1) and",
+  "lists every disagreement in analysis/people/audit.md; a 1-vs-1 keeps vlr's flag and is marked 待定 there."
+ ],
+ "flags": {}
 }

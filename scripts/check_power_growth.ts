@@ -62,13 +62,16 @@ const coaches = ALL_CARDS.filter(isCoachCard)
 
 // ---- the +0 state: original uncoached fixtures, coached fixtures updated for
 // the continuous three-attribute coaching fix on 2026-09-14.
+// Two of the six were re-pinned on 2026-09-18: Hopedawn (P529) and QiuYe
+// (P527) got their real birthdates from 号角 (20 → 24 and 18 → 23), and age is
+// part of a bond. Their ratings and attributes did not move — only `bonds`.
 const PINNED: Record<string, string> = {
-  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': 'e31e559eb402',
+  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': '6b96eb4ef77c',
   'p:P260,p:P65,p:P360,p:P266,p:P536|-': 'a0240f257957',
   'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '8a6a8c38ed00',
   'p:P227,p:P382,p:P95,p:P300,p:P48|-': '595896154188',
   'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': '32470f4bdca0',
-  'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'd656dbb960ca',
+  'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'e27e63094203',
 }
 type Seated = { overall: number; attrs: Record<string, number>; isIgl?: boolean }
 function seated(slots: string[], coach: string | null, level: (id: string) => number): { ps: Seated[]; hash: string } {

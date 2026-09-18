@@ -24,6 +24,7 @@ import coached from '../src/data/coached.json'
 import world from '../src/data/world.json'
 import world2023 from '../src/data/world_2023.json'
 
+const d0 = (p: any) => (dossier as any).players[p?.id]
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
@@ -31,12 +32,12 @@ const check = (name: string, ok: boolean, detail = '') => {
 }
 
 const homonyms = JSON.parse(readFileSync('data-raw/overrides.json', 'utf8')).homonyms as
-  Record<string, { vlr: string; nat: string; real: string; other: { vlr: string; nat: string; real: string } }>
+  Record<string, { vlr: string; nat: string; real: string | null; other?: { vlr: string; nat: string; real: string } }>
 
 console.log('=== 同名的两个人 ===')
 for (const [ign, h] of Object.entries(homonyms)) {
   const p = (world as any).players.find((x: any) => x.ign.toLowerCase() === ign)
-  check(`${ign}：2026 世界里是 ${h.real}`, p?.realName === h.real && p?.nat === h.nat, `${p?.realName} / ${p?.nat}`)
+  check(`${ign}：2026 世界里是 ${h.real ?? '（真名未知）'}`, (p?.realName ?? null) === (h.real ?? null) && (p?.nat || d0(p)?.nat) === h.nat, `${p?.realName} / ${p?.nat}`)
   const d = (dossier as any).players[p.id] ?? {}
   check(`${ign}：档案国籍和 vlr 编号是他本人的`, d.nat === h.nat && d.vlr === h.vlr, `${d.nat} / vlr ${d.vlr}`)
   check(`${ign}：没有用液体百科那个人的照片`, d.src !== 'lp', `src ${d.src}`)
@@ -45,7 +46,7 @@ for (const [ign, h] of Object.entries(homonyms)) {
   const coaches = Object.entries(coached as Record<string, string[][]>)
     .filter(([, rows]) => rows.some((r) => r[0] === p.id)).map(([c]) => c)
   check(`${ign}：没有另一个人的教练关系`, coaches.length === 0, coaches.join('、'))
-  const birthOk = !p.birth || !(world2023 as any).players.some((x: any) => x.birth === p.birth && x.nat === h.other.nat && x.ign.toLowerCase() === ign)
+  const birthOk = !p.birth || !(world2023 as any).players.some((x: any) => x.birth === p.birth && x.nat !== h.nat && x.ign.toLowerCase() === ign)
   check(`${ign}：生日不是另一个人的`, birthOk, p.birth ?? '无')
 
   const old = (world2023 as any).players.filter((x: any) => x.ign.toLowerCase() === ign)

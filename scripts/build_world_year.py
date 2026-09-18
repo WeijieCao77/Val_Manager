@@ -183,19 +183,40 @@ def main():
     world26 = load(WORLD_2026, {"players": [], "teams": []})
     prev_pid = {p["ign"].lower(): p["id"] for p in world26["players"]}
 
+    # A handle is not a person. 122 of the handles in these worlds belong to
+    # two or more vlr ids somewhere in the caches (Klaus of KRÜ and klaus of
+    # SLT, k1Ng of Gen.G and k1ng of NBL, Laz and laz): pooled by handle, the
+    # Argentine Klaus of 2023 wore the Korean's P-id and photograph, and the
+    # Pakistani k1ng of 2025 had the Korean's name, birthday and stat lines.
+    # Every shared handle is keyed with its vlr id, found here rather than
+    # listed by hand; overrides.json `homonyms` still names the ones where a
+    # site other than vlr mixes them up too.
+    ids_of = defaultdict(set)
+    for src in (cache, load(CHALLENGERS, {"stats": {}})):
+        for lines in (src.get("stats") or {}).values():
+            for row in lines:
+                if row.get("vlrId"):
+                    ids_of[row["ign"].lower()].add(str(row["vlrId"]))
+    shared = {ign for ign, ids in ids_of.items() if len(ids) > 1}
+    # who the 2026 world means by a handle: the vlr id on his dossier
+    dossier26 = load(os.path.join(ROOT, "src", "data", "dossier.json"), {"players": {}})["players"]
+    vlr_of_pid = {pid: str(d.get("vlr") or "") for pid, d in dossier26.items()}
+
     def key_of(row):
-        """Who a stat line is about. The handle, except where two real people
-        share it (overrides.json `homonyms`): then the vlr id comes along, so
-        the Polish zeek of 2023 neither pools his lines with the Canadian's
-        nor takes the Canadian's id from the 2026 world."""
+        """Who a stat line is about: the handle, and the vlr id with it
+        wherever the handle alone could mean somebody else."""
         ign = row["ign"].lower()
-        return f"{ign}#{row.get('vlrId') or ''}" if bw.homonym(ign) else ign
+        return f"{ign}#{row.get('vlrId') or ''}" if (bw.homonym(ign) or ign in shared) else ign
 
     def id_from_2026(key):
-        h = bw.homonym(key.split("#")[0])
-        if h and key != f"{key.split('#')[0]}#{h['vlr']}":
+        ign, _, vid = key.partition("#")
+        h = bw.homonym(ign)
+        if h and key != f"{ign}#{h['vlr']}":
             return None
-        return prev_pid.get(key.split("#")[0])
+        pid = prev_pid.get(ign)
+        if pid and vid and not h and vlr_of_pid.get(pid) and vlr_of_pid[pid] != vid:
+            return None      # the 2026 world's man of that name is somebody else
+        return pid
     prev_tid = {}
     for t in world26["teams"]:
         prev_tid.setdefault(t["tag"], (t["id"], t["name"]))
@@ -364,6 +385,7 @@ def main():
                             line[key] = line[key] * f
                 line["tier2"] = True
             line["ign"] = row["ign"]
+            line["vlrId"] = str(row.get("vlrId") or "")
             line["nat"] = row.get("nat") or ""
             line["tag"] = tag
             line["region"] = r["region"]
@@ -388,6 +410,7 @@ def main():
     stat_rows = []
     for k, line in people.items():
         m = dict(line)
+        m["ign"] = k          # bw.pctiles keys on "ign": the person, not the handle
         rnd = m.get("rnd") or 0
         if m.get("rookie"):
             rnd = min(rnd, 100)   # an opening split is not a record
@@ -409,7 +432,7 @@ def main():
     tot_w = sum(l["clw"] for l in people.values())
     tot_t = sum(l["clt"] for l in people.values())
     mean_cl = tot_w / tot_t if tot_t else 0.15
-    cl_rows = [{"ign": l["ign"], "clutch_pct": (l["clw"] + 20 * mean_cl) / (l["clt"] + 20)} for l in people.values() if l["clt"]]
+    cl_rows = [{"ign": k, "clutch_pct": (l["clw"] + 20 * mean_cl) / (l["clt"] + 20)} for k, l in people.items() if l["clt"]]
     P["clutch_pct"] = bw.pctiles(cl_rows, "clutch_pct")
     have_cl = {r["ign"] for r in cl_rows}
 
@@ -474,7 +497,7 @@ def main():
     for k, line in people.items():
         ign = line["ign"]
         rng = bw.Rng(bw.seed_of(f"h{Y}:" + ign))
-        g = lambda key: P[key].get(ign, 0.5)  # noqa: E731
+        g = lambda key: P[key].get(k, 0.5)  # noqa: E731
         q = g("R")
         role = line["role"]
         a = {
@@ -482,7 +505,7 @@ def main():
             "reaction": scale(axis(0.55 * g("fkpr") + 0.3 * g("kpr") + 0.15 * g("acs"), q)),
             "awareness": scale(axis(0.5 * g("kast") + 0.35 * g("fdpr") + 0.15 * q, q)),
             "utility": scale(axis(0.55 * g("apr") + 0.45 * ROLE_UTIL[role], q)),
-            "clutch": scale(axis(0.5 * g("clutch_pct") + 0.3 * q + 0.2 * g("kd"), q)) if ign in have_cl
+            "clutch": scale(axis(0.5 * g("clutch_pct") + 0.3 * q + 0.2 * g("kd"), q)) if k in have_cl
             else scale(axis(0.6 * q + 0.4 * g("kd"), q)),
             "teamwork": scale(axis(0.5 * g("kast") + 0.5 * g("apr"), q)),
             "communication": scale(axis(0.55 * g("kast") + 0.45 * ROLE_COMM[role], q)),
@@ -497,9 +520,18 @@ def main():
         ovr = int(round(bw.clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign.lower()) or {}
+        if "#" in k and not bw.homonym(ign):
+            lp = {}     # a shared handle: the page under it is anybody's; people.json knows by id
         if lp and lp.get("country") and not bw.same_person(lp, line["nat"]):
             wrong += 1
             lp = {}
+        who = bw.PEOPLE.get(line.get("vlrId") or "") or {}
+        if who.get("birth") and not bw.age_from(lp.get("birth")):
+            lp = {**lp, "birth": who["birth"]}
+        if who.get("real") and (not lp.get("real") or "#" in k):
+            lp = {**lp, "real": who["real"]}
+        if who.get("nat") and len(who["nat"]) == 2:
+            line["nat"] = who["nat"]
         age = bw.age_from(lp.get("birth"))
         estimated = age is None
         if estimated:
@@ -512,7 +544,7 @@ def main():
         head = (rng.range(7, 16) if age <= 20 else rng.range(3, 10) if age <= 23
                 else rng.range(1, 5) if age <= 26 else rng.range(0, 2))
         built[k] = {
-            "_key": k,
+            "_key": k, "vlrId": line.get("vlrId"),
             "ign": ign, "tag": line["tag"], "region": line["region"], "nat": line["nat"],
             "role": role, "roles": line["roles"], "flex": len(line["roles"]) > 1,
             "traits": bw.traits_for(g),
@@ -588,15 +620,20 @@ def main():
         nonlocal issued_h
         emitted.add(p["_key"])
         pid = id_from_2026(p["_key"])
-        if not pid and "#" in p["_key"]:
-            # a homonym's other man gets an id of his own that names him, so
-            # the numbered ids of everyone after him stay where saves have them
+        if not pid and "#" in p["_key"] and bw.homonym(p["_key"].split("#")[0]):
+            # a listed homonym's other man keeps the id that names him
+            # (legends.ts points at H-zeek-562)
             pid = "H-" + p["_key"].replace("#", "-")
         if not pid:
-            pid = f"H{issued_h}"
+            # Hv<vlr id>: the same man has the same id in every year's world,
+            # so one photograph and one dossier row serve all three. The old
+            # H<n> was dealt per year — H0 was Boostio in 2024 and Lumo in 2025
+            # — which is why nobody outside the 2026 world had a face. Saves
+            # made before this keep their H<n>; they never meet an Hv id.
+            pid = f"Hv{p['vlrId']}" if p.get("vlrId") else f"H{issued_h}"
             issued_h += 1
         rec = {
-            "id": pid, "ign": p["ign"], "teamId": team_id, "region": region,
+            "id": pid, "vlrId": p.get("vlrId") or None, "ign": p["ign"], "teamId": team_id, "region": region,
             "nat": p["nat"], "realName": p["realName"], "birth": p["birth"], "joined": None,
             "rounds": p["rounds"], "role": p["role"], "roles": p["roles"], "flex": p["flex"],
             "traits": p["traits"], "agentPool": p["agentPool"], "roleSource": "agents",
@@ -614,7 +651,18 @@ def main():
 
     short = []
     for tag, r in sorted(rosters.items()):
-        squad_src = sorted((built[k] for k in r["rows"] if k in built), key=lambda x: -(x["vlr"]["rating"] or 0))
+        keys = [k for k in r["rows"] if k in built]
+        if len(keys) > 7:
+            # More than seven names on the opening table is a club that fielded
+            # stand-ins: FURIA's visas kept its five out of one 2025 Kickoff
+            # match, five North Americans played it, and "the best seven by
+            # rating" kept the stand-ins and dropped havoc and raafa. The
+            # regulars are the ones who played the most rounds of the event.
+            keys = sorted(keys, key=lambda k: -(r["rows"][k].get("rnd") or 0))
+            most = r["rows"][keys[0]].get("rnd") or 0
+            regulars = [k for k in keys if (r["rows"][k].get("rnd") or 0) >= 0.6 * most]
+            keys = (regulars if len(regulars) >= 5 else keys)[:7]
+        squad_src = sorted((built[k] for k in keys), key=lambda x: -(x["vlr"]["rating"] or 0))
         if len(squad_src) < 5:
             short.append(f"{tag}({len(squad_src)})")
             continue
@@ -775,6 +823,17 @@ def main():
     by_region = defaultdict(int)
     for t in t1:
         by_region[t["region"]] += 1
+    # The name he was known by. vlr prints TODAY's alias on every old page, so
+    # the 2023 NRG roster read "FiNESSE" for FNS and FPX's TZH was
+    # "nizhaoTZH"; overrides.json `handles` holds the id the event registered
+    # him under (Liquipedia's participant cards), keyed by vlr id. Applied last:
+    # every cache above is keyed by the handle vlr uses.
+    shown = {str(k): v["ign"] for k, v in (bw.load_json(bw.OVERRIDES).get("handles") or {}).items()
+             if isinstance(v, dict) and Y <= (v.get("until") or 9999)}
+    for p in out_players:
+        if shown.get(str(p.get("vlrId") or "")):
+            p["ign"] = shown[str(p["vlrId"])]
+
     world = {
         "meta": {
             "season": Y, "historical": True,

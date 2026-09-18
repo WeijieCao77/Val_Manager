@@ -329,9 +329,20 @@ def main() -> int:
           f"the rest are left empty rather than invented")
 
     # birthdates: real ones must match Liquipedia exactly, estimated ones flagged
+    # The record kept under his vlr id (data-raw/people.json, 2026-09-18) is
+    # the source where there is one: a handle can be two men's, an id cannot,
+    # and The Spike or a disambiguated Liquipedia page ("Ray (Korean player)")
+    # dates people the page under the bare handle never did.
+    people_by_id = load(RAW / "people.json") or {}
+    dossier_vlr = {k: str(v.get("vlr") or "") for k, v in (load(ROOT / "src" / "data" / "dossier.json").get("players") or {}).items()}
+    person = lambda pl: people_by_id.get(dossier_vlr.get(pl["id"], "")) or {}
     wrong_birth, unflagged = [], []
     for p in players:
         lp = births.get(p["ign"]) or births_ci.get(p["ign"].lower()) or {}
+        if person(p).get("birth") and not re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", str(lp.get("birth") or "")):
+            lp = {"birth": person(p)["birth"]}
+        elif person(p).get("birth") and p.get("birth") == person(p)["birth"]:
+            lp = {"birth": person(p)["birth"]}
         # a birthdate read off 号角 is checked against 号角, not against a
         # Liquipedia page that does not exist
         if not lp and p["ign"] in hj:
@@ -446,6 +457,8 @@ def main() -> int:
             continue
         if p_["ign"].lower() in verified_births:
             continue
+        if person(p_).get("birth") == p_.get("birth"):
+            continue      # dated by his own vlr id, whatever sits under the handle
         lc = str(e.get("country") or "").strip().lower()
         want = C2N.get(str(p_.get("nat") or "").strip().lower())
         if lc and want and lc != want:

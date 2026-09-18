@@ -281,7 +281,7 @@ export default function NewGame({ onHome,
                 </div>
                 {startYear !== DEFAULT_START_YEAR && (
                   <span className="tiny muted">
-                    {ERA_CN[startYear]}：开档名单和能力按当年真实数据，之后由引擎模拟。经典赛制，次级联赛暂沿用 2026 名单。
+                    {ERA_CN[startYear]}：开档名单、能力、照片按当年真实数据，之后由引擎模拟。经典赛制，次级联赛也是当年的真实队伍。
                     {eraLoading && ' 加载中…'}
                   </span>
                 )}

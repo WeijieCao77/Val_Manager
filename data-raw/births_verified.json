@@ -1,223 +1,344 @@
 {
-  "_README": [
-    "Birthdates read off a player page by hand, for players Liquipedia has no",
-    "date for or names under a different flag. Each entry cites the page it was",
-    "read from and the day it was read. These win over Liquipedia and over the",
-    "estimate in build_world.py. Nothing here is inferred: no page, no entry.",
-    "号角 pages: the React props `base.birth` / `base.real_name` / `base.nationality`",
-    "of https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/<id>.",
-    "Pages without a birth field (Potter, p1katong, maofish) get no entry."
-  ],
-  "players": {
-    "Sharks": {
-      "birth": "2004-09-27",
-      "realName": "邱戈",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/PqH5CVfmuRnDPmbo",
-      "checked": "2026-09-05"
-    },
-    "xihe": {
-      "birth": "2006-01-27",
-      "realName": "彭文博",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/FInrryRahAg7s7RW",
-      "checked": "2026-09-05"
-    },
-    "GREEN": {
-      "birth": "2005-02-20",
-      "realName": "邱建智",
-      "country": "Taiwan",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/ELHLRfCJlWMJMFB7",
-      "checked": "2026-09-05"
-    },
-    "yilai": {
-      "birth": "2008-02-29",
-      "realName": "顾依铭",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/CuxVu29l6iSL3V4z",
-      "checked": "2026-09-05"
-    },
-    "FT": {
-      "birth": "2007-06-18",
-      "realName": "闫帅博",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JNZZ2ubZ1pBo84Rf",
-      "checked": "2026-09-05"
-    },
-    "FKEY": {
-      "birth": "2004-12-15",
-      "realName": "陈轲",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/4fM6FrCkv7lCJ8pO",
-      "checked": "2026-09-05"
-    },
-    "jkuro": {
-      "birth": "2005-03-01",
-      "realName": "杨浩聪",
-      "country": "Hong Kong",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/DeSJ7Sy1BEP9Ybcy",
-      "checked": "2026-09-05"
-    },
-    "crownfisher": {
-      "birth": "2005-10-24",
-      "realName": "李翱",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/oO7qRv6lx2Li14Vc",
-      "checked": "2026-09-05"
-    },
-    "Verse": {
-      "birth": "2006-01-17",
-      "realName": "周子钧",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/SJdNSSDdKofSR9AC",
-      "checked": "2026-09-05"
-    },
-    "Coco": {
-      "birth": "2003-10-17",
-      "realName": "丁达建",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/i76jGDVE9iKZHpzu",
-      "checked": "2026-09-05"
-    },
-    "ra1ny": {
-      "birth": "2007-02-23",
-      "realName": "陈葆桓",
-      "country": "Taiwan",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/Cy6ZyTPEYEuDTh9m",
-      "checked": "2026-09-05"
-    },
-    "Chaos": {
-      "birth": "2005-03-26",
-      "realName": "陈俊霖",
-      "country": "Hong Kong",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/MVgMDnbtxNRnE8Ka",
-      "checked": "2026-09-05"
-    },
-    "Folykiki": {
-      "birth": "2006-06-16",
-      "realName": "陈宇杰",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JonjYkLSH7qgpf4L",
-      "checked": "2026-09-05"
-    },
-    "Pink": {
-      "birth": "2001-08-24",
-      "realName": "李松原",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/pH24QRZH7YBpPu4a",
-      "checked": "2026-09-05"
-    },
-    "Dingwei": {
-      "birth": "2005-07-30",
-      "realName": "魏定伟",
-      "country": "Taiwan",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/YpSjQgE7338SSdUw",
-      "checked": "2026-09-05"
-    },
-    "Youjun": {
-      "birth": "2007-07-14",
-      "realName": "赖右骏",
-      "country": "Taiwan",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/pr3QJBZsm7Awrsmu",
-      "checked": "2026-09-05"
-    },
-    "5CM": {
-      "birth": "2006-01-29",
-      "realName": "丁宜鹏",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/8UCOlqNuHQwcJHin",
-      "checked": "2026-09-05"
-    },
-    "Ben1Ley": {
-      "birth": "2004-07-17",
-      "realName": "史本宇",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/suJ8aRZ9Az6EG4Ms",
-      "checked": "2026-09-05"
-    },
-    "Guran": {
-      "birth": "2003-06-01",
-      "realName": "周铭言",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/YBCIAtnMoIyErIhc",
-      "checked": "2026-09-05"
-    },
-    "Z1Yan": {
-      "birth": "2001-09-28",
-      "realName": "刘紫涵",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JcfMpndPTnngk3qv",
-      "checked": "2026-09-05"
-    },
-    "nnono": {
-      "birth": "2007-09-26",
-      "realName": "冯浩伦",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/kTtBtnriBOSbzQFE",
-      "checked": "2026-09-05"
-    },
-    "jowa": {
-      "birth": "2004-02-14",
-      "realName": "王一川",
-      "country": "Canada",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/HrEDMG17SWjCmBgP",
-      "checked": "2026-09-05"
-    },
-    "M1ng929": {
-      "birth": "2007-03-11",
-      "realName": "崔珈铭",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/AkDqUpPJJgGZV7hA",
-      "checked": "2026-09-05"
-    },
-    "Ye": {
-      "birth": "2007-10-13",
-      "realName": "刘博才",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/y6O6rLC51fMURv9h",
-      "checked": "2026-09-05"
-    },
-    "Apathy": {
-      "birth": "2007-04-02",
-      "realName": "黄盈盛",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/1ttEmi2HTSgxSn8M",
-      "checked": "2026-09-05"
-    },
-    "Ugly": {
-      "birth": "2003-09-05",
-      "realName": "常波",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/CxDi1O2kOEM8bh9A",
-      "checked": "2026-09-05"
-    },
-    "Ending": {
-      "birth": "2004-02-11",
-      "realName": "许永琪",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/3tvlgxHaj37lKL5L",
-      "checked": "2026-09-05"
-    },
-    "AcMe": {
-      "birth": "2003-12-22",
-      "realName": "차일환",
-      "country": "South Korea",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/ETz4Y54Ys4DQIsAQ",
-      "checked": "2026-09-05"
-    },
-    "Yoyo": {
-      "birth": "2004-04-18",
-      "realName": "徐佑翔",
-      "country": "Taiwan",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/6PCTyRsSlu1dFQ6B",
-      "checked": "2026-09-05"
-    },
-    "Leav3u": {
-      "birth": "2007-07-24",
-      "realName": "吴剋荣",
-      "country": "China",
-      "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/UNWPCCsEVx1lvMH1",
-      "checked": "2026-09-05"
-    }
+ "_README": [
+  "Birthdates read off a player page by hand, for players Liquipedia has no",
+  "date for or names under a different flag. Each entry cites the page it was",
+  "read from and the day it was read. These win over Liquipedia and over the",
+  "estimate in build_world.py. Nothing here is inferred: no page, no entry.",
+  "号角 pages: the React props `base.birth` / `base.real_name` / `base.nationality`",
+  "of https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/<id>.",
+  "Pages without a birth field (Potter, p1katong, maofish) get no entry."
+ ],
+ "players": {
+  "Sharks": {
+   "birth": "2004-09-27",
+   "realName": "邱戈",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/PqH5CVfmuRnDPmbo",
+   "checked": "2026-09-05"
+  },
+  "xihe": {
+   "birth": "2006-01-27",
+   "realName": "彭文博",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/FInrryRahAg7s7RW",
+   "checked": "2026-09-05"
+  },
+  "GREEN": {
+   "birth": "2005-02-20",
+   "realName": "邱建智",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/ELHLRfCJlWMJMFB7",
+   "checked": "2026-09-05"
+  },
+  "yilai": {
+   "birth": "2008-02-29",
+   "realName": "顾依铭",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/CuxVu29l6iSL3V4z",
+   "checked": "2026-09-05"
+  },
+  "FT": {
+   "birth": "2007-06-18",
+   "realName": "闫帅博",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JNZZ2ubZ1pBo84Rf",
+   "checked": "2026-09-05"
+  },
+  "FKEY": {
+   "birth": "2004-12-15",
+   "realName": "陈轲",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/4fM6FrCkv7lCJ8pO",
+   "checked": "2026-09-05"
+  },
+  "jkuro": {
+   "birth": "2005-03-01",
+   "realName": "杨浩聪",
+   "country": "Hong Kong",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/DeSJ7Sy1BEP9Ybcy",
+   "checked": "2026-09-05"
+  },
+  "crownfisher": {
+   "birth": "2005-10-24",
+   "realName": "李翱",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/oO7qRv6lx2Li14Vc",
+   "checked": "2026-09-05"
+  },
+  "Verse": {
+   "birth": "2006-01-17",
+   "realName": "周子钧",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/SJdNSSDdKofSR9AC",
+   "checked": "2026-09-05"
+  },
+  "Coco": {
+   "birth": "2003-10-17",
+   "realName": "丁达建",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/i76jGDVE9iKZHpzu",
+   "checked": "2026-09-05"
+  },
+  "ra1ny": {
+   "birth": "2007-02-23",
+   "realName": "陈葆桓",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/Cy6ZyTPEYEuDTh9m",
+   "checked": "2026-09-05"
+  },
+  "Chaos": {
+   "birth": "2005-03-26",
+   "realName": "陈俊霖",
+   "country": "Hong Kong",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/MVgMDnbtxNRnE8Ka",
+   "checked": "2026-09-05"
+  },
+  "Folykiki": {
+   "birth": "2006-06-16",
+   "realName": "陈宇杰",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JonjYkLSH7qgpf4L",
+   "checked": "2026-09-05"
+  },
+  "Pink": {
+   "birth": "2001-08-24",
+   "realName": "李松原",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/pH24QRZH7YBpPu4a",
+   "checked": "2026-09-05"
+  },
+  "Dingwei": {
+   "birth": "2005-07-30",
+   "realName": "魏定伟",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/YpSjQgE7338SSdUw",
+   "checked": "2026-09-05"
+  },
+  "Youjun": {
+   "birth": "2007-07-14",
+   "realName": "赖右骏",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/pr3QJBZsm7Awrsmu",
+   "checked": "2026-09-05"
+  },
+  "5CM": {
+   "birth": "2006-01-29",
+   "realName": "丁宜鹏",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/8UCOlqNuHQwcJHin",
+   "checked": "2026-09-05"
+  },
+  "Ben1Ley": {
+   "birth": "2004-07-17",
+   "realName": "史本宇",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/suJ8aRZ9Az6EG4Ms",
+   "checked": "2026-09-05"
+  },
+  "Guran": {
+   "birth": "2003-06-01",
+   "realName": "周铭言",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/YBCIAtnMoIyErIhc",
+   "checked": "2026-09-05"
+  },
+  "Z1Yan": {
+   "birth": "2001-09-28",
+   "realName": "刘紫涵",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/JcfMpndPTnngk3qv",
+   "checked": "2026-09-05"
+  },
+  "nnono": {
+   "birth": "2007-09-26",
+   "realName": "冯浩伦",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/kTtBtnriBOSbzQFE",
+   "checked": "2026-09-05"
+  },
+  "jowa": {
+   "birth": "2004-02-14",
+   "realName": "王一川",
+   "country": "Canada",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/HrEDMG17SWjCmBgP",
+   "checked": "2026-09-05"
+  },
+  "M1ng929": {
+   "birth": "2007-03-11",
+   "realName": "崔珈铭",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/AkDqUpPJJgGZV7hA",
+   "checked": "2026-09-05"
+  },
+  "Ye": {
+   "birth": "2007-10-13",
+   "realName": "刘博才",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/y6O6rLC51fMURv9h",
+   "checked": "2026-09-05"
+  },
+  "Apathy": {
+   "birth": "2007-04-02",
+   "realName": "黄盈盛",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/1ttEmi2HTSgxSn8M",
+   "checked": "2026-09-05"
+  },
+  "Ugly": {
+   "birth": "2003-09-05",
+   "realName": "常波",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/CxDi1O2kOEM8bh9A",
+   "checked": "2026-09-05"
+  },
+  "Ending": {
+   "birth": "2004-02-11",
+   "realName": "许永琪",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/3tvlgxHaj37lKL5L",
+   "checked": "2026-09-05"
+  },
+  "AcMe": {
+   "birth": "2003-12-22",
+   "realName": "차일환",
+   "country": "South Korea",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/ETz4Y54Ys4DQIsAQ",
+   "checked": "2026-09-05"
+  },
+  "Yoyo": {
+   "birth": "2004-04-18",
+   "realName": "徐佑翔",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/6PCTyRsSlu1dFQ6B",
+   "checked": "2026-09-05"
+  },
+  "Leav3u": {
+   "birth": "2007-07-24",
+   "realName": "吴剋荣",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/UNWPCCsEVx1lvMH1",
+   "checked": "2026-09-05"
+  },
+  "Ninebody": {
+   "birth": "2002-11-04",
+   "realName": "丁毅",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/aOuIKep7yUmF8jSy",
+   "checked": "2026-09-18"
+  },
+  "CXIX666": {
+   "birth": "2008-01-19",
+   "realName": "Өлзийбадрахын Санчирбилэг",
+   "country": "Mongolia",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/uPARJCcjU1GlNQrM",
+   "checked": "2026-09-18"
+  },
+  "QiuYe": {
+   "birth": "2002-10-15",
+   "realName": "李润涛",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/oNjvHEdthAM4SmN4",
+   "checked": "2026-09-18"
+  },
+  "waituu": {
+   "birth": "2003-04-30",
+   "realName": "许寅泽",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/Cd5TYINxJWsIn6hf",
+   "checked": "2026-09-18"
+  },
+  "Hopedawn": {
+   "birth": "2001-10-16",
+   "realName": "吴恩博",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/FtHhcr79SJTBLZU8",
+   "checked": "2026-09-18"
+  },
+  "XyuS": {
+   "birth": "2005-11-17",
+   "realName": "施冠宇",
+   "country": "Taiwan",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/nYmUnW8Sox96uihd",
+   "checked": "2026-09-18"
+  },
+  "ZiXuan": {
+   "birth": "2005-08-29",
+   "realName": "刘俊伟",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/pKjZhUlKBywn9aw6",
+   "checked": "2026-09-18"
+  },
+  "vipers": {
+   "birth": null,
+   "realName": "王阳洋",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/gRAw7zLN8A4mziGQ",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "SuHang": {
+   "birth": null,
+   "realName": "韦苏航",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/HRBB8OH3JS4qLBM5",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "RealPotter": {
+   "birth": null,
+   "realName": "童浚安",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/qGOoiZNGd6ni3vUC",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "wyx": {
+   "birth": null,
+   "realName": "伍益轩",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/idBgWrN72fFnfhRM",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "WoodAy1": {
+   "birth": null,
+   "realName": "林伟宏",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/hSd8KRMzKa3MIxBO",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "moonlight": {
+   "birth": null,
+   "realName": "许圳钧",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/oHfkLy47LGm8qvNC",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "Icesh4rk": {
+   "birth": null,
+   "realName": "张志伟",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/1v4xSiQg3b1HJzar",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "p1katong": {
+   "birth": null,
+   "realName": "李景彤",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/AfHDSRIK8R7VSrkW",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
+  },
+  "maofish": {
+   "birth": null,
+   "realName": "李培佳",
+   "country": "China",
+   "source": "https://web.haojiao.cc/wiki/player/t2Ud5pOQlscKLbRC/uODPBeG8BsVCVDde",
+   "checked": "2026-09-18",
+   "note": "号角 has no birthdate for him; name and flag only"
   }
+ }
 }

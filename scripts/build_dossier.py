@@ -85,6 +85,46 @@ def main() -> int:
     # liquipedia keys are page titles; match case-insensitively on the ign
     ten_lc = {k.lower(): v for k, v in tenure.items()}
 
+    people = load(ROOT / "data-raw" / "people.json", {})
+    vlr_people = load(ROOT / "scripts" / "cache" / "vlr_people.json", {})
+    people_faces = load(ROOT / "scripts" / "cache" / "people_faces.json", {})
+    # 号角's flag for a man no other site lists (UR's Hopedawn), read by hand
+    _cc = {"china": "cn", "taiwan": "tw", "hong kong": "hk", "mongolia": "mn", "thailand": "th", "south korea": "kr", "canada": "ca"}
+    HJ_NAT = {k.lower(): _cc.get(str(v.get("country") or "").lower())
+              for k, v in (load(ROOT / "data-raw" / "births_verified.json", {}).get("players") or {}).items()}
+    registry = load(ROOT / "scripts" / "cache" / "people_registry.json", {"people": {}})["people"]
+    pid_vlr = {q["years"]["2026"]["id"]: vid for vid, q in registry.items() if "2026" in q["years"]}
+
+    # ---- the men of the 2023–2025 worlds who are not in this one ---------
+    # Keyed by the id build_world_year.py gives them (Hv<vlr id>, the same in
+    # every year), so a historical save finds a face and a flag the way a 2026
+    # save does. Kept apart from `players`: that map is the card population.
+    hist: dict[str, dict] = {}
+    for year in (2023, 2024, 2025):
+        yw = load(ROOT / "src" / "data" / f"world_{year}.json", {"players": []})
+        for p in yw["players"]:
+            pid = p["id"]
+            if not pid.startswith("H") or pid in hist or not p.get("vlrId"):
+                continue
+            vid = str(p["vlrId"])
+            who = people.get(vid) or {}
+            rec = {}
+            face = FACES / f"{pid}.webp"
+            if face.exists():
+                rec["img"] = f"{pid}.webp"
+                rec["v"] = stamp(face)
+                if (people_faces.get(face.name) or {}).get("src") == "thespike":
+                    rec["src"] = "spike"
+            if who.get("nat") or p.get("nat"):
+                rec["nat"] = who.get("nat") or p.get("nat")
+            real = (vlr_people.get(vid) or {}).get("real") or who.get("real") or p.get("realName")
+            if real:
+                rec["real"] = real
+            if (vlr_people.get(vid) or {}).get("winnings"):
+                rec["win"] = vlr_people[vid]["winnings"]
+            rec["vlr"] = vid
+            hist[pid] = rec
+
     events: dict[str, list] = {}
     players: dict[str, dict] = {}
     records: dict[str, dict] = {}
@@ -93,6 +133,9 @@ def main() -> int:
     for p in world["players"]:
         pid, ign = p["id"], p["ign"]
         prof = profiles.get(ign.lower()) or {}
+        if not prof.get("vlrId") and pid_vlr.get(pid):
+            # added after the last profile pass: his page was read by id instead
+            prof = vlr_people.get(pid_vlr[pid]) or {}
         homonym = HOMONYMS.get(ign.lower())
         if homonym and str(prof.get("vlrId") or "") != str(homonym["vlr"]):
             prof = {}
@@ -109,11 +152,16 @@ def main() -> int:
             # its official CN portraits replace vlr's and Liquipedia's for the
             # whole CN region — so its list is checked first: an id on it is a
             # 号角 picture on disk, whatever else was once available
-            if pid in hj_players:
+            if (people_faces.get(face.name) or {}).get("src") == "thespike":
+                rec["src"] = "spike"
+            elif pid in hj_players:
                 rec["src"] = "hj"
             elif ign in lp["players"] and not homonym:
                 rec["src"] = "lp"
-        nat = prof.get("nat") or p.get("nat")
+        # the flag every source was asked about (scripts/build_people.py):
+        # a majority of vlr, Liquipedia and The Spike, vlr on a tie
+        who = people.get(str(prof.get("vlrId") or "")) or {}
+        nat = who.get("nat") or prof.get("nat") or p.get("nat") or HJ_NAT.get(ign.lower())
         if nat:
             rec["nat"] = nat
             nats += 1
@@ -224,6 +272,10 @@ def main() -> int:
             "hjPhotos": sum(1 for r in players.values() if r.get("src") == "hj"),
             "players": len(players),
             "photos": photos,
+            "histPlayers": len(hist),
+            "histPhotos": sum(1 for r in hist.values() if r.get("img")),
+            "spikePhotos": sum(1 for r in hist.values() if r.get("src") == "spike")
+            + sum(1 for r in players.values() if r.get("src") == "spike"),
             "coaches": len(coaches),
             "coachPhotos": coach_photos,
             "legendPhotos": len(legends),
@@ -231,6 +283,7 @@ def main() -> int:
             "events": len(events),
         },
         "players": players,
+        "hist": hist,
         "coaches": coaches,
         "legends": legends,
         "logos": logos,

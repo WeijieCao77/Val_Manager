@@ -56,6 +56,7 @@ def main() -> int:
 
     matched = replaced = clubs_differ = placeholder = unknown = 0
     cn_igns: list[str] = []
+    VERIFIED = {k.lower(): v for k, v in (json.loads((ROOT / "data-raw" / "births_verified.json").read_text("utf-8")).get("players") or {}).items()}
     for line in ROSTERS.read_text("utf-8").splitlines():
         if not line or line.startswith("#"):
             continue
@@ -77,6 +78,11 @@ def main() -> int:
             if t and t["tag"] == club:
                 hit = p
                 break
+        if not hit and len(cands) == 1 and not cands[0].get("teamId") \
+                and (VERIFIED.get(ign.lower()) or {}).get("source", "").endswith("/" + (parts[6] if len(parts) > 6 else "?")):
+            # a free agent in the game, but read by hand off this very 号角 page
+            # (births_verified.json cites the player id): the same person
+            hit = cands[0]
         if not hit:
             clubs_differ += 1
             where = ", ".join(teams[p["teamId"]]["tag"] if p.get("teamId") else "自由人" for p in cands)
@@ -88,7 +94,7 @@ def main() -> int:
             replaced += 1
         players[hit["ign"]] = {"url": url, "real": real or None, "team": club, "via": "haojiao"}
         matched += 1
-        if teams[hit["teamId"]]["region"] == "China":
+        if hit.get("teamId") and teams[hit["teamId"]]["region"] == "China":
             cn_igns.append(hit["ign"])
 
     FACES.write_text(json.dumps(faces, ensure_ascii=False, indent=1), "utf-8")

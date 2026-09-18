@@ -151,7 +151,7 @@ export interface Arena {
 export function buildArena(
   squad: ArenaSquad, level: (cardId: string) => number, seed: number,
 ): Arena {
-  const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
+  const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed, undefined, { cards: true })
   const cardOf: Record<string, string> = {}
   seatSquad(state, squad, level, ARENA_TEAM, 'A', cardOf)
   state.myTeam = ARENA_TEAM
@@ -534,7 +534,7 @@ export function playRivalMatch(
   /** use the displayed-score curve — the ladder and friend room; historical challenges keep their original rules */
   widen = false,
 ): ArenaResult {
-  const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed)
+  const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed, undefined, { cards: true })
   const cardOf: Record<string, string> = {}
   // theirs is kept too — it used to be thrown away, which is why the report
   // could only ever show one of the two sides

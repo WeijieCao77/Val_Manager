@@ -117,7 +117,8 @@ for (const tier of tiers) {
 const noCoachPins: Record<string, string> = {
   'p:P260,p:P65,p:P360,p:P266,p:P536': 'a0240f257957',
   'p:P227,p:P382,p:P95,p:P300,p:P48': '595896154188',
-  'p:P117,s24:15559,p:P489,p:P527,p:P114': 'd656dbb960ca',
+  // re-pinned 2026-09-18: QiuYe (P527) got his real birthdate from 号角 (18 → 23) and age is part of a bond
+  'p:P117,s24:15559,p:P489,p:P527,p:P114': 'e27e63094203',
 }
 for (const [ids, expected] of Object.entries(noCoachPins)) {
   const { state } = buildArena({ slots: ids.split(','), coach: null }, () => 0, 99)

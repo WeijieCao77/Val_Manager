@@ -42,11 +42,21 @@ interface DossierFile {
     lpPhotos?: number
     /** and how many from 号角 haojiao.cc, credited on the same screens */
     hjPhotos?: number
+    /** and from thespike.gg, for the 2023–2025 players nobody else photographed */
+    spikePhotos?: number
+    histPlayers?: number
+    histPhotos?: number
     coaches?: number
     coachPhotos?: number
     events: number
   }
   players: Record<string, DossierEntry>
+  /**
+   * The men of the 2023–2025 worlds who are not in the 2026 one, keyed by the
+   * id they carry in every year's world (Hv + vlr id). Not cards — `players`
+   * is the card population — only who a historical save's players are.
+   */
+  hist?: Record<string, DossierEntry>
   /** keyed by the coach's name as world.json spells it */
   coaches?: Record<string, DossierEntry>
   /** keyed by legend id — the photo from the night, and where it came from */
@@ -67,7 +77,7 @@ export interface LegendPhoto {
 export const DOSSIER = RAW as unknown as DossierFile
 
 export const dossierOf = (playerId: string): DossierEntry | undefined =>
-  DOSSIER.players[playerId]
+  DOSSIER.players[playerId] ?? DOSSIER.hist?.[playerId]
 
 export const titleCount = (playerId: string): number => dossierOf(playerId)?.t ?? 0
 

@@ -27,6 +27,19 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-18',
+    title: '选手身份核对：照片、国籍、真名、生日、历史档名单',
+    changes: [
+      { kind: '修复', text: '<b>历史档里同名的两个人被当成了一个人。</b>2023、2024 年 KRÜ 的阿根廷人 Klaus 用的是 2026 年韩国 klaus 的照片和编号；2025 年巴基斯坦的 k1Ng 顶着韩国 k1Ng 的真名、生日和数据。现在每个人按 vlr 编号认人，一共拆开了 100 多组同名选手，各人的数据也回到本人名下。只影响新开的历史档。' },
+      { kind: '修复', text: '<b>四名韩国选手的真名、生日是别人的。</b>kAyle、Ray、Cloudy、shu 显示的是液体百科上同名的马来西亚、印尼、柬埔寨、台湾选手的资料，已改回本人。Luca、Coco、Nana 也查出同样的问题，一并修正。' },
+      { kind: '新增', text: '<b>历史档选手有照片了。</b>2023–2025 三个历史档里不在 2026 世界的 541 名选手，以前全部没有头像，现在补上 320 张；一级联赛选手基本补齐（2024 年只缺 1 人，2025 年不缺）。' },
+      { kind: '调整', text: '<b>补了一批真名、生日和国籍。</b>来源是 vlr.gg、Liquipedia、THESPIKE.GG 和号角四家互相核对，身份用 vlr 编号确认；几家都没有记录的不填。2026 世界缺生日的从 94 人降到 57 人，缺真名的从 46 人降到 30 人，国籍不再有空缺。国籍按多数来源改了 15 人：jawgemo、tex、vora、renz、toozy、Governor 改为美国，Jerrwin、jowa、alvinboy 改为加拿大，zerona 改为墨西哥，Proxh 改为德国，hiro 改为荷兰，jkuro 改为中国香港，ra1ny、Dingwei 改为中国台湾；UR 五名选手补上了国籍。Marved、Desmo、H1ber、skye 补上了照片和真名。' },
+      { kind: '调整', text: '<b>几名选手改用注册 ID 显示。</b>vlr 上显示的是别名：sh1n → Shin，RgLMeister → RgLM，Kada → K4DAVRA；历史档里 FiNESSE → FNS，nizhaoTZH → TZH，Papi → PapiChulo，2023 年的 nzr → Nozwerr。已拥有的卡不受影响。' },
+      { kind: '修复', text: '<b>2025 历史档的 FURIA 名单不对。</b>当年开季赛 FURIA 因签证用 5 名替补打了一场，名单里留下了替补、漏了首发 havoc 和 raafa，已改回真实的五人。' },
+      { kind: '修复', text: '<b>Biank、coldfish 已经是主教练，不再出现在转会市场。</b>两人 2026 年打过比赛，后来分别执教 UR 和 KBG。开瓦包里他们的选手卡和教练卡都保留。只影响新开的存档。' },
+    ],
+  },
+  {
     date: '2026-09-17',
     title: '开瓦包：全服杯、双败杯赛、天梯按阵容分匹配',
     changes: [

@@ -21,6 +21,7 @@ const mem: Record<string, string> = {}
   get length() { return Object.keys(mem).length },
 }
 import { readFileSync } from 'node:fs'
+import dossier from '../src/data/dossier.json'
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, finishDraw, setupSeason, continuePastFive, dateLabel } from '../src/engine/season'
@@ -39,7 +40,11 @@ const check = (name: string, ok: boolean, detail = '') => {
   if (!ok) bad++
 }
 const world26 = JSON.parse(readFileSync('src/data/world.json', 'utf8')) as { players: { id: string; ign: string }[]; teams: { id: string; tag: string; tier: number; rating?: number }[] }
-const ignOf = new Map(world26.players.map((p) => [p.id, p.ign.toLowerCase()]))
+// the name the game shows: the id he registers under where vlr prints an alias
+// (overrides.json `handles`) — sh1n is Shin in every year's world
+const handles = (JSON.parse(readFileSync('data-raw/overrides.json', 'utf8')).handles ?? {}) as Record<string, { ign: string; vlr: string }>
+const vlrAlias = new Map(Object.values(handles).filter((h) => h?.ign).map((h) => [h.ign.toLowerCase(), h.vlr.toLowerCase()]))
+const ignOf = new Map(world26.players.map((p) => [p.id, ((p as { shown?: string }).shown ?? p.ign).toLowerCase()]))
 const cache = JSON.parse(readFileSync('scripts/cache/vlr_event_stats.json', 'utf8')) as { events: Record<string, { year: number; dates?: string }>; stats: Record<string, { agents?: [string, number][] }[]> }
 
 // ---- the agent release table never says an agent came later than the pros first played it
@@ -65,7 +70,13 @@ for (const year of [2024, 2025]) {
   check(`${year}: id 不重复`, new Set(ids).size === ids.length)
   const mismatch = w.players.filter((p) => p.id.startsWith('P') && ignOf.has(p.id) && ignOf.get(p.id) !== p.ign.toLowerCase())
   check(`${year}: 沿用的 P-id 指向同一个人`, mismatch.length === 0, mismatch.slice(0, 3).map((p) => `${p.id}:${p.ign}`).join(','))
-  check(`${year}: 新人用 H-id`, w.players.filter((p) => p.id.startsWith('H')).every((p) => ![...ignOf.values()].includes(p.ign.toLowerCase())))
+  // a handle is not a person: Klaus of KRÜ (vlr 2610) is not the 2026 world's
+  // klaus (vlr 4426), so an H-id may share a handle with a P-id — never a vlr id
+  const vlrOf2026 = new Set(Object.values((dossier as any).players).map((d: any) => String(d.vlr ?? '')).filter(Boolean))
+  const clash = w.players.filter((p: any) => p.id.startsWith('H') && p.vlrId && vlrOf2026.has(String(p.vlrId)))
+  check(`${year}: 新人用 H-id，且不是 2026 世界里的人`, clash.length === 0, clash.slice(0, 3).map((p) => `${p.id}:${p.ign}`).join(','))
+  const hv = w.players.filter((p: any) => p.id.startsWith('Hv'))
+  check(`${year}: Hv 编号就是他的 vlr 编号`, hv.every((p: any) => p.id === `Hv${p.vlrId}`))
   check(`${year}: 年龄合理`, w.players.every((p) => p.age >= 15 && p.age <= 40))
   const real = w.players.filter((p) => !p.ageEstimated).length
   check(`${year}: 大部分人有真实生日`, real / w.players.length > 0.7, `${real}/${w.players.length}`)
@@ -94,7 +105,7 @@ for (const year of [2024, 2025]) {
     const lines = new Set<string>()
     for (const [id, e] of Object.entries(chal.events)) if (e.year === year) for (const r of chal.stats[id] ?? []) lines.add(r.ign.toLowerCase())
     if (year === 2024) for (const [id, e] of Object.entries(vct.events)) if (e.slug?.includes('2023-champions-china-qualifier')) for (const r of vct.stats[id] ?? []) lines.add(r.ign.toLowerCase())
-    const invented = w.players.filter((p) => t2.some((t) => t.id === p.teamId) && !lines.has(p.ign.toLowerCase()))
+    const invented = w.players.filter((p) => t2.some((t) => t.id === p.teamId) && !lines.has(p.ign.toLowerCase()) && !lines.has(vlrAlias.get(p.ign.toLowerCase()) ?? ''))
     check(`${year}: 次级队都是当年真实的队和人，没有 2026 年的占位队`, invented.length === 0 && !t2.some((t) => t.tag === 'ODG'), `${invented.length} 人对不上 ${invented.slice(0, 4).map((p) => p.ign).join(',')}`)
   }
 

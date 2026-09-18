@@ -23,6 +23,17 @@ export interface RawPlayer {
   nat?: string; realName?: string | null; birth?: string | null; ageEstimated?: boolean
   /** YYYY-MM they joined their club, where vlr.gg records it */
   joined?: string | null
+  /**
+   * The tag of the club he coaches now. He played in 2026 and then took a
+   * bench (Biank at UR, coldfish at KBG): the card of the player he was stays,
+   * but a career must not offer a club's head coach as a free agent.
+   */
+  nowCoach?: string
+  /** the id he registers under, where vlr prints an alias; `handle` is vlr's */
+  shown?: string
+  handle?: string
+  /** vlr.gg player id — on the 2023–2025 worlds, where a handle is not enough */
+  vlrId?: string | null
   rounds?: number
   vlr?: { rating: number | null; acs: number | null; rounds: number }
   age: number; isIgl: boolean; iglSource?: 'verified' | 'inferred'
@@ -31,7 +42,16 @@ export interface RawPlayer {
   contractYears: number; loyalty: number; ambition: number
 }
 
-const RAW = raw as unknown as { players: RawPlayer[] }
+const RAW_FILE = raw as unknown as { players: RawPlayer[] }
+/**
+ * world.json keeps the handle vlr.gg prints, because every cache and every id
+ * is keyed by it — but vlr prints an alias for some (sh1n for Shin, heybay for
+ * HeiB). Where the build recorded the id he registers under (`shown`), that is
+ * the name the game uses; the vlr one stays on `handle` for lookups by name.
+ */
+const RAW = {
+  players: RAW_FILE.players.map((p) => (p.shown && p.shown !== p.ign ? { ...p, ign: p.shown, handle: p.ign } : p)),
+}
 
 /**
  * Every real analyst in the world, and there are very few.
@@ -174,6 +194,12 @@ export interface NewGameOptions {
   /** a past season's world (engine/eras.ts loadWorld) and the year it starts in */
   world?: { teams: RawTeam[]; players: RawPlayer[] }
   year?: number
+  /**
+   * The 开瓦包 arena borrows a world to seat cards in. Every card must find its
+   * player there, including the man who coaches now (`nowCoach`) — a career
+   * leaves him out, the arena must not.
+   */
+  cards?: boolean
 }
 
 export function createNewGame(
@@ -187,6 +213,7 @@ export function createNewGame(
 
   const players: Record<string, Player> = {}
   for (const rp of rawPlayers) {
+    if (rp.nowCoach && !opts.cards) continue   // he is on a bench in this world, not on the market
     const prng = new Rng(hashStr(rp.id + 'init') ^ s)
     // world.json was built before the player pages were scraped and is missing
     // a nationality for 178 of the 518, and a real name for rather more. The

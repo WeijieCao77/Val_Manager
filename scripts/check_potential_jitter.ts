@@ -33,7 +33,8 @@ const a = createNewGame(team, '审计', 1)
 const a2 = createNewGame(team, '审计', 1)
 const b = createNewGame(team, '审计', 2)
 
-const ids = [...base.keys()]
+// a man who coaches now (world.json `nowCoach`: Biank, coldfish) is not a player in a career
+const ids = [...base.keys()].filter((id) => a.players[id])
 const diffs = ids.map((id) => a.players[id].potential - base.get(id)!.potential)
 check('同一个种子两次开档，潜力一样', ids.every((id) => a.players[id].potential === a2.players[id].potential))
 const changed = ids.filter((id) => a.players[id].potential !== b.players[id].potential).length

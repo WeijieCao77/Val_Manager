@@ -215,6 +215,11 @@ function legendAttrs(base: Attrs, delta: number): Attrs {
 
 function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
   const byIgn = new Map(players.map((c) => [c.ign.toLowerCase(), c]))
+  // a legend may name him by the alias vlr prints (world.ts `handle`)
+  for (const p of WORLD_PLAYERS) {
+    const c = p.handle ? players.find((x) => x.playerId === p.id) : undefined
+    if (c && !byIgn.has(p.handle!.toLowerCase())) byIgn.set(p.handle!.toLowerCase(), c)
+  }
   const out: PlayerCard[] = []
   for (const l of LEGENDS) {
     if (l.coach) continue                 // his card is a coach card, below
