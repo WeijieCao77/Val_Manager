@@ -51,3 +51,12 @@ node scripts/pg/check_history_maintenance.mjs
 ```
 
 `check_release_server`启动真实server并在独立PG上持有迁移锁：验证health存活、ready/API暂不接流；放锁后验证全部feature、唯一约束和release指纹。测试专用loader把三分钟和每小时timer加速至100/150ms，确认实际server维护回调不崩溃；仅显式测试进程使用此loader，生产时钟不变。随后运行正式verify_deployment对本机server核验backend、engine与全部前端字节。独立maintenance测试覆盖单飞、压力阈值合并、汇总失败不清理、清理失败后恢复以及定时器拒绝处理。
+
+
+## 实际天梯诊断
+
+```sh
+PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres PG_LOAD_ACTION=ladder PG_LOAD_OUT=analysis/balance_v2/mixed_load_pg_ladder.json node --import tsx scripts/pg/check_mixed_load.mjs
+```
+
+50/100/300档使用450个不同账号；每号30体力、最多15次唯一requestId的真实BO5，绝不恢复体力。记录实际匹配类型、BO5地图数、数据库胜负/体力核对、失败原因、事务reserve等待/持有分位和天梯在途期间的市场分位。默认512个fixture账号，所选档位人数之和不能超出512。可用PG_LOAD_WAVES=300只测一档。

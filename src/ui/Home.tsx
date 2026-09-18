@@ -1,5 +1,5 @@
 /**
- * The front page: two games, one account.
+ * The front page: two playable games, one account, and a coming-soon preview.
  *
  * Everything here is read-only and cheap. Neither game's bundle is loaded
  * until a card is clicked — this page exists partly so that a visitor who is
@@ -115,9 +115,9 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
       </header>
 
       <section className="home-hero">
-        <h1>两个无畏契约小游戏</h1>
+        <h1>无畏契约小游戏</h1>
         <p>
-          全部免费，打开就能玩，不用注册。
+          已开放的两款游戏全部免费，打开就能玩，不用注册。
           {id
             ? ' 两边共用同一个 ID，成就、结局和收藏都记在它上面。'
             : ' 两边共用同一个 ID，第一次进入时会自动给你一串。'}
@@ -201,6 +201,14 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
               >进入卡池</button>
             </div>
           </div>
+        </article>
+        <article className="home-card home-preview" aria-labelledby="player-career-preview-title">
+          <div className="home-body">
+            <span className="home-preview-label">新作预告</span>
+            <h2 id="player-career-preview-title">无畏契约选手生涯模拟</h2>
+            <p className="blurb">从选手视角，开启一段职业生涯。游戏尚未开放，敬请期待。</p>
+          </div>
+          <span className="home-preview-status">尚未开放</span>
         </article>
       </div>
 

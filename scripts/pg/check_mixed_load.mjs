@@ -16,8 +16,14 @@ const pool = max => postgres(test.toString(),{max,...(process.env.PG_LOAD_MAX_PI
 const sql=pool(4), bg=pool(1), stats=pool(2)
 if (process.env.PG_LOAD_RAW_BEGIN !== '1') for (const client of [sql,bg,stats]) safeTransactions(client)
 let server,cup,market
+let reservationMetrics=null
+const originalReserve=sql.reserve.bind(sql)
+sql.reserve=async()=>{const started=performance.now(),metrics=reservationMetrics;const connection=await originalReserve();const granted=performance.now();metrics?.wait.push(granted-started);const release=connection.release.bind(connection);connection.release=()=>{metrics?.held.push(performance.now()-granted);return release()};return connection}
 const output={environment:{postgres:18,interactivePool:4,backgroundPool:1,statsPool:2,rateLimits:false,network:'localhost HTTP',sourceEngine:true,reservedBegin:process.env.PG_LOAD_RAW_BEGIN!=='1',maxPipeline:process.env.PG_LOAD_MAX_PIPELINE??'default'},waves:[]}
 const errors=[]
+const ladderMode=process.env.PG_LOAD_ACTION==='ladder'
+output.environment.action=ladderMode?'real BO5 ladder (max 15/account)':'checkin replay'
+let accountOffset=0
 try {
  const {CARD_SCHEMA,makeCardApi,normalizeId}=await import('../../cards-api.js')
  const {makeMarketApi}=await import('../../market-api.js')
@@ -34,6 +40,7 @@ try {
  for(let i=0;i<ids.length;i++) {
   const g=engine.newGacha(ids[i],`测试${i}`,today), team=CUP_TEAMS[i%CUP_TEAMS.length]
   g.coins=100000;g.pulls=100;g.squad=structuredClone(team.squad)
+  if(ladderMode){g.ladder={...g.ladder,div:4,stars:2,best:4};g.daily.stamina=30;g.daily.staminaAt=Date.now()}
   for(const c of [...g.squad.slots,g.squad.coach].filter(Boolean))g.cards[c]={id:c,level:i%4,dupes:1,seen:2}
   await sql`insert into card_accounts(id_hash,name,state,created,verified) values(${hash(ids[i])},${`测试${i}`},${sql.json(g)},now()-interval '9 days',now())`
  }
@@ -52,13 +59,15 @@ try {
   }catch(e){errors.push({code:e.code??'exception',message:e.message});if(!res.headersSent){res.writeHead(500);res.end('{"ok":false}')}}
  })
  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const root=`http://127.0.0.1:${server.address().port}`
- const request=async(path,body)=>{const r=await fetch(root+path,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{});const value=await r.json();return {status:r.status,ok:value.ok===true}}
+ const request=async(path,body)=>{const r=await fetch(root+path,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{});const value=await r.json();return {status:r.status,ok:value.ok===true,why:value.why??(value.busy?'busy':value.missing?'missing':'unspecified'),bo:value.result?.res?.bo,maps:value.result?.res?.mapsWon+value.result?.res?.mapsLost,human:!!value.result?.who,replayed:value.replayed===true}}
  for(const concurrency of (process.env.PG_LOAD_WAVES??'50,100,300').split(',').map(Number)){
   now+=3*3600_000
   const [c]=await bg`insert into open_cups(starts,seed,format_version,phase) values(${new Date(now)},42,2,'swiss') returning id`
   await bg`insert into open_cup_entries(cup_id,id_hash,name) select ${c.id},id_hash,name from card_accounts`
   await bg`insert into card_listings(seller_h,card_id,level,ask,ends,hours) select ${hash(ids[511])},'p:P2',0,100,now()-interval '1 minute',24 from generate_series(1,1000)`
-  const durations={},statuses={},rejections={},delay=monitorEventLoopDelay({resolution:10});delay.enable()
+  let activeLadder=0
+  reservationMetrics={wait:[],held:[]}
+  const durations={},statuses={},rejections={},ladder={attempted:0,completed:0,human:0,club:0,bo:{},maps:{}},waveIds=ids.slice(accountOffset,accountOffset+concurrency);if(ladderMode&&waveIds.length!==concurrency)throw Error('insufficient distinct fixture accounts'); const delay=monitorEventLoopDelay({resolution:10});delay.enable()
   const start=performance.now(),deadline=start+15000
   const maintenance=(async()=>{
    await Promise.all([market.settleDue({budgetMs:1500}),rollup(stats,{lagSec:0})])
@@ -67,20 +76,28 @@ try {
    throw new Error('cup did not finish within 30 advances')
   })().catch(e=>errors.push({code:'maintenance',message:e.message}))
   await Promise.all(Array.from({length:concurrency},async(_,i)=>{
-   let j=0
+   let j=0,played=0
    while(performance.now()<deadline){
-    const slot=j++%10,id=ids[i]
-    const [name,path,body]=slot===0?['health','/health',null]:slot<4?['load','/api/card/load',{id}]:slot<8?['browse','/api/market/browse',{id,sort:'price'}]:slot===8?['peek','/api/market/peek',{id,ids:['1','2','3']}]:['act','/api/card/act',{id,action:'checkin',args:{},requestId:`load-${concurrency}-${i}-checkin-0001`}]
+    const slot=j++%10,id=ladderMode?waveIds[i]:ids[i]
+    let [name,path,body]=slot===0?['health','/health',null]:slot<4?['load','/api/card/load',{id}]:slot<8?['browse','/api/market/browse',{id,sort:'price'}]:slot===8?['peek','/api/market/peek',{id,ids:['1','2','3']}]:['act','/api/card/act',{id,action:'checkin',args:{},requestId:`load-${concurrency}-${i}-checkin-0001`}]
+    if(ladderMode&&slot===9){if(played<15){played++;ladder.attempted++;name='ladder';body={id,action:'ladder',args:{league:'open'},client:{},requestId:`ladder-load-${concurrency}-${i}-${played}-0001`}}else{name='load';path='/api/card/load';body={id}}}
+    if(name==='ladder')activeLadder++
+    const overlapped=activeLadder>0
     const t=performance.now()
-    try{const r=await request(path,body);statuses[r.status]=(statuses[r.status]??0)+1;if(!r.ok)rejections[name]=(rejections[name]??0)+1}catch(e){errors.push({code:'http',message:e.message})}
-    ;(durations[name]??=[]).push(performance.now()-t)
+    try{const r=await request(path,body);statuses[r.status]=(statuses[r.status]??0)+1;if(!r.ok){const reason=name+':'+r.status+':'+r.why;rejections[reason]=(rejections[reason]??0)+1}else if(name==='ladder'){ladder.completed++;ladder[r.human?'human':'club']++;ladder.bo[r.bo]=(ladder.bo[r.bo]??0)+1;ladder.maps[r.maps]=(ladder.maps[r.maps]??0)+1}}catch(e){errors.push({code:'http',message:e.message})}
+    const elapsed=performance.now()-t
+    ;(durations[name]??=[]).push(elapsed)
+    if(overlapped||activeLadder>0)(durations[name+'_during_ladder']??=[]).push(elapsed)
+    if(name==='ladder')activeLadder--
    }
   }))
   await maintenance;delay.disable()
+  for(const [name,values]of Object.entries(reservationMetrics))durations['transaction_'+name]=values
   const metrics={}
   for(const[name,values]of Object.entries(durations)){values.sort((a,b)=>a-b);const pct=p=>Number(values[Math.min(values.length-1,Math.floor(values.length*p))].toFixed(1));metrics[name]={n:values.length,p50:pct(.5),p95:pct(.95),p99:pct(.99),max:pct(1)}}
   const [matches]=await bg`select count(*)::int as n from open_cup_matches where cup_id=${c.id} and b is not null and winner is not null`
-  const wave={concurrency,durationSeconds:Number(((performance.now()-start)/1000).toFixed(2)),metrics,statuses,rejections,cupMatches:matches.n,eventLoopP99Ms:Number((delay.percentile(99)/1e6).toFixed(1))}
+  if(ladderMode){const [limits]=await sql`select max((state->'ladder'->>'wins')::int+(state->'ladder'->>'losses')::int)::int as max_matches, min((state->'daily'->>'stamina')::int)::int as min_stamina, sum((state->'ladder'->>'wins')::int+(state->'ladder'->>'losses')::int)::int as total_matches from card_accounts where id_hash=any(${waveIds.map(hash)})`;ladder.persisted=limits;if(limits.max_matches>15||limits.min_stamina<0||limits.total_matches!==ladder.completed)errors.push({code:'ladder_invariant',message:JSON.stringify(limits)});accountOffset+=concurrency}
+  const wave={concurrency,ladder:ladderMode?ladder:undefined,durationSeconds:Number(((performance.now()-start)/1000).toFixed(2)),metrics,statuses,rejections,cupMatches:matches.n,eventLoopP99Ms:Number((delay.percentile(99)/1e6).toFixed(1))}
   output.waves.push(wave);console.log(JSON.stringify(wave))
  }
  output.errors=errors

@@ -494,7 +494,7 @@ export function makeMarketApi(sql, {
    */
   let settling = null
   let choresAt = 0
-  const settleStats = { ticks: 0, settled: 0, failed: 0, lastMs: 0, backlog: 0 }
+  const settleStats = { ticks: 0, settled: 0, failed: 0, lastMs: 0, backlog: null }
   function settleDue({ budgetMs = SETTLE_BUDGET_MS, batch = SETTLE_BATCH, chores = false } = {}) {
     settling ??= (async () => {
       const t0 = Date.now()
@@ -1884,7 +1884,8 @@ export function makeMarketApi(sql, {
     summaryLive: () => summaryLive,
     forgetMenus: () => menuCache.clear(),
     /** how the settler has been doing, for /api/ready and the logs */
-    settleStats: () => ({ ...settleStats }),
+    // No backlog count is queried here: unknown must not look like zero.
+    settleStats: () => ({ ...settleStats, summaryLive: summaryLive && useSummary }),
     async route(req, res, path, bucket) {
       if (path === '/api/market/swap') { await swap(req, res, bucket); return true }
       if (path === '/api/market/swaps') { await swaps(req, res, bucket); return true }

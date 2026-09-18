@@ -2273,6 +2273,15 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   transition: border-color .16s ease, transform .16s ease;
 }
 .home-card:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+.home-preview { grid-column: 1 / -1; flex-direction: row; align-items: center; border-left: 3px solid var(--accent); }
+.home-preview:hover { border-color: var(--line); border-left-color: var(--accent); transform: none; }
+.home-preview-label { color: var(--accent); font-size: var(--t-small); letter-spacing: .08em; }
+.home-preview-status { margin: 18px; color: var(--muted); font-size: var(--t-small); white-space: nowrap; }
+@media (max-width: 560px) {
+  .home-preview { flex-direction: column; align-items: stretch; }
+  .home-preview-status { margin: 0 18px 18px; }
+}
+
 
 /* The artwork band is made of things the game already ships — club crests and
    the players' own photographs — so each card is a picture of its own game
