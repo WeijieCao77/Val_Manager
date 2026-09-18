@@ -4,7 +4,7 @@ import { CARD_SCHEMA } from './cards-api.js'
 import { PROFILE_SCHEMA } from './profile-api.js'
 import { SITE_SCHEMA } from './site-api.js'
 import { ROLLUP_SCHEMA } from './rollup.js'
-import { OPEN_CUP_SCHEMA } from './opencup-api.js'
+import { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA } from './opencup-api.js'
 
 /**
  * Bring the schema up to date on boot, without letting that take the game down.
@@ -26,7 +26,7 @@ import { OPEN_CUP_SCHEMA } from './opencup-api.js'
  * game genuinely cannot run is a database with no card_accounts in it, so
  * that is the only thing asked before keeping the connection.
  */
-export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA]
+export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA]
 /** any constant, as long as every deploy of this service uses the same one */
 const SCHEMA_LOCK = 5150409
 
@@ -99,7 +99,7 @@ export async function applySchema(sql) {
   try {
     if (await alreadyApplied(sql)) {
       console.log('analytics: schema already at this version, nothing to lock')
-      return
+      return { ready: true, hash: SCHEMA_HASH }
     }
     const pending = await pendingSchemas(sql)
     if (!pending.length) {
@@ -107,7 +107,7 @@ export async function applySchema(sql) {
       // and never send the DDL — that is what a boot under traffic must do
       await mark(sql)
       console.log('analytics: schema complete by the catalogs, version recorded, nothing locked')
-      return
+      return { ready: true, hash: SCHEMA_HASH }
     }
     todo = pending
     console.log(`analytics: ${pending.length} of ${SCHEMAS.length} schema(s) have something to add`)
@@ -124,7 +124,7 @@ export async function applySchema(sql) {
       })
       await mark(sql)
       console.log('analytics: connected, schema ready')
-      return
+      return { ready: true, hash: SCHEMA_HASH }
     } catch (err) {
       // back off for longer than the lock wait itself, so four attempts do
       // not add up to a minute of queued queries
@@ -137,6 +137,7 @@ export async function applySchema(sql) {
   // that this process needs, and the game runs.
   const [row] = await sql.unsafe(`select to_regclass('public.card_accounts') as t`)
   if (!row?.t) throw new Error('schema never applied and card_accounts does not exist')
-  console.warn('analytics: schema not applied, but the tables are there — carrying on')
+  console.warn('analytics: migration incomplete; connection retained, readiness stays false')
+  return { ready: false, hash: SCHEMA_HASH }
 }
 

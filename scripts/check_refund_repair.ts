@@ -42,5 +42,22 @@ check('补的那封信是退款、900 金币、带标记', mail[0].kind === 'off
 await repair(sql, true)
 check('再跑一次什么都不发', (await sql`select count(*)::int as n from card_mail`)[0].n === 3)
 
+// Overlapping deployment containers must recompute under the same lock.
+await sql`insert into card_offers (listing, buyer_h, price, status) values (${l}, 'h-buyer', 700, 'expired')`
+const both = await Promise.all([repair(sql, true), repair(sql, true)])
+const refunded = await sql`select count(*)::int as n, sum(coins)::int as coins from card_mail where body->>'repair' = 'stranded-offers-2026-09-03'`
+check('双实例并发补发：新欠款只补一次', both.reduce((n, r) => n + r.length, 0) === 1
+  && refunded[0].n === 2 && refunded[0].coins === 1600 && (await owed(sql)).length === 0, JSON.stringify(refunded[0]))
+// A failure after inserting must roll back the receipt/mail together.
+await sql`insert into card_offers (listing, buyer_h, price, status) values (${l}, 'h-buyer', 300, 'expired')`
+const failing = Object.assign((...args: unknown[]) => (sql as any)(...args), {
+  begin: (fn: (db: any) => Promise<unknown>) => sql.begin(async (db: any) => { await fn(db); throw new Error('injected rollback') }),
+})
+try { await repair(failing, true) } catch { /* expected */ }
+check('提交前异常：未留下半笔退款', (await owed(sql))[0]?.coins === 300)
+await repair(sql, true)
+check('重启重试：只补未提交的差额', (await owed(sql)).length === 0
+  && (await sql`select sum(coins)::int as coins from card_mail where body->>'repair' = 'stranded-offers-2026-09-03'`)[0].coins === 1900)
+
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
 process.exit(bad ? 1 : 0)

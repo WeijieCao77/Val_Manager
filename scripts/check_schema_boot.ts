@@ -1,5 +1,5 @@
 /**
- * A bad boot migration must not take card mode offline. (2026-09-09)
+ * A failed migration retains the connection but must never make a release ready. (2026-09-09)
  *
  *   npx tsx scripts/check_schema_boot.ts
  *
@@ -14,7 +14,7 @@
  * The rules being checked:
  *   - a migration that fails once and then succeeds is simply retried
  *   - a migration that never succeeds, on a database whose tables are already
- *     there, does NOT throw — the connection is kept and the game runs
+ *     there, does NOT throw — the connection is kept but readiness stays false
  *   - a migration that never succeeds on an EMPTY database does throw, because
  *     there is genuinely nothing to serve
  *   - the DDL runs inside one transaction holding an advisory lock, which is
@@ -54,7 +54,8 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
 // ---- the list itself -------------------------------------------------------
 {
   console.log('=== 建表清单 ===')
-  check('六份 schema 都在', SCHEMAS.length === 6, `${SCHEMAS.length} 份`)
+  // seven since 2026-09-18: the 全服杯's later columns are a list entry of their own (OPEN_CUP_V2_SCHEMA)
+  check('七份 schema 都在', SCHEMAS.length === 7, `${SCHEMAS.length} 份`)
   check('每份都不是空的', SCHEMAS.every((s) => typeof s === 'string' && s.trim().length > 40))
   const all = SCHEMAS.join('\n')
   for (const t of ['card_accounts', 'card_listings', 'events']) {
@@ -70,7 +71,7 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   let threw = ''
   await applySchema(sql as never).catch((e: Error) => { threw = e.message })
   check('第一次失败，第二次成功', !threw && sql.attempts === 2, threw || `${sql.attempts} 次`)
-  check('六份 schema 都真的跑了', SCHEMAS.every((s) => sql.ran.includes(s)))
+  check('每份 schema 都真的跑了', SCHEMAS.every((s) => sql.ran.includes(s)))
 }
 
 // ---- a release that adds tables of its own sends only its own schema --------
@@ -99,6 +100,11 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   check('新加的全服杯 schema 跑了', ran.includes(OPEN_CUP_SCHEMA))
   check('别的 schema 一条都没重发，热表不会被锁', SCHEMAS.filter((x) => x !== OPEN_CUP_SCHEMA).every((x) => !ran.includes(x)))
   check('全服杯 schema 里没有 alter table，也不碰别人的表', !/alter table/i.test(OPEN_CUP_SCHEMA) && !/card_accounts|events\b/i.test(OPEN_CUP_SCHEMA.replace(/--.*$/gm, '')))
+  // 2026-09-18: what the cup has grown since is its own list entry, and alters only the cup's own tables
+  const { OPEN_CUP_V2_SCHEMA } = await import('../opencup-api.js')
+  const altered = [...OPEN_CUP_V2_SCHEMA.replace(/--.*$/gm, '').matchAll(/alter table (\w+)/gi)].map((m) => m[1])
+  check('全服杯后加的列单独一份，只改自己的三张表', SCHEMAS.includes(OPEN_CUP_V2_SCHEMA) && altered.length > 0
+    && altered.every((t) => /^open_cup/.test(t)) && !/card_accounts|\bevents\b/i.test(OPEN_CUP_V2_SCHEMA.replace(/--.*$/gm, '')), altered.join(' '))
 }
 
 // ---- the lock and the timeout are actually taken ---------------------------
@@ -120,8 +126,9 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   console.log('\n=== 迁移一直失败 ===')
   const sql = fakeSql({ failTimes: 99, tables: true })
   let threw = ''
-  await applySchema(sql as never).catch((e: Error) => { threw = e.message })
-  check('表都在的话就不抛，卡牌模式照常开', !threw, threw)
+  let result: { ready?: boolean } | undefined
+  await applySchema(sql as never).then((r: { ready?: boolean }) => { result = r }).catch((e: Error) => { threw = e.message })
+  check('旧库保留连接，但迁移失败不允许切流', !threw && result?.ready === false, threw || JSON.stringify(result))
   check('试了不止一次', sql.attempts >= 4, `${sql.attempts} 次`)
   check('确认过表在不在', sql.ran.some((q) => q.includes('to_regclass')))
 
@@ -135,11 +142,11 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
 {
   console.log('\n=== server.js 的接法 ===')
   const src = await import('node:fs').then((fs) => fs.readFileSync('server.js', 'utf8'))
-  check('server.js 用的是这个函数', src.includes('applySchema(sql)'))
-  // 09-10: `await applySchema(sql)` at the top level held listen() for the
+  check('server.js 用的是这个函数', src.includes('applySchema(sqlBg)'))
+  // 09-10: `await applySchema(sqlBg)` at the top level held listen() for the
   // whole retry loop — a minute of 502 on every deploy. The step runs after
   // the port opens now; a failure still nulls `sql` through the .catch.
-  check('建表不再挡住监听', !src.includes('await applySchema(sql)') && /applySchema\(sql\)\.then\(/.test(src))
+  check('建表不再挡住监听', !src.includes('await applySchema(sqlBg)') && /applySchema\(sqlBg\)\.then\(/.test(src))
   check('本地 pglite 用的是同一份清单', src.includes('for (const schema of SCHEMAS)'))
   check('没有人再一条条 unsafe 建表', !/await sql\.unsafe\((SCHEMA|CARD_SCHEMA|SITE_SCHEMA)\)/.test(src))
 }

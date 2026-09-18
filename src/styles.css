@@ -2482,6 +2482,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
  * different heights. The card sits at the top, the button is pushed to the
  * bottom by the spacer, and every tile in a row is stretched to the tallest. */
 .market-shelf { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+/* windowing (Market.tsx ShelfChunk): zero-size markers round a mounted chunk, a full-width box for one that is not */
+.market-chunk-mark { flex: 0 0 100%; height: 0; margin-top: -10px; grid-column: 1 / -1; }
+.market-chunk-gap { flex: 0 0 100%; grid-column: 1 / -1; }
 /* 150px holds the same 132px card the collection grid shows, all six
    attributes on it — the 96px card with two was hard to judge a price by */
 .market-box {

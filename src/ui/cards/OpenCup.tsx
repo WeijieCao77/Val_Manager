@@ -3,12 +3,13 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
 import {
-  fetchOpenCup, fetchOpenCupById, fetchOpenCupMatch, joinOpenCup, leaveOpenCup,
+  fetchOpenCup, fetchOpenCupById, fetchOpenCupMatch, fetchOpenCupSchedule, fetchOpenCupStandings, joinOpenCup, leaveOpenCup,
 } from '../../engine/openCupClient'
-import type { OpenCupMatchDetail, OpenCupMatchRow, OpenCupMine, OpenCupRow, OpenCupState } from '../../engine/openCupClient'
+import type { OpenCupMatchDetail, OpenCupMatchRow, OpenCupMine, OpenCupRow, OpenCupState, SwissStanding } from '../../engine/openCupClient'
 import {
-  OPEN_CUP_MIN, OPEN_CUP_RANKED_MIN, OPEN_CUP_WIN_COINS, openCupPlacePrize, openCupRoundName,
+  OPEN_CUP_MIN, OPEN_CUP_RANKED_MIN, openCupPlacePrize, openCupRoundName,
 } from '../../engine/openCup'
+import { swissRoundName } from '../../engine/openCupSwiss'
 import { PACKS } from '../../engine/gacha'
 import { cardById, cardName, squadRating } from '../../engine/cards'
 import { serverNow } from '../../engine/account'
@@ -21,6 +22,10 @@ const countdown = (ms: number) => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
   return h ? `${h} 小时 ${m} 分` : m ? `${m} 分 ${s % 60} 秒` : `${s} 秒`
 }
+const roundLabel = (cup: Pick<OpenCupRow, 'format' | 'rounds' | 'playoffRounds'>, m: { round: number; stage?: string; stageRound?: number }) =>
+  cup.format === 2 && m.stage && m.stage !== 'knockout'
+    ? swissRoundName(m.stage as 'swiss' | 'playin' | 'playoff', m.stageRound ?? 0, cup.playoffRounds ?? 0)
+    : openCupRoundName(cup.rounds, m.round)
 const prizeText = (n: number, place: 1 | 2 | 4) => {
   const p = openCupPlacePrize(n, place)
   const bits = [p.coins ? `${p.coins} 金币` : '', p.pack ? PACKS[p.pack].name : ''].filter(Boolean)
@@ -124,9 +129,8 @@ export default function OpenCup() {
         actions={<span className="tiny muted">免费报名 · 每 2 小时一场</span>}
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
-          所有玩家打同一张签表，<b>单败淘汰</b>，每 15 分钟自动打一轮，不用在线。人数凑不齐时第一轮有人轮空，之后不再轮空。
-          <b>开赛时读取你当时的卡组</b>，之后本场不再变。BO3，决赛 BO5。
-          每赢一场 {OPEN_CUP_WIN_COINS} 金币，名次奖励看参赛人数；奖励发到信箱。
+          {(st.next?.format ?? 1) === 2 ? <>先打<b>瑞士轮 BO3：两胜晋级、两败淘汰</b>，输第一场继续参赛；晋级后打<b>Playoff BO5 单败淘汰</b>，决赛也是 BO5。瑞士轮实胜每场 20 金币，Playoff 实胜每场 40 金币，轮空不发金币。</> : <>所有玩家打同一张签表，单败淘汰。BO3，决赛 BO5；每场实胜 40 金币。</>}
+          系统按本届赛程自动比赛，不用在线。<b>开赛时锁定卡组与强化</b>，之后本场不再变。名次奖励看参赛人数，奖励发到信箱。
           不足 {OPEN_CUP_MIN} 人取消，{OPEN_CUP_RANKED_MIN} 人以上的冠军计入冠军榜。
         </p>
 
@@ -165,13 +169,15 @@ export default function OpenCup() {
           actions={<span className="tiny muted">{st.live.entrants} 人参赛 · 还剩 {st.live.alive} 人</span>}
         >
           <p className="small" style={{ marginTop: 0 }}>
-            已打 {st.live.round}/{st.live.rounds} 轮
+            {st.live.format === 2 ? `${st.live.phase === 'swiss' ? '瑞士轮' : 'Playoff'} · 已打 ${st.live.round} 轮` : `已打 ${st.live.round}/${st.live.rounds} 轮`}
             {st.live.nextAt && (
-              <span className="muted"> · {openCupRoundName(st.live.rounds, st.live.round)} {clock(st.live.nextAt)} 开打（{countdown(st.live.nextAt - now)}后）</span>
+              <span className="muted"> · {roundLabel(st.live, { round: st.live.round, stage: st.live.phase, stageRound: st.live.stageRound })} {now >= st.live.nextAt ? '结算中…' : `${clock(st.live.nextAt)} 开打（${countdown(st.live.nextAt - now)}后）`}</span>
             )}
           </p>
           <MyRun cup={st.live} me={st.live.me ?? null} onOpen={(m) => void open(st.live!.id, m)} />
           <Top cup={st.live} rows={st.live.top} onOpen={(m) => void open(st.live!.id, m)} />
+          <SwissTable cup={st.live} />
+          <Schedule cup={st.live} onOpen={(m) => void open(st.live!.id, m)} />
         </Panel>
       )}
 
@@ -202,6 +208,8 @@ export default function OpenCup() {
           )}
           <MyRun cup={st.last} me={st.last.me ?? null} onOpen={(m) => void open(st.last!.id, m)} />
           <Top cup={st.last} rows={st.last.top} onOpen={(m) => void open(st.last!.id, m)} />
+          <SwissTable cup={st.last} />
+          <Schedule cup={st.last} onOpen={(m) => void open(st.last!.id, m)} />
         </Panel>
       )}
 
@@ -263,6 +271,8 @@ export default function OpenCup() {
             <div className="modal-body">
               <MyRun cup={old} me={old.me} onOpen={(m) => void open(old.id, m)} />
               <Top cup={old} rows={old.top} onOpen={(m) => void open(old.id, m)} />
+              <SwissTable cup={old} />
+              <Schedule cup={old} onOpen={(m) => void open(old.id, m)} />
             </div>
           </div>
         </div>
@@ -280,12 +290,15 @@ function MyRun({ cup, me, onOpen }: { cup: OpenCupRow; me: OpenCupMine | null; o
     : me.place === 1 ? '🏆 冠军'
       : me.place === 2 ? '亚军'
         : me.place === 4 ? '四强'
+          : cup.format === 2 && cup.phase === 'swiss' && (me.swissWins ?? 0) >= 2 ? '已晋级，等待 Playoff'
+          : cup.format === 2 && (me.swissLosses ?? 0) >= 2 ? '瑞士轮两败，已淘汰'
           : me.alive ? `还在 · 已赢 ${me.wins} 场`
-            : `止步${openCupRoundName(cup.rounds, me.outRound ?? 0)} · 赢了 ${me.wins} 场`
+            : `止步${cup.format === 2 ? 'Playoff' : openCupRoundName(cup.rounds, me.outRound ?? 0)} · 赢了 ${me.wins} 场`
   return (
     <div style={{ marginBottom: 12 }}>
       <div className="small" style={{ marginBottom: 6 }}>
         <b>我的战绩</b>　<span style={{ color: me.alive || me.place === 1 ? 'var(--win)' : undefined }}>{stand}</span>
+        {cup.format === 2 && <span className="tiny muted">　瑞士轮 {me.swissWins ?? 0}–{me.swissLosses ?? 0} · 实胜 {me.swissRealWins ?? 0}{me.playoffSeed ? ` · Playoff #${me.playoffSeed}` : ''}{me.byes ? ` · 轮空 ${me.byes} 次（不发金币）` : ''}</span>}
         {me.score != null && <span className="tiny faint">　参赛阵容 {me.score} 分</span>}
       </div>
       <div className="grid" style={{ gap: 6 }}>
@@ -300,7 +313,7 @@ function Top({ cup, rows, onOpen }: { cup: OpenCupRow; rows: OpenCupMatchRow[]; 
   if (!rows.length) return null
   return (
     <div>
-      <div className="small" style={{ marginBottom: 6 }}><b>后三轮</b></div>
+      <div className="small" style={{ marginBottom: 6 }}><b>{cup.format === 2 ? '近期对阵' : '后三轮'}</b></div>
       <div className="grid" style={{ gap: 6 }}>
         {rows.map((m) => <MatchLine key={`${m.round}:${m.slot}`} cup={cup} m={m} onOpen={onOpen} />)}
       </div>
@@ -327,16 +340,96 @@ function MatchLine({ cup, m, onOpen }: { cup: OpenCupRow; m: OpenCupMatchRow; on
       style={{ cursor: m.played && !m.bye ? 'pointer' : 'default' }}
       onClick={() => onOpen(m)}
     >
-      <b style={{ width: 52, flex: 'none' }}>{openCupRoundName(cup.rounds, m.round)}</b>
+      <b style={{ width: 52, flex: 'none' }}>{roundLabel(cup, m)}{m.bo ? <span className="tiny muted" style={{ display: 'block' }}>BO{m.bo}</span> : null}</b>
       <div style={{ flex: 1, minWidth: 0 }}>
         {side(m.a, m.played && !m.bye ? m.aWon : null, m.bye ? null : m.mapsA)}
         {m.bye
-          ? <div className="tiny muted">轮空晋级</div>
+          ? <div className="tiny muted">轮空（不计实胜、不发金币）</div>
           : side(m.b, m.played ? !m.aWon : null, m.mapsB)}
       </div>
       {!m.played && <span className="tiny" style={{ color: 'var(--accent)', flex: 'none' }}>未开打</span>}
     </div>
   )
+}
+
+function SwissTable({ cup }: { cup: OpenCupRow }) {
+  const [shown, setShown] = useState(false)
+  const [record, setRecord] = useState('all')
+  const [rows, setRows] = useState<SwissStanding[]>([])
+  const [next, setNext] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const serial = useRef(0)
+  const load = useCallback(async (offset = 0) => {
+    const current = ++serial.current
+    setBusy(true); setError('')
+    const [wins, losses] = record === 'all' ? [null, null] : record.split('-').map(Number)
+    const r = await fetchOpenCupStandings(cup.id, wins, losses, offset)
+    if (current !== serial.current) return
+    setBusy(false)
+    if (!r.ok) { setError(r.why ?? '战绩暂时读不到'); return }
+    setRows(r.rows); setNext(r.next)
+  }, [cup.id, record])
+  useEffect(() => { if (shown) void load(); return () => { serial.current++ } }, [shown, load, cup.round])
+  if (cup.format !== 2) return null
+  return <div style={{ marginTop: 12 }}>
+    <button className="sm" onClick={() => setShown(!shown)}>{shown ? '收起瑞士轮战绩' : '瑞士轮战绩分组'}</button>
+    {shown && <>
+      <div className="seg" style={{ margin: '8px 0', flexWrap: 'wrap' }}>
+        {['all', '0-0', '1-0', '0-1', '1-1', '2-0', '2-1', '0-2', '1-2'].map((r) => <button key={r} className={record === r ? 'on' : ''} onClick={() => setRecord(r)}>{r === 'all' ? '全部' : r}</button>)}
+      </div>
+      {error && <p className="small muted">{error}</p>}
+      <div className="grid" style={{ gap: 6 }}>{rows.map((e, i) => <div className="bracket-leg" key={`${e.tag}:${i}`} style={{ flexWrap: 'wrap' }}>
+        <span style={{ flex: 1 }}>{e.name} <span className="tiny muted">{e.tag} · {e.score} 分</span></span>
+        <b>{e.wins}–{e.losses}</b><span className="tiny muted">实胜 {e.realWins}{e.byes ? ` · 轮空 ${e.byes}` : ''} · {e.wins >= 2 ? '晋级' : e.losses >= 2 ? '淘汰' : '比赛中'}</span>
+      </div>)}</div>
+      {!rows.length && !busy && !error && <p className="tiny muted">暂无这个战绩的选手。</p>}
+      <div className="row" style={{ marginTop: 8, gap: 8 }}><button className="sm" disabled={busy} onClick={() => void load()}>首页 / 刷新</button>
+        {next !== null && <button className="sm" disabled={busy} onClick={() => void load(next)}>下一页</button>}{busy && <span className="tiny muted">读取中…</span>}
+      </div>
+    </>}
+  </div>
+}
+
+/** The full bracket stays server-side; stage pages contain at most fifty ties. */
+function Schedule({ cup, onOpen }: { cup: OpenCupRow; onOpen: (m: OpenCupMatchRow) => void }) {
+  const [shown, setShown] = useState(false)
+  const [stage, setStage] = useState<string | null>(null)
+  const [rows, setRows] = useState<OpenCupMatchRow[]>([])
+  const [next, setNext] = useState<[number, number] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const generation = useRef(0)
+  const load = useCallback(async (cursor: [number, number] | null = null) => {
+    const token = ++generation.current
+    setBusy(true); setError('')
+    const r = await fetchOpenCupSchedule(cup.id, stage, cursor)
+    if (token !== generation.current) return
+    setBusy(false)
+    if (!r.ok) { setError(r.why ?? '赛程暂时读不到'); return }
+    setRows(r.rows); setNext(r.next)
+  }, [cup.id, stage])
+  useEffect(() => {
+    if (shown) void load()
+    return () => { generation.current++ }
+  }, [shown, load, cup.round])
+  return <div style={{ marginTop: 12 }}>
+    <button className="sm" onClick={() => setShown(!shown)}>{shown ? '收起赛程' : '全部赛程 / 对阵树'}</button>
+    {shown && <>
+      {cup.format === 2 && <div className="seg" style={{ margin: '8px 0', flexWrap: 'wrap' }}>
+        {[[null, '全部'], ['swiss', '瑞士轮'], ['playin', '入围轮'], ['playoff', 'Playoff']].map(([value, label]) =>
+          <button key={label} className={stage === value ? 'on' : ''} onClick={() => setStage(value)}>{label}</button>)}
+      </div>}
+      {error && <p className="small muted">{error} <button className="sm" onClick={() => void load()}>重试</button></p>}
+      <div className="grid" style={{ gap: 6 }}>{rows.map((m) => <MatchLine key={`${m.round}:${m.slot}`} cup={cup} m={m} onOpen={onOpen} />)}</div>
+      {!rows.length && !busy && !error && <p className="small muted">这一阶段还没有对阵。</p>}
+      <div className="row" style={{ marginTop: 8, gap: 8 }}>
+        <button className="sm" disabled={busy} onClick={() => void load()}>首页 / 刷新</button>
+        {next && <button className="sm" disabled={busy} onClick={() => void load(next)}>下一页</button>}
+        {busy && <span className="tiny muted">读取中…</span>}
+      </div>
+    </>}
+  </div>
 }
 
 /**
@@ -379,7 +472,11 @@ function Replay({ report, onClose }: { report: { detail: OpenCupMatchDetail; fli
       onClose={onClose}
       extra={
         <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
-          <span className="chiplet">全服杯 · {openCupRoundName(d.rounds, d.round)} · BO{d.detail.bo}</span>
+          <span className="chiplet">全服杯 · {roundLabel(d, d)} · BO{d.detail.bo}</span>
+          {top.five.paper && <span className="tiny muted">参赛快照 · 实际分 {top.five.paper.score.toFixed(2)} · 默契 {top.five.chemistry ?? '—'} · 战力 {top.five.power ?? '—'}</span>}
+          {top.five.paper && <details className="tiny muted" style={{ width: '100%' }}><summary>双方参赛分数构成</summary>
+            {[top, bottom].map((side, i) => { const p = side.five.paper; return p && <p key={i}>{side.name}：选手均分 {p.mean.toFixed(2)}（含强化 +{p.growth.toFixed(2)}）＋教练 {p.lift.toFixed(2)}＋默契 {p.chem.toFixed(2)}－缺人 {p.short.toFixed(2)}－指挥缺失 {p.uncalled.toFixed(2)}＝{p.score.toFixed(2)} 分</p> })}
+          </details>}
         </div>
       }
     />

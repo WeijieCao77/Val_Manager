@@ -53,6 +53,8 @@ const api = makeMarketApi(sql, {
   token: 'devtoken',
   tokenFrom: (req: { headers?: { authorization?: string } }) => (req.headers?.authorization ?? '').replace(/^Bearer\s+/i, ''),
   tokenOk: (given: string, expected: string) => given === expected,
+  // the settler runs on a timer in the server; here it is run by hand (below), so nothing moves unasked
+  timer: false,
 } as never)
 // the inbox is collected through the card api now — the server applies it
 const cardsApi = makeCardApi(sql, {
@@ -64,6 +66,14 @@ const cardsApi = makeCardApi(sql, {
 const call = async (path: string, body: unknown, headers: Record<string, string> = {}) => {
   const res: Res = { code: 0, body: {} }
   const which = path.startsWith('/api/card/') ? cardsApi : api
+  // Since 2026-09-18 a read settles nothing: ended auctions are closed by the
+  // background settler within seconds. Every request in this script is made
+  // "after the settler's next tick" — the tick is run here, where the server's
+  // timer would have run it — so what the assertions below say about a market
+  // whose clock has moved on is unchanged. That a read does NOT settle is
+  // asserted in check_market_sweep.ts.
+  // (and the ten-second public cache of the filter menus is dropped, since this script writes rows behind the api's back)
+  if (which === api) { await api.settleDue({ chores: true }); api.forgetMenus() }
   await which.route({ body: JSON.stringify(body), method: 'POST', headers } as never, res as never, path, 't')
   return Object.assign(res.body, { _code: res.code })
 }

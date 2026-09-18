@@ -27,6 +27,9 @@ export {
   openCupSlot, planOpenCup, planOpenCupFast, openCupRoundAt, pairOpenCupRound, playOpenCupMatch, openCupMatchSeed, openCupPurse,
   OPEN_CUP_MIN, OPEN_CUP_MAX, OPEN_CUP_RANKED_MIN,
 } from './openCup'
+export { BALANCE_VERSION } from './balance'
+export * from './openCupSwiss'
+export { squadPaper, chemistry, squadPower } from './cards'
 export { progressOf } from '../../progress.js'
 export { answerFor, kindFor, imgOf } from './challenge'
 

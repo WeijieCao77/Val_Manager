@@ -1,11 +1,14 @@
 /** Wait for the actual build to be healthy, not merely accepted for upload. */
 import assert from 'node:assert/strict'
+import { releaseFingerprint } from '../release-fingerprint.js'
+import { REQUIRED_COLUMNS, REQUIRED_UNIQUE } from '../release-readiness.js'
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { setTimeout } from 'node:timers/promises'
 const origin = process.argv[2]
 assert(origin, 'usage: node scripts/verify_deployment.mjs <origin>')
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
+const release = releaseFingerprint()
 const engine = sha(readFileSync('dist-server/engine.mjs'))
 const files = ['index.html', ...readdirSync('dist/assets').filter(x => /\.(js|css)$/.test(x)).map(x => `assets/${x}`)]
 const get = async path => {
@@ -18,6 +21,12 @@ for (;;) {
   try {
     const health = await get('/healthz')
     assert.equal(await health.text(), 'ok')
+    assert.equal(health.headers.get('x-release-sha256'), release, 'running backend differs from tested release')
+    const ready = await (await get('/readyz')).json()
+    assert.equal(ready.ready, true, 'database/schema not ready')
+    assert.equal(ready.db, 'up', 'production database unavailable')
+    assert.equal(ready.release, release, 'readiness came from another release')
+    assert([...Object.keys(REQUIRED_COLUMNS), ...Object.keys(REQUIRED_UNIQUE)].every(k => ready.features?.[k] === true), 'required release feature unavailable')
     assert.equal(health.headers.get('x-engine-sha256'), engine, 'running match engine differs from tested build')
     for (let i = 0; i < files.length; i += 6) {
       await Promise.all(files.slice(i, i + 6).map(async file => {

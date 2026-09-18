@@ -4,6 +4,14 @@ import type { ActOutcome } from '../../engine/account'
 
 export interface CardCtxValue {
   g: GachaState
+  /**
+   * Goes up every time `g` changes. `g` is one object updated in place, so it
+   * is useless as a memo dependency: anything derived from the collection
+   * depends on this instead. (收藏 depended on `g.pulls` and `g.coins`, and a
+   * letter that brought a card and no coins left the page showing the old
+   * collection until something else moved.)
+   */
+  version: number
   /** the server's date, which is what the check-in and the quest board run on */
   today: string
   /**

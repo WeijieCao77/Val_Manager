@@ -25,7 +25,7 @@ import { Rng } from '../src/engine/rng'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { TRADE_PULLS } = await import('../market-api.js')
-const { OPEN_CUP_SCHEMA, makeOpenCupApi } = await import('../opencup-api.js')
+const { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, makeOpenCupApi } = await import('../opencup-api.js')
 const { displayName } = await import('../names.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -129,6 +129,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 const db = new PGlite(), sql = makeSql(db)
 await db.exec(CARD_SCHEMA)
 await db.exec(OPEN_CUP_SCHEMA)
+await db.exec(OPEN_CUP_V2_SCHEMA)
 type Body = Record<string, any>
 type Reply = { code: number; body: Body }
 const json = (res: Reply, code: number, body: Body) => { res.code = code; res.body = body }

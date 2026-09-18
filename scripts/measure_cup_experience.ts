@@ -52,7 +52,9 @@ for (const f of fixtures) {
     let k = 0, w = 0
     while (g.cup && !g.cup.done) {
       const opp = cupOpponent(g)!
-      const res = playCupMatch(f.team.squad, level, opp, cupBo(g.cup), ((i + 1) * 131 + k++) >>> 0, g.cup.ease ?? 0)
+      const res = playCupMatch(f.team.squad, level, opp, cupBo(g.cup), ((i + 1) * 131 + k++) >>> 0, g.cup.ease ?? 0,
+        // the curve the bracket was entered on; BALANCE=1 replays the same cups on the old one
+        Number(process.env.BALANCE) || g.cup.balance || 1)
       if (res.win) w++
       recordCup(g, { opponent: opp, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost })
     }

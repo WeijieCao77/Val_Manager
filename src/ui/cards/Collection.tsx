@@ -23,7 +23,7 @@ const coin = (n: number) => n.toLocaleString('en-US')
 const SETS_OPEN = 'valmanager:card:setsOpen'
 
 export default function Collection() {
-  const { g, act, toast, openDossier } = useCards()
+  const { g, version, act, toast, openDossier } = useCards()
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [dupesOnly, setDupesOnly] = useState(false)
   const [q, setQ] = useState('')
@@ -37,12 +37,12 @@ export default function Collection() {
   const [keepUp, setKeepUp] = useState(true)
   const [busy, setBusy] = useState(false)
 
-  const mine = useMemo(() => collection(g), [g, g.pulls, g.coins])
+  const mine = useMemo(() => collection(g), [g, version])
   // the club menu is built from whatever pile is on screen: what you own, or
   // what you are still missing
   const pool = useMemo(() => (missing
     ? ALL_CARDS.filter((c) => !g.cards[c.id])
-    : mine.map((x) => x.card)), [missing, mine, g.cards])
+    : mine.map((x) => x.card)), [missing, mine, g.cards, version])
 
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase()
@@ -71,14 +71,14 @@ export default function Collection() {
       dupes: lines.reduce((n, l) => n + l.count, 0),
       coins: lines.reduce((n, l) => n + l.coins, 0),
     }
-  }), [g, g.cards, g.coins, keepUp])
+  }), [g, version, keepUp])
   const pickedPlan = useMemo(() => {
     const lines = salvagePlan(g, { cardIds: [...picked], keepForUpgrade: keepUp })
     return {
       dupes: lines.reduce((n, l) => n + l.count, 0),
       coins: lines.reduce((n, l) => n + l.coins, 0),
     }
-  }, [g, g.cards, g.coins, picked, keepUp])
+  }, [g, version, picked, keepUp])
 
   // 300 is what the server will read out of one request; the grid shows 240,
   // so this only ever bites somebody picking across several filters
@@ -111,7 +111,7 @@ export default function Collection() {
     })
   }
 
-  const sets = useMemo(() => clubSets(g), [g, g.cards])
+  const sets = useMemo(() => clubSets(g), [g, version])
   const doneSets = sets.filter((x) => x.done)
   const [allSets, setAllSets] = useState(false)
   // 全队收藏 sits above the cards, and on a phone a full shelf of crests was a

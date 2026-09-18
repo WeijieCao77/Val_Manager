@@ -46,6 +46,7 @@ export default function MatchReport({
               : <>{result.win ? '赢了' : '输了'} · {result.mapsWon}–{result.mapsLost} vs{' '}
                 {opponentName ?? opp?.tag ?? '?'}</>}
           </h2>
+          {result.bo && result.bo > 1 && <span className="tag" style={{ marginLeft: 8 }}>BO{result.bo}</span>}
           <div className="spacer" />
           <button className="ghost sm" onClick={onClose}>关闭</button>
         </div>

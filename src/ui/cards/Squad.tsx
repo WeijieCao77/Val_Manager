@@ -265,7 +265,8 @@ export default function SquadScreen() {
                 level shows as +100 here where the mean-then-round hid it. */}
             {filled > 0 && (
               <div className="tiny muted mono" style={{ marginBottom: 8, lineHeight: 1.7 }}>
-                五人 {fmt(pts(paper.mean + paper.misfits * 6 / paper.players))}
+                五人 {fmt(pts(paper.mean - paper.growth + paper.misfits * 6 / paper.players))}
+                {paper.growth > 0 && ` · 强化 ${signed(pts(paper.growth))}`}
                 {paper.misfits > 0 && ` · 错位 ${signed(-pts(paper.misfits * 6 / paper.players))}`}
                 {` · 默契 ${signed(pts(paper.chem))}`}
                 {paper.lift !== 0 && ` · 教练 ${signed(pts(paper.lift))}`}

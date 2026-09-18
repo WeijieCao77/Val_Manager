@@ -156,8 +156,10 @@ export function takeServer(state: GachaState, fresh: unknown, revision?: unknown
 }
 
 export type ActOutcome =
-  | { ok: true; result?: unknown }
-  | { ok: false; why: string; offline?: boolean }
+  /** `replayed`: this is the answer to an earlier send of the same request */
+  | { ok: true; result?: unknown; replayed?: boolean }
+  /** `unknown`: no answer at all, twice — the action may have landed; the next load says */
+  | { ok: false; why: string; offline?: boolean; unknown?: boolean }
 
 /**
  * Do something that counts.
@@ -174,27 +176,72 @@ export type ActOutcome =
 export async function act(
   state: GachaState, action: string, args: Record<string, unknown> = {},
 ): Promise<ActOutcome> {
-  try {
-    const r = await fetch(api('act'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: state.id, action, args, client: clientFields(state) }),
-    })
-    const j = await r.json().catch(() => null) as {
-      ok?: boolean; why?: string; rev?: number; now?: unknown; state?: unknown
-      result?: unknown; code?: string; offline?: boolean
-    } | null
-    if (!j) return { ok: false, why: `服务器没有回应（${r.status}）` }
+  // One id for this tap, however many times it has to be sent. The server
+  // keeps the answer beside the account, in the same transaction, so sending
+  // it again can only ever read that answer back — never open a second pack.
+  const requestId = newRequestId()
+  const payload = JSON.stringify({ id: state.id, action, args, requestId, client: clientFields(state) })
+  const send = async (): Promise<{ status: number; j: ActReply | null }> => {
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
+    // Giving up on the wait is not taking the action back: the server may
+    // still finish it. That is what the second send, with the same id, asks.
+    const timer = ctl ? setTimeout(() => ctl.abort(), ACT_TIMEOUT_MS) : null
+    try {
+      const r = await fetch(api('act'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        signal: ctl?.signal,
+      })
+      return { status: r.status, j: await r.json().catch(() => null) as ActReply | null }
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
+  const settle = (status: number, j: ActReply): ActOutcome => {
     noteNow(j.now)
     if (typeof j.rev === 'number') rev = j.rev
     if (typeof j.code === 'string') code = j.code
     if (j.state && absorb(state, j.state)) writeMirror(state, false)
-    if (j.ok) return { ok: true, result: j.result }
+    // it landed the first time but the report was too big to keep: the account above is already
+    // up to date, and no screen should be handed an empty result to unpack
+    if (j.ok && j.trimmed && j.result === undefined) return { ok: false, why: '这一步已经成功，账号已更新。' }
+    if (j.ok) return { ok: true, result: j.result, replayed: j.replayed === true }
     if (j.offline) return { ok: false, why: '服务器暂时不可用，稍后再试。', offline: true }
-    return { ok: false, why: j.why ?? (r.status === 429 ? '操作太快了，等一下。' : '没成功，等会儿再试。') }
-  } catch {
-    return { ok: false, why: '连不上服务器，请检查网络。', offline: true }
+    return { ok: false, why: j.why ?? (status === 429 ? '操作太快了，等一下。' : '没成功，等会儿再试。') }
   }
+  // The outcome is unknown when nothing came back, or the server broke on the
+  // way (5xx): the write may or may not have landed. 429 and 4xx are answers.
+  const unknown = (got: { status: number; j: ActReply | null } | null) => !got || got.status >= 500 || (!got.j && got.status !== 429)
+  let got: { status: number; j: ActReply | null } | null = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, ACT_RETRY_MS))
+    try { got = await send() } catch { got = null }
+    if (!unknown(got)) break
+  }
+  if (!got) return { ok: false, why: '连不上服务器，结果还不确定，请刷新后核对。', offline: true, unknown: true }
+  if (!got.j) return { ok: false, why: `服务器没有回应（${got.status}）`, unknown: got.status >= 500 }
+  return settle(got.status, got.j)
+}
+
+interface ActReply {
+  ok?: boolean; why?: string; rev?: number; now?: unknown; state?: unknown
+  result?: unknown; code?: string; offline?: boolean; replayed?: boolean; trimmed?: boolean
+}
+const ACT_TIMEOUT_MS = 25_000
+const ACT_RETRY_MS = 1200
+
+/** 128 random bits, url-safe. crypto.randomUUID is newer than some of the Chromes this game meets. */
+export function newRequestId(): string {
+  const bytes = new Uint8Array(16)
+  try {
+    crypto.getRandomValues(bytes)
+  } catch {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  let out = ''
+  for (let i = 0; i < bytes.length; i++) out += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16)
+  return out
 }
 
 export interface TopRow {

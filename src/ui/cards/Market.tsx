@@ -25,10 +25,10 @@ import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
   AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
-  answerOffer, askFloorOf, bidOn, browseMarket, gateText, listCardOnMarket, minBidOf, myOffers, unlistCard,
+  answerOffer, askFloorOf, bidOn, browseShelf, failText, gateText, listCardOnMarket, minBidOf, myOffersEx, peekListings, unlistCard,
   waitText, withdrawOffer,
 } from '../../engine/market'
-import type { Gate, Listing, Offer, ShelfQuery, ShelfSort } from '../../engine/market'
+import type { Fail, Gate, Listing, Offer, ShelfQuery, ShelfSort } from '../../engine/market'
 import type { Card } from '../../engine/cards'
 import { takeServer } from '../../engine/account'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
@@ -66,6 +66,58 @@ const nowrap = { whiteSpace: 'nowrap' } as const
  * search box and the price boxes ask the server now, and a request per
  * keystroke is both rude and slower than not having one.
  */
+const clock = (ms: number): string => {
+  const d = new Date(ms)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/**
+ * A run of whole rows of the shelf. Mounted while it is within a couple of
+ * screens of the viewport; otherwise a box of the height it last had. While
+ * mounted it is `display: contents`, so its tiles sit in the shelf's own
+ * flex/grid exactly as if there were no chunks at all.
+ */
+function ShelfChunk({ index, seen, children }: {
+  index: number
+  seen: (index: number, near: boolean) => void
+  children: React.ReactNode
+}) {
+  const first = useRef<HTMLDivElement | null>(null)
+  const last = useRef<HTMLDivElement | null>(null)
+  const box = useRef<HTMLDivElement | null>(null)
+  const [near, setNear] = useState(true)
+  const height = useRef(0)
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return
+    // Mounted, the chunk has no box of its own to observe, so two zero-height
+    // markers bracket it; collapsed, the placeholder is observed instead.
+    const targets = near ? [first.current, last.current] : [box.current]
+    const state = new Map<Element, boolean>()
+    const io = new IntersectionObserver((es) => {
+      for (const e of es) state.set(e.target, e.isIntersecting)
+      if (near) {
+        const a = first.current, b = last.current
+        if (!a || !b) return
+        const top = a.getBoundingClientRect().top, bottom = b.getBoundingClientRect().bottom
+        const vh = window.innerHeight
+        const inRange = bottom > -1500 && top < vh + 1500
+        if (!inRange) { height.current = Math.max(0, bottom - top); setNear(false); seen(index, false) }
+      } else if ([...state.values()].some(Boolean)) { setNear(true); seen(index, true) }
+    }, { rootMargin: '1500px 0px' })
+    for (const t of targets) if (t) io.observe(t)
+    return () => io.disconnect()
+  }, [near, index, seen])
+  useEffect(() => { seen(index, true); return () => seen(index, false) }, [index, seen])
+  if (!near) return <div ref={box} className="market-chunk-gap" style={{ height: height.current }} />
+  return (
+    <div style={{ display: 'contents' }}>
+      <div ref={first} className="market-chunk-mark" />
+      {children}
+      <div ref={last} className="market-chunk-mark" />
+    </div>
+  )
+}
+
 function useSettled<T>(value: T, ms = 350): T {
   const [settled, setSettled] = useState(value)
   useEffect(() => {
@@ -163,12 +215,30 @@ export default function Market() {
    *  scrolled shelf alone rather than yanking it back to the top */
   const deep = useRef(false)
 
+  /** the shelf could not be refreshed: why, and what is on screen is from when */
+  const [shelfFail, setShelfFail] = useState<Fail | null>(null)
+  const [offersFail, setOffersFail] = useState<Fail | null>(null)
+  const [loadedAt, setLoadedAt] = useState<number | null>(null)
+  /** the read in the air, so a newer one can cancel it instead of racing it */
+  const inFlight = useRef<AbortController | null>(null)
+
+  // The shelf and my own bids are two questions and are asked separately: the
+  // shelf is on screen the moment IT answers, and a failure of either leaves
+  // the other — and whatever was already showing — where it is. It used to be
+  // one Promise.all, so the shelf waited for the bids, and a timeout on either
+  // wiped the list and read as 「没有符合筛选的卡」.
   const load = useCallback(async () => {
     const mine = ++asked.current
-    const [b, o] = await Promise.all([browseMarket(query), myOffers()])
-    if (mine !== asked.current) return
-    deep.current = false
-    if (b?.ok) {
+    inFlight.current?.abort()
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
+    inFlight.current = ctl
+    const shelfDone = browseShelf(query, ctl?.signal).then((r) => {
+      if (mine !== asked.current || r.fail === 'aborted') return
+      const b = r.data
+      if (!b?.ok) { setShelfFail(r.fail ?? 'server'); setShelf((old) => old ?? []); return }
+      deep.current = false
+      setShelfFail(null)
+      setLoadedAt(Date.now())
       setShelf(b.listings)
       setOwn(b.own ?? [])
       setNext(b.next ?? null)
@@ -176,9 +246,17 @@ export default function Market() {
       if (typeof b.total === 'number') setTotal(b.total)
       if (b.pool) setPool(b.pool)
       if (typeof b.now === 'number') setNow(b.now)
-    } else setShelf([])
-    if (o?.ok) { setInbound(o.inbound); setOutbound(o.outbound); setDays(o.days) }
+    })
+    const offersDone = myOffersEx(ctl?.signal).then((r) => {
+      if (mine !== asked.current || r.fail === 'aborted') return
+      const o = r.data
+      if (!o?.ok) { setOffersFail(r.fail ?? 'server'); return }
+      setOffersFail(null)
+      setInbound(o.inbound); setOutbound(o.outbound); setDays(o.days)
+    })
+    await Promise.all([shelfDone, offersDone])
   }, [query])
+  useEffect(() => () => inFlight.current?.abort(), [])
 
   /** the next page, appended. A listing already on the shelf is never added
    *  twice even if the market shifted under the cursor. */
@@ -186,9 +264,11 @@ export default function Market() {
     if (!next || more) return
     setMore(true)
     const mine = asked.current
-    const b = await browseMarket({ ...query, cursor: next })
+    const r = await browseShelf({ ...query, cursor: next })
     setMore(false)
-    if (mine !== asked.current || !b?.ok) return
+    const b = r.data
+    if (mine !== asked.current) return
+    if (!b?.ok) { if (r.fail && r.fail !== 'aborted') toast(`没读到下一页：${failText(r.fail)}`); return }
     deep.current = true
     setShelf((old) => {
       const seen = new Set((old ?? []).map((l) => l.id))
@@ -208,12 +288,47 @@ export default function Market() {
   // an auction moves without anyone here clicking: the countdowns tick every
   // half minute and the shelf is re-read every couple of minutes, so a sale
   // or a beaten bid shows up without a reload
+  /** which chunks of the shelf are near the viewport — what a deep shelf refreshes instead of reloading */
+  const nearChunks = useRef(new Set<number>())
+  const shelfRef = useRef<Listing[]>([])
+  const chunkSizeRef = useRef(SHELF_PAGE)
+  const refreshVisible = useCallback(async () => {
+    const rows = shelfRef.current
+    const ids = [...nearChunks.current].sort((a, b) => a - b).slice(0, 3)
+      .flatMap((ci) => rows.slice(ci * chunkSizeRef.current, (ci + 1) * chunkSizeRef.current).map((l) => l.id))
+    if (!ids.length) return
+    const mine = asked.current
+    for (let i = 0; i < ids.length; i += SHELF_PAGE) {
+      const part = ids.slice(i, i + SHELF_PAGE)
+      const r = await peekListings(part)
+      if (mine !== asked.current || !r.data?.ok) return
+      const fresh = new Map(r.data.listings.map((l) => [l.id, l]))
+      const asked4 = new Set(part)
+      // in place: a tile that was looked at and is not in the answer has closed; the rest keep their order
+      setShelf((old) => (old ?? []).filter((l) => !asked4.has(l.id) || fresh.has(l.id)).map((l) => fresh.get(l.id) ?? l))
+      if (typeof r.data.now === 'number') setNow(r.data.now)
+    }
+    setLoadedAt(Date.now())
+  }, [])
   useEffect(() => {
     if (!cloud) return
-    const tick = setInterval(() => setNow((t) => t + 30_000), 30_000)
-    const poll = setInterval(() => { if (!deep.current) void load() }, 120_000)
-    return () => { clearInterval(tick); clearInterval(poll) }
-  }, [cloud, load])
+    const hidden = () => typeof document !== 'undefined' && document.hidden
+    // A tab nobody is looking at asks for nothing. The first page is re-read;
+    // a shelf scrolled further down refreshes only the tiles near the screen,
+    // so it neither jumps back to the top nor sits on prices from an hour ago.
+    const refreshNow = () => { if (deep.current) void refreshVisible(); else void load() }
+    const tick = setInterval(() => { if (!hidden()) setNow((t) => t + 30_000) }, 30_000)
+    const poll = setInterval(() => { if (!hidden()) refreshNow() }, 120_000)
+    let away = 0
+    const onVis = () => {
+      if (hidden()) { away = Date.now(); return }
+      // back from the background: the countdowns jump to the real clock, and a shelf a minute old is re-read
+      setNow(Date.now())
+      if (away && Date.now() - away > 60_000) refreshNow()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(tick); clearInterval(poll); document.removeEventListener('visibilitychange', onVis) }
+  }, [cloud, load, refreshVisible])
 
   // the next page arrives before the last one runs out, so the shelf reads as
   // one long list rather than as pages
@@ -245,8 +360,15 @@ export default function Market() {
     setBusy(true)
     // taken off this side only after the server has the listing, so a failed
     // request can never eat the card
-    const r = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity, now2, hours)
+    const sent = await listCardOnMarket(sellCard, price, level(sellCard), card.rarity, now2, hours)
     setBusy(false)
+    if (sent.fail) {
+      // asked twice with the same request id and heard nothing: it may be up. Say so, and look.
+      toast(sent.fail === 'rate' ? failText('rate') : `${failText(sent.fail)}这次挂牌的结果还不确定，看一下「我挂的牌」。`)
+      void refresh()
+      return
+    }
+    const r = sent.data
     if (!r?.ok) {
       toast(r?.newbie ? gateText(r)
         : r?.notOwned ? '服务器还没同步这张卡，稍后再挂。'
@@ -268,15 +390,26 @@ export default function Market() {
   }
 
   /** the shape of a reply to a bid, whichever way it went */
-  const afterBid = async (r: Awaited<ReturnType<typeof bidOn>>, price: number) => {
+  const afterBid = async (sent: Awaited<ReturnType<typeof bidOn>>, price: number) => {
+    if (sent.fail) {
+      // Not 「这张牌已经不在了」: nobody said that. The bid carried a request
+      // id and was sent twice; if it landed, the coins are in escrow and it
+      // is under 「我出的价」 — which is where to look, and what is re-read now.
+      toast(sent.fail === 'rate' ? failText('rate') : `${failText(sent.fail)}这次出价的结果还不确定，看一下「我出的价」和金币。`)
+      void refresh()
+      return
+    }
+    const r = sent.data
     if (!r?.ok) {
       toast(r?.newbie ? gateText(r)
+        : r?.busy ? '账号正忙，再试一次。'
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
         : r?.leading ? '你已是最高价。'
         : r?.range ? `旧规则挂牌，只能在 ${r.lo} ~ ${r.hi} 之间还价。`
         : r?.broke ? '金币不够。'
           : r?.already ? '你已经对这张牌出过价了。'
-            : r?.self ? '这是你自己的挂牌。' : '这张牌已经不在了，可能刚刚成交。')
+            : r?.self ? '这是你自己的挂牌。'
+              : r?.gone ? '这张牌已经不在了，可能刚刚成交。' : '没出成，稍后再试。')
       void refresh()
       return
     }
@@ -290,7 +423,7 @@ export default function Market() {
     // otherwise 收藏 kept showing the plain copy already there until the tab
     // went away and came back.
     if (r.bought) await collect(true)
-    toast(r.bought ? `一口价成交（${money(paid)} 金币），卡已入库。`
+    toast(r.bought ? `一口价成交（${money(paid)} 金币）。已领取本批邮件，剩余可在信箱继续领取。`
       : `已出价 ${money(paid)}，目前领先。被超过会立刻退回金币。`)
     void refresh()
   }
@@ -306,16 +439,12 @@ export default function Market() {
     await afterBid(r, price)
   }
 
-  const buyNow = async (l: Listing) => {
+  const buyNow = (l: Listing) => {
     if (l.buyout == null) return
     if (g.coins < l.buyout) { toast('金币不够。'); return }
-    // 一口价 sits next to 出价 on a phone and settles the moment it is
-    // pressed — a thumb that meant the other button spent the coins. Ask.
-    if (!confirm(`按一口价 ${money(l.buyout)} 金币立刻买下 ${nameOf(l.cardId)}？`)) return
-    setBusy(true)
-    const r = await bidOn(l.id, l.buyout)
-    setBusy(false)
-    await afterBid(r, l.buyout)
+    // Use the existing in-page confirmation, with the exact purchase price.
+    setBidOpen(l)
+    setBidPrice(String(l.buyout))
   }
 
   // the old listings only: an auction settles itself
@@ -375,6 +504,139 @@ export default function Market() {
     [poolCards, filter, qq])
   const narrowed = matched !== poolCards.length
   const legacyInbound = inbound.filter((o) => o.ends == null)
+  // ---- the shelf, a window at a time
+  // Every page scrolled through used to stay mounted — sixty more tiles a page,
+  // each with a card face, all of them re-rendered when the countdowns tick.
+  // The shelf is cut into chunks of whole rows and a chunk far from the screen
+  // is replaced by a box of the height it had, so what is mounted is what is
+  // near the viewport however far down the reader is. Whole rows: the chunk
+  // size is a multiple of the column count, measured, so no row is cut short
+  // at a chunk's edge.
+  const shelfEl = useRef<HTMLDivElement | null>(null)
+  const [cols, setCols] = useState(2)
+  useEffect(() => {
+    const el = shelfEl.current
+    if (!el) return
+    const measure = () => {
+      const tile = el.querySelector<HTMLElement>('.market-box')
+      if (!tile || !tile.offsetWidth) return
+      const gap = 10
+      setCols(Math.max(1, Math.floor((el.clientWidth + gap) / (tile.offsetWidth + gap) + 0.01)))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [theirs.length > 0])
+  const chunkSize = cols * Math.max(1, Math.ceil(48 / cols))
+  const chunks = useMemo(() => {
+    const out: Listing[][] = []
+    for (let i = 0; i < theirs.length; i += chunkSize) out.push(theirs.slice(i, i + chunkSize))
+    return out
+  }, [theirs, chunkSize])
+  shelfRef.current = theirs
+  chunkSizeRef.current = chunkSize
+  const seenChunk = useCallback((index: number, near: boolean) => {
+    if (near) nearChunks.current.add(index)
+    else nearChunks.current.delete(index)
+  }, [])
+
+  /** one tile of the shelf */
+  const renderTile = (l: Listing) => {
+    const card = cardById(l.cardId)
+    if (!card) return null
+    const auction = l.ends != null
+    const lo = Math.ceil(l.ask * (1 - HAGGLE))
+    const hi = Math.floor(l.ask * (1 + HAGGLE))
+    const min = auction ? (l.min ?? minBidOf(l.ask, l.best)) : l.ask
+    // A second copy of a card you hold keeps its level: the higher
+    // one is the card, a raised lower one waits as a spare that
+    // can be taken apart. Say which on the shelf rather than in
+    // the mailbox afterwards.
+    const mine = g.cards[l.cardId]
+    const lands = !mine ? ''
+      : l.level > (mine.level ?? 0)
+        ? `你有 +${mine.level}，买来升到 +${l.level}`
+        : l.level > 0
+          ? `你已有 +${mine.level}，买来留作备用，可拆解`
+          : '你已有，买来是重复卡'
+    const dear = false
+    return (
+      <div key={l.id} className="market-box">
+        <CardFace card={card} level={l.level} />
+        {/* one fact a line, none of them allowed to wrap:
+            「起拍 10,000 金币」 once broke mid-word */}
+        <div className="tiny mono" style={{ marginTop: 4, ...nowrap }}>
+          {auction && l.best != null
+            ? <>当前 <b>{money(l.best)}</b></>
+            : <>{auction ? '起拍 ' : ''}{money(l.ask)}</>}
+        </div>
+        <div className="tiny faint" style={{ minHeight: '1.4em', ...nowrap }}>
+          {auction && l.buyout != null ? `一口价 ${money(l.buyout)}` : ''}
+        </div>
+        {lands && (
+          <div className={`tiny ${dear ? 'warn' : 'faint'}`}>{lands}</div>
+        )}
+        <div className="tiny faint market-seller">{l.seller}</div>
+        <div className="tiny faint row wrap" style={{ minHeight: '1.4em', gap: '0 6px', justifyContent: 'center' }}>
+          {auction ? (
+            <>
+              {l.bids > 0 && <span style={nowrap}>{l.bids} 人出价</span>}
+              <span style={nowrap}>{left(l.ends, now)}</span>
+            </>
+          ) : <span style={nowrap}>旧规则</span>}
+        </div>
+        <div className="grow" />
+        {l.bid ? (
+          <span className="tag t1" style={{ marginTop: 5 }}>{auction ? '你领先' : '已出价'}</span>
+        ) : (
+          <div className="row wrap" style={{ gap: 4, marginTop: 5 }}>
+            {/* side by side where the tile is wide enough (a phone's
+                two-column shelf), stacked in the 122px desktop tile */}
+            <button
+              className="sm"
+              style={{ flex: '1 1 48px', minHeight: 26 }}
+              disabled={busy || !!gate}
+              title={gate ? gateText(gate) : undefined}
+              onClick={() => { setBidOpen(l); setBidPrice(String(min)) }}
+            >
+              出价
+            </button>
+            {auction && l.buyout != null && (
+              <button
+                className="sm primary"
+                style={{ flex: '1 1 56px', minHeight: 26 }}
+                disabled={busy || !!gate}
+                title={`按一口价 ${money(l.buyout)} 立刻买下`}
+                onClick={() => void buyNow(l)}
+              >
+                一口价
+              </button>
+            )}
+          </div>
+        )}
+        {bidOpen?.id === l.id && (
+          <div style={{ marginTop: 6 }}>
+            <input
+              type="number"
+              value={bidPrice}
+              onChange={(e) => setBidPrice(e.target.value)}
+              style={{ width: '100%' }}
+            />
+            <div className="tiny faint">
+              {auction ? `至少 ${money(min)}${l.buyout != null ? `，到 ${money(l.buyout)} 直接成交` : ''}` : `${lo} ~ ${hi}`}
+            </div>
+            <div className="row" style={{ gap: 5, marginTop: 4 }}>
+              <button className="sm primary" disabled={busy} onClick={() => void doBid()}>{l.buyout != null && Number(bidPrice) >= l.buyout ? `确认一口价购买 · ${money(l.buyout)}` : '确定出价'}</button>
+              <button className="sm ghost" onClick={() => setBidOpen(null)}>取消</button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const askNum = Math.round(Number(ask))
   const buyoutFloor = Number.isFinite(askNum) && askNum > 0 ? Math.ceil(askNum * BUYOUT_MIN) : null
 
@@ -597,107 +859,28 @@ export default function Market() {
             </>
           }
         />
+        {(shelfFail || offersFail) && (
+          <div className="row wrap tiny" style={{ gap: 8, alignItems: 'center', margin: '8px 0', color: 'var(--warn)' }}>
+            <span>
+              {shelfFail ? `货架没刷新成功：${failText(shelfFail)}` : `我的出价没读到：${failText(offersFail!)}`}
+              {shelfFail && loadedAt ? `下面是 ${clock(loadedAt)} 的货架。` : ''}
+            </span>
+            <button className="sm ghost" onClick={() => void refresh()}>重试</button>
+          </div>
+        )}
         {shelf === null ? <p className="empty">读取中…</p>
           : theirs.length === 0 ? (
             <p className="empty">
-              {total === 0 ? '货架是空的，挂一张试试。' : '没有符合筛选的卡。'}
+              {shelfFail ? '还没读到货架。' : total === 0 ? '货架是空的，挂一张试试。' : '没有符合筛选的卡。'}
             </p>
           )
             : (
-              <div className="market-shelf">
-                {theirs.map((l) => {
-                  const card = cardById(l.cardId)
-                  if (!card) return null
-                  const auction = l.ends != null
-                  const lo = Math.ceil(l.ask * (1 - HAGGLE))
-                  const hi = Math.floor(l.ask * (1 + HAGGLE))
-                  const min = auction ? (l.min ?? minBidOf(l.ask, l.best)) : l.ask
-                  // A second copy of a card you hold keeps its level: the higher
-                  // one is the card, a raised lower one waits as a spare that
-                  // can be taken apart. Say which on the shelf rather than in
-                  // the mailbox afterwards.
-                  const mine = g.cards[l.cardId]
-                  const lands = !mine ? ''
-                    : l.level > (mine.level ?? 0)
-                      ? `你有 +${mine.level}，买来升到 +${l.level}`
-                      : l.level > 0
-                        ? `你已有 +${mine.level}，买来留作备用，可拆解`
-                        : '你已有，买来是重复卡'
-                  const dear = false
-                  return (
-                    <div key={l.id} className="market-box">
-                      <CardFace card={card} level={l.level} />
-                      {/* one fact a line, none of them allowed to wrap:
-                          「起拍 10,000 金币」 once broke mid-word */}
-                      <div className="tiny mono" style={{ marginTop: 4, ...nowrap }}>
-                        {auction && l.best != null
-                          ? <>当前 <b>{money(l.best)}</b></>
-                          : <>{auction ? '起拍 ' : ''}{money(l.ask)}</>}
-                      </div>
-                      <div className="tiny faint" style={{ minHeight: '1.4em', ...nowrap }}>
-                        {auction && l.buyout != null ? `一口价 ${money(l.buyout)}` : ''}
-                      </div>
-                      {lands && (
-                        <div className={`tiny ${dear ? 'warn' : 'faint'}`}>{lands}</div>
-                      )}
-                      <div className="tiny faint market-seller">{l.seller}</div>
-                      <div className="tiny faint row wrap" style={{ minHeight: '1.4em', gap: '0 6px', justifyContent: 'center' }}>
-                        {auction ? (
-                          <>
-                            {l.bids > 0 && <span style={nowrap}>{l.bids} 人出价</span>}
-                            <span style={nowrap}>{left(l.ends, now)}</span>
-                          </>
-                        ) : <span style={nowrap}>旧规则</span>}
-                      </div>
-                      <div className="grow" />
-                      {l.bid ? (
-                        <span className="tag t1" style={{ marginTop: 5 }}>{auction ? '你领先' : '已出价'}</span>
-                      ) : (
-                        <div className="row wrap" style={{ gap: 4, marginTop: 5 }}>
-                          {/* side by side where the tile is wide enough (a phone's
-                              two-column shelf), stacked in the 122px desktop tile */}
-                          <button
-                            className="sm"
-                            style={{ flex: '1 1 48px', minHeight: 26 }}
-                            disabled={busy || !!gate}
-                            title={gate ? gateText(gate) : undefined}
-                            onClick={() => { setBidOpen(l); setBidPrice(String(min)) }}
-                          >
-                            出价
-                          </button>
-                          {auction && l.buyout != null && (
-                            <button
-                              className="sm primary"
-                              style={{ flex: '1 1 56px', minHeight: 26 }}
-                              disabled={busy || !!gate}
-                              title={`按一口价 ${money(l.buyout)} 立刻买下`}
-                              onClick={() => void buyNow(l)}
-                            >
-                              一口价
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {bidOpen?.id === l.id && (
-                        <div style={{ marginTop: 6 }}>
-                          <input
-                            type="number"
-                            value={bidPrice}
-                            onChange={(e) => setBidPrice(e.target.value)}
-                            style={{ width: '100%' }}
-                          />
-                          <div className="tiny faint">
-                            {auction ? `至少 ${money(min)}${l.buyout != null ? `，到 ${money(l.buyout)} 直接成交` : ''}` : `${lo} ~ ${hi}`}
-                          </div>
-                          <div className="row" style={{ gap: 5, marginTop: 4 }}>
-                            <button className="sm primary" disabled={busy} onClick={() => void doBid()}>确定</button>
-                            <button className="sm ghost" onClick={() => setBidOpen(null)}>取消</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+              <div className="market-shelf" ref={shelfEl}>
+                {chunks.map((rows, ci) => (
+                  <ShelfChunk key={ci} index={ci} seen={seenChunk}>
+                    {rows.map(renderTile)}
+                  </ShelfChunk>
+                ))}
               </div>
             )}
         {/* The foot of the shelf. The observer fetches the next page before

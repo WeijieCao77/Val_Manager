@@ -8,7 +8,7 @@ import {
   LEAGUES, LEAGUE_RULES,
   rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../../engine/gacha'
-import { RIVAL_MERCY_GAP } from '../../engine/gacha'
+import { LADDER_BO, RIVAL_MERCY_GAP } from '../../engine/gacha'
 import type { LadderOutcome, LeagueKind } from '../../engine/gacha'
 import type { ArenaResult, RivalSquad } from '../../engine/arena'
 import { chemistry, squadRating } from '../../engine/cards'
@@ -221,7 +221,7 @@ export default function Ladder() {
                 </div>
               </div>
               <p className="tiny faint" style={{ lineHeight: 1.7 }}>
-                BO3，完整 BAN/PICK 和回合经济，<b>在服务器上打</b>。
+                BO{LADDER_BO}，先赢 3 张图。完整 BAN/PICK 和回合经济，<b>在服务器上打</b>。
                 {rival
                   ? `　优先匹配阵容分相差 4 分以内的玩家。对面高出 ${RIVAL_MERCY_GAP} 分以上，输了不掉星，大师分只扣一半。`
                   : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
@@ -232,7 +232,7 @@ export default function Ladder() {
                     : filled < 5 ? '先去组队'
                       : !entry.ok ? `这套卡组进不了${rule.name}`
                         : !canPlay(g, 'ladder', now) ? '体力不够'
-                          : `开打（BO3 · ${STAMINA_COST.ladder} 体力）`}
+                          : `开打（BO${LADDER_BO} · ${STAMINA_COST.ladder} 体力）`}
               </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。

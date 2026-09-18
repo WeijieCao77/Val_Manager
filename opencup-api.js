@@ -10,15 +10,13 @@
  * left out rather than played short. After that nothing is read from an
  * account again until the purse is posted to its mail.
  *
- * Who advances it. There is no cron to fail: `advance` runs on a timer in this
- * process AND before every read, single-flight, and everything it does is
- * either idempotent or guarded by the cup's own round counter —
- * `update … where round = k` is the lock. A round is computed outside the
- * transaction (it is CPU, it needs no connection) from a seed the cup was
- * born with, so two containers overlapping across a deploy compute the same
- * round and the second one's write changes no rows. The transaction that
- * records the last round is the one that posts the purse, which is what makes
- * a prize impossible to pay twice or not at all.
+ * A bounded background timer advances the cups. Reads can nudge that timer,
+ * but never await simulation. Legacy format 1 retains its round CAS; format 2
+ * leases individual matches and commits each result with its standings in a
+ * short transaction, then advances through a locked round barrier. CPU work
+ * runs in a worker without holding a database connection. Format 2 also pins
+ * the trusted engine bundle by hash, so restarts/deploys reuse the same input,
+ * engine and seed. The final transaction posts a uniquely receipted purse.
  *
  * One connection at a time, never two: a transaction here never reaches for
  * the pool (see the 2026-09-05 deadlock in cards-api.js).
@@ -27,6 +25,9 @@ import { createHash } from 'node:crypto'
 import { randomBytes } from 'node:crypto'
 import { isVerified } from './phone-api.js'
 import { TRADE_PULLS, TRADE_DAYS } from './market-api.js'
+import { makeSwissCupRunner } from './opencup-v2.js'
+import { createCupComputer } from './opencup-worker.js'
+import { createCupEngineArchive } from './opencup-engine-archive.js'
 
 export const OPEN_CUP_SCHEMA = `
 create table if not exists open_cups (
@@ -80,6 +81,46 @@ create index if not exists open_cup_matches_a_idx on open_cup_matches (cup_id, a
 create index if not exists open_cup_matches_b_idx on open_cup_matches (cup_id, b);
 `
 
+/**
+ * What was added to those three tables after they shipped, as its own entry in
+ * db-schema.js's list: a database that already has the 2026-09-17 tables is
+ * sent this and nothing else, and it alters only the cup's own tables — never
+ * card_accounts or events, where an ALTER waiting for its lock queues every
+ * player behind it.
+ */
+export const OPEN_CUP_V2_SCHEMA = `
+-- the score curve a cup is played on, fixed when it starts (engine/balance.ts).
+-- A cup that was live before the column existed reads 1, the curve it began on.
+alter table open_cups add column if not exists balance_version int not null default 1;
+alter table open_cups add column if not exists engine_hash text;
+create table if not exists open_cup_engine_builds (hash text primary key, compressed text not null, created timestamptz not null default now());
+alter table open_cups add column if not exists format_version int not null default 1;
+alter table open_cups add column if not exists phase text not null default 'knockout';
+alter table open_cups add column if not exists stage_round int not null default 0;
+alter table open_cups add column if not exists playoff jsonb;
+alter table open_cup_entries add column if not exists swiss_wins int not null default 0;
+alter table open_cup_entries add column if not exists swiss_losses int not null default 0;
+alter table open_cup_entries add column if not exists swiss_real_wins int not null default 0;
+alter table open_cup_entries add column if not exists playoff_wins int not null default 0;
+alter table open_cup_entries add column if not exists floats int not null default 0;
+alter table open_cup_entries add column if not exists map_diff int not null default 0;
+alter table open_cup_entries add column if not exists met jsonb not null default '[]';
+alter table open_cup_entries add column if not exists playoff_seed int;
+alter table open_cup_matches add column if not exists stage text not null default 'knockout';
+alter table open_cup_matches add column if not exists stage_round int not null default 0;
+alter table open_cup_matches add column if not exists bo int;
+alter table open_cup_matches add column if not exists lease_until timestamptz;
+alter table open_cup_matches add column if not exists lease_token text;
+alter table open_cup_matches add column if not exists attempts int not null default 0;
+alter table open_cup_matches add column if not exists error text;
+create index if not exists open_cup_matches_pending_idx on open_cup_matches(cup_id, round, slot) where winner is null;
+create index if not exists open_cup_matches_stage_idx on open_cup_matches(cup_id, stage, round, slot);
+create table if not exists open_cup_payouts (
+ cup_id bigint not null, id_hash text not null, created timestamptz not null default now(),
+ primary key(cup_id, id_hash)
+);
+`
+
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 const breathe = () => new Promise((r) => setImmediate(r))
@@ -101,6 +142,11 @@ export function makeOpenCupApi(sql, {
    * production — server.js only reads it beside `DATABASE_URL=pglite://`.
    */
   fast = null,
+  bg = sql,
+  format = Number(process.env.OPEN_CUP_FORMAT ?? 1),
+  compute = null,
+  cardPoolVersion = 'source',
+  engineBundle = null,
 }) {
   const slotOf = (now) => (fast ? engine.openCupSlot(now, fast.everySec * 1000) : engine.openCupSlot(now))
   const planOf = (n) => (fast ? engine.planOpenCupFast(n, fast.stepSec) : engine.planOpenCup(n))
@@ -108,7 +154,11 @@ export function makeOpenCupApi(sql, {
     if (rateLimited(bucket, max)) { json(res, 429, { ok: false, why: 'rate' }); return true }
     return false
   }
-  const tx = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
+  const tx = (fn) => (bg.begin ? bg.begin(fn) : fn(bg))
+  const computer = compute ? null : createCupComputer()
+  const archive = createCupEngineArchive(bg, { source: engineBundle, hash: cardPoolVersion })
+  const simulate = compute ?? (async (args, buildHash = null) => computer.compute(args, buildHash ? await archive.load(buildHash) : null))
+  const swiss = makeSwissCupRunner(bg, { engine, rivalOf: (e) => rivalOf(e), simulate })
   const cupId = (v) => (/^\d{1,18}$/.test(String(v ?? '')) ? String(v) : null)
   const smallInt = (v) => (Number.isInteger(v) && v >= 0 && v < 100_000 ? v : null)
   const ms = (d) => (d instanceof Date ? d.getTime() : new Date(d).getTime())
@@ -142,7 +192,7 @@ export function makeOpenCupApi(sql, {
     let score
     try { score = engine.squadRating(five.squad, (id) => levels[id] ?? 0) } catch { return null }
     if (!Number.isFinite(score)) return null
-    return { five: { slots: five.squad.slots, coach: five.squad.coach, levels }, score: Math.round(score) }
+    return { five: { slots: five.squad.slots, coach: five.squad.coach, levels, cardPoolVersion, paper: engine.squadPaper?.(five.squad, (id) => levels[id] ?? 0), chemistry: engine.chemistry?.(five.squad)?.score, power: engine.squadPower?.(five.squad, (id) => levels[id] ?? 0), balance: engine.BALANCE_VERSION }, score: Math.round(score) }
   }
 
   const rivalOf = (e) => {
@@ -153,39 +203,55 @@ export function makeOpenCupApi(sql, {
   async function ensureOpen(now) {
     const slot = slotOf(now)
     if (ensureOpen.known === slot) return
-    await sql`insert into open_cups (starts, seed) values (${new Date(slot)}, ${freshSeed()}) on conflict (starts) do nothing`
+    await bg`insert into open_cups (starts, seed, format_version, phase) values (${new Date(slot)}, ${freshSeed()}, ${format === 2 ? 2 : 1}, ${format === 2 ? 'swiss' : 'knockout'})
+      on conflict (starts) do update set format_version = excluded.format_version, phase = excluded.phase where open_cups.status = 'open'`
     ensureOpen.known = slot
   }
 
-  /** Take the entries, fix the fives, draw the first round. */
+  /**
+   * Take the entries, fix the fives, draw the first round.
+   *
+   * One transaction, and the cup's row is locked FIRST — the same lock, in
+   * the same order, that join and leave take. The list of entrants used to be
+   * read before the transaction: a sign-up landing between that read and the
+   * status flip was told 「报名成功」 and had no seat. Now a sign-up either
+   * commits before this lock is granted (and is in the list read under it) or
+   * waits for it and finds the cup no longer open.
+   */
   async function start(cup) {
-    const rows = await sql`
-      select a.id_hash, a.name, a.state->'squad' as squad,
-        (select jsonb_object_agg(k, a.state->'cards'->k->'level')
-           from jsonb_array_elements_text(
-             (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
-                   then a.state->'squad'->'slots' else '[]'::jsonb end)
-             || jsonb_build_array(a.state->'squad'->'coach')) as k
-          where k is not null) as levels
-      from open_cup_entries e join card_accounts a on a.id_hash = e.id_hash
-      where e.cup_id = ${cup.id} and not a.suspect
-      order by e.joined, e.id_hash
-      limit ${engine.OPEN_CUP_MAX}`
-    const fielded = []
-    for (const r of rows) {
-      const f = fiveOf(r)
-      if (f) fielded.push({ id_hash: r.id_hash, name: r.name ?? null, five: f.five, score: f.score })
-    }
-    const n = fielded.length
+    const engineHash = format === 2 ? (compute && !engineBundle ? null : await archive.register()) : null
     await tx(async (db) => {
+      const held = await db`select status from open_cups where id = ${cup.id} for update`
+      if (held[0]?.status !== 'open') return
+      const rows = await db`
+        select a.id_hash, a.name, a.state->'squad' as squad,
+          (select jsonb_object_agg(k, a.state->'cards'->k->'level')
+             from jsonb_array_elements_text(
+               (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
+                     then a.state->'squad'->'slots' else '[]'::jsonb end)
+               || jsonb_build_array(a.state->'squad'->'coach')) as k
+            where k is not null) as levels
+        from open_cup_entries e join card_accounts a on a.id_hash = e.id_hash
+        where e.cup_id = ${cup.id} and not a.suspect
+        order by e.joined, e.id_hash
+        limit ${engine.OPEN_CUP_MAX}`
+      const fielded = []
+      for (const r of rows) {
+        const f = fiveOf(r)
+        if (f) fielded.push({ id_hash: r.id_hash, name: r.name ?? null, five: f.five, score: f.score })
+      }
+      const n = fielded.length
       if (n < engine.OPEN_CUP_MIN) {
         await db`update open_cups set status = 'void', entrants = ${n}, finished = now()
                   where id = ${cup.id} and status = 'open'`
         return
       }
-      const plan = planOf(n)
+      const v2 = format === 2
+      const plan = v2 ? engine.planSwissCup(n) : planOf(n)
+      if (v2 && fast) plan.stepSec = fast.stepSec
       const got = await db`
-        update open_cups set status = 'live', round = 0, rounds = ${plan.rounds}, step_sec = ${plan.stepSec}, entrants = ${n}
+        update open_cups set status = 'live', round = 0, rounds = ${plan.rounds ?? plan.reserved}, step_sec = ${plan.stepSec}, entrants = ${n},
+               engine_hash = ${engineHash}, balance_version = ${engine.BALANCE_VERSION}, format_version = ${v2 ? 2 : 1}, phase = ${v2 ? 'swiss' : 'knockout'}
          where id = ${cup.id} and status = 'open' returning id`
       if (!got.length) return
       await db`
@@ -195,7 +261,8 @@ export function makeOpenCupApi(sql, {
       // whoever is left has no five: not whole at the start, or an account the clock caught
       await db`update open_cup_entries set alive = false, out_round = -1
                 where cup_id = ${cup.id} and five is null`
-      await draw(db, cup.id, Number(cup.seed), 0, fielded.map((f) => ({ id: f.id_hash, byes: 0 })))
+      if (v2) await swiss.drawSwiss(db, { ...cup, round: 0, stage_round: 0 })
+      else await draw(db, cup.id, Number(cup.seed), 0, fielded.map((f) => ({ id: f.id_hash, byes: 0 })))
     })
     publicCache.at = 0
   }
@@ -214,12 +281,17 @@ export function makeOpenCupApi(sql, {
 
   /** Play the round that is due. True when it was this call that recorded it. */
   async function playRound(cup) {
+    if (cup.format_version === 2) {
+      const moved = await swiss.tick(cup)
+      publicCache.at = 0; boardCache.at = 0; mineCache.clear()
+      return moved
+    }
     const k = cup.round
     const last = k >= cup.rounds - 1
     const seed = Number(cup.seed)
-    const pending = await sql`
+    const pending = await bg`
       select slot, a, b from open_cup_matches where cup_id = ${cup.id} and round = ${k} order by slot`
-    const alive = await sql`
+    const alive = await bg`
       select id_hash, name, five, byes from open_cup_entries where cup_id = ${cup.id} and alive`
     const entry = new Map(alive.map((e) => [e.id_hash, e]))
     const played = []
@@ -238,7 +310,7 @@ export function makeOpenCupApi(sql, {
         winners.push({ id: through, won: 0 })
         continue
       }
-      const res = engine.playOpenCupMatch(rivalOf(A), rivalOf(B), last, engine.openCupMatchSeed(seed, k, m.slot))
+      const res = await simulate([rivalOf(A), rivalOf(B), last, engine.openCupMatchSeed(seed, k, m.slot), cup.balance_version ?? 1])
       played.push({ slot: m.slot, winner: res.aWon ? m.a : m.b, maps_a: res.mapsA, maps_b: res.mapsB, detail: res.detail })
       winners.push({ id: res.aWon ? m.a : m.b, won: 1 })
       losers.push(res.aWon ? m.b : m.a)
@@ -319,13 +391,15 @@ export function makeOpenCupApi(sql, {
   async function prune(now) {
     if (Math.abs(now - prunedAt) < 60 * 60 * 1000) return
     prunedAt = now
-    await sql`
+    await bg`
       update open_cup_matches set detail = null
        where detail is not null
-         and cup_id in (select id from open_cups where starts < ${new Date(now - 3 * 86_400_000)})`
+         and cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${new Date(now - 3 * 86_400_000)})`
     const old = new Date(now - 14 * 86_400_000)
-    await sql`delete from open_cup_matches where cup_id in (select id from open_cups where starts < ${old})`
-    await sql`delete from open_cup_entries where cup_id in (select id from open_cups where starts < ${old})`
+    await bg`delete from open_cup_matches where cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${old})`
+    await bg`delete from open_cup_entries where cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${old})`
+    await bg`delete from open_cup_engine_builds b where b.hash <> ${cardPoolVersion} and b.created < ${old}
+      and not exists(select 1 from open_cups c where c.engine_hash = b.hash and (c.status in ('open', 'live') or c.starts >= ${old}))`
   }
 
   /**
@@ -340,9 +414,9 @@ export function makeOpenCupApi(sql, {
     running ??= (async () => {
       try {
         await ensureOpen(now)
-        for (let pass = 0; pass < 64; pass++) {
-          const due = await sql`
-            select id::text as id, starts, status, round, rounds, step_sec, seed::text as seed, entrants
+        for (let pass = 0; pass < (timer ? 1 : 64); pass++) {
+          const due = await bg`
+            select id::text as id, starts, status, round, rounds, step_sec, seed::text as seed, entrants, balance_version, format_version, phase, stage_round, playoff, engine_hash
               from open_cups
              where status in ('open', 'live') and starts <= ${new Date(now)}
              order by starts limit 8`
@@ -350,8 +424,7 @@ export function makeOpenCupApi(sql, {
           for (const cup of due) {
             if (cup.status === 'open') { await start(cup); moved = true; continue }
             if (engine.openCupRoundAt(ms(cup.starts), cup.step_sec, cup.round) <= now) {
-              await playRound(cup)
-              moved = true
+              moved = (await playRound(cup)) || moved
             }
           }
           if (!moved) break
@@ -363,20 +436,22 @@ export function makeOpenCupApi(sql, {
     })()
     return running
   }
+  let interval = null
   if (timer && sql) {
-    setInterval(() => { advance().catch((err) => console.warn('opencup: advance failed', err.message)) }, fast ? 2000 : 20_000).unref?.()
+    interval = setInterval(() => { advance().catch((err) => console.warn('opencup: advance failed', err.message)) }, 2000)
+    interval.unref?.()
   }
 
   // ------------------------------------------------------------ reads
 
   const cupRow = (c) => c && ({
     id: String(c.id), starts: ms(c.starts), status: c.status, round: c.round, rounds: c.rounds,
-    stepSec: c.step_sec, entrants: c.entrants,
+    stepSec: c.step_sec, entrants: c.entrants, format: c.format_version ?? 1, phase: c.phase ?? 'knockout', stageRound: c.stage_round ?? 0, playoffRounds: c.playoff?.rounds ?? 0,
     nextAt: c.status === 'live' ? engine.openCupRoundAt(ms(c.starts), c.step_sec, c.round) : null,
   })
 
   const matchRow = (m) => ({
-    round: m.round, slot: m.slot,
+    round: m.round, slot: m.slot, stage: m.stage ?? 'knockout', stageRound: m.stage_round ?? 0, bo: m.bo,
     a: { ...who(m.a_name, m.a), score: m.a_score },
     b: m.b ? { ...who(m.b_name, m.b), score: m.b_score } : null,
     bye: !m.b, played: !!m.winner, aWon: m.winner ? m.winner === m.a : null,
@@ -386,9 +461,9 @@ export function makeOpenCupApi(sql, {
   /** The late rounds of a cup — the quarter-finals on — which is the part with names people know. */
   async function topOf(c) {
     if (!c || !c.rounds) return []
-    const from = Math.max(0, c.rounds - 3)
+    const from = c.format_version === 2 ? Math.max(0, c.round - 2) : Math.max(0, c.rounds - 3)
     const rows = await sql`
-      select m.round, m.slot, m.a, m.b, m.winner, m.maps_a, m.maps_b,
+      select m.round, m.slot, m.a, m.b, m.winner, m.maps_a, m.maps_b, m.stage, m.stage_round, m.bo,
              ea.name as a_name, ea.score as a_score, eb.name as b_name, eb.score as b_score
         from open_cup_matches m
         join open_cup_entries ea on ea.cup_id = m.cup_id and ea.id_hash = m.a
@@ -403,7 +478,7 @@ export function makeOpenCupApi(sql, {
     publicCache.inflight ??= (async () => {
       try {
         const cups = await sql`
-          select id::text as id, starts, status, round, rounds, step_sec, entrants, champion, finished
+          select id::text as id, starts, status, round, rounds, step_sec, entrants, champion, finished, format_version, phase, stage_round, playoff
             from open_cups order by starts desc limit 14`
         const next = cups.find((c) => c.status === 'open') ?? null
         const live = cups.find((c) => c.status === 'live') ?? null
@@ -496,18 +571,18 @@ export function makeOpenCupApi(sql, {
   async function mineIn(c, me) {
     if (!c || !me) return null
     const e = await sql`
-      select alive, wins, byes, out_round, place, score from open_cup_entries
+      select alive, wins, byes, out_round, place, score, swiss_wins, swiss_losses, swiss_real_wins, playoff_wins, playoff_seed from open_cup_entries
        where cup_id = ${c.id} and id_hash = ${me}`
     if (!e.length) return null
     const rows = await sql`
-      select m.round, m.slot, m.a, m.b, m.winner, m.maps_a, m.maps_b,
+      select m.round, m.slot, m.a, m.b, m.winner, m.maps_a, m.maps_b, m.stage, m.stage_round, m.bo,
              ea.name as a_name, ea.score as a_score, eb.name as b_name, eb.score as b_score
         from open_cup_matches m
         join open_cup_entries ea on ea.cup_id = m.cup_id and ea.id_hash = m.a
         left join open_cup_entries eb on eb.cup_id = m.cup_id and eb.id_hash = m.b
        where m.cup_id = ${c.id} and (m.a = ${me} or m.b = ${me}) order by m.round`
     return {
-      alive: e[0].alive, wins: e[0].wins, outRound: e[0].out_round, place: e[0].place, score: e[0].score,
+      alive: e[0].alive, wins: e[0].wins, swissWins: e[0].swiss_wins, swissLosses: e[0].swiss_losses, swissRealWins: e[0].swiss_real_wins, playoffWins: e[0].playoff_wins, playoffSeed: e[0].playoff_seed, byes: e[0].byes, outRound: e[0].out_round, place: e[0].place, score: e[0].score,
       matches: rows.map((m) => ({ ...matchRow(m), mine: m.a === me ? 'a' : 'b' })),
     }
   }
@@ -565,7 +640,7 @@ export function makeOpenCupApi(sql, {
     // the timer keeps the cups moving; a read only nudges it, and not more than once every few seconds
     if (Math.abs(now - advancedAt) > 5000) {
       advancedAt = now
-      await advance(now).catch((err) => console.warn('opencup: advance failed', err.message))
+      void advance(now).catch((err) => console.warn('opencup: advance failed', err.message))
     }
     const pub = await publicState(now)
     const board = await boards(now)
@@ -587,7 +662,7 @@ export function makeOpenCupApi(sql, {
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const now = clock()
-    await advance(now).catch(() => {})
+    await ensureOpen(now)
     const blocked = await gate(me)
     if (blocked?.missing) { json(res, 200, { ok: false, missing: true }); return }
     if (blocked?.why) { json(res, 200, { ok: false, why: blocked.why }); return }
@@ -609,28 +684,48 @@ export function makeOpenCupApi(sql, {
       from card_accounts a where a.id_hash = ${me}`
     const five = mine.length ? fiveOf(mine[0]) : null
     if (!five) { json(res, 200, { ok: false, why: '先凑齐五个人。' }); return }
+    const name = mine[0].name ?? null
     const open = await sql`
       select id::text as id, starts from open_cups
        where status = 'open' and starts > ${new Date(now)} order by starts limit 1`
     if (!open.length) { json(res, 200, { ok: false, why: '现在没有可以报名的比赛，稍后再试。' }); return }
-    const full = await sql`select count(*)::int as n from open_cup_entries where cup_id = ${open[0].id}`
-    if ((full[0]?.n ?? 0) >= engine.OPEN_CUP_MAX) { json(res, 200, { ok: false, why: '这一场报满了，下一场再来。' }); return }
-    await sql`
-      insert into open_cup_entries (cup_id, id_hash, name) values (${open[0].id}, ${me}, ${mine[0].name ?? null})
-      on conflict (cup_id, id_hash) do nothing`
+    // The seat is taken under the cup's row lock — the lock start() holds
+    // while it reads the entrants — and everything that decided it is read
+    // again inside: the cup is still open, its hour has not come, there is
+    // room. Two requests racing for the last seat are served one after the
+    // other, and the second one sees the first one's row.
+    const seat = await tx(async (db) => {
+      const cup = await db`select status, starts from open_cups where id = ${open[0].id} for update`
+      if (cup[0]?.status !== 'open' || ms(cup[0].starts) <= clock()) return { why: '这一场已经开赛了，下一场再来。' }
+      const mine = await db`select 1 as ok from open_cup_entries where cup_id = ${open[0].id} and id_hash = ${me}`
+      if (mine.length) return { ok: true, already: true }
+      const full = await db`select count(*)::int as n from open_cup_entries where cup_id = ${open[0].id}`
+      if ((full[0]?.n ?? 0) >= engine.OPEN_CUP_MAX) return { why: '这一场报满了，下一场再来。' }
+      await db`insert into open_cup_entries (cup_id, id_hash, name) values (${open[0].id}, ${me}, ${name})`
+      return { ok: true }
+    })
+    if (!seat.ok) { json(res, 200, { ok: false, why: seat.why }); return }
     publicCache.at = 0
     mineCache.delete(me)
-    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score })
+    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, already: seat.already === true ? true : undefined })
   }
 
   async function leave(req, res, bucket) {
     if (guard(req, res, `ocj:${bucket}`, 30)) return
     const { me } = await readMe(req)
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
-    // only out of a cup that has not started: once the fives are read, the bracket is the bracket
-    await sql`
-      delete from open_cup_entries e using open_cups c
-       where c.id = e.cup_id and c.status = 'open' and c.starts > ${new Date(clock())} and e.id_hash = ${me}`
+    // only out of a cup that has not started: once the fives are read, the bracket is the bracket.
+    // Same lock, same order as join and start, so a withdrawal cannot land inside a start.
+    await tx(async (db) => {
+      const cups = await db`
+        select c.id from open_cups c join open_cup_entries e on e.cup_id = c.id
+         where e.id_hash = ${me} and c.status = 'open' order by c.id for update of c`
+      for (const c of cups) {
+        const still = await db`select status, starts from open_cups where id = ${c.id}`
+        if (still[0]?.status !== 'open' || ms(still[0].starts) <= clock()) continue
+        await db`delete from open_cup_entries where cup_id = ${c.id} and id_hash = ${me}`
+      }
+    })
     publicCache.at = 0
     mineCache.delete(me)
     json(res, 200, { ok: true })
@@ -645,7 +740,7 @@ export function makeOpenCupApi(sql, {
     const slot = smallInt(body?.slot)
     if (!id || round === null || slot === null) { json(res, 400, { ok: false, bad: true }); return }
     const rows = await sql`
-      select m.a, m.b, m.winner, m.maps_a, m.maps_b, m.detail, c.rounds
+      select m.a, m.b, m.winner, m.maps_a, m.maps_b, m.detail, c.rounds, m.stage, m.stage_round, c.format_version, c.playoff
         from open_cup_matches m join open_cups c on c.id = m.cup_id
        where m.cup_id = ${id} and m.round = ${round} and m.slot = ${slot}`
     const m = rows[0]
@@ -659,7 +754,7 @@ export function makeOpenCupApi(sql, {
       return e ? { ...who(e.name, e.id_hash), five: e.five, score: e.score } : null
     }
     json(res, 200, {
-      ok: true, round, rounds: m.rounds, aWon: m.winner === m.a, mapsA: m.maps_a, mapsB: m.maps_b,
+      ok: true, round, rounds: m.rounds, format: m.format_version, stage: m.stage, stageRound: m.stage_round, playoffRounds: m.playoff?.rounds ?? 0, aWon: m.winner === m.a, mapsA: m.maps_a, mapsB: m.maps_b,
       a: side(m.a), b: side(m.b), detail: m.detail,
     })
   }
@@ -671,15 +766,57 @@ export function makeOpenCupApi(sql, {
     const id = cupId(body?.cup)
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const rows = await sql`
-      select id::text as id, starts, status, round, rounds, step_sec, entrants, champion
+      select id::text as id, starts, status, round, rounds, step_sec, entrants, champion, format_version, phase, stage_round, playoff
         from open_cups where id = ${id}`
     const c = rows[0]
     if (!c) { json(res, 200, { ok: false, why: '没有这一场。' }); return }
     json(res, 200, { ok: true, cup: { ...cupRow(c), top: await topOf(c), me: await mineIn(c, me) } })
   }
 
+  /** Keyset pagination: no giant bracket payload on a 4,096 entrant cup. */
+  async function schedule(req, res, bucket) {
+    if (guard(req, res, `ocs:${bucket}`, 60)) return
+    const { body } = await readMe(req)
+    const id = cupId(body?.cup)
+    const stage = ['swiss', 'playin', 'playoff', 'knockout'].includes(body?.stage) ? body.stage : null
+    const round = body?.round == null ? null : smallInt(body.round)
+    const cursor = Array.isArray(body?.cursor) && body.cursor.length === 2 && body.cursor.every((n) => smallInt(n) !== null) ? body.cursor : [-1, -1]
+    if (!id || (body?.round != null && round === null)) { json(res, 400, { ok: false, bad: true }); return }
+    const rows = await sql`
+      select m.round, m.slot, m.a, m.b, m.winner, m.maps_a, m.maps_b, m.stage, m.stage_round, m.bo,
+             ea.name as a_name, ea.score as a_score, eb.name as b_name, eb.score as b_score
+      from open_cup_matches m
+      join open_cup_entries ea on ea.cup_id = m.cup_id and ea.id_hash = m.a
+      left join open_cup_entries eb on eb.cup_id = m.cup_id and eb.id_hash = m.b
+      where m.cup_id = ${id} and (${stage}::text is null or m.stage = ${stage})
+      and (${round}::int is null or m.round = ${round})
+      and (m.round, m.slot) > (${cursor[0]}::int, ${cursor[1]}::int)
+      order by m.round, m.slot limit 51`
+    const page = rows.slice(0, 50), last = page.at(-1)
+    json(res, 200, { ok: true, rows: page.map(matchRow), next: rows.length > 50 ? [last.round, last.slot] : null })
+  }
+
+  async function standings(req, res, bucket) {
+    if (guard(req, res, `ocs:${bucket}`, 60)) return
+    const { body } = await readMe(req)
+    const id = cupId(body?.cup)
+    const wins = [0, 1, 2].includes(body?.wins) ? body.wins : null
+    const losses = [0, 1, 2].includes(body?.losses) ? body.losses : null
+    // The cursor is an opaque position, never the account identifier itself.
+    const offset = smallInt(body?.offset ?? 0)
+    if (!id || offset === null || offset > 4096) { json(res, 400, { ok: false, bad: true }); return }
+    const rows = await sql`select id_hash, name, score, swiss_wins, swiss_losses, swiss_real_wins, byes, alive, playoff_seed
+      from open_cup_entries where cup_id = ${id} and five is not null
+      and (${wins}::int is null or swiss_wins = ${wins}) and (${losses}::int is null or swiss_losses = ${losses})
+      order by swiss_wins desc, swiss_losses asc, swiss_real_wins desc, id_hash limit 51 offset ${offset}`
+    json(res, 200, { ok: true, rows: rows.slice(0, 50).map((e) => ({ ...who(e.name, e.id_hash), score: e.score,
+      wins: e.swiss_wins, losses: e.swiss_losses, realWins: e.swiss_real_wins, byes: e.byes, alive: e.alive, seed: e.playoff_seed })),
+      next: rows.length > 50 ? offset + 50 : null })
+  }
+
   return {
     advance,
+    close() { if (interval) clearInterval(interval); computer?.close() },
     /** forget what was cached — for checks that move the clock */
     invalidate() { publicCache.at = 0; boardCache.at = 0; ensureOpen.known = undefined; mineCache.clear(); advancedAt = 0; prunedAt = 0 },
     async route(req, res, path, bucket) {
@@ -688,6 +825,8 @@ export function makeOpenCupApi(sql, {
       if (path === '/api/card/opencup/join') { await join(req, res, bucket); return true }
       if (path === '/api/card/opencup/leave') { await leave(req, res, bucket); return true }
       if (path === '/api/card/opencup/match') { await match(req, res, bucket); return true }
+      if (path === '/api/card/opencup/standings') { await standings(req, res, bucket); return true }
+      if (path === '/api/card/opencup/schedule') { await schedule(req, res, bucket); return true }
       if (path === '/api/card/opencup/cup') { await cup(req, res, bucket); return true }
       return false
     },

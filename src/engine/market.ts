@@ -19,18 +19,85 @@ export type { MailItem } from './inbox'
 
 const api = (p: string) => `/api/market/${p}`
 
-async function post<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
+/**
+ * Why a request has no answer. 「没有商品」 and 「已经成交」 are things the
+ * market SAYS; none of these is — and a screen that cannot tell them apart
+ * empties the shelf on a timeout and announces a sale on a 500.
+ */
+export type Fail = 'timeout' | 'rate' | 'server' | 'offline' | 'aborted'
+export type Reply<T> = { data: T; fail?: undefined } | { data?: undefined; fail: Fail; status?: number }
+
+export const failText = (fail: Fail): string =>
+  fail === 'timeout' ? '请求超时，稍后再试。'
+    : fail === 'rate' ? '操作太快了，等一下。'
+      : fail === 'server' ? '服务器出错了，稍后再试。'
+        : fail === 'aborted' ? '已取消。'
+          : '连不上服务器，请检查网络。'
+
+const READ_TIMEOUT_MS = 12_000
+const WRITE_TIMEOUT_MS = 20_000
+const WRITE_RETRY_MS = 1200
+
+async function request<T>(
+  path: string, body: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<Reply<T>> {
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
+  let timedOut = false
+  const timer = ctl ? setTimeout(() => { timedOut = true; ctl.abort() }, opts.timeoutMs ?? READ_TIMEOUT_MS) : null
+  const onAbort = () => ctl?.abort()
+  opts.signal?.addEventListener('abort', onAbort)
   try {
+    if (opts.signal?.aborted) return { fail: 'aborted' }
     const r = await fetch(api(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: rememberedId(), ...body }),
+      signal: ctl?.signal,
     })
-    if (!r.ok) return null
-    return await r.json() as T
+    if (r.status === 429) return { fail: 'rate', status: 429 }
+    if (r.status >= 500) return { fail: 'server', status: r.status }
+    const j = await r.json().catch(() => null) as T | null
+    // a 4xx with a body (409 busy) is an answer; without one it is the server misbehaving
+    return j ? { data: j } : { fail: 'server', status: r.status }
   } catch {
-    return null
+    return { fail: opts.signal?.aborted ? 'aborted' : timedOut ? 'timeout' : 'offline' }
+  } finally {
+    if (timer) clearTimeout(timer)
+    opts.signal?.removeEventListener('abort', onAbort)
   }
+}
+
+/** The old shape, for the callers that only need "did it answer": the data, or null. */
+async function post<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
+  return (await request<T>(path, body)).data ?? null
+}
+
+/** 128 random bits; crypto.randomUUID is newer than some of the Chromes this game meets. */
+function newRequestId(): string {
+  const bytes = new Uint8Array(16)
+  try { crypto.getRandomValues(bytes) } catch { for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256) }
+  let out = ''
+  for (let i = 0; i < 16; i++) out += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16)
+  return out
+}
+
+/**
+ * A write that moves a card or coins. It carries a requestId, and the server
+ * keeps its answer beside the account in the transaction that made it — so
+ * when nothing comes back (a timeout, a dropped connection, a 5xx) the same
+ * request is sent once more, and that can only read the first answer back or
+ * run it for the first time. Giving up on the wait never un-sends a bid; this
+ * is how the screen finds out which it was. Still nothing: `fail`, and the
+ * caller says the result is unknown rather than inventing one.
+ */
+async function write<T>(path: string, body: Record<string, unknown>): Promise<Reply<T>> {
+  const requestId = newRequestId()
+  let got = await request<T>(path, { ...body, requestId }, { timeoutMs: WRITE_TIMEOUT_MS })
+  if (got.fail && got.fail !== 'rate') {
+    await new Promise((r) => setTimeout(r, WRITE_RETRY_MS))
+    got = await request<T>(path, { ...body, requestId }, { timeoutMs: WRITE_TIMEOUT_MS })
+  }
+  return got
 }
 
 export interface Listing {
@@ -154,9 +221,16 @@ export interface ShelfPage {
 }
 
 export const browseMarket = (q: ShelfQuery = {}) => post<ShelfPage>('browse', { ...q })
+/** The same, saying WHY when there is no answer, and cancellable: a filter changed mid-flight is a request nobody wants. */
+export const browseShelf = (q: ShelfQuery = {}, signal?: AbortSignal) => request<ShelfPage>('browse', { ...q }, { signal })
+/** The tiles on screen, as they stand now — a listing missing from the answer is no longer open. */
+export const peekListings = (ids: string[], signal?: AbortSignal) =>
+  request<{ ok: boolean; now?: number; listings: Listing[] }>('peek', { ids }, { signal })
 
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})
+export const myOffersEx = (signal?: AbortSignal) =>
+  request<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {}, { signal })
 
 export const countMail = () => post<{ ok: boolean; waiting: number }>('mail', {})
 
@@ -169,7 +243,7 @@ export interface WithState { ok: boolean; state?: GachaState; rev?: number; [k: 
  * the floor costs a real seller nothing and closes the alt-account funnel.
  */
 export const listCardOnMarket = (cardId: string, ask: number, level: number, rarity: string, buyout: number | null = null, hours = AUCTION_HOURS) =>
-  post<WithState>('list', { cardId, ask, level, rarity, buyout, hours })
+  write<WithState>('list', { cardId, ask, level, rarity, buyout, hours })
 
 /** How many listings one seller may have open at once — mirrored from the server. */
 export const MAX_LISTINGS = 3
@@ -205,7 +279,7 @@ export interface SwapRow {
 
 /** Offer a friend my card for one of theirs — same metal, one 体力. */
 export const proposeSwap = (code: string, giveId: string, wantId: string) =>
-  post<WithState & { id?: string }>('swap', { code, giveId, wantId })
+  write<WithState & { id?: string }>('swap', { code, giveId, wantId }).then((r) => r.data ?? null)
 
 export const mySwaps = () =>
   post<{ ok: boolean; inbound: SwapRow[]; outbound: SwapRow[]; days: number }>('swaps', {})
@@ -214,7 +288,7 @@ export const answerSwap = (swap: string, accept: boolean) =>
   post<WithState>('swap_answer', { swap, accept })
 
 export const cancelSwap = (swap: string) => post<Record<string, unknown>>('swap_cancel', { swap })
-export const bidOn = (listing: string, price: number) => post<WithState>('offer', { listing, price })
+export const bidOn = (listing: string, price: number) => write<WithState>('offer', { listing, price })
 export const answerOffer = (offer: string, accept: boolean) =>
   post<Record<string, unknown>>('answer', { offer, accept })
 /** Take my own bid back; the coins come home through the inbox. */

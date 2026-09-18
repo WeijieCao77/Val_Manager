@@ -1,0 +1,157 @@
+{
+  "environment": {
+    "postgres": 18,
+    "interactivePool": 4,
+    "backgroundPool": 1,
+    "statsPool": 2,
+    "rateLimits": false,
+    "network": "localhost HTTP",
+    "sourceEngine": true,
+    "reservedBegin": true,
+    "maxPipeline": "default"
+  },
+  "waves": [
+    {
+      "concurrency": 50,
+      "durationSeconds": 25.6,
+      "metrics": {
+        "health": {
+          "n": 1498,
+          "p50": 1,
+          "p95": 16.9,
+          "p99": 113.8,
+          "max": 184.1
+        },
+        "load": {
+          "n": 4485,
+          "p50": 24,
+          "p95": 77.7,
+          "p99": 127.4,
+          "max": 501.2
+        },
+        "browse": {
+          "n": 5912,
+          "p50": 61.9,
+          "p95": 150.3,
+          "p99": 333.8,
+          "max": 772.8
+        },
+        "peek": {
+          "n": 1451,
+          "p50": 22.1,
+          "p95": 85.5,
+          "p99": 303.2,
+          "max": 399.9
+        },
+        "act": {
+          "n": 1448,
+          "p50": 68.8,
+          "p95": 173.3,
+          "p99": 356.2,
+          "max": 680.1
+        }
+      },
+      "statuses": {
+        "200": 14794
+      },
+      "rejections": {},
+      "cupMatches": 895,
+      "eventLoopP99Ms": 31.8
+    },
+    {
+      "concurrency": 100,
+      "durationSeconds": 20.11,
+      "metrics": {
+        "health": {
+          "n": 2320,
+          "p50": 0.6,
+          "p95": 11.5,
+          "p99": 199.9,
+          "max": 280.5
+        },
+        "load": {
+          "n": 6947,
+          "p50": 34.7,
+          "p95": 78.7,
+          "p99": 112.1,
+          "max": 307.5
+        },
+        "browse": {
+          "n": 9164,
+          "p50": 93.6,
+          "p95": 164.7,
+          "p99": 239.2,
+          "max": 332.7
+        },
+        "peek": {
+          "n": 2273,
+          "p50": 34.5,
+          "p95": 76.4,
+          "p99": 106.1,
+          "max": 167.3
+        },
+        "act": {
+          "n": 2268,
+          "p50": 92.7,
+          "p95": 219.8,
+          "p99": 262.3,
+          "max": 409.1
+        }
+      },
+      "statuses": {
+        "200": 22972
+      },
+      "rejections": {},
+      "cupMatches": 895,
+      "eventLoopP99Ms": 21.3
+    },
+    {
+      "concurrency": 300,
+      "durationSeconds": 19.17,
+      "metrics": {
+        "health": {
+          "n": 2759,
+          "p50": 0.8,
+          "p95": 182.1,
+          "p99": 437.6,
+          "max": 448.8
+        },
+        "load": {
+          "n": 8238,
+          "p50": 107.9,
+          "p95": 191,
+          "p99": 287.1,
+          "max": 484.7
+        },
+        "browse": {
+          "n": 10606,
+          "p50": 281.3,
+          "p95": 413.8,
+          "p99": 501.6,
+          "max": 669.5
+        },
+        "peek": {
+          "n": 2494,
+          "p50": 116.2,
+          "p95": 194.5,
+          "p99": 253.9,
+          "max": 397.2
+        },
+        "act": {
+          "n": 2465,
+          "p50": 57.2,
+          "p95": 109,
+          "p99": 162,
+          "max": 391.3
+        }
+      },
+      "statuses": {
+        "200": 26562
+      },
+      "rejections": {},
+      "cupMatches": 895,
+      "eventLoopP99Ms": 19.6
+    }
+  ],
+  "errors": []
+}

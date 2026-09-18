@@ -78,12 +78,12 @@ export default function MailBox() {
             <div className="support-head">
               <h3>信箱</h3>
               <button className="sm ghost" disabled={!cloud || busy} onClick={() => void collect()}>
-                {busy ? '收取中…' : '收取'}
+                {busy ? '收取中…' : '收取（最多100条）'}
               </button>
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>
             </div>
             <p className="small muted" style={{ lineHeight: 1.8 }}>
-              交易区的成交、退款和<b>官方发放</b>都从这里进来，<b>每一条都已自动到账</b>。标「新」的是这次刚到的。
+              交易区的成交、退款和<b>官方发放</b>都从这里进来，下面显示的是<b>已经到账</b>的记录。每次最多收取100条；积压较多时可继续点收取。标「新」的是这次刚到的。
             </p>
             {!cloud && (
               <p className="small" style={{ color: 'var(--warn)' }}>服务器连不上，信箱暂时收不了。</p>

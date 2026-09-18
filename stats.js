@@ -550,17 +550,42 @@ export async function overview(sql, days = 30) {
  * this year" is not a retention policy. Raw events older than half a year go;
  * nothing on the dashboard looks further back than that.
  */
-export async function prune(sql, days = 180, maxRows = 4_000_000) {
-  const byAge = await sql`delete from events where ts < now() - ${`${days} days`}::interval`
+export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = null) {
+  // `foldedUpTo`: the rollup's watermark (rollup.js). A row above it has not
+  // been counted into the permanent tables yet and is not this function's to
+  // delete, whatever the ceiling says — the ceiling waits for the fold.
+  // Omitted only by the checks that test the ceiling on its own.
+  const limit = foldedUpTo === null || foldedUpTo === undefined ? Number.MAX_SAFE_INTEGER : Math.max(0, Number(foldedUpTo) || 0)
+  // In bounded statements. One DELETE of two million rows is one transaction
+  // holding its locks and its connection for minutes, and with a statement
+  // timeout on the pool it is also a delete that never finishes and so never
+  // happens. Fifty thousand at a time, up to PRUNE_PASSES a run; whatever is
+  // left waits for the next hour, which is what a ceiling that converges means.
+  const CHUNK = 50_000
+  const PRUNE_PASSES = 60
+  const byAge = { count: 0 }
+  for (let pass = 0; pass < PRUNE_PASSES; pass++) {
+    const r = await sql`
+      delete from events where id in (
+        select id from events where ts < now() - ${`${days} days`}::interval and id <= ${limit} order by id limit ${CHUNK})`
+    byAge.count += r.count ?? 0
+    if ((r.count ?? 0) < CHUNK) break
+  }
 
   // Oldest-first down to a row ceiling, addressed by POSITION rather than by
   // id arithmetic. `id <= max(id) - maxRows` assumes the ids are dense and
   // they are not: the dedupe index rejects a re-delivered batch after the
   // sequence has already handed out its numbers, so the gaps grow with every
   // flaky phone and the threshold drifts further into live data.
-  const byCount = await sql`
-    delete from events
-    where id in (select id from events order by id desc offset ${maxRows})`
+  const byCount = { count: 0 }
+  const edge = await sql`select id from events order by id desc offset ${maxRows} limit 1`
+  const cutoff = edge.length ? Math.min(Number(edge[0].id), limit) : 0
+  for (let pass = 0; cutoff > 0 && pass < PRUNE_PASSES; pass++) {
+    const r = await sql`
+      delete from events where id in (select id from events where id <= ${cutoff} order by id limit ${CHUNK})`
+    byCount.count += r.count ?? 0
+    if ((r.count ?? 0) < CHUNK) break
+  }
 
   const total = (byAge.count ?? 0) + (byCount.count ?? 0)
   if (total) {

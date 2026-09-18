@@ -17,9 +17,9 @@
  * See cards-api.js for why it needs to exist at all. The career mode still has
  * no accounts and still saves in the browser.
  */
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
+import { createReadStream, existsSync, readFile, readFileSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
-import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
+import { brotliCompress, constants, gzip } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
@@ -31,8 +31,13 @@ import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
 import { makeOpenCupApi } from './opencup-api.js'
 import { makePhoneApi } from './phone-api.js'
+import { validatePhoneSecrets } from './phone-config.js'
+import { releaseFingerprint } from './release-fingerprint.js'
+import { releaseFeatures } from './release-readiness.js'
+import { safeTransactions } from './db-transactions.js'
+import { createHistoryMaintenance } from './history-maintenance.js'
 import { overview, prune, storage } from './stats.js'
-import { history, rollup } from './rollup.js'
+import { history, pruneFolded, rollup } from './rollup.js'
 import { SCHEMAS, applySchema } from './db-schema.js'
 import { dashboardHtml } from './dashboard.js'
 import { bucketOf } from './client-ip.js'
@@ -56,8 +61,12 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'dist')
 const engineFile = new URL('./dist-server/engine.mjs', import.meta.url)
 const ENGINE_SHA256 = existsSync(engineFile)
   ? createHash('sha256').update(readFileSync(engineFile)).digest('hex') : 'unavailable'
+const RELEASE_SHA256 = releaseFingerprint()
+const PRODUCTION = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_PROJECT_ID
 const PORT = Number(process.env.PORT) || 8080
 const TOKEN = process.env.ANALYTICS_TOKEN || ''
+const phoneSecrets = validatePhoneSecrets(process.env)
+if (phoneSecrets.mode === 'legacy-admin') console.warn('phone: legacy admin-derived secrets retained for existing accounts; see docs/phone-key-rotation.md before rotation')
 
 /**
  * Where the admin token is read from: a header first. A token in the URL
@@ -107,6 +116,29 @@ const TYPES = {
 // ---------------------------------------------------------------- database
 
 let sql = null
+/**
+ * Three budgets on one database, so one kind of work cannot starve another.
+ *
+ * It was one pool of four for everything: a slow dashboard query, an hourly
+ * prune or a market settlement each took connections the players' requests
+ * were waiting for (2026-09-05, 09-17). Not a bigger pool — more connections
+ * do not make Postgres faster, and two containers overlap on every deploy —
+ * but a split one, each part bounded and each settable:
+ *
+ *   sql       DB_POOL        4   what a player is waiting on: accounts, the market, the cups' pages
+ *   sqlBg     DB_POOL_BG     1   the clock's work: settling auctions, playing cup rounds
+ *   sqlStats  DB_POOL_STATS  2   telemetry in, dashboard out, the hourly fold and prune
+ *
+ * Seven a process, fourteen while a deploy overlaps. A background job can now
+ * be as slow as it likes and costs an interactive request nothing but CPU.
+ */
+let sqlBg = null
+let sqlStats = null
+const keepHistory = createHistoryMaintenance({ getSql: () => sqlStats, rollup, pruneFolded, prune, days: PRUNE_DAYS })
+/** set when the schema step has finished (or, with no database, at once) — see /readyz */
+let schemaReady = false
+let schemaError = null
+const poolSize = (v, dflt) => (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 32 ? Number(v) : dflt)
 if (process.env.DATABASE_URL?.startsWith('pglite')) {
   // A database in the process, for a local checkout: `npm run dev:server`.
   // The same shim the check scripts use, so a browser can be pointed at the
@@ -120,6 +152,9 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
     // analytics routes answer locally too instead of 500ing on a missing
     // relation — which is exactly the kind of thing a local run is for
     for (const schema of SCHEMAS) await sql.unsafe(schema)
+    sqlBg = sql
+    sqlStats = sql
+    schemaReady = true
     console.log('cards: in-process database (pglite), nothing persists')
   } catch (err) {
     console.warn('pglite: schema failed —', err.message)
@@ -128,23 +163,34 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
 } else if (process.env.DATABASE_URL) {
   try {
     const { default: postgres } = await import('postgres')
-    sql = postgres(process.env.DATABASE_URL, {
-      max: 4,
+    const pool = (max, statementMs) => safeTransactions(postgres(process.env.DATABASE_URL, {
+      max,
       idle_timeout: 20,
       connect_timeout: 10,
       // Railway terminates TLS inside its private network; the certificate is
       // for the internal host, so verification is not meaningful here
-      ssl: process.env.DATABASE_URL.includes('railway.internal') ? false : 'require',
+      ssl: /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(process.env.DATABASE_URL).hostname)
+        || process.env.DATABASE_URL.includes('railway.internal') ? false : 'require',
       onnotice: () => {},
-    })
+      // nothing may hold a connection for ever: a statement is cut off, and a
+      // transaction left open by a crashed request is closed by the server
+      connection: { statement_timeout: statementMs, idle_in_transaction_session_timeout: 30_000 },
+    }))
+    const sizes = { main: poolSize(process.env.DB_POOL, 4), bg: poolSize(process.env.DB_POOL_BG, 1), stats: poolSize(process.env.DB_POOL_STATS, 2) }
+    sql = pool(sizes.main, 15_000)
+    sqlBg = pool(sizes.bg, 60_000)
+    sqlStats = pool(sizes.stats, 120_000)
+    console.log(`database: ${sizes.main} interactive + ${sizes.bg} background + ${sizes.stats} stats connections`)
     // The schema and the boot chores run AFTER the port is open, not before.
     // `await applySchema` here held the whole module — and so listen() at
     // the bottom — for as long as the schema step took, and on 09-10 that
     // was four lock-timeout retries, about a minute, during which the new
     // container already had the traffic and every request was a 502. The
     // tables exist in production and every statement is idempotent, so a
-    // request that arrives before the step finishes is served the same.
-    applySchema(sql).then(() => {
+    // requests before completion receive 503; readiness keeps traffic away.
+    applySchema(sqlBg).then((result) => {
+    schemaReady = result?.ready !== false
+    if (!schemaReady) { schemaError = 'required migrations incomplete'; return }
     // Settle what the market owes, before anyone trades. Until 2026-09-03 a
     // listing that died of three ignored offers kept the bids still sitting
     // on it; the sweep refunds now, and this pays back whoever it already
@@ -152,7 +198,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
     // idempotent and cheap enough to simply run on every boot — which is
     // also the only hand this project has on the production database.
     import('./scripts/refund_stranded_offers.js')
-      .then(({ repair }) => repair(sql, true))
+      .then(({ repair }) => repair(sqlBg, true))
       .then((debts) => debts.length && console.log(
         `market: refunded ${debts.length} stranded bid(s), ${debts.reduce((a, d) => a + d.coins, 0)} coins`))
       .catch((e) => console.warn('market: stranded-offer repair failed', e.message))
@@ -171,12 +217,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
      * but not dependable, and the gap between two of them is exactly where the
      * ceiling does its work.
      */
-    const keep = () => rollup(sql, 3)
-      .then((r) => r.days && console.log(`analytics: rolled up ${r.days} day(s), ${r.visitors} visitor row(s)`))
-      .catch((e) => console.warn('analytics: rollup failed', e.message))
-      .then(() => prune(sql, PRUNE_DAYS, MAX_ROWS))
-      .then((n) => n && console.log(`analytics: pruned ${n} old events`))
-      .catch((e) => console.warn('analytics: prune failed', e.message))
+    const keep = () => { void keepHistory(MAX_ROWS).catch(e => console.warn('analytics: history maintenance failed', e.message)) }
     // three minutes after boot, not at boot: a redeploy under traffic used
     // to spend its first seconds rolling up and pruning on the same four
     // connections the players were waiting on
@@ -184,13 +225,16 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
     setInterval(keep, 60 * 60 * 1000).unref?.()
     }).catch((err) => {
       console.warn('analytics: disabled —', err.message)
-      sql = null
+      schemaError = err.message
+      sql = null; sqlBg = null; sqlStats = null
     })
   } catch (err) {
     console.warn('analytics: disabled —', err.message)
-    sql = null
+    schemaError = err.message
+    sql = null; sqlBg = null; sqlStats = null
   }
 } else {
+  schemaReady = true
   console.log('analytics: no DATABASE_URL, running without it')
 }
 
@@ -215,39 +259,51 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
  * compressing than it saves in flight.
  */
 const JSON_MIN = 1024
+/**
+ * Compressed OFF the event loop. It was brotliCompressSync: a filled-out
+ * account is tens of kilobytes and every act, load and market reply carries
+ * one, so each reply held the one thread this whole server runs on for a few
+ * milliseconds — and there are a lot of replies. zlib's callback API does the
+ * same work on the libuv pool. Bounded: past JSON_ZIP_MAX replies being
+ * compressed at once the next ones go out plain, which costs bytes, never
+ * latency for everybody else.
+ */
+const JSON_ZIP_MAX = 16
+let jsonZipping = 0
 const json = (res, code, body) => {
+  // one answer per request, whichever path gets here first (an error handler
+  // racing a reply that is still being compressed must not write a second one)
+  if (res.jsonSent) return
+  res.jsonSent = true
   const s = JSON.stringify(body)
   const head = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
   }
-  const accept = String(res.acceptEncoding || '')
-  if (Buffer.byteLength(s) >= JSON_MIN) {
-    try {
-      if (/\bbr\b/.test(accept)) {
-        const out = brotliCompressSync(s, {
-          params: { [constants.BROTLI_PARAM_QUALITY]: 4 },
-        })
-        head['Content-Encoding'] = 'br'
-        head.Vary = 'Accept-Encoding'
-        res.writeHead(code, head)
-        res.end(out)
-        return
-      }
-      if (/\bgzip\b/.test(accept)) {
-        const out = gzipSync(s, { level: 6 })
-        head['Content-Encoding'] = 'gzip'
-        head.Vary = 'Accept-Encoding'
-        res.writeHead(code, head)
-        res.end(out)
-        return
-      }
-    } catch {
-      // fall through and send it plain rather than fail the request
-    }
+  const plain = () => {
+    if (res.headersSent || res.writableEnded) return
+    res.writeHead(code, head)
+    res.end(s)
   }
-  res.writeHead(code, head)
-  res.end(s)
+  const accept = String(res.acceptEncoding || '')
+  const enc = Buffer.byteLength(s) < JSON_MIN || jsonZipping >= JSON_ZIP_MAX ? null
+    : /\bbr\b/.test(accept) ? 'br' : /\bgzip\b/.test(accept) ? 'gzip' : null
+  if (!enc) { plain(); return }
+  jsonZipping++
+  const done = (err, out) => {
+    jsonZipping--
+    if (err || res.headersSent || res.writableEnded) { plain(); return }
+    head['Content-Encoding'] = enc
+    head.Vary = 'Accept-Encoding'
+    res.writeHead(code, head)
+    res.end(out)
+  }
+  try {
+    if (enc === 'br') brotliCompress(s, { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } }, done)
+    else gzip(s, { level: 6 }, done)
+  } catch (err) {
+    done(err)
+  }
 }
 
 function readBody(req, limit) {
@@ -296,24 +352,46 @@ let sizeChecked = 0
 let sizeBytes = 0
 let refusing = false
 
+let liveRows = 0
 async function measureTable() {
-  const r = await sql`select pg_total_relation_size('events') as b`
+  const r = await sqlStats`
+    select pg_total_relation_size('events') as b,
+           coalesce((select n_live_tup from pg_stat_user_tables where relname = 'events'), 0) as live`
   sizeBytes = Number(r[0]?.b ?? 0)
+  liveRows = Number(r[0]?.live ?? 0)
   return sizeBytes
 }
 
+/**
+ * Over the byte budget is two different conditions.
+ *
+ * A DELETE does not shrink the file — the space is reused, not returned — so
+ * a table that was once big stays big on disk for good, and refusing on size
+ * alone refuses for good (that is how writes stayed off after a prune had
+ * already made room). What decides whether the file can still GROW is the
+ * live rows: at or under the ceiling, new rows go into the space the deleted
+ * ones left. So writes are refused only when the file is over budget AND the
+ * live rows are still over the ceiling — the fold and the pruner are behind —
+ * and the catching up is started here but never waited for: an ingest
+ * request is not where a three-million-row delete belongs.
+ */
 async function overBudget() {
   const now = Date.now()
   if (now - sizeChecked < 5 * 60_000) return refusing
   sizeChecked = now
   try {
     if (await measureTable() > MAX_TABLE_BYTES) {
-      // make room the way the policy says to, then look again
-      const n = await prune(sql, PRUNE_DAYS, Math.floor(MAX_ROWS * 0.7))
-      const after = await measureTable()
-      refusing = after > MAX_TABLE_BYTES
-      console.warn(`analytics: events table at ${Math.round(after / 1e6)}MB after pruning ${n} rows — `
-        + (refusing ? 'REFUSING WRITES' : 'writing again'))
+      const crowded = liveRows > MAX_ROWS * 1.1
+      if (crowded !== refusing) {
+        console.warn(`analytics: events table at ${Math.round(sizeBytes / 1e6)}MB with ~${liveRows} live rows — `
+          + (crowded ? 'REFUSING WRITES until the pruner catches up' : 'over budget on disk only, space is reusable: writing'))
+      }
+      refusing = crowded
+      if (crowded) {
+        keepHistory(Math.floor(MAX_ROWS * 0.7))
+          .then(() => { sizeChecked = 0 })
+          .catch(() => {})
+      }
     } else {
       refusing = false
     }
@@ -322,7 +400,7 @@ async function overBudget() {
 }
 
 async function ingest(req, res) {
-  if (!sql) { json(res, 204, {}); return }
+  if (!sqlStats) { json(res, 204, {}); return }
   if (rateLimited(bucketOf(req), 1200)) { json(res, 429, { ok: false }); return }
   if (await overBudget()) { json(res, 204, {}); return }
 
@@ -355,7 +433,7 @@ async function ingest(req, res) {
     props: e.props,
   }))
   try {
-    await sql`insert into events ${sql(rows,
+    await sqlStats`insert into events ${sqlStats(rows,
       'n', 'client_t', 'visitor_id', 'session_id', 'seq', 'device', 'tz', 'name', 'props')}
       on conflict do nothing`
     json(res, 204, {})
@@ -370,11 +448,11 @@ async function stats(req, res, url) {
     json(res, 404, { ok: false })
     return
   }
-  if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+  if (!sqlStats) { json(res, 503, { ok: false, why: 'no database' }); return }
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 30))
   try {
     const [data, disk, hist] = await Promise.all([
-      overview(sql, days), storage(sql, MAX_ROWS), history(sql, 120),
+      overview(sqlStats, days), storage(sqlStats, MAX_ROWS), history(sqlStats, 120),
     ])
     json(res, 200, {
       ...data,
@@ -385,6 +463,37 @@ async function stats(req, res, url) {
     console.warn('analytics: query failed', err.message)
     json(res, 500, { ok: false, why: err.message })
   }
+}
+
+/**
+ * What this release needs from the database, by feature. Checked against the
+ * catalogs once the schema step has finished and then remembered; the ping is
+ * remembered for five seconds, so a health checker costs a query every five
+ * seconds however often it asks.
+ */
+let featureCache = null
+let pingCache = { at: 0, ok: false, ms: null }
+async function readiness() {
+  const out = { ready: false, release: RELEASE_SHA256, db: 'none', schema: schemaReady ? 'ready' : schemaError ? 'failed' : 'pending', features: {} }
+  if (!process.env.DATABASE_URL) { out.ready = !PRODUCTION; return out }
+  if (!sql) { out.db = 'down'; out.why = schemaError ?? 'no connection'; return out }
+  if (Date.now() - pingCache.at > 5000) {
+    const t0 = Date.now()
+    try { await sql`select 1 as ok`; pingCache = { at: Date.now(), ok: true, ms: Date.now() - t0 } }
+    catch { pingCache = { at: Date.now(), ok: false, ms: null } }
+  }
+  out.db = pingCache.ok ? 'up' : 'down'
+  out.pingMs = pingCache.ms
+  if (pingCache.ok && schemaReady && !featureCache) {
+    try {
+      featureCache = await releaseFeatures(sql)
+    } catch { /* asked again next time */ }
+  }
+  out.features = featureCache ?? {}
+  if (_marketApi) out.market = _marketApi.settleStats()
+  // A new container must not receive traffic before all of its write guards exist.
+  out.ready = pingCache.ok && schemaReady && !!featureCache && Object.values(featureCache).every(Boolean)
+  return out
 }
 
 const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json, staticRoot: ROOT }))
@@ -401,7 +510,7 @@ const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
 }))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
-  readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk,
+  readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk, bg: sqlBg,
 }))
 let _marketApi = null
 // A local server may run the 全服杯 on a fast clock (a cup every N seconds, a
@@ -411,7 +520,7 @@ const OPEN_CUP_FAST = process.env.DATABASE_URL?.startsWith('pglite') && Number(p
   ? { everySec: Number(process.env.OPEN_CUP_EVERY_SEC), stepSec: Math.max(5, Number(process.env.OPEN_CUP_STEP_SEC) || 15) }
   : null
 const openCupApi = () => (_openCupApi ??= makeOpenCupApi(sql, {
-  readBody, json, normalizeId, displayName, rateLimited, engine, fast: OPEN_CUP_FAST,
+  readBody, json, normalizeId, displayName, rateLimited, engine, fast: OPEN_CUP_FAST, bg: sqlBg, cardPoolVersion: ENGINE_SHA256, engineBundle: readFileSync(engineFile),
 }))
 let _openCupApi = null
 
@@ -433,38 +542,49 @@ function pickEncoding(accept, ext) {
 }
 
 /**
- * Compress a file once and keep it.
+ * A compressed copy of a built file, without compressing on the request path.
  *
- * The built assets are immutable — their names carry a content hash — so a
- * compressed copy is valid for the life of the process, and brotli at a high
- * quality is far too slow to run per request. Bounded because the cache is
- * keyed by path and a request can name any file under dist/.
+ * The build writes `<file>.br` and `<file>.gz` beside every text asset
+ * (scripts/precompress.mjs, brotli 11 — slower and smaller than anything that
+ * could be afforded here). Those are read once and kept. It used to be
+ * brotliCompressSync at quality 10 on the first request for each file:
+ * 361 ms for the world data, 306 for the records, 114 for the card bundle
+ * (measured 2026-09-18), during which this process answers nobody — and a
+ * deploy empties the cache, so it happened on every deploy, under traffic.
+ *
+ * A file with no precompressed sibling (a dev build, a file added by hand) is
+ * sent as it is THIS time, and compressed on the libuv pool for the next — one
+ * at a time, never on the event loop.
  */
 const zipped = new Map()
-const ZIP_MAX = 64
+const ZIP_MAX = 96
+const zipping = new Set()
+let zipBusy = false
 function compressed(file, enc) {
   const key = enc + ':' + file
   const hit = zipped.get(key)
-  if (hit) return hit
+  if (hit !== undefined) return hit
+  const keep = (v) => { if (zipped.size >= ZIP_MAX) zipped.clear(); zipped.set(key, v); return v }
   try {
-    const raw = readFileSync(file)
+    const sibling = file + (enc === 'br' ? '.br' : '.gz')
+    if (existsSync(sibling) && statSync(sibling).mtimeMs >= statSync(file).mtimeMs) return keep(readFileSync(sibling))
     // below about a kilobyte the header costs more than the saving
-    if (raw.length < 1024) return null
-    const out = enc === 'br'
-      ? brotliCompressSync(raw, {
-        params: {
-          [constants.BROTLI_PARAM_QUALITY]: 10,
-          [constants.BROTLI_PARAM_SIZE_HINT]: raw.length,
-        },
-      })
-      : gzipSync(raw, { level: 8 })
-    if (zipped.size >= ZIP_MAX) zipped.clear()
-    zipped.set(key, out)
-    return out
+    if (statSync(file).size < 1024) return keep(null)
   } catch {
-    // unreadable, or too big to hold — fall through to streaming it raw
     return null
   }
+  if (!zipBusy && !zipping.has(key)) {
+    zipBusy = true
+    zipping.add(key)
+    readFile(file, (err, raw) => {
+      const finish = (e, out) => { zipBusy = false; zipping.delete(key); if (!e && out) keep(out) }
+      if (err) { finish(err); return }
+      if (enc === 'br') {
+        brotliCompress(raw, { params: { [constants.BROTLI_PARAM_QUALITY]: 5, [constants.BROTLI_PARAM_SIZE_HINT]: raw.length } }, finish)
+      } else gzip(raw, { level: 6 }, finish)
+    })
+  }
+  return null
 }
 
 createServer((req, res) => {
@@ -489,7 +609,13 @@ createServer((req, res) => {
   // The 全服杯 runs on a clock, not on requests: start its timer once the
   // port is open and the schema has had its turn, whether or not anybody
   // has opened the page. A few seconds late costs nothing — it catches up.
-  setTimeout(() => { if (sql) openCupApi() }, OPEN_CUP_FAST ? 500 : 15_000).unref?.()
+  // …and so does the market's settler: it used to start with the first visit to the market
+  const startJobs = () => {
+    if (!schemaReady || !sql) return false
+    openCupApi(); marketApi(); return true
+  }
+  const bootJobs = setInterval(() => { if (startJobs()) clearInterval(bootJobs) }, OPEN_CUP_FAST ? 500 : 1000)
+  bootJobs.unref?.()
 })
 
 function handle(req, res) {
@@ -523,7 +649,26 @@ function handle(req, res) {
   // group saw on 09-10 at 16:19 UTC. With this path in railway.json the old
   // container keeps serving until the new one answers here.
   if (path === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store', 'X-Engine-SHA256': ENGINE_SHA256 }).end('ok')
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store', 'X-Engine-SHA256': ENGINE_SHA256, 'X-Release-SHA256': RELEASE_SHA256 }).end('ok')
+    return
+  }
+
+  // Alive is not ready. /healthz says the process answers; this says the
+  // release can do its job: the database answers, the schema step is over,
+  // and the tables THIS version's features were written against exist. A
+  // missing required feature keeps this container unready, so the old healthy
+  // deployment can continue serving until the migration is complete.
+  if (path === '/readyz') {
+    void readiness().then((r) => {
+      res.writeHead(r.ready ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify(r))
+    })
+    return
+  }
+
+  if (path.startsWith('/api/') && process.env.DATABASE_URL && !schemaReady) {
+    res.setHeader('Retry-After', '5')
+    json(res, 503, { ok: false, busy: true, why: '服务正在准备，请稍后重试。' })
     return
   }
 
@@ -607,8 +752,8 @@ function handle(req, res) {
       return
     }
     const vid = url.searchParams.get('vid')
-    if (!sql || !vid) { json(res, 400, { ok: false }); return }
-    sql`delete from events where visitor_id = ${vid}`
+    if (!sqlStats || !vid) { json(res, 400, { ok: false }); return }
+    sqlStats`delete from events where visitor_id = ${vid}`
       .then((r) => json(res, 200, { ok: true, deleted: r.count ?? 0 }))
       .catch((e) => json(res, 500, { ok: false, why: e.message }))
     return

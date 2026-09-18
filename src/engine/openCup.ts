@@ -20,6 +20,7 @@
  */
 import { Rng, hashStr } from './rng'
 import { playRivalMatch } from './arena'
+import { BALANCE_VERSION } from './balance'
 import type { ArenaLine, RivalSquad } from './arena'
 import type { PackKind } from './gacha'
 
@@ -161,11 +162,14 @@ export interface OpenCupMatchResult {
  */
 export function playOpenCupMatch(
   a: RivalSquad, b: RivalSquad, final: boolean, seed: number,
+  /** the score curve the cup started on — open_cups.balance_version */
+  balance: number = BALANCE_VERSION,
+  frozenScores?: readonly [number, number],
 ): OpenCupMatchResult {
   const bo = final ? 5 : 3
   const res = playRivalMatch(
     { slots: a.slots, coach: a.coach, name: a.name, tag: a.tag },
-    (id) => a.levels[id] ?? 0, b, bo, seed >>> 0, undefined, true,
+    (id) => a.levels[id] ?? 0, b, bo, seed >>> 0, undefined, balance, frozenScores,
   )
   return {
     aWon: res.win,

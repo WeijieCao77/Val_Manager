@@ -223,7 +223,55 @@ create table if not exists card_sms (
 create index if not exists card_sms_phone_idx on card_sms (phone_h, sent desc);
 alter table card_accounts add column if not exists verified timestamptz;
 alter table card_accounts add column if not exists verify_via text;
+-- One row per action the client named (act's requestId), written in the SAME
+-- transaction as the account it changed: the reply is here if and only if the
+-- coins, cards and mail it describes are in the account. A retry of a request
+-- whose answer was lost on the way back reads it from here instead of opening
+-- a second pack. Short-lived — a retry comes within seconds, not days.
+create table if not exists card_requests (
+  id_hash     text not null,
+  request_id  text not null,
+  action      text not null,
+  reply       jsonb,
+  at          timestamptz not null default now(),
+  primary key (id_hash, request_id)
+);
+create index if not exists card_requests_at_idx on card_requests (at);
+
+-- The shelf's numbers, kept ON the listing (2026-09-18). The shelf used to
+-- work them out per listing per read — a lateral aggregate over every offer
+-- the listing ever had — and sort by the result, so a page of sixty cost a
+-- pass over the whole market. They are written in the transaction that makes
+-- or ends a bid, so they are never behind it; card_offers stays the ledger and
+-- market-api.js checks the two against each other (verifySummary).
+-- Nullable on purpose: null means "not backfilled yet", and the shelf keeps
+-- reading the old way until no open listing has one.
+alter table card_listings add column if not exists cur_price int;
+alter table card_listings add column if not exists top_bid int;
+alter table card_listings add column if not exists top_buyer_h text;
+alter table card_listings add column if not exists open_n int;
+alter table card_listings add column if not exists bid_n int;
+-- one index an order, each ending in id so the keyset cursor walks it
+create index if not exists listing_shelf_ends_idx on card_listings (ends, id) where status = 'open';
+create index if not exists listing_shelf_new_idx on card_listings (created desc, id) where status = 'open';
+create index if not exists listing_shelf_price_idx on card_listings (cur_price, id) where status = 'open';
+create index if not exists listing_shelf_card_idx on card_listings (card_id) where status = 'open';
 `
+
+/** What a client may name a request: long enough not to collide, short enough to index. */
+export const requestIdOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(v) ? v : null)
+/** Stable payload binding: key order cannot turn a retry into a different action. */
+export function requestAction(action, payload) {
+  const canonical = (v) => Array.isArray(v) ? v.map(canonical)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canonical(v[k])])) : v
+  return `${action}:v2:${createHash('sha256').update(JSON.stringify(canonical(payload))).digest('hex')}`
+}
+export const MAIL_TAKE_LIMIT = 100
+/** A reply bigger than this is remembered as having happened, without its body (a BO5 report is ~20 KB). */
+const REQUEST_REPLY_MAX = 48 * 1024
+/** How long a full answer is kept; deduplication keys must never be discarded. */
+const REQUEST_KEEP_MS = 6 * 60 * 60 * 1000
+const REQUEST_SWEEP = 2000
 
 /**
  * The most 大师 points one win can possibly be worth.
@@ -360,27 +408,42 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     const id = normalizeId(body?.id)
     if (!id) { json(res, 200, { ok: false, bad: true, today }); return }
     try {
-      const rows = await sql`
-        select a.state, a.rev, a.name, extract(epoch from coalesce(a.saved, a.seen)) * 1000 as saved,
-               a.verified, p.last4
-        from card_accounts a left join card_phones p on p.id_hash = a.id_hash
-        where a.id_hash = ${hash(id)}`
-      if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
       // Brought up to the current shape here, and the 体力 meter of a save with
       // no anchor is dated from the last moment the state was WRITTEN — the
       // last moment the meter was known to be where it claims to be. Written
       // back when that happens, or the anchor would be "now" on every load
       // and nothing would ever accrue. Deliberately not `seen`, which this
       // very handler bumps on the way past.
-      const state = engine.migrateGacha(rows[0].state, id)
-      const saved = Number(rows[0].saved) || null
-      if (!state.daily.staminaAt) {
+      //
+      // That write-back is a write of the whole state, so it obeys the rule
+      // every other one does: only over the revision it was read at, and the
+      // revision moves. It used to be unconditional — a bid, a pack or a
+      // prize landing between the read and the write was overwritten by the
+      // older copy, coins and all, with `rev` left saying nothing had happened
+      // (reproduced 2026-09-18: 1,000 → 777 by a trade → back to 1,000).
+      // Losing the race just means reading again; the newer copy already has
+      // its anchor if an action wrote it.
+      let rows, state, saved
+      for (let attempt = 0; ; attempt++) {
+        rows = await sql`
+          select a.state, a.rev, a.name, extract(epoch from coalesce(a.saved, a.seen)) * 1000 as saved,
+                 a.verified, p.last4
+          from card_accounts a left join card_phones p on p.id_hash = a.id_hash
+          where a.id_hash = ${hash(id)}`
+        if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
+        state = engine.migrateGacha(rows[0].state, id)
+        saved = Number(rows[0].saved) || null
+        if (state.daily.staminaAt) break
         state.daily.staminaAt = saved ?? serverNow()
-        await sql`update card_accounts set state = ${sql.json(stored(state))}, seen = now()
-                  where id_hash = ${hash(id)}`
-      } else {
-        await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
+        const wrote = await sql`
+          update card_accounts set state = ${sql.json(stored(state))}, rev = rev + 1, seen = now()
+           where id_hash = ${hash(id)} and rev = ${rows[0].rev}
+          returning rev`
+        if (wrote.length) { rows[0].rev = wrote[0].rev; break }
+        // four lost races in a row: hand back what was just read, unwritten; the next load tries again
+        if (attempt >= 3) break
       }
+      await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
       json(res, 200, {
         ok: true, today, now: serverNow(), saved,
         // 「太多人开小号了」: an account plays only after a phone has answered
@@ -504,7 +567,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
   /** Everything waiting in the inbox, taken off the table exactly once. */
   async function takeMail(me, db = sql) {
     const rows = await db`
-      update card_mail set taken = now() where to_h = ${me} and taken is null
+      update card_mail set taken = now() where id in (
+        select id from card_mail where to_h = ${me} and taken is null
+        order by id limit ${MAIL_TAKE_LIMIT} for update skip locked)
       returning kind, card_id, level, coins, pack, count, body, made`
     const mail = rows.map((r) => ({
       kind: r.kind, cardId: r.card_id, level: r.level, coins: r.coins,
@@ -515,7 +580,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     // through the same door now
     const gifts = await db`
       update card_gifts set claimed = now()
-      where to_h = ${me} and claimed is null
+      where id in (select id from card_gifts where to_h = ${me} and claimed is null
+        order by id limit ${Math.max(0, MAIL_TAKE_LIMIT - rows.length)} for update skip locked)
       returning from_h, card_id, note`
     if (gifts.length) {
       const names = await db`
@@ -550,6 +616,32 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
    * Mail taken off the table before a retry is carried into the retry, so a
    * delivery can never be marked taken and then lost.
    */
+  // Named writes require durable deduplication; never degrade them to unprotected writes.
+  let requestsSeen = false
+  async function requestsReady() {
+    if (requestsSeen) return true
+    try {
+      const r = await sql`select to_regclass('public.card_requests') as t`
+      requestsSeen = !!r[0]?.t
+    } catch { /* not yet */ }
+    return requestsSeen
+  }
+
+  /**
+   * Old answer bodies, compacted a bounded batch at a time and never on the request's
+   * own clock: fired after a reply is sent, at most once every ten minutes.
+   */
+  let sweptAt = 0
+  function sweepRequests() {
+    const t = Date.now()
+    if (t - sweptAt < 10 * 60 * 1000) return
+    sweptAt = t
+    sql`update card_requests set reply = jsonb_build_object('ok', coalesce((reply->>'ok')::boolean, false), 'trimmed', true, 'why', reply->>'why') where ctid in (
+          select ctid from card_requests where at < ${new Date(t - REQUEST_KEEP_MS)}
+          and reply is not null and not (reply ? 'trimmed') limit ${REQUEST_SWEEP})`
+      .catch((err) => console.warn('cards: request sweep failed', err.message))
+  }
+
   async function act(req, res, bucket) {
     if (guard(req, res, `ca:${bucket}`, 240)) return
     const today = serverDay()
@@ -567,6 +659,11 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     const client = vetClient(body?.client)
     if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
     const args = body?.args && typeof body.args === 'object' && !Array.isArray(body.args) ? body.args : {}
+    // optional, so a tab that has not reloaded since this shipped keeps working — unprotected, as it was
+    const requestId = requestIdOf(body?.requestId)
+    if (body?.requestId != null && !requestId) { json(res, 400, { ok: false, why: '请求号格式无效。' }); return }
+    if (requestId && !(await requestsReady())) { json(res, 503, { ok: false, offline: true, why: '服务正在准备，请稍后重试。' }); return }
+    const requestKey = requestAction(action, { args, client })
     const me = hash(id)
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true, today }); return }
     try {
@@ -581,8 +678,30 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
         let reply
         try {
           reply = await run(async (db) => {
+            // The request is claimed first, on this transaction. A second copy
+            // of the same request — a retry after a lost reply, or the same
+            // tap sent twice — waits on the primary key until this one commits
+            // or rolls back, then finds the row and reads the answer instead
+            // of running the action again. If this attempt rolls back (a lost
+            // revision race), the claim goes with it and the retry claims anew.
+            if (requestId) {
+              const claimed = await db`
+                insert into card_requests (id_hash, request_id, action) values (${me}, ${requestId}, ${requestKey})
+                on conflict (id_hash, request_id) do nothing returning 1 as ok`
+              if (!claimed.length) {
+                const prior = await db`select action, reply from card_requests where id_hash = ${me} and request_id = ${requestId}`
+                const cur = await db`select state, rev from card_accounts where id_hash = ${me}`
+                if (!cur.length) return { missing: true }
+                // the same id on a different action is a client bug, not a retry: refuse, change nothing
+                if (prior[0]?.action !== requestKey) return { clash: true, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
+                return { replay: prior[0]?.reply ?? null, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
+              }
+            }
             const held = await db`select state, rev from card_accounts where id_hash = ${me}`
-            if (!held.length) return { missing: true }
+            if (!held.length) {
+              if (requestId) await db`delete from card_requests where id_hash = ${me} and request_id = ${requestId}`
+              return { missing: true }
+            }
             const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
             let out
             if (action === 'mail_take') {
@@ -613,6 +732,12 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
                where id_hash = ${me} and rev = ${held[0].rev}
               returning rev`
             if (!rows.length) throw STALE
+            if (requestId) {
+              const kept = { ok: out.ok, why: out.ok ? undefined : out.why, result: out.ok ? out.result : undefined }
+              const text = JSON.stringify(kept)
+              const body = text.length <= REQUEST_REPLY_MAX ? kept : { ok: out.ok, why: kept.why, trimmed: true }
+              await db`update card_requests set reply = ${db.json(body)} where id_hash = ${me} and request_id = ${requestId}`
+            }
             return { out, rev: rows[0].rev, state: stored(g) }
           })
         } catch (e) {
@@ -620,6 +745,21 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
           throw e
         }
         if (reply.missing) { json(res, 200, { ok: false, missing: true, today, now }); return }
+        if (reply.clash) {
+          json(res, 200, { ok: false, why: '这个请求号已经用过了。', today, now, rev: reply.rev, state: reply.state, code: battleCode(me) })
+          return
+        }
+        if ('replay' in reply) {
+          // what happened the first time, with the account as it stands NOW
+          const was = reply.replay ?? { ok: false, why: '原请求结果暂时无法确认，请刷新账号核对。' }
+          json(res, 200, {
+            ok: !!was.ok, why: was.ok ? undefined : was.why, result: was.ok ? was.result : undefined,
+            replayed: true, trimmed: was.trimmed === true ? true : undefined,
+            today, now, rev: reply.rev, state: reply.state, code: battleCode(me),
+          })
+          return
+        }
+        sweepRequests()
         const { out } = reply
         json(res, 200, {
           ok: out.ok,
@@ -687,6 +827,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
   const TOP_TTL = 20_000
   /** one board per ladder, each cached on its own clock */
   const topCaches = new Map()
+  /** the rebuild in the air for each board, shared by everybody waiting on it */
+  const topBuilding = new Map()
   async function topRows(mine, league = 'open') {
     const topCache = topCaches.get(league) ?? null
     // a player who has just played waits for his own write (CardMode's
@@ -698,7 +840,22 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       const at = own[0]?.ladder_at ? new Date(own[0].ladder_at).getTime() : 0
       if (at > topCache.at - 1000) stale = true
     }
-    if (stale) topCaches.set(league, { at: Date.now(), rows: await rankedRows(league) })
+    // One rebuild at a time per board. The scan ranks every account in the
+    // table, and when the cache ran out under a crowd every request in the
+    // crowd started its own — the same full scan, as many times over as there
+    // were people waiting for it. Whoever arrives while one is running waits
+    // for that one.
+    if (stale) {
+      let job = topBuilding.get(league)
+      if (!job) {
+        const at = Date.now()
+        job = rankedRows(league)
+          .then((rows) => { topCaches.set(league, { at, rows }) })
+          .finally(() => topBuilding.delete(league))
+        topBuilding.set(league, job)
+      }
+      await job
+    }
     const rows = topCaches.get(league).rows
     const hundred = rows.filter((r) => r.rk <= 100)
     if (!mine || hundred.some((r) => r.id_hash === mine)) return hundred

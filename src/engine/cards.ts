@@ -619,6 +619,8 @@ export const coachLiftAt = (coach: CoachCard, level: number): number =>
 export interface SquadPaper {
   /** the five's mean rating after levels and misfits, in rating units */
   mean: number
+  /** the part of `mean` that is card levels — already inside it, shown apart on the squad screen */
+  growth: number
   /** the coach's weighted tactics, development, motivation and levels */
   lift: number
   /** 默契, centred on 50 */
@@ -639,7 +641,7 @@ export function squadPaper(squad: Squad, level: (id: string) => number = () => 0
   const chem = chemistry(squad)
   const coach = squad.coach ? cardById(squad.coach) : undefined
   const lift = isCoachCard(coach) ? coachLiftAt(coach, level(coach.id)) : 0
-  if (!cards.length) return { mean: 0, lift, chem: 0, short: 0, uncalled: 0, score: 0, players: 0, misfits: 0 }
+  if (!cards.length) return { mean: 0, growth: 0, lift, chem: 0, short: 0, uncalled: 0, score: 0, players: 0, misfits: 0 }
   let misfits = 0
   const vals = cards.map((c, i) => {
     const r = ratingAt(c.rating, level(c.id))
@@ -648,12 +650,13 @@ export function squadPaper(squad: Squad, level: (id: string) => number = () => 0
     return r
   })
   const mean = vals.reduce((s, v) => s + v, 0) / cards.length
+  const growth = cards.reduce((s, c) => s + ratingAt(c.rating, level(c.id)) - c.rating, 0) / cards.length
   // five people who have never met are worth less than the sum of their parts
   const short = (5 - cards.length) * 9
   const uncalled = cards.length === 5 && chem.noIgl ? NO_IGL_PENALTY : 0
   const chemTerm = (chem.score - 50) * CHEM_PAPER
   return {
-    mean, lift, chem: chemTerm, short, uncalled, players: cards.length, misfits,
+    mean, growth, lift, chem: chemTerm, short, uncalled, players: cards.length, misfits,
     score: mean + lift + chemTerm - short - uncalled,
   }
 }

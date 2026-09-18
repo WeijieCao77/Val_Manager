@@ -6,6 +6,7 @@
  * account id rather than to one browser — see engine/account.ts. The two never
  * share state, and nothing here writes into a career.
  */
+import { BALANCE_VERSION } from './balance'
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
 import { CUP_TEAMS } from './cupTeams'
@@ -271,6 +272,12 @@ export const LADDER_WIN_PACK_BIG_EVERY = 20
  * a card swap with a friend, charged to each side when they act.
  */
 export const STAMINA_COST = { ladder: 2, cup: 5, swap: 1 } as const
+/**
+ * Every ladder series is first to three maps (2026-09-18) — every league, a
+ * real five or a club across the net. One series is still one match: the 体力,
+ * the star, the coins and the win count are settled once, not per map.
+ */
+export const LADDER_BO = 5 as const
 export type PlayKind = keyof typeof STAMINA_COST
 
 /**
@@ -659,6 +666,11 @@ export interface CupState {
   lower?: string | null
   /** points every club in this bracket plays below its paper — see CUP_EASE_MAX */
   ease?: number
+  /**
+   * The score curve this bracket was entered on (engine/balance.ts). A bracket
+   * without one was entered before 2026-09-18 and plays out on version 1.
+   */
+  balance?: number
 }
 
 export interface CupRegistration {
@@ -1911,7 +1923,7 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   // whoever was drawn, the bracket climbs: the final is the strongest of them
   const ratingOf = new Map(sorted.map((t) => [t.id, t.rating]))
   path.sort((a, b) => (ratingOf.get(a) ?? 0) - (ratingOf.get(b) ?? 0))
-  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY, double: true }
+  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY, double: true, balance: BALANCE_VERSION }
   if (ease) g.cup.ease = ease
   if (registration) g.cup.registration = registerCupSquad(registration.squad, id => registration.levels[id] ?? 0)
   done()

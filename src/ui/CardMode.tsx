@@ -118,7 +118,7 @@ const TABS: { key: string; label: string; beta?: boolean }[] = [
  */
 export default function CardMode({ onExit }: { onExit: () => void }) {
   const gRef = useRef<GachaState | null>(null)
-  const [, bump] = useReducer((x: number) => x + 1, 0)
+  const [version, bump] = useReducer((x: number) => x + 1, 0)
   const [tab, setTab] = useState('packs')
 
   const [cloud, setCloud] = useState(false)
@@ -289,6 +289,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
 
   const ctx = useMemo(() => ({
     g: gRef.current!,
+    version,
     today,
     now,
     cloud,
@@ -302,7 +303,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     go: setTab,
   // gRef is stable; bump() drives the re-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [commit, act, toast, collect, today, now, cloud, phone, gRef.current, tab])
+  }), [commit, act, toast, collect, today, now, cloud, phone, gRef.current, tab, version])
 
   if (booting) {
     return <div className="wrap" style={{ padding: 40 }}><p className="muted">正在读取卡牌账号…</p></div>

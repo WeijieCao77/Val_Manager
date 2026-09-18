@@ -15,6 +15,7 @@ import { cupTeam } from './cupTeams'
 import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
+import { BALANCE_VERSION, cardStrengths } from './balance'
 import {
   cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS, squadPaper,
 } from './cards'
@@ -43,6 +44,8 @@ function legendArenaPlayer(card: PlayerCard): Player | undefined {
     season: emptyStats(), career: emptyStats(), injuredUntil: 0, xp: {},
   }
 }
+
+export { BALANCE_VERSION, GAP_CURVES, cardStrengths } from './balance'
 
 export const ARENA_TEAM = 'ARENA'
 
@@ -350,6 +353,10 @@ export interface ArenaResult {
   win: boolean
   mapsWon: number
   mapsLost: number
+  /** the series as it was played: first to two, or first to three */
+  bo?: 1 | 3 | 5
+  /** the score curve it was played on (BALANCE_VERSION); absent on matches that do not use one */
+  balance?: number
   result: MatchResult
   /** per-card scoreboard, best first */
   lines: ArenaLine[]
@@ -383,19 +390,20 @@ function sharpen(state: GameState, teamId: string, by: number): void {
  * Store round strength separately so player attributes still drive scoreboards,
  * and career-only IGL/chemistry/composition bonuses cannot count a second time.
  */
-function honourGap(state: GameState, a: string, b: string, scoreA: number, scoreB: number): void {
-  const gap = scoreA - scoreB
-  const extra = Math.sign(gap) * 0.65 * Math.max(0, Math.abs(gap) - 3)
-  state.cardMatchStrength = {
-    [a]: 80 + (scoreA - 80) * 0.35 + extra / 2,
-    [b]: 80 + (scoreB - 80) * 0.35 - extra / 2,
-  }
+function honourGap(
+  state: GameState, a: string, b: string, scoreA: number, scoreB: number,
+  version: number = BALANCE_VERSION,
+): void {
+  const [sa, sb] = cardStrengths(scoreA, scoreB, version)
+  state.cardMatchStrength = { [a]: sa, [b]: sb }
 }
 
 /** Play one card-mode match against a real club and read the scoreboard back. */
 export function playArenaMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
   bo: 1 | 3 | 5, seed: number, oppBump = 0,
+  /** the score curve — see BALANCE_VERSION */
+  balance: number = BALANCE_VERSION,
 ): ArenaResult {
   const { state, cardOf } = buildArena(squad, level, seed)
 
@@ -412,12 +420,12 @@ export function playArenaMatch(
   if (oppBump !== 0) sharpen(state, opponentId, oppBump)
   const opponent = WORLD_TEAMS.find(t => t.id === opponentId)
   if (!opponent) throw new Error('天梯对手不存在')
-  honourGap(state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, opponent.rating + oppBump)
+  honourGap(state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, opponent.rating + oppBump, balance)
 
   const rng = new Rng(seed ^ 0x1d0c)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, rng)
 
-  return { ...readResult(result, cardOf), result }
+  return { ...readResult(result, cardOf), bo, balance, result }
 }
 
 /** Both sides of a cup use the same card seating and score curve as ranked PvP. */
@@ -425,12 +433,13 @@ export function buildCupArena(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string, seed: number,
   /** points the club plays below its paper — a rotation side, printed on the bracket (gacha.ts CUP_EASE_MAX) */
   ease = 0,
+  balance: number = BALANCE_VERSION,
 ): Arena {
   const club = cupTeam(opponentId)
   if (!club) throw new Error('杯赛对手不存在')
   const arena = buildArena(squad, level, seed)
   seatSquad(arena.state, { ...club.squad, name: club.name, tag: club.tag }, () => 0, opponentId, 'B', {})
-  honourGap(arena.state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, squadPaper(club.squad).score - ease)
+  honourGap(arena.state, ARENA_TEAM, opponentId, squadPaper(squad, level).score, squadPaper(club.squad).score - ease, balance)
   return arena
 }
 
@@ -438,10 +447,12 @@ export function buildCupArena(
 export function playCupMatch(
   squad: ArenaSquad, level: (cardId: string) => number, opponentId: string,
   bo: 1 | 3 | 5, seed: number, ease = 0,
+  /** the curve this bracket was entered on; a bracket without one is version 1 */
+  balance: number = BALANCE_VERSION,
 ): ArenaResult {
-  const { state, cardOf } = buildCupArena(squad, level, opponentId, seed, ease)
+  const { state, cardOf } = buildCupArena(squad, level, opponentId, seed, ease, balance)
   const result = simulateMatch(state, ARENA_TEAM, opponentId, bo, new Rng(seed ^ 0x5b1d))
-  return { ...readResult(result, cardOf), result }
+  return { ...readResult(result, cardOf), bo, balance, result }
 }
 
 /**
@@ -531,8 +542,15 @@ export function playRivalMatch(
   rival: RivalSquad, bo: 1 | 3 | 5, seed: number,
   /** a fixed map pool — 首尔征途 plays the seven maps of 2024; absent, today's pool */
   pool?: string[],
-  /** use the displayed-score curve — the ladder and friend room; historical challenges keep their original rules */
-  widen = false,
+  /**
+   * use the displayed-score curve — the ladder, the friend room, the 全服杯;
+   * `true` is today's BALANCE_VERSION, a number is the version a tournament
+   * started on. 首尔征途 and the historical challenges pass nothing and keep
+   * their original rules.
+   */
+  widen: boolean | number = false,
+  /** Cup registration freezes the scored input; never read a later balance sheet. */
+  frozenScores?: readonly [number, number],
 ): ArenaResult {
   const state = createNewGame(WORLD_TEAMS[0].id, '卡组', seed, undefined, { cards: true })
   const cardOf: Record<string, string> = {}
@@ -547,8 +565,11 @@ export function playRivalMatch(
     ARENA_RIVAL, 'B', theirs,
   )
   state.myTeam = ARENA_TEAM
-  if (widen) honourGap(state, ARENA_TEAM, ARENA_RIVAL,
-    squadPaper(mine, level).score, squadPaper(rival, id => rival.levels[id] ?? 0).score)
+  const balance = widen === true ? BALANCE_VERSION : widen || undefined
+  if (frozenScores && !frozenScores.every(Number.isFinite)) throw new Error('Invalid frozen cup scores')
+  if (balance) honourGap(state, ARENA_TEAM, ARENA_RIVAL,
+    frozenScores?.[0] ?? squadPaper(mine, level).score,
+    frozenScores?.[1] ?? squadPaper(rival, id => rival.levels[id] ?? 0).score, balance)
 
   const rng = new Rng(seed ^ 0x5b1d)
   if (pool) {
@@ -562,6 +583,7 @@ export function playRivalMatch(
   const result = simulateMatch(state, ARENA_TEAM, ARENA_RIVAL, bo, rng)
   return {
     ...readResult(result, cardOf),
+    bo, balance,
     result,
     opp: {
       name: rival.name, tag: rival.tag,

@@ -27,7 +27,7 @@ import {
   awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
-  LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
+  LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
@@ -251,8 +251,8 @@ function dispatch(
       if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
       const level = (id: string) => levelOf(g, id)
       const res: ArenaResult = rival
-        ? playRivalMatch(five.squad, level, rival, 3, env.seed, undefined, true)
-        : playArenaMatch(five.squad, level, oppId, 3, env.seed, bump)
+        ? playRivalMatch(five.squad, level, rival, LADDER_BO, env.seed, undefined, true)
+        : playArenaMatch(five.squad, level, oppId, LADDER_BO, env.seed, bump)
       // a real five is worth what its own ladder position says it is worth
       const strength = rival
         ? 84 + Math.min(10, Math.floor(rival.points / 250))
@@ -291,7 +291,7 @@ function dispatch(
       }
       // the ticket was the whole price: nothing is charged per round
       const level = (id: string) => cup.registration!.levels[id] ?? 0
-      const res = playCupMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed, cup.ease ?? 0)
+      const res = playCupMatch(cup.registration.squad, level, oppId, cupBo(cup), env.seed, cup.ease ?? 0, cup.balance ?? 1)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })

@@ -290,6 +290,7 @@ console.log('\n交易区：')
   r = await call('/api/market/answer', { id: A, offer: offers[0].id, accept: true })
   check('卖家不能自己拍板，竞拍到时才成交', r.body.auction === true, JSON.stringify(r.body))
   await sql`update card_listings set ends = now() - make_interval(secs => 1) where seller_h = ${hashOf(A)} and status = 'open'`
+  await market.settleDue()   // the settler's tick; a read no longer settles (2026-09-18)
   r = await call('/api/market/browse', { id: B })
   check('到时结算', r.body.ok === true
     && ((await sql`select status from card_listings where seller_h = ${hashOf(A)}` as unknown as { status: string }[])[0].status === 'sold'))

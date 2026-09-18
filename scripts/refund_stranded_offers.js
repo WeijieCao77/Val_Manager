@@ -38,18 +38,25 @@ export async function owed(sql) {
   return rows.map((r) => ({ buyer_h: r.buyer_h, coins: r.due - r.got }))
 }
 
+// All repair callers (overlapping deployment containers and the maintenance CLI)
+// use the same transaction lock. Read the debt AFTER acquiring it, never before.
+const REPAIR_LOCK = 5150410
 export async function repair(sql, apply) {
-  const debts = await owed(sql)
-  for (const d of debts) {
-    const name = (await sql`select name from card_accounts where id_hash = ${d.buyer_h}`)[0]?.name ?? '?'
-    console.log(`${apply ? '退' : '欠'} ${name} ${d.coins} 金币  (${d.buyer_h.slice(0, 8)}…)`)
-    if (apply) {
-      await sql`
+  const write = async (db) => {
+    await db`set local lock_timeout = '5s'`
+    await db`select pg_advisory_xact_lock(${REPAIR_LOCK})`
+    const debts = await owed(db)
+    for (const d of debts) {
+      await db`
         insert into card_mail (to_h, kind, card_id, level, coins, pack, count, body)
         values (${d.buyer_h}, 'offer_expired', null, 0, ${d.coins}, null, 1,
-                ${sql.json({ repair: TAG })})`
+                ${db.json({ repair: TAG })})`
     }
+    return debts
   }
+  if (apply && !sql.begin) throw new Error('Refund repair requires a transactional database connection')
+  const debts = apply ? await sql.begin(write) : await owed(sql)
+  // Log only committed totals, not account identities or changes rolled back.
   console.log(debts.length ? `${debts.length} 人${apply ? '已补发' : '被欠着'}，共 ${debts.reduce((a, d) => a + d.coins, 0)} 金币`
     : '账都平的，没有人被欠')
   return debts

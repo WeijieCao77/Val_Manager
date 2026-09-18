@@ -8,9 +8,12 @@ import { rememberedId } from './cardid'
 import type { ArenaLine } from './arena'
 
 export interface OpenCupWho { name: string; tag: string; score: number | null }
-export interface OpenCupFive { slots: (string | null)[]; coach: string | null; levels: Record<string, number> }
+export interface OpenCupFive { slots: (string | null)[]; coach: string | null; levels: Record<string, number>; chemistry?: number; power?: number; paper?: { score: number; mean: number; growth: number; lift: number; chem: number; short: number; uncalled: number }; cardPoolVersion?: string }
 export interface OpenCupMatchRow {
   round: number
+  stage?: 'swiss' | 'playin' | 'playoff' | 'knockout'
+  stageRound?: number
+  bo?: 3 | 5
   slot: number
   a: OpenCupWho
   b: OpenCupWho | null
@@ -25,6 +28,12 @@ export interface OpenCupMatchRow {
 export interface OpenCupMine {
   alive: boolean
   wins: number
+  swissWins?: number
+  swissLosses?: number
+  swissRealWins?: number
+  playoffWins?: number
+  playoffSeed?: number | null
+  byes?: number
   /** −1: the five was not whole when the cup started */
   outRound: number | null
   place: number | null
@@ -33,6 +42,10 @@ export interface OpenCupMine {
 }
 export interface OpenCupRow {
   id: string
+  format?: number
+  phase?: string
+  stageRound?: number
+  playoffRounds?: number
   starts: number
   status: 'open' | 'live' | 'done' | 'void'
   round: number
@@ -58,6 +71,10 @@ export interface OpenCupState {
 }
 export interface OpenCupSideDetail { lines: ArenaLine[]; mvpCard: string | null }
 export interface OpenCupMatchDetail {
+  format?: number
+  stage?: 'swiss' | 'playin' | 'playoff' | 'knockout'
+  stageRound?: number
+  playoffRounds?: number
   ok: true
   round: number
   rounds: number
@@ -92,3 +109,10 @@ export const fetchOpenCupMatch = (cup: string, round: number, slot: number) =>
   post<OpenCupMatchDetail>('opencup/match', { cup, round, slot })
 export const fetchOpenCupById = (cup: string) =>
   post<{ ok: true; cup: OpenCupRow & { top: OpenCupMatchRow[]; me: OpenCupMine | null } }>('opencup/cup', { cup })
+
+export const fetchOpenCupSchedule = (cup: string, stage: string | null, cursor: [number, number] | null = null) =>
+  post<{ ok: true; rows: OpenCupMatchRow[]; next: [number, number] | null }>('opencup/schedule', { cup, stage, cursor })
+
+export interface SwissStanding extends OpenCupWho { wins: number; losses: number; realWins: number; byes: number; alive: boolean; seed: number | null }
+export const fetchOpenCupStandings = (cup: string, wins: number | null, losses: number | null, offset = 0) =>
+  post<{ ok: true; rows: SwissStanding[]; next: number | null }>('opencup/standings', { cup, wins, losses, offset })
