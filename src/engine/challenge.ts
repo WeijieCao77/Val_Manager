@@ -514,6 +514,29 @@ export function guessChallenge(g: GachaState, today: string, guessId: string): C
   return { row, finished: false, solved: false }
 }
 
+/**
+ * What this build believes about everything guessable, as one number.
+ *
+ * The picture and the verdict come from the server; the hint rows under them are worked out in the browser,
+ * from the browser's own copy of the data. After the people rebuild of 2026-09-18 a phone still holding the
+ * bundle from the day before drew FUT's yetujey (the server's answer) over rows marked against a TL player
+ * (its own idea of the answer): the pool had changed, so `answerFor` landed somewhere else, and ages, roles,
+ * ratings and clubs had moved as well. 「绿的队伍是 TL」. A guess now carries this number and the server
+ * refuses one that is not its own — before the fee, before a try is spent — and the picture carries the
+ * server's, so the screen can ask for a refresh before anybody types.
+ */
+let sigMemo: string | null = null
+export function challengeSig(): string {
+  if (sigMemo) return sigMemo
+  const facts = allChoices().map((c) => {
+    const kind = c.kind ?? 'player'
+    const row = evaluate(kind, c.id, c.id)
+    return `${kind}:${c.id}:${row.cells.map((x) => x.value).join('|')}`
+  })
+  for (const kind of ['player', 'team', 'map', 'agent'] as ChallengeKind[]) facts.push(`${kind}#${answerPool(kind).join(',')}`)
+  return (sigMemo = (hashStr(facts.join('\n')) >>> 0).toString(36))
+}
+
 /** Everything the screen needs to draw today, without deciding any of it. */
 export function challengeToday(g: GachaState, today: string): {
   kind: ChallengeKind

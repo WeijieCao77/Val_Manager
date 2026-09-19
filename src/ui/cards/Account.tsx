@@ -25,6 +25,18 @@ export async function copyText(text: string): Promise<boolean> {
   } catch { return false }
 }
 
+/**
+ * When a log line happened, on the reader's own clock. The line is stamped in UTC (an ISO string) and used to
+ * be printed by cutting that string up — 「12:27」 for a pack opened at 8:27 in the morning in New York, and
+ * eight hours behind for everybody in China.
+ */
+function logTime(at: string): string {
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return `${at.slice(5, 10)} ${at.slice(11, 16)}`
+  const two = (n: number) => String(n).padStart(2, '0')
+  return `${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`
+}
+
 export default function Account({ onSignOut }: { onSignOut: () => void }) {
   const { g, cloud, phone, bound, toast, commit } = useCards()
   const [reveal, setReveal] = useState(false)
@@ -99,7 +111,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
             {g.log.slice(0, 25).map((l, i) => (
               <div key={i} className="small" style={{ padding: '5px 0', borderBottom: '1px solid var(--line-soft)' }}>
                 <span className="tiny faint mono" style={{ marginRight: 8 }}>
-                  {l.at.slice(5, 10)} {l.at.slice(11, 16)}
+                  {logTime(l.at)}
                 </span>
                 {l.text}
               </div>

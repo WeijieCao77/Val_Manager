@@ -4,7 +4,7 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
-  allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeToday,
+  allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeSig, challengeToday,
   detail, evaluate, KIND_CN, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
@@ -87,7 +87,7 @@ export default function Challenge() {
     if (why) { toast(why); return }
     if (busy) return
     setBusy(true)
-    const r = await act('challenge', { guessId: id })
+    const r = await act('challenge', { guessId: id, sig: challengeSig() })
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
     const turn = (r.result as { turn: ChallengeTurn }).turn
@@ -127,6 +127,9 @@ export default function Challenge() {
   const canvas = useRef<HTMLCanvasElement | null>(null)
   const [pic, setPic] = useState<HTMLImageElement | null>(null)
   const [picMissing, setPicMissing] = useState(false)
+  // the server chose the picture from newer data than this page holds: its hints would be marked against
+  // a different answer (see challengeSig), so the page asks for a refresh instead of taking guesses
+  const [stale, setStale] = useState(false)
   useEffect(() => {
     let alive = true
     let url = ''
@@ -135,7 +138,11 @@ export default function Challenge() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: g.id }),
     })
-      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((r) => {
+        const theirs = r.headers.get('X-Puzzle-Sig')
+        if (alive && theirs && theirs !== challengeSig()) setStale(true)
+        return r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))
+      })
       .then((blob) => new Promise<HTMLImageElement>((resolve, reject) => {
         url = URL.createObjectURL(blob)
         const im = new Image()
@@ -180,6 +187,12 @@ export default function Challenge() {
           每天一题，<b>每个账号题目不同</b>，入场 <b>{CHALLENGE_COST} 金币</b>。
           猜中按次数给卡包（<b>一次猜中给十连包</b>），没猜中退一半。
         </p>
+        {stale && (
+          <p className="small warn" style={{ lineHeight: 1.7 }}>
+            游戏数据更新了，这个页面还是旧的，提示会对不上。
+            <button className="sm primary" style={{ marginLeft: 8 }} onClick={() => location.reload()}>刷新页面</button>
+          </p>
+        )}
 
         {/* The subject — see paintPuzzle for why it is drawn the way it is,
             and FRAME_ASPECT for why the box is this shape everywhere. */}
@@ -228,13 +241,13 @@ export default function Challenge() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={block ?? `输入名字（还剩 ${left} 次）`}
-                disabled={!!block}
+                disabled={!!block || stale}
                 enterKeyHint="go"
               />
               {/* a real submit button, so Enter and the phone's 「前往」 both
                   work — a form with no submit control does not reliably
                   implicit-submit, and a thumb wants something to press anyway */}
-              <button className="primary" type="submit" disabled={!!block || !matches[0] || busy}>
+              <button className="primary" type="submit" disabled={!!block || stale || !matches[0] || busy}>
                 猜
               </button>
             </div>

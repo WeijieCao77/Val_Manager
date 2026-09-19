@@ -1359,6 +1359,8 @@ export function makeCardApi(sql, {
         'Content-Length': buf.length,
         'Cache-Control': 'no-store',
         'Content-Disposition': 'inline; filename="puzzle.webp"',
+        // which data this picture was chosen from: a page holding other data asks for a refresh (challengeSig)
+        'X-Puzzle-Sig': engine.challengeSig?.() ?? '',
       })
       res.end(buf)
     } catch {

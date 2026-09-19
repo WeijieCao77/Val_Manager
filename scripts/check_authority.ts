@@ -30,7 +30,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
 import { STARTER_COINS, STAMINA_MAX, STAMINA_COST } from '../src/engine/gacha'
-import { CHALLENGE_COST } from '../src/engine/challenge'
+import { CHALLENGE_COST, challengeSig } from '../src/engine/challenge'
 import { cardById, isPlayerCard, personOf } from '../src/engine/cards'
 import { migrateGacha, openPack } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
@@ -247,7 +247,14 @@ console.log('\n杯赛与挑战：')
   check('再报一届又是 5 点体力', r.ok && (await stored(A)).daily.stamina === STAMINA_MAX - 2 * STAMINA_COST.cup, r.why)
 
   const c1 = (await stored(A)).coins
-  r = await act(A, 'challenge', { guessId: 'nope' })
+  // A page from before a data update marks its hints against a different answer (2026-09-19, 「绿的队伍是 TL」
+  // under a picture of FUT's yetujey): its guess is refused before the fee and before a try is spent.
+  for (const sig of [undefined, 'old-data']) {
+    r = await act(A, 'challenge', { guessId: 'nope', sig })
+    const kept = await stored(A)
+    check(`旧页面的猜测不收（sig ${sig ?? '没带'}）：不扣钱、不记次数，提示刷新`, !r.ok && /刷新/.test(r.why ?? '') && kept.coins === c1 && !(kept.challenge?.guesses.length), r.why)
+  }
+  r = await act(A, 'challenge', { guessId: 'nope', sig: challengeSig() })
   check('猜一次扣 300 入场', r.ok && (await stored(A)).coins === c1 - CHALLENGE_COST, r.why)
   check('猜错记了一次', (await stored(A)).challenge?.guesses.length === 1)
 }
