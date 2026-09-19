@@ -87,6 +87,22 @@
         "server.js"
       ],
       "port": 8091
+    },
+    {
+      "name": "val-server-teamcup",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "ANALYTICS_TOKEN=devtoken",
+        "DATABASE_URL=pglite://",
+        "PHONE_GATE=0",
+        "TRADE_DAYS=0",
+        "TEAM_CUP_EVERY_SEC=150",
+        "TEAM_CUP_STEP_SEC=10",
+        "PORT=8098",
+        "node",
+        "server.js"
+      ],
+      "port": 8098
     }
   ]
 }

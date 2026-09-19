@@ -30,6 +30,7 @@ import { makeProfileApi } from './profile-api.js'
 import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
 import { makeOpenCupApi } from './opencup-api.js'
+import { makeTeamCupApi } from './teamcup-api.js'
 import { makePhoneApi } from './phone-api.js'
 import { validatePhoneSecrets } from './phone-config.js'
 import { releaseFingerprint } from './release-fingerprint.js'
@@ -543,6 +544,14 @@ const openCupApi = () => (_openCupApi ??= makeOpenCupApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, fast: OPEN_CUP_FAST, bg: sqlBg, cardPoolVersion: ENGINE_SHA256, engineBundle: readFileSync(engineFile),
 }))
 let _openCupApi = null
+// 全服组队杯 (teamcup-api.js): its own tables and its own worker; the same fast local clock as the solo cup's
+const TEAM_CUP_FAST = process.env.DATABASE_URL?.startsWith('pglite') && Number(process.env.TEAM_CUP_EVERY_SEC) >= 30
+  ? { everySec: Number(process.env.TEAM_CUP_EVERY_SEC), stepSec: Math.max(5, Number(process.env.TEAM_CUP_STEP_SEC) || 15) }
+  : null
+const teamCupApi = () => (_teamCupApi ??= makeTeamCupApi(sql, {
+  readBody, json, normalizeId, displayName, rateLimited, engine, fast: TEAM_CUP_FAST, bg: sqlBg, cardPoolVersion: ENGINE_SHA256,
+}))
+let _teamCupApi = null
 
 /** Which formats are worth compressing — the rest are already compressed. */
 const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
@@ -632,7 +641,7 @@ createServer((req, res) => {
   // …and so does the market's settler: it used to start with the first visit to the market
   const startJobs = () => {
     if (!schemaReady || !sql) return false
-    openCupApi(); marketApi(); return true
+    openCupApi(); teamCupApi(); marketApi(); return true
   }
   const bootJobs = setInterval(() => { if (startJobs()) clearInterval(bootJobs) }, OPEN_CUP_FAST ? 500 : 1000)
   bootJobs.unref?.()
@@ -722,6 +731,16 @@ function handle(req, res) {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
       console.warn('phone: route failed', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false })
+    })
+    return
+  }
+  if (path === '/api/card/teamcup' || path.startsWith('/api/card/teamcup/')) {
+    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
+    void teamCupApi().route(req, res, path, bucketOf(req)).then((handled) => {
+      if (!handled) json(res, 404, { ok: false })
+    }).catch((err) => {
+      console.warn('teamcup: route failed', err.message)
       if (!res.headersSent) json(res, 500, { ok: false })
     })
     return

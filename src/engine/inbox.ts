@@ -158,6 +158,15 @@ export function mailLine(m: MailItem): string {
       if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)
       return `${head}：${bits.join('，')}`
     }
+    case 'team_cup': {
+      const place = Number(m.body?.place) || 0
+      const head = place === 1 ? '组队杯冠军' : place === 2 ? '组队杯亚军' : place === 4 ? '组队杯四强' : place === 8 ? '组队杯八强' : '组队杯'
+      const bits = []
+      if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)
+      if (m.coins) bits.push(`${m.coins} 金币`)
+      const won = Number(m.body?.duelWins) || 0
+      return `${head}：${bits.join('，')}${won ? `（单挑赢了 ${won} 场）` : ''}`
+    }
     case 'grant': {
       const bits = []
       if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)

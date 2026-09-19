@@ -1,7 +1,7 @@
 /**
  * Fill a LOCAL server's 全服杯 with accounts, over its real HTTP routes.
  *
- *   node scripts/seed_open_cup_local.mjs [base=http://localhost:8097] [accounts=13] [first=1]
+ *   node scripts/seed_open_cup_local.mjs [base=http://localhost:8097] [accounts=13] [first=1] [opencup|teamcup]
  *
  * For the `val-server-cup` launch config (in-process database, fast cup
  * clock, admin token `devtoken`). Each account is claimed, handed five
@@ -12,6 +12,8 @@
 const base = process.argv[2] ?? 'http://localhost:8097'
 const count = Number(process.argv[3] ?? 13)
 const first = Number(process.argv[4] ?? 1)
+// which cup to sign up for: 'opencup' (default) or 'teamcup'
+const which = process.argv[5] === 'teamcup' ? 'teamcup' : 'opencup'
 if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(base)) throw new Error('local servers only')
 const { createHash } = await import('node:crypto')
 
@@ -57,6 +59,6 @@ for (let i = first; i < first + count; i++) {
 }
 // everybody signs up at the end, together, so a fast local clock cannot split them across two cups
 for (const id of ready) {
-  const joined = await post('/api/card/opencup/join', { id })
+  const joined = await post(`/api/card/${which}/join`, { id })
   console.log(`${id} join ${joined.ok ? `ok, ${joined.score} 分` : joined.why}`)
 }

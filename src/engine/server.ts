@@ -29,6 +29,7 @@ export {
 } from './openCup'
 export { BALANCE_VERSION } from './balance'
 export * from './openCupSwiss'
+export * from './teamCup'
 export { squadPaper, chemistry, squadPower } from './cards'
 export { progressOf } from '../../progress.js'
 export { answerFor, kindFor, imgOf, challengeSig } from './challenge'

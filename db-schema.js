@@ -6,6 +6,7 @@ import { PROFILE_SCHEMA } from './profile-api.js'
 import { SITE_SCHEMA } from './site-api.js'
 import { ROLLUP_SCHEMA } from './rollup.js'
 import { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA } from './opencup-api.js'
+import { TEAM_CUP_SCHEMA } from './teamcup-api.js'
 
 /**
  * Bring the schema up to date on boot, without letting that take the game down.
@@ -27,7 +28,7 @@ import { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA } from './opencup-api.js'
  * game genuinely cannot run is a database with no card_accounts in it, so
  * that is the only thing asked before keeping the connection.
  */
-export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA]
+export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, TEAM_CUP_SCHEMA]
 /** any constant, as long as every deploy of this service uses the same one */
 const SCHEMA_LOCK = 5150409
 
