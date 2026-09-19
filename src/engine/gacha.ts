@@ -118,7 +118,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
-    blurb: '十张选手卡，必出金卡，彩卡最多。不卖，升段、夺冠、连签七天才有。',
+    blurb: '十张选手卡，必出金卡，彩卡最多。不卖，通过升段、夺冠、连签、挑战和赛事预测等奖励获得。',
     // 0.0012 a draw made the floor beside the point here: ten draws a pack put
     // a彩卡 in 1.19% of them, three quarters of the tier arrived on the natural
     // roll, and 1200 was a number almost nobody reached — the floor is what is
@@ -694,12 +694,15 @@ export interface Quest {
   reward: number
 }
 
+export const CHECKIN_COINS = 375
+export const DAILY_CLEAR_PACKS = 2
+
 export const QUESTS: Record<QuestKey, Quest> = {
-  play3: { key: 'play3', label: '打 3 场天梯', target: 3, reward: 240 },
-  win2: { key: 'win2', label: '赢 2 场天梯', target: 2, reward: 320 },
-  open2: { key: 'open2', label: '开 2 个卡包', target: 2, reward: 200 },
-  upgrade1: { key: 'upgrade1', label: '升级 1 张卡', target: 1, reward: 260 },
-  cup1: { key: 'cup1', label: '打 1 轮杯赛', target: 1, reward: 300 },
+  play3: { key: 'play3', label: '打 3 场天梯', target: 3, reward: 300 },
+  win2: { key: 'win2', label: '赢 2 场天梯', target: 2, reward: 400 },
+  open2: { key: 'open2', label: '开 2 个卡包', target: 2, reward: 250 },
+  upgrade1: { key: 'upgrade1', label: '升级 1 张卡', target: 1, reward: 325 },
+  cup1: { key: 'cup1', label: '打 1 轮杯赛', target: 1, reward: 375 },
 }
 
 export interface DailyState {
@@ -777,7 +780,7 @@ export interface GachaState {
   /** what the inbox has delivered, newest first — see MailEntry */
   mail?: MailEntry[]
   /** 赛事预测 — picks per event and group, see engine/predict.ts */
-  predict?: Record<string, Record<string, { picks: Picks; at: number }>>
+  predict?: Record<string, Record<string, { picks: Picks; at: number; claimedAt?: number }>>
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
@@ -1081,7 +1084,7 @@ export function openPack(
     if ((g.packs[kind] ?? 0) < 1) throw new Error('没有这种卡包')
     g.packs[kind] = (g.packs[kind] ?? 0) - 1
   } else {
-    if (def.shop === false) throw new Error(`${def.name}买不到，只能靠升段、夺冠或连签拿`)
+    if (def.shop === false) throw new Error(`${def.name}买不到，只能从玩法奖励获得`)
     const price = packCost(kind, today)
     if (g.coins < price) throw new Error('金币不够')
     g.coins -= price
@@ -2183,8 +2186,8 @@ export function claimQuest(g: GachaState, key: QuestKey): number {
   g.coins += q.reward
   // clearing the board is worth a pack on its own
   if (g.daily.taken.length === g.daily.picked.length) {
-    g.packs.scout = (g.packs.scout ?? 0) + 1
-    note(g, '日常全部完成，+1 试训包')
+    g.packs.scout = (g.packs.scout ?? 0) + DAILY_CLEAR_PACKS
+    note(g, `日常全部完成，+${DAILY_CLEAR_PACKS} 试训包`)
   }
   return q.reward
 }
@@ -2214,7 +2217,7 @@ export function checkIn(g: GachaState, today: string): CheckIn {
   g.daily.streak = consecutive ? g.daily.streak + 1 : 1
   g.daily.claimed = today
 
-  const coins = 300
+  const coins = CHECKIN_COINS
   const packs: Partial<Record<PackKind, number>> = { scout: 1 }
   // The strip on the screen is a cycle of SEVEN — it lights box 3 and box 6 of
   // each cycle and promises a 选拔包 there. The rewards were read off the

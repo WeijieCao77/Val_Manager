@@ -1171,6 +1171,10 @@ export function makeMarketApi(sql, {
     } catch { json(res, 400, { ok: false }); return }
     const ids = (Array.isArray(b?.ids) ? b.ids : []).map(rowId).filter(Boolean).slice(0, PAGE_MAX)
     if (!ids.length) { json(res, 200, { ok: true, now: Date.now(), listings: [] }); return }
+    json(res, 200, { ok: true, now: Date.now(), ...await liveListings(ids, mine) })
+  }
+
+  async function liveListings(ids, mine) {
     const rows = await sql`
       select l.id, l.seller_h, l.card_id, l.level, l.ask, l.created, l.ends, l.buyout, l.hours,
              coalesce(o.open_n, 0) as offers, coalesce(o.all_n, 0) as bids, o.best, coalesce(o.mine_bid, false) as bid
@@ -1184,8 +1188,7 @@ export function makeMarketApi(sql, {
       ) o on true
       where l.id = any(${ids}::bigint[]) and l.status = 'open' and (l.ends is null or l.ends > now())`
     const names = await namesOf(rows.map((r) => r.seller_h))
-    json(res, 200, {
-      ok: true, now: Date.now(),
+    return {
       listings: rows.map((r) => ({
         id: String(r.id), cardId: r.card_id, level: r.level, ask: r.ask,
         seller: names[r.seller_h], mine: r.seller_h === mine,
@@ -1195,7 +1198,32 @@ export function makeMarketApi(sql, {
         // 上架保护期: until when a buy-now only enters the draw (null once the minute is over, or with no buy-now)
         drawAt: protectEnd(r),
       })),
-    })
+    }
+  }
+
+  /** Active auctions I bid on, including refunded/outbid bids. One tile per listing. */
+  async function participating(req, res, bucket) {
+    if (guard(req, res, `mpart:${bucket}`, 90)) return
+    let b
+    try { b = JSON.parse(await readBody(req, 2048)) } catch { json(res, 400, { ok: false }); return }
+    const id = normalizeId(b?.id)
+    if (!id) { json(res, 400, { ok: false, bad: true }); return }
+    const me = hash(id)
+    if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, unverified: true }); return }
+    const cursor = b?.cursor == null ? null : rowId(b.cursor)
+    if (b?.cursor != null && !cursor) { json(res, 400, { ok: false, bad: true }); return }
+    const rows = await sql`
+      select l.id from card_listings l
+      where l.status = 'open' and l.ends > now() and l.seller_h <> ${me}
+        and (${cursor}::bigint is null or l.id < ${cursor}::bigint)
+        and exists (select 1 from card_offers o where o.listing = l.id and o.buyer_h = ${me})
+      order by l.id desc limit ${PAGE + 1}`
+    const page = rows.slice(0, PAGE)
+    const data = page.length ? await liveListings(page.map(r => String(r.id)), me) : { listings: [] }
+    const byId = new Map(data.listings.map(l => [l.id, l]))
+    json(res, 200, { ok: true, now: Date.now(),
+      listings: page.flatMap(r => byId.has(String(r.id)) ? [byId.get(String(r.id))] : []),
+      next: rows.length > PAGE ? String(page[page.length - 1].id) : null })
   }
 
   /** Everything about the market that does not change between requests. */
@@ -2000,6 +2028,7 @@ export function makeMarketApi(sql, {
       if (path === '/api/market/swap_answer') { await swapAnswer(req, res, bucket); return true }
       if (path === '/api/market/swap_cancel') { await swapCancel(req, res, bucket); return true }
       if (path === '/api/market/browse') { await browse(req, res, bucket); return true }
+      if (path === '/api/market/participating') { await participating(req, res, bucket); return true }
       if (path === '/api/market/peek') { await peek(req, res, bucket); return true }
       if (path === '/api/market/list') { await list(req, res, bucket); return true }
       if (path === '/api/market/unlist') { await unlist(req, res, bucket); return true }

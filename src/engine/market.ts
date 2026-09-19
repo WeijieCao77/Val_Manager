@@ -231,6 +231,9 @@ export const browseShelf = (q: ShelfQuery = {}, signal?: AbortSignal) => request
 export const peekListings = (ids: string[], signal?: AbortSignal) =>
   request<{ ok: boolean; now?: number; listings: Listing[] }>('peek', { ids }, { signal })
 
+export const participatingAuctions = (cursor?: string, signal?: AbortSignal) =>
+  request<{ ok: boolean; now?: number; listings: Listing[]; next: string | null }>('participating', { cursor }, { signal })
+
 export const myOffers = () =>
   post<{ ok: boolean; inbound: Offer[]; outbound: Offer[]; days: number }>('offers', {})
 export const myOffersEx = (signal?: AbortSignal) =>

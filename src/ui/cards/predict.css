@@ -41,3 +41,8 @@ button.pd-team.lost { opacity: .42; }
   .pd-col { min-width: 112px; }
   button.pd-team span { display: none; }
 }
+
+.pd-rewards { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.8; }
+.pd-rewards ul { padding-left: 20px; margin: 6px 0; }
+.pd-rewards > span { color: var(--muted); }
+.pd-settlement { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }

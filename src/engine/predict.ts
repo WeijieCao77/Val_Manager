@@ -10,11 +10,11 @@
  * bracket. Third place is 9th–12th and fourth 13th–16th — nobody leaves the
  * groups for a lower bracket.
  *
- * The picks live on the server (the `predict` action), because they will pay
- * something once the rewards are settled, and a group closes the moment its
- * first match starts.
+ * Picks and reward receipts live on the server. A group closes when its first
+ * match starts; confirmed results pay its highest reward tier exactly once.
  */
 import type { GachaState } from './gacha'
+import publishedResults from '../data/predictResults.json'
 
 export type SlotKey = 'o1' | 'o2' | 'w' | 'e' | 'd'
 /** in the order each depends only on the ones before it */
@@ -150,13 +150,57 @@ export function cleanPredictions(raw: unknown): GachaState['predict'] {
     const byGroup = (raw as Record<string, unknown>)[ev.id]
     if (!byGroup || typeof byGroup !== 'object') continue
     for (const group of ev.groups) {
-      const row = (byGroup as Record<string, { picks?: unknown; at?: unknown } | undefined>)[group.key]
+      const row = (byGroup as Record<string, { picks?: unknown; at?: unknown; claimedAt?: unknown } | undefined>)[group.key]
       if (!row || typeof row !== 'object') continue
       const picks = cleanPicks(group, row.picks)
       if (!Object.keys(picks).length) continue
       out[ev.id] ??= {}
-      out[ev.id][group.key] = { picks, at: Math.max(0, Math.trunc(Number(row.at) || 0)) }
+      const claimedAt = Number(row.claimedAt)
+      out[ev.id][group.key] = { picks, at: Math.max(0, Math.trunc(Number(row.at) || 0)),
+        ...(Number.isSafeInteger(claimedAt) && claimedAt > 0 ? { claimedAt } : {}) }
     }
   }
   return Object.keys(out).length ? out : undefined
+}
+
+
+export interface GroupResult { first: string; second: string; confirmedAt: number }
+export type PredictionReward = { elite: number; ten: number }
+/** Reviewed results ship with the server. No action accepts results from a player. */
+export const PREDICT_RESULTS: Record<string, Record<string, GroupResult>> = publishedResults
+
+export function confirmedResult(eventId: string, group: PredictGroup, now: number): GroupResult | null {
+  const result = PREDICT_RESULTS[eventId]?.[group.key]
+  if (!result || !group.teams.includes(result.first) || !group.teams.includes(result.second)
+    || result.first === result.second || !Number.isSafeInteger(result.confirmedAt)
+    || result.confirmedAt <= group.at.d || now < result.confirmedAt) return null
+  return result
+}
+
+/** Each group pays only its highest tier; earlier match winners are not scored. */
+export function predictionReward(group: PredictGroup, picks: Picks, result: GroupResult): PredictionReward {
+  const predicted = standing(group, cleanPicks(group, picks))
+  const exact = Number(predicted.first === result.first) + Number(predicted.second === result.second)
+  const matched = [predicted.first, predicted.second].filter(tag => tag && [result.first, result.second].includes(tag)).length
+  if (exact === 2) return { elite: 0, ten: 2 }
+  if (exact === 1) return { elite: 0, ten: 1 }
+  return { elite: matched === 2 ? 5 : matched === 1 ? 3 : 0, ten: 0 }
+}
+
+export function claimPrediction(g: GachaState, eventId: string, groupKey: string, now: number):
+  { ok: true; reward: PredictionReward } | { ok: false; why: string } {
+  const event = PREDICT_EVENTS.find(e => e.id === eventId)
+  const group = event?.groups.find(gr => gr.key === groupKey)
+  if (!group) return { ok: false, why: '没有这个赛事或小组' }
+  const result = confirmedResult(eventId, group, now)
+  if (!result) return { ok: false, why: '本组赛果尚未确认，请在赛后领取' }
+  const row = g.predict?.[eventId]?.[groupKey]
+  if (!row || !Number.isFinite(row.at) || row.at >= lockAt(group)) return { ok: false, why: '本组没有有效的赛前预测' }
+  if (row.claimedAt) return { ok: false, why: '本组预测奖励已经领取' }
+  const reward = predictionReward(group, row.picks, result)
+  if (!reward.elite && !reward.ten) return { ok: false, why: '本组未猜中晋级队伍，暂无奖励' }
+  g.packs.elite = (g.packs.elite ?? 0) + reward.elite
+  g.packs.ten = (g.packs.ten ?? 0) + reward.ten
+  row.claimedAt = now
+  return { ok: true, reward }
 }

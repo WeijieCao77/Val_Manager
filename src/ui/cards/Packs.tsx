@@ -3,7 +3,7 @@ import { useCards } from './ctx'
 import CardFace, { CardBack } from '../Card'
 import { Panel } from '../common'
 import {
-  PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, HARD_PITY, SOFT_PITY, packPosition,
+  PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
   fullSetProgress, FULL_SET_REWARD,
 } from '../../engine/gacha'
@@ -114,7 +114,7 @@ export default function Packs() {
       <div className="grid c2" style={{ alignItems: 'start' }}>
         <Panel title="每日签到" actions={<span className="tiny muted">连续 {g.daily.streak} 天</span>}>
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
-            每天送金币和卡包，连签 3 天加送选拔包，连签 7 天送十连包。日期以服务器（北京时间）为准。
+            每天送 {CHECKIN_COINS} 金币和 1 个试训包；每轮第 3、6 天加送选拔包，第 7 天加送十连包。日期以服务器（北京时间）为准。
           </p>
           <div className="row" style={{ gap: 4, margin: '10px 0 12px' }}>
             {Array.from({ length: 7 }, (_, i) => {
@@ -126,7 +126,7 @@ export default function Packs() {
               return (
                 <div
                   key={i}
-                  title={day === 7 ? '十连包' : day % 3 === 0 ? '选拔包' : '试训包 + 300 金币'}
+                  title={`${CHECKIN_COINS} 金币 + 试训包${day === 7 ? ' + 十连包' : day % 3 === 0 ? ' + 选拔包' : ''}`}
                   style={{
                     flex: 1, height: 30, borderRadius: 3, display: 'grid', placeItems: 'center',
                     fontSize: 10, fontWeight: 700,
@@ -163,7 +163,7 @@ export default function Packs() {
               </div>
             )
           })}
-          <p className="tiny faint" style={{ marginBottom: 0 }}>全部完成加送一个试训包。</p>
+          <p className="tiny faint" style={{ marginBottom: 0 }}>全部完成加送 {DAILY_CLEAR_PACKS} 个试训包。</p>
         </Panel>
       </div>
 
@@ -189,7 +189,7 @@ export default function Packs() {
         }
       >
         <p className="tiny faint" style={{ marginTop: 0, lineHeight: 1.7 }}>
-          用金币随时买，不限次数。十连包不卖，靠升段、夺冠或连签七天获得。
+          用金币随时买，不限次数。十连包不卖，可通过升段、夺冠、连签、挑战和赛事预测等玩法获得。
         </p>
         <div className="pack-shelf">
           {(g.packs.legend ?? 0) > 0 && (

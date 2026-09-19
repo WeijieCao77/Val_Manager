@@ -12,7 +12,7 @@
  * 子的说法和真发的包对一次。格子的算法从 ui/cards/Packs.tsx 抄过来，抄错了
  * 这里也会响。
  */
-import { checkIn, newGacha } from '../src/engine/gacha'
+import { checkIn, newGacha, claimQuest, refreshDaily, QUESTS } from '../src/engine/gacha'
 import type { GachaState, PackKind } from '../src/engine/gacha'
 
 let bad = 0
@@ -55,7 +55,7 @@ for (let i = 0; i < 28; i++) {
 check('四周里一次都没有对不上', mismatch === 0, rows.join('；'))
 check('每轮两个选拔包，四轮八个', elites === 8, `${elites} 个`)
 check('每轮一个十连包，四轮四个', tens === 4, `${tens} 个`)
-check('每天都还有那个 300 金币和试训包', (g.packs.scout ?? 0) >= 28, `试训包 ${g.packs.scout}`)
+check('每天都还有金币和试训包', (g.packs.scout ?? 0) >= 28, `试训包 ${g.packs.scout}`)
 
 // ---- 断签之后从头数，格子也从头数
 {
@@ -72,9 +72,26 @@ check('每天都还有那个 300 金币和试训包', (g.packs.scout ?? 0) >= 28
 // ---- 同一天签两次只算一次
 {
   const h: GachaState = newGacha('audit3')
+  const before = h.coins
   checkIn(h, day(0))
+  check('每日签到增加到 375 金币', h.coins === before + 375)
   const again = checkIn(h, day(0))
   check('同一天再签一次什么都不给', again.already && again.coins === 0 && !Object.keys(again.packs).length)
+}
+
+// A completed board pays two scout packs once, including across save reloads.
+{
+  const h = newGacha('daily-resources')
+  refreshDaily(h, day(0))
+  const before = h.coins, packs = h.packs.scout ?? 0
+  for (const key of h.daily.picked) h.daily.progress[key] = QUESTS[key].target
+  for (const key of h.daily.picked) claimQuest(h, key)
+  check('任务金币提高 25%', JSON.stringify(Object.values(QUESTS).map(q => q.reward)) === '[300,400,250,325,375]')
+  check('三项任务按表发金币', h.coins === before + h.daily.picked.reduce((n,k) => n + QUESTS[k].reward, 0))
+  check('清完任务给两个试训包', h.packs.scout === packs + 2)
+  const reloaded = JSON.parse(JSON.stringify(h))
+  for (const key of h.daily.picked) check('重复领任务不再发金币', claimQuest(reloaded, key) === 0)
+  check('刷新存档不能重复领清板卡包', reloaded.packs.scout === packs + 2)
 }
 
 console.log(bad ? `\n${bad} 条不过` : '\n全部通过')

@@ -25,7 +25,7 @@ import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
   AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
-  answerOffer, askFloorOf, bidOn, browseShelf, failText, gateText, listCardOnMarket, minBidOf, myOffersEx, peekListings, unlistCard,
+  answerOffer, askFloorOf, bidOn, browseShelf, failText, gateText, listCardOnMarket, minBidOf, myOffersEx, peekListings, participatingAuctions, unlistCard,
   waitText, withdrawOffer,
 } from '../../engine/market'
 import type { Fail, Gate, Listing, Offer, ShelfQuery, ShelfSort } from '../../engine/market'
@@ -548,7 +548,7 @@ export default function Market() {
   }, [])
 
   /** one tile of the shelf */
-  const renderTile = (l: Listing) => {
+  const renderTile = (l: Listing, participated = false) => {
     const card = cardById(l.cardId)
     if (!card) return null
     const auction = l.ends != null
@@ -572,6 +572,7 @@ export default function Market() {
     return (
       <div key={l.id} className="market-box">
         <CardFace card={card} level={l.level} />
+        {participated && !l.bid && <div className="tiny warn">已被超价 · 可再次出价</div>}
         {/* one fact a line, none of them allowed to wrap:
             「起拍 10,000 金币」 once broke mid-word */}
         <div className="tiny mono" style={{ marginTop: 4, ...nowrap }}>
@@ -675,6 +676,8 @@ export default function Market() {
           </p>
         </Panel>
       )}
+
+      <ParticipatingAuctions now={now} refreshToken={loadedAt} renderTile={(l) => renderTile(l, true)} />
 
       <Panel
         title="挂一张卡出去"
@@ -894,7 +897,7 @@ export default function Market() {
               <div className="market-shelf" ref={shelfEl}>
                 {chunks.map((rows, ci) => (
                   <ShelfChunk key={ci} index={ci} seen={seenChunk}>
-                    {rows.map(renderTile)}
+                    {rows.map(l => renderTile(l))}
                   </ShelfChunk>
                 ))}
               </div>
@@ -921,4 +924,50 @@ export default function Market() {
       </Panel>
     </>
   )
+}
+
+
+/** A dedicated, paged shortcut; shelf filters cannot hide a previous bid. */
+function ParticipatingAuctions({ now, refreshToken, renderTile }: {
+  now: number; refreshToken: number | null; renderTile: (listing: Listing) => React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const [cursor, setCursor] = useState<string | undefined>()
+  const [rows, setRows] = useState<Listing[]>([])
+  const [next, setNext] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [fail, setFail] = useState<Fail | null>(null)
+  const [retry, setRetry] = useState(0)
+  const poll = Math.floor(now / 120_000)
+  useEffect(() => {
+    if (!open) return
+    const ctl = new AbortController()
+    let active = true
+    setBusy(true)
+    void participatingAuctions(cursor, ctl.signal).then(r => {
+      if (!active) return
+      setBusy(false)
+      if (!r.data?.ok) { setFail(r.fail ?? 'server'); return }
+      setFail(null); setRows(r.data.listings); setNext(r.data.next)
+    })
+    return () => { active = false; ctl.abort() }
+  }, [open, cursor, poll, refreshToken, retry])
+  const page = (value?: string) => { setRows([]); setNext(null); setFail(null); setCursor(value) }
+  const active = rows.filter(l => l.ends != null && l.ends > now)
+  return <Panel title="我参与的竞拍" actions={
+    <button className="sm ghost" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? '收起' : '查看竞拍'}</button>
+  }>
+    <p className="tiny muted" style={{ marginTop: 0 }}>正在领先和已被超价的卡都在这里；成交或拍卖结束后自动移出。</p>
+    {open && <>
+      <div className="row wrap" style={{ gap: 8, marginBottom: 10 }}>
+        <button className="sm ghost" disabled={busy} onClick={() => setRetry(n => n + 1)}>刷新竞拍</button>
+        {cursor && <button className="sm ghost" disabled={busy} onClick={() => page()}>回到第一页</button>}
+        {next && <button className="sm ghost" disabled={busy} onClick={() => page(next)}>下一页</button>}
+        {busy && <span className="tiny muted">读取中…</span>}
+      </div>
+      {fail && <p className="small warn">竞拍记录未刷新：{failText(fail)} 请点击刷新重试。</p>}
+      {!busy && !fail && active.length === 0 && <p className="empty">{cursor ? '这一页的竞拍已结束，可以回到第一页查看。' : '还没有参与过且仍在拍卖的卡。'}</p>}
+      <div className="market-shelf">{active.map(renderTile)}</div>
+    </>}
+  </Panel>
 }

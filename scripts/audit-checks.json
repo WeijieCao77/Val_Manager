@@ -665,5 +665,13 @@
   {
     "runtime": "node",
     "file": "scripts/pg/check_history_maintenance.mjs"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_participating.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_prediction_rewards.ts"
   }
 ]

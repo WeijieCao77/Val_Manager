@@ -43,7 +43,7 @@ import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { markMailSeen } from './inbox'
 import { dismantle } from './dismantle'
-import { setPicks } from './predict'
+import { setPicks, claimPrediction } from './predict'
 import { SEOUL_TEAMS } from './seoul2024'
 import { SEOUL_FIVES, SEOUL_POOL, SEOUL_ROUTES, quitRoute, recordRoute, routeState, startRoute } from './seoulRoute'
 
@@ -66,7 +66,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
-  'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'seoul_start', 'seoul_play', 'seoul_quit',
+  'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -210,6 +210,10 @@ function dispatch(
       const r = dismantle(g, str(a.cardId), Number(a.level))
       if (!r.ok) return r
       return { ok: true, result: { dupes: r.dupes, coins: r.coins } }
+    }
+    case 'predict_claim': {
+      const r = claimPrediction(g, str(a.event), str(a.group, 4), env.now)
+      return r.ok ? { ok: true, result: { reward: r.reward } } : r
     }
     case 'predict': {
       // the server's clock decides whether the group has started, not the client's

@@ -12,7 +12,7 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import { crestUrl } from '../../engine/dossier'
 import {
-  CHAMPIONS_2026, cleanPicks, isLocked, lockAt, picksOf, sides, standing,
+  CHAMPIONS_2026, cleanPicks, isLocked, lockAt, picksOf, sides, standing, confirmedResult, predictionReward,
 } from '../../engine/predict'
 import type { Picks, PredictGroup, SlotKey } from '../../engine/predict'
 import './predict.css'
@@ -29,7 +29,7 @@ export default function Predict() {
   const saved = EV.groups.reduce((n, gr) => n + Object.keys(picksOf(g, EV.id, gr.key)).length, 0)
   return (
     <>
-      <Panel title={`赛事预测 · ${EV.name}`} actions={<span className="tiny muted">奖励未定</span>}>
+      <Panel title={`赛事预测 · ${EV.name}`} actions={<span className="tiny muted">每组最高 2 个十连包</span>}>
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
           16 支队伍分 4 组，组内双败，全部 BO3。胜者组决赛赢的是小组第一，决胜局赢的是小组第二，
           这 8 队进淘汰赛胜者组；小组第三是 9–12 名，第四是 13–16 名。
@@ -37,6 +37,16 @@ export default function Predict() {
         <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>
           点队伍选谁赢，每组保存一次，这组第一场开赛前都能改。已保存 <b>{saved}</b> / 20 场，时间是北京时间。
         </p>
+        <div className="pd-rewards" aria-label="小组预测奖励">
+          <b>每组独立结算，只发最高一档，不叠加</b>
+          <ul>
+            <li>两支晋级队伍和第一、第二名全对：<b>2 个十连包</b></li>
+            <li>其中一支晋级队伍和名次都对：<b>1 个十连包</b></li>
+            <li>两支晋级队伍猜中，但名次颠倒：<b>5 个选拔包</b></li>
+            <li>只猜中一支晋级队伍，名次不对：<b>3 个选拔包</b></li>
+          </ul>
+          <span>按你保存的小组第一、第二名结算，不要求每场胜负都猜对。赛果确认后，在对应小组领取，卡包直接入库。</span>
+        </div>
       </Panel>
       <div className="pd-groups">
         {EV.groups.map((gr) => <Group key={gr.key} group={gr} />)}
@@ -57,6 +67,18 @@ function Group({ group }: { group: PredictGroup }) {
   const s = sides(group, draft)
   const st = standing(group, draft)
   const dirty = JSON.stringify(draft) !== savedKey
+  const result = confirmedResult(EV.id, group, now)
+  const reward = result ? predictionReward(group, saved, result) : null
+  const claimed = !!g.predict?.[EV.id]?.[group.key]?.claimedAt
+  const rewardText = reward?.ten ? `${reward.ten} 个十连包` : reward?.elite ? `${reward.elite} 个选拔包` : '未猜中晋级队伍'
+  const claim = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const r = await act('predict_claim', { event: EV.id, group: group.key })
+      toast(r.ok ? `${group.key} 组预测奖励已入库：${rewardText}` : r.why)
+    } finally { setBusy(false) }
+  }
 
   const pick = (k: SlotKey, tag: string) => {
     if (locked) return
@@ -134,6 +156,18 @@ function Group({ group }: { group: PredictGroup }) {
           </div>
         </div>
       </div>
+      {locked && (
+        <div className="pd-settlement">
+          {result ? <>
+            <span className="small">实际晋级：第一 {result.first} · 第二 {result.second}</span>
+            <span className="small">{claimed ? '已领取：' : '本组奖励：'}{rewardText}</span>
+            {!!(reward?.elite || reward?.ten) && <button className="primary sm" disabled={claimed || busy || !cloud} onClick={() => void claim()}>
+              {claimed ? '奖励已领取' : busy ? '领取中…' : '领取预测奖励'}
+            </button>}
+            {!cloud && !claimed && <span className="tiny faint">联网后领取</span>}
+          </> : <span className="small muted">预测已锁定，赛果确认后可在这里领取奖励。</span>}
+        </div>
+      )}
       {!locked && (
         <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
           <button className="primary sm" disabled={!dirty || busy || !cloud} onClick={() => void save()}>

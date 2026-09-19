@@ -50,7 +50,7 @@ export function OddsTables() {
           <div className="odds-head">
             <b>{r.name}</b>
             <span className="tiny muted">
-              每包 {r.draws} 张 · {r.shop ? `${r.cost.toLocaleString()} 金币` : '非卖品：升段、夺冠或连签七天获得'}
+              每包 {r.draws} 张 · {r.shop ? `${r.cost.toLocaleString()} 金币` : '非卖品：从玩法与活动奖励获得'}
             </span>
           </div>
           <div className="table-wrap">
