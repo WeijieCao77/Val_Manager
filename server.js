@@ -520,8 +520,8 @@ const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk, bg: sqlBg,
 }))
 let _marketApi = null
-// Scripts buying on the shelf (market-guard.js) are looked at after each 一口价 purchase; this is the look at
-// the week before this process started — once, when the boot rush is over, on the background budget.
+// Scripts buying on the shelf (market-guard.js) are looked at after each 一口价 purchase; this is a look at the
+// week before this process started — a log line, it suspends nobody — once the boot rush is over.
 if (sql) {
   setTimeout(() => {
     if (!schemaReady) return

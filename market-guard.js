@@ -7,8 +7,7 @@
  * The difference is on the ledger already, and cannot be hidden without giving
  * the advantage up: HOW SOON after a card was listed it was bought outright.
  * card_offers has when the winning bid was made, card_listings has when the
- * card went up — so this reads history, needs no new bookkeeping, and judged
- * the week before it shipped on the day it shipped.
+ * card went up — so this reads history and needs no new bookkeeping.
  *
  * What counts is a 一口价 purchase (an accepted bid at the listing's buy-now
  * price), by its age: fast (within FAST_SEC of the listing), quick, fresh.
@@ -152,12 +151,12 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
 
   /** Look at one account — called after each 一口价 purchase, off the request's clock. */
-  async function check(me) {
+  async function check(me, { dry = false } = {}) {
     if (off) return null
     const { since, strikes } = await slate(me)
     const buys = await buysOf(me, since)
     const found = judge(buys)
-    if (found.verdict === 'ban' && mode === 'ban' && !(await banOf(me))) {
+    if (found.verdict === 'ban' && mode === 'ban' && !dry && !(await banOf(me))) {
       const days = strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS
       const sample = buys.slice(0, 12).map((b) => ({
         card: b.card_id, price: b.price, made: b.made,
@@ -169,7 +168,11 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
   const checkSoon = (me) => { if (!off) check(me).catch((err) => console.warn('guard: check failed', err.message)) }
 
-  /** Everybody who bought outright this week, judged — the first run after a deploy, and the owner's 「重新扫一遍」. */
+  /**
+   * Everybody who bought outright this week, judged — for the owner's list and the log line after boot.
+   * It suspends nobody: a suspension only ever follows a purchase made while this code was running, so a
+   * threshold that turns out wrong on live data is seen in the report before it has cost anybody anything.
+   */
   async function scan() {
     if (off) return []
     const buyers = await work`
@@ -180,15 +183,15 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       group by o.buyer_h having count(*) >= 2 order by n desc limit 300`
     const out = []
     for (const b of buyers) {
-      const found = await check(b.buyer_h)
+      const found = await check(b.buyer_h, { dry: true })
       if (found?.verdict) out.push({ id_hash: b.buyer_h, ...found })
     }
     return out
   }
 
   /** For the owner: who is suspended, who was, and who is worth a look. */
-  async function report({ rescan = false } = {}) {
-    const flagged = rescan || mode !== 'off' ? await scan() : []
+  async function report() {
+    const flagged = await scan()
     await loadActive(true)
     const bans = await work`select id, id_hash, until, rule, evidence, by, made, lifted from market_bans order by made desc limit 200`
     const names = new Map()
@@ -224,7 +227,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       const until = await ban(me, { days: d, rule: 'manual', evidence: { note: String(note ?? '').slice(0, 200) }, by: 'owner' })
       return { ok: true, until }
     }
-    if (action === 'check') return { ok: true, ...(await check(me)) }
+    if (action === 'check') return { ok: true, ...(await check(me, { dry: true })) }
     return { ok: false, why: 'action' }
   }
 
