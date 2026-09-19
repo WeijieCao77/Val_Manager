@@ -74,6 +74,19 @@
         "server.js"
       ],
       "port": 8097
+    },
+    {
+      "name": "val-server-with-player",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "ANALYTICS_TOKEN=devtoken",
+        "DATABASE_URL=pglite://",
+        "PLAYER_UPSTREAM=http://127.0.0.1:3100",
+        "PORT=8091",
+        "node",
+        "server.js"
+      ],
+      "port": 8091
     }
   ]
 }

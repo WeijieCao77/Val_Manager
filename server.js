@@ -35,6 +35,7 @@ import { validatePhoneSecrets } from './phone-config.js'
 import { releaseFingerprint } from './release-fingerprint.js'
 import { releaseFeatures } from './release-readiness.js'
 import { createMatchComputer } from './match-worker.js'
+import { makePlayerProxy } from './player-proxy.js'
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { safeTransactions } from './db-transactions.js'
 import { createHistoryMaintenance } from './history-maintenance.js'
@@ -42,7 +43,7 @@ import { overview, prune, storage } from './stats.js'
 import { history, pruneFolded, rollup } from './rollup.js'
 import { SCHEMAS, applySchema } from './db-schema.js'
 import { dashboardHtml } from './dashboard.js'
-import { bucketOf } from './client-ip.js'
+import { bucketOf, clientIp } from './client-ip.js'
 
 // A rejected promise is logged and life goes on: the analytics side-car and
 // the odd lost client are where those come from, and none of it is worth
@@ -474,6 +475,8 @@ async function stats(req, res, url) {
  * seconds however often it asks.
  */
 const loopDelay = monitorEventLoopDelay({ resolution: 20 })
+const playerProxy = makePlayerProxy({ clientIp })
+if (playerProxy.enabled) console.log('player: /player is passed through to PLAYER_UPSTREAM')
 loopDelay.enable()
 let featureCache = null
 let pingCache = { at: 0, ok: false, ms: null }
@@ -682,6 +685,10 @@ function handle(req, res) {
     })
     return
   }
+
+  // vctgames.com/player is the studio's other game, passed through to its own service (player-proxy.js).
+  // Before the schema gate below: it needs nothing of this database and should not wait for it.
+  if (playerProxy.handles(path)) { playerProxy.handle(req, res, url); return }
 
   // 「慢在哪里」, for the owner: where actions spend their time by stage, how
   // long transactions wait for each pool, and how late the event loop runs.

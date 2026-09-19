@@ -552,6 +552,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_player_proxy.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_open_cup.ts"
   },
   {
