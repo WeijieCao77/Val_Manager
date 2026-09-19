@@ -121,8 +121,13 @@ async function fromNetwork(i: number): Promise<string> {
       const c = await caches.open(SONGS)
       await c.put(keyOf(i), new Response(blob, { headers: { 'Content-Type': blob.type || 'audio/mp4' } }))
       // a recording whose ?v= has moved on will never be asked for again
+      // ONLY an older ?v= of a song on this list. 选手生涯 at /player/ shares this origin and this cache on purpose
+      // (same songs, same keys: a song either game fetched is there for the other); sweeping whatever is not on
+      // THIS list would throw the other game's songs out the day the two lists differ, and every trip between
+      // the games would download them again — 2026-09-10's 80 GB a day, by another road.
+      const paths = new Set(TRACKS.map((t) => `${location.origin}/${t.file.split('?')[0]}`))
       for (const old of await c.keys()) {
-        if (!TRACKS.some((t) => old.url === `${location.origin}/${t.file}`)) void c.delete(old)
+        if (paths.has(old.url.split('?')[0]) && !TRACKS.some((t) => old.url === `${location.origin}/${t.file}`)) void c.delete(old)
       }
     } catch { /* full, or refused: it still plays this visit */ }
     return URL.createObjectURL(blob)
