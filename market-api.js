@@ -2055,7 +2055,7 @@ export function makeMarketApi(sql, {
         if (!token || !tokenOk || !tokenOk(given, token)) { json(res, 404, { ok: false }); return true }
         let b = null
         try { b = JSON.parse(await readBody(req, 2048)) } catch { /* no body: the report */ }
-        json(res, 200, b?.action ? await guard2.manual(b) : { ok: true, ...(await guard2.report()) })
+        json(res, 200, b?.action === 'weekly' ? await guard2.weekly() : b?.action ? await guard2.manual(b) : { ok: true, ...(await guard2.report()) })
         return true
       }
       return false

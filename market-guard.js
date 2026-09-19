@@ -283,6 +283,30 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     }
   }
 
+  /**
+   * How many cards each buyer bought in the last seven days — counts only, no names and no hashes — so a
+   * threshold can be read against everybody and not only against the accounts it already flagged.
+   * `all` is every purchase (an auction won or a buy-now), `buyouts` the buy-now ones the rules look at,
+   * `trading` the buy-nows of a card bought before in the week or listed again afterwards (what B, C, E count).
+   */
+  async function weekly() {
+    const rows = await work`
+      with b as (
+        select o.buyer_h, l.card_id, o.made,
+               (l.buyout is not null and o.price >= l.buyout) as buyout,
+               exists (select 1 from card_listings r where r.seller_h = o.buyer_h and r.card_id = l.card_id and r.created > o.made) as flipped,
+               row_number() over (partition by o.buyer_h, l.card_id order by o.made) as nth
+        from card_offers o join card_listings l on l.id = o.listing
+        where o.status = 'accepted' and o.made > now() - interval '7 days'
+      )
+      select count(*)::int as n, (count(*) filter (where buyout))::int as buyouts,
+             (count(*) filter (where buyout and (flipped or nth > 1)))::int as trading
+      from b group by buyer_h`
+    const active = await work`select count(*)::int as n from card_accounts where seen > now() - interval '7 days'`
+    const sorted = (k) => rows.map((r) => r[k]).sort((a, b) => a - b)
+    return { ok: true, buyers: rows.length, activeAccounts: active[0]?.n ?? null, all: sorted('n'), buyouts: sorted('buyouts'), trading: sorted('trading') }
+  }
+
   async function byCode(code) {
     const c = String(code ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(c)) return null
@@ -307,5 +331,5 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return { ok: false, why: 'action' }
   }
 
-  return { mode, banOf, check, checkSoon, scan, report, manual, invalidate() { active = new Map(); activeAt = 0 } }
+  return { mode, banOf, check, checkSoon, scan, report, manual, weekly, invalidate() { active = new Map(); activeAt = 0 } }
 }
