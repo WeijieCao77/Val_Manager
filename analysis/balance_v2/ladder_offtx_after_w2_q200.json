@@ -1,0 +1,532 @@
+{
+  "environment": {
+    "postgres": 18,
+    "interactivePool": 4,
+    "backgroundPool": 1,
+    "statsPool": 2,
+    "rateLimits": false,
+    "network": "localhost HTTP",
+    "sourceEngine": true,
+    "reservedBegin": true,
+    "maxPipeline": "default",
+    "action": "real BO5 ladder (max 15/account)"
+  },
+  "waves": [
+    {
+      "concurrency": 50,
+      "stages": {
+        "actions": {
+          "ladder": {
+            "n": 400,
+            "retried": 0,
+            "read": {
+              "p50": 4.6,
+              "p95": 10.5,
+              "max": 14
+            },
+            "rival": {
+              "p50": 0,
+              "p95": 0.1,
+              "max": 0.3
+            },
+            "queue": {
+              "p50": 186.2,
+              "p95": 271.2,
+              "max": 309.5
+            },
+            "compute": {
+              "p50": 10.6,
+              "p95": 15,
+              "max": 30.4
+            },
+            "write": {
+              "p50": 6,
+              "p95": 23.2,
+              "max": 41.9
+            },
+            "total": {
+              "p50": 208,
+              "p95": 299.8,
+              "max": 339.5
+            }
+          }
+        },
+        "matches": {
+          "done": 750,
+          "failed": 0,
+          "refused": 0,
+          "maxWaiting": 48,
+          "workers": 2,
+          "busy": 0,
+          "waiting": 0,
+          "limit": {
+            "workers": 2,
+            "queue": 200
+          }
+        },
+        "rivals": {
+          "at": 1789788155796,
+          "rows": 80,
+          "ms": 192
+        }
+      },
+      "ladder": {
+        "attempted": 750,
+        "completed": 750,
+        "human": 661,
+        "club": 89,
+        "bo": {
+          "5": 750
+        },
+        "maps": {
+          "3": 214,
+          "4": 269,
+          "5": 267
+        },
+        "persisted": {
+          "max_matches": 15,
+          "min_stamina": 0,
+          "total_matches": 750
+        }
+      },
+      "durationSeconds": 90.48,
+      "metrics": {
+        "health": {
+          "n": 3309,
+          "p50": 1.4,
+          "p95": 5.8,
+          "p99": 34.7,
+          "max": 69.2
+        },
+        "load": {
+          "n": 12426,
+          "p50": 11.1,
+          "p95": 22.9,
+          "p99": 28.9,
+          "max": 69.1
+        },
+        "browse": {
+          "n": 13157,
+          "p50": 28.8,
+          "p95": 44.7,
+          "p99": 54.2,
+          "max": 77.2
+        },
+        "peek": {
+          "n": 3266,
+          "p50": 11.5,
+          "p95": 23.6,
+          "p99": 29.1,
+          "max": 42.3
+        },
+        "browse_during_ladder": {
+          "n": 3072,
+          "p50": 15.2,
+          "p95": 31.3,
+          "p99": 41,
+          "max": 61.6
+        },
+        "peek_during_ladder": {
+          "n": 781,
+          "p50": 6.2,
+          "p95": 15.1,
+          "p99": 19.8,
+          "max": 42.3
+        },
+        "ladder": {
+          "n": 750,
+          "p50": 218,
+          "p95": 420.8,
+          "p99": 611.5,
+          "max": 649.9
+        },
+        "ladder_during_ladder": {
+          "n": 750,
+          "p50": 218,
+          "p95": 420.8,
+          "p99": 611.5,
+          "max": 649.9
+        },
+        "health_during_ladder": {
+          "n": 775,
+          "p50": 0.7,
+          "p95": 3.4,
+          "p99": 6.3,
+          "max": 15.3
+        },
+        "load_during_ladder": {
+          "n": 2338,
+          "p50": 5.7,
+          "p95": 14.2,
+          "p99": 22.1,
+          "max": 38.3
+        },
+        "transaction_wait": {
+          "n": 750,
+          "p50": 0.9,
+          "p95": 8.1,
+          "p99": 18.3,
+          "max": 26
+        },
+        "transaction_held": {
+          "n": 750,
+          "p50": 4.2,
+          "p95": 12.9,
+          "p99": 19,
+          "max": 35.3
+        }
+      },
+      "statuses": {
+        "200": 32908
+      },
+      "rejections": {},
+      "cupMatches": 7167,
+      "eventLoopP99Ms": 12.3
+    },
+    {
+      "concurrency": 100,
+      "stages": {
+        "actions": {
+          "ladder": {
+            "n": 400,
+            "retried": 0,
+            "read": {
+              "p50": 4,
+              "p95": 10.2,
+              "max": 15.8
+            },
+            "rival": {
+              "p50": 0,
+              "p95": 0.1,
+              "max": 0.3
+            },
+            "queue": {
+              "p50": 482.6,
+              "p95": 505,
+              "max": 518.1
+            },
+            "compute": {
+              "p50": 10.3,
+              "p95": 14.1,
+              "max": 23.2
+            },
+            "write": {
+              "p50": 5.5,
+              "p95": 33.6,
+              "max": 77.9
+            },
+            "total": {
+              "p50": 506.5,
+              "p95": 535.6,
+              "max": 594.3
+            }
+          }
+        },
+        "matches": {
+          "done": 2250,
+          "failed": 0,
+          "refused": 0,
+          "maxWaiting": 89,
+          "workers": 2,
+          "busy": 0,
+          "waiting": 0,
+          "limit": {
+            "workers": 2,
+            "queue": 200
+          }
+        },
+        "rivals": {
+          "at": 1789788246367,
+          "rows": 95,
+          "ms": 237
+        }
+      },
+      "ladder": {
+        "attempted": 1500,
+        "completed": 1500,
+        "human": 1226,
+        "club": 274,
+        "bo": {
+          "5": 1500
+        },
+        "maps": {
+          "3": 445,
+          "4": 543,
+          "5": 512
+        },
+        "persisted": {
+          "max_matches": 15,
+          "min_stamina": 0,
+          "total_matches": 1500
+        }
+      },
+      "durationSeconds": 84.54,
+      "metrics": {
+        "health": {
+          "n": 3167,
+          "p50": 1.2,
+          "p95": 12.8,
+          "p99": 51.6,
+          "max": 90.5
+        },
+        "load": {
+          "n": 11036,
+          "p50": 15.8,
+          "p95": 43.6,
+          "p99": 54.8,
+          "max": 115.8
+        },
+        "browse": {
+          "n": 12448,
+          "p50": 39,
+          "p95": 84,
+          "p99": 98.1,
+          "max": 139.6
+        },
+        "peek": {
+          "n": 3078,
+          "p50": 14.6,
+          "p95": 47.2,
+          "p99": 58.2,
+          "max": 73.3
+        },
+        "peek_during_ladder": {
+          "n": 1586,
+          "p50": 6.6,
+          "p95": 26.4,
+          "p99": 56.6,
+          "max": 73.3
+        },
+        "browse_during_ladder": {
+          "n": 6360,
+          "p50": 15.8,
+          "p95": 63.8,
+          "p99": 87.9,
+          "max": 112.2
+        },
+        "ladder": {
+          "n": 1500,
+          "p50": 497.1,
+          "p95": 564.1,
+          "p99": 588.5,
+          "max": 599.2
+        },
+        "ladder_during_ladder": {
+          "n": 1500,
+          "p50": 497.1,
+          "p95": 564.1,
+          "p99": 588.5,
+          "max": 599.2
+        },
+        "health_during_ladder": {
+          "n": 1570,
+          "p50": 0.6,
+          "p95": 2.8,
+          "p99": 7.4,
+          "max": 14.4
+        },
+        "load_during_ladder": {
+          "n": 4755,
+          "p50": 6.1,
+          "p95": 22.2,
+          "p99": 34.8,
+          "max": 61
+        },
+        "transaction_wait": {
+          "n": 1500,
+          "p50": 1,
+          "p95": 19.5,
+          "p99": 96.3,
+          "max": 144.3
+        },
+        "transaction_held": {
+          "n": 1500,
+          "p50": 3.7,
+          "p95": 9.5,
+          "p99": 19.4,
+          "max": 42.2
+        }
+      },
+      "statuses": {
+        "200": 31229
+      },
+      "rejections": {},
+      "cupMatches": 7167,
+      "eventLoopP99Ms": 12.5
+    },
+    {
+      "concurrency": 300,
+      "stages": {
+        "actions": {
+          "ladder": {
+            "n": 400,
+            "retried": 0,
+            "read": {
+              "p50": 20,
+              "p95": 49.9,
+              "max": 75.9
+            },
+            "rival": {
+              "p50": 0.1,
+              "p95": 0.3,
+              "max": 0.9
+            },
+            "queue": {
+              "p50": 1200.7,
+              "p95": 1372.8,
+              "max": 1384.3
+            },
+            "compute": {
+              "p50": 8.9,
+              "p95": 15.1,
+              "max": 25.3
+            },
+            "write": {
+              "p50": 1.7,
+              "p95": 272.9,
+              "max": 348.8
+            },
+            "total": {
+              "p50": 1233.9,
+              "p95": 1607.1,
+              "max": 1640.3
+            }
+          }
+        },
+        "matches": {
+          "done": 4510,
+          "failed": 0,
+          "refused": 841,
+          "maxWaiting": 200,
+          "workers": 2,
+          "busy": 0,
+          "waiting": 0,
+          "limit": {
+            "workers": 2,
+            "queue": 200
+          }
+        },
+        "rivals": {
+          "at": 1789788331160,
+          "rows": 141,
+          "ms": 268
+        }
+      },
+      "ladder": {
+        "attempted": 3101,
+        "completed": 2260,
+        "human": 1979,
+        "club": 281,
+        "bo": {
+          "5": 2260
+        },
+        "maps": {
+          "3": 644,
+          "4": 828,
+          "5": 788
+        },
+        "persisted": {
+          "max_matches": 9,
+          "min_stamina": 12,
+          "total_matches": 2260
+        }
+      },
+      "durationSeconds": 80.68,
+      "metrics": {
+        "health": {
+          "n": 3166,
+          "p50": 1.7,
+          "p95": 104,
+          "p99": 209,
+          "max": 226.5
+        },
+        "load": {
+          "n": 9462,
+          "p50": 30.1,
+          "p95": 72.8,
+          "p99": 141.9,
+          "max": 296.1
+        },
+        "browse": {
+          "n": 12540,
+          "p50": 76.9,
+          "p95": 259.6,
+          "p99": 354.2,
+          "max": 582.5
+        },
+        "peek": {
+          "n": 3107,
+          "p50": 31,
+          "p95": 88.2,
+          "p99": 216.7,
+          "max": 289.5
+        },
+        "browse_during_ladder": {
+          "n": 12231,
+          "p50": 76.6,
+          "p95": 261.6,
+          "p99": 355.1,
+          "max": 582.5
+        },
+        "load_during_ladder": {
+          "n": 8625,
+          "p50": 29.9,
+          "p95": 67.3,
+          "p99": 143.2,
+          "max": 296.1
+        },
+        "peek_during_ladder": {
+          "n": 3106,
+          "p50": 31,
+          "p95": 88.2,
+          "p99": 216.7,
+          "max": 289.5
+        },
+        "ladder": {
+          "n": 3101,
+          "p50": 1289.9,
+          "p95": 1610.5,
+          "p99": 1690.8,
+          "max": 1752.9
+        },
+        "ladder_during_ladder": {
+          "n": 3101,
+          "p50": 1289.9,
+          "p95": 1610.5,
+          "p99": 1690.8,
+          "max": 1752.9
+        },
+        "health_during_ladder": {
+          "n": 2866,
+          "p50": 1.3,
+          "p95": 8.4,
+          "p99": 12.3,
+          "max": 16.1
+        },
+        "transaction_wait": {
+          "n": 2260,
+          "p50": 47.4,
+          "p95": 225.5,
+          "p99": 290.1,
+          "max": 338.3
+        },
+        "transaction_held": {
+          "n": 2260,
+          "p50": 4.6,
+          "p95": 21.1,
+          "p99": 37.3,
+          "max": 191.5
+        }
+      },
+      "statuses": {
+        "200": 31376
+      },
+      "rejections": {
+        "ladder:200:比赛排队的人太多，稍后再试。": 841
+      },
+      "cupMatches": 7167,
+      "eventLoopP99Ms": 13.3
+    }
+  ],
+  "errors": []
+}

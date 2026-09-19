@@ -37,6 +37,7 @@
 import { createHash } from 'node:crypto'
 import { isVerified } from './phone-api.js'
 import { requestAction } from './cards-api.js'
+import { makeMarketGuard } from './market-guard.js'
 
 /** How long a listing takes bids before the top one wins — the seller's choice, within these. */
 export const AUCTION_HOURS = 24
@@ -199,6 +200,8 @@ export function makeMarketApi(sql, {
    */
   const tx = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
   const work = bg ?? sql
+  /** scripts on the shelf: who is suspended from trading, and who is about to be (market-guard.js) */
+  const guard2 = makeMarketGuard(sql, { bg, displayName: (name, h) => displayName(name, h) })
   const bgTx = (fn) => (work.begin ? work.begin(fn) : fn(work))
 
   /**
@@ -1076,6 +1079,7 @@ export function makeMarketApi(sql, {
       now: Date.now(),
       sort,
       gate: mine ? await tooNew(mine) : { need: TRADE_PULLS, have: 0, days: TRADE_DAYS, wait: TRADE_DAYS * 86_400 },
+      ban: mine ? await guard2.banOf(mine) ?? undefined : undefined,
       // a short page is the end of the shelf; a full one may or may not be, and
       // the cursor costs nothing to hand out and try
       next: rows.length === limit ? cursorOf(sort, rows[rows.length - 1], fast ? 2 : 1) : null,
@@ -1181,6 +1185,8 @@ export function makeMarketApi(sql, {
       json(res, 200, { ok: false, badHours: true, min: AUCTION_MIN_HOURS, max: AUCTION_MAX_HOURS })
       return
     }
+    const barred = await guard2.banOf(me)
+    if (barred) { json(res, 200, { ok: false, banned: true, ...barred }); return }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const openN = async () => (await sql`
@@ -1337,6 +1343,8 @@ export function makeMarketApi(sql, {
         where listing = ${l.id} and buyer_h = ${me} and status = 'open'`
       if ((dup[0]?.n ?? 0) > 0) { json(res, 200, { ok: false, already: true }); return }
     }
+    const barred = await guard2.banOf(me)
+    if (barred) { json(res, 200, { ok: false, banned: true, ...barred }); return }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     // the coins leave the server's copy of the account, here, before the
@@ -1426,6 +1434,8 @@ export function makeMarketApi(sql, {
     if (out.low) { json(res, 200, { ok: false, low: true, min: out.min }); return }
     if (out.leading) { json(res, 200, { ok: false, leading: true, price: out.price }); return }
     if (out.ok) menuCache.clear()
+    // a card bought outright is the one thing a script does differently from a person: look, after replying
+    if (out.ok && out.bought) guard2.checkSoon(me)
     json(res, 200, out)
   }
 
@@ -1698,6 +1708,8 @@ export function makeMarketApi(sql, {
     const them = await byCode(b?.code)
     if (!them.row) { json(res, 200, { ok: false, [them.why]: true }); return }
     if (them.row.id_hash === me) { json(res, 200, { ok: false, self: true }); return }
+    const barred = await guard2.banOf(me)
+    if (barred) { json(res, 200, { ok: false, banned: true, ...barred }); return }
     const young = await tooNew(me)
     if (young) { json(res, 200, { ok: false, newbie: true, ...young }); return }
     const theirYoung = await tooNew(them.row.id_hash)
@@ -1883,6 +1895,8 @@ export function makeMarketApi(sql, {
     /** which shelf query is live, and a way for the checks to look at both */
     summaryLive: () => summaryLive,
     forgetMenus: () => menuCache.clear(),
+    /** the script guard, for the checks and the boot scan */
+    guard: guard2,
     /** how the settler has been doing, for /api/ready and the logs */
     // No backlog count is queried here: unknown must not look like zero.
     settleStats: () => ({ ...settleStats, summaryLive: summaryLive && useSummary }),
@@ -1910,6 +1924,17 @@ export function makeMarketApi(sql, {
         return true
       }
       if (path === '/api/market/mail') { await mail(req, res, bucket); return true }
+      if (path === '/api/market/guard') {
+        // the owner's: an empty POST is the report (who is suspended, who is worth a look); { code, action: ban|lift|check, days?, note? } acts
+        let url
+        try { url = new URL(req.url || '/', 'http://x') } catch { url = new URL('http://x/') }
+        const given = tokenFrom ? tokenFrom(req, url) : null
+        if (!token || !tokenOk || !tokenOk(given, token)) { json(res, 404, { ok: false }); return true }
+        let b = null
+        try { b = JSON.parse(await readBody(req, 2048)) } catch { /* no body: the report */ }
+        json(res, 200, b?.action ? await guard2.manual(b) : { ok: true, ...(await guard2.report()) })
+        return true
+      }
       return false
     },
   }

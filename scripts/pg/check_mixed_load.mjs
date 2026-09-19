@@ -44,11 +44,21 @@ try {
   for(const c of [...g.squad.slots,g.squad.coach].filter(Boolean))g.cards[c]={id:c,level:i%4,dupes:1,seen:2}
   await sql`insert into card_accounts(id_hash,name,state,created,verified) values(${hash(ids[i])},${`测试${i}`},${sql.json(g)},now()-interval '9 days',now())`
  }
+ // PG_LOAD_PAD=n: n more accounts the size of a real one (~50 KB, a full five at 钻石), never logged into —
+ // they are there so the scans that read every account cost what they cost in production.
+ const pad=Number(process.env.PG_LOAD_PAD??0)
+ if(pad){const g=engine.newGacha(ids[0],'pad',today),team=CUP_TEAMS[7];g.squad=structuredClone(team.squad);g.ladder={...g.ladder,div:4,stars:1,best:4}
+  for(const c of [...g.squad.slots,g.squad.coach].filter(Boolean))g.cards[c]={id:c,level:2,dupes:1,seen:2}
+  for(let k=0;k<700;k++)g.cards[`p:PAD${k}`]={id:`p:PAD${k}`,level:k%5,dupes:k%3,seen:1+k%4,got:today}
+  await sql`insert into card_accounts(id_hash,name,state,created,verified) select md5('pad'||n)||md5('dap'||n),'pad'||n,jsonb_set(${sql.json(g)}::jsonb,'{seed}',to_jsonb(n)),now()-interval '9 days',now() from generate_series(1,${pad}) n`
+  await sql`analyze card_accounts`}
  await sql`insert into card_listings(seller_h,card_id,level,ask,ends,hours) select ${hash(ids[511])},'p:P1',0,100,now()+interval '1 day',24 from generate_series(1,1500)`
  await stats`insert into events(ts,n,visitor_id,session_id,seq,device,name,props) select now()-interval '1 hour',n,'visitor'||n,'session'||n,1,'phone','session_start','{}'::jsonb from generate_series(1,5000) n`
  const engineBundle=await readFile(new URL('../../dist-server/engine.mjs',import.meta.url)),cardPoolVersion=createHash('sha256').update(engineBundle).digest('hex')
  const deps={engineBundle,cardPoolVersion,readBody:async req=>{let body='';for await(const c of req)body+=c;return body},json:(res,code,data)=>{res.writeHead(code,{'content-type':'application/json'});res.end(JSON.stringify(data))},normalizeId,displayName,rateLimited:()=>false,engine,timer:false}
- const cards=makeCardApi(sql,deps);market=makeMarketApi(sql,{...deps,bg})
+ let matches=null
+ if(process.env.PG_LOAD_INLINE!=='1'){try{matches=(await import('../../match-worker.js')).createMatchComputer()}catch{/* a checkout from before the worker existed */}}
+ const cards=makeCardApi(sql,{...deps,matches,slow:stats});market=makeMarketApi(sql,{...deps,bg})
  let now=Date.now()
  cup=makeOpenCupApi(sql,{...deps,bg,format:2,clock:()=>now})
  server=createServer(async(req,res)=>{
@@ -97,7 +107,7 @@ try {
   for(const[name,values]of Object.entries(durations)){values.sort((a,b)=>a-b);const pct=p=>Number(values[Math.min(values.length-1,Math.floor(values.length*p))].toFixed(1));metrics[name]={n:values.length,p50:pct(.5),p95:pct(.95),p99:pct(.99),max:pct(1)}}
   const [matches]=await bg`select count(*)::int as n from open_cup_matches where cup_id=${c.id} and b is not null and winner is not null`
   if(ladderMode){const [limits]=await sql`select max((state->'ladder'->>'wins')::int+(state->'ladder'->>'losses')::int)::int as max_matches, min((state->'daily'->>'stamina')::int)::int as min_stamina, sum((state->'ladder'->>'wins')::int+(state->'ladder'->>'losses')::int)::int as total_matches from card_accounts where id_hash=any(${waveIds.map(hash)})`;ladder.persisted=limits;if(limits.max_matches>15||limits.min_stamina<0||limits.total_matches!==ladder.completed)errors.push({code:'ladder_invariant',message:JSON.stringify(limits)});accountOffset+=concurrency}
-  const wave={concurrency,ladder:ladderMode?ladder:undefined,durationSeconds:Number(((performance.now()-start)/1000).toFixed(2)),metrics,statuses,rejections,cupMatches:matches.n,eventLoopP99Ms:Number((delay.percentile(99)/1e6).toFixed(1))}
+  const wave={concurrency,stages:cards.timings?.()??undefined,ladder:ladderMode?ladder:undefined,durationSeconds:Number(((performance.now()-start)/1000).toFixed(2)),metrics,statuses,rejections,cupMatches:matches.n,eventLoopP99Ms:Number((delay.percentile(99)/1e6).toFixed(1))}
   output.waves.push(wave);console.log(JSON.stringify(wave))
  }
  output.errors=errors

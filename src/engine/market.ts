@@ -210,6 +210,8 @@ export interface ShelfPage {
   next: string | null
   sort: ShelfSort
   gate: Gate | null
+  /** trading suspended (a script was caught buying): until when, and the line to show */
+  ban?: { until: number; why: string }
   haggle: number
   /** first page only: how many listings are open in all */
   total?: number

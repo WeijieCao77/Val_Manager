@@ -220,6 +220,22 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
+<div class="panel" id="guard" style="margin-bottom:14px">
+  <h2>交易市场 · 脚本抢拍</h2>
+  <div class="row" style="gap:8px">
+    <button id="mgLoad" type="button">刷新名单</button>
+    <input type="text" id="mgWho" placeholder="对战码" maxlength="8" style="width:110px">
+    <input type="text" id="mgDays" placeholder="天数" maxlength="2" style="width:60px" value="3">
+    <button id="mgBan" type="button">手动暂停交易</button>
+    <button id="mgLift" type="button">解除暂停</button>
+    <span id="mgMsg" class="muted" style="font-size:12px"></span>
+  </div>
+  <p class="why" style="margin:6px 0 10px">
+    只看「一口价买下」离「挂出来」隔了多久。8 秒内买下 3 张（来自 3 个不同卖家）或 45 秒内 8 张（5 个卖家），一天之内，自动暂停交易 3 天，再犯 5 天。
+    朋友之间约好的秒拍是同一个卖家，不算。「值得看一眼」的不会自动处理，你来定。解除暂停后，之前的记录不再重算。
+  </p>
+  <div id="mgOut" class="acct"></div>
+</div>
 <div id="app"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
                color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
@@ -975,6 +991,46 @@ $('#rWho').onkeydown = (e) => { if (e.key === 'Enter') rvOpen($('#rWho').value.t
 $('#rPass').onclick = () => rvAct(false, rv.code, $('#rPass'))
 $('#rUndo').onclick = () => rvAct(true, rv.code, $('#rUndo'))
 rvList()
+
+// ---- 交易市场 · 脚本抢拍 ------------------------------------------------
+//
+// One route, POST only: an empty body is the report, { code, action } acts.
+const mgCall = async (body) => {
+  const r = await fetch('/api/market/guard', { method: 'POST', headers: { ...auth(), 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+  if (!r.ok) throw new Error('HTTP ' + r.status)
+  return r.json()
+}
+const mgCounts = (c) => c ? ('8秒内 ' + c.fast + ' 张/' + c.fastSellers + ' 家 · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家 · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒') : ''
+async function mgLoad() {
+  const box = $('#mgOut')
+  box.textContent = '读取中…'
+  try {
+    const r = await mgCall({})
+    const who = (x) => '<b>' + esc(x.name || '无名') + '</b> <a href="#" data-mg="' + esc(x.code) + '">' + esc(x.code) + '</a>'
+    const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
+      + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
+      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
+    const flagged = (r.flagged || []).filter((f) => f.verdict === 'watch').map((f) => '<div>' + who(f) + ' · ' + (f.rule === 'C' ? '全天候买入' : '接近阈值')
+      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
+    box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
+      + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')
+      + '<h3 style="margin:10px 0 4px;font-size:13px">值得看一眼（近 7 天）</h3>' + (flagged || '<div class="muted">没有</div>')
+    box.querySelectorAll('a[data-mg]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); $('#mgWho').value = a.dataset.mg; $('#gWho') && ($('#gWho').value = a.dataset.mg) } })
+  } catch (e) { box.textContent = '没拿到：' + e.message }
+}
+async function mgAct(action, btn) {
+  const code = $('#mgWho').value.trim()
+  if (!/^[0-9a-fA-F]{8}$/.test(code)) { $('#mgMsg').textContent = '要 8 位对战码'; return }
+  if (!rvSure(btn, action === 'ban' ? '再点一次确认暂停' : '再点一次确认解除')) return
+  try {
+    const r = await mgCall({ code, action, days: Number($('#mgDays').value) || 3, note: '站长手动' })
+    $('#mgMsg').textContent = r.ok ? (action === 'ban' ? '已暂停' : '已解除 ' + r.lifted + ' 条') : (r.why || '没成功')
+    mgLoad()
+  } catch (e) { $('#mgMsg').textContent = '没成功：' + e.message }
+}
+$('#mgLoad').onclick = mgLoad
+$('#mgBan').onclick = () => mgAct('ban', $('#mgBan'))
+$('#mgLift').onclick = () => mgAct('lift', $('#mgLift'))
 
 // ---- 微信群二维码 -------------------------------------------------------
 //

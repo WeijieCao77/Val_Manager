@@ -19,6 +19,7 @@ import { join } from 'node:path'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
 import { progressOf } from './progress.js'
+import { GUARD_SCHEMA } from './market-guard.js'
 
 /**
  * The rules, running here.
@@ -256,7 +257,7 @@ create index if not exists listing_shelf_ends_idx on card_listings (ends, id) wh
 create index if not exists listing_shelf_new_idx on card_listings (created desc, id) where status = 'open';
 create index if not exists listing_shelf_price_idx on card_listings (cur_price, id) where status = 'open';
 create index if not exists listing_shelf_card_idx on card_listings (card_id) where status = 'open';
-`
+${GUARD_SCHEMA}`
 
 /** What a client may name a request: long enough not to collide, short enough to index. */
 export const requestIdOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(v) ? v : null)
@@ -387,7 +388,16 @@ const stored = (state) => {
 /** A seed the client never held. */
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
-export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
+/** The actions that simulate a match: the ones worth a worker thread. */
+const HEAVY = new Set(['ladder', 'cup_play', 'seoul_play'])
+
+export function makeCardApi(sql, {
+  rateLimited, readBody, json, staticRoot,
+  /** match-worker.js, when the process has one: matches are played there and not on the event loop */
+  matches = null,
+  /** where the rival scan runs — a pool nobody is waiting on (server.js passes the stats budget) */
+  slow = null,
+}) {
   const guard = (req, res, bucket, max) => {
     if (rateLimited(bucket, max)) {
       json(res, 429, { ok: false, why: 'rate' })
@@ -642,6 +652,46 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
       .catch((err) => console.warn('cards: request sweep failed', err.message))
   }
 
+  /** One account's actions, one after another (in this process; across processes the revision decides). */
+  const lanes = new Map()
+  function inLane(key, fn) {
+    const prev = lanes.get(key) ?? Promise.resolve()
+    const next = prev.then(fn, fn)
+    const tail = next.catch(() => {})
+    lanes.set(key, tail)
+    tail.then(() => { if (lanes.get(key) === tail) lanes.delete(key) })
+    return next
+  }
+
+  /**
+   * Where an action's time went, by stage — the last few hundred of each kind.
+   * read: the account off the pool; rival: the opponent pool; queue: waiting
+   * for a worker; compute: the rules; write: the closing transaction. Read by
+   * /readyz's owner view, so 「慢在哪里」 is a number and not a guess.
+   */
+  const TIMING_KEEP = 400
+  const timingLog = new Map()
+  function noteTiming(action, mark, total) {
+    const kind = HEAVY.has(action) ? action : 'other'
+    let log = timingLog.get(kind)
+    if (!log) timingLog.set(kind, log = [])
+    log.push({ ...mark, total })
+    if (log.length > TIMING_KEEP) log.shift()
+  }
+  function timings() {
+    const out = {}
+    for (const [kind, log] of timingLog) {
+      const row = { n: log.length, retried: log.filter((m) => m.attempts > 1).length }
+      for (const stage of ['read', 'rival', 'queue', 'compute', 'write', 'total']) {
+        const v = log.map((m) => m[stage]).sort((a, b) => a - b)
+        const at = (p) => Math.round(v[Math.min(v.length - 1, Math.floor(v.length * p))] * 10) / 10
+        row[stage] = { p50: at(0.5), p95: at(0.95), max: at(1) }
+      }
+      out[kind] = row
+    }
+    return { actions: out, matches: matches?.stats() ?? null, rivals: { at: rivalAll?.at ?? null, rows: rivalAll?.rows.length ?? 0, ms: rivalMs } }
+  }
+
   async function act(req, res, bucket) {
     if (guard(req, res, `ca:${bucket}`, 240)) return
     const today = serverDay()
@@ -666,110 +716,181 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     const requestKey = requestAction(action, { args, client })
     const me = hash(id)
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true, today }); return }
+    const started = performance.now()
+    const mark = { read: 0, rival: 0, queue: 0, compute: 0, write: 0, attempts: 0 }
     try {
-      // One attempt is one transaction. That matters for mail_take: the rows
-      // are marked taken and the account that received them is written in
-      // the same transaction, so a write that loses the revision race (or a
-      // process that dies between the two) leaves the mail untaken rather
-      // than gone. A lost race throws to roll back and the loop tries again.
       const run = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
       const STALE = Symbol('stale')
-      for (let attempt = 0; attempt < 3; attempt++) {
-        let reply
+      // One seed for the request, not one per attempt: a retry after a lost
+      // revision race plays the same match, it does not roll a new one.
+      const seed = freshSeed()
+      /** What a second copy of a request already answered is told: the first answer, the account as it stands. */
+      const replayOf = async (db) => {
+        const prior = await db`select action, reply from card_requests where id_hash = ${me} and request_id = ${requestId}`
+        if (!prior.length) return null
+        const cur = await db`select state, rev from card_accounts where id_hash = ${me}`
+        if (!cur.length) return { missing: true }
+        // the same id on a different action is a client bug, not a retry: refuse, change nothing
+        if (prior[0].action !== requestKey) return { clash: true, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
+        return { replay: prior[0].reply ?? null, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
+      }
+      /**
+       * mail_take, the one action whose reads are writes: the rows are marked
+       * taken and the account that received them is written in the same
+       * transaction, so a write that loses the revision race (or a process that
+       * dies between the two) leaves the mail untaken rather than gone.
+       */
+      const mailAttempt = () => run(async (db) => {
+        if (requestId) {
+          const claimed = await db`
+            insert into card_requests (id_hash, request_id, action) values (${me}, ${requestId}, ${requestKey})
+            on conflict (id_hash, request_id) do nothing returning 1 as ok`
+          if (!claimed.length) return (await replayOf(db)) ?? { missing: true }
+        }
+        const held = await db`select state, rev from card_accounts where id_hash = ${me}`
+        if (!held.length) {
+          if (requestId) await db`delete from card_requests where id_hash = ${me} and request_id = ${requestId}`
+          return { missing: true }
+        }
+        const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
+        const taken = await takeMail(me, db)
+        engine.applyMail(g, taken)
+        return commit(db, g, held[0].rev, { ok: true, result: { mail: taken } })
+      })
+      /** The account written on the revision it was read at, and the answer kept beside it. */
+      const commit = async (db, g, rev, out) => {
+        const total = g.ladder.wins + g.ladder.losses
+        const rows = await db`
+          update card_accounts
+             set state = ${db.json(stored(g))},
+                 name  = ${g.name ?? null},
+                 rev   = rev + 1,
+                 seen  = now(),
+                 saved = now(),
+                 ladder_seen = ${total},
+                 ladder_at   = now()
+           where id_hash = ${me} and rev = ${rev}
+          returning rev`
+        if (!rows.length) throw STALE
+        if (requestId) {
+          const kept = { ok: out.ok, why: out.ok ? undefined : out.why, result: out.ok ? out.result : undefined }
+          const text = JSON.stringify(kept)
+          const body = text.length <= REQUEST_REPLY_MAX ? kept : { ok: out.ok, why: kept.why, trimmed: true }
+          await db`update card_requests set reply = ${db.json(body)} where id_hash = ${me} and request_id = ${requestId}`
+        }
+        return { out, rev: rows[0].rev, state: stored(g) }
+      }
+      /**
+       * Everything else: read, play, then write — and only the write is a
+       * transaction.
+       *
+       * It used to be one transaction from the first read to the last write,
+       * with the match simulated in the middle of it: a BO5 held one of the
+       * four interactive connections for as long as it took to play, and under
+       * load the market queued behind the ladder (2026-09-18, 300 sessions:
+       * 436 ms p95 waiting for a connection that was then used for 74). The
+       * rules are a pure function of the account and a seed, so nothing about
+       * the match needs the database:
+       *
+       *   1. the account and its revision are read off the pool, no transaction;
+       *   2. the action runs — a match on a worker thread, bounded, with no
+       *      connection held (match-worker.js);
+       *   3. one short transaction claims the request id and writes the account
+       *      WHERE rev is still the one that was read.
+       *
+       * Nothing is reserved in between and nothing needs recovering: 体力 is
+       * spent in the state that step 3 writes, so a crash, a full queue or a
+       * lost race before it leaves the account exactly as it was. A five
+       * changed meanwhile moves the revision, step 3 writes nothing, and the
+       * match is played again with the new five — on the same seed. The claim
+       * and the account commit together, so one request is one match, once.
+       */
+      const openAttempt = async () => {
+        let t = performance.now()
+        if (requestId) {
+          const seen = await replayOf(sql)
+          if (seen) return seen
+        }
+        const held = await sql`select state, rev from card_accounts where id_hash = ${me}`
+        mark.read += performance.now() - t
+        if (!held.length) return { missing: true }
+        let g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
+        const env = { now, today, seed }
+        t = performance.now()
+        if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, engine.ladderScore(g))
+        mark.rival += performance.now() - t
+        t = performance.now()
+        let out
+        if (matches && HEAVY.has(action)) {
+          let played
+          try { played = await matches.run(g, action, args, env) } catch (e) {
+            if (e?.queueFull) return { full: true }
+            throw e
+          }
+          out = played.out
+          g = played.g
+          mark.queue += performance.now() - t - (played.ms ?? 0)
+          mark.compute += played.ms ?? 0
+        } else {
+          out = engine.runAction(g, action, args, env)
+          mark.compute += performance.now() - t
+        }
+        t = performance.now()
         try {
-          reply = await run(async (db) => {
-            // The request is claimed first, on this transaction. A second copy
-            // of the same request — a retry after a lost reply, or the same
-            // tap sent twice — waits on the primary key until this one commits
-            // or rolls back, then finds the row and reads the answer instead
-            // of running the action again. If this attempt rolls back (a lost
-            // revision race), the claim goes with it and the retry claims anew.
+          return await run(async (db) => {
             if (requestId) {
+              // A second copy of the same request — the same tap sent twice —
+              // waits here on the primary key until the first commits, then
+              // finds the row and reads the answer instead of writing its own.
               const claimed = await db`
                 insert into card_requests (id_hash, request_id, action) values (${me}, ${requestId}, ${requestKey})
                 on conflict (id_hash, request_id) do nothing returning 1 as ok`
-              if (!claimed.length) {
-                const prior = await db`select action, reply from card_requests where id_hash = ${me} and request_id = ${requestId}`
-                const cur = await db`select state, rev from card_accounts where id_hash = ${me}`
-                if (!cur.length) return { missing: true }
-                // the same id on a different action is a client bug, not a retry: refuse, change nothing
-                if (prior[0]?.action !== requestKey) return { clash: true, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
-                return { replay: prior[0]?.reply ?? null, rev: cur[0].rev, state: stored(engine.migrateGacha(cur[0].state, id)) }
-              }
+              if (!claimed.length) return (await replayOf(db)) ?? { missing: true }
             }
-            const held = await db`select state, rev from card_accounts where id_hash = ${me}`
-            if (!held.length) {
-              if (requestId) await db`delete from card_requests where id_hash = ${me} and request_id = ${requestId}`
-              return { missing: true }
-            }
-            const g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
-            let out
-            if (action === 'mail_take') {
-              const taken = await takeMail(me, db)
-              engine.applyMail(g, taken)
-              out = { ok: true, result: { mail: taken } }
-            } else {
-              const env = { now, today, seed: freshSeed() }
-              // On the transaction's own connection. It used to go through the
-              // pool, so a match held one connection and asked for a second;
-              // four matches at once held all four and each waited for a fifth
-              // that could never come, and every request after them queued
-              // behind the deadlock until the process was restarted (2026-09-05,
-              // 「网页卡了」 — the card page stuck on 正在读取卡牌账号).
-              if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, db, engine.ladderScore(g))
-              out = engine.runAction(g, action, args, env)
-            }
-            const total = g.ladder.wins + g.ladder.losses
-            const rows = await db`
-              update card_accounts
-                 set state = ${db.json(stored(g))},
-                     name  = ${g.name ?? null},
-                     rev   = rev + 1,
-                     seen  = now(),
-                     saved = now(),
-                     ladder_seen = ${total},
-                     ladder_at   = now()
-               where id_hash = ${me} and rev = ${held[0].rev}
-              returning rev`
-            if (!rows.length) throw STALE
-            if (requestId) {
-              const kept = { ok: out.ok, why: out.ok ? undefined : out.why, result: out.ok ? out.result : undefined }
-              const text = JSON.stringify(kept)
-              const body = text.length <= REQUEST_REPLY_MAX ? kept : { ok: out.ok, why: kept.why, trimmed: true }
-              await db`update card_requests set reply = ${db.json(body)} where id_hash = ${me} and request_id = ${requestId}`
-            }
-            return { out, rev: rows[0].rev, state: stored(g) }
+            return commit(db, g, held[0].rev, out)
           })
-        } catch (e) {
-          if (e === STALE) continue
-          throw e
+        } finally { mark.write += performance.now() - t }
+      }
+      // One account's actions take turns in this process: two taps a moment
+      // apart would both play on the same revision and one would be thrown away.
+      const reply = await inLane(me, async () => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          mark.attempts = attempt + 1
+          try {
+            return await (action === 'mail_take' ? mailAttempt() : openAttempt())
+          } catch (e) {
+            if (e === STALE) continue
+            throw e
+          }
         }
-        if (reply.missing) { json(res, 200, { ok: false, missing: true, today, now }); return }
-        if (reply.clash) {
-          json(res, 200, { ok: false, why: '这个请求号已经用过了。', today, now, rev: reply.rev, state: reply.state, code: battleCode(me) })
-          return
-        }
-        if ('replay' in reply) {
-          // what happened the first time, with the account as it stands NOW
-          const was = reply.replay ?? { ok: false, why: '原请求结果暂时无法确认，请刷新账号核对。' }
-          json(res, 200, {
-            ok: !!was.ok, why: was.ok ? undefined : was.why, result: was.ok ? was.result : undefined,
-            replayed: true, trimmed: was.trimmed === true ? true : undefined,
-            today, now, rev: reply.rev, state: reply.state, code: battleCode(me),
-          })
-          return
-        }
-        sweepRequests()
-        const { out } = reply
+        return null
+      })
+      noteTiming(action, mark, performance.now() - started)
+      if (!reply) { json(res, 409, { ok: false, busy: true, why: '账号正忙，再试一次。', today, now }); return }
+      if (reply.full) { json(res, 200, { ok: false, busy: true, why: '比赛排队的人太多，稍后再试。', today, now }); return }
+      if (reply.missing) { json(res, 200, { ok: false, missing: true, today, now }); return }
+      if (reply.clash) {
+        json(res, 200, { ok: false, why: '这个请求号已经用过了。', today, now, rev: reply.rev, state: reply.state, code: battleCode(me) })
+        return
+      }
+      if ('replay' in reply) {
+        // what happened the first time, with the account as it stands NOW
+        const was = reply.replay ?? { ok: false, why: '原请求结果暂时无法确认，请刷新账号核对。' }
         json(res, 200, {
-          ok: out.ok,
-          why: out.ok ? undefined : out.why,
-          result: out.ok ? out.result : undefined,
+          ok: !!was.ok, why: was.ok ? undefined : was.why, result: was.ok ? was.result : undefined,
+          replayed: true, trimmed: was.trimmed === true ? true : undefined,
           today, now, rev: reply.rev, state: reply.state, code: battleCode(me),
         })
         return
       }
-      json(res, 409, { ok: false, busy: true, why: '账号正忙，再试一次。', today, now })
+      sweepRequests()
+      const { out } = reply
+      json(res, 200, {
+        ok: out.ok,
+        why: out.ok ? undefined : out.why,
+        result: out.ok ? out.result : undefined,
+        today, now, rev: reply.rev, state: reply.state, code: battleCode(me),
+      })
     } catch (err) {
       console.warn('cards: act failed', err.message)
       json(res, 500, { ok: false, today })
@@ -967,40 +1088,68 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
    * play a five that was typed in.
    */
   /**
-   * The candidates near a division, from a short-lived cache.
+   * The candidates near a division, from one sample of the whole ladder.
    *
-   * The query below parses every account's state to find the fives with a
-   * full squad, which is a scan of the whole table and most of its bytes —
-   * one to three seconds and a whole vCPU at the sizes the board has reached.
-   * Every ladder match ran it, inside its transaction. Now a division's
-   * candidates are fetched at most once every thirty seconds, forty of them,
-   * and a match picks from that; the caller is excluded when the list is
-   * used rather than in the query, so one cache serves everybody.
+   * Finding the fives with a full squad parses every account's state — a scan
+   * of the whole table and most of its bytes, one to three seconds at the
+   * sizes the board has reached. It ran per division, on whichever ladder
+   * match found the thirty-second cache cold — and until 2026-09-18 INSIDE
+   * that match's transaction, so every half-minute a handful of matches each
+   * held an interactive connection for seconds while the market waited behind
+   * them. That is where the 「偶尔卡五秒」 came from; a small test table never
+   * shows it.
+   *
+   * Now: ONE scan for every division, at most once a minute, on the slow pool
+   * where no player is waiting, shared by everybody who asks while it runs.
+   * A match never waits for it once there has been a first one — a stale
+   * sample is served while the next is fetched. And it brings back the five
+   * and the levels of those six cards, not the whole collection: eighty
+   * collections a division was megabytes to parse on the event loop.
    */
-  const RIVAL_TTL = 30_000
+  const RIVAL_TTL = 60_000
+  const RIVAL_PER_DIV = 80
+  let rivalAll = null
+  let rivalFetch = null
+  let rivalMs = null
   const rivalCache = new Map()
-  async function rivalPool(div, mine, db = sql) {
-    const hit = rivalCache.get(div)
-    const rows = hit && Date.now() - hit.at < RIVAL_TTL
-      ? hit.rows
-      : await rivalRows(div, db).then((found) => {
-        // kept as the five and its paper score, not as the account: a row
-        // carries the whole collection, and eighty of those per division
-        // is memory the cache has no use for
-        const r = found.map((x) => {
-          const five = squadOf(x)
-          let score = null
-          if (five.slots.filter(Boolean).length === 5) {
-            try { score = engine.squadRating({ slots: five.slots, coach: five.coach }, (id) => five.levels[id] ?? 0) } catch { score = null }
-          }
-          return { id_hash: x.id_hash, div: x.div, five, score: Number.isFinite(score) ? score : null }
-        })
-        rivalCache.set(div, { at: Date.now(), rows: r })
-        return r
+  function refreshRivals() {
+    if (rivalFetch) return rivalFetch
+    const t = performance.now()
+    rivalFetch = rivalRows(slow ?? sql).then((found) => {
+      // kept as the five and its paper score, not as the account
+      const rows = found.map((x) => {
+        const five = squadOf(x)
+        let score = null
+        if (five.slots.filter(Boolean).length === 5) {
+          try { score = engine.squadRating({ slots: five.slots, coach: five.coach }, (id) => five.levels[id] ?? 0) } catch { score = null }
+        }
+        return { id_hash: x.id_hash, div: x.div, five, score: Number.isFinite(score) ? score : null }
       })
-    const others = rows.filter((r) => r.id_hash !== mine)
-    // the query ordered by distance to the division, then by chance; keep
-    // the distance and reshuffle the chance for each caller
+      rivalAll = { at: Date.now(), rows }
+      rivalMs = Math.round(performance.now() - t)
+      rivalCache.clear()
+      return rivalAll
+    }).finally(() => { rivalFetch = null })
+    return rivalFetch
+  }
+  /** The eighty nearest a division: distance first, chance within a distance. */
+  async function rivalsNear(div) {
+    if (!rivalAll) await refreshRivals()
+    else if (Date.now() - rivalAll.at >= RIVAL_TTL) refreshRivals().catch((err) => console.warn('cards: rival refresh failed', err.message))
+    let near = rivalCache.get(div)
+    if (!near) {
+      near = rivalAll.rows
+        .map((r) => ({ r, d: Math.abs(r.div - div), k: Math.random() }))
+        .sort((a, b) => a.d - b.d || a.k - b.k)
+        .slice(0, RIVAL_PER_DIV)
+        .map((x) => x.r)
+      rivalCache.set(div, near)
+    }
+    return near
+  }
+  async function rivalPool(div, mine) {
+    const others = (await rivalsNear(div)).filter((r) => r.id_hash !== mine)
+    // kept in order of distance to the division; the chance is reshuffled for each caller
     for (let i = others.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       if (Math.abs(others[i].div - div) === Math.abs(others[j].div - div)) [others[i], others[j]] = [others[j], others[i]]
@@ -1008,27 +1157,36 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
     return others.slice(0, 12)
   }
 
-  async function rivalRows(div, db = sql) {
+  async function rivalRows(db = sql) {
+    // `offset 0` keeps the planner from folding the inner select back into the
+    // outer one and reading the (toasted, ~50 KB) state once per expression.
     return db`
-      with pool as (
-        select
-          id_hash, name, state->'squad' as squad, state->'cards' as cards,
-          case when state->'ladder'->>'div' ~ '^[0-9]{1,2}$'
-               then (state->'ladder'->>'div')::int else 0 end as div,
-          case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
-               then (state->'ladder'->>'points')::int else 0 end as points
-        from card_accounts
-        where jsonb_typeof(state->'squad'->'slots') = 'array'
-          and jsonb_array_length(state->'squad'->'slots') = 5
+      with seen as (
+        select id_hash,
+          case when lad->>'div' ~ '^[0-9]{1,2}$' then (lad->>'div')::int else 0 end as div
+        from (
+          select id_hash, state->'squad'->'slots' as slots, state->'ladder' as lad
+          from card_accounts where not suspect
+          offset 0
+        ) a
+        where jsonb_typeof(slots) = 'array'
+          and jsonb_array_length(slots) = 5
           -- a five with an empty seat is not an opponent
-          and (select count(*) from jsonb_array_elements(state->'squad'->'slots') e
-               where jsonb_typeof(e) = 'string') = 5
-          and not suspect
+          and (select count(*) from jsonb_array_elements(slots) e where jsonb_typeof(e) = 'string') = 5
+      ), picked as (
+        select id_hash, div from (
+          select id_hash, div, row_number() over (partition by div order by random()) as n from seen
+        ) r where n <= ${RIVAL_PER_DIV}
       )
-      select id_hash, name, squad, cards, div, points
-      from pool
-      order by abs(div - ${div}), random()
-      limit 80`
+      select p.id_hash, a.name, a.state->'squad' as squad, p.div,
+        case when a.state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
+             then (a.state->'ladder'->>'points')::int else 0 end as points,
+        -- the six cards on the sheet and nothing else of the collection
+        (select coalesce(jsonb_object_agg(k, jsonb_build_object('level', a.state->'cards'->k->'level')), '{}'::jsonb)
+           from (select e #>> '{}' as k from jsonb_array_elements(a.state->'squad'->'slots') e
+                 union select a.state->'squad'->>'coach') ks
+          where k is not null and a.state->'cards' ? k) as cards
+      from picked p join card_accounts a on a.id_hash = p.id_hash`
   }
 
   /**
@@ -1045,9 +1203,8 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
    */
   const RIVAL_NEAR = 4
   const RIVAL_FAR = 8
-  async function pickRival(div, mine, db = sql, score = null) {
-    await rivalPool(div, mine, db)
-    const rows = (rivalCache.get(div)?.rows ?? []).filter((r) => r.id_hash !== mine && r.score !== null)
+  async function pickRival(div, mine, score = null) {
+    const rows = (await rivalsNear(div)).filter((r) => r.id_hash !== mine && r.score !== null)
     if (!rows.length) return null
     const any = (list) => list[Math.floor(Math.random() * list.length)].five
     if (typeof score !== 'number') return any(rows)
@@ -1262,7 +1419,9 @@ export function makeCardApi(sql, { rateLimited, readBody, json, staticRoot }) {
 
   return {
     /** Forget the cached board and rival pools — for tests that reseed the table. */
-    invalidate() { topCaches.clear(); rivalCache.clear() },
+    invalidate() { topCaches.clear(); rivalCache.clear(); rivalAll = null },
+    /** Stage timings of the last few hundred actions, the match queue and the rival sample. */
+    timings,
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }

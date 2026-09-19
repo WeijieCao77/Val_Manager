@@ -168,6 +168,7 @@ export default function Market() {
   const [days, setDays] = useState(3)
   // null once the account has played enough; until then it is how far off it is
   const [gate, setGate] = useState<Gate | null>(null)
+  const [ban, setBan] = useState<{ until: number; why: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [sellCard, setSellCard] = useState('')
   const [ask, setAsk] = useState('')
@@ -243,6 +244,7 @@ export default function Market() {
       setOwn(b.own ?? [])
       setNext(b.next ?? null)
       setGate(b.gate ?? null)
+      setBan(b.ban ?? null)
       if (typeof b.total === 'number') setTotal(b.total)
       if (b.pool) setPool(b.pool)
       if (typeof b.now === 'number') setNow(b.now)
@@ -370,7 +372,8 @@ export default function Market() {
     }
     const r = sent.data
     if (!r?.ok) {
-      toast(r?.newbie ? gateText(r)
+      toast(r?.banned ? String(r.why ?? '交易已暂停。')
+        : r?.newbie ? gateText(r)
         : r?.notOwned ? '服务器还没同步这张卡，稍后再挂。'
         : r?.alreadyListed ? '这张卡已经挂上去了。'
           : r?.full ? `最多同时挂 ${r.max ?? MAX_LISTINGS} 张，卖掉或撤回一张再挂。`
@@ -401,7 +404,8 @@ export default function Market() {
     }
     const r = sent.data
     if (!r?.ok) {
-      toast(r?.newbie ? gateText(r)
+      toast(r?.banned ? String(r.why ?? '交易已暂停。')
+        : r?.newbie ? gateText(r)
         : r?.busy ? '账号正忙，再试一次。'
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
         : r?.leading ? '你已是最高价。'
@@ -642,6 +646,14 @@ export default function Market() {
 
   return (
     <>
+      {ban && (
+        <Panel title="交易已暂停">
+          <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>{ban.why}</p>
+          <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
+            暂停期间不能挂牌、出价和换卡；<b>货架照常看</b>，已有的挂牌和邮件不受影响。
+          </p>
+        </Panel>
+      )}
       {gate && (
         <Panel title="交易区还没对你开放">
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>

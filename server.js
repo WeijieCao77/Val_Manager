@@ -34,6 +34,8 @@ import { makePhoneApi } from './phone-api.js'
 import { validatePhoneSecrets } from './phone-config.js'
 import { releaseFingerprint } from './release-fingerprint.js'
 import { releaseFeatures } from './release-readiness.js'
+import { createMatchComputer } from './match-worker.js'
+import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { safeTransactions } from './db-transactions.js'
 import { createHistoryMaintenance } from './history-maintenance.js'
 import { overview, prune, storage } from './stats.js'
@@ -471,6 +473,8 @@ async function stats(req, res, url) {
  * remembered for five seconds, so a health checker costs a query every five
  * seconds however often it asks.
  */
+const loopDelay = monitorEventLoopDelay({ resolution: 20 })
+loopDelay.enable()
 let featureCache = null
 let pingCache = { at: 0, ok: false, ms: null }
 async function readiness() {
@@ -496,7 +500,10 @@ async function readiness() {
   return out
 }
 
-const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json, staticRoot: ROOT }))
+// Matches are played on a worker thread and the rival scan runs on the stats
+// budget: neither is something a player's connection should be held for.
+const matchComputer = sql ? createMatchComputer() : null
+const cardApi = () => (_cardApi ??= makeCardApi(sql, { rateLimited, readBody, json, staticRoot: ROOT, matches: matchComputer, slow: sqlStats }))
 let _phoneApi
 const phoneApi = () => (_phoneApi ??= makePhoneApi(sql, {
   readBody, json, rateLimited, normalizeId, hash: (id) => createHash('sha256').update(String(id)).digest('hex'),
@@ -513,6 +520,16 @@ const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, token: TOKEN, tokenFrom, tokenOk, bg: sqlBg,
 }))
 let _marketApi = null
+// Scripts buying on the shelf (market-guard.js) are looked at after each 一口价 purchase; this is the look at
+// the week before this process started — once, when the boot rush is over, on the background budget.
+if (sql) {
+  setTimeout(() => {
+    if (!schemaReady) return
+    marketApi().guard.scan()
+      .then((found) => console.log(`guard: boot scan, ${found.filter((f) => f.verdict === 'ban').length} over the line, ${found.filter((f) => f.verdict === 'watch').length} to watch`))
+      .catch((err) => console.warn('guard: boot scan failed', err.message))
+  }, 90_000).unref()
+}
 // A local server may run the 全服杯 on a fast clock (a cup every N seconds, a
 // round every M) so a whole bracket can be watched in a browser. Read only
 // beside the in-process database: the deployed service cannot be sped up.
@@ -663,6 +680,22 @@ function handle(req, res) {
       res.writeHead(r.ready ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
       res.end(JSON.stringify(r))
     })
+    return
+  }
+
+  // 「慢在哪里」, for the owner: where actions spend their time by stage, how
+  // long transactions wait for each pool, and how late the event loop runs.
+  // Numbers the process already has — it asks the database nothing.
+  if (path === '/api/admin/perf') {
+    if (!tokenOk(tokenFrom(req, url), TOKEN)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); return }
+    const ms = (ns) => Math.round(ns / 1e4) / 100
+    json(res, 200, {
+      ok: true, upSec: Math.round(process.uptime()), rssMb: Math.round(process.memoryUsage().rss / 1048576),
+      loop: { p50: ms(loopDelay.percentile(50)), p99: ms(loopDelay.percentile(99)), max: ms(loopDelay.max) },
+      pools: { main: sql?.txStats?.() ?? null, bg: sqlBg?.txStats?.() ?? null, stats: sqlStats?.txStats?.() ?? null },
+      cards: _cardApi?.timings() ?? null,
+    })
+    if (url.searchParams.get('reset') === '1') loopDelay.reset()
     return
   }
 
