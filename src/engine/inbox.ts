@@ -133,8 +133,10 @@ export function mailLine(m: MailItem): string {
   const who = String(m.body?.who ?? '')
   switch (m.kind) {
     case 'sold': return `${nameOf(String(m.body?.cardId ?? ''))} 卖给了 ${who}，到账 ${m.coins} 金币`
-    case 'bought': return `买到 ${nameAt(m.cardId ?? '', m.level)}，花了 ${m.body?.price} 金币`
-    case 'outbid': return `${nameOf(String(m.body?.cardId ?? ''))} 被别人买走了，你的 ${m.coins} 金币退回`
+    case 'bought': return `${m.body?.draw ? '抽签抽中，' : ''}买到 ${nameAt(m.cardId ?? '', m.level)}，花了 ${m.body?.price} 金币`
+    case 'outbid': return m.body?.draw
+      ? `${nameOf(String(m.body?.cardId ?? ''))} 的抽签没中（${m.body.draw} 人报名），你的 ${m.coins} 金币退回`
+      : `${nameOf(String(m.body?.cardId ?? ''))} 被别人买走了，你的 ${m.coins} 金币退回`
     case 'overbid': return `你对 ${nameOf(String(m.body?.cardId ?? ''))} 的出价被超过了（现在 ${m.body?.by}），${m.coins} 金币退回`
     case 'unsold': return `${nameAt(m.cardId ?? '', m.level)} 到时没人出价，已退回`
     case 'listing_retired': return `交易区改成竞拍了，改版前挂的 ${nameAt(m.cardId ?? '', m.level)} 已退回，可以重新挂`

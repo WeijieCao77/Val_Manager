@@ -122,6 +122,8 @@ export interface Listing {
   bids: number
   /** the least the next bid may be */
   min: number
+  /** 上架保护期: until this moment (ms) 一口价 only enters a draw; null once it is over or with no buy-now */
+  drawAt?: number | null
   /** how many hours the seller put it up for */
   hours?: number
 }

@@ -22,9 +22,10 @@ assert.equal(judge([], now).verdict, null)
 assert.equal(judge([buy(5, 60, 'a'), buy(50, 90, 'b'), buy(90, 200, 'c')], now).verdict, null, '几分钟后才买到的，是正常人')
 // a person wins a race in 3–6 s routinely (the live ledger, 2026-09-19): that alone is nothing
 assert.equal(judge(Array.from({ length: 12 }, (_, i) => buy(10 + i * 20, 3 + i % 4, `s${i}`)), now).verdict, null, '一天手快十来次，不算')
-assert.deepEqual(verdictOf([buy(5, 0.7, 'a'), buy(50, 1.2, 'a'), buy(90, 0.9, 'a')]), ['ban', 'A'], '两秒内三次，哪怕同一个卖家：手做不到')
+assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a'))), ['ban', 'A'], '两秒内五次，哪怕同一个卖家：手做不到')
+assert.equal(judge([5, 50, 90, 130].map((m) => buy(m, 0.9, 'a')), now).verdict, 'watch', '四次还不封')
 assert.equal(judge([buy(5, 0.7, 'a'), buy(50, 1.2, 'b')], now).verdict, 'watch')
-assert.notEqual(judge([buy(1500, 0.7, 'a'), buy(1600, 0.8, 'b'), buy(1700, 0.9, 'c')], now).verdict, 'ban', '一天以前的不算在今天头上')
+assert.notEqual(judge([1500, 1600, 1700, 1800, 1900].map((m) => buy(m, 0.8, 'a')), now).verdict, 'ban', '一天以前的不算在今天头上')
 // a hand-over between friends or to an alt: a hundred quick purchases, one seller
 const handover = Array.from({ length: 100 }, (_, i) => buy(5 + i * 10, 10, 'friend'))
 assert.deepEqual(verdictOf(handover), ['watch', 'loop'], '同一个卖家再多也不是抢拍：只给站长看')
@@ -80,7 +81,15 @@ async function snipe(seller: string, buyer: string, age: number) {
   assert(listed.ok, JSON.stringify(listed))
   const [l] = await sql`select id from card_listings where seller_h = ${hash(seller)} and status = 'open' order by id desc limit 1`
   await sql`update card_listings set created = now() - make_interval(secs => ${age}) where id = ${l.id}`
-  return call('offer', { id: buyer, listing: String(l.id), price: 2000 })
+  const r = await call('offer', { id: buyer, listing: String(l.id), price: 2000 })
+  if (!r.entered) return r
+  // 上架保护期: inside the first minute that was an entry in a draw. Let the minute pass — the listing and the
+  // entry moved back together, so the entry is still `age` seconds after the listing — and draw: one entrant wins.
+  await sql`update card_offers set made = made - interval '61 seconds' where listing = ${l.id}`
+  await sql`update card_listings set created = created - interval '61 seconds', draw_at = draw_at - interval '61 seconds' where id = ${l.id}`
+  await api.settleDue()
+  const [won] = await sql`select status from card_offers where listing = ${l.id} and buyer_h = ${hash(buyer)}`
+  return { ...r, bought: won?.status === 'accepted' }
 }
 const settle = async () => { await api.guard.check(hash(BOT)); await api.guard.check(hash(HUMAN)) }
 
@@ -90,17 +99,17 @@ await settle()
 assert.equal(await api.guard.banOf(hash(HUMAN)), null)
 console.log('ok  几分钟后买下三张的人照常交易')
 
-// a script: bought within a second or two of the listing, three times
-for (const s of sellers.slice(0, 2)) assert((await snipe(s, BOT, 1)).bought)
+// a script: bought within a second or two of the listing, five times
+for (const s of sellers.slice(0, 4)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
-assert.equal(await api.guard.banOf(hash(BOT)), null, '两次还不封')
-assert((await snipe(sellers[2], BOT, 1)).bought)
+assert.equal(await api.guard.banOf(hash(BOT)), null, '四次还不封')
+assert((await snipe(sellers[4], BOT, 1)).bought)
 await settle()
 const ban = await api.guard.banOf(hash(BOT))
 assert(ban && ban.until > Date.now() + 2.9 * 86_400_000 && ban.until < Date.now() + 3.1 * 86_400_000, '第一次三天')
-console.log('ok  两秒内买下三次：自动暂停三天 —', ban!.why)
+console.log('ok  两秒内买下五次：自动暂停三天 —', ban!.why)
 
-const refusedBuy = await snipe(sellers[3], BOT, 1)
+const refusedBuy = await snipe(sellers[5], BOT, 1)
 assert(refusedBuy.banned && !refusedBuy.ok && typeof refusedBuy.why === 'string')
 const refusedList = await call('list', { id: BOT, cardId, ask: 1000 })
 assert(refusedList.banned)
@@ -111,14 +120,14 @@ assert(shelf.ok && shelf.ban?.until === ban!.until, '货架照常看，并告诉
 assert.equal((await call('browse', { id: HUMAN })).ban, undefined)
 assert((await call('mail', { id: BOT })).ok !== false, '邮件照常领')
 const coins = (await sql`select (state->>'coins')::int as c from card_accounts where id_hash = ${hash(BOT)}`)[0].c
-assert.equal(coins, 1_000_000 - 3 * 2000, '被拒的那次没有扣钱')
+assert.equal(coins, 1_000_000 - 5 * 2000, '被拒的那次没有扣钱')
 console.log('ok  暂停期间不能买、不能挂、不能换；能看、能领；被拒不扣钱')
 
 // the owner's view, and the owner's hand
 assert.equal((await call('guard', {}, 'wrong')).ok, false)
 const report = await call('guard', {}, TOKEN); if (process.env.DEBUG) console.log(JSON.stringify(report).slice(0, 900))
 assert(report.ok && report.bans.length === 1 && report.bans[0].running && report.bans[0].rule === 'A')
-assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.ultra === 3)
+assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.ultra === 5)
 const lifted = await call('guard', { code: hash(BOT).slice(0, 8), action: 'lift' }, TOKEN)
 assert(lifted.ok && lifted.lifted === 1)
 assert.equal(await api.guard.banOf(hash(BOT)), null)
@@ -130,7 +139,7 @@ console.log('ok  站长看得到证据，能解封；解封后旧账不重算')
 await sql`update market_bans set lifted = null, until = now() - interval '1 minute', made = now() - interval '3 days'`
 await sql`update card_offers set made = made - interval '4 days'`
 api.guard.invalidate()
-for (const s of sellers.slice(3, 6)) assert((await snipe(s, BOT, 1)).bought)
+for (const s of sellers.slice(0, 5)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
 const again = await api.guard.banOf(hash(BOT))
 assert(again && again.until > Date.now() + 4.9 * 86_400_000, '再犯五天')

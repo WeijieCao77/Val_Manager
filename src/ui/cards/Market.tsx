@@ -408,7 +408,7 @@ export default function Market() {
         : r?.newbie ? gateText(r)
         : r?.busy ? '账号正忙，再试一次。'
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
-        : r?.leading ? '你已是最高价。'
+        : r?.leading ? (r.entered ? '你已报名抽签，等开奖。' : '你已是最高价。')
         : r?.range ? `旧规则挂牌，只能在 ${r.lo} ~ ${r.hi} 之间还价。`
         : r?.broke ? '金币不够。'
           : r?.already ? '你已经对这张牌出过价了。'
@@ -427,7 +427,8 @@ export default function Market() {
     // otherwise 收藏 kept showing the plain copy already there until the tab
     // went away and came back.
     if (r.bought) await collect(true)
-    toast(r.bought ? `一口价成交（${money(paid)} 金币）。已领取本批邮件，剩余可在信箱继续领取。`
+    toast(r.entered ? `已报名抽签，冻结 ${money(paid)} 金币。上架满 1 分钟随机抽一人成交，没中金币退回信箱。`
+      : r.bought ? `一口价成交（${money(paid)} 金币）。已领取本批邮件，剩余可在信箱继续领取。`
       : `已出价 ${money(paid)}，目前领先。被超过会立刻退回金币。`)
     void refresh()
   }
@@ -554,6 +555,8 @@ export default function Market() {
     const lo = Math.ceil(l.ask * (1 - HAGGLE))
     const hi = Math.floor(l.ask * (1 + HAGGLE))
     const min = auction ? (l.min ?? minBidOf(l.ask, l.best)) : l.ask
+    // 上架保护期: for its first minute a buy-now enters a draw instead of buying
+    const inDraw = auction && l.buyout != null && l.drawAt != null && l.drawAt > now
     // A second copy of a card you hold keeps its level: the higher
     // one is the card, a raised lower one waits as a spare that
     // can be taken apart. Say which on the shelf rather than in
@@ -579,6 +582,7 @@ export default function Market() {
         <div className="tiny faint" style={{ minHeight: '1.4em', ...nowrap }}>
           {auction && l.buyout != null ? `一口价 ${money(l.buyout)}` : ''}
         </div>
+        {inDraw && <div className="tiny warn" style={nowrap}>保护期 · 一口价抽签</div>}
         {lands && (
           <div className={`tiny ${dear ? 'warn' : 'faint'}`}>{lands}</div>
         )}
@@ -593,7 +597,7 @@ export default function Market() {
         </div>
         <div className="grow" />
         {l.bid ? (
-          <span className="tag t1" style={{ marginTop: 5 }}>{auction ? '你领先' : '已出价'}</span>
+          <span className="tag t1" style={{ marginTop: 5 }}>{!auction ? '已出价' : l.buyout != null && l.best != null && l.best >= l.buyout ? '已报名抽签' : '你领先'}</span>
         ) : (
           <div className="row wrap" style={{ gap: 4, marginTop: 5 }}>
             {/* side by side where the tile is wide enough (a phone's
@@ -612,10 +616,10 @@ export default function Market() {
                 className="sm primary"
                 style={{ flex: '1 1 56px', minHeight: 26 }}
                 disabled={busy || !!gate}
-                title={`按一口价 ${money(l.buyout)} 立刻买下`}
+                title={inDraw ? `上架第一分钟：按一口价 ${money(l.buyout)} 报名，到点随机抽一人成交` : `按一口价 ${money(l.buyout)} 立刻买下`}
                 onClick={() => void buyNow(l)}
               >
-                一口价
+                {inDraw ? '抽签' : '一口价'}
               </button>
             )}
           </div>
@@ -629,10 +633,10 @@ export default function Market() {
               style={{ width: '100%' }}
             />
             <div className="tiny faint">
-              {auction ? `至少 ${money(min)}${l.buyout != null ? `，到 ${money(l.buyout)} 直接成交` : ''}` : `${lo} ~ ${hi}`}
+              {auction ? `至少 ${money(min)}${l.buyout != null ? (inDraw ? `，到 ${money(l.buyout)} 报名抽签` : `，到 ${money(l.buyout)} 直接成交`) : ''}` : `${lo} ~ ${hi}`}
             </div>
             <div className="row" style={{ gap: 5, marginTop: 4 }}>
-              <button className="sm primary" disabled={busy} onClick={() => void doBid()}>{l.buyout != null && Number(bidPrice) >= l.buyout ? `确认一口价购买 · ${money(l.buyout)}` : '确定出价'}</button>
+              <button className="sm primary" disabled={busy} onClick={() => void doBid()}>{l.buyout != null && Number(bidPrice) >= l.buyout ? (inDraw ? `确认报名抽签 · ${money(l.buyout)}` : `确认一口价购买 · ${money(l.buyout)}`) : '确定出价'}</button>
               <button className="sm ghost" onClick={() => setBidOpen(null)}>取消</button>
             </div>
           </div>
@@ -731,7 +735,7 @@ export default function Market() {
         <p className="tiny faint" style={{ marginBottom: 0, lineHeight: 1.7 }}>
           <b>拍卖时长 {AUCTION_HOURS_CHOICES[0]} ~ {AUCTION_HOURS_CHOICES[AUCTION_HOURS_CHOICES.length - 1]} 小时自定，到时最高价成交</b>。
           流拍退回信箱；<b>有人出价后不能撤回</b>。
-          一口价可不填，填了则按此价立刻成交，至少为起拍价的 {BUYOUT_MIN} 倍。
+          一口价可不填，填了则按此价立刻成交，至少为起拍价的 {BUYOUT_MIN} 倍。上架第一分钟是保护期：这时点一口价的人一起抽签，到点随机一人成交。
           <b>最多同时挂 {MAX_LISTINGS} 张</b>。有重复先卖重复那张（+0），只有一张时连强化等级一起卖出。
         </p>
       </Panel>

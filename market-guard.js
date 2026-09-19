@@ -24,12 +24,14 @@
  * player and his alt — handing cards over ARE quick, and that is one seller,
  * however often; sniping is quick purchases from MANY.
  *
- *   A  ultra (≤ 2 s)  ≥ 3 in 24 h                     no hand is that fast: load, tap, tap, confirm
+ *   A  ultra (≤ 2 s)  ≥ 5 in 24 h                     no hand is that fast: load, tap, tap, confirm
+ *                                                     (entries in a 保护期 draw count here, won or lost)
  *   B  quick (≤ 45 s), capped a seller, ≥ 40 in 24 h   forty races won in a day, from a dozen people or more
  *   C  the same over 7 days ≥ 120                      the patient version of B
  *   D  fresh (≤ 5 min) ≥ 100 in 7 d over ≥ 20 of the 24 clock hours   nobody is awake for all of them
  *
- * On that week's ledger these catch 35 of the 161 and leave out the people at
+ * (A was three at first; the owner made it five on 2026-09-19 and had everybody
+ * suspended until then let out.) On that week's ledger these catch 35 of the 161 and leave out the people at
  * the edge (26–39 capped quick purchases on their best day) — those, the
  * scripted pairs that stay above two seconds, and anybody half-way to a rule
  * are put in front of the owner (「watch」) and not touched.
@@ -45,7 +47,7 @@
  */
 export const GUARD = {
   ULTRA_SEC: 2, QUICK_SEC: 45, FRESH_SEC: 300,
-  ULTRA_N: 3,
+  ULTRA_N: 5,
   SELLER_CAP: 3, QUICK_DAY: 40,
   SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
   FRESH_N: 100, FRESH_HOURS: 20,
@@ -74,8 +76,12 @@ create index if not exists market_bans_who_idx on market_bans (id_hash, made des
 export function judge(buys, now = Date.now()) {
   const rows = buys.map((b) => {
     const made = new Date(b.made).getTime()
-    return { made, age: (made - new Date(b.created).getTime()) / 1000, seller: b.seller }
+    return { made, age: (made - new Date(b.created).getTime()) / 1000, seller: b.seller, won: b.won !== false }
   }).filter((b) => Number.isFinite(b.age) && b.age >= 0 && b.made <= now)
+  // Since the 保护期 a buy-now in the first minute is an entry in a draw, and most entries lose. Volume is
+  // still judged on cards actually bought; but an entry two seconds after the listing is a script's, won or lost.
+  const entries = rows.filter((b) => now - b.made <= DAY)
+  rows.splice(0, rows.length, ...rows.filter((b) => b.won))
   const day = rows.filter((b) => now - b.made <= DAY)
   const week = rows.filter((b) => now - b.made <= 7 * DAY)
   const within = (list, sec) => list.filter((b) => b.age <= sec)
@@ -86,7 +92,7 @@ export function judge(buys, now = Date.now()) {
   }
   /** each seller counted `cap` times at most: many purchases from one person are a hand-over, not a snipe */
   const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
-  const ultra = within(day, GUARD.ULTRA_SEC)
+  const ultra = within(entries, GUARD.ULTRA_SEC)
   const quickDay = within(day, GUARD.QUICK_SEC)
   const quickWeek = within(week, GUARD.QUICK_SEC)
   const fresh = within(week, GUARD.FRESH_SEC)
@@ -148,9 +154,11 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
 
   const buysOf = (me, since) => work`
-    select o.made, l.created, l.seller_h as seller, l.card_id, o.price
+    select o.made, l.created, l.seller_h as seller, l.card_id, o.price, (o.status = 'accepted') as won
     from card_offers o join card_listings l on l.id = o.listing
-    where o.buyer_h = ${me} and o.status = 'accepted'
+    -- 'expired' at the buy-now price is an entry in a 保护期 draw that somebody else won
+    -- ('open' at that price is an entry whose draw has not happened yet)
+    where o.buyer_h = ${me} and o.status in ('accepted', 'expired', 'open')
       and l.buyout is not null and o.price >= l.buyout
       and o.made > ${since}
     order by o.made desc limit 3000`

@@ -257,6 +257,11 @@ create index if not exists listing_shelf_ends_idx on card_listings (ends, id) wh
 create index if not exists listing_shelf_new_idx on card_listings (created desc, id) where status = 'open';
 create index if not exists listing_shelf_price_idx on card_listings (cur_price, id) where status = 'open';
 create index if not exists listing_shelf_card_idx on card_listings (card_id) where status = 'open';
+-- 上架保护期 (2026-09-19): a buy-now made in a listing's first minute is an
+-- entry in a draw, not a purchase. draw_at is set by the first entry (created
+-- plus the minute) and is when the settler picks one of them. Null: no entries.
+alter table card_listings add column if not exists draw_at timestamptz;
+create index if not exists listing_draw_idx on card_listings (draw_at) where status = 'open' and draw_at is not null;
 ${GUARD_SCHEMA}`
 
 /** What a client may name a request: long enough not to collide, short enough to index. */

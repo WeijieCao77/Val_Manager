@@ -243,6 +243,8 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   x = await call('/api/market/list', { id: S2, cardId: 'p:P2', ask: 1000, buyout: 1500 })
   check('一口价够高就挂得上', x.ok === true, JSON.stringify(x))
   const l2 = String(x.id)
+  // past its 上架保护期 (the first minute, when a buy-now is a draw — see check_market_protect.ts)
+  await sql`update card_listings set created = now() - interval '2 minutes' where id = ${l2}::bigint`
   const row = (await call('/api/market/browse', { id: BUYER })).listings as { id: string; buyout: number | null }[]
   check('货架上写着一口价', row.find((l) => l.id === l2)!.buyout === 1500)
   await inbox(BUYER)

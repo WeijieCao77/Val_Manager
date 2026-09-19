@@ -34,7 +34,7 @@
  * bidder's at the moment it is made. A client that says otherwise is not
  * consulted.
  */
-import { createHash } from 'node:crypto'
+import { createHash, randomInt } from 'node:crypto'
 import { isVerified } from './phone-api.js'
 import { requestAction } from './cards-api.js'
 import { makeMarketGuard } from './market-guard.js'
@@ -53,6 +53,14 @@ export const SNIPE_MINUTES = 10
 export const SNIPE_CAP_MINUTES = 60
 /** A buy-now price, if the seller sets one, is at least this much of the start. */
 export const BUYOUT_MIN = 1.2
+/**
+ * 上架保护期: for this long after a card goes up, 一口价 does not buy it — it
+ * enters a draw, coins in escrow, and when the time is up one entry is picked
+ * at random and the rest go home. A script that sees a listing in its first
+ * second gains nothing over a person who sees it in its fortieth. After the
+ * minute, with nobody entered, 一口价 buys at once as it always did.
+ */
+export const PROTECT_SEC = 60
 /** The least the next bid may be: the start until somebody bids, a step over the top after. */
 export const minBid = (ask, top) => (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
 
@@ -495,6 +503,49 @@ export function makeMarketApi(sql, {
    * One tick of the settler: batches until the table is clear or the budget
    * is spent. One at a time in this process; other processes take other rows.
    */
+  /**
+   * The draw on one listing, inside the caller's transaction (which holds the
+   * listing's row lock): one of the entries at the buy-now price, at random,
+   * and settle() sends everybody else's coins home. Returns the winner's hash, or null if nothing sold.
+   */
+  async function drawOne(db, l) {
+    const entries = await db`
+      select id, buyer_h, price from card_offers
+      where listing = ${l.id} and status = 'open' and price >= ${l.buyout}
+      order by id`
+    if (!entries.length) {
+      await db`update card_listings set draw_at = null where id = ${l.id}`
+      return null
+    }
+    const winner = entries[randomInt(entries.length)]
+    return (await settle(db, l, winner, { draw: entries.length })) ? winner.buyer_h : null
+  }
+  /** Every draw whose minute is up, a bounded batch at a time, each in its own transaction. */
+  async function drawDue(limit = SETTLE_BATCH) {
+    const due = await work`
+      select id from card_listings where status = 'open' and draw_at is not null and draw_at <= now()
+      order by draw_at, id limit ${limit}`
+    let n = 0
+    for (const d of due) {
+      try {
+        const sold = await bgTx(async (db) => {
+          const rows = await db`
+            select id, seller_h, card_id, level, buyout from card_listings
+            where id = ${d.id} and status = 'open' and draw_at is not null and draw_at <= now()
+            for update skip locked`
+          return rows.length ? drawOne(db, rows[0]) : null
+        })
+        // a card won in a draw is a card bought: the script guard looks at the winner like at any buyer
+        if (sold) { n++; guard2.checkSoon(sold) }
+      } catch (err) {
+        settleStats.failed++
+        console.warn(`market: draw on listing ${d.id} failed —`, err.message)
+      }
+    }
+    if (n) menuCache.clear()
+    return n
+  }
+
   let settling = null
   let choresAt = 0
   const settleStats = { ticks: 0, settled: 0, failed: 0, lastMs: 0, backlog: null }
@@ -503,6 +554,7 @@ export function makeMarketApi(sql, {
       const t0 = Date.now()
       let total = 0
       try {
+        total += await drawDue().catch((err) => { console.warn('market: draws failed —', err.message); return 0 })
         for (;;) {
           let n
           try {
@@ -649,6 +701,13 @@ export function makeMarketApi(sql, {
     return out
   }
 
+  /** Until when a listing is in its 保护期, as milliseconds; null when it has no buy-now or the minute is over. */
+  const protectEnd = (l) => {
+    if (l.buyout == null || !l.created) return null
+    const end = new Date(l.created).getTime() + PROTECT_SEC * 1000
+    return end > Date.now() ? end : null
+  }
+
   /** When an auction closes, as milliseconds; null for an old-style listing. */
   const endsAt = (l) => (l.ends ? new Date(l.ends).getTime() : null)
 
@@ -657,7 +716,7 @@ export function makeMarketApi(sql, {
    * change hands. Inside the caller's transaction; false if somebody else
    * closed the listing first, in which case the bid's coins go straight home.
    */
-  async function settle(db, l, o) {
+  async function settle(db, l, o, { draw = 0 } = {}) {
     const won = await db`
       update card_offers set status = 'accepted', settled = now()
       where id = ${o.id} and status = 'open' returning id`
@@ -672,7 +731,7 @@ export function makeMarketApi(sql, {
     }
     const [sellerName, buyerName] = [await nameOf(l.seller_h, db), await nameOf(o.buyer_h, db)]
     await post(o.buyer_h, 'bought', {
-      cardId: l.card_id, level: l.level, body: { price: o.price, who: sellerName },
+      cardId: l.card_id, level: l.level, body: draw ? { price: o.price, who: sellerName, draw } : { price: o.price, who: sellerName },
     }, db)
     await post(l.seller_h, 'sold', {
       coins: o.price, body: { cardId: l.card_id, price: o.price, who: buyerName },
@@ -682,7 +741,8 @@ export function makeMarketApi(sql, {
     const rest = await db`
       update card_offers set status = 'expired', settled = now()
       where listing = ${l.id} and status = 'open' returning buyer_h, price`
-    for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: { cardId: l.card_id } }, db)
+    // after a draw the others are told it was a draw they lost, not that they were slow
+    for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: draw ? { cardId: l.card_id, draw } : { cardId: l.card_id } }, db)
     return true
   }
 
@@ -1072,6 +1132,8 @@ export function makeMarketApi(sql, {
       // and the least the next bid may be. `ends` null is an old listing.
       ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers, hours: r.hours ?? AUCTION_HOURS,
       min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
+      // 上架保护期: until when a buy-now only enters the draw (null once the minute is over, or with no buy-now)
+      drawAt: protectEnd(r),
     })
     json(res, 200, {
       ...shelfConstants(),
@@ -1130,6 +1192,8 @@ export function makeMarketApi(sql, {
         offers: r.offers, best: r.best ?? null, bid: r.bid,
         ends: endsAt(r), buyout: r.buyout ?? null, bids: r.bids ?? r.offers, hours: r.hours ?? AUCTION_HOURS,
         min: r.ends ? minBid(r.ask, r.best ?? null) : r.ask,
+        // 上架保护期: until when a buy-now only enters the draw (null once the minute is over, or with no buy-now)
+        drawAt: protectEnd(r),
       })),
     })
   }
@@ -1138,7 +1202,7 @@ export function makeMarketApi(sql, {
   const shelfConstants = () => ({
     haggle: HAGGLE,
     hours: AUCTION_HOURS, hoursMin: AUCTION_MIN_HOURS, hoursMax: AUCTION_MAX_HOURS, hoursChoices: AUCTION_HOURS_CHOICES,
-    step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN,
+    step: BID_STEP, snipe: SNIPE_MINUTES, buyoutMin: BUYOUT_MIN, protectSec: PROTECT_SEC,
     page: PAGE,
   })
 
@@ -1310,7 +1374,7 @@ export function makeMarketApi(sql, {
     const lid = rowId(b?.listing)
     if (!lid) { json(res, 400, { ok: false, bad: true }); return }
     const rows = await sql`
-      select id, seller_h, card_id, level, ask, ends, buyout from card_listings
+      select id, seller_h, card_id, level, ask, ends, buyout, created from card_listings
       where id = ${lid}::bigint and status = 'open'`
     if (!rows.length) { json(res, 200, { ok: false, gone: true }); return }
     const l = rows[0]
@@ -1324,8 +1388,9 @@ export function makeMarketApi(sql, {
     const top = topRow[0] ?? null
     let bid = price
     if (auction) {
-      if (top && top.buyer_h === me) { json(res, 200, { ok: false, leading: true, price: top.price }); return }
-      const min = minBid(l.ask, top?.price ?? null)
+      if (top && top.buyer_h === me) { json(res, 200, { ok: false, leading: true, price: top.price, entered: (l.buyout != null && top.price >= l.buyout) || undefined }); return }
+      // with a draw entry standing at the buy-now price, the only way in is the buy-now price
+      const min = l.buyout != null ? Math.min(l.buyout, minBid(l.ask, top?.price ?? null)) : minBid(l.ask, top?.price ?? null)
       if (!Number.isFinite(bid) || bid < min) { json(res, 200, { ok: false, low: true, min }); return }
       // at or over the buy-now price is the buy-now price: nobody pays more
       // than the seller asked to end it
@@ -1350,14 +1415,33 @@ export function makeMarketApi(sql, {
     // the coins leave the server's copy of the account, here, before the
     // offer exists — a bid is never made with money the account does not hold
     const who = await nameOf(me)
+    // the winner of a draw this request set off, if it did (kept out of the stored reply: it is somebody else's hash)
+    let drew = null
     const out = await once(me, requestId, requestKey, async (db) => {
       // Bids on one listing take turns: the row lock holds a second bid
       // until the first has committed, and the second then reads the top
       // the first just set. Without it two equal first bids both went in
       // and the LATER one stood — first come, first served is the rule.
       const locked = await db`
-        select id, status, ends, buyout from card_listings where id = ${l.id} for update`
+        select id, status, ends, buyout, draw_at,
+               extract(epoch from now() - created)::float8 as age,
+               extract(epoch from created + make_interval(secs => ${PROTECT_SEC}))::float8 * 1000 as protect_end
+        from card_listings where id = ${l.id} for update`
       if (!locked.length || locked[0].status !== 'open') return { gone: true }
+      const buying = auction && l.buyout != null && bid >= l.buyout
+      // 上架保护期: in the listing's first minute a buy-now is an entry in a draw
+      const entering = buying && Number(locked[0].age) < PROTECT_SEC
+      if (buying && !entering && locked[0].draw_at) {
+        // The minute is up and the entries are still waiting for the settler:
+        // the card is theirs to draw for, not this later buyer's. Draw now.
+        drew = await drawOne(db, l)
+        return { gone: true }
+      }
+      if (entering) {
+        const mine = await db`
+          select 1 from card_offers where listing = ${l.id} and buyer_h = ${me} and status = 'open' and price >= ${l.buyout} limit 1`
+        if (mine.length) return { leading: true, price: l.buyout, entered: true }
+      }
       if (auction) {
         if (endsAt(locked[0]) <= Date.now()) return { gone: true }
         const cur = await db`
@@ -1365,7 +1449,7 @@ export function makeMarketApi(sql, {
           where listing = ${l.id} and status = 'open'
           order by price desc, made asc, id asc limit 1`
         const curTop = cur[0] ?? null
-        if (curTop && curTop.buyer_h === me) return { leading: true, price: curTop.price }
+        if (curTop && curTop.buyer_h === me) return { leading: true, price: curTop.price, entered: l.buyout != null && curTop.price >= l.buyout }
         const floor = minBid(l.ask, curTop?.price ?? null)
         if (bid < floor && !(l.buyout != null && bid >= l.buyout)) return { low: true, min: floor }
       }
@@ -1393,11 +1477,20 @@ export function makeMarketApi(sql, {
         const beaten = await db`
           update card_offers set status = 'outbid', settled = now()
           where listing = ${l.id} and status = 'open' and id <> ${ins[0].id}
+            -- the other entries in a draw are not beaten by this one: they stand until the draw
+            and (${!entering}::boolean or price < ${l.buyout ?? 0})
           returning buyer_h, price`
         for (const o of beaten) {
           await post(o.buyer_h, 'overbid', {
             coins: o.price, body: { listing: String(l.id), cardId: l.card_id, price: o.price, by: bid },
           }, db)
+        }
+        if (entering) {
+          await db`
+            update card_listings set draw_at = created + make_interval(secs => ${PROTECT_SEC})
+            where id = ${l.id} and draw_at is null`
+          await refreshSummary(db, String(l.id))
+          return { ok: true, entered: true, price: bid, drawAt: Math.round(Number(locked[0].protect_end)), state: stored(g), rev: w[0].rev }
         }
         if (l.buyout != null && bid >= l.buyout) {
           const sold = await settle(db, l, { id: ins[0].id, buyer_h: me, price: bid })
@@ -1432,10 +1525,11 @@ export function makeMarketApi(sql, {
     if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
     if (out.gone) { json(res, 200, { ok: false, gone: true }); return }
     if (out.low) { json(res, 200, { ok: false, low: true, min: out.min }); return }
-    if (out.leading) { json(res, 200, { ok: false, leading: true, price: out.price }); return }
+    if (out.leading) { json(res, 200, { ok: false, leading: true, price: out.price, entered: out.entered || undefined }); return }
     if (out.ok) menuCache.clear()
     // a card bought outright is the one thing a script does differently from a person: look, after replying
-    if (out.ok && out.bought) guard2.checkSoon(me)
+    if (out.ok && (out.bought || out.entered)) guard2.checkSoon(me)
+    if (drew) guard2.checkSoon(drew)
     json(res, 200, out)
   }
 
