@@ -17,17 +17,30 @@ process.env.PHONE_GATE = '0'
 // ---- the rules, on paper
 const now = Date.parse('2026-09-18T12:00:00Z')
 const buy = (agoMin: number, age: number, seller: string) => ({ made: now - agoMin * 60_000, created: now - agoMin * 60_000 - age * 1000, seller })
+const verdictOf = (list: ReturnType<typeof buy>[]) => { const j = judge(list, now); return [j.verdict, j.rule] }
 assert.equal(judge([], now).verdict, null)
 assert.equal(judge([buy(5, 60, 'a'), buy(50, 90, 'b'), buy(90, 200, 'c')], now).verdict, null, '几分钟后才买到的，是正常人')
-assert.equal(judge([buy(5, 3, 'a'), buy(50, 4, 'b')], now).verdict, 'watch', '两次秒拍只是值得看一眼')
-assert.deepEqual([judge([buy(5, 3, 'a'), buy(50, 4, 'b'), buy(90, 2, 'c')], now).verdict, judge([buy(5, 3, 'a'), buy(50, 4, 'b'), buy(90, 2, 'c')], now).rule], ['ban', 'A'])
-assert.notEqual(judge([buy(5, 1, 'a'), buy(50, 1, 'a'), buy(90, 1, 'a'), buy(95, 1, 'a')], now).verdict, 'ban', '朋友之间约好的秒拍是同一个卖家，不算脚本')
-assert.notEqual(judge([buy(1500, 3, 'a'), buy(1600, 4, 'b'), buy(1700, 2, 'c')], now).verdict, 'ban', '一天以前的不算在今天头上')
-const slow = Array.from({ length: GUARD.QUICK_N }, (_, i) => buy(10 + i * 30, 30, `s${i % 5}`))
-assert.deepEqual([judge(slow, now).verdict, judge(slow, now).rule], ['ban', 'B'])
-const patient = Array.from({ length: 24 }, (_, i) => buy(i * 61 + 3000, 200, `s${i}`))
-assert.deepEqual([judge(patient, now).verdict, judge(patient, now).rule], ['watch', 'C'], '全天候但不快：交给站长看，不自动封')
-console.log('ok  规则：秒拍三家封、约好的同一卖家不封、隔天不算、慢脚本只上报')
+// a person wins a race in 3–6 s routinely (the live ledger, 2026-09-19): that alone is nothing
+assert.equal(judge(Array.from({ length: 12 }, (_, i) => buy(10 + i * 20, 3 + i % 4, `s${i}`)), now).verdict, null, '一天手快十来次，不算')
+assert.deepEqual(verdictOf([buy(5, 0.7, 'a'), buy(50, 1.2, 'a'), buy(90, 0.9, 'a')]), ['ban', 'A'], '两秒内三次，哪怕同一个卖家：手做不到')
+assert.equal(judge([buy(5, 0.7, 'a'), buy(50, 1.2, 'b')], now).verdict, 'watch')
+assert.notEqual(judge([buy(1500, 0.7, 'a'), buy(1600, 0.8, 'b'), buy(1700, 0.9, 'c')], now).verdict, 'ban', '一天以前的不算在今天头上')
+// a hand-over between friends or to an alt: a hundred quick purchases, one seller
+const handover = Array.from({ length: 100 }, (_, i) => buy(5 + i * 10, 10, 'friend'))
+assert.deepEqual(verdictOf(handover), ['watch', 'loop'], '同一个卖家再多也不是抢拍：只给站长看')
+// a sniper: forty-five races won today, from fifteen people
+const sniper = Array.from({ length: 45 }, (_, i) => buy(5 + i * 25, 6 + i % 20, `s${i % 15}`))
+assert.deepEqual(verdictOf(sniper), ['ban', 'B'])
+// the edge the live data showed (26–39 on a best day): a person's to judge
+const keen = Array.from({ length: 30 }, (_, i) => buy(5 + i * 25, 12, `s${i % 20}`))
+assert.deepEqual(verdictOf(keen), ['watch', 'near'])
+// the patient version: twenty a day, every day
+const patientSniper = Array.from({ length: 140 }, (_, i) => buy(30 + i * 70, 20, `s${i % 40}`))
+assert.deepEqual(verdictOf(patientSniper), ['ban', 'C'])
+// slow but never asleep
+const sleepless = Array.from({ length: 120 }, (_, i) => buy(i * 61 + 10, 200, `s${i % 50}`))
+assert.deepEqual(verdictOf(sleepless), ['ban', 'D'], '买得不快，但一天 24 个钟点有 20 个在买')
+console.log('ok  规则：两秒内三次封；多家快买四十次封；同一卖家对倒只上报；手快的真人不封')
 
 // ---- on the real market
 const db = new PGlite()
@@ -77,15 +90,15 @@ await settle()
 assert.equal(await api.guard.banOf(hash(HUMAN)), null)
 console.log('ok  几分钟后买下三张的人照常交易')
 
-// a script: three sellers, a second or two each
-for (const s of sellers.slice(0, 2)) assert((await snipe(s, BOT, 2)).bought)
+// a script: bought within a second or two of the listing, three times
+for (const s of sellers.slice(0, 2)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
 assert.equal(await api.guard.banOf(hash(BOT)), null, '两次还不封')
 assert((await snipe(sellers[2], BOT, 1)).bought)
 await settle()
 const ban = await api.guard.banOf(hash(BOT))
 assert(ban && ban.until > Date.now() + 2.9 * 86_400_000 && ban.until < Date.now() + 3.1 * 86_400_000, '第一次三天')
-console.log('ok  三家秒拍：自动暂停三天 —', ban!.why)
+console.log('ok  两秒内买下三次：自动暂停三天 —', ban!.why)
 
 const refusedBuy = await snipe(sellers[3], BOT, 1)
 assert(refusedBuy.banned && !refusedBuy.ok && typeof refusedBuy.why === 'string')
@@ -105,7 +118,7 @@ console.log('ok  暂停期间不能买、不能挂、不能换；能看、能领
 assert.equal((await call('guard', {}, 'wrong')).ok, false)
 const report = await call('guard', {}, TOKEN); if (process.env.DEBUG) console.log(JSON.stringify(report).slice(0, 900))
 assert(report.ok && report.bans.length === 1 && report.bans[0].running && report.bans[0].rule === 'A')
-assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.fast === 3)
+assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.ultra === 3)
 const lifted = await call('guard', { code: hash(BOT).slice(0, 8), action: 'lift' }, TOKEN)
 assert(lifted.ok && lifted.lifted === 1)
 assert.equal(await api.guard.banOf(hash(BOT)), null)
@@ -117,7 +130,7 @@ console.log('ok  站长看得到证据，能解封；解封后旧账不重算')
 await sql`update market_bans set lifted = null, until = now() - interval '1 minute', made = now() - interval '3 days'`
 await sql`update card_offers set made = made - interval '4 days'`
 api.guard.invalidate()
-for (const s of sellers.slice(3, 6)) assert((await snipe(s, BOT, 2)).bought)
+for (const s of sellers.slice(3, 6)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
 const again = await api.guard.banOf(hash(BOT))
 assert(again && again.until > Date.now() + 4.9 * 86_400_000, '再犯五天')

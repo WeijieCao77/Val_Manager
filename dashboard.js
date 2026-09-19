@@ -231,8 +231,8 @@ export const dashboardHtml = () => `<!doctype html>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
-    只看「一口价买下」离「挂出来」隔了多久。8 秒内买下 3 张（来自 3 个不同卖家）或 45 秒内 8 张（5 个卖家），一天之内，自动暂停交易 3 天，再犯 5 天。
-    朋友之间约好的秒拍是同一个卖家，不算。「值得看一眼」的不会自动处理，你来定。解除暂停后，之前的记录不再重算。
+    只看「一口价买下」离「挂出来」隔了多久。自动暂停（3 天，再犯 5 天）：一天内 2 秒内买下 3 次；或 45 秒内买下的、每个卖家最多算 3 张，一天满 40（7 天满 120，每家最多算 10）；或 7 天里 5 分钟内买下 100 张且跨 20 个钟点。
+    同一个卖家反复快买（朋友、小号对倒）不算抢拍，只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
   <div id="mgOut" class="acct"></div>
 </div>
@@ -1000,7 +1000,7 @@ const mgCall = async (body) => {
   if (!r.ok) throw new Error('HTTP ' + r.status)
   return r.json()
 }
-const mgCounts = (c) => c ? ('8秒内 ' + c.fast + ' 张/' + c.fastSellers + ' 家 · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家 · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒') : ''
+const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张 · 2秒内 ' + c.ultra + ' · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
 async function mgLoad() {
   const box = $('#mgOut')
   box.textContent = '读取中…'
@@ -1010,7 +1010,7 @@ async function mgLoad() {
     const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
       + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => f.verdict === 'watch').map((f) => '<div>' + who(f) + ' · ' + (f.rule === 'C' ? '全天候买入' : '接近阈值')
+    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时暂停</b> 规则 ' + esc(f.rule) : f.rule === 'loop' ? '同一卖家对倒' : '接近阈值')
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
     box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
       + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')

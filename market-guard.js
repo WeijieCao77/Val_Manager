@@ -1,29 +1,41 @@
 /**
  * Scripts on the trading post.
  *
- * 「有几个人写了脚本 24 小时抢交易，别人挂的便宜卡直接一口价拍掉。」 A script
- * polls the shelf every second and buys the instant a cheap 一口价 appears; a
- * person's shelf refreshes every two minutes and a purchase is three taps.
- * The difference is on the ledger already, and cannot be hidden without giving
- * the advantage up: HOW SOON after a card was listed it was bought outright.
- * card_offers has when the winning bid was made, card_listings has when the
- * card went up — so this reads history and needs no new bookkeeping.
+ * 「有几个人写了脚本 24 小时抢交易，别人挂的便宜卡直接一口价拍掉。」 The
+ * difference between a script and a person is on the ledger already: HOW SOON
+ * after a card was listed it was bought outright, how often, and from how many
+ * different people. card_offers has when the winning bid was made,
+ * card_listings has when the card went up — so this reads history and needs
+ * no new bookkeeping.
  *
- * What counts is a 一口价 purchase (an accepted bid at the listing's buy-now
- * price), by its age: fast (within FAST_SEC of the listing), quick, fresh.
+ * The thresholds were first guessed from how the client works, and the guess
+ * was wrong: read against the live ledger on 2026-09-19 (161 accounts, a week
+ * of trades each) a keen person wins a race in 3–6 seconds routinely, and a
+ * sniping script is not faster than that — it polls every few seconds and its
+ * median is 5 to 30 s. What it does that nobody does by hand is win DOZENS of
+ * those races a day, from dozens of different sellers, day after day
+ * (813806CD: 664 一口价 in a week from 65 sellers, median 5.4 s; B596D4CE: 516
+ * over 22 of the day's 24 hours). And a second kind turned up that nobody had
+ * reported: pairs of accounts passing cards back and forth by script, 470
+ * times a day at a machine's cadence, with purchases 0.7 s after the listing.
  *
- *   A  fast  ≥ 3 in 24 h, from ≥ 3 sellers     nobody's thumbs do this thrice a day
- *   B  quick ≥ 8 in 24 h, from ≥ 5 sellers     a slower script, or one with a delay
- *   C  fresh ≥ 20 in 7 d over ≥ 20 clock hours  nobody is awake for all of them
+ * What counts is a 一口价 purchase, by its age. A seller counts a few times
+ * and no more (SELLER_CAP a day, SELLER_CAP_WEEK a week): two friends — or a
+ * player and his alt — handing cards over ARE quick, and that is one seller,
+ * however often; sniping is quick purchases from MANY.
  *
- * Sellers are counted because two friends handing a card over ARE fast — one
- * lists, the other is waiting — and that is one seller, however often.
+ *   A  ultra (≤ 2 s)  ≥ 3 in 24 h                     no hand is that fast: load, tap, tap, confirm
+ *   B  quick (≤ 45 s), capped a seller, ≥ 40 in 24 h   forty races won in a day, from a dozen people or more
+ *   C  the same over 7 days ≥ 120                      the patient version of B
+ *   D  fresh (≤ 5 min) ≥ 100 in 7 d over ≥ 20 of the 24 clock hours   nobody is awake for all of them
  *
- * A and B suspend trading (MARKET_GUARD=ban, the default): three days the
- * first time, five after that. C, and anybody half-way to A or B, is only put
- * in front of the owner (「watch」) — it is the pattern a patient script would
- * fall back to, but it is also the one a very keen person could brush, so a
- * person decides. MARKET_GUARD=watch bans nobody; =off does nothing.
+ * On that week's ledger these catch 35 of the 161 and leave out the people at
+ * the edge (26–39 capped quick purchases on their best day) — those, the
+ * scripted pairs that stay above two seconds, and anybody half-way to a rule
+ * are put in front of the owner (「watch」) and not touched.
+ *
+ * A–D suspend trading (MARKET_GUARD=ban, the default): three days the first
+ * time, five after that. MARKET_GUARD=watch bans nobody; =off does nothing.
  *
  * Suspended means: no listing, no bidding, no buying, no swaps. Withdrawing,
  * answering and collecting still work, so nothing a suspended account already
@@ -32,10 +44,11 @@
  * purchases made after an account's last ban count toward its next.
  */
 export const GUARD = {
-  FAST_SEC: 8, QUICK_SEC: 45, FRESH_SEC: 300,
-  FAST_N: 3, FAST_SELLERS: 3,
-  QUICK_N: 8, QUICK_SELLERS: 5,
-  FRESH_N: 20, FRESH_HOURS: 20,
+  ULTRA_SEC: 2, QUICK_SEC: 45, FRESH_SEC: 300,
+  ULTRA_N: 3,
+  SELLER_CAP: 3, QUICK_DAY: 40,
+  SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
+  FRESH_N: 100, FRESH_HOURS: 20,
   FIRST_DAYS: 3, REPEAT_DAYS: 5,
 }
 const DAY = 86_400_000
@@ -66,24 +79,39 @@ export function judge(buys, now = Date.now()) {
   const day = rows.filter((b) => now - b.made <= DAY)
   const week = rows.filter((b) => now - b.made <= 7 * DAY)
   const within = (list, sec) => list.filter((b) => b.age <= sec)
-  const sellers = (list) => new Set(list.map((b) => b.seller)).size
-  const fast = within(day, GUARD.FAST_SEC)
-  const quick = within(day, GUARD.QUICK_SEC)
+  const perSeller = (list) => {
+    const n = new Map()
+    for (const b of list) n.set(b.seller, (n.get(b.seller) ?? 0) + 1)
+    return n
+  }
+  /** each seller counted `cap` times at most: many purchases from one person are a hand-over, not a snipe */
+  const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
+  const ultra = within(day, GUARD.ULTRA_SEC)
+  const quickDay = within(day, GUARD.QUICK_SEC)
+  const quickWeek = within(week, GUARD.QUICK_SEC)
   const fresh = within(week, GUARD.FRESH_SEC)
   const hours = new Set(fresh.map((b) => new Date(b.made).getUTCHours())).size
+  const ages = week.map((b) => b.age).sort((a, b) => a - b)
+  const round1 = (x) => Math.round(x * 10) / 10
   const counts = {
     day: day.length, week: week.length,
-    fast: fast.length, fastSellers: sellers(fast),
-    quick: quick.length, quickSellers: sellers(quick),
+    ultra: ultra.length,
+    quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
+    quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
+    // the most quick purchases from any one seller today: a pair passing cards back and forth
+    loop: Math.max(0, ...perSeller(quickDay).values()),
     fresh: fresh.length, freshHours: hours,
-    fastest: rows.length ? Math.round(Math.min(...rows.map((b) => b.age)) * 10) / 10 : null,
+    fastest: ages.length ? round1(ages[0]) : null,
+    median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
   }
   let verdict = null
   let rule = null
-  if (fast.length >= GUARD.FAST_N && counts.fastSellers >= GUARD.FAST_SELLERS) { verdict = 'ban'; rule = 'A' }
-  else if (quick.length >= GUARD.QUICK_N && counts.quickSellers >= GUARD.QUICK_SELLERS) { verdict = 'ban'; rule = 'B' }
-  else if (fresh.length >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) { verdict = 'watch'; rule = 'C' }
-  else if (fast.length >= 2 || quick.length >= Math.ceil(GUARD.QUICK_N / 2) || fresh.length >= GUARD.FRESH_N / 2) { verdict = 'watch'; rule = 'near' }
+  if (counts.ultra >= GUARD.ULTRA_N) { verdict = 'ban'; rule = 'A' }
+  else if (counts.quickCapped >= GUARD.QUICK_DAY) { verdict = 'ban'; rule = 'B' }
+  else if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) { verdict = 'ban'; rule = 'C' }
+  else if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) { verdict = 'ban'; rule = 'D' }
+  else if (counts.loop >= 60) { verdict = 'watch'; rule = 'loop' }
+  else if (counts.ultra >= 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60 || (hours >= 16 && counts.fresh >= 40)) { verdict = 'watch'; rule = 'near' }
   return { verdict, rule, counts }
 }
 
@@ -125,7 +153,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     where o.buyer_h = ${me} and o.status = 'accepted'
       and l.buyout is not null and o.price >= l.buyout
       and o.made > ${since}
-    order by o.made desc limit 500`
+    order by o.made desc limit 3000`
 
   /** When this account's slate was last wiped: its newest ban (or the lift of it). */
   async function slate(me) {
@@ -180,7 +208,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       from card_offers o join card_listings l on l.id = o.listing
       where o.status = 'accepted' and l.buyout is not null and o.price >= l.buyout
         and o.made > now() - interval '7 days'
-      group by o.buyer_h having count(*) >= 2 order by n desc limit 300`
+      group by o.buyer_h having count(*) >= 10 order by n desc limit 400`
     const out = []
     for (const b of buyers) {
       const found = await check(b.buyer_h, { dry: true })
