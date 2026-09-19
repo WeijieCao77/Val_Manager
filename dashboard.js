@@ -232,6 +232,7 @@ export const dashboardHtml = () => `<!doctype html>
   </div>
   <p class="why" style="margin:6px 0 10px">
     只看「一口价买下」离「挂出来」隔了多久。自动暂停（3 天，再犯 5 天）：一天内 2 秒内买下（或报名抽签）5 次；或 45 秒内买下的、每个卖家最多算 3 张，一天满 40（7 天满 120，每家最多算 10）；或 7 天里 5 分钟内买下 100 张且跨 20 个钟点；或一天内从同一个卖家手里买下 30 张刚挂出 5 分钟内的卡（大小号来回倒）。「45 秒内」从保护期结束那一刻起算。
+    <b>集卡不算：</b>②③⑤ 只数「重复买同一张卡」和「买来又挂出去」的买入；每张只买一次、留着不卖的，买得再快再多也不计。
     接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
   <div id="mgOut" class="acct"></div>
@@ -1000,7 +1001,7 @@ const mgCall = async (body) => {
   if (!r.ok) throw new Error('HTTP ' + r.status)
   return r.json()
 }
-const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张 · 2秒内 ' + c.ultra + ' · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
+const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张，7天里算倒卖的 ' + (c.trading ?? '?') + '/' + c.week + ' · 2秒内 ' + c.ultra + ' · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
 async function mgLoad() {
   const box = $('#mgOut')
   box.textContent = '读取中…'

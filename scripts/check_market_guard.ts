@@ -40,13 +40,26 @@ assert.deepEqual(verdictOf(sniper), ['ban', 'B'])
 // the edge the live data showed (26–39 on a best day): a person's to judge
 const keen = Array.from({ length: 30 }, (_, i) => buy(5 + i * 25, 12, `s${i % 20}`))
 assert.deepEqual(verdictOf(keen), ['watch', 'near'])
+// Collecting is not trading. The same forty-five races won today — but forty-five DIFFERENT cards, none sold on:
+// somebody ticking 「没有的卡」 and filling a collection. And a hundred cards from one prolific seller, likewise.
+const kept = (list: ReturnType<typeof buy>[]) => list.map((b, i) => ({ ...b, card_id: `p:P${i}`, flipped: false }))
+assert.notEqual(judge(kept(sniper), now).verdict, 'ban', '一天快买四十五张不同的卡、都留着：是在集卡，不封')
+assert.deepEqual([judge(kept(sniper), now).counts.quickCapped, judge(kept(sniper), now).counts.trading], [0, 0])
+assert.notEqual(judge(kept(handover), now).verdict, 'ban', '从同一个卖家手里买一百张不同的卡、都留着：也是集卡')
+assert.equal(judge(kept(handover), now).counts.trading, 0)
+// the same purchases, but the same few cards over and over, or put straight back on the shelf: trading
+assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 5}`, flipped: false }))), ['ban', 'B'], '四十五次里四十次是重复买同五张卡：按四十次算')
+assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 10}`, flipped: false }))), ['watch', 'near'], '三十五次重复：差一点，只上报')
+assert.deepEqual(verdictOf(kept(handover).map((b) => ({ ...b, flipped: true }))), ['ban', 'E'], '买来又挂出去：是来回倒，不是集卡')
+// what a body cannot do stays what it was, whatever is bought
+assert.deepEqual(verdictOf(kept([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a')))), ['ban', 'A'])
 // the patient version: twenty a day, every day
 const patientSniper = Array.from({ length: 140 }, (_, i) => buy(30 + i * 70, 20, `s${i % 40}`))
 assert.deepEqual(verdictOf(patientSniper), ['ban', 'C'])
 // slow but never asleep
 const sleepless = Array.from({ length: 120 }, (_, i) => buy(i * 61 + 10, 200, `s${i % 50}`))
 assert.deepEqual(verdictOf(sleepless), ['ban', 'D'], '买得不快，但一天 24 个钟点有 20 个在买')
-console.log('ok  规则：两秒内五次封；多家快买四十次封；同一卖家一天三十张封；手快的真人不封')
+console.log('ok  规则：两秒内五次封；多家快买四十次封；同一卖家一天三十张封；手快的真人不封；集卡（每张只买一次、不转卖）不计')
 
 // ---- on the real market
 const db = new PGlite()

@@ -40,7 +40,19 @@
  * protected minute; that was reasoned, not replayed — there was no ledger with a
  * 保护期 in it yet — and is the first thing to re-read against one.
  *
- * A–D suspend trading (MARKET_GUARD=ban, the default): three days the first
+ * Collecting is not trading (owner, 2026-09-19, after rule E suspended four people in an hour: 「很多玩家
+ * 会选『没有的卡』，一个一个去拍市场上他没有且价格不高的卡」). On the hot end of this market every cheap
+ * card goes within minutes, so somebody filling a collection buys as fresh, as often and from the same prolific
+ * sellers as a script does — by age alone the two cannot be told apart. What differs is WHAT is bought: a
+ * collector buys each card once and keeps it (Leee: 78 purchases, 77 different cards, none resold), a script
+ * buys the same card again and again or puts it straight back on the shelf (4EF44D06: 1899 purchases of 640
+ * cards; 0930F66C: two in three relisted). So B, C and E count only TRADING purchases — a card this account
+ * had already bought in the window, or one it listed again afterwards. Replayed over the same 161 accounts:
+ * everybody suspended by mistake falls to a fifth of a threshold or less, every sniper and every pair stays
+ * over, and E's distribution is two humps with nothing between 26 and 187. A and D are about what a body can
+ * do and count every purchase as before.
+ *
+ * A–E suspend trading (MARKET_GUARD=ban, the default): three days the first
  * time, five after that. MARKET_GUARD=watch bans nobody; =off does nothing.
  *
  * Suspended means: no listing, no bidding, no buying, no swaps. Withdrawing,
@@ -85,17 +97,24 @@ create index if not exists market_bans_who_idx on market_bans (id_hash, made des
 
 /**
  * One account's 一口价 purchases → what they look like.
- * buys: [{ made, created, seller }] (dates or ms). Pure, so the check script can walk its edges.
+ * buys: [{ made, created, seller, card_id?, flipped?, won? }] (dates or ms). Pure, so the check script can walk its edges.
  */
 export function judge(buys, now = Date.now()) {
   const rows = buys.map((b) => {
     const made = new Date(b.made).getTime()
-    return { made, age: (made - new Date(b.created).getTime()) / 1000, seller: b.seller, won: b.won !== false }
+    return { made, age: (made - new Date(b.created).getTime()) / 1000, seller: b.seller, won: b.won !== false, card: b.card_id ?? null, flipped: b.flipped === true }
   }).filter((b) => Number.isFinite(b.age) && b.age >= 0 && b.made <= now)
   // Since the 保护期 a buy-now in the first minute is an entry in a draw, and most entries lose. Volume is
   // still judged on cards actually bought; but an entry two seconds after the listing is a script's, won or lost.
   const entries = rows.filter((b) => now - b.made <= DAY)
   rows.splice(0, rows.length, ...rows.filter((b) => b.won))
+  // Trading or collecting: a card bought before in the window, or listed again afterwards, is trading. A row
+  // with no card id (the check script's paper cases) counts as trading, which is what every rule assumed before.
+  const had = new Set()
+  for (const b of rows.slice().sort((x, y) => x.made - y.made)) {
+    b.trading = b.card === null || b.flipped || had.has(b.card)
+    if (b.card !== null) had.add(b.card)
+  }
   const day = rows.filter((b) => now - b.made <= DAY)
   const week = rows.filter((b) => now - b.made <= 7 * DAY)
   const within = (list, sec) => list.filter((b) => b.age <= sec)
@@ -108,19 +127,22 @@ export function judge(buys, now = Date.now()) {
   const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
   // within two seconds of the listing, or of the moment its protected minute ended
   const ultra = entries.filter((b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC))
-  const quickDay = within(day, GUARD.QUICK_SEC)
-  const quickWeek = within(week, GUARD.QUICK_SEC)
+  const trades = (list) => list.filter((b) => b.trading)
+  const quickDay = within(trades(day), GUARD.QUICK_SEC)
+  const quickWeek = within(trades(week), GUARD.QUICK_SEC)
   const fresh = within(week, GUARD.FRESH_SEC)
   const hours = new Set(fresh.map((b) => new Date(b.made).getUTCHours())).size
   const ages = week.map((b) => b.age).sort((a, b) => a - b)
   const round1 = (x) => Math.round(x * 10) / 10
   const counts = {
     day: day.length, week: week.length,
+    // of the week's purchases, the ones that were trading rather than collecting — what B, C and E count
+    trading: trades(week).length,
     ultra: ultra.length,
     quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
     quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
     // the most fresh purchases from any one seller today: a main and its alt passing cards across
-    loop: Math.max(0, ...perSeller(within(day, GUARD.FRESH_SEC)).values()),
+    loop: Math.max(0, ...perSeller(within(trades(day), GUARD.FRESH_SEC)).values()),
     fresh: fresh.length, freshHours: hours,
     fastest: ages.length ? round1(ages[0]) : null,
     median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
@@ -170,7 +192,9 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
 
   const buysOf = (me, since) => work`
-    select o.made, l.created, l.seller_h as seller, l.card_id, o.price, (o.status = 'accepted') as won
+    select o.made, l.created, l.seller_h as seller, l.card_id, o.price, (o.status = 'accepted') as won,
+           -- bought and put back on the shelf: trading, not collecting
+           exists (select 1 from card_listings r where r.seller_h = o.buyer_h and r.card_id = l.card_id and r.created > o.made) as flipped
     from card_offers o join card_listings l on l.id = o.listing
     -- 'expired' at the buy-now price is an entry in a 保护期 draw that somebody else won
     -- ('open' at that price is an entry whose draw has not happened yet)
