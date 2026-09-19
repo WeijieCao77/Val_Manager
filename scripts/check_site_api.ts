@@ -224,6 +224,8 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const l2 = { code: 0, body: {} as Record<string, unknown> }
   await market.route({ body: JSON.stringify({ id: ID, cardId: legend.id, ask, buyout: PRICE }), method: 'POST' } as never, l2 as never, '/api/market/list', 't')
   check(l2.body.ok === true, '（准备）彩卡挂出去，带一口价', JSON.stringify(l2.body))
+  // past its 上架保护期 (the first minute, when a buy-now is a draw — see check_market_protect.ts)
+  await sql`update card_listings set created = now() - interval '2 minutes' where id = ${String(l2.body.id)}::bigint`
   const o2 = { code: 0, body: {} as Record<string, unknown> }
   await market.route({ body: JSON.stringify({ id: BUYER_ID, listing: l2.body.id, price: PRICE }), method: 'POST' } as never, o2 as never, '/api/market/offer', 't')
   check(o2.body.ok === true && o2.body.bought === true, '（准备）对手按一口价买下', JSON.stringify(o2.body))

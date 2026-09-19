@@ -19,7 +19,7 @@ const now = Date.parse('2026-09-18T12:00:00Z')
 const buy = (agoMin: number, age: number, seller: string) => ({ made: now - agoMin * 60_000, created: now - agoMin * 60_000 - age * 1000, seller })
 const verdictOf = (list: ReturnType<typeof buy>[]) => { const j = judge(list, now); return [j.verdict, j.rule] }
 assert.equal(judge([], now).verdict, null)
-assert.equal(judge([buy(5, 60, 'a'), buy(50, 90, 'b'), buy(90, 200, 'c')], now).verdict, null, '几分钟后才买到的，是正常人')
+assert.equal(judge([buy(5, 75, 'a'), buy(50, 90, 'b'), buy(90, 200, 'c')], now).verdict, null, '几分钟后才买到的，是正常人')
 // a person wins a race in 3–6 s routinely (the live ledger, 2026-09-19): that alone is nothing
 assert.equal(judge(Array.from({ length: 12 }, (_, i) => buy(10 + i * 20, 3 + i % 4, `s${i}`)), now).verdict, null, '一天手快十来次，不算')
 assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a'))), ['ban', 'A'], '两秒内五次，哪怕同一个卖家：手做不到')
@@ -28,7 +28,12 @@ assert.equal(judge([buy(5, 0.7, 'a'), buy(50, 1.2, 'b')], now).verdict, 'watch')
 assert.notEqual(judge([1500, 1600, 1700, 1800, 1900].map((m) => buy(m, 0.8, 'a')), now).verdict, 'ban', '一天以前的不算在今天头上')
 // a hand-over between friends or to an alt: a hundred quick purchases, one seller
 const handover = Array.from({ length: 100 }, (_, i) => buy(5 + i * 10, 10, 'friend'))
-assert.deepEqual(verdictOf(handover), ['watch', 'loop'], '同一个卖家再多也不是抢拍：只给站长看')
+assert.deepEqual(verdictOf(handover), ['ban', 'E'], '大小号来回倒：一天从同一个卖家手里快买三十张')
+assert.deepEqual(verdictOf(handover.slice(0, 12)), ['watch', 'loop'], '朋友之间转十来张：只给站长看')
+assert.equal(judge(handover.slice(0, 8), now).verdict, null, '转几张不算什么')
+// after the protected minute the race starts when it ENDS: a buy at 60.5 s is as inhuman as one at 0.5 s
+assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 60.5, `s${m}`))), ['ban', 'A'])
+assert.equal(judge([5, 50, 90, 130, 170].map((m) => buy(m, 30, `s${m}`)), now).verdict, null, '保护期中间报名中签的，不是秒拍')
 // a sniper: forty-five races won today, from fifteen people
 const sniper = Array.from({ length: 45 }, (_, i) => buy(5 + i * 25, 6 + i % 20, `s${i % 15}`))
 assert.deepEqual(verdictOf(sniper), ['ban', 'B'])
@@ -41,7 +46,7 @@ assert.deepEqual(verdictOf(patientSniper), ['ban', 'C'])
 // slow but never asleep
 const sleepless = Array.from({ length: 120 }, (_, i) => buy(i * 61 + 10, 200, `s${i % 50}`))
 assert.deepEqual(verdictOf(sleepless), ['ban', 'D'], '买得不快，但一天 24 个钟点有 20 个在买')
-console.log('ok  规则：两秒内三次封；多家快买四十次封；同一卖家对倒只上报；手快的真人不封')
+console.log('ok  规则：两秒内五次封；多家快买四十次封；同一卖家一天三十张封；手快的真人不封')
 
 // ---- on the real market
 const db = new PGlite()

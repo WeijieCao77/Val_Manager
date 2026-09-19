@@ -37,7 +37,7 @@
 import { createHash, randomInt } from 'node:crypto'
 import { isVerified } from './phone-api.js'
 import { requestAction } from './cards-api.js'
-import { makeMarketGuard } from './market-guard.js'
+import { makeMarketGuard, PROTECT_SEC } from './market-guard.js'
 
 /** How long a listing takes bids before the top one wins — the seller's choice, within these. */
 export const AUCTION_HOURS = 24
@@ -60,7 +60,7 @@ export const BUYOUT_MIN = 1.2
  * second gains nothing over a person who sees it in its fortieth. After the
  * minute, with nobody entered, 一口价 buys at once as it always did.
  */
-export const PROTECT_SEC = 60
+export { PROTECT_SEC }
 /** The least the next bid may be: the start until somebody bids, a step over the top after. */
 export const minBid = (ask, top) => (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
 

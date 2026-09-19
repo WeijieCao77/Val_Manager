@@ -29,12 +29,16 @@
  *   B  quick (≤ 45 s), capped a seller, ≥ 40 in 24 h   forty races won in a day, from a dozen people or more
  *   C  the same over 7 days ≥ 120                      the patient version of B
  *   D  fresh (≤ 5 min) ≥ 100 in 7 d over ≥ 20 of the 24 clock hours   nobody is awake for all of them
+ *   E  fresh purchases from ONE seller ≥ 30 in 24 h    a main and its alt passing cards across (owner, 2026-09-19:
+ *                                                      「这种大小号来回倒检测到也封」 — it was watch-only for a few hours)
  *
  * (A was three at first; the owner made it five on 2026-09-19 and had everybody
  * suspended until then let out.) On that week's ledger these catch 35 of the 161 and leave out the people at
- * the edge (26–39 capped quick purchases on their best day) — those, the
- * scripted pairs that stay above two seconds, and anybody half-way to a rule
- * are put in front of the owner (「watch」) and not touched.
+ * the edge (26–39 capped quick purchases on their best day) — those and anybody
+ * half-way to a rule are put in front of the owner (「watch」) and not touched.
+ * Since the 保护期 (the same day) 「quick」 is measured to 45 s past the END of the
+ * protected minute; that was reasoned, not replayed — there was no ledger with a
+ * 保护期 in it yet — and is the first thing to re-read against one.
  *
  * A–D suspend trading (MARKET_GUARD=ban, the default): three days the first
  * time, five after that. MARKET_GUARD=watch bans nobody; =off does nothing.
@@ -45,8 +49,18 @@
  * lift one (which also forgives everything before the lift), and only
  * purchases made after an account's last ban count toward its next.
  */
+/**
+ * 上架保护期 (market-api.js): for this long after a card goes up a buy-now is an entry in a draw, and only
+ * after it does a buy-now buy at once. It lives here because the guard's clocks are read from it: the race
+ * a script wins now starts when the minute ENDS, so 「quick」 runs to QUICK_SEC past that moment, and a
+ * purchase in the two seconds after it is as inhuman as one in the two seconds after the listing.
+ */
+export const PROTECT_SEC = 60
+
 export const GUARD = {
-  ULTRA_SEC: 2, QUICK_SEC: 45, FRESH_SEC: 300,
+  ULTRA_SEC: 2, QUICK_SEC: PROTECT_SEC + 45, FRESH_SEC: 300,
+  // 大小号来回倒: this many cards bought within FRESH_SEC of their listing from ONE seller, in a day
+  LOOP_N: 30,
   ULTRA_N: 5,
   SELLER_CAP: 3, QUICK_DAY: 40,
   SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
@@ -92,7 +106,8 @@ export function judge(buys, now = Date.now()) {
   }
   /** each seller counted `cap` times at most: many purchases from one person are a hand-over, not a snipe */
   const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
-  const ultra = within(entries, GUARD.ULTRA_SEC)
+  // within two seconds of the listing, or of the moment its protected minute ended
+  const ultra = entries.filter((b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC))
   const quickDay = within(day, GUARD.QUICK_SEC)
   const quickWeek = within(week, GUARD.QUICK_SEC)
   const fresh = within(week, GUARD.FRESH_SEC)
@@ -104,8 +119,8 @@ export function judge(buys, now = Date.now()) {
     ultra: ultra.length,
     quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
     quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
-    // the most quick purchases from any one seller today: a pair passing cards back and forth
-    loop: Math.max(0, ...perSeller(quickDay).values()),
+    // the most fresh purchases from any one seller today: a main and its alt passing cards across
+    loop: Math.max(0, ...perSeller(within(day, GUARD.FRESH_SEC)).values()),
     fresh: fresh.length, freshHours: hours,
     fastest: ages.length ? round1(ages[0]) : null,
     median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
@@ -116,7 +131,8 @@ export function judge(buys, now = Date.now()) {
   else if (counts.quickCapped >= GUARD.QUICK_DAY) { verdict = 'ban'; rule = 'B' }
   else if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) { verdict = 'ban'; rule = 'C' }
   else if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) { verdict = 'ban'; rule = 'D' }
-  else if (counts.loop >= 60) { verdict = 'watch'; rule = 'loop' }
+  else if (counts.loop >= GUARD.LOOP_N) { verdict = 'ban'; rule = 'E' }
+  else if (counts.loop >= GUARD.LOOP_N / 3) { verdict = 'watch'; rule = 'loop' }
   else if (counts.ultra >= 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60 || (hours >= 16 && counts.fresh >= 40)) { verdict = 'watch'; rule = 'near' }
   return { verdict, rule, counts }
 }

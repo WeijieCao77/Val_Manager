@@ -231,8 +231,8 @@ export const dashboardHtml = () => `<!doctype html>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
-    只看「一口价买下」离「挂出来」隔了多久。自动暂停（3 天，再犯 5 天）：一天内 2 秒内买下（或报名抽签）5 次；或 45 秒内买下的、每个卖家最多算 3 张，一天满 40（7 天满 120，每家最多算 10）；或 7 天里 5 分钟内买下 100 张且跨 20 个钟点。
-    同一个卖家反复快买（朋友、小号对倒）不算抢拍，只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
+    只看「一口价买下」离「挂出来」隔了多久。自动暂停（3 天，再犯 5 天）：一天内 2 秒内买下（或报名抽签）5 次；或 45 秒内买下的、每个卖家最多算 3 张，一天满 40（7 天满 120，每家最多算 10）；或 7 天里 5 分钟内买下 100 张且跨 20 个钟点；或一天内从同一个卖家手里买下 30 张刚挂出 5 分钟内的卡（大小号来回倒）。「45 秒内」从保护期结束那一刻起算。
+    接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
   <div id="mgOut" class="acct"></div>
 </div>
@@ -1010,7 +1010,7 @@ async function mgLoad() {
     const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
       + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时暂停</b> 规则 ' + esc(f.rule) : f.rule === 'loop' ? '同一卖家对倒' : '接近阈值')
+    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时暂停</b> 规则 ' + esc(f.rule) : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
     box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
       + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')
