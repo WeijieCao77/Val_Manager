@@ -5,40 +5,80 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    # Read the secret once at job level so the deploy step can test for it — a
-    # secret cannot be referenced directly from an `if:` expression.
-    #
-    # Railway has two kinds of token and they authenticate differently: a
-    # *project* token via RAILWAY_TOKEN, an *account* token via
-    # RAILWAY_API_TOKEN. The CLI prefers RAILWAY_TOKEN when both are set, so
-    # supplying an account token under both names fails as a bad project token.
-    # The deploy step therefore tries each path rather than guessing which kind
-    # the secret is.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:ci
+      # build already includes TypeScript checking and the server engine.
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tested-build
+          path: |
+            dist/
+            dist-server/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  audit:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: tested-build
+      # Independent machines isolate databases, ports and filesystem fixtures.
+      # Every manifest entry runs in exactly one shard with its original args/env.
+      - run: npm run audit:ci -- --shard ${{ matrix.shard }}/4 --report audit-results/shard-${{ matrix.shard }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-timings-${{ matrix.shard }}
+          path: audit-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy:
+    # A failed/cancelled build or ANY audit shard prevents deployment.
+    needs: [build, audit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A project token uses RAILWAY_TOKEN; an account token uses RAILWAY_API_TOKEN.
     env:
       HAS_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT: ff7eb0ac-af07-4854-8d7f-420e20a48504
       RAILWAY_ENVIRONMENT: production
     steps:
       - uses: actions/checkout@v4
-
-      # typecheck and build here so a broken commit never reaches production
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npx tsc -b --noEmit
-      - run: npm run build
-      # The game's own logic audit: every check_*.ts, the data audit, the
-      # concurrency and market cases. A commit that fails any of them does
-      # not deploy. Slow, deliberately — it was not here before, and two
-      # checks had been failing for days with nothing to say so.
-      - run: npm run audit
-        timeout-minutes: 30
+      - uses: actions/download-artifact@v4
+        with:
+          name: tested-build
 
       - name: Deploy
         if: env.HAS_TOKEN != ''

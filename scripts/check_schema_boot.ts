@@ -22,7 +22,13 @@
  *   - every schema the server needs is in the list, and the list is what the
  *     local pglite branch applies too
  */
-import { applySchema, SCHEMAS } from '../db-schema.js'
+import { applySchema as applySchemaWithTimer, SCHEMAS } from '../db-schema.js'
+
+// Record the real backoff requests without spending 65 seconds asleep.
+const waits: number[] = []
+const applySchema = (sql: never) => applySchemaWithTimer(sql, {
+  waitForRetry: async (ms: number) => { waits.push(ms) },
+})
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -72,6 +78,7 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   await applySchema(sql as never).catch((e: Error) => { threw = e.message })
   check('第一次失败，第二次成功', !threw && sql.attempts === 2, threw || `${sql.attempts} 次`)
   check('每份 schema 都真的跑了', SCHEMAS.every((s) => sql.ran.includes(s)))
+  check('成功前只等一次 5 秒', JSON.stringify(waits.splice(0)) === '[5000]')
 }
 
 // ---- a release that adds tables of its own sends only its own schema --------
@@ -129,13 +136,15 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   let result: { ready?: boolean } | undefined
   await applySchema(sql as never).then((r: { ready?: boolean }) => { result = r }).catch((e: Error) => { threw = e.message })
   check('旧库保留连接，但迁移失败不允许切流', !threw && result?.ready === false, threw || JSON.stringify(result))
-  check('试了不止一次', sql.attempts >= 4, `${sql.attempts} 次`)
+  check('失败恰好重试到第四次', sql.attempts === 4, `${sql.attempts} 次`)
+  check('退避依次 5/10/15 秒，最后失败不再等', JSON.stringify(waits.splice(0)) === '[5000,10000,15000]')
   check('确认过表在不在', sql.ran.some((q) => q.includes('to_regclass')))
 
   const empty = fakeSql({ failTimes: 99, tables: false })
   let threw2 = ''
   await applySchema(empty as never).catch((e: Error) => { threw2 = e.message })
   check('空库还是要抛，不然只会 500', !!threw2, threw2 || '居然没抛')
+  check('空库同样四次尝试、三次退避', empty.attempts === 4 && JSON.stringify(waits.splice(0)) === '[5000,10000,15000]')
 }
 
 // ---- and the server does not smother it ------------------------------------

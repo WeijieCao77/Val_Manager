@@ -1,5 +1,6 @@
 import { SCHEMA } from './analytics.js'
 import { createHash } from 'node:crypto'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { CARD_SCHEMA } from './cards-api.js'
 import { PROFILE_SCHEMA } from './profile-api.js'
 import { SITE_SCHEMA } from './site-api.js'
@@ -94,7 +95,7 @@ async function alreadyApplied(sql) {
   return !!m?.ok
 }
 
-export async function applySchema(sql) {
+export async function applySchema(sql, { waitForRetry = sleep } = {}) {
   let todo = SCHEMAS
   try {
     if (await alreadyApplied(sql)) {
@@ -130,7 +131,7 @@ export async function applySchema(sql) {
       // not add up to a minute of queued queries
       const wait = attempt * 5000
       console.warn(`analytics: schema attempt ${attempt} failed — ${err.message}`)
-      if (attempt < 4) await new Promise((r) => setTimeout(r, wait))
+      if (attempt < 4) await waitForRetry(wait)
     }
   }
   // Out of attempts. If the tables are there, the migration had nothing to add
