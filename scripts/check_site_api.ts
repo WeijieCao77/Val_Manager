@@ -402,6 +402,19 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const got = await sql`select pack, count, body from card_mail where to_h = ${hashOf(ids[1])}`
   check(got[0].pack === 'ten' && got[0].count === 2 && JSON.stringify(got[0].body).includes('群抽奖'), '每一份都一样', JSON.stringify(got[0]))
 
+  // 「哪些号发过、哪些没发过」: every grant an account has had, by 对战码, read only
+  {
+    const seen = await call('/api/admin/grants', { method: 'POST', body: { who: `${codes[0]} ${codes[1]} 00000000` }, token: TOKEN })
+    const acc = (seen.body.accounts ?? []) as { who: string; found: boolean; grants?: { pack: string; count: number; note?: string; taken: string | null }[] }[]
+    check(seen.body.ok === true && acc.length === 3 && acc[2].found === false, '查发放记录：对不上的号单独标出来，不影响别的', JSON.stringify(seen.body).slice(0, 200))
+    check(acc[0].grants?.length === 1 && acc[0].grants[0].pack === 'ten' && acc[0].grants[0].count === 2 && acc[0].grants[0].note === '群抽奖' && acc[0].grants[0].taken === null,
+      '查发放记录：卡包、数量、备注、领没领都在', JSON.stringify(acc[0]))
+    check(!JSON.stringify(seen.body).includes(hashOf(ids[0]).slice(8, 24)), '查发放记录：不带账号哈希')
+    check(await mails() === 3, '查发放记录：只读，一封没多')
+    const closed = await call('/api/admin/grants', { method: 'POST', body: { who: codes[0] }, token: 'wrong' })
+    check(closed.code === 404, '查发放记录：没有站长 token 是 404')
+  }
+
   r = await admin({ who: `${codes[0]}\n00000000\nVM-9999-9999-9999-9999-9999\nnope`, coins: 100 })
   check(r.body.ok === false && /3 个号对不上，一个都没发/.test(String(r.body.why)), '有对不上的就一个都不发，说清楚是哪几个', String(r.body.why))
   check(!String(r.body.why).includes('9999-9999-9999'), '回话里不带完整的账号 ID', String(r.body.why))

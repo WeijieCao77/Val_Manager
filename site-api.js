@@ -302,6 +302,43 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
   }
 
   /**
+   * What the desk has already handed each of these accounts: every 'grant' mail, collected or not.
+   *
+   * 「之前给其中一些号发过，你查一下哪些发过哪些没发过」 (2026-09-19). 查账号 shows an account's last twenty
+   * pieces of mail without saying which pack was in them, and a busy trader's grants are twenty sales down the
+   * list — so a list of 对战码 is answered here in two queries, the way grant() resolves it. Read only.
+   */
+  async function grants(req, res) {
+    if (!sql) { json(res, 503, { ok: false, why: 'no database' }); return }
+    let body
+    try { body = JSON.parse(await readBody(req, 32_768)) } catch { json(res, 400, { ok: false }); return }
+    const list = String(body?.who ?? '').trim().split(/[\s,，;；、|]+/).filter(Boolean)
+    if (!list.length || list.length > GRANT_MAX) { json(res, 200, { ok: false, why: `填 1–${GRANT_MAX} 个对战码或账号 ID` }); return }
+    const found = await findAccounts(list)
+    const resolved = list.map((who) => ({ who: who.length > 8 ? `${who.slice(0, 7)}…` : who, ...found(who) }))
+    const hashes = [...new Set(resolved.filter((r) => r.target).map((r) => r.target.id_hash))]
+    const rows = hashes.length ? await sql`
+      select to_h, pack, count, coins, card_id, made, taken, body->>'note' as note
+      from card_mail where kind = 'grant' and to_h = any(${hashes}::text[]) order by made asc, id asc` : []
+    const byHash = new Map()
+    for (const r of rows) byHash.set(r.to_h, [...(byHash.get(r.to_h) ?? []), r])
+    json(res, 200, {
+      ok: true,
+      accounts: resolved.map((r) => {
+        if (!r.target) return { who: r.who, found: false, why: r.why }
+        const shown = displayName(r.target.name, r.target.id_hash)
+        return {
+          who: r.who, found: true, name: `${shown.name} #${shown.tag}`, code: r.target.id_hash.slice(0, 8).toUpperCase(),
+          grants: (byHash.get(r.target.id_hash) ?? []).map((g) => ({
+            pack: g.pack, count: g.pack ? g.count : undefined, coins: g.coins || undefined, cardId: g.card_id ?? undefined,
+            made: g.made, taken: g.taken, note: g.note ?? undefined,
+          })),
+        }
+      }),
+    })
+  }
+
+  /**
    * Take back the copies of a grant that went out more than once.
    *
    * 2026-09-17: a grant to 35 accounts timed out at the gateway while the
@@ -706,6 +743,15 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
         }
         if (req.method !== 'POST') { json(res, 405, { ok: false }); return true }
         await grant(req, res)
+        return true
+      }
+      if (path === '/api/admin/grants') {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'POST') { json(res, 405, { ok: false }); return true }
+        await grants(req, res)
         return true
       }
       if (path === '/api/admin/grant_dedupe') {
