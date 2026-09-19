@@ -2277,9 +2277,12 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .home-preview:hover { border-color: var(--line); border-left-color: var(--accent); transform: none; }
 .home-preview-label { color: var(--accent); font-size: var(--t-small); letter-spacing: .08em; }
 .home-preview-status { margin: 18px; color: var(--muted); font-size: var(--t-small); white-space: nowrap; }
+.home-preview-go { margin: 18px; flex: none; }
+.home-preview-go button { white-space: nowrap; }
 @media (max-width: 560px) {
   .home-preview { flex-direction: column; align-items: stretch; }
   .home-preview-status { margin: 0 18px 18px; }
+  .home-preview-go { margin: 0 18px 18px; }
 }
 
 

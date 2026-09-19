@@ -36,7 +36,7 @@ assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 60.5, `s${m}`
 assert.equal(judge([5, 50, 90, 130, 170].map((m) => buy(m, 30, `s${m}`)), now).verdict, null, '保护期中间报名中签的，不是秒拍')
 // a sniper: forty-five races won today, from fifteen people
 const sniper = Array.from({ length: 45 }, (_, i) => buy(5 + i * 25, 6 + i % 20, `s${i % 15}`))
-assert.deepEqual(verdictOf(sniper), ['ban', 'B'])
+assert.deepEqual(verdictOf(sniper), ['watch', 'B'], '多家快买过线：上报给站长，不自动封（站长 2026-09-19：稳一点）')
 // the edge the live data showed (26–39 on a best day): a person's to judge
 const keen = Array.from({ length: 30 }, (_, i) => buy(5 + i * 25, 12, `s${i % 20}`))
 assert.deepEqual(verdictOf(keen), ['watch', 'near'])
@@ -48,17 +48,23 @@ assert.deepEqual([judge(kept(sniper), now).counts.quickCapped, judge(kept(sniper
 assert.notEqual(judge(kept(handover), now).verdict, 'ban', '从同一个卖家手里买一百张不同的卡、都留着：也是集卡')
 assert.equal(judge(kept(handover), now).counts.trading, 0)
 // the same purchases, but the same few cards over and over, or put straight back on the shelf: trading
-assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 5}`, flipped: false }))), ['ban', 'B'], '四十五次里四十次是重复买同五张卡：按四十次算')
+assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 5}`, flipped: false }))), ['watch', 'B'], '四十五次里四十次是重复买同五张卡：按四十次算，过线上报')
 assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 10}`, flipped: false }))), ['watch', 'near'], '三十五次重复：差一点，只上报')
 assert.deepEqual(verdictOf(kept(handover).map((b) => ({ ...b, flipped: true }))), ['ban', 'E'], '买来又挂出去：是来回倒，不是集卡')
 // what a body cannot do stays what it was, whatever is bought
 assert.deepEqual(verdictOf(kept([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a')))), ['ban', 'A'])
 // the patient version: twenty a day, every day
 const patientSniper = Array.from({ length: 140 }, (_, i) => buy(30 + i * 70, 20, `s${i % 40}`))
-assert.deepEqual(verdictOf(patientSniper), ['ban', 'C'])
+assert.deepEqual(verdictOf(patientSniper), ['watch', 'C'])
 // slow but never asleep
 const sleepless = Array.from({ length: 120 }, (_, i) => buy(i * 61 + 10, 200, `s${i % 50}`))
-assert.deepEqual(verdictOf(sleepless), ['ban', 'D'], '买得不快，但一天 24 个钟点有 20 个在买')
+assert.deepEqual(verdictOf(sleepless), ['watch', 'D'], '买得不快，但一天 24 个钟点有 20 个在买：上报')
+// …and the owner can hand any of them back to the machine
+assert.deepEqual([judge(sleepless, now, new Set(['A', 'D', 'E'])).verdict, judge(patientSniper, now, new Set(['C'])).verdict], ['ban', 'ban'])
+// a ring does not get out by waiting: thirty trading purchases from one seller, each an hour after the listing
+assert.deepEqual(verdictOf(Array.from({ length: 32 }, (_, i) => ({ ...buy(5 + i * 20, 3600, 'alt'), card_id: `p:P${i % 4}`, flipped: true }))), ['ban', 'E'], '等一个小时再买也一样：同一个卖家、同几张卡来回倒')
+// a collector with coins: a hundred and fifty different cards in a day, most of them long on the shelf, all kept
+assert.equal(judge(Array.from({ length: 150 }, (_, i) => ({ ...buy(2 + i * 9, 300 + i * 40, `s${i % 60}`), card_id: `p:C${i}`, flipped: false })), now).verdict, null, '有钱的收集党一天扫一百五十张不同的卡：不封，也不上报')
 console.log('ok  规则：两秒内五次封；多家快买四十次封；同一卖家一天三十张封；手快的真人不封；集卡（每张只买一次、不转卖）不计')
 
 // ---- on the real market

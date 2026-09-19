@@ -231,8 +231,8 @@ export const dashboardHtml = () => `<!doctype html>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
-    只看「一口价买下」离「挂出来」隔了多久。自动暂停（3 天，再犯 5 天）：一天内 2 秒内买下（或报名抽签）5 次；或 45 秒内买下的、每个卖家最多算 3 张，一天满 40（7 天满 120，每家最多算 10）；或 7 天里 5 分钟内买下 100 张且跨 20 个钟点；或一天内从同一个卖家手里买下 30 张刚挂出 5 分钟内的卡（大小号来回倒）。「45 秒内」从保护期结束那一刻起算。
-    <b>集卡不算：</b>②③⑤ 只数「重复买同一张卡」和「买来又挂出去」的买入；每张只买一次、留着不卖的，买得再快再多也不计。
+    <b>自动暂停（3 天，再犯 5 天）只有两条：</b>A 一天内 5 次在挂出（或保护期结束）后 2 秒内买下/报名；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）。
+    B 多家快买一天满 40、C 一周满 120、D 一周 100 张且跨 20 个钟点：<b>只上报不封</b>，下面名单里标着「过线 B/C/D」，你核实后用上面的按钮手动暂停。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
     接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
   <div id="mgOut" class="acct"></div>
@@ -1011,7 +1011,7 @@ async function mgLoad() {
     const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
       + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时暂停</b> 规则 ' + esc(f.rule) : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
+    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动暂停</b> 规则 ' + esc(f.rule) : /^[B-D]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
     box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
       + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')

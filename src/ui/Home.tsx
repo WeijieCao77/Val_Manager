@@ -204,11 +204,14 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         </article>
         <article className="home-card home-preview" aria-labelledby="player-career-preview-title">
           <div className="home-body">
-            <span className="home-preview-label">新作预告</span>
+            <span className="home-preview-label">新作 · 测试版</span>
             <h2 id="player-career-preview-title">无畏契约选手生涯模拟</h2>
-            <p className="blurb">从选手视角，开启一段职业生涯。游戏尚未开放，敬请期待。</p>
+            <p className="blurb">从选手视角，开启一段职业生涯：天梯路人，打到冠军赛的舞台。还是测试版，会有 bug。</p>
           </div>
-          <span className="home-preview-status">尚未开放</span>
+          {/* the other game lives at /player/ (player-proxy.js): its own page, so a real navigation, slash included */}
+          <div className="home-go home-preview-go">
+            <button className="primary" onClick={() => { track('home_go', { go: 'player' }); location.href = '/player/' }}>开始生涯</button>
+          </div>
         </article>
       </div>
 

@@ -29,7 +29,7 @@
  *   B  quick (≤ 45 s), capped a seller, ≥ 40 in 24 h   forty races won in a day, from a dozen people or more
  *   C  the same over 7 days ≥ 120                      the patient version of B
  *   D  fresh (≤ 5 min) ≥ 100 in 7 d over ≥ 20 of the 24 clock hours   nobody is awake for all of them
- *   E  fresh purchases from ONE seller ≥ 30 in 24 h    a main and its alt passing cards across (owner, 2026-09-19:
+ *   E  trading purchases from ONE seller ≥ 30 in 24 h  a main and its alt passing cards across (owner, 2026-09-19:
  *                                                      「这种大小号来回倒检测到也封」 — it was watch-only for a few hours)
  *
  * (A was three at first; the owner made it five on 2026-09-19 and had everybody
@@ -52,7 +52,19 @@
  * over, and E's distribution is two humps with nothing between 26 and 187. A and D are about what a body can
  * do and count every purchase as before.
  *
- * A–E suspend trading (MARKET_GUARD=ban, the default): three days the first
+ * Which of them suspend by themselves (owner, 2026-09-19, 「稳一点」): only A and E. What the owner wants gone is
+ * a script that buys the instant a card appears — 「卡一发出来它就秒」 — and accounts passing cards between
+ * themselves, two, three or four in a ring. What must never be touched is a person who ticks 「没有的卡」 and
+ * buys whatever on the shelf looks fairly priced, one card after another, dozens at a time when he has the coins:
+ * those cards have mostly been on the shelf a while (bronze nobody else wants), and none of it is speed. A is
+ * speed and nothing else. E is a card going round: bought from the same seller again and again, or bought and
+ * put back on the shelf, thirty times in a day — which is what a ring looks like from any seat in it (each
+ * account keeps buying the same cards from the one before it), and no age limit on it, so waiting out the
+ * protected minute hides nothing. B, C and D describe a script too, but a very keen person could brush them,
+ * so they put an account in front of the owner (「watch」, with the rule's letter) and suspend nobody.
+ * MARKET_GUARD_AUTO lists the letters that do; the default is A,E.
+ *
+ * Suspensions (MARKET_GUARD=ban, the default): three days the first
  * time, five after that. MARKET_GUARD=watch bans nobody; =off does nothing.
  *
  * Suspended means: no listing, no bidding, no buying, no swaps. Withdrawing,
@@ -71,7 +83,7 @@ export const PROTECT_SEC = 60
 
 export const GUARD = {
   ULTRA_SEC: 2, QUICK_SEC: PROTECT_SEC + 45, FRESH_SEC: 300,
-  // 大小号来回倒: this many cards bought within FRESH_SEC of their listing from ONE seller, in a day
+  // 大小号来回倒: this many TRADING purchases (bought before, or listed again) from ONE seller in a day, any age
   LOOP_N: 30,
   ULTRA_N: 5,
   SELLER_CAP: 3, QUICK_DAY: 40,
@@ -79,6 +91,8 @@ export const GUARD = {
   FRESH_N: 100, FRESH_HOURS: 20,
   FIRST_DAYS: 3, REPEAT_DAYS: 5,
 }
+/** the rules that suspend by themselves; the rest only report */
+const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E').toUpperCase().split(/[^A-E]+/).filter(Boolean))
 const DAY = 86_400_000
 
 export const GUARD_SCHEMA = `
@@ -99,7 +113,7 @@ create index if not exists market_bans_who_idx on market_bans (id_hash, made des
  * One account's 一口价 purchases → what they look like.
  * buys: [{ made, created, seller, card_id?, flipped?, won? }] (dates or ms). Pure, so the check script can walk its edges.
  */
-export function judge(buys, now = Date.now()) {
+export function judge(buys, now = Date.now(), AUTO = autoRules()) {
   const rows = buys.map((b) => {
     const made = new Date(b.made).getTime()
     return { made, age: (made - new Date(b.created).getTime()) / 1000, seller: b.seller, won: b.won !== false, card: b.card_id ?? null, flipped: b.flipped === true }
@@ -141,19 +155,23 @@ export function judge(buys, now = Date.now()) {
     ultra: ultra.length,
     quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
     quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
-    // the most fresh purchases from any one seller today: a main and its alt passing cards across
-    loop: Math.max(0, ...perSeller(within(trades(day), GUARD.FRESH_SEC)).values()),
+    // the most trading purchases from any ONE seller today, however old the listing: cards going round between accounts
+    loop: Math.max(0, ...perSeller(trades(day)).values()),
     fresh: fresh.length, freshHours: hours,
     fastest: ages.length ? round1(ages[0]) : null,
     median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
   }
+  const over = []
+  if (counts.ultra >= GUARD.ULTRA_N) over.push('A')
+  if (counts.loop >= GUARD.LOOP_N) over.push('E')
+  if (counts.quickCapped >= GUARD.QUICK_DAY) over.push('B')
+  if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) over.push('C')
+  if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) over.push('D')
+  const auto = over.find((r) => AUTO.has(r))
   let verdict = null
   let rule = null
-  if (counts.ultra >= GUARD.ULTRA_N) { verdict = 'ban'; rule = 'A' }
-  else if (counts.quickCapped >= GUARD.QUICK_DAY) { verdict = 'ban'; rule = 'B' }
-  else if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) { verdict = 'ban'; rule = 'C' }
-  else if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) { verdict = 'ban'; rule = 'D' }
-  else if (counts.loop >= GUARD.LOOP_N) { verdict = 'ban'; rule = 'E' }
+  if (auto) { verdict = 'ban'; rule = auto }
+  else if (over.length) { verdict = 'watch'; rule = over[0] }
   else if (counts.loop >= GUARD.LOOP_N / 3) { verdict = 'watch'; rule = 'loop' }
   else if (counts.ultra >= 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60 || (hours >= 16 && counts.fresh >= 40)) { verdict = 'watch'; rule = 'near' }
   return { verdict, rule, counts }
