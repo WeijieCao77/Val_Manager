@@ -120,7 +120,7 @@ export function OddsWhy() {
         </li>
       </ul>
       <p className="tiny faint" style={{ marginBottom: 0 }}>
-        彩卡是纪念特定比赛夜晚的纪念卡，极稀有。这个游戏不卖任何东西。
+        彩卡是纪念特定比赛夜晚的纪念卡，极稀有；比赛只比阵容分，彩卡不保证赢。这个游戏不卖任何东西。
       </p>
     </>
   )

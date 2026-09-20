@@ -1656,6 +1656,11 @@ html.pack-open, html.pack-open body { overscroll-behavior: none; }
 .stars i { width: 11px; height: 11px; border-radius: 2px; background: var(--line); transform: rotate(45deg); }
 .stars i.on { background: var(--warn); box-shadow: 0 0 8px rgba(232, 178, 58, .5); }
 
+.gap-odds { width: auto; border-collapse: collapse; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.gap-odds th, .gap-odds td { font-size: inherit; padding: 2px 9px 2px 0; text-align: right; font-weight: 400; white-space: nowrap; }
+.gap-odds th:first-child, .gap-odds td:first-child { text-align: left; color: var(--faint, inherit); }
+.gap-odds td { font-weight: 600; }
+
 .bracket-leg {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px;

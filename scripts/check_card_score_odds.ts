@@ -35,8 +35,9 @@ for (const { a, b, hidden } of pairs) {
   console.log(`equal ${a.rating}: ${a.tag}/${b.tag}, old hidden gap ${hidden.toFixed(2)}, ${wins}/${N} (${(rate * 100).toFixed(1)}%)`)
 }
 
+// fences round balance v3 (2026-09-20): BO3 60 / 77 / 93 / 99.5, a BO5 a little above
 for (const bo of [3, 5] as const) {
-  for (const [gap, min, max] of [[0, .42, .58], [3, .46, .66], [6, .60, .82], [10, .73, .94], [15, .85, .995]]) {
+  for (const [gap, min, max] of [[0, .42, .58], [3, .54, .70], [6, .70, .88], [10, .88, .99], [15, .97, 1]]) {
     const fixtures = CUP_TEAMS.flatMap(a => CUP_TEAMS.filter(b => a.id !== b.id && Math.abs(score(a) - score(b) - gap) < .3).map(b => ({ a, b })))
     assert(fixtures.length >= 3)
     let wins = 0

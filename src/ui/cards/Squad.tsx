@@ -10,6 +10,7 @@ import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper
 import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
+import { GapOdds } from './GapOdds'
 import type { CardFilter } from './Filters'
 
 const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
@@ -280,6 +281,7 @@ export default function SquadScreen() {
               教练的战术、培养、激励和等级都计入战力，教练带来的默契另算。
               默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。默契高的阵容能打赢评分更高的对手。
             </p>
+            <GapOdds />
 
             {filled < 5 && <p className="small warn">还差 {5 - filled} 个人。</p>}
             {!!gaps.length && (

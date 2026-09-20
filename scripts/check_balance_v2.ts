@@ -1,5 +1,5 @@
 /**
- * Balance v2 and the BO5 ladder — the everyday regression (2026-09-18).
+ * The score curve (v3 since 2026-09-20) and the BO5 ladder — the everyday regression.
  *
  *   npx tsx scripts/check_balance_v2.ts [series=1500]
  *
@@ -35,7 +35,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 // ---- 1. the curve, as mathematics
 {
   const E = GAP_CURVES[BALANCE_VERSION]
-  check('当前数值版本是 2', BALANCE_VERSION === 2)
+  check('当前数值版本是 3', BALANCE_VERSION === 3)
   check('E(0) = 0', E(0) === 0)
   let mono = true, jump = 0, slopeMin = Infinity, slopeMax = 0
   const h = 0.001
@@ -48,7 +48,7 @@ const check = (name: string, ok: boolean, detail = '') => {
   check('0–40 分单调不减', mono)
   // a step at an integer would show as one h-interval worth a whole point
   check('没有跳档：千分之一分最多改变 0.003 强度', jump <= 0.003, `最大 ${jump.toFixed(5)}`)
-  check('斜率始终为正且有界', slopeMin > 0 && slopeMax < 3, `${slopeMin.toFixed(3)} – ${slopeMax.toFixed(3)}`)
+  check('斜率始终为正且有界', slopeMin > 0.8 && slopeMax < 2.1, `${slopeMin.toFixed(3)} – ${slopeMax.toFixed(3)}`)
   for (const d of [2, 3, 5]) {
     const l = E(d - 1e-9), r = E(d + 1e-9)
     assert(Math.abs(l - r) < 1e-6, `E 在 ${d} 处不连续`)
@@ -59,13 +59,26 @@ const check = (name: string, ok: boolean, detail = '') => {
   // the pair's mean strength is the old one, whatever the gap; the gap is E, split evenly
   let centreOk = true, antiOk = true
   for (const [a, b] of [[98.885, 101.885], [83, 104], [70.2, 70.2], [91.4, 86.15], [60, 99.9]]) {
-    const [sa, sb] = cardStrengths(a, b, 2)
-    const centre = 80 + ((a + b) / 2 - 80) * 0.35
-    if (Math.abs((sa + sb) / 2 - centre) > 1e-9) centreOk = false
-    if (Math.abs(Math.abs(sa - sb) - E(Math.abs(a - b))) > 1e-9) centreOk = false
-    const [rb, ra] = cardStrengths(b, a, 2)
-    if (Math.abs(ra - sa) > 1e-9 || Math.abs(rb - sb) > 1e-9) antiOk = false
+    for (const v of [2, 3]) {
+      const [sa, sb] = cardStrengths(a, b, v)
+      const centre = 80 + ((a + b) / 2 - 80) * 0.35
+      if (Math.abs((sa + sb) / 2 - centre) > 1e-9) centreOk = false
+      if (Math.abs(Math.abs(sa - sb) - GAP_CURVES[v](Math.abs(a - b))) > 1e-9) centreOk = false
+      const [rb, ra] = cardStrengths(b, a, v)
+      if (Math.abs(ra - sa) > 1e-9 || Math.abs(rb - sb) > 1e-9) antiOk = false
+    }
   }
+  // a cup that started on version 2 finishes on it: the curve of 09-18, to the last bit
+  const sp = (x: number) => (x > 30 ? x : Math.log1p(Math.exp(x)))
+  let v2 = true
+  for (let d = 0; d < 40; d += 0.0137) {
+    if (GAP_CURVES[2](d) !== 0.36 * d + (1.48 - 0.36) * 0.5 * (sp((d - 2.9) / 0.5) - sp(-2.9 / 0.5))) v2 = false
+  }
+  check('版本 2 与 09-18 上线的曲线逐位相同', v2)
+  // version 3 is steeper than version 2 at every gap: no score difference got cheaper
+  let steeper = true
+  for (let d = 0.05; d < 40; d += 0.05) if (GAP_CURVES[3](d) <= GAP_CURVES[2](d)) steeper = false
+  check('版本 3 在每个分差上都比版本 2 更看重分差', steeper)
   check('双方平均强度 = 80 + (均分 − 80) × 0.35，强度差 = E(d)', centreOk)
   check('交换双方，强度跟着人走', antiOk)
 
@@ -129,10 +142,10 @@ const check = (name: string, ok: boolean, detail = '') => {
   check('BO5 先赢三张图', Math.max(one.mapsWon, one.mapsLost) === 3 && one.mapsWon + one.mapsLost <= 5)
   // 首尔征途 and the challenges pass no curve: swapping the curve under them changes nothing
   const before = playRivalMatch(a.squad, () => 0, rival, 3, 99)
-  const keep = GAP_CURVES[2]
-  GAP_CURVES[2] = (d) => 9 * d
+  const keep = GAP_CURVES[BALANCE_VERSION]
+  GAP_CURVES[BALANCE_VERSION] = (d) => 9 * d
   const after = playRivalMatch(a.squad, () => 0, rival, 3, 99)
-  GAP_CURVES[2] = keep
+  GAP_CURVES[BALANCE_VERSION] = keep
   check('不走分差曲线的玩法（首尔征途、挑战）与曲线无关',
     before.balance === undefined && JSON.stringify(before.result.maps) === JSON.stringify(after.result.maps))
 }
@@ -173,8 +186,9 @@ const check = (name: string, ok: boolean, detail = '') => {
 {
   const pool = buildPool(0x5a17, 40)
   const fence: [number, 3 | 5, number, number][] = [
-    [0, 5, 0.45, 0.55], [2, 5, 0.505, 0.585], [3, 5, 0.54, 0.62], [5, 5, 0.67, 0.75], [10, 5, 0.90, 0.96],
-    [3, 3, 0.52, 0.61], [10, 3, 0.84, 0.93],
+    // v3, the owner's BO3 targets of 2026-09-20: +1 54.5, +2 57.5, +3 60, +5 72, +10 94; a BO5 reads a little above
+    [0, 3, 0.45, 0.55], [1, 3, 0.50, 0.58], [2, 3, 0.535, 0.615], [3, 3, 0.565, 0.645], [5, 3, 0.68, 0.76], [10, 3, 0.90, 0.97],
+    [0, 5, 0.45, 0.55], [3, 5, 0.60, 0.68], [5, 5, 0.71, 0.79], [10, 5, 0.945, 0.995],
   ]
   for (const [gap, bo, lo, hi] of fence) {
     const pairs = pairsAt(pool, gap === 0 ? 0.06 : gap, gap === 0 ? 0.06 : 0.12, 120, 5 + gap)

@@ -109,8 +109,13 @@ for (const g of [...bins.keys()].sort((a, b) => a - b)) {
 // Measured the day it shipped, at GAP_FREE 1.5 / GAP_WIDEN 0.5 and 默契
 // worth 0.1 on paper: 55 / 59 / 67 / 79 / 95, and the same five a full
 // five levels up wins 66%. Before: 52 / 58 / 69 / 73 / 88 and 64%.
+//
+// 2026-09-20, the owner again, after six live 全服杯 where a third of the
+// series with a gap went to the lower score: 「我想要的是有机会，而不是频繁出现」
+// — one point ≈ 54%, two ≈ 57%, three ≈ 60%, steeper the wider it gets
+// (balance v3). Measured here that day: 54 / 64 / 75 / 92 / 99, +5 levels 76%.
 const bands: [string, number, number, number, number][] = [
-  ['0-1', 0, 1, 0.40, 0.62], ['2-4', 2, 4, 0.52, 0.64], ['5-7', 5, 7, 0.62, 0.78], ['8-11', 8, 11, 0.72, 0.90], ['12+', 12, 99, 0.85, 1],
+  ['0-1', 0, 1, 0.45, 0.60], ['2-4', 2, 4, 0.56, 0.70], ['5-7', 5, 7, 0.68, 0.84], ['8-11', 8, 11, 0.84, 0.97], ['12+', 12, 99, 0.95, 1],
 ]
 let bad = 0
 console.log('\nband   n     P(higher wins)')

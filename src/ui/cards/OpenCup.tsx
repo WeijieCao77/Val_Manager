@@ -13,6 +13,7 @@ import { swissRoundName } from '../../engine/openCupSwiss'
 import { PACKS } from '../../engine/gacha'
 import { cardById, cardName, squadRating } from '../../engine/cards'
 import { serverNow } from '../../engine/account'
+import { GapOdds } from './GapOdds'
 import type { ArenaResult } from '../../engine/arena'
 
 const clock = (ms: number) =>
@@ -133,6 +134,7 @@ export default function OpenCup() {
           系统按本届赛程自动比赛，不用在线。<b>开赛时锁定卡组与强化</b>，之后本场不再变。名次奖励看参赛人数，奖励发到信箱。
           不足 {OPEN_CUP_MIN} 人取消，{OPEN_CUP_RANKED_MIN} 人以上的冠军计入冠军榜。
         </p>
+        <GapOdds />
 
         {st.next && (
           <div className={`bracket-leg ${st.next.joined ? 'won' : 'now'}`} style={{ flexWrap: 'wrap' }}>

@@ -17,6 +17,7 @@ import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
 import { fetchTop } from '../../engine/account'
 import type { TopRow } from '../../engine/account'
+import { GapOdds } from './GapOdds'
 
 /**
  * The ladder, played on the server.
@@ -226,6 +227,7 @@ export default function Ladder() {
                   ? `　优先匹配阵容分相差 4 分以内的玩家。对面高出 ${RIVAL_MERCY_GAP} 分以上，输了不掉星，大师分只扣一半。`
                   : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
               </p>
+              <GapOdds />
               <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !entry.ok || !canPlay(g, 'ladder', now)}>
                 {busy ? '比赛中…'
                   : !cloud ? '需要联网'
