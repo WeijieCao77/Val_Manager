@@ -146,6 +146,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_title_pack.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_club_balance.ts",
     "args": [
       "40"

@@ -1769,9 +1769,18 @@ export function recordLadder(
     out.title = masterTitle(L.points ?? 0)
     // A new title is the 大师 ladder's version of a promotion, and gets the
     // same thing a promotion gets — once, the first time it is reached.
-    const wasTitle = masterTitle(L.bestPoints ?? 0)
-    L.bestPoints = Math.max(L.bestPoints ?? 0, L.points ?? 0)
-    if (out.title !== wasTitle && (L.points ?? 0) > (pointsBefore)) {
+    //
+    // "First time" is a fact about the BEST score, so that is what is
+    // compared: the title of the best before this match against the title of
+    // the best after it. It used to compare the title held NOW with the title
+    // of the best ever, and an account that had been to 不朽 and slipped back
+    // under it holds 「大师」 against a best of 「不朽」 — different — so every
+    // win down there paid a 十连包 (2026-09-19: 「赢一把就给一个十连包，今天已经
+    // 开了 12 个」; in the code since 08-31, waiting for people to reach 不朽 and
+    // fall back). scripts/check_title_pack.ts.
+    const bestBefore = L.bestPoints ?? 0
+    L.bestPoints = Math.max(bestBefore, L.points ?? 0)
+    if (L.bestPoints > bestBefore && masterTitle(L.bestPoints) !== masterTitle(bestBefore)) {
       out.pack = 'ten'
       g.packs.ten = (g.packs.ten ?? 0) + 1
       out.promoted = true
