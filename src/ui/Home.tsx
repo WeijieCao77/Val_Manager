@@ -203,6 +203,11 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
           </div>
         </article>
         <article className="home-card home-preview" aria-labelledby="player-career-preview-title">
+          {/* the new game's own key art, taken from its front page, so the row
+              is a picture of that game rather than a line of text about it */}
+          <div className="home-preview-art">
+            <img src={`${import.meta.env.BASE_URL}promo/player.webp`} alt="" loading="lazy" />
+          </div>
           <div className="home-body">
             <span className="home-preview-label">新作 · 测试版</span>
             <h2 id="player-career-preview-title">无畏契约选手生涯模拟</h2>

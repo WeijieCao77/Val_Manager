@@ -2284,8 +2284,21 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 .home-preview-status { margin: 18px; color: var(--muted); font-size: var(--t-small); white-space: nowrap; }
 .home-preview-go { margin: 18px; flex: none; }
 .home-preview-go button { white-space: nowrap; }
-@media (max-width: 560px) {
+/* The new game's own key art. It keeps the whole banner rather than a crop of
+   it: the title is drawn into the picture, and cutting a wide strip out of the
+   middle would slice the two lines of it in half. */
+.home-preview-art {
+  flex: none; width: 300px; align-self: stretch; overflow: hidden;
+  border-right: 1px solid var(--line-soft); background: var(--panel-2);
+}
+.home-preview-art img { display: block; width: 100%; height: 100%; min-height: 148px; object-fit: cover; }
+/* One column below 860: the row stacks there, like the cards beside it, and
+   the banner runs across the top at its own shape — squeezing it into a
+   narrower column beside the text would slice the title off its left edge. */
+@media (max-width: 860px) {
   .home-preview { flex-direction: column; align-items: stretch; }
+  .home-preview-art { width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .home-preview-art img { height: auto; min-height: 0; }
   .home-preview-status { margin: 0 18px 18px; }
   .home-preview-go { margin: 0 18px 18px; }
 }
