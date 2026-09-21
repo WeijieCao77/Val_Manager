@@ -564,6 +564,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_cup_clock.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_open_cup.ts"
   },
   {

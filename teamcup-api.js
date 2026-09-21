@@ -22,6 +22,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { isVerified } from './phone-api.js'
 import { TRADE_PULLS, TRADE_DAYS } from './market-api.js'
 import { createCupComputer } from './opencup-worker.js'
+import { makeCupPass } from './cup-clock.js'
 
 const hash = (id) => createHash('sha256').update(id).digest('hex')
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
@@ -86,6 +87,8 @@ export function makeTeamCupApi(sql, {
   bg = sql,
   /** (args) => playOpenCupMatch result; the checks pass the engine's own, the server a worker */
   compute = null,
+  /** how long one pass of the clock may take before it is abandoned (cup-clock.js) */
+  passMs = 120_000,
   cardPoolVersion = 'source',
 }) {
   const guard = (req, res, bucket, max) => {
@@ -280,34 +283,33 @@ export function makeTeamCupApi(sql, {
       join receipts r using (id_hash)`
   }
 
-  let running = null
   let prunedAt = 0
+  // A pass that never answers used to own the clock for ever, in silence (cup-clock.js).
+  const cupClock = makeCupPass({ name: 'teamcup', limitMs: passMs, onStall: () => computer?.reset() })
   function advance(now = clock()) {
     // Asked while a pass is under way (a page's nudge, say): the timer simply comes round again, but a caller
     // that names its own moment — the checks — gets a pass for THAT moment, after the one in flight.
-    if (running && !timer) return running.then(() => advance(now), () => advance(now))
-    running ??= (async () => {
-      try {
-        await ensureOpen(now)
-        for (let pass = 0; pass < (timer ? 1 : 64); pass++) {
-          const due = await bg`
-            select id::text as id, starts, status, round, rounds, step_sec, seed::text as seed, teams, balance_version
-              from team_cups where status in ('open', 'live') and starts <= ${new Date(now)} order by starts limit 4`
-          let moved = false
-          for (const cup of due) {
-            if (cup.status === 'open') { await start(cup); moved = true; continue }
-            if (engine.teamCupRoundAt(ms(cup.starts), cup.step_sec, cup.round) <= now) moved = (await playRound(cup)) || moved
-          }
-          if (!moved) break
+    const inflight = cupClock.inflight
+    if (inflight && !timer) return inflight.then(() => advance(now), () => advance(now))
+    return cupClock.run(async () => {
+      await ensureOpen(now)
+      for (let pass = 0; pass < (timer ? 1 : 64); pass++) {
+        const due = await bg`
+          select id::text as id, starts, status, round, rounds, step_sec, seed::text as seed, teams, balance_version
+            from team_cups where status in ('open', 'live') and starts <= ${new Date(now)} order by starts limit 4`
+        let moved = false
+        for (const cup of due) {
+          if (cup.status === 'open') { await start(cup); moved = true; continue }
+          if (engine.teamCupRoundAt(ms(cup.starts), cup.step_sec, cup.round) <= now) moved = (await playRound(cup)) || moved
         }
-        if (now - prunedAt > 3600_000) {
-          prunedAt = now
-          // a tie's duel list is the bulk of a cup; fourteen days of them is plenty
-          await bg`delete from team_cups where status in ('done', 'void') and starts < now() - interval '14 days'`
-        }
-      } finally { running = null }
-    })()
-    return running
+        if (!moved) break
+      }
+      if (now - prunedAt > 3600_000) {
+        prunedAt = now
+        // a tie's duel list is the bulk of a cup; fourteen days of them is plenty
+        await bg`delete from team_cups where status in ('done', 'void') and starts < now() - interval '14 days'`
+      }
+    })
   }
   let interval = null
   if (timer && sql) {

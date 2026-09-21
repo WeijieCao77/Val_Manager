@@ -167,7 +167,7 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
 } else if (process.env.DATABASE_URL) {
   try {
     const { default: postgres } = await import('postgres')
-    const pool = (max, statementMs) => safeTransactions(postgres(process.env.DATABASE_URL, {
+    const pool = (name, max, statementMs) => safeTransactions(postgres(process.env.DATABASE_URL, {
       max,
       idle_timeout: 20,
       connect_timeout: 10,
@@ -179,11 +179,11 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
       // nothing may hold a connection for ever: a statement is cut off, and a
       // transaction left open by a crashed request is closed by the server
       connection: { statement_timeout: statementMs, idle_in_transaction_session_timeout: 30_000 },
-    }))
+    }), name)
     const sizes = { main: poolSize(process.env.DB_POOL, 4), bg: poolSize(process.env.DB_POOL_BG, 1), stats: poolSize(process.env.DB_POOL_STATS, 2) }
-    sql = pool(sizes.main, 15_000)
-    sqlBg = pool(sizes.bg, 60_000)
-    sqlStats = pool(sizes.stats, 120_000)
+    sql = pool('main', sizes.main, 15_000)
+    sqlBg = pool('bg', sizes.bg, 60_000)
+    sqlStats = pool('stats', sizes.stats, 120_000)
     console.log(`database: ${sizes.main} interactive + ${sizes.bg} background + ${sizes.stats} stats connections`)
     // The schema and the boot chores run AFTER the port is open, not before.
     // `await applySchema` here held the whole module — and so listen() at
