@@ -17,7 +17,7 @@ import { NEUTRAL } from './bonds'
 import { Rng, clamp } from './rng'
 import { BALANCE_VERSION, cardStrengths } from './balance'
 import {
-  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, personOf, SQUAD_SLOTS, squadPaper,
+  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, LEVEL_GAIN, personOf, SQUAD_SLOTS, squadPaper,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -231,7 +231,7 @@ function seatSquad(
     // worth the same half a point of overall and 0.6 of an attribute,
     // whichever card carries it. 181,728 simulated matches behind the
     // choice: analysis/power_balance_recheck.md.
-    const growth = growthOf(level(cardId))
+    const growth = growthOf(level(cardId)) * LEVEL_GAIN
     if (growth > 0) {
       for (const k of Object.keys(clone.attrs) as (keyof typeof clone.attrs)[]) {
         clone.attrs[k] = clamp(clone.attrs[k] + growth * SPREAD_ATTR, 1, 99)

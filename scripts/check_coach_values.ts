@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import {
-  ALL_CARDS, MAX_LEVEL, POWER_PER_SQUAD_POINT, SQUAD_SLOTS, cardById, chemistry,
+  ALL_CARDS, COACH_LEVEL_LIFT, MAX_LEVEL, POWER_PER_SQUAD_POINT, SQUAD_SLOTS, cardById, chemistry,
   isCoachCard, isPlayerCard, personOf, squadPaper, squadPower, squadPowerPoints, squadRating,
 } from '../src/engine/cards'
 import type { CoachCard, PlayerCard, Squad } from '../src/engine/cards'
@@ -99,15 +99,15 @@ for (const tier of tiers) {
     for (let level = 1; level <= MAX_LEVEL; level++) {
       const next = snapshot(squad, level)
       const label = `${tier.name}/${coach.id}+${level}`
-      assert.equal(next.power - previous.power, 100, `${label}: existing upgrade contract`)
-      next.overall.forEach((v, i) => near(v - previous.overall[i], 0.1, `${label}: no lost or duplicated level`))
+      assert.equal(next.power - previous.power, COACH_LEVEL_LIFT * POWER_PER_SQUAD_POINT, `${label}: existing upgrade contract`)
+      next.overall.forEach((v, i) => near(v - previous.overall[i], COACH_LEVEL_LIFT * 0.5, `${label}: no lost or duplicated level`))
       assert(next.atk > previous.atk && next.def > previous.def && next.tactics > previous.tactics, `${label}: level reaches match`)
       previous = next
       upgradeChecks++
     }
     const maxPlayers = snapshot(squad, 0, MAX_LEVEL)
     const allMax = snapshot(squad, MAX_LEVEL, MAX_LEVEL)
-    allMax.overall.forEach((v, i) => near(v - maxPlayers.overall[i], 0.5, `${tier.name}/${coach.id}: max player cards keep coach upgrades`))
+    allMax.overall.forEach((v, i) => near(v - maxPlayers.overall[i], COACH_LEVEL_LIFT * MAX_LEVEL * 0.5, `${tier.name}/${coach.id}: max player cards keep coach upgrades`))
   }
   assert.deepEqual(snapshot({ slots: tier.slots, coach: null }), noCoach, 'Coach mutations must not leak into an uncoached match')
   console.log(`ok ${tier.name}: five distinct people, ${coaches.length} coaches, all attribute points and upgrades`)
@@ -168,7 +168,7 @@ oldSave.squad = { slots: [...tiers[1].slots], coach: coaches[0].id }
 const migrated = migrateGacha(JSON.parse(JSON.stringify(oldSave)), oldSave.id)
 assert.deepEqual(migrated.cards, oldSave.cards, 'Existing coach/player inventory and levels remain valid')
 assert.equal(levelOf(migrated, coaches[0].id), 3)
-near(squadPower(migrated.squad, id => levelOf(migrated, id)) - squadPower(migrated.squad), 300, 'Saved coach level reaches displayed power')
+near(squadPower(migrated.squad, id => levelOf(migrated, id)) - squadPower(migrated.squad), COACH_LEVEL_LIFT * 3 * POWER_PER_SQUAD_POINT, 'Saved coach level reaches displayed power')
 assert.equal(JSON.stringify(ALL_CARDS), pristineCards, 'Card faces, abilities, identities and catalog unchanged after verification')
 assert.equal(POWER_PER_SQUAD_POINT, 500)
 console.log(`ok ${pointChecks} attribute-point checks; ${upgradeChecks} upgrades; 3 uncoached baselines; fractional auto squad; empty squad; old save; unchanged cards`)

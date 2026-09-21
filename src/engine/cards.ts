@@ -381,15 +381,32 @@ export const SALVAGE: Record<Rarity, number> = {
  * levels are worth is shown as 战力 (cardPower) instead.
  */
 export const ratingAt = (base: number, level: number): number =>
-  base + growthOf(level)
+  base + growthOf(level) * LEVEL_GAIN
 
 /** the levels a card has actually earned, 0–MAX_LEVEL */
 export const growthOf = (level: number): number => Math.max(0, Math.min(MAX_LEVEL, level))
 
+/**
+ * What one level is worth, in ability points.
+ *
+ * It was 1 until 2026-09-21, which meant a card taken to +5 — twelve spare
+ * copies and 16,500 coins — moved the five's 阵容分 by exactly one, and one
+ * point was near enough a coin flip that nobody could feel it. The owner:
+ * 「不要让玩家觉得好不容易抽的、攒的卡、升级了，结果经常在杯赛里一点用也没有」.
+ * At 1.5 the same card is worth 0.3 of a squad point a level, a maxed card 1.5
+ * and a maxed five 7.5, which on the v4 curve is a match a levelled side wins
+ * four times in five instead of two in three.
+ *
+ * It is a scale, not a new channel: every level anywhere goes through
+ * `growthOf` and this constant — paper, 战力, and the post-squeeze add in
+ * arena.ts — so the three can never disagree about what a level bought.
+ */
+export const LEVEL_GAIN = 1.5
+
 /** one ability point is a hundred 战力 */
 export const POWER_PER_POINT = 100
 /** what a level adds to a player card's 战力 */
-export const POWER_PER_LEVEL = POWER_PER_POINT
+export const POWER_PER_LEVEL = POWER_PER_POINT * LEVEL_GAIN
 
 /**
  *战力: the card's strength after levelling, as an integer the player can
@@ -398,7 +415,7 @@ export const POWER_PER_LEVEL = POWER_PER_POINT
  * them the same way.
  */
 export const cardPower = (card: Card, level: number): number =>
-  POWER_PER_POINT * (card.rating + growthOf(level))
+  POWER_PER_POINT * (card.rating + growthOf(level) * LEVEL_GAIN)
 
 /** a full five's 阵容战力 per point of paper score: five cards at a hundred a point */
 export const POWER_PER_SQUAD_POINT = POWER_PER_POINT * 5
@@ -594,15 +611,16 @@ export const coachLift = (coach: Pick<CoachCard, 'tactics' | 'development' | 'mo
   (coachAbility(coach) - 50) * 0.1
 
 /**
- * What a coach's own levels add to every card he fields, in rating units
- * before the squeeze: a fifth of a level each. Five coach levels are worth
- * one player level on all five — 500 阵容战力, the same as levelling one
- * player to +5 — which is the coach's +100 a level on the squad. Read by the
- * arena (added after the squeeze, never rounded) and by the paper score, so
- * the screen and the server agree. Until 2026-09-13 a coach's levels reached
- * nothing at all: all 76 coach cards built the same match at +5 as at +0.
+ * What a coach's own levels add to the whole five, in squad-score units:
+ * 0.3 a level, the same as one of his players' levels is worth to the five
+ * (LEVEL_GAIN / 5). A maxed coach is 1.5 阵容分 and 750 阵容战力, exactly what
+ * a maxed player card brings. Read by the arena (added after the squeeze,
+ * never rounded) and by the paper score, so the screen and the server agree.
+ * Until 2026-09-13 a coach's levels reached nothing at all: all 76 coach cards
+ * built the same match at +5 as at +0; it was 0.2 until 2026-09-21, when
+ * LEVEL_GAIN moved and the coach moved with it.
  */
-export const COACH_LEVEL_LIFT = 0.2
+export const COACH_LEVEL_LIFT = LEVEL_GAIN / 5
 export const coachLiftAt = (coach: CoachCard, level: number): number =>
   coachLift(coach) + COACH_LEVEL_LIFT * growthOf(level)
 

@@ -16,7 +16,7 @@ import {
 } from '../src/engine/arena'
 import type { RivalSquad } from '../src/engine/arena'
 import {
-  ALL_CARDS, SQUAD_SLOTS, isPlayerCard, personOf, squadPaper, growthOf,
+  ALL_CARDS, LEVEL_GAIN, SQUAD_SLOTS, isPlayerCard, personOf, squadPaper, growthOf,
 } from '../src/engine/cards'
 import type { PlayerCard } from '../src/engine/cards'
 import { CUP_TEAMS } from '../src/engine/cupTeams'
@@ -35,7 +35,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 // ---- 1. the curve, as mathematics
 {
   const E = GAP_CURVES[BALANCE_VERSION]
-  check('当前数值版本是 3', BALANCE_VERSION === 3)
+  check('当前数值版本是 4', BALANCE_VERSION === 4)
   check('E(0) = 0', E(0) === 0)
   let mono = true, jump = 0, slopeMin = Infinity, slopeMax = 0
   const h = 0.001
@@ -48,7 +48,7 @@ const check = (name: string, ok: boolean, detail = '') => {
   check('0–40 分单调不减', mono)
   // a step at an integer would show as one h-interval worth a whole point
   check('没有跳档：千分之一分最多改变 0.003 强度', jump <= 0.003, `最大 ${jump.toFixed(5)}`)
-  check('斜率始终为正且有界', slopeMin > 0.8 && slopeMax < 2.1, `${slopeMin.toFixed(3)} – ${slopeMax.toFixed(3)}`)
+  check('斜率始终为正且有界', slopeMin > 1.3 && slopeMax < 2.2, `${slopeMin.toFixed(3)} – ${slopeMax.toFixed(3)}`)
   for (const d of [2, 3, 5]) {
     const l = E(d - 1e-9), r = E(d + 1e-9)
     assert(Math.abs(l - r) < 1e-6, `E 在 ${d} 处不连续`)
@@ -117,8 +117,8 @@ const check = (name: string, ok: boolean, detail = '') => {
     const s0 = at(0), s5 = at(5)
     const roster = s0.teams[ARENA_TEAM].roster
     if (roster.length !== 5 || !s0.players[`A${slot}`]) short.push(c.id)
-    else if (Math.abs(s5.players[`A${slot}`].overall - s0.players[`A${slot}`].overall - growthOf(5) * 0.5) > 1e-9
-      && s0.players[`A${slot}`].overall + growthOf(5) * 0.5 <= 99) levelLost.push(c.id)
+    else if (Math.abs(s5.players[`A${slot}`].overall - s0.players[`A${slot}`].overall - growthOf(5) * LEVEL_GAIN * 0.5) > 1e-9
+      && s0.players[`A${slot}`].overall + growthOf(5) * LEVEL_GAIN * 0.5 <= 99) levelLost.push(c.id)
     if (c.rarity === 'mythic') kinds.mythic++
     else if (c.seoul) kinds.seoul++
     else if (c.event) kinds.event++
@@ -186,9 +186,9 @@ const check = (name: string, ok: boolean, detail = '') => {
 {
   const pool = buildPool(0x5a17, 40)
   const fence: [number, 3 | 5, number, number][] = [
-    // v3, the owner's BO3 targets of 2026-09-20: +1 54.5, +2 57.5, +3 60, +5 72, +10 94; a BO5 reads a little above
-    [0, 3, 0.45, 0.55], [1, 3, 0.50, 0.58], [2, 3, 0.535, 0.615], [3, 3, 0.565, 0.645], [5, 3, 0.68, 0.76], [10, 3, 0.90, 0.97],
-    [0, 5, 0.45, 0.55], [3, 5, 0.60, 0.68], [5, 5, 0.71, 0.79], [10, 5, 0.945, 0.995],
+    // v4, the owner's BO3 targets of 2026-09-21: +1 56.5, +2 61, +3 66.5, +5 76, +10 95; a BO5 reads a little above
+    [0, 3, 0.45, 0.55], [1, 3, 0.52, 0.61], [2, 3, 0.57, 0.65], [3, 3, 0.625, 0.705], [5, 3, 0.72, 0.80], [10, 3, 0.92, 0.98],
+    [0, 5, 0.45, 0.55], [3, 5, 0.665, 0.745], [5, 5, 0.78, 0.86], [10, 5, 0.955, 1],
   ]
   for (const [gap, bo, lo, hi] of fence) {
     const pairs = pairsAt(pool, gap === 0 ? 0.06 : gap, gap === 0 ? 0.06 : 0.12, 120, 5 + gap)

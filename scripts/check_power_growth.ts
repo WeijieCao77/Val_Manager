@@ -20,7 +20,7 @@
 import { createHash } from 'node:crypto'
 import { buildArena, playRivalMatch, ARENA_TEAM } from '../src/engine/arena'
 import {
-  ALL_CARDS, COACH_LEVEL_LIFT, MAX_LEVEL, POWER_PER_LEVEL, POWER_PER_SQUAD_POINT, cardPower, growthOf,
+  ALL_CARDS, COACH_LEVEL_LIFT, LEVEL_GAIN, MAX_LEVEL, POWER_PER_LEVEL, POWER_PER_SQUAD_POINT, cardPower, growthOf,
   isCoachCard, isPlayerCard, ratingAt, squadPaper, squadPower, squadRating,
 } from '../src/engine/cards'
 import { migrateGacha, newGacha, levelOf } from '../src/engine/gacha'
@@ -52,7 +52,7 @@ const coaches = ALL_CARDS.filter(isCoachCard)
       if (cardPower(c, l) !== 100 * c.rating + POWER_PER_LEVEL * l) off++
     }
     if (cardPower(c, MAX_LEVEL + 3) !== cardPower(c, MAX_LEVEL)) off++
-    if (ratingAt(c.rating, MAX_LEVEL) !== c.rating + MAX_LEVEL) off++
+    if (ratingAt(c.rating, MAX_LEVEL) !== c.rating + MAX_LEVEL * LEVEL_GAIN) off++
   }
   check(`${players.length} 张选手卡：每级战力 +${POWER_PER_LEVEL}，满级 +${POWER_PER_LEVEL * MAX_LEVEL}，规则评分不再封 99`, off === 0, `${off} 处不对`)
   const grows = coaches.every((c) => cardPower(c, MAX_LEVEL) === 100 * c.rating + POWER_PER_LEVEL * MAX_LEVEL)
@@ -105,19 +105,19 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
       const at = seated(slots, coach === '-' ? null : coach, (id) => (id === coach ? 0 : l)).ps
       at.forEach((p, i) => {
         const z = zero[i]
-        const wantOv = Math.min(99, z.overall + 0.5 * l)
+        const wantOv = Math.min(99, z.overall + 0.5 * LEVEL_GAIN * l)
         cells++
         if (Math.abs(p.overall - wantOv) > 1e-9) off++
         if (wantOv === 99) walls++
         for (const k of Object.keys(z.attrs)) {
-          const want = Math.min(99, z.attrs[k] + 0.6 * l)
+          const want = Math.min(99, z.attrs[k] + 0.6 * LEVEL_GAIN * l)
           cells++
           if (Math.abs(p.attrs[k] - want) > 1e-9) off++
         }
       })
     }
   }
-  check(`每一级都只算一次：总评 +0.5、属性 +0.6（${cells} 项）`, off === 0, `${off} 项不对`)
+  check(`每一级都只算一次：总评 +${0.5 * LEVEL_GAIN}、属性 +${(0.6 * LEVEL_GAIN).toFixed(2)}（${cells} 项）`, off === 0, `${off} 项不对`)
   check('这六套里没有一张卡的总评顶到 99', walls === 0, `${walls} 次顶到`)
 }
 
@@ -167,8 +167,8 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
   const lvl = (id: string) => (id === coach ? MAX_LEVEL : 0)
   const paper0 = squadPaper({ slots: ids, coach }, () => 0)
   const paper5 = squadPaper({ slots: ids, coach }, lvl)
-  check('纸面上教练 +5 = 教练项 +1，阵容战力 +500', Math.abs(paper5.lift - paper0.lift - 1) < 1e-9
-    && squadPower({ slots: ids, coach }, lvl) - squadPower({ slots: ids, coach }, () => 0) === 500)
+  check(`纸面上教练 +5 = 教练项 +${COACH_LEVEL_LIFT * MAX_LEVEL}，阵容战力 +${COACH_LEVEL_LIFT * MAX_LEVEL * POWER_PER_SQUAD_POINT}`, Math.abs(paper5.lift - paper0.lift - COACH_LEVEL_LIFT * MAX_LEVEL) < 1e-9
+    && squadPower({ slots: ids, coach }, lvl) - squadPower({ slots: ids, coach }, () => 0) === COACH_LEVEL_LIFT * MAX_LEVEL * POWER_PER_SQUAD_POINT)
 }
 
 // ---- 阵容战力 is the paper score at five hundred a point, and one level shows
@@ -179,7 +179,7 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
   check('阵容战力 = 未取整阵容分 × 500', squadPower(sq) === Math.round(p.score * POWER_PER_SQUAD_POINT) && POWER_PER_SQUAD_POINT === 500)
   check('阵容分还是四舍五入的那个数', squadRating(sq) === Math.round(p.score))
   const one = squadPower(sq, (id) => (id === ids[0] ? 1 : 0))
-  check('一张卡升一级，阵容战力 +100，阵容分未必动', one - squadPower(sq) === 100)
+  check(`一张卡升一级，阵容战力 +${POWER_PER_LEVEL}，阵容分未必动`, one - squadPower(sq) === POWER_PER_LEVEL)
   check('空卡组两个数都是 0', squadPower({ slots: [null, null, null, null, null], coach: null }) === 0 && squadRating({ slots: [null, null, null, null, null], coach: null }) === 0)
 }
 
@@ -191,10 +191,10 @@ function seated(slots: string[], coach: string | null, level: (id: string) => nu
   g.cards['p:P227'].level = 3
   const m = migrateGacha(JSON.parse(JSON.stringify(g)), g.id)
   const card = players.find((c) => c.id === 'p:P227')!
-  check('旧存档里的 +3 直接生效：战力 +300', cardPower(card, levelOf(m, 'p:P227')) === cardPower(card, 0) + 300)
+  check(`旧存档里的 +3 直接生效：战力 +${POWER_PER_LEVEL * 3}`, cardPower(card, levelOf(m, 'p:P227')) === cardPower(card, 0) + POWER_PER_LEVEL * 3)
   const zero = seated(ids, null, () => 0).ps[0]
   const mine = seated(ids, null, (id) => levelOf(m, id)).ps[0]
-  check('旧存档的 +3 进了竞技场：总评 +1.5', Math.abs(mine.overall - (zero.overall + 1.5)) < 1e-9, `${zero.overall} → ${mine.overall}`)
+  check(`旧存档的 +3 进了竞技场：总评 +${0.5 * LEVEL_GAIN * 3}`, Math.abs(mine.overall - (zero.overall + 0.5 * LEVEL_GAIN * 3)) < 1e-9, `${zero.overall} → ${mine.overall}`)
 }
 
 // ---- and it is worth something on the day

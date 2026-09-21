@@ -114,8 +114,16 @@ for (const g of [...bins.keys()].sort((a, b) => a - b)) {
 // series with a gap went to the lower score: 「我想要的是有机会，而不是频繁出现」
 // — one point ≈ 54%, two ≈ 57%, three ≈ 60%, steeper the wider it gets
 // (balance v3). Measured here that day: 54 / 64 / 75 / 92 / 99, +5 levels 76%.
+//
+// 2026-09-21 (balance v4, LEVEL_GAIN 1.5): eight live cups played v3 to the
+// point and 28.8% of every series with a gap still went to the lower score.
+// 「不要让玩家觉得好不容易抽的、攒的卡、升级了，结果经常在杯赛里一点用也没有」
+// — one point ≈ 56.5%, three ≈ 66.5%, five ≈ 76%, and a level is worth half
+// again as much as it was, so the same grinding buys a wider gap to spend on
+// it. A level on all five is no longer meant to be a coin flip: that is the
+// change, not a regression, and the fence says so.
 const bands: [string, number, number, number, number][] = [
-  ['0-1', 0, 1, 0.45, 0.60], ['2-4', 2, 4, 0.56, 0.70], ['5-7', 5, 7, 0.68, 0.84], ['8-11', 8, 11, 0.84, 0.97], ['12+', 12, 99, 0.95, 1],
+  ['0-1', 0, 1, 0.45, 0.63], ['2-4', 2, 4, 0.60, 0.78], ['5-7', 5, 7, 0.74, 0.90], ['8-11', 8, 11, 0.86, 0.99], ['12+', 12, 99, 0.95, 1],
 ]
 let bad = 0
 console.log('\nband   n     P(higher wins)')
@@ -129,7 +137,7 @@ const check = (name: string, ok: boolean, detail: string) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}  — ${detail}`)
   if (!ok) bad++
 }
-check('同一套卡全员高五级，赢六成以上', pure[5] >= 0.6, `${(pure[5] * 100).toFixed(0)}%`)
-check('同一套卡全员高一级，还是五五开', pure[1] >= 0.4 && pure[1] <= 0.62, `${(pure[1] * 100).toFixed(0)}%`)
+check('同一套卡全员高五级，八成以上', pure[5] >= 0.8, `${(pure[5] * 100).toFixed(0)}%`)
+check('同一套卡全员高一级，明显占优但翻得动', pure[1] >= 0.55 && pure[1] <= 0.70, `${(pure[1] * 100).toFixed(0)}%`)
 console.log(bad ? `\n${bad} FAILED` : '\nall good')
 process.exit(bad ? 1 : 0)

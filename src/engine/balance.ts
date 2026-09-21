@@ -12,11 +12,12 @@
  * cup carries it in `cup.balance`, a 全服杯 in `open_cups.balance_version` —
  * and a record with no version is version 1, the curve before 2026-09-18.
  */
-export const BALANCE_VERSION = 3
+export const BALANCE_VERSION = 4
 
 interface Knee { s0: number; s1: number; k: number; w: number }
 const V2: Knee = { s0: 0.36, s1: 1.48, k: 2.9, w: 0.5 }
 const V3: Knee = { s0: 0.82, s1: 2.08, k: 4.5, w: 1.0 }
+const V4: Knee = { s0: 1.34, s1: 2.12, k: 6.4, w: 1.5 }
 const softplus = (x: number): number => (x > 30 ? x : Math.log1p(Math.exp(x)))
 /** slope s0 near zero, s1 far out, the turn centred on k and about 4w points wide; E(0) = 0 */
 const knee = ({ s0, s1, k, w }: Knee) => (d: number): number =>
@@ -50,6 +51,22 @@ const knee = ({ s0, s1, k, w }: Knee) => (d: number): number =>
  *     series a cell — BO3 53.6 / 57.3 / 60.4 / 70.9 / 87.3 / 93.3, and a BO5 a
  *     little above it from two points on (59.6 / 63.7 / 75.2 / 92.9 / 97.3).
  *     analysis/balance_v3/ has the tables; ui/cards/GapOdds.tsx prints them.
+ * 4 — 2026-09-21. Eight live 全服杯 (4,761 series) played v3 to the point —
+ *     BO3 54.8 / 61.5 / 57.3 / 69.2 at +1/+2/+3/+5 — and 28.8% of every series
+ *     with a gap still went to the lower score, because a cup pairs like with
+ *     like and most gaps are one to three points, exactly where v3 sits near a
+ *     coin flip. The owner: 「不要让玩家觉得好不容易抽的、攒的卡、升级了，结果
+ *     经常在杯赛里一点用也没有」. Targets raised across the board, BO3:
+ *     +1 ≈ 56.5%, +2 ≈ 61%, +3 ≈ 66.5%, +5 ≈ 76%, +8 ≈ 90%, +10 ≈ 95%.
+ *     Same family, same probe table (the match engine is untouched, so P(win|E)
+ *     still holds): slope 1.34 from the first point — nearly four times v2's —
+ *     2.12 far out, the turn at 6.4 and six points wide. Of the widths that
+ *     land every target within half a point, the widest is taken, because a
+ *     wide turn is what "no step at an integer" means.
+ *     Shipped beside a change of scale: a card level is worth 1.5 ability
+ *     points rather than 1 and a coach level 0.3 squad points rather than 0.2
+ *     (cards.ts LEVEL_GAIN, COACH_LEVEL_LIFT), so the same grinding buys half
+ *     again as many 阵容分 to spend on this curve.
  *
  * Scripts may register further keys to measure a candidate; the game reads
  * only the versions named here.
@@ -58,6 +75,7 @@ export const GAP_CURVES: Record<number, (d: number) => number> = {
   1: (d) => 0.35 * d + 0.65 * Math.max(0, d - 3),
   2: knee(V2),
   3: knee(V3),
+  4: knee(V4),
 }
 
 /** Both sides' round strength: the pair's mean is kept, the gap is E(d), split evenly. */

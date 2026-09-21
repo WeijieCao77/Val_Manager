@@ -1,0 +1,327 @@
+{
+ "cupsPerCell": 250,
+ "squads": {
+  "四个十连的五人": {
+   "paper": {
+    "0": 87,
+    "5": 92
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      229,
+      157,
+      76,
+      26,
+      8
+     ],
+     "legPlayed": [
+      250,
+      229,
+      157,
+      62,
+      11
+     ],
+     "won": 37
+    },
+    "5": {
+     "legWins": [
+      250,
+      234,
+      167,
+      74,
+      20
+     ],
+     "legPlayed": [
+      250,
+      250,
+      234,
+      125,
+      29
+     ],
+     "won": 107
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 101,
+      "champion": 0.33663366336633666,
+      "coinsPerEntry": 737.6237623762377,
+      "coinsPerStamina": 147.52475247524754,
+      "packsPerEntry": {
+       "scout": 0.44554455445544555,
+       "elite": 0.33663366336633666
+      }
+     },
+     "4": {
+      "cups": 99,
+      "champion": 0.2828282828282828,
+      "coinsPerEntry": 817.1717171717172,
+      "coinsPerStamina": 163.43434343434345,
+      "packsPerEntry": {
+       "scout": 0.8585858585858586,
+       "elite": 0.2828282828282828
+      }
+     },
+     "5": {
+      "cups": 50,
+      "champion": 0.12,
+      "coinsPerEntry": 736,
+      "coinsPerStamina": 147.2,
+      "packsPerEntry": {
+       "scout": 0.78,
+       "ten": 0.12
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 100,
+      "champion": 0.47,
+      "coinsPerEntry": 891.5,
+      "coinsPerStamina": 178.3,
+      "packsPerEntry": {
+       "elite": 0.47,
+       "scout": 0.36
+      }
+     },
+     "4": {
+      "cups": 80,
+      "champion": 0.275,
+      "coinsPerEntry": 822.5,
+      "coinsPerStamina": 164.5,
+      "packsPerEntry": {
+       "scout": 0.85,
+       "elite": 0.275
+      }
+     },
+     "5": {
+      "cups": 70,
+      "champion": 0.2714285714285714,
+      "coinsPerEntry": 970.7142857142857,
+      "coinsPerStamina": 194.14285714285714,
+      "packsPerEntry": {
+       "scout": 0.6571428571428571,
+       "ten": 0.2714285714285714
+      }
+     }
+    }
+   }
+  },
+  "最好的金卡五人": {
+   "paper": {
+    "0": 89,
+    "5": 94
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      229,
+      160,
+      86,
+      37,
+      7
+     ],
+     "legPlayed": [
+      250,
+      229,
+      160,
+      65,
+      19
+     ],
+     "won": 46
+    },
+    "5": {
+     "legWins": [
+      249,
+      233,
+      172,
+      84,
+      22
+     ],
+     "legPlayed": [
+      250,
+      249,
+      233,
+      129,
+      36
+     ],
+     "won": 113
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 84,
+      "champion": 0.2976190476190476,
+      "coinsPerEntry": 689.8809523809524,
+      "coinsPerStamina": 137.97619047619048,
+      "packsPerEntry": {
+       "scout": 0.4880952380952381,
+       "elite": 0.2976190476190476
+      }
+     },
+     "4": {
+      "cups": 104,
+      "champion": 0.25,
+      "coinsPerEntry": 787.5,
+      "coinsPerStamina": 157.5,
+      "packsPerEntry": {
+       "scout": 0.8653846153846154,
+       "elite": 0.25
+      }
+     },
+     "5": {
+      "cups": 62,
+      "champion": 0.1774193548387097,
+      "coinsPerEntry": 815.3225806451613,
+      "coinsPerStamina": 163.06451612903226,
+      "packsPerEntry": {
+       "scout": 0.7258064516129032,
+       "ten": 0.1774193548387097
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 92,
+      "champion": 0.40217391304347827,
+      "coinsPerEntry": 811.4130434782609,
+      "coinsPerStamina": 162.2826086956522,
+      "packsPerEntry": {
+       "scout": 0.391304347826087,
+       "elite": 0.40217391304347827
+      }
+     },
+     "4": {
+      "cups": 89,
+      "champion": 0.30337078651685395,
+      "coinsPerEntry": 850,
+      "coinsPerStamina": 170,
+      "packsPerEntry": {
+       "scout": 0.8764044943820225,
+       "elite": 0.30337078651685395
+      }
+     },
+     "5": {
+      "cups": 69,
+      "champion": 0.17391304347826086,
+      "coinsPerEntry": 836.9565217391304,
+      "coinsPerStamina": 167.39130434782606,
+      "packsPerEntry": {
+       "scout": 0.7391304347826086,
+       "ten": 0.17391304347826086
+      }
+     }
+    }
+   }
+  },
+  "彩卡五人": {
+   "paper": {
+    "0": 101,
+    "5": 107
+   },
+   "fixed": {
+    "0": {
+     "legWins": [
+      249,
+      232,
+      183,
+      89,
+      25
+     ],
+     "legPlayed": [
+      250,
+      249,
+      232,
+      129,
+      40
+     ],
+     "won": 128
+    },
+    "5": {
+     "legWins": [
+      250,
+      247,
+      240,
+      157,
+      55
+     ],
+     "legPlayed": [
+      250,
+      250,
+      247,
+      163,
+      59
+     ],
+     "won": 230
+    }
+   },
+   "flow": {
+    "0": {
+     "3": {
+      "cups": 86,
+      "champion": 0.7790697674418605,
+      "coinsPerEntry": 1253.4883720930231,
+      "coinsPerStamina": 250.69767441860463,
+      "packsPerEntry": {
+       "elite": 0.7790697674418605,
+       "scout": 0.19767441860465115
+      }
+     },
+     "4": {
+      "cups": 94,
+      "champion": 0.7553191489361702,
+      "coinsPerEntry": 1481.3829787234042,
+      "coinsPerStamina": 296.27659574468083,
+      "packsPerEntry": {
+       "scout": 1,
+       "elite": 0.7553191489361702
+      }
+     },
+     "5": {
+      "cups": 70,
+      "champion": 0.6857142857142857,
+      "coinsPerEntry": 1621.4285714285713,
+      "coinsPerStamina": 324.2857142857143,
+      "packsPerEntry": {
+       "ten": 0.6857142857142857,
+       "scout": 0.3142857142857143
+      }
+     }
+    },
+    "5": {
+     "3": {
+      "cups": 90,
+      "champion": 1,
+      "coinsPerEntry": 1500,
+      "coinsPerStamina": 300,
+      "packsPerEntry": {
+       "elite": 1
+      }
+     },
+     "4": {
+      "cups": 106,
+      "champion": 0.9811320754716981,
+      "coinsPerEntry": 1775,
+      "coinsPerStamina": 355,
+      "packsPerEntry": {
+       "scout": 1,
+       "elite": 0.9811320754716981
+      }
+     },
+     "5": {
+      "cups": 54,
+      "champion": 1,
+      "coinsPerEntry": 2100,
+      "coinsPerStamina": 420,
+      "packsPerEntry": {
+       "ten": 1
+      }
+     }
+    }
+   }
+  }
+ }
+}
