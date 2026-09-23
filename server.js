@@ -715,6 +715,38 @@ function handle(req, res) {
     return
   }
 
+  // 「数据库快满了」, for the owner: what the disk holds, table by table —
+  // live and dead rows, and the write-ahead log, which also sits on the
+  // volume. Read only; it changes nothing.
+  if (path === '/api/admin/db') {
+    if (!tokenOk(tokenFrom(req, url), TOKEN)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); return }
+    if (!sqlStats) { json(res, 503, { ok: false, why: 'no database' }); return }
+    void (async () => {
+      const mb = (b) => Math.round(Number(b) / 1048576)
+      const [db] = await sqlStats`select pg_database_size(current_database())::bigint as b`
+      const tables = await sqlStats`
+        select relname as name,
+               pg_total_relation_size(relid)::bigint as total,
+               pg_relation_size(relid)::bigint as heap,
+               pg_indexes_size(relid)::bigint as idx,
+               n_live_tup::bigint as live, n_dead_tup::bigint as dead,
+               last_autovacuum, last_vacuum, autovacuum_count
+        from pg_stat_user_tables order by pg_total_relation_size(relid) desc`
+      let wal = null
+      try { const [w] = await sqlStats`select coalesce(sum(size), 0)::bigint as b, count(*)::int as n from pg_ls_waldir()`; wal = { mb: mb(w.b), files: w.n } } catch (err) { wal = { error: err.message } }
+      json(res, 200, {
+        ok: true, dbMb: mb(db.b), wal,
+        tables: tables.map((t) => ({
+          name: t.name, totalMb: mb(t.total), heapMb: mb(t.heap), idxMb: mb(t.idx),
+          toastMb: mb(Number(t.total) - Number(t.heap) - Number(t.idx)),
+          live: Number(t.live), dead: Number(t.dead),
+          lastAutovacuum: t.last_autovacuum, lastVacuum: t.last_vacuum, autovacuums: Number(t.autovacuum_count),
+        })),
+      })
+    })().catch((err) => { if (!res.headersSent) json(res, 500, { ok: false, why: err.message }) })
+    return
+  }
+
   if (path.startsWith('/api/') && process.env.DATABASE_URL && !schemaReady) {
     res.setHeader('Retry-After', '5')
     json(res, 503, { ok: false, busy: true, why: '服务正在准备，请稍后重试。' })
