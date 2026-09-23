@@ -15,12 +15,12 @@ export function useDialogFocus(onClose: () => void, enabled = true) {
     const candidates = () => [...root.querySelectorAll<HTMLElement>(controls)].filter(el => el.getClientRects().length && el.getAttribute('aria-hidden') !== 'true')
     ;(candidates()[0] ?? root).focus({ preventScroll: true })
     const keydown = (e: KeyboardEvent) => {
-      if (stack.at(-1) !== root || document.querySelector('dialog[open]')) return
+      if (stack[stack.length - 1] !== root || document.querySelector('dialog[open]:not([data-fallback])')) return
       if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close.current(); return }
       if (e.key !== 'Tab') return
       const items = candidates()
       const first = items[0] ?? root
-      const last = items.at(-1) ?? root
+      const last = items[items.length - 1] ?? root
       if (e.shiftKey && (document.activeElement === first || !root.contains(document.activeElement))) { e.preventDefault(); last.focus() }
       else if (!e.shiftKey && (document.activeElement === last || !root.contains(document.activeElement))) { e.preventDefault(); first.focus() }
     }

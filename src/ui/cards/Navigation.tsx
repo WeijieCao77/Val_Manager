@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogFocus } from './useDialogFocus'
 
 export const CARD_PAGES = [
   { key: 'packs', label: '抽卡', group: '卡牌', description: '领取每日奖励，开启你的下一张收藏。', icon: 'pack' },
@@ -41,9 +42,18 @@ export default function CardNavigation({ current, onNavigate, onExit }: { curren
   const [open, setOpen] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
-    if (open) dialog.current?.showModal()
-    else if (dialog.current?.open) dialog.current.close()
+    const node = dialog.current
+    if (!node) return
+    if (typeof node.showModal === 'function') {
+      if (open) node.showModal()
+      else if (node.open) node.close()
+    } else {
+      node.setAttribute('data-fallback', '')
+      if (open) node.setAttribute('open', '')
+      else node.removeAttribute('open')
+    }
   }, [open])
+  const sheetRef = useDialogFocus(() => setOpen(false), open)
   useEffect(() => { setOpen(false) }, [current])
   const link = (p: typeof CARD_PAGES[number]) => <a key={p.key} href={`#${p.key}`} className={`cm-nav-link${current === p.key ? ' active' : ''}`} aria-current={current === p.key ? 'page' : undefined}
     onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onNavigate(p.key); setOpen(false) }}>
@@ -56,7 +66,7 @@ export default function CardNavigation({ current, onNavigate, onExit }: { curren
       <button className={`cm-nav-link${!primary.includes(current) ? ' active' : ''}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><NavIcon name="more" /><span>更多</span></button>
     </nav>
     <dialog className="cm-nav-dialog" ref={dialog} onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false) }} aria-labelledby="cm-nav-title">
-      <div className="cm-nav-sheet"><header><h2 id="cm-nav-title">全部玩法</h2><button className="ghost" onClick={() => setOpen(false)} aria-label="关闭全部玩法">关闭 ×</button></header><nav aria-label="全部玩法">{groups()}</nav><button className="cm-exit ghost" onClick={onExit}>返回游戏首页</button></div>
+      <div className="cm-nav-sheet" ref={sheetRef} tabIndex={-1}><header><h2 id="cm-nav-title">全部玩法</h2><button className="ghost" onClick={() => setOpen(false)} aria-label="关闭全部玩法">关闭 ×</button></header><nav aria-label="全部玩法">{groups()}</nav><button className="cm-exit ghost" onClick={onExit}>返回游戏首页</button></div>
     </dialog>
   </>
 }

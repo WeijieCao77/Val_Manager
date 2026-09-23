@@ -253,3 +253,8 @@
   .cm-deck-slot small { font-size: 10px; }
   .cm-deck-toolbar { gap: 12px; }
 }
+/* Fallback sheet for browsers without native modal dialogs. */
+.cm-nav-dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
+.cm-nav-dialog[data-fallback]:not([open]) { display: none; }
+.cm-nav-dialog[data-fallback][open] { display: flex; position: fixed; inset: 0; z-index: 100; margin: 0; width: 100%; height: 100%; max-width: none; max-height: none; padding: 12px; border: 0; border-radius: 0; align-items: center; justify-content: center; background: var(--scrim); }
+.cm-nav-dialog[data-fallback] .cm-nav-sheet { width: min(560px,100%); max-height: calc(100vh - 24px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
