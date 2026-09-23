@@ -28,6 +28,14 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-23',
+    title: '开瓦包：上海冠军赛预测分享卡，9 月 24 日 16:00 截止',
+    changes: [
+      { kind: '新增', text: '2026 上海冠军赛预测页新增<b>分享我的预测</b>：把已保存的四组名次和每场预测胜者生成一张分享卡，可以保存图片发给好友，支持的手机也能直接打开系统分享。<b>未保存的修改不会出现在分享卡里</b>，没选的场次标为「未预测」。' },
+      { kind: '调整', text: '四组预测统一在<b>北京时间 2026 年 9 月 24 日下午 4 点（16:00）</b>截止，不再等各组分别开赛。请提前保存；<b>到点后不能新增或修改预测</b>，已经保存的结果会保留，仍可查看和分享。预测奖励规则不变。' },
+    ],
+  },
+  {
+    date: '2026-09-23',
     title: '经理模式：对手会研究你了，新增难度',
     changes: [
       { kind: '新增', text: '<b>对手针对。</b>赢得越多，别的队越研究你的录像：赢一场针对度 +3，输一场 −8，拿冠军涨更多。同一张图<b>连打三场同一套英雄和滑杆</b>就被摸透，对手打你时最多多出 6 分。换一两个英雄、或把滑杆拨动 10 以上，他们的准备就白做一部分。战术页能看到每张图被摸透多少，赛后分析里有「对手针对准备」一行。' },
@@ -1410,5 +1418,5 @@ export const CHANGELOG: ChangeEntry[] = [
   },
 ]
 
-/** The newest entry's date, used to badge the button when it is new to you. */
-export const LATEST = CHANGELOG[0]?.date ?? ''
+/** Include the title so a second announcement on the same day lights the badge again. */
+export const LATEST = CHANGELOG[0] ? CHANGELOG[0].date + ':' + CHANGELOG[0].title : ''
