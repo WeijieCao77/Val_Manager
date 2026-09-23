@@ -10,8 +10,8 @@
  * bracket. Third place is 9th–12th and fourth 13th–16th — nobody leaves the
  * groups for a lower bracket.
  *
- * Picks and reward receipts live on the server. A group closes when its first
- * match starts; confirmed results pay its highest reward tier exactly once.
+ * Picks and reward receipts live on the server. All groups close at the event
+ * deadline; confirmed results pay each group’s highest reward tier exactly once.
  */
 import type { GachaState } from './gacha'
 import publishedResults from '../data/predictResults.json'
@@ -26,6 +26,8 @@ export interface PredictTeam { tag: string; clubId: string; name: string }
 
 export interface PredictGroup {
   key: string
+  /** Optional shared event deadline, UTC ms. */
+  deadline?: number
   /** o1 is teams[0] v teams[1], o2 is teams[2] v teams[3] */
   teams: [string, string, string, string]
   /** when each match starts, UTC ms */
@@ -41,6 +43,8 @@ export interface PredictEvent {
 
 const at = (o1: string, o2: string, w: string, e: string, d: string): Record<SlotKey, number> =>
   ({ o1: Date.parse(o1), o2: Date.parse(o2), w: Date.parse(w), e: Date.parse(e), d: Date.parse(d) })
+
+export const CHAMPIONS_2026_DEADLINE = Date.parse('2026-09-24T16:00:00+08:00')
 
 export const CHAMPIONS_2026: PredictEvent = {
   id: 'champions-2026',
@@ -65,13 +69,13 @@ export const CHAMPIONS_2026: PredictEvent = {
   },
   // Beijing 17:00 and 20:00 are 09:00 and 12:00 UTC
   groups: [
-    { key: 'A', teams: ['100T', 'T1', 'JDG', 'FUT'],
+    { key: 'A', deadline: CHAMPIONS_2026_DEADLINE, teams: ['100T', 'T1', 'JDG', 'FUT'],
       at: at('2026-09-27T09:00Z', '2026-09-27T12:00Z', '2026-09-30T09:00Z', '2026-10-02T09:00Z', '2026-10-04T09:00Z') },
-    { key: 'B', teams: ['GE', 'VIT', 'LOUD', 'EDG'],
+    { key: 'B', deadline: CHAMPIONS_2026_DEADLINE, teams: ['GE', 'VIT', 'LOUD', 'EDG'],
       at: at('2026-09-26T09:00Z', '2026-09-26T12:00Z', '2026-09-30T12:00Z', '2026-10-02T12:00Z', '2026-10-04T12:00Z') },
-    { key: 'C', teams: ['TL', 'PRX', 'TYL', 'G2'],
+    { key: 'C', deadline: CHAMPIONS_2026_DEADLINE, teams: ['TL', 'PRX', 'TYL', 'G2'],
       at: at('2026-09-24T09:00Z', '2026-09-24T12:00Z', '2026-09-29T09:00Z', '2026-10-01T09:00Z', '2026-10-03T09:00Z') },
-    { key: 'D', teams: ['NS', 'NRG', 'KC', 'XLG'],
+    { key: 'D', deadline: CHAMPIONS_2026_DEADLINE, teams: ['NS', 'NRG', 'KC', 'XLG'],
       at: at('2026-09-25T09:00Z', '2026-09-25T12:00Z', '2026-09-29T12:00Z', '2026-10-01T12:00Z', '2026-10-03T12:00Z') },
   ],
 }
@@ -121,8 +125,8 @@ export function standing(group: PredictGroup, picks: Picks) {
   }
 }
 
-/** A group closes when its first match starts. */
-export const lockAt = (group: PredictGroup): number => Math.min(...SLOTS.map((k) => group.at[k]))
+/** Event deadline takes precedence over the first match. */
+export const lockAt = (group: PredictGroup): number => group.deadline ?? Math.min(...SLOTS.map((k) => group.at[k]))
 export const isLocked = (group: PredictGroup, now: number): boolean => now >= lockAt(group)
 
 export const picksOf = (g: GachaState, eventId: string, groupKey: string): Picks =>
@@ -134,7 +138,7 @@ export function setPicks(
   const ev = PREDICT_EVENTS.find((e) => e.id === eventId)
   const group = ev?.groups.find((x) => x.key === groupKey)
   if (!ev || !group) return { ok: false, why: '没有这个赛事' }
-  if (isLocked(group, now)) return { ok: false, why: `${group.key} 组已经开赛，预测锁定了` }
+  if (isLocked(group, now)) return { ok: false, why: `${group.key} 组预测已截止，不能再修改` }
   const picks = cleanPicks(group, raw)
   g.predict ??= {}
   g.predict[ev.id] ??= {}

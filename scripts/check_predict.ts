@@ -1,6 +1,6 @@
 /**
  * 赛事预测: the Champions Shanghai groups flow the way the real bracket does,
- * the picks are the server's, and a group closes at its first match.
+ * the picks are the server's, and all groups close at the event deadline.
  *
  *   npx tsx scripts/check_predict.ts
  */
@@ -30,7 +30,7 @@ check('每支队都是游戏里的俱乐部，简称对得上',
   tags.filter((t) => WORLD_TEAMS.find((w) => w.id === EV.teams[t]?.clubId)?.tag !== t).join(' '))
 check('每组先打两场首轮，再打胜者组决赛和败者组首轮，决胜局最后',
   groups.every((g) => Math.max(g.at.o1, g.at.o2) < Math.min(g.at.w, g.at.e) && Math.max(g.at.w, g.at.e) < g.at.d))
-check('C 组最先开赛：北京时间 9 月 24 日 17:00 锁定', lockAt(C) === Date.parse('2026-09-24T09:00Z'), new Date(lockAt(C)).toISOString())
+check('所有组北京时间 9 月 24 日 16:00 统一锁定', groups.every(g => lockAt(g) === Date.parse('2026-09-24T08:00Z')))
 check('小组赛 10 月 4 日打完', Math.max(...groups.map((g) => g.at.d)) === Date.parse('2026-10-04T12:00Z'))
 
 // ---- the bracket inside a group
@@ -58,7 +58,13 @@ check('小组赛 10 月 4 日打完', Math.max(...groups.map((g) => g.at.d)) ===
   const late = runAction(g, 'predict', { event: EV.id, group: 'C', picks: { o1: 'TL' } }, env('2026-09-24T09:00:00Z'))
   check('第一场开赛后改不了，原来的预测还在', !late.ok && picksOf(g, EV.id, 'C').o1 === 'PRX', late.ok ? '' : late.why)
   const other = runAction(g, 'predict', { event: EV.id, group: 'A', picks: { o1: 'T1' } }, env('2026-09-24T09:00:00Z'))
-  check('A 组还没开赛，照样能存', other.ok && picksOf(g, EV.id, 'A').o1 === 'T1')
+  check('A 组未开赛也已截止', !other.ok && !picksOf(g, EV.id, 'A').o1)
+  for (const gr of groups) {
+    const payload = { event: EV.id, group: gr.key, picks: gr.key === 'C' ? full : { o1: gr.teams[0] } }
+    check(gr.key + ' 组截止前 1 毫秒可存', runAction(g, 'predict', payload, env('2026-09-24T07:59:59.999Z')).ok)
+    const snapshot = JSON.stringify(picksOf(g, EV.id, gr.key))
+    check(gr.key + ' 组截止整点拒绝且保留原预测', !runAction(g, 'predict', { ...payload, picks: {} }, env('2026-09-24T08:00:00Z')).ok && JSON.stringify(picksOf(g, EV.id, gr.key)) === snapshot)
+  }
   check('没有这个组就拒绝', !runAction(g, 'predict', { event: EV.id, group: 'Z', picks: {} }, env('2026-09-20T00:00:00Z')).ok)
   check('没有这个赛事就拒绝', !runAction(g, 'predict', { event: 'masters-9', group: 'A', picks: {} }, env('2026-09-20T00:00:00Z')).ok)
 

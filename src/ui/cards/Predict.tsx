@@ -5,7 +5,7 @@
  * the winners' match and the elimination match, then the decider — so the
  * only thing to learn is where to click. A pick flows on by itself: the
  * opening winners fill the winners' match, their losers the elimination
- * match. Each group is saved as a whole and closes when its first match starts.
+ * match. Each group is saved as a whole and closes at the shared event deadline.
  */
 import { useEffect, useState } from 'react'
 import { useCards } from './ctx'
@@ -15,6 +15,7 @@ import {
   CHAMPIONS_2026, cleanPicks, isLocked, lockAt, picksOf, sides, standing, confirmedResult, predictionReward,
 } from '../../engine/predict'
 import type { Picks, PredictGroup, SlotKey } from '../../engine/predict'
+import SharePrediction from './SharePrediction'
 import './predict.css'
 
 const EV = CHAMPIONS_2026
@@ -26,6 +27,7 @@ const bj = (ms: number): string => new Date(ms).toLocaleString('zh-CN', {
 
 export default function Predict() {
   const { g } = useCards()
+  const [sharing, setSharing] = useState(false)
   const saved = EV.groups.reduce((n, gr) => n + Object.keys(picksOf(g, EV.id, gr.key)).length, 0)
   return (
     <>
@@ -35,8 +37,12 @@ export default function Predict() {
           这 8 队进淘汰赛胜者组；小组第三是 9–12 名，第四是 13–16 名。
         </p>
         <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>
-          点队伍选谁赢，每组保存一次，这组第一场开赛前都能改。已保存 <b>{saved}</b> / 20 场，时间是北京时间。
+          点队伍选谁赢，每组保存一次，所有小组统一于北京时间 2026 年 9 月 24 日 16:00 截止，此后不能修改。已保存 <b>{saved}</b> / 20 场，时间是北京时间。
         </p>
+        <div className="row" style={{ marginTop: 12, gap: 10 }}>
+          <button className="primary sm" disabled={!saved} onClick={() => setSharing(true)}>分享我的预测</button>
+          <span className="tiny muted">分享卡仅展示已保存的预测</span>
+        </div>
         <div className="pd-rewards" aria-label="小组预测奖励">
           <b>每组独立结算，只发最高一档，不叠加</b>
           <ul>
@@ -48,6 +54,7 @@ export default function Predict() {
           <span>按你保存的小组第一、第二名结算，不要求每场胜负都猜对。赛果确认后，在对应小组领取，卡包直接入库。</span>
         </div>
       </Panel>
+      {sharing && <SharePrediction onClose={() => setSharing(false)} />}
       <div className="pd-groups">
         {EV.groups.map((gr) => <Group key={gr.key} group={gr} />)}
       </div>
@@ -64,8 +71,9 @@ function Group({ group }: { group: PredictGroup }) {
   useEffect(() => { setDraft(JSON.parse(savedKey) as Picks) }, [savedKey])
   const [busy, setBusy] = useState(false)
   const locked = isLocked(group, now)
-  const s = sides(group, draft)
-  const st = standing(group, draft)
+  const displayed = locked ? cleanPicks(group, saved) : draft
+  const s = sides(group, displayed)
+  const st = standing(group, displayed)
   const dirty = JSON.stringify(draft) !== savedKey
   const result = confirmedResult(EV.id, group, now)
   const reward = result ? predictionReward(group, saved, result) : null
@@ -85,10 +93,12 @@ function Group({ group }: { group: PredictGroup }) {
     setDraft((d) => cleanPicks(group, { ...d, [k]: tag }))
   }
   const save = async () => {
+    if (busy || locked) return
     setBusy(true)
-    const r = await act('predict', { event: EV.id, group: group.key, picks: draft })
-    setBusy(false)
-    toast(r.ok ? `${group.key} 组预测已保存。` : r.why)
+    try {
+      const r = await act('predict', { event: EV.id, group: group.key, picks: draft })
+      toast(r.ok ? `${group.key} 组预测已保存。` : r.why)
+    } finally { setBusy(false) }
   }
 
   const team = (tag: string | null) => {
@@ -111,8 +121,8 @@ function Group({ group }: { group: PredictGroup }) {
       <div className="pd-match">
         <div className="pd-when"><span>{bj(group.at[k])}</span><span>BO3</span></div>
         {[a, b].map((tag, i) => {
-          const won = !!tag && draft[k] === tag
-          const lost = !!tag && !!draft[k] && draft[k] !== tag
+          const won = !!tag && displayed[k] === tag
+          const lost = !!tag && !!displayed[k] && displayed[k] !== tag
           return (
             <button
               key={i}
@@ -132,7 +142,7 @@ function Group({ group }: { group: PredictGroup }) {
   return (
     <Panel
       title={`${group.key} 组`}
-      actions={<span className="tiny muted">{locked ? '已开赛，锁定' : `${bj(lockAt(group))} 锁定`}</span>}
+      actions={<span className="tiny muted">{locked ? '已截止，锁定' : `${bj(lockAt(group))} 锁定`}</span>}
     >
       <div className="pd-bracket">
         <div className="pd-col">
