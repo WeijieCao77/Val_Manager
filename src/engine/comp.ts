@@ -35,6 +35,7 @@
  */
 import { AGENT_ROLE } from './content'
 import type { GameState, Role, Tactics } from './types'
+import { spec } from './difficulty'
 
 export type CompStyle = 'rush' | 'hold' | 'control' | 'standard'
 
@@ -264,7 +265,8 @@ const overlap = (a: string, b: string): number => {
 export function familiarity(
   state: GameState, teamId: string, map: string, agents: Record<string, string>,
 ): number {
-  if (teamId !== state.myTeam) return FAM_BASE
+  // an AI club's usual sheet is practised; how practised is the difficulty's
+  if (teamId !== state.myTeam) return spec(state).aiFamiliarity
   const cur = state.compPro?.[map]
   if (!cur) return FAM_BASE
   const key = compKey(agents)

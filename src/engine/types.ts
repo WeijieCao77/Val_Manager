@@ -688,6 +688,8 @@ export interface EdgeBreakdown {
   matchup?: number
   /** how well the club knew the five agents it took onto this map */
   familiarity?: number
+  /** 针对准备: what studying our tape was worth to an opponent (their side only) */
+  prep?: number
   atk: number
   def: number
 }
@@ -962,6 +964,12 @@ export interface GameState {
    * rating. Undefined on old saves means nobody has been provoked yet.
    */
   rivalry?: number
+  /** 难度; absent is 普通 — see engine/difficulty.ts */
+  difficulty?: import('./difficulty').Difficulty
+  /** 对手针对: the league's attention and what it has seen — engine/scouting.ts */
+  scout?: import('./scouting').ScoutState
+  /** the contender that made us personal for one season (the year it runs) */
+  nemesis?: { teamId: string; year: number }
   /** day each player last had physio, so a session is once a week per player */
   physioOn?: Record<string, number>
   /** prospects already let into the world, so nobody arrives twice */

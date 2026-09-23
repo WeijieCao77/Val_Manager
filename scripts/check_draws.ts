@@ -350,6 +350,8 @@ for (let i = 0; i < N; i++) {
           `${y0}: Kickoff ${n('kickoff')}, Stage 1 ${n('stage1')}, Stage 2 ${n('stage2')} — all three were played`)
       }
       if (g.day > SEASON_DAYS + 5) throw new Error('no rollover')
+      // a finished career stops the clock; without this the loop spins for ever
+      if (g.gameOver) throw new Error(`career ended in ${g.year}: ${g.gameOver}`)
     }
   }
 }

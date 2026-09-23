@@ -9,6 +9,8 @@ import { skillMod } from './manager'
 import { trustOf, trustOnDeparture, TRUST_START } from './trust'
 import { KEPT_GAIN, RENEWAL_GAIN, loyaltyOnJoin, loyaltyOnListed, shiftLoyalty } from './loyalty'
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
+import { rivalryOf } from './difficulty'
+import { isNemesis } from './scouting'
 
 /**
  * The active-roster ceiling, matching how real circuits register players.
@@ -569,7 +571,9 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
   const agents = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring)
 
   for (const team of teams) {
-    if (!rng.chance(0.1)) continue
+    // a nemesis is at the market every other week the window is open
+    const nemesis = isNemesis(state, team.id)
+    if (!rng.chance(nemesis ? 0.5 : 0.1)) continue
     const squad = squadOf(state, team.id)
     const wages = wageBill(state, team.id)
     const room = team.budget - wages * 0.6
@@ -600,8 +604,8 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
 
     // shopping for an upgrade — hungrier and less patient once the player's
     // club has a world title to answer for
-    const rivalry = Math.min(state.rivalry ?? 0, 2)
-    if (rng.chance(0.35 + 0.1 * rivalry) && room > 500000 - 120000 * rivalry) {
+    const rivalry = rivalryOf(state)
+    if (rng.chance(nemesis ? 1 : 0.35 + 0.1 * rivalry) && room > 500000 - 120000 * rivalry) {
       const need = weakestRole(state, team)
       if (!need) continue
       const candidates = Object.values(state.players).filter(
@@ -617,7 +621,7 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
           // his last — his announcement is public
           !p.retiring &&
           !importBlock(state, team.id, p) &&
-          (p.listed || p.morale < 45 || rng.chance(0.05)),
+          (p.listed || p.morale < 45 || rng.chance(nemesis ? 0.4 : 0.05)),
       )
       // half credit for room to grow: a 84-rated 19-year-old with 92 potential
       // outranks an 86-rated 28-year-old, which is how real rosters get rebuilt
@@ -631,7 +635,12 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.2))
       const terms = defaultContract(salary, Math.max(2, contractLength(target, rng, squad)))
       if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
-        doTransfer(state, target, team.id, fee, terms)
+        const from = target.teamId ? state.teams[target.teamId] : undefined
+        if (doTransfer(state, target, team.id, fee, terms) && nemesis) {
+          const text = `⚔️ 宿敌 ${team.tag} 从 ${from?.tag ?? '自由市场'} 买来 ${target.ign}（${target.overall}）。`
+          notes?.push(text)
+          state.news.push({ day: state.day, kind: 'league', important: true, text })
+        }
       }
     }
   }
@@ -751,7 +760,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
   // A world champion's starters are everyone's shopping list. Rivalry makes
   // the calls come more often and the money real — keeping a title-winning
   // five together is supposed to cost something.
-  const rivalry = Math.min(state.rivalry ?? 0, 2)
+  const rivalry = rivalryOf(state)
   for (const team of Object.values(state.teams)) {
     if (team.id === state.myTeam) continue
     // a club with no room cannot complete the deal, so it must not open one:

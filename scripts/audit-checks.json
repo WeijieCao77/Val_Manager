@@ -689,5 +689,10 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_prediction_rewards.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_scouting.ts",
+    "estimatedSeconds": 20
   }
 ]

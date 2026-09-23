@@ -4,6 +4,7 @@ import type { RawWorld } from '../engine/eras'
 import { RULESET_CN, currentRuleset } from '../engine/ruleset'
 import { ask } from './confirm'
 import { createNewGame, WORLD_PLAYERS } from '../engine/world'
+import { DIFFICULTY, DIFFICULTY_ORDER, type Difficulty } from '../engine/difficulty'
 import { WORLD_TEAMS } from '../engine/teams'
 import { setupSeason } from '../engine/season'
 import { importSave, listSaves, loadGame, protectAutosaveFrom } from '../engine/save'
@@ -46,6 +47,7 @@ export default function NewGame({ onHome,
   const worldPlayers = era ? era.players : WORLD_PLAYERS
   const [err, setErr] = useState<string | null>(null)
   const [importLimit, setImportLimit] = useState(false)
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
   // the three on offer are dealt from the eight, and stay fixed for this run
   const [dealSeed] = useState(() => (hashStr(String(Date.now())) >>> 0))
@@ -113,6 +115,7 @@ export default function NewGame({ onHome,
     if (startYear !== DEFAULT_START_YEAR && !era) return setErr('那一年的世界还在加载。')
     const g = createNewGame(teamId, manager.name, undefined, manager, era ? { world: era, year: startYear } : {})
     g.importLimit = importLimit
+    if (difficulty !== 'normal') g.difficulty = difficulty
     setupSeason(g)
     track('career_start', {
       club: selected?.tag ?? null,
@@ -121,6 +124,7 @@ export default function NewGame({ onHome,
       origin: originKey,
       age,
       era: startYear,
+      difficulty,
     })
     onStart(g)
   }
@@ -409,7 +413,19 @@ export default function NewGame({ onHome,
         </div>
       )}
 
-      <label className="row small" style={{ gap: 8, marginTop: 16, cursor: 'pointer', alignItems: 'flex-start' }}>
+      <div className="row wrap" style={{ gap: 10, alignItems: 'center', marginTop: 16 }}>
+        <span className="small muted">难度</span>
+        <div className="seg" data-key="difficulty">
+          {DIFFICULTY_ORDER.map((d) => (
+            <button key={d} className={difficulty === d ? 'on' : ''} onClick={() => setDifficulty(d)}>
+              {DIFFICULTY[d].label}
+            </button>
+          ))}
+        </div>
+        <span className="tiny muted">{DIFFICULTY[difficulty].blurb} 开档后只能往上调。</span>
+      </div>
+
+      <label className="row small" style={{ gap: 8, marginTop: 12, cursor: 'pointer', alignItems: 'flex-start' }}>
         <input type="checkbox" checked={importLimit} style={{ width: 16, marginTop: 2 }}
           onChange={(e) => setImportLimit(e.target.checked)} />
         <span>

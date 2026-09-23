@@ -13,6 +13,8 @@ import { NEUTRAL, squadHarmony } from './bonds'
 import { isCoolingOff } from './clock'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'
+import { flattenTop } from './difficulty'
+import { prepEdge } from './scouting'
 import type {
   EdgeBreakdown, GameState, MapLine, MapScore, MatchResult, Player, Role, RoundLog, StageKey, Team,
 } from './types'
@@ -249,6 +251,8 @@ export function buildLineup(
   state: GameState, teamId: string, map: string,
   /** who we are up against on this map, for the matchup term; absent = a neutral five */
   oppId?: string,
+  /** a match that counts — scrims teach nobody our tape (engine/scouting.ts) */
+  official = false,
 ): Lineup {
   const team = state.teams[teamId]
   const players = selectLineup(state, teamId)
@@ -293,6 +297,8 @@ export function buildLineup(
     wsum += w
   })
   base = wsum > 0 ? base / wsum : 55
+  // 困难 / 职业: past the knee a point of rating buys less (engine/difficulty.ts)
+  base = flattenTop(state, base)
 
   const avg = (k: keyof Player['attrs']) =>
     players.length ? players.reduce((s, p) => s + p.attrs[k], 0) / players.length : 55
@@ -343,8 +349,12 @@ export function buildLineup(
   const missing = Math.max(0, 5 - players.length)
   const shortHanded = -missing * 18
 
+  // 对手针对: a contender who has studied our tape on this map
+  const prep = oppId && oppSheet
+    ? prepEdge(state, teamId, oppId, map, oppSheet.agents, tacticsFor(state, oppId, map), official)
+    : 0
   const common = base + iglBonus + chemBonus + coachBonus + comp + mapPref + utilBonus + shortHanded +
-    famEdge + se.total
+    famEdge + se.total + prep
   const atk = common + te.tacticsAtk + styleAtk + (avg('aim') - 65) * 0.05
   const def = common + te.tacticsDef + styleDef + (avg('awareness') - 65) * 0.05 + 1.6
 
@@ -361,6 +371,7 @@ export function buildLineup(
     style: (te.styleAtk + te.styleDef) / 2,
     matchup: (te.matchupAtk + te.matchupDef) / 2,
     familiarity: famEdge,
+    ...(prep ? { prep } : {}),
     version: se.version, mapFit: se.map, counter: se.counter,
     atk, def,
   }
@@ -969,6 +980,8 @@ export class MatchSim {
   private seenB = new Set<string>()
 
   readonly format: 'first13' | 'full24'
+  /** an agreed map with no veto is a scrim */
+  readonly scrim: boolean
 
   constructor(
     state: GameState, aId: string, bId: string, bo: 1 | 3 | 5, rng: Rng,
@@ -982,6 +995,7 @@ export class MatchSim {
     this.rng = rng
     this.need = Math.ceil(bo / 2)
     this.format = agreed?.format ?? 'first13'
+    this.scrim = !!agreed
     if (agreed) {
       // a scrim has no veto — both sides agreed the map when booking it
       this.maps = [agreed.map]
@@ -1012,8 +1026,8 @@ export class MatchSim {
     if (this.decided || this.mapIndex + 1 >= this.maps.length) return false
     this.mapIndex++
     const m = this.maps[this.mapIndex]
-    const A = buildLineup(this.state, this.aId, m, this.bId)
-    const B = buildLineup(this.state, this.bId, m, this.aId)
+    const A = buildLineup(this.state, this.aId, m, this.bId, !this.scrim)
+    const B = buildLineup(this.state, this.bId, m, this.aId, !this.scrim)
     for (const p of A.players) this.seenA.add(p.id)
     for (const p of B.players) this.seenB.add(p.id)
     this.current = new MapSim(m, A, B, this.rng, this.format)

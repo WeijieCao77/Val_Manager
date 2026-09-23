@@ -333,6 +333,11 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
           <div className="chip" title="董事会信任度" aria-label="董事会信任度">
             <span aria-hidden="true">🏛</span> <b>{Math.round(game.boardConfidence)}%</b>
           </div>
+          {(game.scout?.heat ?? 0) >= 20 && (
+            <div className="chip small" title="对手针对度：赢得越多，对手越研究你。详情看战术页。" aria-label="对手针对度">
+              <span aria-hidden="true">👁</span> 针对 <b>{Math.round(game.scout!.heat)}</b>
+            </div>
+          )}
           {scrim && (
             <div className="chip small muted" title="已约训练赛">
               <span aria-hidden="true">🎯</span> {scrim.day - game.day <= 0 ? '今天' : `${scrim.day - game.day}天后`}训练赛

@@ -10,7 +10,9 @@
  */
 import { useGame } from './ctx'
 import { Bar, Face, Panel, RoleTag } from './common'
-import { buildLineup, poolFor, selectLineup, sheetFor } from '../engine/match'
+import { buildLineup, poolFor, selectLineup, sheetFor, tacticsFor } from '../engine/match'
+import { PREP_FLOOR, heatLabel, readOf } from '../engine/scouting'
+import { DIFFICULTY, difficultyOf, spec } from '../engine/difficulty'
 import { familiarity } from '../engine/comp'
 import { MAPS, mapCn } from '../engine/content'
 import { mapReleased } from '../engine/eras'
@@ -39,6 +41,8 @@ export default function Tactics() {
         </p>
         <MapPlan maps={pool} mode="plan" />
       </Panel>
+
+      <ScoutPanel />
 
       <div className="grid c2">
         <Panel title="通用战术 · 没单独设置的图用这个">
@@ -103,7 +107,8 @@ export default function Tactics() {
             <thead>
               <tr>
                 <th>地图</th><th>阵容</th><th style={{ width: '32%' }}>地图熟练度</th>
-                <th className="num">数值</th><th style={{ width: '22%' }}>阵容熟练度</th><th>状态</th>
+                <th className="num">数值</th><th style={{ width: '22%' }}>阵容熟练度</th>
+                <th className="num" title="这张图的预案被对手看过多少">被摸透</th><th>状态</th>
               </tr>
             </thead>
             <tbody>
@@ -112,6 +117,7 @@ export default function Tactics() {
                 const inPool = pool.includes(m)
                 const sheet = sheetFor(game, game.myTeam, m)
                 const fam = Math.round(familiarity(game, game.myTeam, m, sheet.agents))
+                const read = Math.round(readOf(game, m, sheet.agents, tacticsFor(game, game.myTeam, m)).read * 100)
                 return (
                   <tr key={m} style={inPool ? undefined : { opacity: 0.42 }}>
                     <td><b>{mapCn(m)}</b> <span className="tiny faint">{m}</span></td>
@@ -124,6 +130,7 @@ export default function Tactics() {
                         <span className="mono small">{fam}</span>
                       </div>
                     </td>
+                    <td className={`num mono small${read >= 60 ? ' neg' : ''}`}>{read}%</td>
                     <td className="small muted">{inPool ? '现役图池' : '轮换出池'}</td>
                   </tr>
                 )
@@ -136,5 +143,55 @@ export default function Tactics() {
         </p>
       </Panel>
     </>
+  )
+}
+
+/**
+ * 对手针对: how closely the league is watching, and which maps it has read.
+ * See engine/scouting.ts for the numbers.
+ */
+function ScoutPanel() {
+  const { game } = useGame()
+  const heat = Math.round(game.scout?.heat ?? 0)
+  const pool = poolFor(game)
+  const nem = game.nemesis && game.nemesis.year === game.year ? game.teams[game.nemesis.teamId] : undefined
+  const max = spec(game).prepMax
+  const rows = pool.map((m) => {
+    const sheet = sheetFor(game, game.myTeam, m)
+    const read = readOf(game, m, sheet.agents, tacticsFor(game, game.myTeam, m)).read
+    return { m, read, prep: max * (heat / 100) * (PREP_FLOOR + (1 - PREP_FLOOR) * read) }
+  })
+  return (
+    <Panel
+      title="对手针对"
+      actions={<span className="tiny faint">难度：{DIFFICULTY[difficultyOf(game)].label}</span>}
+    >
+      <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+        <span className="small muted" style={{ whiteSpace: 'nowrap' }}>针对度</span>
+        <Bar value={heat} color={heat >= 75 ? 'var(--accent)' : heat >= 45 ? 'var(--warn)' : 'var(--win)'} />
+        <span className="mono small">{heat}</span>
+        <b className="small" style={{ whiteSpace: 'nowrap' }}>{heatLabel(heat)}</b>
+      </div>
+      {nem && (
+        <p className="small" style={{ margin: '8px 0 0' }}>
+          ⚔️ 宿敌 <b>{nem.name}</b>：对我们的准备多四成，转会窗口每周都在买人。
+        </p>
+      )}
+      {heat > 0 && (
+        <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
+          {rows.map((r) => (
+            <span key={r.m} className={`chip small${r.read >= 0.6 ? ' neg' : ''}`}
+              title={`被摸透 ${Math.round(r.read * 100)}%`}>
+              {mapCn(r.m)} <b className="mono">+{r.prep.toFixed(1)}</b>
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="tiny muted" style={{ margin: '10px 0 0' }}>
+        赢得越多，对手越研究你：每张图上数字是对手的额外备战分。
+        同一套英雄和滑杆连打三场就被摸透；换英雄、或把一条滑杆拨动 10 以上，他们的准备就白做一部分。
+        赢一场针对度 +3，输一场 −8，拿冠军涨得更多。训练赛不算。
+      </p>
+    </Panel>
   )
 }

@@ -1,6 +1,7 @@
 import { Rng, clamp } from './rng'
 import { expectedSalary } from './player'
 import { squadOf } from './roster'
+import { spec } from './difficulty'
 import type { GameState, Player } from './types'
 
 /**
@@ -84,13 +85,25 @@ function milestones(state: GameState, notes: string[]): void {
  * costs trust and feeds the grievance that eventually puts him on the market —
  * and answering him means opening the renewal panel and paying.
  */
-function payDemands(state: GameState, rng: Rng, notes: string[]): void {
+export function payDemands(state: GameState, rng: Rng, notes: string[]): void {
   const me = state.teams[state.myTeam]
   if (!me) return
+  const sore = spec(state).payGrievance
   for (const p of squadOf(state, state.myTeam)) {
     if (p.contractYears <= 0) continue                 // that is an expiry, not a raise
-    if (p.payAskedOn && state.day - p.payAskedOn < 120) continue
     const worth = expectedSalary(p, me.tier)
+    // An answered demand is a raise. One left standing sours every week until
+    // he is paid near his worth — or sold: grievance above 35 is a player who
+    // says yes to other clubs (transfer.ts), and his morale is his form.
+    if (p.payAskedOn != null && state.day - p.payAskedOn < 180 && worth >= p.salary * 1.2) {
+      const before = p.grievance ?? 0
+      p.grievance = clamp(before + sore, 0, 100)
+      p.morale = clamp(p.morale - 1, 10, 100)
+      if (before < 60 && p.grievance >= 60) {
+        notes.push(`😠 ${p.ign} 等不到加薪，已经在听别的俱乐部开价了。续约涨薪能留住他。`)
+      }
+    }
+    if (p.payAskedOn != null && state.day - p.payAskedOn < 120) continue
     if (worth < p.salary * 1.3) continue               // not a real gap
     if (!rng.chance(0.28)) continue
     p.payAskedOn = state.day

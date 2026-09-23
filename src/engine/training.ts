@@ -11,6 +11,7 @@ import { AGENTS, AGENT_ROLE, MAP_META, MAPS, agentCn, mapCn } from './content'
 import { FAM_DRILL, learnComp } from './comp'
 import { poolFor, sheetFor } from './match'
 import { rolePeak } from './agents'
+import { rivalryOf, spec } from './difficulty'
 
 /** 一周专练一个英雄涨多少。练一个角色比练一整个位置快，所以比旧值高。 */
 export const AGENT_DRILL = 4.2
@@ -166,7 +167,7 @@ export function trainingAdvice(p: Player, day?: number, stopAt = ATTR_MAX): Trai
 /** The focus alone — the older checks read this; the manager's screen reads trainingAdvice. */
 export const recommendedTrainingFocus = (p: Player): keyof Attrs | 'rest' => trainingAdvice(p).focus
 /** what an AI club's weekly loop writes: the same judgement, stopping where its balance was tuned */
-export const aiTrainingFocus = (p: Player): keyof Attrs | 'rest' => trainingAdvice(p, undefined, AI_POLISH_STOP).focus
+export const aiTrainingFocus = (p: Player, stopAt = AI_POLISH_STOP): keyof Attrs | 'rest' => trainingAdvice(p, undefined, stopAt).focus
 
 /**
  * A title makes rival clubs accelerate high-upside youngsters, not every
@@ -177,7 +178,7 @@ export function aiGrowthMultiplier(state: GameState, p: Player, team: Team): num
   const eligible = team.id !== state.myTeam && p.teamId === team.id &&
     p.age <= 23 && p.potential - p.overall >= 3
   if (!eligible) return 1
-  return 1 + 0.10 * Math.min(Math.max(state.rivalry ?? 0, 0), 2)
+  return 1 + 0.10 * rivalryOf(state)
 }
 
 /** One week of practice for a single player. */
@@ -733,7 +734,7 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         // the manager's, so a player arrives at a new club with his programme
         // visible; it is a pure function of the player, so it stays put
         // until the attribute has nowhere left to go.
-        state.training[p.id] = aiTrainingFocus(p)
+        state.training[p.id] = aiTrainingFocus(p, spec(state).aiPolishStop)
         trainPlayer(state, p, team, rng)
       }
 
@@ -890,7 +891,7 @@ export function seasonRollover(state: GameState, rng: Rng): string[] {
     if (p.teamId && seasonAge <= 23 && playedEnough && revisions < 2 &&
         p.potential - p.overall < 4 && p.potential < 97) {
       const pressure = p.teamId !== state.myTeam
-        ? Math.min(Math.max(state.rivalry ?? 0, 0), 2)
+        ? rivalryOf(state)
         : 0
       if (rng.chance(0.28 + pressure * 0.08)) {
         p.potential = clamp(p.potential + rng.int(1, 2), p.potential, 99)

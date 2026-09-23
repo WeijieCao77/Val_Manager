@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ask } from './confirm'
 import { useGame } from './ctx'
+import { DIFFICULTY, DIFFICULTY_ORDER, difficultyOf, raiseDifficulty } from '../engine/difficulty'
 import { Panel } from './common'
 import { deleteSave, exportSave, listSaves, saveGame } from '../engine/save'
 import ThemeToggle from './ThemeToggle'
@@ -132,6 +133,27 @@ export default function Saves() {
       </Panel>
 
       <Panel title="规则">
+        <div className="row wrap small" style={{ gap: 10, alignItems: 'center', marginBottom: 12 }}>
+          <b>难度</b>
+          <div className="seg" data-key="difficulty">
+            {DIFFICULTY_ORDER.map((d, i) => {
+              const cur = DIFFICULTY_ORDER.indexOf(difficultyOf(game))
+              return (
+                <button key={d} className={i === cur ? 'on' : ''} disabled={i < cur}
+                  onClick={async () => {
+                    if (i <= cur) return
+                    if (!await ask(`调到「${DIFFICULTY[d].label}」？${DIFFICULTY[d].blurb}调上去就不能再调回来。`, '调高难度')) return
+                    const why = raiseDifficulty(game, d)
+                    commit()
+                    toast(why ?? `难度已调到「${DIFFICULTY[d].label}」。`)
+                  }}>
+                  {DIFFICULTY[d].label}
+                </button>
+              )
+            })}
+          </div>
+          <span className="tiny muted">{DIFFICULTY[difficultyOf(game)].blurb} 只能往上调。</span>
+        </div>
         <label className="row small" style={{ gap: 8, cursor: 'pointer', alignItems: 'flex-start' }}>
           <input type="checkbox" checked={!!game.importLimit} style={{ width: 16, marginTop: 2 }}
             onChange={(e) => {

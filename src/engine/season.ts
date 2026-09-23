@@ -1,6 +1,6 @@
 import { Rng, clamp, hashStr } from './rng'
 import {
-  activePool, applyMatchStats, expectedShare, poolFor, poolPhaseOf, pruneMatchDetail, simulateMatch, stripRoundLogs,
+  activePool, applyMatchStats, expectedShare, poolFor, poolPhaseOf, pruneMatchDetail, simulateMatch, stripRoundLogs, tacticsFor,
 } from './match'
 import type { MatchResult } from './types'
 import {
@@ -41,7 +41,8 @@ import { rulebookOf, stageAtIn, stagesOf } from './rulebook'
 import type { StageDef } from './rulebook'
 import { tickBirthdays } from './birthdays'
 import { tickLife } from './managerLife'
-import type { Competition, Fixture, GameState, Player, Region, StageKey, Team, Tier } from './types'
+import type { Competition, Fixture, GameState, Player, Region, StageKey, Tactics, Team, Tier } from './types'
+import { recordMatch, scoutTitle, scoutWinter } from './scouting'
 import { track } from './telemetry'
 import {
   DOUBLE_8, GROUPS, advanceTemplate, championsGroups, championsSeeds, decided, doubleFor,
@@ -601,6 +602,7 @@ export function settleCompetition(state: GameState, comp: Competition, notes: st
       how: second ? `决赛击败 ${second.name}` : '全胜夺冠',
     }
     state.boardConfidence = clamp(state.boardConfidence + 14, 0, 100)
+    scoutTitle(state, !comp.region)
     // A world title paints a target on the club. The league answers: harder
     // training and hungrier recruitment everywhere else, so the second trophy
     // has to be earned against a better world than the first.
@@ -1311,14 +1313,26 @@ export function noticeHint(state: GameState): string {
  * Exported so scripts/check_tenure.ts can put a board through every one of
  * these paths without having to rig a season's standings to reach them.
  */
+/**
+ * A board this happy does not warn or sack over a run of missed briefs alone.
+ *
+ * A favourite's brief is to win the stage, and once the league studies a
+ * dominant club (engine/scouting.ts) a second place is no longer rare: EDG
+ * was sacked at 94% confidence for three runner-up finishes in a row. Every
+ * missed brief still costs confidence, so a real slump reaches this line on
+ * its own and the streak counts again from there.
+ */
+export const TRUSTED = 70
+
 export function judgeTenure(
   state: GameState, place: number, met: boolean, notes: string[],
 ): void {
   const club = state.teams[state.myTeam]?.name ?? '俱乐部'
+  const streaking = (state.missedStreak ?? 0) >= 2 && state.boardConfidence < TRUSTED
 
   const doomed = !met && (
     state.boardConfidence <= 6 ||
-    (state.onNotice && (state.missedStreak ?? 0) >= 2) ||
+    (state.onNotice && streaking) ||
     (state.onNotice && state.boardConfidence <= 18))
 
   if (doomed && state.onNotice) {
@@ -1343,7 +1357,7 @@ export function judgeTenure(
     return
   }
 
-  if (!state.onNotice && (state.boardConfidence <= 20 || (state.missedStreak ?? 0) >= 2)) {
+  if (!state.onNotice && (state.boardConfidence <= 20 || streaking)) {
     state.onNotice = true
     // say what takes it off, or 「已被警告」 reads as a permanent mark
     const warn = `⚠ 董事会警告：再有一个赛段交不出成绩，就换人。`
@@ -1739,6 +1753,18 @@ export function commitFixture(
       if (!m.agents) continue
       const sheet = Object.fromEntries(Object.entries(m.agents).filter(([id]) => ours.has(id)))
       if (Object.keys(sheet).length === 5) learnComp(state, m.map, sheet, isScrim(f) ? FAM_SCRIM : FAM_MATCH)
+    }
+    // 对手针对: an official match is tape the whole league studies
+    if (!isScrim(f)) {
+      const plans: Record<string, { agents: Record<string, string>; tactics: Tactics }> = {}
+      for (const m of result.maps) {
+        if (!m.agents) continue
+        const sheet = Object.fromEntries(Object.entries(m.agents).filter(([id]) => ours.has(id)))
+        if (Object.keys(sheet).length === 5) plans[m.map] = { agents: sheet, tactics: tacticsFor(state, state.myTeam, m.map) }
+      }
+      const knockout = f.stage === 'masters1' || f.stage === 'masters2' || f.stage === 'champions' ||
+        !/常规赛|瑞士|小组/.test(f.label)
+      recordMatch(state, f, plans, knockout)
     }
   }
   // scrims build form and cost condition but never enter the record books
@@ -2564,6 +2590,9 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   }
 
   rebaseSeasonClock(state, state.day)
+
+  // the league's attention cools; the contender we beat most may make it personal
+  scoutWinter(state, state.year + 1, notes)
 
   state.year += 1
   state.day = 0

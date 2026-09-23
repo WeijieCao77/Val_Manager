@@ -24,7 +24,7 @@
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
-import { advanceDay, declineJob, judgeTenure, moveToClub, setupSeason } from '../src/engine/season'
+import { TRUSTED, advanceDay, declineJob, judgeTenure, moveToClub, setupSeason } from '../src/engine/season'
 import type { GameState } from '../src/engine/types'
 
 const store = new Map<string, string>()
@@ -130,6 +130,21 @@ const stage = (g: GameState, met: boolean, place: number): string[] => {
   stage(g, false, 12)
   check('没被警告过就不会直接下课', !g.gameOver, g.gameOver ?? '')
   check('而是先给警告', g.onNotice === true)
+}
+
+{
+  // 2026-09-23: three runner-up finishes as the favourite sacked a manager
+  // whose board trusted him at 94%
+  const g = board(94, { notice: false, missed: 1 })
+  stage(g, false, 2)
+  stage(g, false, 2)
+  check(`信任度 ${TRUSTED}% 以上，连续没达标不警告`, g.onNotice !== true && !g.gameOver)
+  const h = board(94, { notice: true, missed: 2 })
+  stage(h, false, 2)
+  check(`信任度 ${TRUSTED}% 以上，警告中没达标也不下课`, !h.gameOver, h.gameOver ?? '')
+  const k = board(TRUSTED - 1, { notice: true, missed: 2 })
+  stage(k, false, 2)
+  check(`信任度掉到 ${TRUSTED}% 以下，连续没达标照样下课`, !!k.gameOver)
 }
 
 // ---- a new club is a clean slate
