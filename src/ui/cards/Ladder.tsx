@@ -136,7 +136,8 @@ export default function Ladder() {
             >
               <b>{r.name}</b>
               <span className="tiny faint">
-                {rec ? `${DIVISIONS[rec.div]} · ${rec.wins}–${rec.losses}` : '未开始'}
+                {/* past 大师 the title comes from the score, same as the badge below */}
+                {rec ? `${rec.div >= MASTER_DIV ? masterTitle(rec.points ?? 0) : DIVISIONS[rec.div]} · ${rec.wins}–${rec.losses}` : '未开始'}
               </span>
             </button>
           )

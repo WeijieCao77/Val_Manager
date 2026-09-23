@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useCards } from './ctx'
 import { Modal } from '../common'
-import { clearPreset, loadPreset, presetsOf, renamePreset, savePreset } from '../../engine/gacha'
+import { clearPreset, levelOf, loadPreset, presetsOf, renamePreset, savePreset } from '../../engine/gacha'
+import { squadPower } from '../../engine/cards'
 import type { Squad } from '../../engine/cards'
 
 const signature = (s: Squad) => JSON.stringify([s.slots, s.coach ?? null])
@@ -59,6 +60,7 @@ export default function SquadPresets() {
     <div className="cm-deck-slots" role="group" aria-label="切换卡组配置">
       {presets.map((rec, i) => <button key={i} title={rec?.name ?? `空配置 ${i + 1}`} className={`cm-deck-slot${selected === i ? ' active' : ''}`} aria-pressed={selected === i} onClick={() => choose(i)} aria-label={rec ? `切换到配置 ${i + 1}：${rec.name}` : `保存到空配置 ${i + 1}`}>
         <span className="cm-deck-number">{i + 1}</span><b>{rec?.name ?? '空配置'}</b><small>{rec ? `${rec.squad.slots.filter(Boolean).length}/5 人${rec.squad.coach ? ' · 教练' : ''}` : '＋ 保存当前'}</small>
+        {rec && <small className="cm-deck-power mono">战力 {squadPower(rec.squad, id => levelOf(g, id)).toLocaleString('en-US')}</small>}
       </button>)}
     </div>
     <div className="cm-deck-toolbar">
