@@ -295,6 +295,24 @@ export const REQUEST_FORGET_MS = 3 * 24 * 60 * 60 * 1000
 export const REQUEST_FORGET_BATCH = 20000
 
 /**
+ * Give card_requests' file back to the disk: keep the last six hours (every
+ * row a retry could still need, and the ones with full answers), empty the
+ * table, put them back. See /api/admin/compact_requests in server.js for why
+ * this and not VACUUM FULL. Returns the rows kept.
+ */
+export async function compactRequests(sql) {
+  return sql.begin(async (tx) => {
+    await tx`set local lock_timeout = '5s'`
+    await tx`lock table card_requests in access exclusive mode`
+    await tx`create temp table keep_requests on commit drop as
+             select * from card_requests where at > now() - make_interval(secs => ${REQUEST_KEEP_MS / 1000})`
+    await tx`truncate card_requests`
+    const r = await tx`insert into card_requests select * from keep_requests`
+    return r.count
+  })
+}
+
+/**
  * The most 大师 points one win can possibly be worth.
  *
  * masterPoints() pays MASTER_WIN 20, plus 3 for every point the opponent

@@ -18,7 +18,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { newGacha } from '../src/engine/gacha'
 
-const { CARD_SCHEMA, makeCardApi, REQUEST_FORGET_MS } = await import('../cards-api.js')
+const { CARD_SCHEMA, makeCardApi, REQUEST_FORGET_MS, compactRequests } = await import('../cards-api.js')
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
@@ -191,6 +191,18 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
   check('超过保留期的请求号被删掉，保留期内的还在', gone === 0 && kept3 === 1, `${gone} / ${kept3}`)
+
+  // compaction (2026-09-24): the last six hours survive, older rows go, and a
+  // kept request still reads its own answer back instead of running again
+  const recent = RID(33)
+  const total = (await sql`select count(*)::int as n from card_requests`)[0].n
+  const young = (await sql`select count(*)::int as n from card_requests where at > now() - interval '6 hours'`)[0].n
+  const keptN = await compactRequests(sql)
+  const after = (await sql`select count(*)::int as n from card_requests`)[0].n
+  check('压缩只留最近 6 小时', keptN === young && after === young && young < total, `${total} → ${after}`)
+  const beforeReplay = await state(A)
+  const replay = await call("/api/card/act", { id: A, action: "mail_take", args: {}, client, requestId: recent })
+  check("压缩后最近的请求重发仍然只读回答案", replay.replayed === true && (await state(A)).rev === beforeReplay.rev, JSON.stringify(replay).slice(0, 120))
 
 
 } finally {

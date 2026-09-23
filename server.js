@@ -24,7 +24,7 @@ import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { EVENTS, MAX_BODY, rateLimited, sanitize, tokenOk } from './analytics.js'
-import { engine, makeCardApi, normalizeId } from './cards-api.js'
+import { compactRequests, engine, makeCardApi, normalizeId } from './cards-api.js'
 import { displayName } from './names.js'
 import { makeProfileApi } from './profile-api.js'
 import { makeSiteApi } from './site-api.js'
@@ -748,6 +748,34 @@ function handle(req, res) {
           lastAutovacuum: t.last_autovacuum, lastVacuum: t.last_vacuum, autovacuums: Number(t.autovacuum_count),
         })),
       })
+    })().catch((err) => { if (!res.headersSent) json(res, 500, { ok: false, why: err.message }) })
+    return
+  }
+
+  // Give card_requests' file back to the disk (owner, POST; GET is a dry run).
+  //
+  // Deleting rows only frees room inside the table, and VACUUM FULL writes a
+  // whole second copy of it plus as much again in WAL before the old one goes —
+  // on a volume with 450 MB free and a 750 MB table that could fill the disk.
+  // So: set aside the last six hours (the only rows a retry could still need,
+  // and the ones whose full answers are kept), empty the table, put them back.
+  // TRUNCATE hands the whole file back at once; the lock lasts a second or
+  // two, and a lock that cannot be had within five seconds gives up rather
+  // than queue every player's request behind it.
+  if (path === '/api/admin/compact_requests') {
+    if (!tokenOk(tokenFrom(req, url), TOKEN)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); return }
+    if (!sqlStats) { json(res, 503, { ok: false, why: 'no database' }); return }
+    const mb = (b) => Math.round(Number(b) / 1048576)
+    void (async () => {
+      const size = async (q) => mb((await q`select pg_total_relation_size('card_requests')::bigint as b`)[0].b)
+      const before = await size(sqlStats)
+      const [n] = await sqlStats`select count(*)::int as all_n, count(*) filter (where at > now() - interval '6 hours')::int as keep_n from card_requests`
+      if (req.method !== 'POST') { json(res, 200, { ok: true, dryRun: true, mb: before, rows: n.all_n, keep: n.keep_n }); return }
+      const t0 = Date.now()
+      const kept = await compactRequests(sqlStats)
+      const after = await size(sqlStats)
+      console.log(`cards: compacted card_requests ${before} MB -> ${after} MB, kept ${kept} rows in ${Date.now() - t0} ms`)
+      json(res, 200, { ok: true, before, after, rows: n.all_n, kept, ms: Date.now() - t0 })
     })().catch((err) => { if (!res.headersSent) json(res, 500, { ok: false, why: err.message }) })
     return
   }
