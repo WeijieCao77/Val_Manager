@@ -732,10 +732,15 @@ function handle(req, res) {
                n_live_tup::bigint as live, n_dead_tup::bigint as dead,
                last_autovacuum, last_vacuum, autovacuum_count
         from pg_stat_user_tables order by pg_total_relation_size(relid) desc`
+      // the request log's intake, day by day — how fast it would fill the disk
+      const requests = await sqlStats`
+        select date_trunc('day', at) as day, count(*)::int as n from card_requests
+        where at > now() - interval '10 days' group by 1 order by 1`.catch(() => [])
       let wal = null
       try { const [w] = await sqlStats`select coalesce(sum(size), 0)::bigint as b, count(*)::int as n from pg_ls_waldir()`; wal = { mb: mb(w.b), files: w.n } } catch (err) { wal = { error: err.message } }
       json(res, 200, {
         ok: true, dbMb: mb(db.b), wal,
+        requests: requests.map((r) => ({ day: r.day, n: r.n })),
         tables: tables.map((t) => ({
           name: t.name, totalMb: mb(t.total), heapMb: mb(t.heap), idxMb: mb(t.idx),
           toastMb: mb(Number(t.total) - Number(t.heap) - Number(t.idx)),

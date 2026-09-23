@@ -1201,6 +1201,78 @@ export function makeMarketApi(sql, {
     }
   }
 
+  /**
+   * 成交记录: what this card has sold for, and how many hands the copy on a
+   * listing has been through on the market.
+   *
+   * Copies of a card stack in an account (a level and a count of duplicates),
+   * so no single copy carries a serial. The hands are walked back through the
+   * market instead: the seller of this listing bought this card from someone,
+   * who bought it from someone, until a seller who got it some other way — a
+   * pack, a swap, a gift. That is exact for a seller who held one copy and
+   * the likeliest reading otherwise. Public data only: prices, levels, dates;
+   * never who.
+   */
+  const HISTORY_RECENT = 8
+  const HAND_MAX = 30
+  async function history(req, res, bucket) {
+    if (guard(req, res, `mh:${bucket}`, 60)) return
+    let b
+    try { b = JSON.parse(await readBody(req, 1024)) } catch { json(res, 400, { ok: false }); return }
+    const cardId = String(b?.cardId ?? '').slice(0, 40)
+    if (!engine.cardById(cardId)) { json(res, 200, { ok: false, bad: true }); return }
+    const listing = rowId(b?.listing)
+    const level = Number.isInteger(b?.level) ? b.level : null
+    const [all] = await sql`
+      select count(*)::int as n, round(avg(o.price))::int as avg,
+             percentile_cont(0.5) within group (order by o.price)::int as median,
+             count(*) filter (where l.closed > now() - interval '7 days')::int as n7,
+             round(avg(o.price) filter (where l.closed > now() - interval '7 days'))::int as avg7,
+             count(*) filter (where l.level = ${level ?? -1})::int as nl,
+             round(avg(o.price) filter (where l.level = ${level ?? -1}))::int as avgl,
+             count(distinct l.seller_h)::int as sellers
+      from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
+      where l.card_id = ${cardId} and l.status = 'sold'`
+    const recent = await sql`
+      select o.price, l.level, l.closed from card_listings l
+      join card_offers o on o.listing = l.id and o.status = 'accepted'
+      where l.card_id = ${cardId} and l.status = 'sold'
+      order by l.closed desc limit ${HISTORY_RECENT}`
+    let hands = null
+    if (listing) {
+      // walk back: who sold to the seller before he listed it, and so on
+      const chain = await sql`
+        with recursive back(seller_h, before, price, closed, depth) as (
+          select l.seller_h, l.created, null::int, null::timestamptz, 0
+          from card_listings l where l.id = ${listing} and l.card_id = ${cardId}
+          union all
+          select p.seller_h, p.created, p.price, p.closed, back.depth + 1
+          from back cross join lateral (
+            select pl.seller_h, pl.created, po.price, pl.closed
+            from card_offers po join card_listings pl on pl.id = po.listing
+            where po.buyer_h = back.seller_h and po.status = 'accepted'
+              and pl.card_id = ${cardId} and pl.status = 'sold' and pl.closed <= back.before
+            order by pl.closed desc limit 1
+          ) p
+          where back.depth < ${HAND_MAX}
+        )
+        select price, closed, depth from back order by depth`
+      // no row at depth 0: the listing is not this card (or is gone)
+      if (chain.length) {
+        const earlier = chain.slice(1)
+        hands = { count: chain.length, trail: earlier.map((r) => ({ price: r.price, at: r.closed })) }
+      }
+    }
+    json(res, 200, {
+      ok: true, cardId,
+      sold: all?.n ?? 0, avg: all?.avg ?? null, median: all?.median ?? null, sellers: all?.sellers ?? 0,
+      week: { sold: all?.n7 ?? 0, avg: all?.avg7 ?? null },
+      level: level == null ? null : { level, sold: all?.nl ?? 0, avg: all?.avgl ?? null },
+      recent: recent.map((r) => ({ price: r.price, level: r.level, at: r.closed })),
+      hands,
+    })
+  }
+
   /** Active auctions I bid on, including refunded/outbid bids. One tile per listing. */
   async function participating(req, res, bucket) {
     if (guard(req, res, `mpart:${bucket}`, 90)) return
@@ -2030,6 +2102,7 @@ export function makeMarketApi(sql, {
       if (path === '/api/market/browse') { await browse(req, res, bucket); return true }
       if (path === '/api/market/participating') { await participating(req, res, bucket); return true }
       if (path === '/api/market/peek') { await peek(req, res, bucket); return true }
+      if (path === '/api/market/history') { await history(req, res, bucket); return true }
       if (path === '/api/market/list') { await list(req, res, bucket); return true }
       if (path === '/api/market/unlist') { await unlist(req, res, bucket); return true }
       if (path === '/api/market/offer') { await offer(req, res, bucket); return true }

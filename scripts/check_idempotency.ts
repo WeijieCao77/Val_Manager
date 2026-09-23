@@ -18,7 +18,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { newGacha } from '../src/engine/gacha'
 
-const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
+const { CARD_SCHEMA, makeCardApi, REQUEST_FORGET_MS } = await import('../cards-api.js')
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`)
@@ -172,8 +172,25 @@ try {
   }
   const beforeOld = await state(A)
   const old = await open(RID(1))
-  check('过期仅压缩回复，旧请求永不重新扣款', tombstone?.reply?.trimmed === true && old.replayed === true
+  check('过期仅压缩回复，保留期内旧请求不重新扣款', tombstone?.reply?.trimmed === true && old.replayed === true
     && (await state(A)).rev === beforeOld.rev && (await state(A)).state.coins === beforeOld.state.coins)
+
+  // 2026-09-23: kept for REQUEST_FORGET_MS, then deleted — the table had grown
+  // to a third of the database. A retry comes a second later, not days.
+  await sql`update card_requests set at = now() - make_interval(secs => ${REQUEST_FORGET_MS / 1000 + 60}) where id_hash = ${hash(A)} and request_id = ${RID(2)}`
+  await sql`update card_requests set at = now() - make_interval(secs => ${REQUEST_FORGET_MS / 1000 - 3600}) where id_hash = ${hash(A)} and request_id = ${RID(3)}`
+  // the sweep runs at most every ten minutes per process: a fresh api runs it on its first reply
+  const later = makeCardApi(sql, { rateLimited: () => false, readBody: async (req: { body: string }) => req.body, json } as never)
+  await later.route({ method: 'POST', body: JSON.stringify({ id: A, action: 'mail_take', args: {}, client, requestId: RID(33) }) } as never,
+    { code: 0, body: {} } as never, '/api/card/act', 'idem')
+  let gone = -1, kept3 = -1
+  for (let i = 0; i < 100; i++) {
+    gone = (await sql`select count(*)::int as n from card_requests where id_hash = ${hash(A)} and request_id = ${RID(2)}`)[0].n
+    kept3 = (await sql`select count(*)::int as n from card_requests where id_hash = ${hash(A)} and request_id = ${RID(3)}`)[0].n
+    if (gone === 0) break
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  check('超过保留期的请求号被删掉，保留期内的还在', gone === 0 && kept3 === 1, `${gone} / ${kept3}`)
 
 
 } finally {

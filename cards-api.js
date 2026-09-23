@@ -261,6 +261,9 @@ create index if not exists listing_shelf_card_idx on card_listings (card_id) whe
 -- entry in a draw, not a purchase. draw_at is set by the first entry (created
 -- plus the minute) and is when the settler picks one of them. Null: no entries.
 alter table card_listings add column if not exists draw_at timestamptz;
+-- 成交记录 reads a card's sales and walks a copy back through its buyers
+create index if not exists listing_sold_card_idx on card_listings (card_id, closed desc) where status = 'sold';
+create index if not exists offer_accepted_buyer_idx on card_offers (buyer_h) where status = 'accepted';
 create index if not exists listing_draw_idx on card_listings (draw_at) where status = 'open' and draw_at is not null;
 ${GUARD_SCHEMA}`
 
@@ -275,9 +278,21 @@ export function requestAction(action, payload) {
 export const MAIL_TAKE_LIMIT = 100
 /** A reply bigger than this is remembered as having happened, without its body (a BO5 report is ~20 KB). */
 const REQUEST_REPLY_MAX = 48 * 1024
-/** How long a full answer is kept; deduplication keys must never be discarded. */
+/** How long a full answer is kept. */
 const REQUEST_KEEP_MS = 6 * 60 * 60 * 1000
 const REQUEST_SWEEP = 2000
+/**
+ * How long a request id is kept at all. It was forever — 「deduplication keys
+ * must never be discarded」 — and by 2026-09-23 the table held 1.5 million
+ * rows, 1.1 GB, a third of the database, on a volume at 91%. A retry is the
+ * same tap sent again a second later (account.ts act(): one id per tap, held
+ * in memory, never saved), so three days is thousands of times any real retry;
+ * an id replayed after that can only be sent on purpose, and then it is a new
+ * request run on the server's rules like any other.
+ */
+export const REQUEST_FORGET_MS = 3 * 24 * 60 * 60 * 1000
+/** rows deleted per pass (one pass every ten minutes at most) */
+export const REQUEST_FORGET_BATCH = 20000
 
 /**
  * The most 大师 points one win can possibly be worth.
@@ -651,8 +666,14 @@ export function makeCardApi(sql, {
     const t = Date.now()
     if (t - sweptAt < 10 * 60 * 1000) return
     sweptAt = t
+    // two statements on rows that cannot overlap (older than the forget line,
+    // and between it and the keep line), so neither waits on the other's locks
+    const forget = new Date(t - REQUEST_FORGET_MS)
+    sql`delete from card_requests where ctid in (
+          select ctid from card_requests where at < ${forget} limit ${REQUEST_FORGET_BATCH})`
+      .catch((err) => console.warn('cards: request forget failed', err.message))
     sql`update card_requests set reply = jsonb_build_object('ok', coalesce((reply->>'ok')::boolean, false), 'trimmed', true, 'why', reply->>'why') where ctid in (
-          select ctid from card_requests where at < ${new Date(t - REQUEST_KEEP_MS)}
+          select ctid from card_requests where at < ${new Date(t - REQUEST_KEEP_MS)} and at >= ${forget}
           and reply is not null and not (reply ? 'trimmed') limit ${REQUEST_SWEEP})`
       .catch((err) => console.warn('cards: request sweep failed', err.message))
   }

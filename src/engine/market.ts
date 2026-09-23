@@ -228,6 +228,22 @@ export const browseMarket = (q: ShelfQuery = {}) => post<ShelfPage>('browse', { 
 /** The same, saying WHY when there is no answer, and cancellable: a filter changed mid-flight is a request nobody wants. */
 export const browseShelf = (q: ShelfQuery = {}, signal?: AbortSignal) => request<ShelfPage>('browse', { ...q }, { signal })
 /** The tiles on screen, as they stand now — a listing missing from the answer is no longer open. */
+/** 成交记录 — see history() in market-api.js. */
+export interface CardHistory {
+  ok: boolean
+  sold: number
+  avg: number | null
+  median: number | null
+  sellers: number
+  week: { sold: number; avg: number | null }
+  level: { level: number; sold: number; avg: number | null } | null
+  recent: { price: number; level: number; at: string }[]
+  /** the copy on a listing: how many hands, and what each earlier hand paid */
+  hands: { count: number; trail: { price: number; at: string }[] } | null
+}
+export const cardHistory = (cardId: string, level?: number, listing?: string, signal?: AbortSignal) =>
+  request<CardHistory>('history', { cardId, level, listing }, { signal })
+
 export const peekListings = (ids: string[], signal?: AbortSignal) =>
   request<{ ok: boolean; now?: number; listings: Listing[] }>('peek', { ids }, { signal })
 
