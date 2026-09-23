@@ -195,6 +195,7 @@ export interface ShelfQuery {
   region?: string
   role?: string
   club?: string
+  series?: string
   q?: string
   priceMin?: number
   priceMax?: number

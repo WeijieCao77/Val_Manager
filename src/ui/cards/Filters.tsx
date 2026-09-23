@@ -24,8 +24,8 @@ import type { Role } from '../../engine/types'
 // The rule itself lives in the engine: the trading post's server runs it too,
 // and a filter that means one thing on each side of the wire is worse than no
 // filter at all. See engine/cardFilter.ts.
-import { EMPTY_FILTER, filterActive, matchesFilter } from '../../engine/cardFilter'
-import type { CardFilter } from '../../engine/cardFilter'
+import { EMPTY_FILTER, SERIES_CN, filterActive, matchesFilter } from '../../engine/cardFilter'
+import type { CardFilter, CardSeries } from '../../engine/cardFilter'
 
 export { EMPTY_FILTER, filterActive, matchesFilter, matchesQuery } from '../../engine/cardFilter'
 export type { CardFilter } from '../../engine/cardFilter'
@@ -94,6 +94,14 @@ export function CardFilters({
         <option value="all">全部位置</option>
         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         <option value="igl">指挥（IGL）</option>
+      </select>
+      <select
+        className="sm" style={{ width: 'auto', padding: '4px 7px' }}
+        aria-label="系列" data-key="series"
+        value={value.series ?? 'all'} onChange={(e) => set({ series: e.target.value as CardFilter['series'] })}
+      >
+        <option value="all">全部系列</option>
+        {(Object.keys(SERIES_CN) as CardSeries[]).map((k) => <option key={k} value={k}>{SERIES_CN[k]}</option>)}
       </select>
       <select
         className="sm" style={{ width: 'auto', padding: '4px 7px', maxWidth: 170 }}

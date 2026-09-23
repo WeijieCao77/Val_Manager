@@ -10,6 +10,7 @@ import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper
 import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
+import CardDetail from './CardDetail'
 import { GapOdds } from './GapOdds'
 import type { CardFilter } from './Filters'
 
@@ -20,6 +21,10 @@ const fmt = (n: number) => n.toLocaleString('en-US')
 export default function SquadScreen() {
   const { g, commit, toast } = useCards()
   const [picking, setPicking] = useState<number | 'coach' | null>(null)
+  // 「先点开，展示这张卡的详细信息……然后还有个按键是点替换」: a seat with a
+  // card in it opens the card (level, upgrade, market price) first; an empty
+  // seat still goes straight to the picker
+  const [viewing, setViewing] = useState<number | 'coach' | null>(null)
   const [q, setQ] = useState('')
   // 「卡组选选手的地方也加个筛选器」. The same bar as the collection and the
   // trading post — metal, region, position (with 指挥), club — because a
@@ -206,7 +211,7 @@ export default function SquadScreen() {
                 card={card}
                 level={level(card.id)}
                 selected={chem.misfits.includes(i)}
-                onClick={() => setPicking(i)}
+                onClick={() => setViewing(i)}
                 footer={chem.misfits.includes(i) ? `不熟悉${role}`
                   // he covers this position but it is not his first — say so
                   // affirmatively, or a badge that disagrees with the column
@@ -230,7 +235,7 @@ export default function SquadScreen() {
                   card={cardById(g.squad.coach)!}
                   level={level(g.squad.coach)}
                   size="sm"
-                  onClick={() => setPicking('coach')}
+                  onClick={() => setViewing('coach')}
                 />
               </div>
             ) : (
@@ -329,6 +334,36 @@ export default function SquadScreen() {
       </Panel>
 
       {sharing && <ShareSquad onClose={() => setSharing(false)} />}
+
+      {viewing !== null && (() => {
+        const id = viewing === 'coach' ? g.squad.coach : g.squad.slots[viewing]
+        if (!id || !g.cards[id]) return null
+        const seat = viewing === 'coach' ? '教练' : SQUAD_SLOTS[viewing]
+        return (
+          <CardDetail
+            cardId={id}
+            onClose={() => setViewing(null)}
+            actions={
+              <>
+                <button className="primary sm" onClick={() => { setPicking(viewing); setViewing(null) }}>
+                  替换（{seat}）
+                </button>
+                <button
+                  className="sm ghost"
+                  onClick={() => {
+                    if (viewing === 'coach') g.squad.coach = null
+                    else setSlot(g, viewing, null)
+                    setViewing(null)
+                    commit(true)
+                  }}
+                >
+                  移出卡组
+                </button>
+              </>
+            }
+          />
+        )
+      })()}
 
       {picking !== null && (
         <div className="modal-bg" onClick={() => setPicking(null)}>

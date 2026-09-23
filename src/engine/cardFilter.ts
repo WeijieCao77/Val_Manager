@@ -1,5 +1,5 @@
 /**
- * The four ways people look for a card — metal, region, position, club — and
+ * The ways people look for a card — metal, region, position, club, series — and
  * the search box, as a plain predicate over a Card.
  *
  * It lives in the engine rather than beside the filter bar because the SERVER
@@ -24,12 +24,25 @@ export interface CardFilter {
   /** a position, or 'igl' — the callers, whatever position they play */
   role: 'all' | Role | 'igl'
   club: 'all' | string
+  /**
+   * which set a card belongs to: the regular cards, or a named series.
+   * Optional so a filter saved or sent before it existed still reads as 'all'.
+   */
+  series?: 'all' | CardSeries
 }
 
-export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all' }
+/** 'base' is every card that is not in a named series (彩卡 and coaches included). */
+export type CardSeries = 'base' | 'seoul-2024'
+export const SERIES_CN: Record<CardSeries, string> = { base: '常规卡', 'seoul-2024': '24 首尔冠军赛' }
+const SERIES_KEYS = Object.keys(SERIES_CN) as CardSeries[]
+
+export const seriesOf = (card: Card): CardSeries =>
+  isPlayerCard(card) && card.event === 'seoul-2024' ? 'seoul-2024' : 'base'
+
+export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all', series: 'all' }
 
 export const filterActive = (f: CardFilter): boolean =>
-  f.rarity !== 'all' || f.region !== 'all' || f.role !== 'all' || f.club !== 'all'
+  f.rarity !== 'all' || f.region !== 'all' || f.role !== 'all' || f.club !== 'all' || (f.series ?? 'all') !== 'all'
 
 export function matchesFilter(card: Card, f: CardFilter): boolean {
   if (f.rarity === 'coach') { if (card.kind !== 'coach') return false }
@@ -39,6 +52,7 @@ export function matchesFilter(card: Card, f: CardFilter): boolean {
   if (f.role === 'igl') { if (!(isPlayerCard(card) && card.isIgl)) return false }
   else if (f.role !== 'all' && !(isPlayerCard(card) && card.roles.includes(f.role))) return false
   if (f.club !== 'all' && (card.clubTag ?? '') !== f.club) return false
+  if ((f.series ?? 'all') !== 'all' && seriesOf(card) !== f.series) return false
   return true
 }
 
@@ -62,5 +76,7 @@ export function readFilter(b: Record<string, unknown> | null | undefined): CardF
     region: s(b?.region) as CardFilter['region'],
     role: s(b?.role) as CardFilter['role'],
     club: s(b?.club) as CardFilter['club'],
+    // unknown or absent is 'all': an older client browses the whole shelf
+    series: SERIES_KEYS.includes(b?.series as CardSeries) ? b!.series as CardSeries : 'all',
   }
 }

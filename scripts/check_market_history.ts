@@ -99,5 +99,26 @@ check('不存在的卡直接拒绝', r.ok === false)
 r = await call({ cardId: ALL_CARDS[ALL_CARDS.length - 1].id })
 check('没成交过的卡：0 次，均价为空', r.ok === true && r.sold === 0 && r.avg === null, JSON.stringify(r))
 
+// ---- 系列筛选 (2026-09-24): 24 首尔冠军赛 as a filter everywhere, server side too
+{
+  const { matchesFilter, readFilter, filterActive, EMPTY_FILTER } = await import('../src/engine/cardFilter')
+  const seoul = ALL_CARDS.filter((c) => (c as { event?: string }).event === 'seoul-2024')
+  const f = { ...EMPTY_FILTER, series: 'seoul-2024' as const }
+  check('首尔系列筛出 80 张首尔卡，一张常规卡都没有', ALL_CARDS.filter((c) => matchesFilter(c, f)).length === 80 && seoul.length === 80)
+  check('常规卡筛掉全部首尔卡', ALL_CARDS.filter((c) => matchesFilter(c, { ...EMPTY_FILTER, series: 'base' })).length === ALL_CARDS.length - 80)
+  const cn = ALL_CARDS.filter((c) => matchesFilter(c, { ...f, region: 'China' }))
+  check('系列能和赛区一起用', cn.length > 0 && cn.length < 80 && cn.every((c) => c.region === 'China'))
+  check('服务器读得懂系列，不认识的当全部', readFilter({ series: 'seoul-2024' }).series === 'seoul-2024' && readFilter({ series: 'x' }).series === 'all' && readFilter({}).series === 'all')
+  check('只选系列也算在筛选', filterActive(f) && !filterActive(EMPTY_FILTER))
+  // a real shelf: one Seoul listing, one regular, browsed with the series set
+  const S = seoul[0].id
+  await sql`insert into card_listings (seller_h, card_id, level, ask, status, created, ends)
+    values ('s1', ${S}, 0, 500, 'open', now(), now() + interval '1 day'), ('s2', ${Y}, 0, 500, 'open', now(), now() + interval '1 day')`
+  const res: Res = { code: 0, body: {} }
+  await api.route({ body: JSON.stringify({ series: 'seoul-2024' }), method: 'POST', headers: {} } as never, res as never, '/api/market/browse', 't')
+  const got = ((res.body as { listings?: { cardId: string }[] }).listings ?? []).map((l) => l.cardId)
+  check('交易区按系列筛：只剩首尔那张', got.length > 0 && got.every((id) => id === S), JSON.stringify(got))
+}
+
 console.log(bad ? `\n${bad} 项不对` : '\n全部通过')
 process.exit(bad ? 1 : 0)
