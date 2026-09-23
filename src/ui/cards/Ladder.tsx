@@ -102,6 +102,7 @@ export default function Ladder() {
   const opp = WORLD_TEAMS.find((t) => t.id === oppId)
 
   const play = async () => {
+    if (busy) return
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
     if (!entry.ok) { toast(entry.why); go('squad'); return }
     if (!canPlay(g, 'ladder', now)) { toast(`体力不够，${staminaRate()}。`); return }
@@ -122,7 +123,7 @@ export default function Ladder() {
     <>
       {/* Five ladders, one record each. The metal ones are what makes a bronze
           worth owning: it can only be played where nothing better is allowed. */}
-      <div className="league-bar">
+      <div className="league-bar cm-leagues" role="group" aria-label="选择天梯赛事">
         {LEAGUES.map((k) => {
           const r = LEAGUE_RULES[k]
           const rec = g.leagues?.[k] ?? (k === 'open' ? g.ladder : null)
@@ -147,7 +148,7 @@ export default function Ladder() {
         {!entry.ok && <b className="neg"> {entry.why}</b>}
       </p>
 
-      <div className="grid c2" style={{ alignItems: 'start' }}>
+      <div className="cm-ladder-match">
         <Panel title="段位">
           <div className="div-badge">
             {rankName(L.div, L.stars, L.points ?? 0)}
@@ -167,7 +168,8 @@ export default function Ladder() {
             {master
               ? <>最高 <b className="mono">{L.bestPoints ?? 0}</b> 分（{masterTitle(L.bestPoints ?? 0)}）</>
               : <>最高 {DIVISIONS[L.best]}</>}
-            <br />
+            <details className="cm-rules">
+              <summary>升段与积分规则</summary>
             {master ? (
               <span className="tiny faint">
                 大师不掉段，改为计分：赢一场 +20 起，对手评分每高出 84 一分多 3 分
@@ -181,6 +183,7 @@ export default function Ladder() {
                 赢一场 +1★（钻石以下三连胜起 +2★），输一场 −1★，铂金起会掉段。到大师后改为计分，不封顶。
               </span>
             )}
+            </details>
           </div>
         </Panel>
 
@@ -221,25 +224,32 @@ export default function Ladder() {
                   <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{rating}</div>
                 </div>
               </div>
-              <p className="tiny faint" style={{ lineHeight: 1.7 }}>
-                BO{LADDER_BO}，先赢 3 张图。完整 BAN/PICK 和回合经济，<b>在服务器上打</b>。
+              <div className="cm-match-action">
+                {filled < 5 || !entry.ok ? (
+                  <>
+                    <p className="small muted">{filled < 5 ? `当前已上阵 ${filled}/5 位选手，补齐阵容即可参赛。` : !entry.ok ? entry.why : ''}</p>
+                    <button className="primary" onClick={() => go('squad')}>{filled < 5 ? '去组建五人阵容' : '去调整参赛卡组'}</button>
+                  </>
+                ) : (
+                  <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !canPlay(g, 'ladder', now)}>
+                    {busy ? '比赛中…' : !cloud ? '需要联网' : !canPlay(g, 'ladder', now) ? '体力不足，恢复后可参赛' : `开始比赛 · ${STAMINA_COST.ladder} 体力`}
+                  </button>
+                )}
+                <p className="tiny muted">BO{LADDER_BO} · 先赢 3 张图 · 体力 {staminaNow(g, now)}/{STAMINA_MAX}</p>
+              </div>
+              <details className="cm-rules"><summary>赛制、匹配与体力说明</summary>
+              <p className="small muted" style={{ lineHeight: 1.7 }}>
+                BO{LADDER_BO}，先赢 3 张图。包含完整 BAN/PICK 和回合经济。
                 {rival
                   ? `　优先匹配阵容分相差 4 分以内的玩家。对面高出 ${RIVAL_MERCY_GAP} 分以上，输了不掉星，大师分只扣一半。`
                   : L.div >= 4 ? '　（暂时没匹配到真人卡组，先打俱乐部。）' : ''}
               </p>
-              <GapOdds />
-              <button className="primary" onClick={() => void play()} disabled={busy || !cloud || !entry.ok || !canPlay(g, 'ladder', now)}>
-                {busy ? '比赛中…'
-                  : !cloud ? '需要联网'
-                    : filled < 5 ? '先去组队'
-                      : !entry.ok ? `这套卡组进不了${rule.name}`
-                        : !canPlay(g, 'ladder', now) ? '体力不够'
-                          : `开打（BO${LADDER_BO} · ${STAMINA_COST.ladder} 体力）`}
-              </button>
               <p className="tiny faint" style={{ marginTop: 8, marginBottom: 0 }}>
                 体力 {staminaNow(g, now)}/{STAMINA_MAX}，够打 {Math.floor(staminaNow(g, now) / STAMINA_COST.ladder)} 场。
                 {staminaRate()}，攒满 {STAMINA_MAX} 点要 {staminaFillHours()} 小时，满了不再回复。
               </p>
+              </details>
+              <GapOdds />
             </>
           ) : (
             <p className="empty">找不到对手。</p>
@@ -257,7 +267,7 @@ export default function Ladder() {
         }
       >
         {top === 'loading' ? <p className="empty">读取中…</p>
-          : !top ? <p className="empty">暂时读不到排行榜（离线或服务器忙）。</p>
+          : !top ? <div className="cm-empty" role="status"><p>暂时读不到排行榜，请检查网络后重试。</p><button onClick={() => setSaved(n => n + 1)}>重新加载排行榜</button></div>
             : top.length === 0 ? (
               <p className="empty">
                 {league === 'open' ? '还没有人上榜。' : `${rule.name}还没有人打过，第一场就是第一名。`}

@@ -8,6 +8,7 @@ export default function SeoulPackDisplay() {
   const [pose, setPose] = useState(REST)
   return <div className="sc24-pack-object" role="img" aria-label="首尔 2024 立体卡包，可移动指针查看包装反光"
     onPointerMove={event => {
+      if (event.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion: reduce)').matches) return
       const rect = event.currentTarget.getBoundingClientRect()
       setPose({ x: REST.x - ((event.clientY - rect.top) / rect.height - .5) * 16,
         y: REST.y + ((event.clientX - rect.left) / rect.width - .5) * 48 })

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace from '../Card'
 import { Panel } from '../common'
@@ -22,6 +22,18 @@ export default function Collection() {
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [dupesOnly, setDupesOnly] = useState(false)
   const [q, setQ] = useState('')
+  const query = useDeferredValue(q)
+  const [page, setPage] = useState(1)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const goPage = (next: number) => {
+    setPage(next)
+    requestAnimationFrame(() => {
+      gridRef.current?.focus({ preventScroll: true })
+      gridRef.current?.scrollIntoView({ block: 'start' })
+    })
+  }
+  const [sort, setSort] = useState('rating')
+  const pageSize = 60
   const [open, setOpen] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
   // 批量分解: the grid becomes a picker, and the cards with no spare to give
@@ -39,7 +51,7 @@ export default function Collection() {
     : mine.map((x) => x.card)), [missing, mine, g.cards, version])
 
   const rows = useMemo(() => {
-    const text = q.trim().toLowerCase()
+    const text = query.trim().toLowerCase()
     const match = (c: Card) => {
       if (!text) return true
       const name = c.kind === 'player' ? `${c.ign} ${c.realName ?? ''} ${c.clubTag ?? ''}` : `${c.name} ${c.clubTag ?? ''}`
@@ -53,7 +65,16 @@ export default function Collection() {
     return mine
       .filter(({ card, owned }) => (!dupesOnly || owned.dupes > 0) && (!bulk || owned.dupes > 0)
         && match(card) && matchesFilter(card, filter))
-  }, [mine, pool, filter, dupesOnly, q, missing, bulk])
+  }, [mine, pool, filter, dupesOnly, query, missing, bulk])
+
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    if (sort === 'name') return (a.card.kind === 'player' ? a.card.ign : a.card.name).localeCompare(b.card.kind === 'player' ? b.card.ign : b.card.name)
+    if (sort === 'duplicates') return (b.owned?.dupes ?? 0) - (a.owned?.dupes ?? 0) || b.rating - a.rating
+    return b.rating - a.rating
+  }), [rows, sort])
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const resetFilters = () => { setFilter(EMPTY_FILTER); setQ(''); setDupesOnly(false); setPage(1) }
 
   // What each sweep would take, and what the hand-picked ones would. The same
   // function the server runs, so the number on the button is the number.
@@ -73,8 +94,7 @@ export default function Collection() {
     }
   }, [g, version, picked, keepUp])
 
-  // 300 is what the server will read out of one request; the grid shows 240,
-  // so this only ever bites somebody picking across several filters
+  // The server accepts up to 300 cards, including selections across pages.
   const togglePick = (id: string) => setPicked((was) => {
     const next = new Set(was)
     if (next.has(id)) next.delete(id)
@@ -188,12 +208,12 @@ export default function Collection() {
               <button
                 className={`sm${bulk ? ' primary' : ''}`}
                 aria-pressed={bulk}
-                onClick={() => { setBulk((v) => !v); setPicked(new Set()) }}
+                onClick={() => { setBulk((v) => !v); setPicked(new Set()); setPage(1) }}
               >
                 {bulk ? '退出批量分解' : '批量分解'}
               </button>
             )}
-            <button className="sm" onClick={() => { setMissing((v) => !v); setBulk(false) }}>
+            <button className="sm" aria-pressed={missing} onClick={() => { setMissing((v) => !v); setBulk(false); setPage(1) }}>
               {missing ? '看我有的' : '看还缺什么'}
             </button>
           </div>
@@ -201,21 +221,22 @@ export default function Collection() {
       >
         <CardFilters
           value={filter}
-          onChange={setFilter}
+          onChange={value => { setFilter(value); setPage(1) }}
           pool={pool}
           extra={
             <>
+              <select aria-label="收藏排序" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}><option value="rating">能力从高到低</option><option value="name">按选手名字</option><option value="duplicates">重复卡优先</option></select>
               <a className="tiny" href="/seoul-2024">首尔系列图鉴 ↗</a>
               {!missing && (
-                <button className={`sm${dupesOnly ? ' primary' : ''}`} onClick={() => setDupesOnly((v) => !v)}>
+                <button className={`sm${dupesOnly ? ' primary' : ''}`} aria-pressed={dupesOnly} onClick={() => { setDupesOnly((v) => !v); setPage(1) }}>
                   有重复
                 </button>
               )}
               <input
                 style={{ width: 180 }}
-                placeholder="搜 ID / 真名 / 战队"
+                type="search" aria-label="搜索选手、真名或战队" placeholder="搜 ID / 真名 / 战队"
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => { setQ(e.target.value); setPage(1) }}
               />
             </>
           }
@@ -263,10 +284,10 @@ export default function Collection() {
         )}
 
         {rows.length === 0 ? (
-          <p className="empty">{bulk ? '没有可分解的重复卡。' : '没有符合条件的卡。'}</p>
+          <div className="cm-empty" role="status"><p>{bulk ? '没有可分解的重复卡。' : '没有符合条件的卡，试试其他筛选或选手名字。'}</p><button onClick={resetFilters}>清除筛选与搜索</button></div>
         ) : (
-          <div className="cm-grid">
-            {rows.slice(0, 240).map(({ card, owned: o, rating }) => (
+          <div className="cm-grid" ref={gridRef} tabIndex={-1} aria-label={`收藏第 ${currentPage} 页`} aria-busy={query !== q}>
+            {sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(({ card, owned: o, rating }) => (
               <CardFace
                 key={card.id}
                 card={card}
@@ -282,8 +303,21 @@ export default function Collection() {
             ))}
           </div>
         )}
-        {rows.length > 240 && (
-          <p className="tiny faint" style={{ marginTop: 10 }}>只显示前 240 张，可搜索缩小范围。</p>
+        {rows.length > pageSize && (
+          <nav className="cm-pagination" aria-label="收藏分页">
+            <button disabled={currentPage === 1} onClick={() => goPage(currentPage - 1)}>上一页</button>
+            <span role="status">第 {currentPage} / {pageCount} 页 · 共 {rows.length} 张</span>
+            <button disabled={currentPage === pageCount} onClick={() => goPage(currentPage + 1)}>下一页</button>
+          </nav>
+        )}
+        {rows.length > 0 && (
+          <div className="cm-pagination">
+            <button type="button" onClick={e => {
+              const main = e.currentTarget.closest('main')
+              main?.focus({ preventScroll: true })
+              main?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+            }}>↑ 返回顶部</button>
+          </div>
         )}
       </Panel>
 

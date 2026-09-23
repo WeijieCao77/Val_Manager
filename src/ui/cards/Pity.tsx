@@ -28,7 +28,7 @@ export default function Pity() {
       title="保底进度"
       actions={<span className="tiny muted">换包不重置 · 首尔包不计入彩卡保底</span>}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px 28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '14px 28px' }}>
         <div style={row}>
           <div style={head}>
             <b>金卡</b>
@@ -37,7 +37,7 @@ export default function Pity() {
               {soft ? '，概率递增中' : `，第 ${SOFT_PITY} 抽起概率递增`}
             </span>
           </div>
-          <div className="bar" style={track} title={`第 ${SOFT_PITY} 抽起概率递增，第 ${HARD_PITY} 抽必出`}>
+          <div className="bar" role="progressbar" aria-label="金卡保底进度" aria-valuemin={0} aria-valuemax={HARD_PITY} aria-valuenow={gold} style={track} title={`第 ${SOFT_PITY} 抽起概率递增，第 ${HARD_PITY} 抽必出`}>
             <i style={{ width: `${(gold / HARD_PITY) * 100}%`, background: soft ? 'var(--warn)' : '#d4a53a' }} />
             <span style={{ ...tick, left: `${(SOFT_PITY / HARD_PITY) * 100}%` }} aria-hidden />
           </div>
@@ -49,7 +49,7 @@ export default function Pity() {
               {dry.toLocaleString()}/{MYTHIC_FLOOR.toLocaleString()} · 还差 <b>{(MYTHIC_FLOOR - dry).toLocaleString()}</b> 抽必出
             </span>
           </div>
-          <div className="bar" style={track} title={`连续 ${MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡就必出一张`}>
+          <div className="bar" role="progressbar" aria-label="彩卡保底进度" aria-valuemin={0} aria-valuemax={MYTHIC_FLOOR} aria-valuenow={dry} style={track} title={`连续 ${MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡就必出一张`}>
             <i style={{ width: `${(dry / MYTHIC_FLOOR) * 100}%`, background: '#c26bff' }} />
           </div>
         </div>

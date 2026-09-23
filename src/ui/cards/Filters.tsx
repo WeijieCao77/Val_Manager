@@ -15,7 +15,7 @@
  * IGL is a controller or a sentinel who also calls — but the one thing
  * after position that people look for a card by.
  */
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { RARITY_CN } from '../../engine/cards'
 import type { Card } from '../../engine/cards'
 import { SERIES } from '../../engine/gacha'
@@ -59,6 +59,7 @@ export function CardFilters({
   /** anything the screen wants beside the bar — a search box, a toggle */
   extra?: ReactNode
 }) {
+  const [expanded, setExpanded] = useState(false)
   // the club menu follows the other three: only clubs with a card that
   // passes metal, region and position, counted after those filters
   const clubs = clubsIn(pool.filter((c) => matchesFilter(c, { ...value, club: 'all' })))
@@ -71,25 +72,27 @@ export function CardFilters({
     onChange(next)
   }
   return (
-    <div className="row wrap" style={{ gap: 8, marginBottom: 12, alignItems: 'center' }}>
+    <div className="row wrap card-filters" style={{ gap: 8, marginBottom: 12, alignItems: 'center' }}>
       <div className="seg">
         {METALS.map((m) => (
-          <button key={m.key} className={value.rarity === m.key ? 'on' : ''} onClick={() => set({ rarity: m.key })}>
+          <button key={m.key} aria-pressed={value.rarity === m.key} className={value.rarity === m.key ? 'on' : ''} onClick={() => set({ rarity: m.key })}>
             {m.label}
           </button>
         ))}
       </div>
+      <button className="cm-filter-toggle" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? '收起筛选' : '赛区 / 位置 / 系列筛选'}{filterActive(value) ? ' · 已筛选' : ''}</button>
+      <div className={`card-filter-advanced${expanded ? ' expanded' : ''}`}>
       <div className="seg">
-        <button className={value.region === 'all' ? 'on' : ''} onClick={() => set({ region: 'all' })}>全部赛区</button>
+        <button aria-pressed={value.region === 'all'} className={value.region === 'all' ? 'on' : ''} onClick={() => set({ region: 'all' })}>全部赛区</button>
         {SERIES.map((r) => (
-          <button key={r} className={value.region === r ? 'on' : ''} onClick={() => set({ region: r })}>
+          <button key={r} aria-pressed={value.region === r} className={value.region === r ? 'on' : ''} onClick={() => set({ region: r })}>
             {REGION_CN[r]}
           </button>
         ))}
       </div>
       <select
         className="sm" style={{ width: 'auto', padding: '4px 7px' }}
-        value={value.role} onChange={(e) => set({ role: e.target.value as CardFilter['role'] })}
+        aria-label="选手位置" value={value.role} onChange={(e) => set({ role: e.target.value as CardFilter['role'] })}
       >
         <option value="all">全部位置</option>
         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -105,14 +108,15 @@ export function CardFilters({
       </select>
       <select
         className="sm" style={{ width: 'auto', padding: '4px 7px', maxWidth: 170 }}
-        value={value.club} onChange={(e) => set({ club: e.target.value })}
+        aria-label="所属战队" value={value.club} onChange={(e) => set({ club: e.target.value })}
       >
         <option value="all">全部战队</option>
         {clubs.map((c) => <option key={c.tag} value={c.tag}>{c.tag}（{c.n}）</option>)}
         {value.club !== 'all' && !clubs.some((c) => c.tag === value.club) && (
-          <option value={value.club}>{value.club}（0）</option>
+          <option aria-label="所属战队" value={value.club}>{value.club}（0）</option>
         )}
       </select>
+      </div>
       {extra}
       {filterActive(value) && (
         <button className="sm ghost" onClick={() => onChange(EMPTY_FILTER)}>清除筛选</button>

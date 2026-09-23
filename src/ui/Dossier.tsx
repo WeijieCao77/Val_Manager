@@ -98,15 +98,15 @@ export default function Dossier({
       <div className="row wrap" style={{ gap: 8, margin: '12px 0' }}>
         <input
           style={{ width: 200 }}
-          placeholder="搜 ID / 真名 / 战队 / 国籍"
+          type="search" aria-label="搜索选手资料" placeholder="搜 ID / 真名 / 战队 / 国籍"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select style={{ width: 'auto' }} value={region} onChange={(e) => setRegion(e.target.value as Region | 'all')}>
+        <select aria-label="资料库赛区" style={{ width: 'auto' }} value={region} onChange={(e) => setRegion(e.target.value as Region | 'all')}>
           <option value="all">全部赛区</option>
           {REGIONS.map((r) => <option key={r} value={r}>{REGION_CN[r]}</option>)}
         </select>
-        <select style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as Role | 'all' | 'igl')}>
+        <select aria-label="资料库位置" style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as Role | 'all' | 'igl')}>
           <option value="all">全部位置</option>
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           <option value="igl">指挥（IGL）</option>
@@ -137,7 +137,7 @@ export default function Dossier({
             {rows.slice(0, 300).map(({ card, titles, winnings }) => (
               <tr key={card.id} style={{ cursor: 'pointer' }} onClick={() => onOpen(card.playerId)}>
                 <td>
-                  <b>{card.ign}</b>
+                  <button className="ghost sm" onClick={e => { e.stopPropagation(); onOpen(card.playerId) }} aria-label={`查看 ${card.ign} 的资料`}>{card.ign}</button>
                   {legendsOf.has(card.playerId) && (
                     <span
                       className="cf-star"

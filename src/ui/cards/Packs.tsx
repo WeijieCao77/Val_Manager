@@ -1,3 +1,4 @@
+import { useDialogFocus } from './useDialogFocus'
 import { useEffect, useRef, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardBack } from '../Card'
@@ -32,6 +33,7 @@ export default function Packs() {
   const [openingKind, setOpeningKind] = useState<PackKind | null>(null)
   const [shown, setShown] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [claiming, setClaiming] = useState<string | null>(null)
   /** the reveal's 分解重复卡, waiting for the player to read the list */
   const [ask, setAsk] = useState<SalvageAsk | null>(null)
 
@@ -82,7 +84,9 @@ export default function Packs() {
   }
 
   const check = async () => {
-    const r = await act('checkin')
+    if (claiming) return
+    setClaiming('checkin')
+    const r = await act('checkin').finally(() => setClaiming(null))
     if (!r.ok) { toast(r.why); return }
     const c = r.result as CheckIn
     if (!c.already) track('card_signin', { streak: c.streak })
@@ -90,7 +94,9 @@ export default function Packs() {
   }
 
   const claim = async (key: QuestKey) => {
-    const r = await act('quest', { key })
+    if (claiming) return
+    setClaiming(key)
+    const r = await act('quest', { key }).finally(() => setClaiming(null))
     if (!r.ok) { toast(r.why); return }
     toast(`任务完成，+${(r.result as { coins: number }).coins} 金币。`)
   }
@@ -111,12 +117,13 @@ export default function Packs() {
 
   return (
     <>
-      <div className="grid c2" style={{ alignItems: 'start' }}>
+      <div className="cm-pack-overview"><div><strong>{Object.values(g.packs).reduce((sum, n) => sum + (n ?? 0), 0)}</strong><span>个卡包待开启</span></div><div><strong>{prog.owned}<small> / {prog.total}</small></strong><span>已收藏卡牌</span></div><a href="#pack-shop" onClick={e => { e.preventDefault(); document.getElementById('pack-shop')?.scrollIntoView({ block: 'start' }) }}>挑选卡包 ↓</a></div>
+      <div className="grid c2 cm-daily" style={{ alignItems: 'start' }}>
         <Panel title="每日签到" actions={<span className="tiny muted">连续 {g.daily.streak} 天</span>}>
           <p className="small muted" style={{ marginTop: 0, lineHeight: 1.7 }}>
             每天送 {CHECKIN_COINS} 金币和 1 个试训包；每轮第 3、6 天加送选拔包，第 7 天加送十连包。日期以服务器（北京时间）为准。
           </p>
-          <div className="row" style={{ gap: 4, margin: '10px 0 12px' }}>
+          <div className="cm-checkin-week" aria-label="七日签到奖励">
             {Array.from({ length: 7 }, (_, i) => {
               const day = i + 1
               // the streak runs past seven, so the strip shows where in the
@@ -126,22 +133,16 @@ export default function Packs() {
               return (
                 <div
                   key={i}
-                  title={`${CHECKIN_COINS} 金币 + 试训包${day === 7 ? ' + 十连包' : day % 3 === 0 ? ' + 选拔包' : ''}`}
-                  style={{
-                    flex: 1, height: 30, borderRadius: 3, display: 'grid', placeItems: 'center',
-                    fontSize: 10, fontWeight: 700,
-                    background: on ? 'var(--warn-wash)' : 'var(--panel-2)',
-                    border: `1px solid ${on ? 'var(--warn)' : 'var(--line)'}`,
-                    color: on ? 'var(--warn)' : 'var(--faint)',
-                  }}
+                  className={`cm-checkin-day${on ? ' claimed' : ''}`}
+                  title={`第 ${day} 天：${CHECKIN_COINS} 金币 + 试训包${day === 7 ? ' + 十连包' : day % 3 === 0 ? ' + 选拔包' : ''}`}
                 >
-                  {day === 7 ? '十连' : day % 3 === 0 ? '选拔' : day}
+                  <span>第 {day} 天</span><b>{day === 7 ? '十连' : day % 3 === 0 ? '选拔' : '试训'}</b><span>{on ? '✓ 已签到' : `+${CHECKIN_COINS}`}</span>
                 </div>
               )
             })}
           </div>
-          <button className="primary" onClick={() => void check()} disabled={signedToday}>
-            {signedToday ? '今天已签到' : '签到'}
+          <button className="primary" onClick={() => void check()} disabled={signedToday || claiming !== null}>
+            {signedToday ? '今天已签到' : claiming === 'checkin' ? '领取中…' : '领取今日奖励'}
           </button>
         </Panel>
 
@@ -152,13 +153,14 @@ export default function Packs() {
             const full = at >= q.target
             const taken = g.daily.taken.includes(key)
             return (
-              <div key={key} className="row" style={{ justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--line-soft)' }}>
-                <div>
+              <div key={key} className="cm-quest">
+                <div className="cm-quest-info">
                   <div className="small">{q.label}</div>
                   <div className="tiny faint mono">{Math.min(at, q.target)}/{q.target} · +{q.reward} 金币</div>
+                  <progress className="cm-quest-progress" value={Math.min(at, q.target)} max={q.target} aria-label={q.label} />
                 </div>
-                <button className="sm" onClick={() => void claim(key)} disabled={!full || taken}>
-                  {taken ? '已领' : full ? '领取' : '进行中'}
+                <button className="sm" onClick={() => void claim(key)} disabled={!full || taken || claiming !== null}>
+                  {taken ? '已领取' : claiming === key ? '领取中…' : full ? '领取' : '进行中'}
                 </button>
               </div>
             )
@@ -178,6 +180,7 @@ export default function Packs() {
         </div>
       </section>
 
+      <div id="pack-shop" className="cm-section-anchor" />
       <Panel
         title="卡包"
         actions={
@@ -463,7 +466,9 @@ export function PackStage({
   const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
   const seoul = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'seoul-2024')
   const single = pulled.length === 1
-  const finished = shown > pulled.length
+  const [revealAll, setRevealAll] = useState(false)
+  const dialogRef = useDialogFocus(onDone)
+  const finished = revealAll || shown > pulled.length
   const current = pulled[Math.min(shown, pulled.length) - 1]
   const dupes = pulled.filter((p) => p.dupe).length
   const last = shown === pulled.length
@@ -494,7 +499,8 @@ export function PackStage({
   )
 
   return (
-    <div className="pack-stage" onClick={advanceReveal}>
+    <div className="pack-stage" ref={dialogRef} role="dialog" aria-modal="true" aria-label="开启卡包" tabIndex={-1} onClick={advanceReveal}>
+      {!finished && <button className="pack-skip" onClick={e => { e.stopPropagation(); setUnsealed(true); setRevealAll(true) }}>查看全部 · 跳过动画</button>}
       {!unsealed && <PackTearGate seoul={seoul} position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (

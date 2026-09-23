@@ -165,6 +165,8 @@ export default function CardFace({
       onClick={onClick}
       title={title}
       role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
     >
       {asBackdrop && (
         <>
@@ -330,7 +332,7 @@ export function CardSlot({
   label, onClick, hint,
 }: { label: string; onClick?: () => void; hint?: string }) {
   return (
-    <div className="cardface slot s-md tap" onClick={onClick} title={hint ?? `选一名${label}`}>
+    <div className="cardface slot s-md tap" role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined} onClick={onClick} title={hint ?? `选一名${label}`}>
       <div className="cf-slot-plus">＋</div>
       <div className="cf-slot-label">{label}</div>
     </div>

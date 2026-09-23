@@ -707,14 +707,14 @@ export default function Market() {
           <input
             style={{ flex: '1 1 110px' }}
             type="number"
-            placeholder={sellCard ? `起拍价，最低 ${askFloorOf(cardById(sellCard)?.rarity ?? '')}` : '起拍价'}
+            aria-label="起拍价格" inputMode="numeric" placeholder={sellCard ? `起拍价，最低 ${askFloorOf(cardById(sellCard)?.rarity ?? '')}` : '起拍价'}
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
           />
           <input
             style={{ flex: '1 1 110px' }}
             type="number"
-            placeholder={buyoutFloor ? `一口价（可空，≥ ${money(buyoutFloor)}）` : '一口价（可空）'}
+            aria-label="一口价，可不填" inputMode="numeric" placeholder={buyoutFloor ? `一口价（可空，≥ ${money(buyoutFloor)}）` : '一口价（可空）'}
             value={buyout}
             onChange={(e) => setBuyout(e.target.value)}
           />

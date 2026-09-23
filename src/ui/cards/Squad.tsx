@@ -1,15 +1,16 @@
+import { useDialogFocus } from './useDialogFocus'
 import { useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardSlot } from '../Card'
 import { Panel } from '../common'
 import {
-  SQUAD_PRESETS, autoSquad, clearPreset, collection, levelOf, loadPreset,
-  personTaken, presetsOf, renamePreset, savePreset, setSlot,
+  autoSquad, collection, levelOf, personTaken, setSlot,
 } from '../../engine/gacha'
 import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper, squadPower, squadPowerPoints, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
+import SquadPresets from './SquadPresets'
 import CardDetail from './CardDetail'
 import { GapOdds } from './GapOdds'
 import type { CardFilter } from './Filters'
@@ -19,7 +20,7 @@ const COACH_WHY_CN = { club: '同队', coached: '带过', region: '同赛区' } 
 const fmt = (n: number) => n.toLocaleString('en-US')
 
 export default function SquadScreen() {
-  const { g, commit, toast } = useCards()
+  const { g, version, commit, toast, go } = useCards()
   const [picking, setPicking] = useState<number | 'coach' | null>(null)
   // 「先点开，展示这张卡的详细信息……然后还有个按键是点替换」: a seat with a
   // card in it opens the card (level, upgrade, market price) first; an empty
@@ -32,10 +33,9 @@ export default function SquadScreen() {
   // Chinese sentinel you meant.
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [sharing, setSharing] = useState(false)
+  const pickerRef = useDialogFocus(() => setPicking(null), picking !== null)
 
   const level = (id: string) => levelOf(g, id)
-  const presets = presetsOf(g)
-  const [renaming, setRenaming] = useState<number | null>(null)
   // Not memoised on g.squad: the squad object is mutated in place, so a memo
   // keyed on it never recomputes and the chemistry panel goes stale the moment
   // a slot changes. Ten pairs of comparisons is not worth caching anyway.
@@ -54,7 +54,7 @@ export default function SquadScreen() {
     return collection(g)
       .filter(({ card }) => (want === 'coach' ? isCoachCard(card) : isPlayerCard(card)))
       .map(({ card }) => card)
-  }, [g, picking])
+  }, [g, picking, version])
 
   const options = useMemo(() => {
     const want = picking === 'coach' ? 'coach' : 'player'
@@ -79,7 +79,7 @@ export default function SquadScreen() {
         }
         return b.rating - a.rating
       })
-  }, [g, picking, q, filter])
+  }, [g, picking, q, filter, version])
 
   const pick = (cardId: string | null) => {
     if (picking === 'coach') g.squad.coach = cardId
@@ -92,87 +92,12 @@ export default function SquadScreen() {
 
   return (
     <>
-      {/* Three fives, because the people who asked for this keep two or three
-          on the go — an all-EMEA one, an all-Pacific one, and the one with
-          their favourites in it — and rebuilding a five card by card to try
-          the other one is what stops them trying it at all. */}
-      <Panel
-        title="卡组配置"
-        actions={<span className="tiny muted">存 {SQUAD_PRESETS} 套，随时切换</span>}
-      >
-        <div className="row wrap" style={{ gap: 8 }}>
-          {presets.map((rec, i) => {
-            const score = rec ? squadPower(rec.squad, level) : 0
-            const filledN = rec ? rec.squad.slots.filter(Boolean).length : 0
-            return (
-              <div key={i} className="preset-box">
-                {renaming === i ? (
-                  <input
-                    autoFocus
-                    defaultValue={rec?.name ?? `配置 ${i + 1}`}
-                    maxLength={12}
-                    onBlur={(e) => { renamePreset(g, i, e.target.value); setRenaming(null); commit(true) }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                  />
-                ) : (
-                  <button
-                    className="preset-name"
-                    title="改名字"
-                    onClick={() => rec && setRenaming(i)}
-                  >
-                    {rec?.name ?? `配置 ${i + 1}`}
-                  </button>
-                )}
-                <div className="tiny faint mono">
-                  {rec ? `${filledN}/5 人 · 战力 ${fmt(score)}` : '空'}
-                </div>
-                <div className="row" style={{ gap: 5, marginTop: 6 }}>
-                  <button
-                    className="sm"
-                    onClick={() => {
-                      const r = savePreset(g, i)
-                      commit(true)
-                      toast(`当前卡组已存进「${r.name}」。`)
-                    }}
-                  >
-                    存
-                  </button>
-                  <button
-                    className="sm primary"
-                    disabled={!rec}
-                    onClick={() => {
-                      const r = loadPreset(g, i)
-                      commit(true)
-                      toast(r.missing
-                        ? `已读取「${rec!.name}」，${r.missing} 张卡已不在收藏里，位置留空。`
-                        : `已切换到「${rec!.name}」。`)
-                    }}
-                  >
-                    读
-                  </button>
-                  {rec && (
-                    <button
-                      className="sm ghost"
-                      title="清空这个位置"
-                      onClick={() => { clearPreset(g, i); commit(true) }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <p className="tiny faint" style={{ marginBottom: 0 }}>
-          存的是卡的编号，分解掉的卡读出来时位置会空着。
-        </p>
-      </Panel>
+      <SquadPresets />
 
       <Panel
         title="我的卡组"
         actions={
-          <div className="row" style={{ gap: 8 }}>
+          <div className="row wrap" style={{ gap: 8 }}>
             <button
               className="sm"
               onClick={() => { g.squad = autoSquad(g); commit(true); toast('已按评分、默契和指挥自动组队。') }}
@@ -201,6 +126,7 @@ export default function SquadScreen() {
           </div>
         }
       >
+        <p className="small muted" style={{ marginTop: 0 }}>{filled < 5 ? `已上阵 ${filled}/5 位选手。点空位挑选，或使用自动组队补齐阵容。` : '五人阵容已就绪。点选手卡可查看详情、升级或替换。'}</p>
         <div className="cm-squad">
           {SQUAD_SLOTS.map((role, i) => {
             const id = g.squad.slots[i]
@@ -245,7 +171,7 @@ export default function SquadScreen() {
             )}
           </div>
 
-          <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ flex: '1 1 260px', minWidth: 0 }}>
             <div className="row" style={{ gap: 20, marginBottom: 6 }}>
               <div>
                 <div className="tiny faint">阵容战力</div>
@@ -367,7 +293,7 @@ export default function SquadScreen() {
 
       {picking !== null && (
         <div className="modal-bg" onClick={() => setPicking(null)}>
-          <div className="modal" style={{ maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
+          <div ref={pickerRef} role="dialog" aria-modal="true" aria-label="选择阵容卡牌" tabIndex={-1} className="modal" style={{ maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h2>{picking === 'coach' ? '选一名教练' : `选一名${SQUAD_SLOTS[picking]}`}</h2>
               <div className="spacer" />
@@ -385,21 +311,23 @@ export default function SquadScreen() {
                     // grows into whatever the bar has left rather than a fixed
                     // 190px, which cut the placeholder off on a phone
                     style={{ flex: '1 1 170px', minWidth: 130, padding: '4px 7px' }}
-                    placeholder="搜 ID / 真名 / 战队"
+                    type="search" aria-label="搜索阵容选手" placeholder="搜 ID / 真名 / 战队"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                 }
               />
               {options.length === 0 ? (
-                <p className="empty">
+                <div className="cm-empty" role="status"><p>
                   {pool.length === 0
                     ? (picking === 'coach' ? '还没有教练卡，去开一个教练包。' : '没有可选的卡，先去抽卡。')
                     : '这些条件下没有卡，放宽一点看看。'}
-                </p>
+                </p>{pool.length === 0
+                  ? <button onClick={() => { setPicking(null); go('packs') }}>去抽卡</button>
+                  : <button onClick={() => { setQ(''); setFilter(EMPTY_FILTER) }}>清除搜索与筛选</button>}</div>
               ) : (
                 <div className="cm-grid sm">
-                  {options.slice(0, 120).map(({ card, owned }) => {
+                  {options.map(({ card, owned }) => {
                     const inSquad = g.squad.slots.includes(card.id) || g.squad.coach === card.id
                     // the same man under another card — picking him replaces
                     // that one rather than putting him on twice

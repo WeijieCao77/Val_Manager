@@ -1,3 +1,4 @@
+import { useDialogFocus } from './useDialogFocus'
 /**
  * The rates, one tap from wherever you are.
  *
@@ -15,6 +16,7 @@ import { OddsTables, OddsWhy } from './Odds'
 
 export default function OddsFab() {
   const [open, setOpen] = useState(false)
+  const dialogRef = useDialogFocus(() => setOpen(false), open)
   // measured lazily — thirty thousand packs is a moment of work, and nobody
   // who never opens this should pay for it
   const [everOpened, setEverOpened] = useState(false)
@@ -41,7 +43,7 @@ export default function OddsFab() {
       {open && (
         <>
           <div className="support-veil" onClick={() => setOpen(false)} />
-          <div className="support-card odds-card" role="dialog" aria-label="概率公示">
+          <div className="support-card odds-card" ref={dialogRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label="概率公示">
             <div className="support-head">
               <h3>概率公示</h3>
               <button className="sm ghost" onClick={() => setOpen(false)}>关闭 ✕</button>

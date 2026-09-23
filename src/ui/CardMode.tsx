@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import CardNavigation, { CARD_PAGES, cardPageFromHash } from './cards/Navigation'
+import './cards/cards-ux.css'
 import PhoneGate from './cards/PhoneGate'
 import type { ComponentType } from 'react'
 import { CardCtx } from './cards/ctx'
 import Packs from './cards/Packs'
 import Pity from './cards/Pity'
 import Challenge from './cards/Challenge'
-import Minigames from './cards/Minigames'
+const Minigames = lazy(() => import('./cards/Minigames'))
 import Collection from './cards/Collection'
 import SquadScreen from './cards/Squad'
-import Ladder from './cards/Ladder'
-import Friends from './cards/Friends'
-import Market from './cards/Market'
-import Cup from './cards/Cup'
-import Predict from './cards/Predict'
-import SeoulRoute from './cards/SeoulRoute'
+const Ladder = lazy(() => import('./cards/Ladder'))
+const Friends = lazy(() => import('./cards/Friends'))
+const Market = lazy(() => import('./cards/Market'))
+const Cup = lazy(() => import('./cards/Cup'))
+const Predict = lazy(() => import('./cards/Predict'))
+const SeoulRoute = lazy(() => import('./cards/SeoulRoute'))
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import OddsFab from './cards/OddsFab'
@@ -90,25 +92,6 @@ function StaminaChip({ g, onTick }: { g: GachaState; onTick: () => void }) {
   )
 }
 
-const TABS: { key: string; label: string; beta?: boolean }[] = [
-  { key: 'packs', label: '抽卡' },
-  { key: 'challenge', label: '挑战' },
-  { key: 'minigames', label: '小游戏', beta: true },
-  { key: 'squad', label: '卡组' },
-  { key: 'collection', label: '收藏' },
-  { key: 'ladder', label: '天梯' },
-  { key: 'friends', label: '好友' },
-  { key: 'market', label: '交易' },
-  { key: 'cup', label: '杯赛' },
-  { key: 'predict', label: '预测', beta: true },
-  { key: 'seoul', label: '首尔征途' },
-  { key: 'dossier', label: '资料库' },
-  // 概率 used to be here. It is the 🎲 button in the corner now: the tab was
-  // ten wide on a phone, and nobody leaves a pack they just opened to go and
-  // read a table on another screen.
-  { key: 'account', label: '账号' },
-]
-
 /**
  * The card mode, top to bottom.
  *
@@ -119,7 +102,18 @@ const TABS: { key: string; label: string; beta?: boolean }[] = [
 export default function CardMode({ onExit }: { onExit: () => void }) {
   const gRef = useRef<GachaState | null>(null)
   const [version, bump] = useReducer((x: number) => x + 1, 0)
-  const [tab, setTab] = useState('packs')
+  const [tab, setTabRaw] = useState<string>(cardPageFromHash)
+  const setTab = useCallback((key: string) => {
+    if (!CARD_PAGES.some(p => p.key === key)) return
+    if (window.location.hash !== `#${key}`) history.pushState(null, '', `#${key}`)
+    setTabRaw(key)
+  }, [])
+  useEffect(() => {
+    const sync = () => setTabRaw(cardPageFromHash())
+    window.addEventListener('popstate', sync)
+    window.addEventListener('hashchange', sync)
+    return () => { window.removeEventListener('popstate', sync); window.removeEventListener('hashchange', sync) }
+  }, [])
 
   const [cloud, setCloud] = useState(false)
   // 「太多人开小号了」: until the server says a phone has answered for this
@@ -146,9 +140,12 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     return () => window.clearInterval(t)
   }, [])
 
+  const toastTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(toastTimer.current), [])
   const toast = useCallback((msg: string) => {
+    window.clearTimeout(toastTimer.current)
     setToastMsg(msg)
-    window.setTimeout(() => setToastMsg((cur) => (cur === msg ? null : cur)), 3200)
+    toastTimer.current = window.setTimeout(() => setToastMsg((cur) => (cur === msg ? null : cur)), 3200)
   }, [])
 
   // Returns the save, so a screen that reads the server back — the leaderboard
@@ -377,45 +374,36 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
   return (
     <CardCtx.Provider value={ctx}>
       <div className="app cardmode">
-        <a className="skip-link" href="#main">跳到主内容</a>
+        <a className="skip-link" href="#main" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>跳到主内容</a>
         <header className="topbar">
           {/* 开 in the accent, 瓦包 in the gold this mode uses — the same
               two-tone split the career's mark has. The English keeps the .by
               line it inherited, which is where the career puts its credit. */}
-          <div className="brand">开<span>瓦包</span><em className="by">VAL CARDS</em></div>
+          <div className="brand" aria-label="开瓦包">开<span>瓦包</span><em className="by">VAL CARDS</em></div>
           <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
           <StaminaChip g={g} onTick={() => setNow(serverNow())} />
-          <div className="chip" title="段位">
+          <div className="chip cm-rank" title="段位">
             {/* the rung, not the division — and past 大师 the score IS the rank */}
             {rankName(g.ladder.div, g.ladder.stars, g.ladder.points ?? 0)}
             {g.ladder.div < MASTER_DIV && (
               <b>{' '}{starsOnTier(g.ladder.div, g.ladder.stars)}/{tierStars(g.ladder.div)}★</b>
             )}
           </div>
-          <div className="chip small muted" title="未开的卡包">
+          <div className="chip small muted cm-pack-count" title="未开的卡包">
             📦 {Object.values(g.packs).reduce((s, n) => s + (n ?? 0), 0)}
           </div>
           <MailBox />
           <div className="spacer" />
           {!cloud && <div className="chip small" style={{ color: 'var(--warn)' }} title="服务器连不上，进度只在本机">仅本机</div>}
           <ThemeToggle compact />
-          <button className="ghost sm" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
+          <button className="ghost sm cm-home" onClick={() => { flushAccount(g); onExit() }}>← 返回首页</button>
         </header>
 
-        <nav className="cm-tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              className={`cm-tab${tab === t.key ? ' on' : ''}`}
-              onClick={() => { setTab(t.key); if (t.key !== 'dossier') setDossierId(null) }}
-            >
-              {t.label}
-              {t.beta && <span className="tag warn" style={{ marginLeft: 4, fontSize: 9, padding: '0 4px', verticalAlign: 'middle' }}>beta</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="cm-body" id="main" ref={mainRef}>
+        <div className="cm-workspace">
+        <CardNavigation current={tab} onExit={() => { flushAccount(g); onExit() }} onNavigate={key => { setTab(key); if (key !== 'dossier') setDossierId(null) }} />
+        <main className="cm-body" id="main" ref={mainRef} tabIndex={-1}>
+          <div className="cm-page-heading"><div><h1>{CARD_PAGES.find(p => p.key === tab)?.label}</h1><p>{CARD_PAGES.find(p => p.key === tab)?.description}</p></div><div className="cm-page-tools"><OddsFab /><Changelog /><Support /></div></div>
+          {!cloud && <div className="cm-offline" role="status">目前离线，可浏览已缓存的收藏。开包、领奖和比赛需要联网。<button className="sm" onClick={() => window.location.reload()}>重新连接</button></div>}
           {fresh && tab === 'account' && (
             <div className="panel" style={{ borderColor: 'var(--accent-line)', marginBottom: 14 }}>
               <div className="panel-body">
@@ -429,16 +417,17 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
               </div>
             </div>
           )}
+          <Suspense fallback={<div className="cm-loading" role="status">正在载入玩法…</div>}>
           {tab === 'dossier' ? <Dossier playerId={dossierId} onOpen={setDossierId} />
             : tab === 'account' ? <AccountScreen onSignOut={signOut} />
             : Screen ? <>{tab === 'packs' && <Pity />}<Screen /></> : <Packs />}
+          </Suspense>
           <Credit />
+        </main>
         </div>
 
-        {toastMsg && <div className="toast">{toastMsg}</div>}
-        <OddsFab />
-        <Changelog />
-        <Support />
+        {toastMsg && <div className="toast" role="status" aria-live="polite">{toastMsg}</div>}
+
       </div>
     </CardCtx.Provider>
   )
@@ -455,6 +444,7 @@ function Gate({
   const [id, setId] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [errorFor, setErrorFor] = useState<'create' | 'signin'>('create')
   const [made, setMade] = useState<{ state: GachaState; cloud: boolean; today: string } | null>(null)
   const [copied, setCopied] = useState(false)
   // the second press, in the page — see the button below
@@ -463,6 +453,8 @@ function Gate({
   const [byPhone, setByPhone] = useState(false)
 
   const create = async () => {
+    if (busy) return
+    setErrorFor('create')
     setBusy(true)
     setErr(null)
     const r = await createAccount(name)
@@ -473,6 +465,8 @@ function Gate({
   }
 
   const signIn = async () => {
+    if (busy) return
+    setErrorFor('signin')
     setBusy(true)
     setErr(null)
     const r = await loadAccount(id)
@@ -495,7 +489,7 @@ function Gate({
 
   if (made) {
     return (
-      <div className="wrap newgame">
+      <div className="wrap newgame cm-gate">
         <h1 className="display">记好这串 ID</h1>
         <p className="muted" style={{ lineHeight: 1.9 }}>
           这就是你的账号。<b style={{ color: 'var(--warn)' }}>没有密码和邮箱，丢了找不回来。</b>
@@ -507,7 +501,7 @@ function Gate({
             className="primary"
             onClick={async () => {
               const ok = await copyText(made.state.id)
-              setCopied(true)
+              setCopied(ok)
               if (!ok) setErr('自动复制失败，请长按手动复制，或者截图。')
             }}
           >
@@ -541,7 +535,7 @@ function Gate({
   }
 
   return (
-    <div className="wrap newgame">
+    <div className="wrap newgame cm-gate">
       <h1 className="display" style={{ marginBottom: 2 }}>开瓦包</h1>
       <p className="tiny faint" style={{ letterSpacing: '.34em', margin: '0 0 16px' }}>VAL CARDS</p>
       <p className="muted" style={{ lineHeight: 1.9, maxWidth: 620 }}>
@@ -556,15 +550,18 @@ function Gate({
             <p className="small muted" style={{ marginTop: 0 }}>
               取个名字，会生成一串 ID 作为账号，记得存好。
             </p>
+            <label className="cm-field-label" htmlFor="card-nickname">你的昵称</label>
             <input
-              placeholder="你的昵称"
+              id="card-nickname" name="nickname" autoComplete="nickname" aria-label="你的昵称" placeholder="你的昵称"
               value={name}
               maxLength={20}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !busy) void create() }}
             />
             <button className="primary" style={{ marginTop: 10 }} onClick={create} disabled={busy}>
               {busy ? '创建中…' : '创建账号'}
             </button>
+            {err && errorFor === 'create' && <p role="alert" className="small warn">{err}</p>}
           </div>
         </div>
 
@@ -574,11 +571,12 @@ function Gate({
             <p className="small muted" style={{ marginTop: 0 }}>
               填入之前保存的 ID。
             </p>
+            <label className="cm-field-label" htmlFor="card-login-id">账号 ID</label>
             <input
-              placeholder="VM-XXXX-XXXX-XXXX-XXXX-XXXX"
+              id="card-login-id" name="card-id" autoComplete="username" spellCheck={false} aria-label="账号 ID" placeholder="VM-XXXX-XXXX-XXXX-XXXX-XXXX"
               value={id}
               onChange={(e) => setId(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void signIn() }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !busy && id.trim().length >= 8) void signIn() }}
               style={{ fontFamily: 'var(--mono)' }}
             />
             <button style={{ marginTop: 10 }} onClick={signIn} disabled={busy || id.trim().length < 8}>
@@ -588,7 +586,7 @@ function Gate({
               ID 找不到了？绑过手机的账号可以
               <button className="ghost sm" style={{ marginLeft: 6 }} onClick={() => setByPhone(true)}>用手机号进入</button>
             </p>
-            {err && <p className="small" style={{ color: 'var(--loss)' }}>{err}</p>}
+            {err && errorFor === 'signin' && <p role="alert" className="small" style={{ color: 'var(--loss)' }}>{err}</p>}
           </div>
         </div>
       </div>

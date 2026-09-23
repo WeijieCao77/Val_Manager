@@ -119,7 +119,7 @@ export default function Friends() {
           <div className="row" style={{ gap: 6 }}>
             <input
               style={{ flex: 1, fontFamily: 'var(--mono)', letterSpacing: 2, textTransform: 'uppercase' }}
-              placeholder="输入对方的 8 位对战码"
+              aria-label="好友对战码" spellCheck={false} placeholder="输入对方的 8 位对战码"
               maxLength={12}
               value={code}
               onChange={(e) => setCode(e.target.value)}

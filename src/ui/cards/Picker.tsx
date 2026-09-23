@@ -55,18 +55,18 @@ export function CardPicker({
           <input
             className="sm"
             style={{ flex: '1 1 150px', minWidth: 120, padding: '4px 7px' }}
-            placeholder="搜 ID / 战队"
+            type="search" aria-label="搜索卡牌选手或战队" placeholder="搜 ID / 战队"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             disabled={disabled}
           />
         }
       />
-      <select style={{ width: '100%' }} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+      <select aria-label={placeholder} style={{ width: '100%' }} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
         <option value="">
           {placeholder}（{list.length} 种{narrowed ? `，已筛选，共 ${rows.length}` : ''}）
         </option>
-        {list.slice(0, 300).map(({ card, note }) => (
+        {list.map(({ card, note }) => (
           <option key={card.id} value={card.id}>
             {RARITY_CN[card.rarity]} · {nameOf(card)} · {card.rating}
             {isPlayerCard(card) ? ` · ${card.roles[0]}` : ' · 教练'}

@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { useDialogFocus } from './cards/useDialogFocus'
 import type { ReactNode } from 'react'
 import { roleColor } from '../engine/player'
 import { scoutedPotential } from '../engine/manager'
@@ -217,15 +219,18 @@ export function Stat({ k, v, small }: { k: string; v: ReactNode; small?: boolean
 export function Modal({
   title, onClose, onBgClose, children, wide,
 }: { title: ReactNode; onClose: () => void; onBgClose?: () => void; children: ReactNode; wide?: boolean }) {
+  const dialogRef = useDialogFocus(onClose)
+  const titleId = useId()
   return (
     <div className="modal-bg" onClick={onBgClose ?? onClose}>
       <div
+        ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
         className="modal"
         style={wide ? { maxWidth: 1020 } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3>{title}</h3>
+          <h3 id={titleId}>{title}</h3>
           <div className="spacer" style={{ flex: 1 }} />
           <button className="sm ghost" onClick={onClose}>关闭 ✕</button>
         </div>

@@ -74,7 +74,7 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
       </p>
       <div className="row" style={{ gap: 8, marginBottom: 8 }}>
         <input
-          inputMode="tel" placeholder="中国大陆手机号" value={phone} maxLength={14}
+          type="tel" name="phone" autoComplete="tel" aria-label="中国大陆手机号" inputMode="tel" placeholder="中国大陆手机号" value={phone} maxLength={14}
           onChange={(e) => setPhone(e.target.value)} style={{ flex: 1 }}
         />
         <button className="sm" disabled={busy || wait > 0 || !okPhone} onClick={() => void send()}>
@@ -83,14 +83,14 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
       </div>
       <div className="row" style={{ gap: 8, marginBottom: 12 }}>
         <input
-          inputMode="numeric" placeholder="6 位验证码" value={code} maxLength={6}
+          name="code" autoComplete="one-time-code" aria-label="短信验证码" inputMode="numeric" placeholder="6 位验证码" value={code} maxLength={6}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} style={{ flex: 1 }}
         />
         <button className="primary sm" disabled={busy || code.length !== 6 || !okPhone} onClick={() => void submit()}>
           {mode === 'bind' ? '绑定' : '进入'}
         </button>
       </div>
-      {msg && <p className={`small ${dev ? 'muted' : ''}`} style={{ color: msg.includes('已') ? 'var(--good)' : 'var(--warn)' }}>{msg}</p>}
+      {msg && <p role="status" className={`small ${dev ? 'muted' : ''}`} style={{ color: msg.includes('已') ? 'var(--good)' : 'var(--warn)' }}>{msg}</p>}
       <div className="row wrap" style={{ gap: 12, marginTop: 16 }}>
         {id && (
           <button className="ghost sm" onClick={() => { setMode(mode === 'bind' ? 'login' : 'bind'); setMsg(null); setCode('') }}>

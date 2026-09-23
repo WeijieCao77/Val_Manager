@@ -1,0 +1,255 @@
+/* Card mode owns its shell. Shared game and physical card styles stay intact. */
+.cardmode { --cm-gutter: clamp(16px, 2.4vw, 36px); }
+.cardmode .topbar { min-height: 68px; padding: 12px 24px; gap: 10px; }
+.cardmode .topbar .brand { font-size: 20px; letter-spacing: .08em; margin-right: 20px; }
+.cardmode .topbar .chip { min-height: 34px; font-variant-numeric: tabular-nums; }
+.cm-workspace { display: flex; flex: 1; min-height: 0; }
+.cm-rail { flex: 0 0 184px; padding: 20px 12px 80px; overflow-y: auto; background: var(--bg-rail); border-right: 1px solid var(--line); }
+.cm-nav-group + .cm-nav-group { margin-top: 24px; }
+.cm-nav-group h2 { margin: 0 12px 8px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.cm-nav-link { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 7px; color: var(--muted); background: transparent; text-decoration: none; font-size: 14px; transition: background .15s, color .15s, border-color .15s; }
+.cm-nav-link svg { flex: none; }
+.cm-nav-link small { font-size: 10px; margin-left: auto; }
+.cm-nav-link:hover { color: var(--text); background: var(--panel-2); }
+.cm-nav-link.active { color: var(--text); background: var(--accent-wash); border-color: var(--accent-line); font-weight: 700; }
+.cm-nav-link.active svg { color: var(--accent); }
+.cm-rail-note { padding: 28px 12px 0; font-size: 12px; line-height: 1.8; color: var(--faint); }
+.cardmode .cm-body { min-width: 0; padding: 28px var(--cm-gutter) 100px; scrollbar-gutter: stable; }
+.cm-body > * { max-width: 1400px; margin-left: auto; margin-right: auto; }
+.cm-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; }
+.cm-page-heading h1 { margin: 0 0 6px; font-size: clamp(24px, 2.5vw, 32px); letter-spacing: -.035em; line-height: 1.25; }
+.cm-page-heading p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.cm-player-name { font-size: 13px; color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-offline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: var(--warn-wash); border: 1px solid var(--warn); border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+.cardmode .panel { border-radius: 10px; margin-bottom: 20px; }
+.cardmode .panel-head { padding: 16px 20px; gap: 10px; flex-wrap: wrap; }
+.cardmode .panel-head h2 { font-size: 17px; }
+.cardmode .panel-body { padding: 20px; }
+.cardmode .panel-body.flush { padding: 0; }
+.cardmode button:not(.cardface):not(.cm-nav-link), .cm-gate button { min-height: 40px; }
+.cardmode button, .cardmode a, .cm-gate button { touch-action: manipulation; }
+.cardmode :is(button,a,input,select,summary):focus-visible, .cm-gate :is(button,a,input):focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.cardmode :is(input,select), .cm-gate input { min-height: 44px; border-radius: 6px; }
+.cardmode :is(input,select):not([type=checkbox]):not([type=radio]) { max-width: 100%; }
+.cardmode input[type=checkbox], .cardmode input[type=radio] { min-height: auto; }
+.cardmode button:active:not(:disabled) { filter: brightness(.94); }
+.cardmode .pack-shelf { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+.cardmode .pack-box { border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
+.cardmode .pack-box h4 { font-size: 18px; }
+.cardmode .pack-box > p { flex: 1; line-height: 1.75; }
+.cardmode .pack-box .row { flex-wrap: wrap; }
+.cardmode .cm-grid { grid-template-columns: repeat(auto-fill, minmax(144px, 1fr)); gap: 24px 16px; }
+.cardmode .cm-grid.sm { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.card-filters { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.card-filters .seg { flex-wrap: wrap; max-width: 100%; }
+.card-filters .seg button { flex: 1 0 auto; }
+.card-filters select { flex: 1 1 130px; }
+.card-filters input { flex: 1 1 210px; }
+.cm-pagination { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 24px; color: var(--muted); }
+.cm-empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+.cm-empty p { margin: 0 0 14px; }
+.cm-dock { display: none; }
+.cm-nav-dialog { padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 32px); box-shadow: var(--shadow-pop); }
+.cm-nav-dialog::backdrop { background: var(--scrim); }
+.cm-nav-sheet { padding: 20px; }
+.cm-nav-sheet > header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.cm-nav-sheet > header h2 { margin: 0; font-size: 22px; }
+.cm-nav-sheet .cm-nav-group { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.cm-nav-sheet .cm-nav-group h2 { grid-column: 1/-1; margin-left: 0; }
+.cm-nav-sheet .cm-nav-link { flex-direction: column; gap: 8px; padding: 14px 4px; background: var(--panel-2); position: relative; }
+.cm-nav-sheet .cm-nav-link small { position: absolute; top: 4px; right: 5px; }
+.cm-gate { max-width: 1040px; padding: clamp(24px, 6vw, 80px) 24px; }
+.cm-gate .display { font-size: clamp(36px, 6vw, 64px); }
+.cm-gate > .grid { max-width: none !important; gap: 24px; }
+.cm-gate .panel { border-radius: 12px; }
+.cm-gate .panel-body { padding: 24px; }
+.cm-gate input { width: 100%; font-size: 16px; }
+.cm-field-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.cardmode .modal { border-radius: 12px; max-height: calc(100dvh - 32px); }
+.cardmode .modal-head { position: sticky; top: 0; z-index: 2; background: var(--panel); }
+.cardmode .modal-body { overflow-wrap: anywhere; }
+.cardmode .toast { max-width: min(560px, calc(100vw - 32px)); }
+@media (min-width: 721px) and (max-width: 1100px) {
+  .cm-rail { flex-basis: 148px; padding-inline: 8px; }
+  .cm-nav-link { gap: 8px; }
+  .cardmode .topbar { padding: 10px 16px; }
+  .cardmode .topbar .brand { margin-right: 4px; }
+  .cardmode .cm-body { padding-top: 20px; }
+  .cardmode .panel-body { padding: 16px; }
+  .cardmode .cm-grid { grid-template-columns: repeat(auto-fill,minmax(132px,1fr)); gap: 20px 10px; }
+}
+@media (max-width: 720px) {
+  .cardmode .topbar { padding: 10px 12px; gap: 6px; min-height: auto; }
+  .cardmode .topbar .brand { font-size: 17px; margin-right: auto; }
+  .cardmode .topbar .brand .by { display: none; }
+  .cardmode .topbar .chip { padding: 4px 8px; font-size: 12px; }
+  .cardmode .topbar .cm-rank, .cardmode .topbar .cm-pack-count { display: none; }
+  .cardmode .topbar > .ghost { font-size: 12px; }
+  .cm-rail { display: none; }
+  .cardmode .cm-body { padding: 20px 12px calc(112px + env(safe-area-inset-bottom)); scrollbar-gutter: auto; }
+  .cm-page-heading { margin-bottom: 20px; }
+  .cm-page-heading p { font-size: 13px; max-width: 29em; }
+  .cm-player-name { display: none; }
+  .cardmode .panel-head { padding: 14px; }
+  .cardmode .panel-head > .row { flex-wrap: wrap; }
+  .cardmode .panel-body { padding: 14px; }
+  .cardmode button:not(.cardface):not(.cm-nav-link), .cm-gate button { min-height: 44px; }
+  .cardmode input:not([type=checkbox]):not([type=radio]), .cardmode select { font-size: 16px; }
+  .cardmode .cm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 8px; }
+  .cardmode .cm-grid.sm { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .cardmode .pack-box { padding: 16px; }
+  .card-filters > .seg { width: 100%; }
+  .card-filters .seg button { padding-inline: 8px; }
+  .cardmode .cm-dock { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); position: fixed; inset: auto 0 0; z-index: 35; background: var(--bg-rail); border-top: 1px solid var(--line-hi); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
+  .cm-dock .cm-nav-link { flex-direction: column; justify-content: center; gap: 4px; padding: 6px 2px; font-size: 11px; min-height: 54px; }
+  .cm-dock .cm-nav-link.active { border-color: transparent; }
+  .cm-nav-dialog { margin: auto 0 0; width: 100%; max-width: none; max-height: calc(100dvh - 24px); border-radius: 18px 18px 0 0; }
+  .cm-nav-sheet { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .cardmode > .support-fab { bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .cardmode > .log-fab { bottom: calc(134px + env(safe-area-inset-bottom)); }
+  .cardmode > .odds-fab { bottom: calc(186px + env(safe-area-inset-bottom)); }
+  .cardmode .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .cardmode .modal-bg { padding: 8px; }
+  .cardmode .modal { max-height: calc(100dvh - 16px); }
+  .cardmode .pack-stage { padding: 16px 12px calc(24px + env(safe-area-inset-bottom)); }
+  .cm-gate { padding: 32px 16px 100px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cardmode *, .cardmode *::before, .cardmode *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+.cm-pack-overview { display: flex; align-items: center; gap: 32px; padding: 0 0 24px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.cm-pack-overview > div { display: flex; flex-direction: column; gap: 5px; }
+.cm-pack-overview strong { font-size: 28px; font-variant-numeric: tabular-nums; font-weight: 650; }
+.cm-pack-overview strong small { font-size: 14px; color: var(--muted); font-weight: 400; }
+.cm-pack-overview span { font-size: 12px; color: var(--muted); }
+.cm-pack-overview a { margin-left: auto; min-height: 44px; display: flex; align-items: center; font-size: 13px; }
+.cm-section-anchor { scroll-margin-top: 20px; }
+.pack-skip { position: absolute; right: 20px; top: max(16px, env(safe-area-inset-top)); z-index: 5; min-height: 44px; background: #192430; color: #ece8e1; border-color: #536477; }
+.cardmode .pack-stage { padding-top: 76px; }
+@media (max-width: 720px) {
+  .cm-pack-overview { gap: 20px; }
+  .cm-pack-overview strong { font-size: 25px; }
+  .cm-pack-overview a { max-width: 70px; }
+  .cardmode .cm-daily { gap: 0; }
+}
+/* Utilities belong to the page heading; floating controls must not cover rewards. */
+.cm-page-tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.cm-page-tools .support-fab { position: static; box-shadow: none; min-width: 40px; justify-content: center; border-radius: 7px; padding: 8px 10px; }
+.cm-page-tools .support-fab .lbl { display: inline; }
+.cm-exit { width: 100%; margin-top: 24px; }
+@media (max-width: 720px) {
+  .cardmode .topbar .cm-home { display: none; }
+  .cm-page-heading { flex-wrap: wrap; gap: 12px; }
+  .cm-page-tools { width: 100%; }
+  .cm-page-tools .support-fab { flex: 1; font-size: 12px; }
+  .cardmode .cm-page-tools .support-fab { min-height: 36px; }
+}
+.card-filter-advanced { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 100%; }
+.card-filters .cm-filter-toggle { display: none; }
+@media (max-width: 720px) {
+  .card-filters .cm-filter-toggle { display: block; width: 100%; text-align: left; color: var(--muted); }
+  .card-filter-advanced:not(.expanded) { display: none; }
+  .card-filter-advanced .seg { width: 100%; }
+  .card-filters input[type=search] { order: -2; flex-basis: 100%; }
+  .card-filters > .seg { order: -1; }
+}
+.cardmode [role=button]:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+.cardmode .modal-head .spacer { flex: 1; }
+@media (max-width: 480px) {
+  .cardmode .cm-card-intro { flex-direction: column; align-items: center !important; }
+  .cardmode .cm-card-intro > div:not(.cardface) { width: 100%; }
+}
+.cardmode .panel-head h2 { letter-spacing: .02em; color: var(--text); }
+.cardmode .modal { overflow-y: auto; overscroll-behavior: contain; }
+.cardmode .modal-head h2 { margin: 0; font-size: 20px; }
+.phone-gate input { min-width: 0; font-size: 16px; min-height: 44px; }
+.phone-gate button { min-height: 44px; flex-shrink: 0; }
+.cardmode .gap-odds { max-width: 100%; }
+.cm-rail-home { margin: 20px 0 0; width: 100%; font-size: 12px; }
+.cm-loading { padding: 40px 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+@media (min-width: 721px) and (max-width: 1100px) {
+  .cardmode .topbar .cm-home { display: none; }
+}
+@media (min-width: 1101px) { .cm-rail-home { display: none; } }
+/* The shared music player sits outside CardMode; leave the mobile dock clear. */
+@media (max-width: 720px) {
+  body:has(.cardmode) .bgm { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+/* Keep the collection and match actions visually ahead of secondary utilities. */
+.cm-page-tools { gap: 4px; }
+.cm-page-tools .support-fab { background: transparent; border-color: transparent; color: var(--muted); }
+.cm-page-tools .support-fab:hover { background: var(--panel-2); color: var(--text); border-color: var(--line); }
+.cm-ladder-match { display: grid; grid-template-columns: minmax(220px,.75fr) minmax(0,1.25fr); gap: 20px; align-items: start; }
+.cm-ladder-match > .panel { min-width: 0; }
+.cm-ladder-match .div-badge { font-size: clamp(24px,3vw,36px); letter-spacing: -.035em; }
+.cm-ladder-match > .panel:last-child { border-top: 3px solid var(--accent); }
+.cm-ladder-match > .panel:last-child .panel-body > .row > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cm-match-action { margin: 20px 0 12px; padding: 16px; border-radius: 8px; background: var(--panel-2); }
+.cm-match-action > p:first-child { margin-top: 0; }
+.cm-match-action > p:last-child { margin: 10px 0 0; }
+.cm-match-action > button { width: 100%; min-height: 48px !important; font-weight: 700; }
+.cardmode details > summary { min-height: 44px; padding: 12px 0; cursor: pointer; line-height: 1.5; color: var(--muted); }
+.cardmode details > summary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.cm-rules { border-top: 1px solid var(--line-soft); margin-top: 12px; font-size: 13px; line-height: 1.75; }
+.cm-rules[open] { padding-bottom: 12px; }
+.cardmode .cm-leagues { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.cm-leagues .league-tab { min-width: 0; padding: 12px; text-align: left; border-radius: 8px; }
+.cm-leagues .league-tab.on { box-shadow: inset 0 -3px var(--accent); }
+.cm-checkin-week { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; margin: 16px 0; }
+.cm-checkin-day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 6px; }
+.cm-checkin-day > span { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.cm-checkin-day > b { font-size: 13px; }
+.cm-checkin-day.claimed { border-color: var(--warn); background: var(--warn-wash); }
+.cm-checkin-day.claimed > span:last-child { color: var(--text); }
+.cm-quest { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.cm-quest-info { flex: 1; min-width: 0; }
+.cm-quest > button { flex-shrink: 0; }
+.cm-quest-progress { display: block; appearance: none; width: 100%; height: 4px; margin-top: 8px; border: 0; border-radius: 4px; overflow: hidden; background: var(--line); color: var(--accent); }
+.cm-quest-progress::-webkit-progress-bar { background: var(--line); }
+.cm-quest-progress::-webkit-progress-value { background: var(--accent); border-radius: 4px; }
+.cm-quest-progress::-moz-progress-bar { background: var(--accent); }
+@media (max-width: 1100px) {
+  .cm-ladder-match { grid-template-columns: minmax(0,1fr); gap: 0; }
+  .cm-ladder-match > .panel:first-child .panel-head { display: none; }
+  .cm-ladder-match > .panel:first-child .panel-body { padding-block: 16px; display: flex; gap: 24px; align-items: flex-start; }
+  .cm-ladder-match > .panel:first-child .panel-body > .small { margin-top: 0 !important; flex: 1; min-width: 0; }
+  .cm-ladder-match > .panel:first-child .div-badge { flex-shrink: 0; font-size: 26px; }
+  .cm-ladder-match > .panel:first-child .cm-rules { margin-top: 4px; }
+}
+@media (max-width: 720px) {
+  .cm-page-heading { gap: 4px; margin-bottom: 16px; }
+  .cm-page-tools { justify-content: flex-start; }
+  .cm-page-tools .support-fab { flex: none; padding: 8px 10px; min-height: 44px !important; }
+  .cm-page-tools .support-fab:first-child { margin-left: -10px; }
+  .cardmode .cm-leagues { gap: 5px; }
+  .cm-leagues .league-tab { padding: 10px 4px; text-align: center; }
+  .cm-leagues .league-tab b { font-size: 12px; }
+  .cm-leagues .league-tab span { font-size: 10px; }
+  .cm-match-action { padding: 14px; }
+}
+
+/* Deck slots keep switching adjacent to the squad being edited. */
+.cm-deck-manager { margin-bottom: 20px; }
+.cm-deck-slots { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.cardmode .cm-deck-slot { min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 14px; border-radius: 8px; text-align: left; background: var(--panel); }
+.cm-deck-number { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-2); color: var(--muted); font-size: 12px; }
+.cm-deck-slot b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.cm-deck-slot small { color: var(--muted); font-size: 11px; }
+.cardmode .cm-deck-slot.active { border-color: var(--accent); background: var(--accent-wash); box-shadow: inset 0 -3px var(--accent); }
+.cm-deck-slot.active .cm-deck-number { background: var(--accent); color: #fff; }
+.cm-deck-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; padding: 16px 0 8px; }
+.cm-deck-status { display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.cm-deck-status strong { font-size: 16px; }
+.cm-deck-status span { font-size: 12px; color: var(--muted); }
+.cm-deck-manage { font-size: 13px; }
+.cm-deck-manage > div { padding: 8px 0; }
+.cm-save-destinations { display: grid; gap: 8px; }
+.cm-save-destinations button { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; text-align: left; padding: 14px; }
+.cm-save-destinations span { color: var(--muted); font-size: 12px; }
+@media (max-width: 720px) {
+  .cm-deck-slots { gap: 5px; }
+  .cardmode .cm-deck-slot { padding: 10px 5px; align-items: center; text-align: center; }
+  .cm-deck-slot b { font-size: 12px; }
+  .cm-deck-slot small { font-size: 10px; }
+  .cm-deck-toolbar { gap: 12px; }
+}

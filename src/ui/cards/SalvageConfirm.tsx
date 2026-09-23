@@ -1,3 +1,4 @@
+import { useDialogFocus } from './useDialogFocus'
 import { RARITY_CN, cardById, cardName, isPlayerCard } from '../../engine/cards'
 
 /** One card about to be sold, however many spares of it. */
@@ -27,6 +28,7 @@ export default function SalvageConfirm({
   busy: boolean
   onClose: () => void
 }) {
+  const dialogRef = useDialogFocus(() => { if (!busy) onClose() })
   const rows = ask.lines
     .map((l) => ({ ...l, card: cardById(l.cardId) }))
     .filter((l) => l.card && l.count > 0)
@@ -34,7 +36,7 @@ export default function SalvageConfirm({
   const coins = rows.reduce((n, l) => n + l.coins, 0)
   return (
     <div className="modal-bg" style={{ zIndex: 70 }} onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="确认分解卡片" tabIndex={-1} className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>确认分解以下卡片</h2>
           <div className="spacer" />

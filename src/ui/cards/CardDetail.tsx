@@ -1,3 +1,4 @@
+import { useDialogFocus } from './useDialogFocus'
 /**
  * One card, opened: who he is, his numbers, his level and what the next one
  * costs, the duplicates and spares, and what the card goes for on the market.
@@ -33,22 +34,23 @@ export default function CardDetail({ cardId, onClose, actions }: {
   const { g, act, toast, openDossier } = useCards()
   const [ask, setAsk] = useState<SalvageAsk | null>(null)
   const [busy, setBusy] = useState(false)
+  const dialogRef = useDialogFocus(onClose)
   const sel = cardById(cardId)
   const owned = g.cards[cardId]
   if (!sel || !owned) return null
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="卡牌详情" tabIndex={-1} className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{sel.kind === 'player' ? sel.ign : sel.name}</h2>
           <div className="spacer" />
           <button className="ghost sm" onClick={onClose}>关闭</button>
         </div>
         <div className="modal-body">
-          <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div className="row cm-card-intro" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <CardFace card={sel} level={owned.level} size="lg" />
-            <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               {sel.legend && (
                 <div
                   className="small"
