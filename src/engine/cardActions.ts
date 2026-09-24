@@ -276,6 +276,10 @@ function dispatch(
       if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够，入场要 ${STAMINA_COST.cup} 点` }
       try {
         const level = (id: string) => levelOf(g, id)
+        // the bracket is drawn from the account's seed, which the client holds —
+        // without the server's number it could be foreseen before paying, as a
+        // pack could (see 'open')
+        g.seed = hashStr(`${g.seed}:cup:${env.seed}`) >>> 0
         enterCup(g, squadRating(five.squad, level), env.now, registerCupSquad(five.squad, level))
         return { ok: true, result: { cup: g.cup } }
       } catch (e) {

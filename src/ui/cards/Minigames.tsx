@@ -310,7 +310,9 @@ function AimGame({ seed, armed, onDone, onQuit }: { seed: number; armed: boolean
     <div>
       <Strip items={[['首杀', n.hits], ['被首杀', Math.max(0, n.shown - n.hits - (up != null ? 1 : 0))], ['平均反应', avg == null ? '—' : `${avg} ms`], ['剩余', fmt(n.left)]]} />
       <div
+        className="ar-fallback"
         style={{
+          ['--ar-pad' as string]: '75%',
           position: 'relative', aspectRatio: '4 / 3', maxWidth: 560, borderRadius: 4, overflow: 'hidden', touchAction: 'none',
           background: 'radial-gradient(ellipse at 50% 60%, var(--panel-2), var(--bg-rail, var(--panel)) 70%)', border: '1px solid var(--line-soft)',
         }}
@@ -321,7 +323,8 @@ function AimGame({ seed, armed, onDone, onQuit }: { seed: number; armed: boolean
             onPointerDown={(e) => { e.preventDefault(); hit(up) }}
             style={{
               position: 'absolute', left: `${targets[up].x * 100}%`, top: `${targets[up].y * 100}%`,
-              width: 'clamp(40px, 13%, 56px)', aspectRatio: '1', borderRadius: '50%', padding: 0,
+              // the height too, for browsers before aspect-ratio: 13% of a 4:3 board's width is 17.33% of its height
+              width: 'clamp(40px, 13%, 56px)', height: 'clamp(40px, 17.333%, 56px)', aspectRatio: '1', borderRadius: '50%', padding: 0,
               border: '3px solid #0e1620', background: 'var(--duelist)', boxShadow: '0 0 0 4px rgba(255,90,99,.35)', cursor: 'crosshair',
             }}
           />

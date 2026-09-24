@@ -1,12 +1,13 @@
 /** The stored profile stays bounded across repeated writes, not only one request. */
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { makeProfileApi, PROFILE_SCHEMA } from '../profile-api.js'
 import { ENDINGS } from '../src/engine/endings'
 import { ACHIEVEMENTS } from '../src/engine/achievements'
 const db = new PGlite()
-await db.exec(PROFILE_SCHEMA)
+await db.exec(PROFILE_SCHEMA + 'create table card_accounts (id_hash text primary key);')
 const api = makeProfileApi(makeSql(db), {
   readBody: async (req: { body: unknown }) => JSON.stringify(req.body),
   json: (res: { body?: any }, _status: number, body: unknown) => { res.body = body },
@@ -19,6 +20,14 @@ async function save(profile: object) {
   assert(res.body.ok)
   return res.body.profile
 }
+{
+  const res: { body?: any } = {}
+  await api.route({ body: { id, profile: {} } }, res, '/api/profile/save', 'test')
+  assert.equal(res.body.ok, false, 'an id with no account stores nothing')
+  assert.equal((await db.query('select count(*)::int as n from site_profiles')).rows[0].n, 0)
+  console.log('ok  没有账号的 ID 不会写入档案')
+}
+await db.query('insert into card_accounts values ($1)', [createHash('sha256').update(id).digest('hex')])
 const endings = ENDINGS.map((e) => e.key)
 const achievements = ACHIEVEMENTS.map((a) => a.key)
 assert(endings.length <= 200 && achievements.length <= 200, 'Raise the bound before the real catalog exceeds it')

@@ -57,6 +57,7 @@
 @container (width < 158px){ .sc24 .sc24-team{display:none} }
 @container (width < 126px){ .sc24 .sc24-head>span{display:none} .sc24 .sc24-stats{gap:6%} }
 .sc24-pack-object{position:relative;width:220px;aspect-ratio:2/3;isolation:isolate}
+@supports not (aspect-ratio:1/1){.sc24-pack-object::before{content:'';display:block;padding-top:150%}}
 .sc24-pack-object>.pack-pouch{inset:-8% -12%;filter:drop-shadow(8px 16px 12px #0009)}
 .seoul-shelf-art>.sc24-pack-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
 .seoul-object-pack>.sc24-pack-object{width:226px}

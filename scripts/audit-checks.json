@@ -703,5 +703,40 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_champions.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_save_race.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_pouch_geometry.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_club_sets.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_promotion.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_board_verdict.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_coach_effect.ts",
+    "estimatedSeconds": 35
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_seed.ts",
+    "estimatedSeconds": 3
   }
 ]

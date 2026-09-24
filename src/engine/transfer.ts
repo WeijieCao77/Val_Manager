@@ -396,7 +396,6 @@ export function doTransfer(
     // The match still fields five — selectLineup tops it up — but everything
     // that asks "is he a starter?" (promised-role grievance, weekly trust,
     // the squad screen) said no about a man who plays every map.
-    if (from.starters.length < 5) from.starters = autoStarters(state, from.id)
     // canSell let this go on the promise that a replacement was available.
     // Keep the promise here rather than at the next weekly tick — an AI club
     // that sold on a Monday played the week's fixture with four.
@@ -410,6 +409,9 @@ export function doTransfer(
         cover.teamId = from.id
         cover.contractYears = contractLength(cover, new Rng(hashStr(`cover:${state.seed}:${state.year}:${state.day}:${cover.id}`)), squadOf(state, from.id))
         cover.salary = expectedSalary(cover, from.tier)
+        // his old club's terms (and any release clause in them) end here
+        cover.contract = defaultContract(cover.salary, cover.contractYears)
+        cover.expiredYear = undefined
         from.roster.push(cover.id)
         recordJoin(state, cover, from.id)
         state.news.push({
@@ -418,6 +420,8 @@ export function doTransfer(
         })
       }
     }
+    // after the cover is on the roster, so he starts today rather than tomorrow
+    if (from.starters.length < 5) from.starters = autoStarters(state, from.id)
     from.budget += fee
     if (from.id === state.myTeam) {
       state.finances.balance += fee

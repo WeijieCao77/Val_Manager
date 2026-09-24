@@ -547,14 +547,21 @@ export function makeCardApi(sql, {
       // A null baseRev compares against nothing and matches nothing: a client
       // with no revision has, by definition, not seen what it is about to
       // write over. It gets the current copy back instead.
-      const rows = await sql`
+      //
+      // The write is guarded by the rev this handler READ, not the client's:
+      // `merged` carries the value fields of that read, so a pack, a listing
+      // or a bid that commits in between must make this update miss. A client
+      // claiming rev+1 used to slip past exactly that write and put the spent
+      // coins and the listed card back (check_save_race.ts).
+      const readRev = held[0].rev
+      const rows = baseRev !== readRev ? [] : await sql`
         update card_accounts
            set state = ${sql.json(stored(merged))},
                name  = ${merged.name ?? null},
                rev   = rev + 1,
                seen  = now(),
                saved = now()
-         where id_hash = ${hash(id)} and rev = ${baseRev}::int
+         where id_hash = ${hash(id)} and rev = ${readRev}::int
         returning rev`
       if (!rows.length) {
         const cur = await sql`select state, rev from card_accounts where id_hash = ${hash(id)}`
@@ -1430,33 +1437,13 @@ export function makeCardApi(sql, {
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
     const me = hash(id)
     try {
-      if (body?.claim) {
-        // Handed over exactly once: the update returns only the rows it moved,
-        // so two tabs claiming at the same moment cannot both be given the card.
-        const rows = await sql`
-          update card_gifts set claimed = now()
-          where to_h = ${me} and claimed is null
-          returning id, from_h, card_id, note`
-        // `= any($1)` with a plain array, NOT sql(list): a nested tagged
-        // template is a driver-specific helper, and the check harness — which
-        // is a real Postgres behind a plain template — cannot build one. The
-        // leaderboard was caught by exactly this once already.
-        const names = rows.length
-          ? await sql`select id_hash, name from card_accounts where id_hash = any(${rows.map((r) => r.from_h)})`
-          : []
-        const by = Object.fromEntries(names.map((n) => [n.id_hash, n]))
-        json(res, 200, {
-          ok: true,
-          gifts: rows.map((r) => {
-            const n = by[r.from_h]
-            const who = displayName(n?.name, r.from_h)
-            return { cardId: r.card_id, note: r.note, from: `${who.name} #${who.tag}` }
-          }),
-        })
-        return
-      }
+      // Claiming here used to mark the gifts taken and hand the card to the
+      // client, which since server authority cannot write cards, so the card
+      // was simply lost. A gift arrives through the mailbox now (takeMail, on
+      // load and mail_take); an old tab asking to claim is told so and gets
+      // nothing moved.
       const n = await sql`select count(*)::int as n from card_gifts where to_h = ${me} and claimed is null`
-      json(res, 200, { ok: true, waiting: n[0]?.n ?? 0 })
+      json(res, 200, body?.claim ? { ok: true, gifts: [], moved: true, waiting: n[0]?.n ?? 0 } : { ok: true, waiting: n[0]?.n ?? 0 })
     } catch (err) {
       console.warn('cards: gifts failed', err.message)
       json(res, 500, { ok: false })

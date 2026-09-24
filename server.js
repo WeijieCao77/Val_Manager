@@ -517,7 +517,7 @@ let _cardApi = null
 const profileApi = () => (_profileApi ??= makeProfileApi(sql, { rateLimited, readBody, json }))
 let _profileApi = null
 const siteApi = () => (_siteApi ??= makeSiteApi(sql, {
-  readBody, json, token: TOKEN, normalizeId, displayName, engine, tokenFrom,
+  readBody, json, token: TOKEN, normalizeId, displayName, engine, tokenFrom, rateLimited, bucketOf,
 }))
 let _siteApi = null
 const marketApi = () => (_marketApi ??= makeMarketApi(sql, {
@@ -895,7 +895,8 @@ function handle(req, res) {
   if (path.length > 1 && path.endsWith('/')) {
     // the encoded pathname, as the client sent it: a decoded one can carry
     // characters a header may not
-    res.writeHead(301, { Location: url.pathname.replace(/\/+$/, '') || '/' }).end()
+    // one leading slash: `//host` in a Location is another site (a raw `/.//x/` request produced it)
+    res.writeHead(301, { Location: '/' + url.pathname.replace(/^\/+/, '').replace(/\/+$/, '') }).end()
     return
   }
 

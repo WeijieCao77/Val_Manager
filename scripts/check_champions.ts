@@ -17,7 +17,11 @@ assert.equal(chinaDay(new Date('2026-09-23T16:01:00Z')),'2026-09-24')
 assert.equal(matches.filter(m=>m.day==='2026-09-28').length,0)
 assert(matches.some(m=>m.day==='2026-10-18'))
 assert.equal(parseChampionsCalendar(calendar.replaceAll('STATUS:CONFIRMED','STATUS:CANCELLED')).length,0)
-const fallback=await makeSchedule(null,async()=>{throw new Error('offline')})()
+let hang:()=>void=()=>{}
+const slow=makeSchedule(null,()=>new Promise((_,no)=>{hang=()=>no(new Error('offline'))}))
+const t0=Date.now(),served=await slow();assert(Date.now()-t0<200,'a slow upstream does not hold the answer');assert(served.matches.length>0)
+hang();await new Promise(r=>setTimeout(r,0))
+const fallback=await slow()
 assert(fallback.stale);assert(fallback.matches.length>0,'upstream failure preserves bundled schedule')
 const coach=ALL_CARDS.find(c=>isCoachCard(c)&&ALL_CARDS.filter(p=>isPlayerCard(p)&&p.clubId===c.clubId).length>=5)!
 const players=ALL_CARDS.filter(c=>isPlayerCard(c)&&c.clubId===coach.clubId).slice(0,5)
@@ -30,7 +34,7 @@ const other=ALL_CARDS.find(c=>isPlayerCard(c)&&c.clubId!==coach.clubId)!
 assert.equal(squadTeamIdentity({...squad,slots:[other.id,...squad.slots.slice(1)]}),null)
 assert(teamBackdrop('#ff4655').startsWith('data:image/svg+xml'))
 const db=new PGlite(),sql=makeSql(db)
-await db.exec(SITE_SCHEMA+CHAMPIONS_SCHEMA+'create table card_accounts(id_hash text primary key,name text);')
+await db.exec(SITE_SCHEMA+CHAMPIONS_SCHEMA+'create table card_accounts(id_hash text primary key,name text,verified boolean not null default true);')
 const id='VM-AAAA-AAAA-AAAA-AAAA-AAAA',accountHash=createHash('sha256').update(id).digest('hex')
 await sql`insert into card_accounts values(${accountHash},${'支持者'})`
 const api=makeChampionsApi(sql,{readBody:async req=>req.body,json:(res,code,body)=>{res.code=code;res.body=body},token:'test-admin',tokenFrom:req=>req.headers.authorization,normalizeId,displayName,fetcher:async()=>new Response(calendar)})
@@ -41,6 +45,11 @@ assert.equal((await call('/api/site/champions/messages',[])).code,400)
 assert.equal((await call('/api/site/champions/messages',{id,target:'CN',body:id,requestId:'private_001'})).code,400)
 assert.equal((await call('/api/admin/champions',{action:'config',day:'2026-09-24',matches:[null]},true)).code,400)
 assert.equal((await call('/api/site/champions/messages',{id:'bad',target:'CN',body:'加油！',requestId:'test_key_001'})).code,401)
+const ghost='VM-BBBB-BBBB-BBBB-BBBB-BBBB'
+assert.equal((await call('/api/site/champions/messages',{id:ghost,target:'CN',body:'加油！',requestId:'test_key_ghost'})).code,401,'an id with no account is turned away')
+const unbound='VM-CCCC-CCCC-CCCC-CCCC-CCCC'
+await sql`insert into card_accounts values(${createHash('sha256').update(unbound).digest('hex')},${'未绑定'},false)`
+assert.equal((await call('/api/site/champions/messages',{id:unbound,target:'CN',body:'加油！',requestId:'test_key_unbound'})).code,403,'no phone, no message')
 const payload={id,target:'CN赛区',body:'相信你们！<script>alert(1)</script>',requestId:'test_key_001'}
 const first=await call('/api/site/champions/messages',payload);assert.equal(first.code,200);assert.equal(first.body.row.status,'pending')
 assert.equal((await call('/api/site/champions/messages',payload)).body.row.id,first.body.row.id)
@@ -57,6 +66,7 @@ assert.equal((await call('/api/site/champions/messages')).body.rows.length,0)
 const mine=(await call('/api/site/champions/mine',{id})).body.rows;assert.equal(mine[0].status,'rejected');assert.equal(mine[0].reason,'测试撤下')
 assert.equal((await sql`select * from champion_message_reviews`).length,2)
 assert.equal((await call('/api/admin/champions',{action:'config',day:'2026-09-24',matches:[{time:'25:00',a:'A',b:'B'}]},true)).code,400)
+for(const day of ['2026-09-99','2026-09-31','2026-10-19']) assert.equal((await call('/api/admin/champions',{action:'config',day,matches:[{time:'18:00',a:'A',b:'B'}]},true)).code,400,day)
 assert.equal((await call('/api/admin/champions',{action:'config',day:'2026-09-24',matches:[{time:'18:00',a:'A',b:'B'}]},true)).code,200)
 let feed=(await call('/api/site/champions')).body
 assert.equal(feed.matches.filter(m=>m.day==='2026-09-24').length,1);assert.equal(feed.matches[0].time,'18:00')

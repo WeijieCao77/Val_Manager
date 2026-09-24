@@ -471,10 +471,15 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   await sql`insert into card_gifts (from_h, to_h, card_id) values (${hashOf(A)}, ${hashOf(B)}, 'p:P1')`
   const waiting = await call('/api/card/gifts', { id: B }, 'gf')
   check('在途的礼物还看得到', waiting.body.waiting === 1, JSON.stringify(waiting.body))
+  // an old tab's claim moves nothing: the client can't write cards, so a
+  // claimed-here gift used to vanish; the mailbox delivers it instead
   const claim = await call('/api/card/gifts', { id: B, claim: true }, 'gf')
+  const still = await sql`select count(*)::int as n from card_gifts where claimed is null`
+  check('旧标签页领礼物不会把卡领丢', claim.body.moved === true && still[0].n === 1, JSON.stringify(claim.body))
+  const taken = await call('/api/card/act', { id: B, action: 'mail_take', args: {}, client: {} }, 'gf')
+  const heldB = await sql`select state from card_accounts where id_hash = ${hashOf(B)}`
   check('而且还领得到——功能下线不该吃掉别人的卡',
-    (claim.body.gifts as { cardId: string }[])?.[0]?.cardId === 'p:P1',
-    JSON.stringify(claim.body.gifts))
+    taken.body.ok === true && !!heldB[0]?.state?.cards?.['p:P1'], JSON.stringify(taken.body.result ?? taken.body))
 }
 
 // ---- no database ------------------------------------------------------

@@ -66,7 +66,9 @@ export function gameDate(state: { year: number; day: number }): Date {
 }
 
 const parse = (iso: string | null | undefined): { y: number; m: number; d: number } | null => {
-  const m = iso ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso) : null
+  // one-digit months and days too: five records came through as 2002-8-16,
+  // and saves already hold them that way
+  const m = iso ? /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(iso) : null
   if (!m) return null
   const r = { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) }
   return r.m >= 1 && r.m <= 12 && r.d >= 1 && r.d <= 31 ? r : null

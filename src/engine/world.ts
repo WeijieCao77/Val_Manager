@@ -243,8 +243,9 @@ export function createNewGame(
       // plausible pool for the roles they cover
       agentPool: rp.agentPool?.length
         ? canonAgents(rp.agentPool)
-        : ((rp.roles as Role[] | undefined) ?? [rp.role as Role])
-            .flatMap((r) => pickAgents(r, prng)),
+        // canon also drops the repeat when two of his roles pick the same agent
+        : canonAgents(((rp.roles as Role[] | undefined) ?? [rp.role as Role])
+            .flatMap((r) => pickAgents(r, prng))),
       season: emptyStats(),
       career: emptyStats(),
       injuredUntil: 0,
@@ -326,6 +327,10 @@ export function createNewGame(
     rulesetId: startYear === 2023 ? 'vct-2023' : startYear < 2026 ? 'vct-2025' : currentRuleset(),
     birthdays: [],
     disputes: [],
+    // seeded from this world's own tables just above; the first load must not
+    // regrade it from the 2026 tables (save.ts), which lifted a 2023–25
+    // start's agents — unreleased ones included — to 2026 levels
+    agentProGraded: true,
   }
   if (manager) state.life = newLife(state)
 

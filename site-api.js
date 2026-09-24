@@ -62,8 +62,8 @@ const same = (a, b) => {
 
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
-export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName, engine, tokenFrom }) {
-  const champions = makeChampionsApi(sql, { readBody, json, token, tokenFrom: tokenFrom ?? ((req,url) => url.searchParams.get('token')), normalizeId, displayName })
+export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName, engine, tokenFrom, rateLimited, bucketOf }) {
+  const champions = makeChampionsApi(sql, { readBody, json, token, tokenFrom: tokenFrom ?? ((req,url) => url.searchParams.get('token')), normalizeId, displayName, rateLimited, bucketOf })
   /** Cached in the process: the front page asks for this on every visit. */
   let cache = null
   let cachedAt = 0

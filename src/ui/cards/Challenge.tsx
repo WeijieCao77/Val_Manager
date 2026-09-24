@@ -196,9 +196,10 @@ export default function Challenge() {
 
         {/* The subject — see paintPuzzle for why it is drawn the way it is,
             and FRAME_ASPECT for why the box is this shape everywhere. */}
-        <div style={{
+        <div className="ar-fallback" style={{
           position: 'relative', width: `min(100%, ${FRAME_MAX}px)`,
           aspectRatio: `${FRAME_ASPECT[0]} / ${FRAME_ASPECT[1]}`,
+          ['--ar-pad' as string]: `${(FRAME_ASPECT[1] / FRAME_ASPECT[0]) * 100}%`,
           borderRadius: 4, overflow: 'hidden',
           background: 'var(--panel-2)', margin: '0 auto 12px',
           display: answerRow.img ? undefined : 'grid', placeItems: 'center',

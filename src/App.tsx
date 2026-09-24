@@ -25,6 +25,7 @@ const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
 import UpdateNudge from './ui/UpdateNudge'
 import DomainNotice from './ui/DomainNotice'
+import ChunkBoundary from './ui/ChunkBoundary'
 import MusicPlayer from './ui/MusicPlayer'
 
 type Mode = 'home' | 'career' | 'career-test' | 'cards' | 'seoul' | 'champions'
@@ -88,10 +89,10 @@ export default function App() {
     <>
       <UpdateNudge />
       <DomainNotice />
-      <Suspense fallback={loading}>{page}</Suspense>
+      <ChunkBoundary key={mode}><Suspense fallback={loading}>{page}</Suspense></ChunkBoundary>
       {/* under every page, so it keeps playing across the three */}
       <MusicPlayer />
-      {(mode === 'home' || mode === 'cards') && <Suspense fallback={null}><ChampionsNotice enabled /></Suspense>}
+      {(mode === 'home' || mode === 'cards') && <ChunkBoundary quiet><Suspense fallback={null}><ChampionsNotice enabled inCards={mode === 'cards'} /></Suspense></ChunkBoundary>}
     </>
   )
 }

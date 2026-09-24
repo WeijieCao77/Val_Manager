@@ -168,6 +168,11 @@ export function makeProfileApi(sql, { rateLimited, readBody, json }) {
       // the first had just unlocked. The empty insert first means there is
       // always a row to lock, even for an account saving for the first time.
       const h = hash(got.id)
+      // Only an account that exists gets a row: any well-formed id used to be
+      // enough, so a script could fill the volume with profiles nobody owns.
+      // Answered 200 so the client's retry loop doesn't spin on it.
+      const [owner] = await sql`select 1 as ok from card_accounts where id_hash = ${h}`
+      if (!owner) { json(res, 200, { ok: false, missing: true }); return }
       const run = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
       const merged = await run(async (db) => {
         await db`insert into site_profiles (id_hash, profile) values (${h}, ${db.json(vet(null))})

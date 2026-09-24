@@ -25,7 +25,8 @@ export function makeSchedule(sql, fetcher = fetch) {
     if (!restored && sql) {
       restored = true
       const [saved] = await sql`select value from site_config where key = 'champions_calendar'`
-      if (saved?.value?.matches?.length) { matches = saved.value.matches; syncedAt = saved.value.syncedAt }
+      // only if nothing fresher has been fetched while that read was out
+      if (saved?.value?.matches?.length && !(saved.value.syncedAt < syncedAt)) { matches = saved.value.matches; syncedAt = saved.value.syncedAt }
     }
     if (Date.now() - checkedAt > 30 * 60_000 && !pending) {
       checkedAt = Date.now()
@@ -42,7 +43,9 @@ export function makeSchedule(sql, fetcher = fetch) {
         } catch { stale = true } finally { pending = null }
       })()
     }
-    if (pending) await pending
+    // The refresh runs behind the answer: every tab polls this, and making all
+    // of them wait out a slow upstream (up to the 5 s timeout) every half hour
+    // stalled the whole feed. What was last known is served meanwhile.
     return { matches, syncedAt, stale }
   }
 }
