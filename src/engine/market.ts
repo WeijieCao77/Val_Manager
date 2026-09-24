@@ -279,9 +279,14 @@ export const AUCTION_HOURS_CHOICES = [2, 4, 6, 8, 12, 24]
 export const BID_STEP = 0.05
 export const SNIPE_MINUTES = 10
 export const BUYOUT_MIN = 1.2
-/** The least the next bid may be — the start until somebody bids, a step over the top after. */
+/** The listing cap, and how high bids may go once somebody has bid — mirrored from the server. */
+export const MAX_ASK = 500_000
+export const BID_MAX = 1_000_000
+/** The most the next bid may be: MAX_ASK for the first bid, BID_MAX after. */
+export const bidCeilingOf = (top: number | null): number => (top == null ? MAX_ASK : BID_MAX)
+/** The least the next bid may be — the start until somebody bids, a step over the top after, never past BID_MAX. */
 export const minBidOf = (ask: number, top: number | null): number =>
-  (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
+  (top == null ? ask : Math.min(BID_MAX, Math.max(ask, Math.ceil(top * (1 + BID_STEP)))))
 
 /** The least a card may be listed for — SALVAGE, mirrored from the server. */
 export const askFloorOf = (rarity: string): number =>

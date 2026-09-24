@@ -24,7 +24,7 @@ import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import { collection, levelOf } from '../../engine/gacha'
 import {
-  AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_STEP, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
+  AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_MAX, BID_STEP, MAX_ASK, bidCeilingOf, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
   answerOffer, askFloorOf, bidOn, browseShelf, failText, gateText, listCardOnMarket, minBidOf, myOffersEx, peekListings, participatingAuctions, unlistCard,
   waitText, withdrawOffer,
 } from '../../engine/market'
@@ -409,7 +409,11 @@ export default function Market() {
       toast(r?.banned ? String(r.why ?? '交易已暂停。')
         : r?.newbie ? gateText(r)
         : r?.busy ? '账号正忙，再试一次。'
+        : r?.capped ? `已到封顶 ${money(BID_MAX)}，不能再加价。`
         : r?.low ? `现在至少要出 ${money(Number(r.min ?? 0))}。`
+        : r?.high ? (Number(r.max) === MAX_ASK
+          ? `第一口最多出 ${money(MAX_ASK)}，有人出价后才能往上加。`
+          : `最多出 ${money(Number(r.max ?? BID_MAX))}。`)
         : r?.leading ? (r.entered ? '你已报名抽签，等开奖。' : '你已是最高价。')
         : r?.range ? `旧规则挂牌，只能在 ${r.lo} ~ ${r.hi} 之间还价。`
         : r?.broke ? '金币不够。'
@@ -557,6 +561,9 @@ export default function Market() {
     const lo = Math.ceil(l.ask * (1 - HAGGLE))
     const hi = Math.floor(l.ask * (1 + HAGGLE))
     const min = auction ? (l.min ?? minBidOf(l.ask, l.best)) : l.ask
+    const max = bidCeilingOf(l.best)
+    // 封顶: nobody can go over this bid, so there is nothing to bid
+    const capped = auction && l.best != null && l.best >= BID_MAX
     // 上架保护期: for its first minute a buy-now enters a draw instead of buying
     const inDraw = auction && l.buyout != null && l.drawAt != null && l.drawAt > now
     // A second copy of a card you hold keeps its level: the higher
@@ -599,7 +606,9 @@ export default function Market() {
           ) : <span style={nowrap}>旧规则</span>}
         </div>
         <div className="grow" />
-        {l.bid ? (
+        {capped && !l.bid ? (
+          <span className="tag" style={{ marginTop: 5 }}>已到封顶</span>
+        ) : l.bid ? (
           <span className="tag t1" style={{ marginTop: 5 }}>{!auction ? '已出价' : l.buyout != null && l.best != null && l.best >= l.buyout ? '已报名抽签' : '你领先'}</span>
         ) : (
           <div className="row wrap" style={{ gap: 4, marginTop: 5 }}>
@@ -636,7 +645,7 @@ export default function Market() {
               style={{ width: '100%' }}
             />
             <div className="tiny faint">
-              {auction ? `至少 ${money(min)}${l.buyout != null ? (inDraw ? `，到 ${money(l.buyout)} 报名抽签` : `，到 ${money(l.buyout)} 直接成交`) : ''}` : `${lo} ~ ${hi}`}
+              {auction ? `至少 ${money(min)}${l.buyout == null ? `，最多 ${money(max)}` : ''}${l.buyout != null ? (inDraw ? `，到 ${money(l.buyout)} 报名抽签` : `，到 ${money(l.buyout)} 直接成交`) : ''}` : `${lo} ~ ${hi}`}
             </div>
             <PriceHistory cardId={l.cardId} level={l.level} listing={l.id} />
             <div className="row" style={{ gap: 5, marginTop: 4 }}>
@@ -924,7 +933,8 @@ export default function Market() {
           </div>
         )}
         <p className="tiny faint" style={{ marginBottom: 0 }}>
-          出价即托管金币，被超过立刻退回。每次加价至少 {Math.round(BID_STEP * 100)}%，
+          出价即托管金币，被超过立刻退回。每次加价至少 {Math.round(BID_STEP * 100)}%。
+          第一口最多 {money(MAX_ASK)}，有人出过价才能往上加，封顶 {money(BID_MAX)}。
           最后 {SNIPE_MINUTES} 分钟内有人出价会延长 {SNIPE_MINUTES} 分钟。出价不能撤回。
           {days ? '' : ''}
         </p>

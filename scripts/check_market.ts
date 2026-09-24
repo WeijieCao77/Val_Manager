@@ -32,6 +32,7 @@ const { displayName } = await import('../names.js')
 const {
   AUCTION_HOURS, AUCTION_MIN_HOURS, AUCTION_MAX_HOURS, BID_STEP, BUYOUT_MIN, HAGGLE, IGNORE_LIMIT, MAX_LISTINGS, OFFER_DAYS,
   PAGE, PAGE_MAX, SALVAGE_FLOOR, SNIPE_MINUTES, TRADE_DAYS, TRADE_PULLS, askFloor, makeMarketApi, minBid,
+  BID_MAX, MAX_ASK,
 } = await import('../market-api.js')
 const engine = await import('../src/engine/server.ts')
 
@@ -690,6 +691,36 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('撤回一张之后，第 4 张挂得上', r.ok === true, JSON.stringify(r))
   const open = (await sql`select count(*)::int as n from card_listings where seller_h = ${hashOf(S9)} and status = 'open'`)[0].n
   check('此刻正好三张在架上', open === 3, String(open))
+}
+
+// ---- 出价过 500,000：有人出过价才能往上加，封顶 1,000,000 (2026-09-24) ----
+// A 彩卡 bid up to 500,000 froze: the next step was 525,000 and bids shared
+// the listing cap. Past the first bid they may climb on to BID_MAX.
+{
+  const S = 'VM-HHHH-SSSS-0000-0000-0001', A = 'VM-HHHH-AAAA-0000-0000-0001', B = 'VM-HHHH-BBBB-0000-0000-0001'
+  await account(S, '高价卖家', 100, { 'p:P2': { id: 'p:P2', level: 0, dupes: 0 } })
+  await account(A, '高价甲', 3_000_000, {})
+  await account(B, '高价乙', 3_000_000, {})
+  let q = await call('/api/market/list', { id: S, cardId: 'p:P2', ask: 400_000, level: 0, rarity: 'mythic' })
+  check('高价牌挂得上去', q.ok === true, JSON.stringify(q))
+  const L = String(q.id)
+  q = await call('/api/market/offer', { id: A, listing: L, price: 600_000 })
+  check('没人出过价时，第一口不能超过 500,000', q.ok !== true && q.high === true && q.max === MAX_ASK, JSON.stringify(q))
+  q = await call('/api/market/offer', { id: A, listing: L, price: 500_000 })
+  check('第一口出到 500,000 可以', q.ok === true && q.price === 500_000, JSON.stringify(q))
+  q = await call('/api/market/offer', { id: B, listing: L, price: 550_000 })
+  check('有人出过 500,000 后还能往上加（原来卡死在这里）', q.ok === true && q.price === 550_000, JSON.stringify(q))
+  q = await call('/api/market/offer', { id: A, listing: L, price: 1_200_000 })
+  check('加价不能过 1,000,000', q.ok !== true && q.high === true && q.max === BID_MAX, JSON.stringify(q))
+  q = await call('/api/market/offer', { id: A, listing: L, price: 980_000 })
+  check('往上加到 980,000', q.ok === true, JSON.stringify(q))
+  check('一步会过封顶时，最后一口就是封顶价', minBid(400_000, 980_000) === BID_MAX, String(minBid(400_000, 980_000)))
+  q = await call('/api/market/offer', { id: B, listing: L, price: BID_MAX })
+  check('出到封顶 1,000,000 可以', q.ok === true && q.price === BID_MAX, JSON.stringify(q))
+  q = await call('/api/market/offer', { id: A, listing: L, price: BID_MAX })
+  check('到了封顶，别人不能再加', q.ok !== true && q.capped === true, JSON.stringify(q))
+  const top = ((await call('/api/market/browse', { id: A, priceMin: 900_000 })).listings as { id: string; best: number | null; min: number }[]).find((x) => x.id === L)
+  check('货架上写着当前 1,000,000（价格筛选也能筛到 50 万以上）', top?.best === BID_MAX && top?.min === BID_MAX, JSON.stringify(top))
 }
 
 // ---- 每一笔托管最后都有人收到 -------------------------------------------

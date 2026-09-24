@@ -61,8 +61,13 @@ export const BUYOUT_MIN = 1.2
  * minute, with nobody entered, 一口价 buys at once as it always did.
  */
 export { PROTECT_SEC }
-/** The least the next bid may be: the start until somebody bids, a step over the top after. */
-export const minBid = (ask, top) => (top == null ? ask : Math.max(ask, Math.ceil(top * (1 + BID_STEP))))
+/**
+ * The least the next bid may be: the start until somebody bids, a step over the top after.
+ *
+ * Near the ceiling a full step would pass it, so the last bid may be the
+ * ceiling itself; at the ceiling nothing more can go in (see bidCeiling).
+ */
+export const minBid = (ask, top) => (top == null ? ask : Math.min(BID_MAX, Math.max(ask, Math.ceil(top * (1 + BID_STEP)))))
 
 /** (old listings only) How far an offer may sit from the asking price, either way. */
 export const HAGGLE = 0.10
@@ -146,6 +151,18 @@ export const TRADE_PULLS = 50
 const tradeDaysEnv = Number(process.env.TRADE_DAYS)
 export const TRADE_DAYS = process.env.TRADE_DAYS && Number.isFinite(tradeDaysEnv) && tradeDaysEnv >= 0 ? tradeDaysEnv : 3
 export const MAX_ASK = 500_000
+/**
+ * How high bidding may climb once somebody has bid.
+ *
+ * Bids used to share MAX_ASK, so a 彩卡 bid up to 500,000 was frozen there:
+ * the next step was 525,000 and the server turned it down as too low. A
+ * contested card may now run on to a million — but only a contested one. The
+ * first bid still stops at MAX_ASK, so two accounts cannot move a million
+ * coins between themselves through a listing nobody else wanted.
+ */
+export const BID_MAX = 1_000_000
+/** The most the next bid may be: MAX_ASK for the first, BID_MAX once there is a top bid. */
+export const bidCeiling = (top) => (top == null ? MAX_ASK : BID_MAX)
 
 /**
  * The least a card may be listed for: what the game itself would pay you.
@@ -779,7 +796,7 @@ export function makeMarketApi(sql, {
   /** A whole number in range, or null for "no limit given". */
   const money = (v) => {
     const n = Math.round(Number(v))
-    return Number.isFinite(n) && n >= 0 ? Math.min(n, MAX_ASK) : null
+    return Number.isFinite(n) && n >= 0 ? Math.min(n, BID_MAX) : null
   }
 
   /**
@@ -1490,12 +1507,14 @@ export function makeMarketApi(sql, {
     if (auction) {
       if (top && top.buyer_h === me) { json(res, 200, { ok: false, leading: true, price: top.price, entered: (l.buyout != null && top.price >= l.buyout) || undefined }); return }
       // with a draw entry standing at the buy-now price, the only way in is the buy-now price
+      if (top && top.price >= BID_MAX) { json(res, 200, { ok: false, capped: true, max: BID_MAX }); return }
+      const max = bidCeiling(top?.price ?? null)
       const min = l.buyout != null ? Math.min(l.buyout, minBid(l.ask, top?.price ?? null)) : minBid(l.ask, top?.price ?? null)
-      if (!Number.isFinite(bid) || bid < min) { json(res, 200, { ok: false, low: true, min }); return }
+      if (!Number.isFinite(bid) || bid < min) { json(res, 200, { ok: false, low: true, min, max }); return }
       // at or over the buy-now price is the buy-now price: nobody pays more
       // than the seller asked to end it
       if (l.buyout != null && bid >= l.buyout) bid = l.buyout
-      else if (bid > MAX_ASK) { json(res, 200, { ok: false, low: true, min, max: MAX_ASK }); return }
+      else if (bid > max) { json(res, 200, { ok: false, high: true, min, max }); return }
     } else {
       const lo = Math.ceil(l.ask * (1 - HAGGLE))
       const hi = Math.floor(l.ask * (1 + HAGGLE))
@@ -1550,8 +1569,13 @@ export function makeMarketApi(sql, {
           order by price desc, made asc, id asc limit 1`
         const curTop = cur[0] ?? null
         if (curTop && curTop.buyer_h === me) return { leading: true, price: curTop.price, entered: l.buyout != null && curTop.price >= l.buyout }
+        if (curTop && curTop.price >= BID_MAX) return { capped: true, max: BID_MAX }
         const floor = minBid(l.ask, curTop?.price ?? null)
-        if (bid < floor && !(l.buyout != null && bid >= l.buyout)) return { low: true, min: floor }
+        const ceiling = bidCeiling(curTop?.price ?? null)
+        const buyNow = l.buyout != null && bid >= l.buyout
+        if (bid < floor && !buyNow) return { low: true, min: floor, max: ceiling }
+        // the top read before the lock may have been refunded since: the ceiling is re-read with it
+        if (bid > ceiling && !buyNow) return { high: true, min: floor, max: ceiling }
       }
       for (let attempt = 0; attempt < 3; attempt++) {
         const row = await db`select state, rev from card_accounts where id_hash = ${me}`
@@ -1624,7 +1648,9 @@ export function makeMarketApi(sql, {
     if (out.broke) { json(res, 200, { ok: false, broke: true }); return }
     if (out.busy) { json(res, 409, { ok: false, busy: true }); return }
     if (out.gone) { json(res, 200, { ok: false, gone: true }); return }
-    if (out.low) { json(res, 200, { ok: false, low: true, min: out.min }); return }
+    if (out.low) { json(res, 200, { ok: false, low: true, min: out.min, max: out.max }); return }
+    if (out.high) { json(res, 200, { ok: false, high: true, min: out.min, max: out.max }); return }
+    if (out.capped) { json(res, 200, { ok: false, capped: true, max: out.max }); return }
     if (out.leading) { json(res, 200, { ok: false, leading: true, price: out.price, entered: out.entered || undefined }); return }
     if (out.ok) menuCache.clear()
     // a card bought outright is the one thing a script does differently from a person: look, after replying
