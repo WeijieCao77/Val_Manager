@@ -699,5 +699,9 @@
     "runtime": "tsx",
     "file": "scripts/check_market_history.ts",
     "estimatedSeconds": 8
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_champions.ts"
   }
 ]

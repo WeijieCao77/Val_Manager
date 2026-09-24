@@ -1,3 +1,4 @@
+import { championsAdminHtml, championsAdminScript } from './dashboard-champions.js'
 /**
  * The dashboard, served as one self-contained page.
  *
@@ -100,6 +101,7 @@ export const dashboardHtml = () => `<!doctype html>
 </head>
 <body>
 <h1>VAL<span>MANAGER</span> · 游玩数据</h1>
+<a href="#champ-admin" style="display:inline-block;margin:10px 0;color:#e8b99f">上海冠军赛 · 审核留言与管理赛程 ↓</a>
 <div class="sub">
   身份是浏览器首次访问时生成的匿名 ID，服务端不记录、不存储 IP 地址。
   「时长」只累计确认活跃的分钟数——标签页挂着过夜不算。
@@ -237,6 +239,7 @@ export const dashboardHtml = () => `<!doctype html>
   </p>
   <div id="mgOut" class="acct"></div>
 </div>
+${championsAdminHtml}
 <div id="app"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
                color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
@@ -1103,6 +1106,7 @@ document.querySelectorAll('button[data-d]').forEach((b) => {
   }
 })
 load(30)
+${championsAdminScript}
 </script>
 </body>
 </html>`

@@ -1,0 +1,52 @@
+.champ-page { max-width:1320px; margin:auto; padding:24px; color:var(--text); }
+.champ-page-nav { display:flex; justify-content:space-between; gap:16px; margin-bottom:20px; font-size:13px; }
+.champ-hero,.champ-notice { position:relative; isolation:isolate; overflow:hidden; color:#fff; background:radial-gradient(ellipse at 90% 10%,#723f54 0,transparent 65%),linear-gradient(125deg,#0b1528,#202d49); border:1px solid #5d5268; }
+.champ-hero { padding:52px; border-radius:16px; margin-bottom:28px; }
+.champ-city { position:absolute; right:-12px; top:-30px; font-size:clamp(160px,25vw,350px); font-weight:900; line-height:1; writing-mode:vertical-rl; opacity:.08; pointer-events:none; z-index:-1; }
+.champ-kicker { color:#e0b9b1; font-size:13px; font-weight:650; margin:0 0 18px; }
+.champ-hero h1 { font-size:clamp(32px,4.7vw,60px); line-height:1.16; letter-spacing:-.035em; margin:0 0 20px; }
+.champ-hero > p:not(.champ-kicker),.champ-notice > p:not(.champ-kicker) { color:#c4cddd; line-height:1.75; }
+.champ-hero-links { display:flex; align-items:center; flex-wrap:wrap; gap:24px; margin-top:28px; }
+.champ-hero-links span { color:#c4cddd; font-size:13px; }
+.champ-cta { display:inline-flex; justify-content:center; align-items:center; min-height:46px; padding:12px 20px; border:0; border-radius:6px; background:#edbba0; color:#1a2030; font-size:14px; font-weight:750; text-decoration:none; cursor:pointer; }
+.champ-cta:disabled { opacity:.5; cursor:default; }
+.champ-columns { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; align-items:start; }
+.champ-panel { padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--panel); margin-bottom:24px; }
+.champ-panel h2,.champ-wall h2 { margin:0; font-size:21px; }
+.champ-section-label { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.champ-section-label span { font-size:11px; color:var(--muted); }
+.champ-schedule { margin-top:20px; }
+.champ-match { display:grid; grid-template-columns:54px minmax(0,1fr) 22px minmax(0,1fr); align-items:center; gap:10px; padding:18px 0; border-top:1px solid var(--line,#566079); }
+.champ-match time { font-size:18px; font-weight:750; font-variant-numeric:tabular-nums; }
+.champ-match b { font-size:14px; overflow-wrap:anywhere; }
+.champ-match > span { font-size:10px; opacity:.6; text-align:center; }
+.champ-source { font-size:11px; color:var(--muted); line-height:1.8; margin-bottom:0; }
+.champ-source a { color:inherit; }
+.champ-page label { display:block; font-size:13px; font-weight:650; margin:16px 0 8px; }
+.champ-page input,.champ-page textarea { width:100%; min-height:44px; padding:12px; font:inherit; font-size:16px; color:var(--text); background:var(--panel-2); border:1px solid var(--line); border-radius:6px; box-sizing:border-box; }
+.champ-page textarea { resize:vertical; }
+.champ-section-label label { margin:0; font-size:12px; display:flex; align-items:center; gap:8px; }
+.champ-section-label input { width:auto; }
+.champ-targets { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.champ-targets button { min-height:40px; }
+.champ-targets button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); }
+.champ-compose-foot { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-top:12px; font-size:12px; color:var(--muted); }
+.champ-feedback,.champ-muted,.champ-no-match { color:var(--muted); font-size:13px; line-height:1.8; }
+.champ-message { padding:24px; margin:16px 0; background:var(--panel); border:1px solid var(--line); border-left:3px solid #d3a691; border-radius:0 10px 10px 0; }
+.champ-message-target { font-size:12px; color:var(--muted); }
+.champ-message > p { white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; line-height:1.75; margin:16px 0 24px; }
+.champ-message footer { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--muted); }
+.champ-empty { border:1px dashed var(--line); padding:42px 24px; margin-top:20px; text-align:center; color:var(--muted); }
+.champ-mine summary { cursor:pointer; padding:14px 0; }
+.champ-mine article { border-top:1px solid var(--line); padding:14px 0; font-size:13px; overflow-wrap:anywhere; }
+.champ-mine article > span { float:right; color:var(--muted); }
+.champ-mine p { white-space:pre-wrap; }
+.champ-overlay { position:fixed; inset:0; padding:16px; z-index:110; background:#030813bc; display:grid; place-items:center; }
+.champ-notice { width:min(600px,100%); max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px); overflow-y:auto; border-radius:16px; padding:32px; --muted:#b9c6da; --line:#475168; box-sizing:border-box; }
+.champ-notice h2 { font-size:32px; margin:0; color:#fff; }
+.champ-notice .champ-city { font-size:230px; }
+.champ-close { position:absolute; right:12px; top:12px; width:40px; height:40px; color:white; background:#ffffff12; border:1px solid #ffffff22; border-radius:50%; }
+.champ-notice .champ-cta { display:flex; margin-top:24px; }
+.champ-later { display:block; margin:12px auto 0; border:0; background:transparent; color:#c4cddd; min-height:44px; }
+.champ-page :is(a,button,input,textarea,summary):focus-visible,.champ-notice :is(a,button):focus-visible { outline:2px solid var(--accent,#ff4655); outline-offset:3px; }
+@media(max-width:720px) { .champ-page { padding:16px; } .champ-hero { padding:32px 24px; } .champ-columns { grid-template-columns:minmax(0,1fr); gap:0; } .champ-panel { padding:18px; } .champ-notice { padding:28px 20px 20px; } .champ-notice h2 { font-size:27px; } .champ-match { gap:7px; } }

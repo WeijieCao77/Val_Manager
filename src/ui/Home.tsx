@@ -124,6 +124,7 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
         </p>
       </section>
 
+      <a href="/champions" className="home-champions-link"><b>上海全球冠军赛</b><span>今日赛程 · 为你支持的选手留言</span><span>进入应援墙 ↗</span></a>
       <div className="home-cards">
         {/* ---------------------------------------------------------- 经理 */}
         <article className="home-card">

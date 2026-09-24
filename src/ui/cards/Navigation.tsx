@@ -14,6 +14,7 @@ export const CARD_PAGES = [
   { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'target', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
   { key: 'dossier', label: '资料库', group: '发现', description: '查阅职业选手与战队资料。', icon: 'book' },
+  { key: 'champions', label: '上海应援', group: '发现', description: '查看今日赛程，为你支持的选手留言。', icon: 'cup' },
   { key: 'account', label: '账号', group: '发现', description: '管理账号、保存 ID，查看你的游戏记录。', icon: 'user' },
 ] as const
 

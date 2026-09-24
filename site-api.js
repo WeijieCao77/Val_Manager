@@ -10,6 +10,7 @@
  * ephemeral: a file written by the running container is gone on the next
  * deploy, which is exactly when nobody would notice it had vanished.
  */
+import { makeChampionsApi } from './champions-api.js'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { battleCode, STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
 
@@ -62,6 +63,7 @@ const same = (a, b) => {
 const hash = (id) => createHash('sha256').update(String(id)).digest('hex')
 
 export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayName, engine, tokenFrom }) {
+  const champions = makeChampionsApi(sql, { readBody, json, token, tokenFrom: tokenFrom ?? ((req,url) => url.searchParams.get('token')), normalizeId, displayName })
   /** Cached in the process: the front page asks for this on every visit. */
   let cache = null
   let cachedAt = 0
@@ -707,6 +709,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, url) {
+      if (await champions.route(req,res,path,url)) return true
       if (path === '/api/admin/account') {
         if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')

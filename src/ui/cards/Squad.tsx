@@ -11,6 +11,7 @@ import { roleGaps } from '../../engine/arena'
 import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import ShareSquad from './ShareSquad'
 import SquadPresets from './SquadPresets'
+import TeamBoard from './TeamBoard'
 import CardDetail from './CardDetail'
 import { GapOdds } from './GapOdds'
 import type { CardFilter } from './Filters'
@@ -126,6 +127,7 @@ export default function SquadScreen() {
           </div>
         }
       >
+        <TeamBoard squad={g.squad}>
         <p className="small muted" style={{ marginTop: 0 }}>{filled < 5 ? `已上阵 ${filled}/5 位选手。点空位挑选，或使用自动组队补齐阵容。` : '五人阵容已就绪。点选手卡可查看详情、升级或替换。'}</p>
         <div className="cm-squad">
           {SQUAD_SLOTS.map((role, i) => {
@@ -257,6 +259,7 @@ export default function SquadScreen() {
             )}
           </div>
         </div>
+        </TeamBoard>
       </Panel>
 
       {sharing && <ShareSquad onClose={() => setSharing(false)} />}

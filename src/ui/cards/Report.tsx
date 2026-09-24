@@ -1,3 +1,4 @@
+import TeamBoard from './TeamBoard'
 import CardFace from '../Card'
 import { cardById, chemistry, isPlayerCard, squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
@@ -79,7 +80,7 @@ export default function MatchReport({
               </div>
             </>
           ) : (
-            <Board title="" lines={result.lines} mvp={result.mvpCard} level={level} />
+            <TeamBoard squad={mySquad ?? { slots: result.lines.map(l => l.cardId), coach: null }}><Board title="" lines={result.lines} mvp={result.mvpCard} level={level} /></TeamBoard>
           )}
 
           {!!result.result.highlights.length && (
@@ -152,7 +153,7 @@ function SquadRow({
   const paper = ids.length ? squadRating(squad, level) : 0
   const chem = chemistry(squad).score
   return (
-    <div style={{ marginBottom: 12 }}>
+    <TeamBoard squad={squad}><div style={{ marginBottom: 12 }}>
       <div className="row" style={{ gap: 8, alignItems: 'baseline', marginBottom: 6 }}>
         <b style={{ fontSize: 13 }}>{title}</b>
         <span className={`tag ${won ? 't1' : ''}`}>{won ? '胜' : '负'}</span>
@@ -178,7 +179,7 @@ function SquadRow({
           <CardFace card={cardById(coach)!} level={level(coach)} footer="教练" />
         )}
       </div>
-    </div>
+    </div></TeamBoard>
   )
 }
 

@@ -1,3 +1,4 @@
+import { squadTeamIdentity, teamBackdrop } from '../../engine/teamIdentity'
 /**
  * The five, as a picture worth sending to somebody.
  *
@@ -196,7 +197,7 @@ function paintSeat(
   }
   // the stylesheet's numbers are for a 132-wide card
   const k = b.w / 132
-  const metal = METAL[card.rarity]
+  const metal = isPlayerCard(card) ? METAL[card.rarity] : { ...METAL[card.rarity], a:'#233346', b:'#0d1724', ink:'#eef3f8' }
   const player = isPlayerCard(card) ? card : null
   const legend = !!card.legend
   // a 彩卡 IS the photograph: it fills the card and the type sits on a scrim,
@@ -595,6 +596,19 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, L.width, 900)
 
+  const team = squadTeamIdentity(model.squad)
+  if (team) {
+    const art = await load(teamBackdrop(team.color))
+    if (art) ctx.drawImage(art, 0, 0, L.width, L.height)
+    const logo = await load(team.crest)
+    if (logo) {
+      ctx.save(); ctx.globalAlpha = .14
+      ctx.drawImage(logo, L.width * .42, 160, L.width * .6, L.width * .6)
+      ctx.restore()
+      ctx.drawImage(logo, L.width - 170, L.header.y + 20, 90, 90)
+    }
+  }
+
   // ---- who this is
   ctx.textAlign = 'left'
   ctx.fillStyle = '#ff4655'
@@ -617,7 +631,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   }
   ctx.fillStyle = FAINT
   ctx.font = font(500, 26)
-  ctx.fillText('我的首发五人', L.header.x, L.header.y + 226)
+  ctx.fillText(team ? `${team.tag} · 完整战队阵容 6/6` : '我的首发五人', L.header.x, L.header.y + 226)
 
   // ---- the five
   const ROLES = ['决斗者', '先锋', '控场', '哨卫', '自由人']
@@ -632,7 +646,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   ctx.textAlign = 'left'
   ctx.fillStyle = FAINT
   ctx.font = font(600, 20)
-  ctx.fillText('教练', L.coach.x + 16, L.coach.y + 32)
+  ctx.fillText('教练组', L.coach.x + 16, L.coach.y + 32)
   if (coachCard) {
     const inner = { x: L.coach.x + 16, y: L.coach.y + 48, w: L.coach.w - 32, h: L.coach.h - 64 }
     paintSeat(ctx, inner, coachCard, '教练', model.level(coachCard.id), faces[5], crests[5])

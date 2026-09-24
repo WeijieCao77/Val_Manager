@@ -133,7 +133,7 @@ export default function CardFace({
   // beside it says what you have done, and 战力 in the detail says what the
   // two add up to. Folding the levels in here ran into 99 and stopped.
   const rating = card.rating
-  const cls = `cardface r-${card.rarity} s-${size}`
+  const cls = `cardface r-${card.rarity} s-${size}` + (isCoachCard(card) ? ' cardface-coach' : '')
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
   const legend = legendOf(card)
   const crest = crestUrl(card.clubId)
@@ -255,6 +255,7 @@ function CoachBody({ card, size, footer, backdrop }: { card: CoachCard; size: st
     <>
       {backdrop ? <span className="cf-push" /> : <Face src={card.face} alt={card.name} />}
       {card.legend && <div className="cf-moment">{card.legend.short}</div>}
+      <div className="cf-coach-label">{card.spec ? '分析教练' : '教练组'}</div>
       <div className="cf-name">{card.name}</div>
       {size === 'lg' && card.realName && <div className="cf-real">{card.realName}</div>}
       <div className="cf-meta">

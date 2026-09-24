@@ -8,6 +8,7 @@ import {
 } from '../../engine/gacha'
 import type { CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
 import type { ArenaResult } from '../../engine/arena'
+import type { Squad } from '../../engine/cards'
 import { cardById, cardName, squadRating } from '../../engine/cards'
 import { CUP_TEAMS } from '../../engine/cupTeams'
 import { track } from '../../engine/telemetry'
@@ -47,7 +48,7 @@ export default function Cup() {
 function ClubCup() {
   const { g, now, act, toast, go } = useCards()
   const [busy, setBusy] = useState(false)
-  const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome; levels: Record<string, number> } | null>(null)
+  const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome; squad: Squad; levels: Record<string, number> } | null>(null)
 
   const filled = g.squad.slots.filter(Boolean).length
   const cup = g.cup
@@ -78,7 +79,7 @@ function ClubCup() {
     const levels = played?.levels ?? Object.fromEntries([...g.squad.slots, g.squad.coach].filter((id): id is string => !!id).map(id => [id, levelOf(g, id)]))
     const rating = squadRating(played?.squad ?? g.squad, id => levels[id] ?? 0)
     track('card_match', { mode: 'cup', won: res.win, round, rating, title: !!out.won })
-    setShown({ res, opp, out, levels })
+    setShown({ res, opp, out, levels, squad: played?.squad ?? g.squad })
   }
 
   const clear = async () => {
@@ -213,6 +214,7 @@ function ClubCup() {
         <MatchReport
           result={shown.res}
           opponentId={shown.opp}
+          mySquad={shown.squad}
           level={id => shown.levels[id] ?? 0}
           onClose={() => setShown(null)}
           extra={

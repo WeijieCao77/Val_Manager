@@ -3185,3 +3185,22 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
   font-size: var(--t-small); font-weight: 700; letter-spacing: .16em;
   margin-top: 4px;
 }
+
+.home-champions-link { display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; margin:0 0 24px; padding:18px 22px; border:1px solid var(--line); border-left:3px solid #d3a691; border-radius:8px; color:var(--text); text-decoration:none; background:var(--panel); }
+.home-champions-link > span { font-size:13px; color:var(--muted); }
+.home-champions-link > span:last-child { margin-left:auto; }
+
+/* Coaches use a tactical portrait frame; metal remains the rarity signal. */
+.cardface.cardface-coach { background:linear-gradient(145deg,#233346,#0d1724); color:#eef3f8; border-top:4px solid #d3b976; }
+.cardface-coach.r-silver { border-top-color:#bdcbd7; }
+.cardface-coach.r-bronze { border-top-color:#c79570; }
+.cardface-coach.r-mythic { border-top-color:#bd99ed; }
+.cardface-coach .cf-photo { border-radius:5px; border:1px solid #92a7bd66; background:#ffffff0c; }
+.cardface-coach .cf-coach-label { position:relative; z-index:3; width:100%; text-align:center; font-size:10px; font-weight:800; letter-spacing:2px; color:#e9d49f; border-bottom:1px solid #b6c7db40; padding:4px 0; }
+.cardface-coach .cf-name { border-color:#b6c7db40; }
+.cardface-coach .cf-attrs { border-color:#b6c7db40; }
+.cardface-coach .cf-club,.cardface-coach .cf-plus { color:#e9d49f; }
+.cardface-coach .cf-crest { opacity:.08; }
+.team-lineup-players { display:flex; flex-wrap:wrap; gap:12px; }
+.team-lineup-coach { margin-top:20px; padding-top:16px; border-top:1px solid #ffffff30; }
+.team-lineup-coach > p { font-size:12px; color:#bccbdc; margin:0 0 12px; }
