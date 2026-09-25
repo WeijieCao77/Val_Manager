@@ -64,7 +64,9 @@ for vid, q in reg.items():
 rows.sort(key=lambda r: (-(len(r["tier1"]) > 0), -(r["peak"] or 0)))
 
 # ---- src/data/retired.json: the ones the game shows (资料库 · 退役, 每日挑战)
-# Retired as players — `gone` and `bench` — with a photograph on file. One man
+# Retired as players — `gone`, `bench`, and since 2026-09-26 `idle` (owner: TenZ,
+# Sacy and the rest with no club, whose last games are show matches and
+# national sides, count) — with a photograph on file. One man
 # with two vlr pages (overrides `samePerson`, wqc = cb) is not retired at all.
 same = set((J("data-raw", "overrides.json").get("samePerson") or {}).keys())
 dossier_hist = J("src", "data", "dossier.json").get("hist") or {}
@@ -73,7 +75,7 @@ shown = []
 for r in rows:
     pid = "Hv" + r["vlr"]
     face = (dossier_hist.get(pid) or {}).get("img")
-    if r["group"] not in ("gone", "bench") or r["vlr"] in same or not face \
+    if r["group"] not in ("gone", "bench", "idle") or r["vlr"] in same or not face \
             or not os.path.exists(os.path.join(ROOT, "public", "faces", face)):
         continue
     last = max(r["years"])

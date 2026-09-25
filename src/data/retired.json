@@ -24,6 +24,28 @@
    "img": "Hv1380.webp"
   },
   {
+   "id": "Hv659",
+   "ign": "Sacy",
+   "real": "Gustavo Henrique Rossi da Silva",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "1997-12-02",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 89,
+   "peakYear": 2024,
+   "peakClub": "SEN",
+   "lastYear": 2024,
+   "lastClub": "SEN",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv659.webp"
+  },
+  {
    "id": "Hv16003",
    "ign": "runi",
    "real": "Dylan Cade",
@@ -44,6 +66,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv16003.webp"
+  },
+  {
+   "id": "Hv1281",
+   "ign": "MOLSI",
+   "real": "Michał Łącki",
+   "nat": "pl",
+   "region": "EMEA",
+   "birth": "1997-01-26",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 88,
+   "peakYear": 2024,
+   "peakClub": "APK",
+   "lastYear": 2025,
+   "lastClub": "APK",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1281.webp"
   },
   {
    "id": "Hv4164",
@@ -67,6 +112,28 @@
    "tier1": true,
    "coach": true,
    "img": "Hv4164.webp"
+  },
+  {
+   "id": "Hv9800",
+   "ign": "mindfreak",
+   "real": "Aaron Leonhart",
+   "nat": "id",
+   "region": "Pacific",
+   "birth": "1999-10-04",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 88,
+   "peakYear": 2023,
+   "peakClub": "PRX",
+   "lastYear": 2025,
+   "lastClub": "PRX",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv9800.webp"
   },
   {
    "id": "Hv3070",
@@ -139,6 +206,29 @@
    "img": "Hv4710.webp"
   },
   {
+   "id": "Hv261",
+   "ign": "Victor",
+   "real": "Victor Wong",
+   "nat": "us",
+   "region": "Americas",
+   "birth": "1996-09-14",
+   "age": 29,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 87,
+   "peakYear": 2023,
+   "peakClub": "NRG",
+   "lastYear": 2024,
+   "lastClub": "NRG",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv261.webp"
+  },
+  {
    "id": "Hv4559",
    "ign": "Suggest",
    "real": "서재영",
@@ -186,6 +276,29 @@
    "img": "Hv864.webp"
   },
   {
+   "id": "Hv5241",
+   "ign": "Maple",
+   "real": "Elvin Sun",
+   "nat": "au",
+   "region": "China",
+   "birth": "2000-05-08",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 87,
+   "peakYear": 2023,
+   "peakClub": "WBG",
+   "lastYear": 2023,
+   "lastClub": "WBG",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv5241.webp"
+  },
+  {
    "id": "Hv474",
    "ign": "xeta",
    "real": "손선호",
@@ -207,6 +320,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv474.webp"
+  },
+  {
+   "id": "Hv6510",
+   "ign": "AtaKaptan",
+   "real": "Ata Tan",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": null,
+   "age": 21,
+   "ageEstimated": true,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "先锋"
+   ],
+   "peak": 85,
+   "peakYear": 2024,
+   "peakClub": "FUT",
+   "lastYear": 2025,
+   "lastClub": "FUT",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv6510.webp"
   },
   {
    "id": "Hv98",
@@ -233,6 +369,29 @@
    "img": "Hv98.webp"
   },
   {
+   "id": "Hv9",
+   "ign": "TenZ",
+   "real": "Tyson Van Ngo",
+   "nat": "ca",
+   "region": "Americas",
+   "birth": "2001-05-05",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫"
+   ],
+   "peak": 85,
+   "peakYear": 2023,
+   "peakClub": "SEN",
+   "lastYear": 2024,
+   "lastClub": "SEN",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv9.webp"
+  },
+  {
    "id": "Hv824",
    "ign": "AYRIN",
    "real": "Jordan He",
@@ -254,6 +413,75 @@
    "tier1": true,
    "coach": false,
    "img": "Hv824.webp"
+  },
+  {
+   "id": "Hv1139",
+   "ign": "qRaxs",
+   "real": "Doğukan Balaban",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": "2000-05-02",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 84,
+   "peakYear": 2024,
+   "peakClub": "FUT",
+   "lastYear": 2025,
+   "lastClub": "FUT",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1139.webp"
+  },
+  {
+   "id": "Hv35013",
+   "ign": "Flashback",
+   "real": "조민혁",
+   "nat": "kr",
+   "region": "Pacific",
+   "birth": "2005-11-15",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场"
+   ],
+   "peak": 84,
+   "peakYear": 2025,
+   "peakClub": "KRX",
+   "lastYear": 2025,
+   "lastClub": "KRX",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv35013.webp"
+  },
+  {
+   "id": "Hv725",
+   "ign": "nzr",
+   "real": "Agustin Ibarra",
+   "nat": "ar",
+   "region": "Americas",
+   "birth": "1998-05-08",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 84,
+   "peakYear": 2025,
+   "peakClub": "MIBR",
+   "lastYear": 2025,
+   "lastClub": "MIBR",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv725.webp"
   },
   {
    "id": "Hv7870",
@@ -300,6 +528,51 @@
    "tier1": true,
    "coach": true,
    "img": "Hv9802.webp"
+  },
+  {
+   "id": "Hv2333",
+   "ign": "BORKUM",
+   "real": "Jim Albert Abadiano Timbreza",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "1996-04-18",
+   "age": 29,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 84,
+   "peakYear": 2024,
+   "peakClub": "TS",
+   "lastYear": 2024,
+   "lastClub": "TS",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv2333.webp"
+  },
+  {
+   "id": "Hv1002",
+   "ign": "takej",
+   "real": "竹森 祥悟",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "2000-12-17",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "决斗者"
+   ],
+   "peak": 84,
+   "peakYear": 2023,
+   "peakClub": "DFM",
+   "lastYear": 2023,
+   "lastClub": "DFM",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1002.webp"
   },
   {
    "id": "Hv92",
@@ -417,6 +690,51 @@
    "img": "Hv1711.webp"
   },
   {
+   "id": "Hv5893",
+   "ign": "RobbieBk",
+   "real": "Robbie Boerkamp",
+   "nat": "nl",
+   "region": "EMEA",
+   "birth": "2001-11-07",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 83,
+   "peakYear": 2025,
+   "peakClub": "M8",
+   "lastYear": 2025,
+   "lastClub": "M8",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv5893.webp"
+  },
+  {
+   "id": "Hv7045",
+   "ign": "fl1pzjder",
+   "real": "Saibani Rahmad",
+   "nat": "id",
+   "region": "Pacific",
+   "birth": "1999-07-27",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 83,
+   "peakYear": 2024,
+   "peakClub": "RRQ",
+   "lastYear": 2024,
+   "lastClub": "RRQ",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv7045.webp"
+  },
+  {
    "id": "Hv4545",
    "ign": "Sayaplayer",
    "real": "하정우",
@@ -438,6 +756,30 @@
    "tier1": true,
    "coach": false,
    "img": "Hv4545.webp"
+  },
+  {
+   "id": "Hv999",
+   "ign": "Laz",
+   "real": "牛田 浩二",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "1995-11-26",
+   "age": 30,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场",
+    "先锋"
+   ],
+   "peak": 83,
+   "peakYear": 2023,
+   "peakClub": "ZETA",
+   "lastYear": 2024,
+   "lastClub": "ZETA",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv999.webp"
   },
   {
    "id": "Hv25258",
@@ -578,6 +920,29 @@
    "img": "Hv5129.webp"
   },
   {
+   "id": "Hv1457",
+   "ign": "Mistic",
+   "real": "James Orfila",
+   "nat": "gb",
+   "region": "EMEA",
+   "birth": "2001-11-12",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 82,
+   "peakYear": 2024,
+   "peakClub": "TL",
+   "lastYear": 2024,
+   "lastClub": "TL",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1457.webp"
+  },
+  {
    "id": "Hv871",
    "ign": "pl1xx",
    "real": "Christopher Li",
@@ -602,6 +967,30 @@
    "img": "Hv871.webp"
   },
   {
+   "id": "Hv1481",
+   "ign": "AsLanM4shadoW",
+   "real": "Ali Osman Balta",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": "1994-04-21",
+   "age": 31,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 82,
+   "peakYear": 2023,
+   "peakClub": "BBL",
+   "lastYear": 2023,
+   "lastClub": "BBL",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1481.webp"
+  },
+  {
    "id": "Hv805",
    "ign": "Bazzi",
    "real": "박준기",
@@ -622,6 +1011,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv805.webp"
+  },
+  {
+   "id": "Hv2622",
+   "ign": "Newzera",
+   "real": "Alexis Humbert",
+   "nat": "fr",
+   "region": "EMEA",
+   "birth": null,
+   "age": 21,
+   "ageEstimated": true,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 82,
+   "peakYear": 2023,
+   "peakClub": "KC",
+   "lastYear": 2023,
+   "lastClub": "KC",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv2622.webp"
   },
   {
    "id": "Hv1137",
@@ -694,6 +1106,77 @@
    "img": "Hv881.webp"
   },
   {
+   "id": "Hv4321",
+   "ign": "ceNder",
+   "real": "Jokūbas Labutis",
+   "nat": "lt",
+   "region": "EMEA",
+   "birth": "2001-10-30",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场"
+   ],
+   "peak": 81,
+   "peakYear": 2024,
+   "peakClub": "VIT",
+   "lastYear": 2025,
+   "lastClub": "Laur",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv4321.webp"
+  },
+  {
+   "id": "Hv7764",
+   "ign": "Lmemore",
+   "real": "Hagai Kristen Yesyurun Tewuh",
+   "nat": "id",
+   "region": "Pacific",
+   "birth": "2002-09-06",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场",
+    "先锋"
+   ],
+   "peak": 81,
+   "peakYear": 2023,
+   "peakClub": "RRQ",
+   "lastYear": 2024,
+   "lastClub": "RRQ",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv7764.webp"
+  },
+  {
+   "id": "Hv1924",
+   "ign": "Ace",
+   "real": "翁家進",
+   "nat": "hk",
+   "region": "China",
+   "birth": null,
+   "age": 21,
+   "ageEstimated": true,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫",
+    "先锋"
+   ],
+   "peak": 81,
+   "peakYear": 2023,
+   "peakClub": "4AM",
+   "lastYear": 2024,
+   "lastClub": "4AM",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1924.webp"
+  },
+  {
    "id": "Hv101",
    "ign": "soulcas",
    "real": "Dom Sulcas",
@@ -741,6 +1224,28 @@
    "img": "Hv817.webp"
   },
   {
+   "id": "Hv8137",
+   "ign": "lenne",
+   "real": "Lionel Lim You Xiang",
+   "nat": "sg",
+   "region": "Pacific",
+   "birth": "1999-11-13",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 80,
+   "peakYear": 2023,
+   "peakClub": "TS",
+   "lastYear": 2024,
+   "lastClub": "TLN",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv8137.webp"
+  },
+  {
    "id": "Hv2764",
    "ign": "DaveeyS",
    "real": "Santiago Galvis Ruiz",
@@ -762,6 +1267,52 @@
    "tier1": true,
    "coach": false,
    "img": "Hv2764.webp"
+  },
+  {
+   "id": "Hv1162",
+   "ign": "Russ",
+   "real": "Russel Mendes",
+   "nat": "gb",
+   "region": "Pacific",
+   "birth": "1998-01-17",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 79,
+   "peakYear": 2025,
+   "peakClub": "VLT",
+   "lastYear": 2025,
+   "lastClub": "VLT",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1162.webp"
+  },
+  {
+   "id": "Hv1743",
+   "ign": "blaZek1ng",
+   "real": "Gary Dastin",
+   "nat": "id",
+   "region": "Pacific",
+   "birth": "1996-05-03",
+   "age": 29,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 79,
+   "peakYear": 2024,
+   "peakClub": "GE",
+   "lastYear": 2024,
+   "lastClub": "GE",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1743.webp"
   },
   {
    "id": "Hv3342",
@@ -858,6 +1409,30 @@
    "img": "Hv604.webp"
   },
   {
+   "id": "Hv2348",
+   "ign": "Famouz",
+   "real": "Fikri Zaki Hamdani",
+   "nat": "id",
+   "region": "Pacific",
+   "birth": "1998-06-03",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 78,
+   "peakYear": 2025,
+   "peakClub": "BME",
+   "lastYear": 2025,
+   "lastClub": "BME",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv2348.webp"
+  },
+  {
    "id": "Hv6654",
    "ign": "WRONSKI",
    "real": "Michael Wronski",
@@ -905,6 +1480,30 @@
    "img": "Hv2021.webp"
   },
   {
+   "id": "Hv1395",
+   "ign": "TENNN",
+   "real": "Tenta Asai",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "2001-10-19",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 78,
+   "peakYear": 2023,
+   "peakClub": "ZETA",
+   "lastYear": 2023,
+   "lastClub": "ZETA",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1395.webp"
+  },
+  {
    "id": "Hv4052",
    "ign": "Jinboong",
    "real": "김진원",
@@ -927,6 +1526,98 @@
    "tier1": true,
    "coach": false,
    "img": "Hv4052.webp"
+  },
+  {
+   "id": "Hv9747",
+   "ign": "Emman",
+   "real": "Emmanuel Morales",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "2000-06-01",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫",
+    "决斗者"
+   ],
+   "peak": 77,
+   "peakYear": 2024,
+   "peakClub": "NAOS",
+   "lastYear": 2024,
+   "lastClub": "NAOS",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv9747.webp"
+  },
+  {
+   "id": "Hv4827",
+   "ign": "GodDead",
+   "real": "김성신",
+   "nat": "kr",
+   "region": "Pacific",
+   "birth": "1998-01-09",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 77,
+   "peakYear": 2023,
+   "peakClub": "GEN",
+   "lastYear": 2023,
+   "lastClub": "GEN",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv4827.webp"
+  },
+  {
+   "id": "Hv3582",
+   "ign": "keloqz",
+   "real": "Wassim Cista",
+   "nat": "fr",
+   "region": "EMEA",
+   "birth": "2003-03-26",
+   "age": 22,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 77,
+   "peakYear": 2023,
+   "peakClub": "TH",
+   "lastYear": 2023,
+   "lastClub": "TH",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv3582.webp"
+  },
+  {
+   "id": "Hv31207",
+   "ign": "carpe",
+   "real": "이재혁",
+   "nat": "kr",
+   "region": "Pacific",
+   "birth": "1998-10-14",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 76,
+   "peakYear": 2024,
+   "peakClub": "T1",
+   "lastYear": 2025,
+   "lastClub": "T1",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv31207.webp"
   },
   {
    "id": "Hv1003",
@@ -999,6 +1690,30 @@
    "img": "Hv2679.webp"
   },
   {
+   "id": "Hv172",
+   "ign": "vakk",
+   "real": "Vakaris Bebravičius",
+   "nat": "lt",
+   "region": "EMEA",
+   "birth": "2000-07-07",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 75,
+   "peakYear": 2025,
+   "peakClub": "BBL",
+   "lastYear": 2025,
+   "lastClub": "BBL",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv172.webp"
+  },
+  {
    "id": "Hv451",
    "ign": "ShadoW",
    "real": "Tobias Flodström",
@@ -1019,6 +1734,28 @@
    "tier1": true,
    "coach": true,
    "img": "Hv451.webp"
+  },
+  {
+   "id": "Hv18035",
+   "ign": "garnetS",
+   "real": "อภิวัฒน์ อภิรักษ์สุขุมาล",
+   "nat": "th",
+   "region": "Pacific",
+   "birth": "2004-07-07",
+   "age": 21,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 75,
+   "peakYear": 2023,
+   "peakClub": "TLN",
+   "lastYear": 2024,
+   "lastClub": "XGOD",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv18035.webp"
   },
   {
    "id": "Hv7403",
@@ -1042,6 +1779,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv7403.webp"
+  },
+  {
+   "id": "Hv662",
+   "ign": "pryze",
+   "real": "Luis Henrique",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "1999-02-01",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 74,
+   "peakYear": 2025,
+   "peakClub": "2G",
+   "lastYear": 2025,
+   "lastClub": "2G",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv662.webp"
   },
   {
    "id": "Hv129",
@@ -1089,6 +1849,53 @@
    "tier1": true,
    "coach": false,
    "img": "Hv4402.webp"
+  },
+  {
+   "id": "Hv1970",
+   "ign": "neth",
+   "real": "Yusuke Matsuda",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "1996-05-26",
+   "age": 29,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "决斗者",
+    "控场",
+    "先锋"
+   ],
+   "peak": 74,
+   "peakYear": 2024,
+   "peakClub": "DFM",
+   "lastYear": 2024,
+   "lastClub": "DFM",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1970.webp"
+  },
+  {
+   "id": "Hv12322",
+   "ign": "NDG",
+   "real": "Noel De Guia",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "2004-12-24",
+   "age": 21,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 74,
+   "peakYear": 2024,
+   "peakClub": "TS",
+   "lastYear": 2024,
+   "lastClub": "TS",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv12322.webp"
   },
   {
    "id": "Hv568",
@@ -1254,6 +2061,51 @@
    "img": "Hv2452.webp"
   },
   {
+   "id": "Hv1000",
+   "ign": "crow",
+   "real": "丸岡 智明",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "1997-11-28",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 73,
+   "peakYear": 2023,
+   "peakClub": "ZETA",
+   "lastYear": 2023,
+   "lastClub": "ZETA",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1000.webp"
+  },
+  {
+   "id": "Hv10125",
+   "ign": "qw1",
+   "real": "Konuralp Şahin",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": "2002-06-10",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 72,
+   "peakYear": 2023,
+   "peakClub": "FUT",
+   "lastYear": 2023,
+   "lastClub": "FUT",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv10125.webp"
+  },
+  {
    "id": "Hv8551",
    "ign": "Muj",
    "real": "Serhat Yüksel",
@@ -1274,6 +2126,52 @@
    "tier1": true,
    "coach": false,
    "img": "Hv8551.webp"
+  },
+  {
+   "id": "Hv8402",
+   "ign": "icy",
+   "real": "Jacob Lange",
+   "nat": "us",
+   "region": "Americas",
+   "birth": "2003-04-30",
+   "age": 22,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 71,
+   "peakYear": 2025,
+   "peakClub": "EG",
+   "lastYear": 2025,
+   "lastClub": "EG",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv8402.webp"
+  },
+  {
+   "id": "Hv15302",
+   "ign": "Babyblue",
+   "real": "耿浩然",
+   "nat": "cn",
+   "region": "China",
+   "birth": "2002-10-05",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 71,
+   "peakYear": 2025,
+   "peakClub": "JDG",
+   "lastYear": 2025,
+   "lastClub": "JDG",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv15302.webp"
   },
   {
    "id": "Hv4416",
@@ -1344,6 +2242,30 @@
    "img": "Hv25329.webp"
   },
   {
+   "id": "Hv868",
+   "ign": "logaN",
+   "real": "Logan Corti",
+   "nat": "fr",
+   "region": "EMEA",
+   "birth": "1998-06-18",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场",
+    "先锋"
+   ],
+   "peak": 71,
+   "peakYear": 2024,
+   "peakClub": "M8",
+   "lastYear": 2024,
+   "lastClub": "M8",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv868.webp"
+  },
+  {
    "id": "Hv4778",
    "ign": "kawaii",
    "real": "朴民",
@@ -1391,6 +2313,30 @@
    "img": "Hv4771.webp"
   },
   {
+   "id": "Hv783",
+   "ign": "murizzz",
+   "real": "Murillo Tuchtenhagen",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "1999-09-16",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫",
+    "先锋"
+   ],
+   "peak": 71,
+   "peakYear": 2024,
+   "peakClub": "RETA",
+   "lastYear": 2024,
+   "lastClub": "RETA",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv783.webp"
+  },
+  {
    "id": "Hv3027",
    "ign": "Cyah",
    "real": "鄧恩平",
@@ -1434,6 +2380,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv24236.webp"
+  },
+  {
+   "id": "Hv1839",
+   "ign": "Polvi",
+   "real": "Niko Polvinen",
+   "nat": "fi",
+   "region": "Pacific",
+   "birth": "2000-11-16",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫"
+   ],
+   "peak": 70,
+   "peakYear": 2024,
+   "peakClub": "GE",
+   "lastYear": 2024,
+   "lastClub": "GE",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1839.webp"
   },
   {
    "id": "Hv941",
@@ -1682,6 +2651,51 @@
    "img": "Hv10816.webp"
   },
   {
+   "id": "Hv6195",
+   "ign": "lz",
+   "real": "Luiz Reche",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "2003-09-07",
+   "age": 22,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫"
+   ],
+   "peak": 65,
+   "peakYear": 2025,
+   "peakClub": "2G",
+   "lastYear": 2025,
+   "lastClub": "2G",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv6195.webp"
+  },
+  {
+   "id": "Hv36668",
+   "ign": "MarT1n",
+   "real": "卓政杰",
+   "nat": "cn",
+   "region": "China",
+   "birth": "2000-05-01",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫"
+   ],
+   "peak": 65,
+   "peakYear": 2024,
+   "peakClub": "JDG",
+   "lastYear": 2024,
+   "lastClub": "JDG",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv36668.webp"
+  },
+  {
    "id": "Hv19522",
    "ign": "Wailers",
    "real": "Wailers Locart",
@@ -1863,6 +2877,29 @@
    "img": "Hv4410.webp"
   },
   {
+   "id": "Hv7135",
+   "ign": "zjc",
+   "real": "张峻程",
+   "nat": "cn",
+   "region": "China",
+   "birth": "2001-06-11",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 58,
+   "peakYear": 2023,
+   "peakClub": "ASE",
+   "lastYear": 2025,
+   "lastClub": "TYL",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv7135.webp"
+  },
+  {
    "id": "Hv50080",
    "ign": "Lsn",
    "real": "李思南",
@@ -1884,6 +2921,29 @@
    "tier1": true,
    "coach": false,
    "img": "Hv50080.webp"
+  },
+  {
+   "id": "Hv1586",
+   "ign": "v1nny",
+   "real": "Vínicius Gonçalves",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "1997-05-24",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 57,
+   "peakYear": 2025,
+   "peakClub": "LOUD",
+   "lastYear": 2025,
+   "lastClub": "LOUD",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv1586.webp"
   },
   {
    "id": "Hv4773",
@@ -1978,6 +3038,29 @@
    "img": "Hv37674.webp"
   },
   {
+   "id": "Hv569",
+   "ign": "pAura",
+   "real": "Melih Karaduran",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": "1997-10-27",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "先锋"
+   ],
+   "peak": 53,
+   "peakYear": 2024,
+   "peakClub": "BBL",
+   "lastYear": 2024,
+   "lastClub": "BBL",
+   "tier1": true,
+   "coach": false,
+   "img": "Hv569.webp"
+  },
+  {
    "id": "Hv556",
    "ign": "SouhcNi",
    "real": "İbrahim Sağır",
@@ -2025,6 +3108,99 @@
    "img": "Hv3269.webp"
   },
   {
+   "id": "Hv1850",
+   "ign": "ShoT_UP",
+   "real": "Andrew Orlowski",
+   "nat": "us",
+   "region": "Americas",
+   "birth": "1999-12-08",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "控场"
+   ],
+   "peak": 83,
+   "peakYear": 2025,
+   "peakClub": "L11",
+   "lastYear": 2025,
+   "lastClub": "L11",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv1850.webp"
+  },
+  {
+   "id": "Hv5886",
+   "ign": "Flaring",
+   "real": "Henri Forichon",
+   "nat": "sg",
+   "region": "Pacific",
+   "birth": "2002-11-25",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫"
+   ],
+   "peak": 83,
+   "peakYear": 2024,
+   "peakClub": "LESS",
+   "lastYear": 2024,
+   "lastClub": "LESS",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv5886.webp"
+  },
+  {
+   "id": "Hv1437",
+   "ign": "YESicaN",
+   "real": "Đinh Đình Đạt",
+   "nat": "vn",
+   "region": "Pacific",
+   "birth": "1997-06-14",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 83,
+   "peakYear": 2023,
+   "peakClub": "FCY",
+   "lastYear": 2023,
+   "lastClub": "FCY",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv1437.webp"
+  },
+  {
+   "id": "Hv7616",
+   "ign": "Feniz",
+   "real": "Thomas Daniel Molina Solano",
+   "nat": "cr",
+   "region": "Americas",
+   "birth": "2000-10-31",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫",
+    "决斗者"
+   ],
+   "peak": 81,
+   "peakYear": 2025,
+   "peakClub": "EXL",
+   "lastYear": 2025,
+   "lastClub": "EXL",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv7616.webp"
+  },
+  {
    "id": "Hv3271",
    "ign": "Excali",
    "real": "करण म्हसवडकर",
@@ -2048,6 +3224,28 @@
    "img": "Hv3271.webp"
   },
   {
+   "id": "Hv2570",
+   "ign": "roxie",
+   "real": "Povilas Krivelis",
+   "nat": "lt",
+   "region": "EMEA",
+   "birth": "2002-02-08",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 80,
+   "peakYear": 2025,
+   "peakClub": "Laur",
+   "lastYear": 2025,
+   "lastClub": "Laur",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2570.webp"
+  },
+  {
    "id": "Hv12947",
    "ign": "rawfiul",
    "real": "Akram Virani",
@@ -2069,6 +3267,52 @@
    "tier1": false,
    "coach": false,
    "img": "Hv12947.webp"
+  },
+  {
+   "id": "Hv24653",
+   "ign": "Vera",
+   "real": "Rodman Yap Yao Rong",
+   "nat": "sg",
+   "region": "Pacific",
+   "birth": "2005-04-05",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 80,
+   "peakYear": 2024,
+   "peakClub": "LESS",
+   "lastYear": 2024,
+   "lastClub": "LESS",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv24653.webp"
+  },
+  {
+   "id": "Hv13220",
+   "ign": "JA",
+   "real": "John Timothy Arone",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "1998-09-04",
+   "age": 27,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫",
+    "决斗者"
+   ],
+   "peak": 80,
+   "peakYear": 2024,
+   "peakClub": "NAOS",
+   "lastYear": 2024,
+   "lastClub": "NAOS",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv13220.webp"
   },
   {
    "id": "Hv2534",
@@ -2115,6 +3359,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv3270.webp"
+  },
+  {
+   "id": "Hv8400",
+   "ign": "Cain",
+   "real": "Nathan Lee",
+   "nat": "ca",
+   "region": "Americas",
+   "birth": null,
+   "age": 21,
+   "ageEstimated": true,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 79,
+   "peakYear": 2025,
+   "peakClub": "L11",
+   "lastYear": 2025,
+   "lastClub": "L11",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv8400.webp"
   },
   {
    "id": "Hv11106",
@@ -2166,6 +3433,74 @@
    "img": "Hv320.webp"
   },
   {
+   "id": "Hv2753",
+   "ign": "BandiCoot",
+   "real": "Michael Duvan Mancipe Ochoa",
+   "nat": "co",
+   "region": "Americas",
+   "birth": "2001-05-10",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "先锋"
+   ],
+   "peak": 79,
+   "peakYear": 2024,
+   "peakClub": "TP",
+   "lastYear": 2024,
+   "lastClub": "TP",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2753.webp"
+  },
+  {
+   "id": "Hv2190",
+   "ign": "baddyG",
+   "real": "Kamil Graniczka",
+   "nat": "pl",
+   "region": "EMEA",
+   "birth": "2001-10-09",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "决斗者"
+   ],
+   "peak": 79,
+   "peakYear": 2023,
+   "peakClub": "ACE",
+   "lastYear": 2023,
+   "lastClub": "ACE",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2190.webp"
+  },
+  {
+   "id": "Hv2468",
+   "ign": "delz1k",
+   "real": "Joaquín Ignacio Espinoza Soto",
+   "nat": "cl",
+   "region": "Americas",
+   "birth": "2000-06-22",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 76,
+   "peakYear": 2024,
+   "peakClub": "RETA",
+   "lastYear": 2024,
+   "lastClub": "RETA",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2468.webp"
+  },
+  {
    "id": "Hv1374",
    "ign": "ALIVE",
    "real": "גלעד חכים",
@@ -2210,6 +3545,30 @@
    "img": "Hv7106.webp"
   },
   {
+   "id": "Hv2313",
+   "ign": "feqew",
+   "real": "Lukas Petrauskas",
+   "nat": "lt",
+   "region": "EMEA",
+   "birth": "1997-04-18",
+   "age": 28,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫",
+    "先锋"
+   ],
+   "peak": 75,
+   "peakYear": 2025,
+   "peakClub": "Laur",
+   "lastYear": 2025,
+   "lastClub": "Laur",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2313.webp"
+  },
+  {
    "id": "Hv2571",
    "ign": "Feeqn",
    "real": "Okko Pajari",
@@ -2231,6 +3590,51 @@
    "tier1": false,
    "coach": false,
    "img": "Hv2571.webp"
+  },
+  {
+   "id": "Hv24304",
+   "ign": "Kiuuuu",
+   "real": "容子翘",
+   "nat": "hk",
+   "region": "EMEA",
+   "birth": null,
+   "age": 21,
+   "ageEstimated": true,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫"
+   ],
+   "peak": 75,
+   "peakYear": 2024,
+   "peakClub": "OF",
+   "lastYear": 2024,
+   "lastClub": "OF",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv24304.webp"
+  },
+  {
+   "id": "Hv19588",
+   "ign": "neptuNo",
+   "real": "Alberto González",
+   "nat": "es",
+   "region": "EMEA",
+   "birth": "1992-02-12",
+   "age": 33,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫"
+   ],
+   "peak": 75,
+   "peakYear": 2023,
+   "peakClub": "TQ",
+   "lastYear": 2023,
+   "lastClub": "TQ",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv19588.webp"
   },
   {
    "id": "Hv2035",
@@ -2322,6 +3726,30 @@
    "img": "Hv1353.webp"
   },
   {
+   "id": "Hv8225",
+   "ign": "f1cio",
+   "real": "Hoàng Ngọc Sơn",
+   "nat": "vn",
+   "region": "Pacific",
+   "birth": "2005-08-15",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫",
+    "控场"
+   ],
+   "peak": 73,
+   "peakYear": 2023,
+   "peakClub": "FCY",
+   "lastYear": 2023,
+   "lastClub": "FCY",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv8225.webp"
+  },
+  {
    "id": "Hv4089",
    "ign": "DOXZ3R",
    "real": "Soumyadeep Dey",
@@ -2343,6 +3771,28 @@
    "tier1": false,
    "coach": false,
    "img": "Hv4089.webp"
+  },
+  {
+   "id": "Hv2879",
+   "ign": "dimaxx",
+   "real": "Дмитро Палій",
+   "nat": "pt",
+   "region": "EMEA",
+   "birth": "2002-10-28",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 72,
+   "peakYear": 2024,
+   "peakClub": "KPI",
+   "lastYear": 2024,
+   "lastClub": "KPI",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2879.webp"
   },
   {
    "id": "Hv3806",
@@ -2388,6 +3838,51 @@
    "tier1": false,
    "coach": false,
    "img": "Hv2483.webp"
+  },
+  {
+   "id": "Hv6702",
+   "ign": "bazz",
+   "real": "Naoya Matsuyama",
+   "nat": "jp",
+   "region": "Pacific",
+   "birth": "2000-04-24",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 72,
+   "peakYear": 2023,
+   "peakClub": "FAV",
+   "lastYear": 2023,
+   "lastClub": "FAV",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv6702.webp"
+  },
+  {
+   "id": "Hv13221",
+   "ign": "azys",
+   "real": "Azis Nandang",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "2002-03-17",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 71,
+   "peakYear": 2025,
+   "peakClub": "RNTX",
+   "lastYear": 2025,
+   "lastClub": "RNTX",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv13221.webp"
   },
   {
    "id": "Hv4385",
@@ -2436,6 +3931,72 @@
    "img": "Hv1585.webp"
   },
   {
+   "id": "Hv22676",
+   "ign": "VenTT",
+   "real": "Emre Bozkurt",
+   "nat": "tr",
+   "region": "EMEA",
+   "birth": "2003-07-04",
+   "age": 22,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 71,
+   "peakYear": 2023,
+   "peakClub": "SUR",
+   "lastYear": 2023,
+   "lastClub": "SUR",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv22676.webp"
+  },
+  {
+   "id": "Hv14254",
+   "ign": "gin",
+   "real": "Phan Văn Gin",
+   "nat": "vn",
+   "region": "Pacific",
+   "birth": "2003-10-03",
+   "age": 22,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 71,
+   "peakYear": 2023,
+   "peakClub": "FCY",
+   "lastYear": 2023,
+   "lastClub": "FCY",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv14254.webp"
+  },
+  {
+   "id": "Hv8892",
+   "ign": "snw",
+   "real": "Miguel Marcondes",
+   "nat": "br",
+   "region": "Americas",
+   "birth": "2002-12-22",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 70,
+   "peakYear": 2024,
+   "peakClub": "RETA",
+   "lastYear": 2024,
+   "lastClub": "RETA",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv8892.webp"
+  },
+  {
    "id": "Hv1944",
    "ign": "caydeN",
    "real": "Yari Olmi",
@@ -2481,6 +4042,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv17089.webp"
+  },
+  {
+   "id": "Hv4711",
+   "ign": "XiaoFei",
+   "real": "Yi Zhang (张翊)",
+   "nat": "cn",
+   "region": "China",
+   "birth": null,
+   "age": 20,
+   "ageEstimated": true,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 70,
+   "peakYear": 2024,
+   "peakClub": "NWG",
+   "lastYear": 2024,
+   "lastClub": "NWG",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv4711.webp"
   },
   {
    "id": "Hv5716",
@@ -2575,6 +4159,74 @@
    "img": "Hv1567.webp"
   },
   {
+   "id": "Hv5228",
+   "ign": "Minimise",
+   "real": "Jackson Nicholas White",
+   "nat": "au",
+   "region": "Pacific",
+   "birth": "2002-10-19",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
+   "peak": 69,
+   "peakYear": 2025,
+   "peakClub": "KING",
+   "lastYear": 2025,
+   "lastClub": "KING",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv5228.webp"
+  },
+  {
+   "id": "Hv7162",
+   "ign": "wackie",
+   "real": "Rikardo Birjukov",
+   "nat": "ee",
+   "region": "EMEA",
+   "birth": "2000-08-04",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 69,
+   "peakYear": 2024,
+   "peakClub": "DSY",
+   "lastYear": 2024,
+   "lastClub": "DSY",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv7162.webp"
+  },
+  {
+   "id": "Hv32351",
+   "ign": "cullumx",
+   "real": "Nikolaj Cullum Andersen",
+   "nat": "dk",
+   "region": "EMEA",
+   "birth": null,
+   "age": 30,
+   "ageEstimated": true,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫"
+   ],
+   "peak": 69,
+   "peakYear": 2024,
+   "peakClub": "Zero",
+   "lastYear": 2024,
+   "lastClub": "Zero",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv32351.webp"
+  },
+  {
    "id": "Hv7530",
    "ign": "kimmy",
    "real": "Dominic Lee",
@@ -2642,6 +4294,29 @@
    "img": "Hv5255.webp"
   },
   {
+   "id": "Hv1291",
+   "ign": "bnj",
+   "real": "Benjamin Rabinovich",
+   "nat": "ar",
+   "region": "Americas",
+   "birth": "2000-11-23",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "先锋"
+   ],
+   "peak": 69,
+   "peakYear": 2023,
+   "peakClub": "RED",
+   "lastYear": 2023,
+   "lastClub": "RED",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv1291.webp"
+  },
+  {
    "id": "Hv1830",
    "ign": "HighKitty",
    "real": "Fabian Schultze",
@@ -2663,6 +4338,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv1830.webp"
+  },
+  {
+   "id": "Hv4214",
+   "ign": "Eso177",
+   "real": "Станислав Николов",
+   "nat": "bg",
+   "region": "EMEA",
+   "birth": "2001-11-17",
+   "age": 24,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
+   "peak": 69,
+   "peakYear": 2023,
+   "peakClub": "EGN",
+   "lastYear": 2023,
+   "lastClub": "EGN",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv4214.webp"
   },
   {
    "id": "Hv26789",
@@ -2707,6 +4405,51 @@
    "tier1": false,
    "coach": false,
    "img": "Hv18704.webp"
+  },
+  {
+   "id": "Hv42702",
+   "ign": "Krizz",
+   "real": "Krzysztof Łukaszkiewicz",
+   "nat": "pl",
+   "region": "EMEA",
+   "birth": "2007-11-21",
+   "age": 18,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场"
+   ],
+   "peak": 68,
+   "peakYear": 2025,
+   "peakClub": "SM",
+   "lastYear": 2025,
+   "lastClub": "SM",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv42702.webp"
+  },
+  {
+   "id": "Hv16842",
+   "ign": "Mojer",
+   "real": "Jerome Literal",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "2005-06-14",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 68,
+   "peakYear": 2024,
+   "peakClub": "NAOS",
+   "lastYear": 2024,
+   "lastClub": "NAOS",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv16842.webp"
   },
   {
    "id": "Hv13848",
@@ -2775,6 +4518,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv7883.webp"
+  },
+  {
+   "id": "Hv2464",
+   "ign": "suther",
+   "real": "Tomás Zurita",
+   "nat": "cl",
+   "region": "Americas",
+   "birth": "2000-11-01",
+   "age": 25,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫"
+   ],
+   "peak": 66,
+   "peakYear": 2024,
+   "peakClub": "RETA",
+   "lastYear": 2024,
+   "lastClub": "RETA",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv2464.webp"
   },
   {
    "id": "Hv402",
@@ -2871,6 +4637,29 @@
    "img": "Hv4650.webp"
   },
   {
+   "id": "Hv5639",
+   "ign": "Shalaby",
+   "real": "محمد شلبي",
+   "nat": "eg",
+   "region": "EMEA",
+   "birth": "2002-03-14",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 65,
+   "peakYear": 2025,
+   "peakClub": "RAAD",
+   "lastYear": 2025,
+   "lastClub": "RAAD",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv5639.webp"
+  },
+  {
    "id": "Hv24428",
    "ign": "harambe",
    "real": null,
@@ -2913,6 +4702,30 @@
    "tier1": false,
    "coach": false,
    "img": "Hv34032.webp"
+  },
+  {
+   "id": "Hv31390",
+   "ign": "Boogeyyy",
+   "real": "Khilo M. Azucena",
+   "nat": "ph",
+   "region": "Pacific",
+   "birth": "2005-05-07",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "先锋",
+    "决斗者"
+   ],
+   "peak": 65,
+   "peakYear": 2024,
+   "peakClub": "NCG",
+   "lastYear": 2024,
+   "lastClub": "NCG",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv31390.webp"
   },
   {
    "id": "Hv8573",
@@ -2960,6 +4773,74 @@
    "tier1": false,
    "coach": true,
    "img": "Hv2403.webp"
+  },
+  {
+   "id": "Hv26792",
+   "ign": "Hax",
+   "real": null,
+   "nat": "pt",
+   "region": "EMEA",
+   "birth": null,
+   "age": 24,
+   "ageEstimated": true,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 65,
+   "peakYear": 2023,
+   "peakClub": "EGN",
+   "lastYear": 2023,
+   "lastClub": "EGN",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv26792.webp"
+  },
+  {
+   "id": "Hv10550",
+   "ign": "Xuto",
+   "real": "Renato Salazar",
+   "nat": "pe",
+   "region": "Americas",
+   "birth": "2002-02-05",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "哨卫"
+   ],
+   "peak": 64,
+   "peakYear": 2023,
+   "peakClub": "N2O",
+   "lastYear": 2024,
+   "lastClub": "BMC",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv10550.webp"
+  },
+  {
+   "id": "Hv20251",
+   "ign": "vit9ine",
+   "real": "Vitor Hugo",
+   "nat": "br",
+   "region": "Americas",
+   "birth": null,
+   "age": 19,
+   "ageEstimated": true,
+   "role": "控场",
+   "roles": [
+    "控场",
+    "哨卫"
+   ],
+   "peak": 64,
+   "peakYear": 2024,
+   "peakClub": "IMP",
+   "lastYear": 2024,
+   "lastClub": "IMP",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv20251.webp"
   },
   {
    "id": "Hv7381",
@@ -3055,6 +4936,28 @@
    "img": "Hv10661.webp"
   },
   {
+   "id": "Hv39494",
+   "ign": "Yueluo",
+   "real": "尹志炜",
+   "nat": "cn",
+   "region": "China",
+   "birth": "2005-01-30",
+   "age": 20,
+   "ageEstimated": false,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 64,
+   "peakYear": 2023,
+   "peakClub": "RA",
+   "lastYear": 2023,
+   "lastClub": "RA",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv39494.webp"
+  },
+  {
    "id": "Hv38363",
    "ign": "Zhelick",
    "real": "Ari Arbieto",
@@ -3099,6 +5002,28 @@
    "tier1": false,
    "coach": false,
    "img": "Hv29638.webp"
+  },
+  {
+   "id": "Hv40858",
+   "ign": "raised",
+   "real": null,
+   "nat": "br",
+   "region": "Americas",
+   "birth": null,
+   "age": 28,
+   "ageEstimated": true,
+   "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
+   "peak": 63,
+   "peakYear": 2024,
+   "peakClub": "BHS",
+   "lastYear": 2024,
+   "lastClub": "BHS",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv40858.webp"
   },
   {
    "id": "Hv7726",
@@ -3147,6 +5072,29 @@
    "img": "Hv26808.webp"
   },
   {
+   "id": "Hv12474",
+   "ign": "Tag",
+   "real": "Alessandro Voci",
+   "nat": "it",
+   "region": "EMEA",
+   "birth": "2004-04-03",
+   "age": 21,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 62,
+   "peakYear": 2023,
+   "peakClub": "DSY",
+   "lastYear": 2024,
+   "lastClub": "DSY",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv12474.webp"
+  },
+  {
    "id": "Hv36596",
    "ign": "XJian",
    "real": "Ma Lijian (马立健)",
@@ -3167,6 +5115,28 @@
    "tier1": false,
    "coach": false,
    "img": "Hv36596.webp"
+  },
+  {
+   "id": "Hv17216",
+   "ign": "UCc",
+   "real": "Wang Ziyi (王梓译)",
+   "nat": "tw",
+   "region": "China",
+   "birth": null,
+   "age": 24,
+   "ageEstimated": true,
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "peak": 61,
+   "peakYear": 2025,
+   "peakClub": "KBG",
+   "lastYear": 2025,
+   "lastClub": "KBG",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv17216.webp"
   },
   {
    "id": "Hv4040",
@@ -3236,6 +5206,28 @@
    "img": "Hv51538.webp"
   },
   {
+   "id": "Hv41053",
+   "ign": "Snail",
+   "real": "朱东楠",
+   "nat": "cn",
+   "region": "China",
+   "birth": null,
+   "age": 20,
+   "ageEstimated": true,
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "peak": 60,
+   "peakYear": 2025,
+   "peakClub": "KBG",
+   "lastYear": 2025,
+   "lastClub": "KBG",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv41053.webp"
+  },
+  {
    "id": "Hv5013",
    "ign": "cxyy",
    "real": "崔新宇",
@@ -3278,6 +5270,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv23983.webp"
+  },
+  {
+   "id": "Hv5541",
+   "ign": "tryst",
+   "real": "Jit Dutta Choudhury",
+   "nat": "in",
+   "region": "Pacific",
+   "birth": "2002-10-09",
+   "age": 23,
+   "ageEstimated": false,
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "控场"
+   ],
+   "peak": 57,
+   "peakYear": 2025,
+   "peakClub": "Miss",
+   "lastYear": 2025,
+   "lastClub": "Miss",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv5541.webp"
   },
   {
    "id": "Hv2911",
@@ -3346,6 +5361,29 @@
    "tier1": false,
    "coach": false,
    "img": "Hv5600.webp"
+  },
+  {
+   "id": "Hv1618",
+   "ign": "SpYzera",
+   "real": "عبد دوغان",
+   "nat": "lb",
+   "region": "EMEA",
+   "birth": "1999-08-16",
+   "age": 26,
+   "ageEstimated": false,
+   "role": "决斗者",
+   "roles": [
+    "决斗者",
+    "先锋"
+   ],
+   "peak": 54,
+   "peakYear": 2024,
+   "peakClub": "FLC",
+   "lastYear": 2024,
+   "lastClub": "FLC",
+   "tier1": false,
+   "coach": false,
+   "img": "Hv1618.webp"
   },
   {
    "id": "Hv5601",

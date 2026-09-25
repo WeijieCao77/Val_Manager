@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-26',
+    title: '资料库退役选手扩充到 236 人',
+    changes: [
+      { kind: '调整', text: '没有战队、只打表演赛或国家队的选手（如 <b>TenZ、Sacy</b>）也算进退役：资料库「退役」栏增至 <b>236 人</b>，每日挑战的退役选手题增至 <b>134 人</b>。' },
+    ],
+  },
+  {
+    date: '2026-09-26',
     title: '资料库加入退役选手，每日挑战题库扩大',
     changes: [
       { kind: '新增', text: '资料库新增<b>「退役」</b>一栏：147 位 2023–2025 年打过比赛、如今退役或转教练的选手，有照片、真名、年龄、国籍、赛区和巅峰能力。' },

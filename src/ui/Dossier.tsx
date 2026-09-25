@@ -197,7 +197,7 @@ function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
   return (
     <>
       <p className="tiny faint" style={{ marginTop: 0 }}>
-        2023–2025 年打过 VCT 或次级联赛、如今已退役或转做教练的选手。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
+        2023–2025 年打过 VCT 或次级联赛、如今已退役、转做教练或没有战队的选手。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
       </p>
       <div className="retired-grid">
         {list.map((r) => (
