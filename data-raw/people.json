@@ -24007,16 +24007,16 @@
   "ign": "Ra1ny",
   "handleNow": "Ra1ny",
   "nat": "tw",
-  "real": "陈葆桓",
-  "birth": "2007-02-23",
+  "real": "Li Guo-Shuo (李國碩)",
+  "birth": null,
   "img": "https://owcdn.net/img/66ab0de44e06f.png",
   "imgSrc": "vlr",
   "src": {
    "nat": {
-    "tw": 3
+    "tw": 1
    },
-   "real": "号角",
-   "birth": "号角",
+   "real": "vlr",
+   "birth": null,
    "spike": null,
    "spikeHow": null
   },

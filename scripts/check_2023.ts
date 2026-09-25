@@ -49,6 +49,9 @@ check('中国十队里有当年去打国际赛的 EDG、FPX、BLG、ASE', ['EDG'
   const lines = new Set<string>()
   for (const [id, e] of Object.entries(chal.events)) if (e.year === 2023) for (const r of chal.stats[id] ?? []) lines.add(r.ign.toLowerCase())
   for (const [id, e] of Object.entries(vct.events)) if (e.slug?.includes('2023-champions-china-qualifier')) for (const r of vct.stats[id] ?? []) lines.add(r.ign.toLowerCase())
+  // one man, two vlr pages (overrides `samePerson`): his 2023 lines are under the old handle (wqc → cb)
+  const same = (JSON.parse(readFileSync('data-raw/overrides.json', 'utf8')).samePerson ?? {}) as Record<string, { ign?: string; was?: string }>
+  for (const him of Object.values(same)) if (him?.was && him.ign && lines.has(him.was.toLowerCase())) lines.add(him.ign.toLowerCase())
   const t2 = w.teams.filter((t) => t.tier === 2)
   const invented = w.players.filter((p) => t2.some((t) => t.id === p.teamId) && !lines.has(p.ign.toLowerCase()))
   check('次级队都是 2023 年真实打过比赛的队和人，没有 2026 年的占位队', t2.length > 0 && invented.length === 0 && !t2.some((t) => t.tag === 'ODG'),

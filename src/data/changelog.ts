@@ -27,6 +27,16 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-25',
+    title: '选手身份更正，新秀按真实年龄',
+    changes: [
+      { kind: '修复', text: '<b>wqc 和 cb 是同一个人</b>（王晴川）。2023 历史档的 Nova 里是 cb，生涯数据合在一起算。' },
+      { kind: '修复', text: '2024 历史档里台湾的 <b>Ra1ny</b> 被套上了 TEC ra1ny（陈葆桓）的名字和生日，已分开。' },
+      { kind: '修复', text: '<b>Desmo</b> 是 FNATIC 的助理教练，经理模式里不再算 FNATIC 的选手；选手卡保留。' },
+      { kind: '调整', text: '经理模式的新秀<b>按真实生日算年龄</b>，以前普遍大一岁。<b>不满 16 岁</b>的不再按 16 岁算，越年轻成长空间越大。' },
+    ],
+  },
+  {
     date: '2026-09-24',
     title: '修复：上海应援、生日、旧版浏览器',
     changes: [

@@ -1728,6 +1728,15 @@ def main():
                 "motivation": int(clamp(round(rng.norm(rating - 7, 7)), 30, 95)),
             }
 
+        # A man who coaches now (`nowCoach`) played his lines for this club but
+        # is on its bench, not its roster: vlr still lists Desmo on FNATIC's
+        # page. Taken off after the ratings above, so nothing else moves.
+        for p in squad:
+            if p["ign"].lower() in now_coach:
+                p["teamId"] = None
+                p["contractYears"] = 0     # a free agent's shape, as Biank's and coldfish's rows are
+        squad = [p for p in squad if p["ign"].lower() not in now_coach]
+
         out_teams.append({
             "id": team_id, "name": display, "tag": tag, "region": region, "tier": tier,
             "league": (f"VCT {region}" if tier == 1 else f"Challengers {region}"),

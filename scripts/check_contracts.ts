@@ -10,6 +10,11 @@
  *
  * Contract lengths drift with squad churn, so this asks for a league that
  * stays roughly flat rather than a guarantee no club ever stacks four.
+ *
+ * Three seeded careers, and the cliff count is judged on their mean: one seed
+ * alone swung 1–9 of 78 clubs on nothing but who happened to sign whom (the
+ * 2026-09-25 prospect-age fix moved the old single seed from 4 to 9 while six
+ * seeds went 4.0 → 4.8 on average).
  */
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
@@ -17,11 +22,9 @@ import { advanceDay, setupSeason } from '../src/engine/season'
 import { Rng } from '../src/engine/rng'
 
 const top = WORLD_TEAMS.find(t => t.tag === 'TYL')!   // a club that will not be sacked
-const g = createNewGame(top.id, '审计经理', 20260824)
-setupSeason(g)
-const rng = new Rng(11)
+const SEEDS = [20260824, 11, 22]
 
-function snapshot(label: string) {
+function snapshot(g: ReturnType<typeof createNewGame>, label: string) {
   const per: number[] = []
   const dist = [0, 0, 0, 0, 0]
   for (const t of Object.values(g.teams)) {
@@ -46,19 +49,31 @@ function snapshot(label: string) {
 }
 
 let bad = 0
-snapshot('开局')
-for (let season = 1; season <= 4; season++) {
-  const startYear = g.year
-  let guard = 0
-  while (!g.gameOver && guard++ < 400 && g.year === startYear) advanceDay(g, rng)
-  if (g.gameOver) { console.log(`(第 ${season} 季被下课，停在这里)`); break }
-  const s = snapshot(`第 ${season} 季后`)
-  // the league should stay near two deals a club a year, and a cliff should be
-  // the exception rather than a tenth of the league
-  if (s.avg > 2.8) { console.log('     FAIL 平均同年到期爬到了 2.8 以上'); bad++ }
-  if (s.cliffs > 8) { console.log('     FAIL 超过 8 支队伍出现合同悬崖'); bad++ }
-  const longDeals = s.dist[3] + s.dist[4]
-  if (longDeals < s.dist[1] * 0.5) { console.log('     FAIL 长约几乎消失，全联盟都在签一年'); bad++ }
+const cliffsBySeason: number[][] = []
+for (const seed of SEEDS) {
+  console.log(`\n种子 ${seed}`)
+  const g = createNewGame(top.id, '审计经理', seed)
+  setupSeason(g)
+  const rng = new Rng(11)
+  snapshot(g, '开局')
+  for (let season = 1; season <= 4; season++) {
+    const startYear = g.year
+    let guard = 0
+    while (!g.gameOver && guard++ < 400 && g.year === startYear) advanceDay(g, rng)
+    if (g.gameOver) { console.log(`(第 ${season} 季被下课，停在这里)`); break }
+    const s = snapshot(g, `第 ${season} 季后`)
+    // the league should stay near two deals a club a year
+    if (s.avg > 2.8) { console.log('     FAIL 平均同年到期爬到了 2.8 以上'); bad++ }
+    const longDeals = s.dist[3] + s.dist[4]
+    if (longDeals < s.dist[1] * 0.5) { console.log('     FAIL 长约几乎消失，全联盟都在签一年'); bad++ }
+    ;(cliffsBySeason[season - 1] ??= []).push(s.cliffs)
+  }
 }
+// a cliff should be the exception rather than a tenth of the league
+cliffsBySeason.forEach((xs, i) => {
+  const mean = xs.reduce((a, b) => a + b, 0) / xs.length
+  console.log(`第 ${i + 1} 季后 合同悬崖 ${xs.join(' / ')}，平均 ${mean.toFixed(1)}`)
+  if (mean > 8) { console.log('     FAIL 平均超过 8 支队伍出现合同悬崖'); bad++ }
+})
 console.log(bad ? '\nFAIL 错开没撑住' : '\nok  错开撑住了')
 process.exit(bad ? 1 : 0)

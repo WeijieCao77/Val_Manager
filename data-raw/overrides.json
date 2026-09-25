@@ -259,11 +259,13 @@
   "The player row stays in world.json (real 2026 lines, and the 开瓦包 card people already own), marked nowCoach with the club tag;",
   "a manager save leaves him out of the player pool so the coach of UR cannot also be signed as a free agent.",
   "Biank: UR 主教练 (号角 and vlr agree). coldfish: KBG 主教练 since 2026-09-01 (号角).",
-  "NOT Autumn (the GE player is Kale Dunne; EDG's coach Autumn is another man) and NOT Potter (RA's Thai player vs EG's Christine Chi)."
+  "NOT Autumn (the GE player is Kale Dunne; EDG's coach Autumn is another man) and NOT Potter (RA's Thai player vs EG's Christine Chi).",
+  "Desmo (2026-09-25, owner: 「desmo是助理教练」): FNATIC assistant coach, 2205 rounds for FNC in 2026 as a stand-in. vlr lists him on the FNATIC page, so the builder also takes him off the roster."
  ],
  "nowCoach": {
   "Biank": "UR",
-  "coldfish": "KBG"
+  "coldfish": "KBG",
+  "Desmo": "FNC"
  },
  "_handles_note": [
   "The id a player registers under, keyed by vlr id, where vlr.gg prints an alias instead — and prints it on every old page too,",
@@ -323,13 +325,19 @@
  "_samePerson_note": [
   "One man, two vlr.gg player pages. Keyed by the page to fold away -> {vlr: the page that is him now, ign: the handle on it}.",
   "build_world_year.py rewrites the rows before anything reads them, so his lines pool and he is on a roster once.",
-  "balua/aluba: owner, 2026-09-18 — 「狼队aluba和balua是一个人」. vlr lists both on ME in the 2023 China qualifier (288 + 137 rounds), which put him on that roster twice, rated 87 and 65."
+  "balua/aluba: owner, 2026-09-18 — 「狼队aluba和balua是一个人」. vlr lists both on ME in the 2023 China qualifier (288 + 137 rounds), which put him on that roster twice, rated 87 and 65.",
+  "wqc/cb (2026-09-25, owner: 「wqc和cb是一个人」): 王晴川, born 2003-10-04 — Nova's wqc in 2023 (vlr 4403) and cb from 2024 on (vlr 39697)."
  ],
  "samePerson": {
   "8667": {
    "vlr": "14441",
    "ign": "aluba",
    "was": "balua"
+  },
+  "4403": {
+   "vlr": "39697",
+   "ign": "cb",
+   "was": "wqc"
   }
  },
  "_aliases_note": [

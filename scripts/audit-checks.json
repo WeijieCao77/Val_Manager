@@ -322,7 +322,8 @@
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_contracts.ts"
+    "file": "scripts/check_contracts.ts",
+    "estimatedSeconds": 15
   },
   {
     "runtime": "tsx",

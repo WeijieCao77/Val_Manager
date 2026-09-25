@@ -81,10 +81,14 @@ function roleOf(row: ProspectRow, rng: Rng): Role {
   return best ?? rng.pick(CORE)
 }
 
-/** How old he is in this game year, from his real birthdate. */
+/**
+ * How old he is on 1 January of this game year, from his real birthdate —
+ * the way every rostered player's age is counted. `year − birth year` made
+ * everyone born after New Year a year older than he was.
+ */
 export const ageIn = (row: ProspectRow, year: number): number => {
-  const born = row.born ? Number(row.born.slice(0, 4)) : null
-  if (born) return year - born
+  const m = row.born ? /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(row.born) : null
+  if (m) return year - Number(m[1]) - (Number(m[2]) > 1 || Number(m[3]) > 1 ? 1 : 0)
   return (row.age ?? 20) + (year - 2026)
 }
 
@@ -97,7 +101,9 @@ export const ageIn = (row: ProspectRow, year: number): number => {
  */
 export function makeProspect(row: ProspectRow, year: number): Player {
   const rng = new Rng(hashStr(`prospect:${row.id}`))
-  const age = clamp(ageIn(row, year), 16, 30)
+  // his real age: a fifteen-year-old in a 2024 start is fifteen, not sixteen
+  // (the old floor), and has the more room to grow for it
+  const age = clamp(ageIn(row, year), 13, 30)
   const role = roleOf(row, rng)
 
   // where an academy player sits: good enough to be worth a contract, not
@@ -165,7 +171,9 @@ export function makeProspect(row: ProspectRow, year: number): Player {
   // is in his mid-twenties. Handing him a nineteen-year-old's ceiling would
   // make late-career scouting strictly better than early-career scouting,
   // which is backwards.
-  const room = clamp((26 - age) / 8, 0.12, 1)
+  // 18 is the full measure; younger keeps rising (16 → 1.25, 14 → 1.5), so
+  // an under-sixteen is not the same bet as a sixteen-year-old (owner, 2026-09-25)
+  const room = clamp((26 - age) / 8, 0.12, 1.5)
   const head = Math.max(2, Math.round(rng.norm(16, 9) * room))
   p.potential = clamp(p.overall + head, p.overall, 97)
   p.salary = Math.round(clamp(18_000 + p.overall * 700, 15_000, 90_000))

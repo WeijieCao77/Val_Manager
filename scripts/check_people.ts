@@ -93,8 +93,23 @@ console.log('\n=== 现任教练不在转会市场 ===')
     check(`${ign}（${tag} 教练）不是可签的选手`, !!raw && !g.players[raw.id], raw?.id)
     check(`${ign} 的选手卡还在`, ALL_CARDS.some((c) => isPlayerCard(c) && c.playerId === raw?.id))
     const club = Object.values(g.teams).find((t) => t.tag === tag)
-    check(`${tag} 的主教练是 ${ign}`, club?.coach?.name.toLowerCase() === ign.toLowerCase(), club?.coach?.name)
+    // head coach (Biank, coldfish) or on the staff (Desmo, FNATIC's assistant)
+    const staff = [club?.coach?.name, ...(club?.coach?.assistants ?? [])].map((n) => n?.toLowerCase())
+    check(`${ign} 在 ${tag} 的教练组里`, staff.includes(ign.toLowerCase()), staff.join(','))
+    check(`${ign} 不在 ${tag} 的选手名单里`, !!raw && !club?.roster.includes(raw.id))
   }
+}
+console.log('\n=== 站长确认过的身份（2026-09-25）===')
+{
+  const w23 = J('src/data/world_2023.json') as RawWorld, w24 = J('src/data/world_2024.json') as RawWorld
+  // wqc 和 cb 是一个人（王晴川）：2023 年的 Nova 用的是 cb 的 P229
+  check('2023 年没有单独的 wqc', !w23.players.some((p) => p.id === 'Hv4403'))
+  check('2023 年 Nova 里是 P229（cb）', !!w23.teams.find((t) => t.roster.includes('P229')))
+  // ra1ny 是 TEC 的陈葆桓；2024 年台湾的 Ra1ny（vlr 1906）是另一个人
+  const tec = WORLD_PLAYERS.find((p) => p.ign.toLowerCase() === 'ra1ny')
+  check('TEC 的 ra1ny 是陈葆桓', tec?.realName === '陈葆桓', tec?.realName ?? '')
+  const tw = w24.players.find((p) => p.id === 'Hv1906')
+  check('2024 年的台湾 Ra1ny 没套上陈葆桓的名字和生日', !!tw && tw.realName !== '陈葆桓' && tw.birth !== '2007-02-23', `${tw?.realName} ${tw?.birth}`)
 }
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
 process.exit(bad ? 1 : 0)

@@ -116,6 +116,8 @@ for vid, q in reg["people"].items():
 
     # ---- Liquipedia: the page under his handle, if it is about him
     l = dict(lp.get(k) or {})
+    if l.get("vlr") and str(l["vlr"]) != vid:
+        l = {}     # the record names its man, and it is not this one
     h = homonyms.get(k)
     if h and str(h["vlr"]) != vid:
         l = {}
@@ -142,7 +144,7 @@ for vid, q in reg["people"].items():
         l = {}
     if by_id:
         pass
-    elif l and k in verified:
+    elif l and k in verified and hj_mine:
         pass
     elif l and (l.get("birth") or l.get("real")):
         agree = names_agree(l.get("real"), v_real)
@@ -177,7 +179,12 @@ for vid, q in reg["people"].items():
 
     # ---- flag
     # 号角's flag, where the page was read by hand (births_verified.json)
-    h_nat = CODE_OF.get(str((verified.get(k) or {}).get("country") or "").strip().lower()) or (hj.get(k) or {}).get("nat")
+    # 号角's records are keyed by handle too. One that names its vlr id (or a
+    # listed homonym's) is that man's alone: the Taiwanese Ra1ny of vlr 1906
+    # had TEC's 陈葆桓 written onto him off the handle
+    hj_vlr = (verified.get(k) or {}).get("vlr") or (h or {}).get("vlr")
+    hj_mine = not hj_vlr or str(hj_vlr) == vid
+    h_nat = (CODE_OF.get(str((verified.get(k) or {}).get("country") or "").strip().lower()) or (hj.get(k) or {}).get("nat")) if hj_mine else None
     votes = Counter(x for x in (v_nat, l_nat, s_nat, h_nat) if x)
     # Not every voice is equal. A Liquipedia page proven his by its vlr= field
     # and a 号角 page read by hand are each worth a vote and a half; vlr and The
@@ -210,7 +217,7 @@ for vid, q in reg["people"].items():
         report["flag"].append(f"{ign} (vlr {vid}): game {g_nat} · vlr {v_nat} · Liquipedia {l_nat}{sure} · thespike {s_nat} · 号角 {h_nat} → {nat}{tie}")
 
     # ---- name
-    ver = verified.get(k) or hj.get(k) or {}
+    ver = (verified.get(k) or hj.get(k) or {}) if hj_mine else {}
     real = ver.get("realName") or (l.get("real") if l.get("real") and l["real"].lower() != k else None) or v_real or s_real
     real_src = "号角" if ver.get("realName") else "liquipedia" if l.get("real") and l["real"].lower() != k else "vlr" if v_real else "thespike" if s_real else None
     pairs = [(a, b) for a, b in ((v_real, s_real), (v_real, l.get("real")), (l.get("real"), s_real)) if a and b]

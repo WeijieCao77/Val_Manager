@@ -533,6 +533,10 @@ def main():
         ovr = int(round(bw.clamp(ovr + stage_bonus, 30, 97)))
 
         lp = births.get(ign.lower()) or {}
+        # a record that names its vlr id is that man's only (ra1ny: TEC's
+        # 陈葆桓, not the Taiwanese Ra1ny of 2024)
+        if lp.get("vlr") and str(lp["vlr"]) != str(line.get("vlrId") or ""):
+            lp = {}
         if "#" in k and not bw.homonym(ign):
             lp = {}     # a shared handle: the page under it is anybody's; people.json knows by id
         if lp and lp.get("country") and not bw.same_person(lp, line["nat"]):
