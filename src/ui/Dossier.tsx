@@ -134,7 +134,7 @@ export default function Dossier({
           {view === 'active' && <option value="igl">指挥（IGL）</option>}
         </select>
         <div className="seg">
-          <button className={sort === 'rating' || (view === 'retired' && sort !== 'age') ? 'on' : ''} onClick={() => setSort('rating')}>{view === 'retired' ? '巅峰' : '能力'}</button>
+          <button className={sort === 'rating' || (view === 'retired' && sort !== 'age') ? 'on' : ''} onClick={() => setSort('rating')}>能力</button>
           {view === 'active' && <button className={sort === 'honours' ? 'on' : ''} onClick={() => setSort('honours')}>冠军</button>}
           {view === 'active' && <button className={sort === 'winnings' ? 'on' : ''} onClick={() => setSort('winnings')}>奖金</button>}
           <button className={sort === 'age' ? 'on' : ''} onClick={() => setSort('age')}>年龄</button>
@@ -197,7 +197,7 @@ function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
   return (
     <>
       <p className="tiny faint" style={{ marginTop: 0 }}>
-        2023–2025 年打过 VCT 或次级联赛、如今已退役、转做教练或没有战队的选手。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
+        2023–2025 年打过 VCT 或次级联赛、如今已退役、转做教练或没有战队的选手。能力分是 Beta 预估值，还在调整。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
       </p>
       <div className="retired-grid">
         {list.map((r) => (
@@ -208,7 +208,7 @@ function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
               <div className="tiny muted">{r.real ?? '—'}</div>
               <div className="small"><Flag nat={r.nat} /> {natName(r.nat)} · {REGION_CN[r.region] ?? r.region}</div>
               <div className="small">{r.ageEstimated ? '约 ' : ''}{r.age} 岁 · {r.role}</div>
-              <div className="tiny faint">巅峰 {r.peak}（{r.peakYear}{r.peakClub ? ` ${r.peakClub}` : ''}）</div>
+              <div className="tiny faint">预估能力 {r.peak}</div>
             </div>
           </article>
         ))}

@@ -295,7 +295,8 @@ export function imgOf(kind: ChallengeKind, id: string): string | undefined {
 /**
  * The facts a player row is marked on, for a 2026 player or a retired one.
  * A retired man's club is 「退役」, his age is on 1 January 2026 like
- * everybody else's, and his 能力 is the best he ever had.
+ * everybody else's, and his 能力 is an estimate (his best historical overall
+ * for now — Beta, to be recalculated), shown as 「约」.
  */
 interface Person {
   id: string; ign: string; region: string; teamId: string | null; teamTag: string
@@ -365,7 +366,8 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
             : natCountry(g.nat) && natCountry(g.nat) === natCountry(a.nat) ? 'near' : 'miss',
         },
         { label: '年龄', value: String(g.age), mark: num(g.age, a.age, 1) },
-        { label: '能力', value: String(g.overall), mark: num(g.overall, a.overall, 2) },
+        // a retired man's number is an estimate for now (Beta), and says so
+        { label: '能力', value: g.teamId === 'retired' ? `约${g.overall}` : String(g.overall), mark: num(g.overall, a.overall, 2) },
       ],
     }
   }
