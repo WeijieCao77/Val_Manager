@@ -6742,6 +6742,7 @@
   ],
   "currentRole": null,
   "years": [
+   "2023",
    "2024",
    "2025",
    "2026"
@@ -29636,31 +29637,6 @@
   "spikeCurrent": [
    "BOOM Esports"
   ],
-  "currentRole": null,
-  "years": [
-   "2023"
-  ]
- },
- "4403": {
-  "ign": "wqc",
-  "handleNow": "wqc",
-  "nat": "cn",
-  "real": "王晴川",
-  "birth": "2003-10-04",
-  "img": null,
-  "imgSrc": null,
-  "src": {
-   "nat": {
-    "cn": 3
-   },
-   "real": "liquipedia",
-   "birth": "liquipedia",
-   "spike": "63886",
-   "spikeHow": "club"
-  },
-  "lastMatch": "2023-06-07",
-  "current": [],
-  "spikeCurrent": [],
   "currentRole": null,
   "years": [
    "2023"

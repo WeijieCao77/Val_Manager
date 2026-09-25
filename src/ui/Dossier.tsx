@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { WORLD_PLAYERS } from '../engine/world'
 import { WORLD_TEAMS } from '../engine/teams'
-import { DOSSIER, dossierOf, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
+import { RETIRED } from '../engine/retired'
+import type { RetiredPlayer } from '../engine/retired'
+import { DOSSIER, dossierOf, faceUrl, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
 import type { Records } from '../engine/dossier'
 import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN } from '../engine/cards'
 import type { PlayerCard } from '../engine/cards'
@@ -47,6 +49,21 @@ export default function Dossier({
   // a position, or 'igl' — the in-game callers, whatever they play
   const [role, setRole] = useState<Role | 'all' | 'igl'>('all')
   const [sort, setSort] = useState<'rating' | 'honours' | 'winnings' | 'age'>('rating')
+  // 现役 is the 2026 card population; 退役 the men of 2023–2025 who have left
+  const [view, setView] = useState<'active' | 'retired'>('active')
+
+  const retired = useMemo(() => {
+    const text = q.trim().toLowerCase()
+    return RETIRED
+      .filter((r) => {
+        if (region !== 'all' && r.region !== region) return false
+        if (role !== 'all' && role !== 'igl' && !(r.roles ?? [r.role]).includes(role)) return false
+        if (!text) return true
+        const hay = `${r.ign} ${r.real ?? ''} ${r.peakClub ?? ''} ${r.lastClub ?? ''} ${natName(r.nat)} ${r.nat ?? ''}`
+        return hay.toLowerCase().includes(text)
+      })
+      .sort((a, b) => (sort === 'age' ? a.age - b.age : 0) || b.peak - a.peak)
+  }, [q, region, role, sort])
 
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase()
@@ -82,7 +99,7 @@ export default function Dossier({
       title="选手资料库"
       actions={
         <div className="row" style={{ gap: 8 }}>
-          <span className="tiny muted mono">{rows.length} / {WORLD_PLAYERS.length}</span>
+          <span className="tiny muted mono">{view === 'retired' ? `${retired.length} / ${RETIRED.length}` : `${rows.length} / ${WORLD_PLAYERS.length}`}</span>
           {onClose && <button className="ghost sm" onClick={onClose}>返回</button>}
         </div>
       }
@@ -94,6 +111,11 @@ export default function Dossier({
         {DOSSIER.meta.hjPhotos ?? 0} 张照片取自号角 HOJO（haojiao.cc）{(DOSSIER.meta.spikePhotos ?? 0) > 0 ? `，${DOSSIER.meta.spikePhotos} 张取自 THESPIKE.GG` : ''}。
         共收录 {DOSSIER.meta.events} 项赛事。
       </p>
+
+      <div className="seg" style={{ marginTop: 4 }}>
+        <button className={view === 'active' ? 'on' : ''} onClick={() => setView('active')}>现役</button>
+        <button className={view === 'retired' ? 'on' : ''} onClick={() => setView('retired')}>退役 · {RETIRED.length}</button>
+      </div>
 
       <div className="row wrap" style={{ gap: 8, margin: '12px 0' }}>
         <input
@@ -109,15 +131,17 @@ export default function Dossier({
         <select aria-label="资料库位置" style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as Role | 'all' | 'igl')}>
           <option value="all">全部位置</option>
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-          <option value="igl">指挥（IGL）</option>
+          {view === 'active' && <option value="igl">指挥（IGL）</option>}
         </select>
         <div className="seg">
-          <button className={sort === 'rating' ? 'on' : ''} onClick={() => setSort('rating')}>能力</button>
-          <button className={sort === 'honours' ? 'on' : ''} onClick={() => setSort('honours')}>冠军</button>
-          <button className={sort === 'winnings' ? 'on' : ''} onClick={() => setSort('winnings')}>奖金</button>
+          <button className={sort === 'rating' || (view === 'retired' && sort !== 'age') ? 'on' : ''} onClick={() => setSort('rating')}>{view === 'retired' ? '巅峰' : '能力'}</button>
+          {view === 'active' && <button className={sort === 'honours' ? 'on' : ''} onClick={() => setSort('honours')}>冠军</button>}
+          {view === 'active' && <button className={sort === 'winnings' ? 'on' : ''} onClick={() => setSort('winnings')}>奖金</button>}
           <button className={sort === 'age' ? 'on' : ''} onClick={() => setSort('age')}>年龄</button>
         </div>
       </div>
+
+      {view === 'retired' ? <RetiredGrid list={retired} /> : <>
 
       <div className="table-wrap">
         <table>
@@ -162,7 +186,34 @@ export default function Dossier({
         </table>
       </div>
       {rows.length > 300 && <p className="tiny faint" style={{ marginTop: 10 }}>只显示前 300 人，搜索可缩小范围。</p>}
+      </>}
     </Panel>
+  )
+}
+
+/** Retired players with a photo: who, how old, where from, and the best he was. */
+function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
+  if (!list.length) return <p className="small muted">没有符合条件的退役选手。</p>
+  return (
+    <>
+      <p className="tiny faint" style={{ marginTop: 0 }}>
+        2023–2025 年打过 VCT 或次级联赛、如今已退役或转做教练的选手。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
+      </p>
+      <div className="retired-grid">
+        {list.map((r) => (
+          <article className="retired-card" key={r.id}>
+            <img src={faceUrl(r.img, DOSSIER.hist?.[r.id]?.v)} alt={r.ign} loading="lazy" />
+            <div className="retired-body">
+              <div><b>{r.ign}</b>{r.coach && <span className="tag t2" style={{ marginLeft: 5 }}>转教练</span>}</div>
+              <div className="tiny muted">{r.real ?? '—'}</div>
+              <div className="small"><Flag nat={r.nat} /> {natName(r.nat)} · {REGION_CN[r.region] ?? r.region}</div>
+              <div className="small">{r.ageEstimated ? '约 ' : ''}{r.age} 岁 · {r.role}</div>
+              <div className="tiny faint">巅峰 {r.peak}（{r.peakYear}{r.peakClub ? ` ${r.peakClub}` : ''}）</div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   )
 }
 

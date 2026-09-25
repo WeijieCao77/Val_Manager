@@ -22,6 +22,8 @@ import {
   detail, newChallenge, rewardFor,
 } from '../src/engine/challenge'
 import type { ChallengeKind } from '../src/engine/challenge'
+import { RETIRED } from '../src/engine/retired'
+import { imgOf } from '../src/engine/challenge'
 import { newGacha, PACKS } from '../src/engine/gacha'
 import { PUZZLE_DRIFT, puzzleLayout, puzzleShift } from '../src/ui/cards/puzzle'
 import { hashStr } from '../src/engine/rng'
@@ -351,6 +353,36 @@ const dateAt = (n: number): string =>
   const clear = puzzleLayout(192, 192, W, H, Math.min(W / 192, H / 192), [1, 1])
   const clear0 = puzzleLayout(192, 192, W, H, Math.min(W / 192, H / 192))
   check('看清之后没有任何偏移，答案完整居中', clear.x === clear0.x && clear.y === clear0.y)
+}
+
+console.log('\n=== 退役选手进了题库 ===')
+{
+  const t1 = RETIRED.filter((r) => r.tier1)
+  check('有一级联赛出身、带照片的退役选手', t1.length >= 50, String(t1.length))
+  check('每个退役选手都有照片文件', RETIRED.every((r) => existsSync(PUBLIC + 'faces/' + r.img)))
+  check('退役选手能被输入', RETIRED.every((r) => kindOfId(r.id) === 'player'))
+  // some day within a year draws one of them as the answer
+  let hit: { day: string; who: string; id: string } | null = null
+  for (let i = 0; i < 366 && !hit; i++) {
+    const day = new Date(Date.UTC(2026, 9, 1 + i)).toISOString().slice(0, 10)
+    for (const who of ['', 'VM-AAAA-AAAA-AAAA-AAAA-AAAA', 'VM-BBBB-BBBB-BBBB-BBBB-BBBB']) {
+      if (kindFor(day, who) !== 'player') continue
+      const id = answerFor(day, who)
+      if (id.startsWith('Hv')) { hit = { day, who, id }; break }
+    }
+  }
+  check('一年里会抽到退役选手当答案', !!hit, hit ? `${hit.day} ${hit.id}` : '')
+  if (hit) {
+    const self = evaluate('player', hit.id, hit.id)
+    check('退役答案有图、每格都命中', !!imgOf('player', hit.id) && self.cells.every((c) => c.mark === 'hit'), JSON.stringify(self.cells))
+    check('退役答案的战队格写「退役」', self.cells.find((c) => c.label === '战队')?.value === '退役')
+    const other = t1.find((r) => r.id !== hit!.id)!
+    const g = evaluate('player', hit.id, other.id)
+    check('猜另一个退役选手：战队格命中（都退役了）', g.cells.find((c) => c.label === '战队')?.mark === 'hit')
+    const now = WORLD_PLAYERS.find((p) => p.teamId)!
+    const n = evaluate('player', hit.id, now.id)
+    check('猜现役选手：战队格不中', n.cells.find((c) => c.label === '战队')?.mark === 'miss')
+  }
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

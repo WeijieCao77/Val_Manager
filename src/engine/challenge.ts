@@ -25,6 +25,7 @@ import { hashStr } from './rng'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS } from './teams'
 import { DOSSIER } from './dossier'
+import { RETIRED, RETIRED_BY_ID } from './retired'
 import { REGION_CN } from './types'
 import type { Region } from './types'
 // type-only, so this file has no runtime dependency on gacha.ts — the
@@ -139,12 +140,15 @@ const TIER1 = new Set(WORLD_TEAMS.filter((t) => t.tier === 1).map((t) => t.id))
  */
 const regionCn = (r: string): string => REGION_CN[r as Region] ?? r
 
-const playerChoices = (): Choice[] =>
-  WORLD_PLAYERS.map((p) => ({
+const playerChoices = (): Choice[] => [
+  ...WORLD_PLAYERS.map((p) => ({
     id: p.id,
     name: p.ign,
     hint: `${WORLD_TEAMS.find((t) => t.id === p.teamId)?.tag ?? '自由'} · ${regionCn(p.region)}`,
-  }))
+  })),
+  // retired men can be typed in too — and can be the answer (answerPool)
+  ...RETIRED.map((r) => ({ id: r.id, name: r.ign, hint: `退役 · ${regionCn(r.region)}` })),
+]
 
 const teamChoices = (): Choice[] =>
   WORLD_TEAMS.map((t) => ({
@@ -216,9 +220,13 @@ function answerPool(kind: ChallengeKind): string[] {
     // a tier-one roster AND a photograph on file: the picture IS the puzzle,
     // so a player without one cannot be the answer. The comment above used to
     // claim this and the code did not do it.
+    // …and since 2026-09-25 the retired tier-one men with a photograph as
+    // well: the 2026 rosters alone had been answered often enough that
+    // players knew the pool by heart
     return WORLD_PLAYERS
       .filter((p) => TIER1.has(p.teamId ?? '') && !!DOSSIER.players?.[p.id]?.img)
       .map((p) => p.id)
+      .concat(RETIRED.filter((r) => r.tier1).map((r) => r.id))
   }
   if (kind === 'team') return WORLD_TEAMS.filter((t) => TIER1.has(t.id)).map((t) => t.id)
   if (kind === 'map') return MAPS.slice()
@@ -276,12 +284,37 @@ const same = (a: unknown, b: unknown): HintMark => (a === b ? 'hit' : 'miss')
  */
 export function imgOf(kind: ChallengeKind, id: string): string | undefined {
   if (kind === 'player') {
-    const d = DOSSIER.players?.[id]
+    const d = DOSSIER.players?.[id] ?? DOSSIER.hist?.[id]
     return d?.img ? `faces/${d.img}` : undefined
   }
   return kind === 'team' ? `logos/${id}.webp`
     : kind === 'map' ? `maps/${id}.webp`
       : `agents/${id.replace(/[^A-Za-z]/g, '')}.webp`
+}
+
+/**
+ * The facts a player row is marked on, for a 2026 player or a retired one.
+ * A retired man's club is 「退役」, his age is on 1 January 2026 like
+ * everybody else's, and his 能力 is the best he ever had.
+ */
+interface Person {
+  id: string; ign: string; region: string; teamId: string | null; teamTag: string
+  role: string; roles?: string[]; nat?: string | null; age: number; overall: number
+}
+function personOf(id: string): Person | null {
+  const p = WORLD_PLAYERS.find((x) => x.id === id)
+  if (p) {
+    return {
+      id: p.id, ign: p.ign, region: p.region, teamId: p.teamId,
+      teamTag: WORLD_TEAMS.find((t) => t.id === p.teamId)?.tag ?? '自由',
+      role: p.role, roles: p.roles, nat: p.nat, age: p.age, overall: p.overall,
+    }
+  }
+  const r = RETIRED_BY_ID.get(id)
+  return r ? {
+    id: r.id, ign: r.ign, region: r.region, teamId: 'retired', teamTag: '退役',
+    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: r.peak,
+  } : null
 }
 
 /**
@@ -307,10 +340,9 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
   }
 
   if (kind === 'player') {
-    const a = WORLD_PLAYERS.find((p) => p.id === answerId)
-    const g = WORLD_PLAYERS.find((p) => p.id === guessId)
+    const a = personOf(answerId)
+    const g = personOf(guessId)
     if (!a || !g) return { id: guessId, name: guessId, cells: [] }
-    const gTeam = WORLD_TEAMS.find((t) => t.id === g.teamId)
     const aRoles = new Set(g.roles ?? [g.role])
     const shares = (a.roles ?? [a.role]).some((r) => aRoles.has(r))
     return {
@@ -318,7 +350,8 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
       cells: [
         typeCell,
         { label: '赛区', value: String(g.region), mark: same(g.region, a.region) },
-        { label: '战队', value: gTeam?.tag ?? '自由', mark: same(g.teamId, a.teamId) },
+        // two retired men share the 退役 cell: that they are both gone is the clue
+        { label: '战队', value: g.teamTag, mark: same(g.teamId, a.teamId) },
         {
           label: '位置',
           value: String(g.role),

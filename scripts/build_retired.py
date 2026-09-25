@@ -62,6 +62,42 @@ for vid, q in reg.items():
         "coachIn2026": staff26.get(q["ign"].lower()),
     })
 rows.sort(key=lambda r: (-(len(r["tier1"]) > 0), -(r["peak"] or 0)))
+
+# ---- src/data/retired.json: the ones the game shows (资料库 · 退役, 每日挑战)
+# Retired as players — `gone` and `bench` — with a photograph on file. One man
+# with two vlr pages (overrides `samePerson`, wqc = cb) is not retired at all.
+same = set((J("data-raw", "overrides.json").get("samePerson") or {}).keys())
+dossier_hist = J("src", "data", "dossier.json").get("hist") or {}
+worlds = {y: {p["id"]: p for p in J("src", "data", f"world_{y}.json")["players"]} for y in (2023, 2024, 2025)}
+shown = []
+for r in rows:
+    pid = "Hv" + r["vlr"]
+    face = (dossier_hist.get(pid) or {}).get("img")
+    if r["group"] not in ("gone", "bench") or r["vlr"] in same or not face \
+            or not os.path.exists(os.path.join(ROOT, "public", "faces", face)):
+        continue
+    last = max(r["years"])
+    peak_rec = worlds.get(r["peakYear"], {}).get(pid) or {}
+    last_rec = worlds.get(last, {}).get(pid) or peak_rec
+    birth = (people.get(r["vlr"]) or {}).get("birth")
+    if birth:
+        y, m, d = (int(x) for x in birth.split("-"))
+        age, est = 2026 - y - (1 if (m, d) > (1, 1) else 0), False
+    else:
+        # as the historical world had him, carried to 1 January 2026
+        age, est = (last_rec.get("age") or 0) + (2026 - last), True
+    shown.append({
+        "id": pid, "ign": r["ign"], "real": r["real"], "nat": r["nat"], "region": r["region"] or last_rec.get("region"),
+        "birth": birth, "age": age, "ageEstimated": est,
+        "role": peak_rec.get("role") or last_rec.get("role"), "roles": peak_rec.get("roles") or last_rec.get("roles"),
+        "peak": r["peak"], "peakYear": r["peakYear"], "peakClub": r["peakClub"], "lastYear": last,
+        "lastClub": reg[r["vlr"]]["years"][str(last)].get("club"), "tier1": bool(r["tier1"]),
+        "coach": r["group"] == "bench", "img": face,
+    })
+json.dump({"_note": "built by scripts/build_retired.py — retired players with a photograph, ages on 2026-01-01", "players": shown},
+          open(os.path.join(ROOT, "src", "data", "retired.json"), "w"), ensure_ascii=False, indent=1)
+print("src/data/retired.json:", len(shown), "shown,", sum(1 for x in shown if x["tier1"]), "tier-one,",
+      sum(1 for x in shown if x["ageEstimated"]), "ages estimated")
 json.dump(rows, open(os.path.join(ROOT, "analysis", "people", "retired.json"), "w"), ensure_ascii=False, indent=1)
 
 CN = {"bench": "转教练 / 幕后", "gone": "退役或一年以上无比赛", "idle": "无队（近一年有过比赛，含国家队、表演赛）", "playing": "仍在打（游戏没收录的队伍）"}

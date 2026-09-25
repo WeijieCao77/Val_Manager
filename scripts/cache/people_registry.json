@@ -345,7 +345,7 @@
      "real": "Trent Cairns",
      "birth": "2004-12-09",
      "img": true,
-     "overall": 82
+     "overall": 83
     },
     "2024": {
      "year": 2024,
@@ -2938,7 +2938,7 @@
      "real": "Benjy David Fish",
      "birth": "2004-04-02",
      "img": true,
-     "overall": 53
+     "overall": 54
     }
    },
    "how": "dossier"
@@ -3273,8 +3273,8 @@
      "year": 2026,
      "id": "P519",
      "ign": "Desmo",
-     "club": "FNC",
-     "tier": 1,
+     "club": null,
+     "tier": null,
      "region": "EMEA",
      "nat": "dk",
      "real": "Casper Rasmussen",
@@ -4707,7 +4707,7 @@
      "real": "Андрей Кипрский",
      "birth": "2000-01-27",
      "img": true,
-     "overall": 90
+     "overall": 91
     },
     "2024": {
      "year": 2024,
@@ -4720,7 +4720,7 @@
      "real": "Андрей Кипрский",
      "birth": "2000-01-27",
      "img": true,
-     "overall": 91
+     "overall": 90
     },
     "2023": {
      "year": 2023,
@@ -5488,7 +5488,7 @@
      "real": "변상범",
      "birth": "1998-03-27",
      "img": true,
-     "overall": 81
+     "overall": 82
     },
     "2023": {
      "year": 2023,
@@ -5501,7 +5501,7 @@
      "real": "변상범",
      "birth": "1998-03-27",
      "img": true,
-     "overall": 79
+     "overall": 80
     }
    },
    "how": "dossier"
@@ -5758,7 +5758,7 @@
      "real": "김무빈",
      "birth": "2006-07-31",
      "img": true,
-     "overall": 72
+     "overall": 71
     }
    },
    "how": "dossier"
@@ -5824,7 +5824,7 @@
      "real": "김원태",
      "birth": "2002-10-21",
      "img": true,
-     "overall": 73
+     "overall": 74
     }
    },
    "how": "dossier"
@@ -6860,7 +6860,7 @@
      "real": "Ngô Công Anh",
      "birth": "1996-08-27",
      "img": true,
-     "overall": 78
+     "overall": 79
     }
    },
    "how": "dossier"
@@ -7071,7 +7071,7 @@
      "real": "Jittana Nokngam",
      "birth": "2005-03-06",
      "img": true,
-     "overall": 74
+     "overall": 75
     }
    },
    "how": "dossier"
@@ -7223,7 +7223,7 @@
      "real": "고경원",
      "birth": "2004-05-10",
      "img": true,
-     "overall": 74
+     "overall": 73
     }
    },
    "how": "dossier"
@@ -7908,7 +7908,7 @@
      "real": "Артур Чурюмов",
      "birth": "2001-11-20",
      "img": true,
-     "overall": 64
+     "overall": 63
     }
    },
    "how": "dossier"
@@ -7981,7 +7981,7 @@
      "real": "孙科伦",
      "birth": "2001-09-23",
      "img": true,
-     "overall": 58
+     "overall": 59
     }
    },
    "how": "dossier"
@@ -8634,7 +8634,7 @@
      "real": "光洪霖",
      "birth": "2004-05-20",
      "img": true,
-     "overall": 56
+     "overall": 57
     }
    },
    "how": "dossier"
@@ -8667,7 +8667,7 @@
      "real": "王晴川",
      "birth": "2003-10-04",
      "img": true,
-     "overall": 61
+     "overall": 76
     },
     "2024": {
      "year": 2024,
@@ -8680,7 +8680,20 @@
      "real": "王晴川",
      "birth": "2003-10-04",
      "img": true,
-     "overall": 59
+     "overall": 65
+    },
+    "2023": {
+     "year": 2023,
+     "id": "P229",
+     "ign": "cb",
+     "club": "NOVA",
+     "tier": 2,
+     "region": "China",
+     "nat": "cn",
+     "real": "王晴川",
+     "birth": "2003-10-04",
+     "img": true,
+     "overall": 61
     }
    },
    "how": "dossier"
@@ -9359,7 +9372,7 @@
      "real": "韩博皓",
      "birth": "2004-04-12",
      "img": true,
-     "overall": 68
+     "overall": 69
     }
    },
    "how": "dossier"
@@ -9780,7 +9793,7 @@
      "real": "林定宇",
      "birth": "2006-09-13",
      "img": true,
-     "overall": 57
+     "overall": 58
     }
    },
    "how": "dossier"
@@ -11012,7 +11025,7 @@
      "real": "Arthur Vieira",
      "birth": "2003-08-03",
      "img": true,
-     "overall": 85
+     "overall": 86
     },
     "2023": {
      "year": 2023,
@@ -11514,7 +11527,7 @@
      "real": "Nathan Bocqueho",
      "birth": "1999-02-25",
      "img": true,
-     "overall": 58
+     "overall": 59
     }
    },
    "how": "dossier"
@@ -11673,7 +11686,7 @@
      "real": "Kaan Ürpek",
      "birth": "1999-08-14",
      "img": true,
-     "overall": 78
+     "overall": 77
     }
    },
    "how": "dossier"
@@ -12558,7 +12571,7 @@
      "real": "김지우",
      "birth": "2006-11-18",
      "img": true,
-     "overall": 66
+     "overall": 65
     }
    },
    "how": "dossier"
@@ -12968,7 +12981,7 @@
      "real": "Yoshitaka Enomoto",
      "birth": "2002-03-16",
      "img": true,
-     "overall": 73
+     "overall": 74
     }
    },
    "how": "dossier"
@@ -13526,7 +13539,7 @@
      "real": "王浩宇",
      "birth": "2002-03-23",
      "img": true,
-     "overall": 57
+     "overall": 58
     }
    },
    "how": "dossier"
@@ -13559,7 +13572,7 @@
      "real": "杨曾威",
      "birth": "2004-06-25",
      "img": true,
-     "overall": 77
+     "overall": 78
     },
     "2023": {
      "year": 2023,
@@ -13638,7 +13651,7 @@
      "real": "李松原",
      "birth": "2001-08-24",
      "img": true,
-     "overall": 56
+     "overall": 57
     }
    },
    "how": "dossier"
@@ -13704,7 +13717,7 @@
      "real": "Tyler James Aeria",
      "birth": "2006-10-19",
      "img": true,
-     "overall": 59
+     "overall": 61
     }
    },
    "how": "dossier"
@@ -13902,7 +13915,7 @@
      "real": "李润涛",
      "birth": "2002-10-15",
      "img": true,
-     "overall": 57
+     "overall": 58
     }
    },
    "how": "dossier"
@@ -14557,7 +14570,7 @@
      "real": "Furkan Yeğen",
      "birth": "2000-09-27",
      "img": true,
-     "overall": 81
+     "overall": 82
     }
    },
    "how": "dossier"
@@ -15527,7 +15540,7 @@
      "real": "钟剑飞",
      "birth": "2000-12-16",
      "img": true,
-     "overall": 63
+     "overall": 64
     }
    },
    "how": "dossier"
@@ -15613,7 +15626,7 @@
      "real": "何洵熙",
      "birth": "1998-03-16",
      "img": true,
-     "overall": 64
+     "overall": 63
     },
     "2023": {
      "year": 2023,
@@ -15626,7 +15639,7 @@
      "real": "何洵熙",
      "birth": "1998-03-16",
      "img": true,
-     "overall": 66
+     "overall": 67
     }
    },
    "how": "dossier"
@@ -15838,7 +15851,7 @@
      "real": "Jake Anderson",
      "birth": "2003-02-21",
      "img": true,
-     "overall": 75
+     "overall": 76
     }
    },
    "how": "dossier"
@@ -16526,7 +16539,7 @@
      "real": "Matheus Rodigoli",
      "birth": "2001-12-20",
      "img": true,
-     "overall": 85
+     "overall": 86
     }
    },
    "how": "dossier"
@@ -17251,7 +17264,7 @@
      "real": "Kelden Elric Pupello",
      "birth": "2000-11-14",
      "img": false,
-     "overall": 75
+     "overall": 78
     },
     "2023": {
      "year": 2023,
@@ -17396,7 +17409,7 @@
      "real": "姜河",
      "birth": "2004-03-27",
      "img": false,
-     "overall": 68
+     "overall": 69
     },
     "2023": {
      "year": 2023,
@@ -17409,7 +17422,7 @@
      "real": "姜河",
      "birth": "2004-03-27",
      "img": false,
-     "overall": 62
+     "overall": 63
     }
    },
    "how": "world"
@@ -17627,7 +17640,7 @@
      "real": "Tautvydas Paldavicius",
      "birth": "1999-09-08",
      "img": false,
-     "overall": 71
+     "overall": 73
     },
     "2024": {
      "year": 2024,
@@ -17660,7 +17673,7 @@
      "real": "Vakaris Bebravičius",
      "birth": "2000-07-07",
      "img": false,
-     "overall": 74
+     "overall": 75
     }
    },
    "how": "world"
@@ -18050,7 +18063,7 @@
      "real": "Federico  Evangelista",
      "birth": "1997-04-08",
      "img": false,
-     "overall": 83
+     "overall": 87
     }
    },
    "how": "world"
@@ -18070,7 +18083,7 @@
      "real": "채영문",
      "birth": "1996-07-11",
      "img": false,
-     "overall": 69
+     "overall": 68
     }
    },
    "how": "world"
@@ -18552,7 +18565,7 @@
      "real": "叶晓栋",
      "birth": "1997-06-07",
      "img": false,
-     "overall": 76
+     "overall": 74
     },
     "2024": {
      "year": 2024,
@@ -18769,7 +18782,7 @@
      "real": "이재혁",
      "birth": "1998-10-14",
      "img": false,
-     "overall": 71
+     "overall": 72
     }
    },
    "how": "world"
@@ -18908,7 +18921,7 @@
      "real": "张峻程",
      "birth": "2001-06-11",
      "img": false,
-     "overall": 56
+     "overall": 57
     },
     "2024": {
      "year": 2024,
@@ -22324,7 +22337,7 @@
      "real": "陈一豪",
      "birth": "2000-04-17",
      "img": false,
-     "overall": 67
+     "overall": 68
     },
     "2023": {
      "year": 2023,
@@ -22357,7 +22370,7 @@
      "real": "Nicolás Martin Ferrari",
      "birth": "2001-04-04",
      "img": false,
-     "overall": 72
+     "overall": 73
     },
     "2023": {
      "year": 2023,
@@ -22450,7 +22463,7 @@
      "real": "Tobias Flodström",
      "birth": "1995-06-11",
      "img": false,
-     "overall": 74
+     "overall": 75
     }
    },
    "how": "world"
@@ -22470,7 +22483,7 @@
      "real": "Ardis Svarenieks",
      "birth": "1998-05-01",
      "img": false,
-     "overall": 82
+     "overall": 83
     },
     "2023": {
      "year": 2023,
@@ -22734,7 +22747,7 @@
      "real": "Kevin Susanto",
      "birth": null,
      "img": false,
-     "overall": 65
+     "overall": 66
     }
    },
    "how": "world"
@@ -22933,7 +22946,7 @@
      "real": "程万鹏",
      "birth": "2001-04-01",
      "img": false,
-     "overall": 70
+     "overall": 71
     }
    },
    "how": "world"
@@ -23072,7 +23085,7 @@
      "real": "矢内 洪輝",
      "birth": "2005-02-02",
      "img": false,
-     "overall": 66
+     "overall": 67
     }
    },
    "how": "world"
@@ -23651,7 +23664,7 @@
      "real": "송윤호",
      "birth": "2007-04-02",
      "img": false,
-     "overall": 67
+     "overall": 66
     }
    },
    "how": "world"
@@ -24103,7 +24116,7 @@
      "real": "Nicholas Karrlsson Ng",
      "birth": null,
      "img": false,
-     "overall": 68
+     "overall": 67
     }
    },
    "how": "world"
@@ -25016,7 +25029,7 @@
      "real": "อิทธิฤทธิ์ งามสอาด",
      "birth": "1999-04-08",
      "img": false,
-     "overall": 87
+     "overall": 86
     },
     "2023": {
      "year": 2023,
@@ -25122,7 +25135,7 @@
      "real": "彭彥理",
      "birth": "1999-01-27",
      "img": false,
-     "overall": 66
+     "overall": 67
     }
    },
    "how": "world"
@@ -25139,8 +25152,8 @@
      "tier": 2,
      "region": "Pacific",
      "nat": "tw",
-     "real": "陈葆桓",
-     "birth": "2007-02-23",
+     "real": "Li Guo-Shuo (李國碩)",
+     "birth": null,
      "img": false,
      "overall": 72
     }
@@ -25568,7 +25581,7 @@
      "real": "Максим Демиановских",
      "birth": "2002-06-19",
      "img": false,
-     "overall": 86
+     "overall": 83
     },
     "2023": {
      "year": 2023,
@@ -25680,7 +25693,7 @@
      "real": "Zhang Luxuan (张陆轩)",
      "birth": null,
      "img": false,
-     "overall": 61
+     "overall": 62
     }
    },
    "how": "world"
@@ -25865,7 +25878,7 @@
      "real": null,
      "birth": null,
      "img": false,
-     "overall": 67
+     "overall": 68
     },
     "2023": {
      "year": 2023,
@@ -26895,7 +26908,7 @@
      "real": "Carlos Alberto",
      "birth": "2003-06-11",
      "img": false,
-     "overall": 77
+     "overall": 78
     }
    },
    "how": "world"
@@ -27075,7 +27088,7 @@
      "real": "Wassim Cista",
      "birth": "2003-03-26",
      "img": false,
-     "overall": 76
+     "overall": 77
     }
    },
    "how": "world"
@@ -27135,7 +27148,7 @@
      "real": "Aleksander Zygmunt",
      "birth": "2001-09-11",
      "img": false,
-     "overall": 64
+     "overall": 65
     }
    },
    "how": "world"
@@ -27175,7 +27188,7 @@
      "real": "ปฏิภาณ ไชยวงษ์",
      "birth": "2003-09-03",
      "img": false,
-     "overall": 72
+     "overall": 73
     }
    },
    "how": "world"
@@ -27215,7 +27228,7 @@
      "real": "安梓文",
      "birth": null,
      "img": false,
-     "overall": 69
+     "overall": 70
     }
    },
    "how": "world"
@@ -27335,7 +27348,7 @@
      "real": "刘爽",
      "birth": null,
      "img": false,
-     "overall": 67
+     "overall": 68
     }
    },
    "how": "world"
@@ -29616,26 +29629,6 @@
      "birth": "2001-10-10",
      "img": false,
      "overall": 54
-    }
-   },
-   "how": "world"
-  },
-  "4403": {
-   "vlr": "4403",
-   "ign": "wqc",
-   "years": {
-    "2023": {
-     "year": 2023,
-     "id": "Hv4403",
-     "ign": "wqc",
-     "club": "NOVA",
-     "tier": 2,
-     "region": "China",
-     "nat": "cn",
-     "real": "王晴川",
-     "birth": "2003-10-04",
-     "img": false,
-     "overall": 61
     }
    },
    "how": "world"
