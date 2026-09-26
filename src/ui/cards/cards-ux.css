@@ -157,7 +157,7 @@
 .cardmode .modal-head .spacer { flex: 1; }
 @media (max-width: 480px) {
   .cardmode .cm-card-intro { flex-direction: column; align-items: center !important; }
-  .cardmode .cm-card-intro > div:not(.cardface) { width: 100%; }
+  .cardmode .cm-card-intro > div:not(.cardface):not(.card-img) { width: 100%; }
 }
 .cardmode .panel-head h2 { letter-spacing: .02em; color: var(--text); }
 .cardmode .modal { overflow-y: auto; overscroll-behavior: contain; }

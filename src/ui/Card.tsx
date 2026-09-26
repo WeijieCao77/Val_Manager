@@ -1,5 +1,6 @@
 import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ATTR_CN } from '../engine/types'
 import { RARITY_CN } from '../engine/cards'
 import { crestUrl } from '../engine/dossier'
@@ -94,6 +95,55 @@ function Face({ src, alt }: { src: string | null; alt: string }) {
   return <div className="cf-photo cf-noface"><Silhouette /></div>
 }
 
+/**
+ * A card is a picture: drawn once, on one fixed canvas, and scaled to whatever
+ * width the page gives it.
+ *
+ * It used to be laid out afresh in every place it appeared — a fixed width per
+ * size, a height that grew with whatever it held, and each grid overriding the
+ * width — so a 彩卡, a gold, a Seoul card and a coach sat side by side in the
+ * squad at four different proportions (「卡的尺寸很奇怪」). Now every face is the
+ * same 5:7 canvas, and a size only says how wide the picture is shown.
+ */
+export const CARD_W = 160
+export const CARD_H = 224
+/** the back is drawn for the pack reveal's 184px card; same 5:7, so it covers the face exactly */
+const BACK_W = 184
+const BACK_H = 257.6
+
+export function CardScale({ size = 'md', w = CARD_W, h = CARD_H, children }: {
+  size?: 'sm' | 'md' | 'lg'; w?: number; h?: number; children: ReactNode
+}) {
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    // offsetWidth, not getBoundingClientRect: the layout width, before the
+    // reveal's tilt and flip transforms (or anything else) squeeze it
+    const fit = () => { if (el.offsetWidth > 0) setScale(el.offsetWidth / w) }
+    fit()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', fit)
+      return () => window.removeEventListener('resize', fit)
+    }
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [w])
+  return (
+    <div ref={box} className={`card-img ci-${size}`}>
+      <span className="ci-space" style={{ paddingTop: `${(h / w) * 100}%` }} />
+      <div
+        className="ci-stage"
+        style={{ width: w, height: h, transform: `scale(${scale || 1})`, visibility: scale ? undefined : 'hidden' }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 const hashOf = (s: string): number => {
   let h = 2166136261
   for (let i = 0; i < s.length; i++) {
@@ -127,13 +177,16 @@ export interface CardFaceProps {
 export default function CardFace({
   card, level = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer,
 }: CardFaceProps) {
-  if (isPlayerCard(card) && card.event === 'seoul-2024') return <SeoulCard {...{ card, level, dupes, size, selected, dimmed, onClick, footer }} />
+  if (isPlayerCard(card) && card.event === 'seoul-2024') {
+    return <CardScale size={size}><SeoulCard {...{ card, level, dupes, size: 'md', selected, dimmed, onClick, footer }} /></CardScale>
+  }
   // The base rating, always: the number on the face says which card this is
   // (the 2024 EDG ZmjjKK is a 97 whatever you have done to it), the +N
   // beside it says what you have done, and 战力 in the detail says what the
   // two add up to. Folding the levels in here ran into 99 and stopped.
   const rating = card.rating
-  const cls = `cardface r-${card.rarity} s-${size}` + (isCoachCard(card) ? ' cardface-coach' : '')
+  // the canvas always carries the one layout; `size` is only how wide it is shown
+  const cls = `cardface r-${card.rarity} s-md` + (isCoachCard(card) ? ' cardface-coach' : '')
     + (selected ? ' sel' : '') + (dimmed ? ' dim' : '') + (onClick ? ' tap' : '')
   const legend = legendOf(card)
   const crest = crestUrl(card.clubId)
@@ -148,8 +201,8 @@ export default function CardFace({
   // beyond three letters of small type.
   const asBackdrop = card.rarity === 'mythic' && !!card.face
   const body = isPlayerCard(card)
-    ? <PlayerBody card={card} size={size} footer={footer} backdrop={asBackdrop} />
-    : <CoachBody card={card as CoachCard} size={size} footer={footer} backdrop={asBackdrop} />
+    ? <PlayerBody card={card} size="md" footer={footer} backdrop={asBackdrop} />
+    : <CoachBody card={card as CoachCard} size="md" footer={footer} backdrop={asBackdrop} />
 
   // A grid of彩卡 all animating in step reads as "a row of red cards", not as
   // iridescence. Each one starts somewhere else in the cycle, keyed off its own
@@ -159,6 +212,7 @@ export default function CardFace({
     : undefined
 
   return (
+    <CardScale size={size}>
     <div
       className={`${cls}${asBackdrop ? ' shot' : ''}`}
       style={holo}
@@ -219,6 +273,7 @@ export default function CardFace({
         </div>
       )}
     </div>
+    </CardScale>
   )
 }
 
@@ -307,10 +362,11 @@ export function PositionCrest({ position }: { position: PackPosition }) {
 }
 
 export function CardBack({ kind = 'player', position, seoul }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean }) {
-  if (seoul) return <SeoulCardBack />
+  if (seoul) return <CardScale size="lg" w={BACK_W} h={BACK_H}><SeoulCardBack /></CardScale>
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined
   return (
+    <CardScale size="lg" w={BACK_W} h={BACK_H}>
     <div className={`cardback${coach ? ' cardback-coach' : design ? ' cardback-position' : ''}`} style={positionPackStyle(design ? position : undefined)}>
       <span className="cb-frame" aria-hidden="true" />
       <div className="cb-topline">VAL MANAGER</div>
@@ -325,6 +381,7 @@ export function CardBack({ kind = 'player', position, seoul }: { kind?: Card['ki
         <span aria-hidden="true">★</span>
       </div>
     </div>
+    </CardScale>
   )
 }
 
@@ -333,10 +390,12 @@ export function CardSlot({
   label, onClick, hint,
 }: { label: string; onClick?: () => void; hint?: string }) {
   return (
+    <CardScale>
     <div className="cardface slot s-md tap" role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined} onClick={onClick} title={hint ?? `选一名${label}`}>
       <div className="cf-slot-plus">＋</div>
       <div className="cf-slot-label">{label}</div>
     </div>
+    </CardScale>
   )
 }
 

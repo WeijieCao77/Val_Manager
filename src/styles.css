@@ -1418,7 +1418,7 @@ html.pack-open, html.pack-open body { overscroll-behavior: none; }
   opacity: 0; transform: translate(-50%, 28%) scale(.82) rotate(-1deg);
   pointer-events: none;
 }
-.pack-card-emerge .cardback { width: 184px; position: relative; transform: translateZ(2px); }
+.pack-card-emerge .card-img { width: 184px; position: relative; transform: translateZ(2px); }
 .pack-stack-card {
   position: absolute; inset: 0; border: 2px solid #d8cdb7; border-radius: 8px;
   background: #1c2c39;
@@ -1748,12 +1748,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 /* The squad grid hands each seat a column; the card has to take the column
    rather than its own 132px, or three cards plus gaps overflow a 375px phone
    and the fifth seat sits off-screen. */
-.cm-squad .cardface { width: 100%; max-width: 150px; }
-.cm-squad .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+.cm-squad .card-img { width: 100%; max-width: 150px; }
 @media (max-width: 420px) {
   .cm-squad { gap: 6px; }
-  .cm-squad .cf-attrs { grid-template-columns: repeat(2, 1fr); font-size: 9px; }
-  .cm-squad .cf-name { font-size: 12px; }
 }
 
 /* The match report's fives take the modal's width the way the squad grid does. Fixed 96px cards
@@ -1765,12 +1762,9 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   gap: 8px;
   justify-items: center;
 }
-.report-cards .cardface { width: 100%; max-width: 150px; }
-.report-cards .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+.report-cards .card-img { width: 100%; max-width: 150px; }
 @media (max-width: 420px) {
   .report-cards { gap: 6px; }
-  .report-cards .cf-attrs { grid-template-columns: repeat(2, 1fr); font-size: 9px; }
-  .report-cards .cf-name { font-size: 12px; }
 }
 
 /* ---- the flip ---------------------------------------------------------
@@ -2523,7 +2517,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel-2); padding: 8px;
 }
-.market-box .cardface { margin: 0 auto; }
+.market-box .card-img { margin: 0 auto; }
 /* the seller's name is the line that wraps; two lines is the ceiling */
 .market-seller {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -2544,8 +2538,7 @@ td .cf-flag.code, .small .cf-flag.code { background: var(--panel-3); color: var(
 @media (max-width: 720px) {
   .market-shelf { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .market-box { width: auto; }
-  .market-box .cardface { width: 100%; max-width: 150px; }
-  .market-box .cf-photo { width: 56%; height: auto; aspect-ratio: 1 / 1; }
+  .market-box .card-img { width: 100%; max-width: 150px; }
 }
 
 .preset-box {
@@ -3219,3 +3212,29 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 .retired-card > img { display: block; width: 100%; height: 160px; object-fit: cover; object-position: top; background: var(--panel); }
 .retired-body { padding: 8px 10px 10px; display: grid; gap: 3px; }
 @media (max-width: 420px) { .retired-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .retired-card > img { height: 140px; } }
+
+/* ---- a card is a picture ------------------------------------------------
+ *
+ * Every face and back is drawn on one fixed canvas (CardScale in Card.tsx:
+ * 160×224 for a face, 184×257.6 for a back — both 5:7) and scaled to the width
+ * the page gives it, so a 彩卡, a gold, a Seoul card, a coach and an empty seat
+ * are the same shape everywhere. A place that wants a card bigger or smaller
+ * sizes .card-img; nothing reaches inside it any more.
+ */
+.card-img { position: relative; display: block; flex: none; width: 132px; }
+.card-img.ci-sm { width: 96px; }
+.card-img.ci-lg { width: 184px; }
+.card-img > .ci-space { display: block; }
+.card-img > .ci-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+/* the canvas is authoritative: no size class, grid or event stylesheet resizes what is inside it */
+.card-img > .ci-stage > .cardface,
+.card-img > .ci-stage > .cardback {
+  width: 100% !important; height: 100% !important;
+  min-height: 0 !important; max-width: none !important; margin: 0 !important;
+}
+/* grids hand a card their column, up to the canvas's own width */
+.cm-grid > .card-img { width: 100%; max-width: 160px; }
+.cm-grid.sm > .card-img { max-width: 132px; }
+/* the front keeps its own width (the flip is as wide as it); the back lies exactly over it */
+.flip-back > .card-img { width: 100%; }
+.team-lineup-players > .card-img { width: 132px; }

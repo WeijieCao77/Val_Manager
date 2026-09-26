@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-26',
+    title: '开瓦包：所有卡面统一比例',
+    changes: [
+      { kind: '修复', text: '卡组、收藏、开包、交易区里，<b>彩卡、金银铜卡、首尔卡和教练卡的大小比例不一样</b>，同一排高矮不齐。现在每张卡都是同一张 5:7 的卡面，只按位置放大缩小。' },
+    ],
+  },
+  {
+    date: '2026-09-26',
     title: '资料库加入退役选手（Beta），每日挑战题库扩大',
     changes: [
       { kind: '新增', text: '本次新增为 <b>Beta</b>：<b>退役选手的能力分还是预估值，没有调整好</b>，之后会重新计算。' },
