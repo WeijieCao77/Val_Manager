@@ -233,7 +233,8 @@ export const dashboardHtml = () => `<!doctype html>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
-    <b>自动暂停（3 天，再犯 5 天）只有两条：</b>A 一天内 5 次在挂出（或保护期结束）后 2 秒内买下/报名；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）。
+    <b>自动暂停（3 天，再犯 5 天）：</b>A 一天内 5 次在挂出（或保护期结束）后 2 秒内买下/报名；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）；
+    <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G 打开后买卖双方一起停，<b>现在先只上报</b>（下面两个名单）。
     B 多家快买一天满 40、C 一周满 120、D 一周 100 张且跨 20 个钟点：<b>只上报不封</b>，下面名单里标着「过线 B/C/D」，你核实后用上面的按钮手动暂停。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
     接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
@@ -1005,6 +1006,9 @@ const mgCall = async (body) => {
   return r.json()
 }
 const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张，7天里算倒卖的 ' + (c.trading ?? '?') + '/' + c.week + ' · 2秒内 ' + c.ultra + ' · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
+const mgMoved = (e) => e && e.transfer ? ('和 ' + (e.with || []).join('、') + ' 倒卡：'
+  + (e.transfer.dumps || []).map((d) => (d.bought ? '买入 ' : '卖出 ') + d.price + '（一般 ' + d.ref + '，' + d.ratio + ' 倍）').join('，')
+  + (e.transfer.loops || []).map((l) => ' 24 小时内成交 ' + l.n + ' 次' + (l.both ? '，互相买' : '') + (l.pricey ? '，其中 ' + l.pricey + ' 次高价' : '')).join('')) : ''
 async function mgLoad() {
   const box = $('#mgOut')
   box.textContent = '读取中…'
@@ -1013,10 +1017,19 @@ async function mgLoad() {
     const who = (x) => '<b>' + esc(x.name || '无名') + '</b> <a href="#" data-mg="' + esc(x.code) + '">' + esc(x.code) + '</a>'
     const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
       + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
-      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
+      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
     const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动暂停</b> 规则 ' + esc(f.rule) : /^[B-D]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
+    const mv = r.moving || { sales: [], pairs: [] }
+    const acct = (x) => who(x) + ' <span class="muted" style="font-size:12px">（建号 ' + (x.created ? gWhen(x.created) : '?') + '，抽 ' + (x.pulls ?? '?') + '，金币 ' + (x.coins ?? '?') + '）</span>'
+    const mvSales = mv.sales.map((x) => '<div>' + acct(x.seller) + ' 卖给 ' + acct(x.buyer) + '<div class="muted" style="font-size:12px">'
+      + esc(x.card) + (x.level ? ' +' + x.level : '') + ' 成交 ' + x.price + '（' + (x.bo ? '一口价' : '竞拍') + '），这张卡一般 ' + x.ref + (x.refFrom === 'card' ? '' : '（同稀有度估）') + '，' + x.ratio + ' 倍 · ' + gWhen(x.at)
+      + ' · 这两个号 14 天成交 ' + x.pair.n + ' 次' + (x.pair.both ? '，互相买过' : '') + '</div></div>').join('')
+    const mvPairs = mv.pairs.map((p) => '<div>' + acct(p.a) + ' ⇄ ' + acct(p.b) + '<div class="muted" style="font-size:12px">'
+      + p.n + ' 次成交（前者买 ' + p.aBought + '、后者买 ' + p.bBought + '），24 小时内最多 ' + p.day + ' 次 · ' + p.cards + ' 张不同的卡 · 共 ' + p.paid + ' 金币，最高 ' + p.maxRatio + ' 倍</div></div>').join('')
     box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
+      + '<h3 style="margin:10px 0 4px;font-size:13px">倒卡 · 离谱高价成交 F（近 7 天）</h3>' + (mvSales || '<div class="muted">没有</div>')
+      + '<h3 style="margin:10px 0 4px;font-size:13px">倒卡 · 两个号频繁互相成交 G（近 7 天）</h3>' + (mvPairs || '<div class="muted">没有</div>')
       + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')
       + '<h3 style="margin:10px 0 4px;font-size:13px">值得看一眼（近 7 天）</h3>' + (flagged || '<div class="muted">没有</div>')
     box.querySelectorAll('a[data-mg]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); $('#mgWho').value = a.dataset.mg; $('#gWho') && ($('#gWho').value = a.dataset.mg) } })

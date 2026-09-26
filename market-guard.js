@@ -92,8 +92,64 @@ export const GUARD = {
   FIRST_DAYS: 3, REPEAT_DAYS: 5,
 }
 /** the rules that suspend by themselves; the rest only report */
-const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E').toUpperCase().split(/[^A-E]+/).filter(Boolean))
+// F and G (倒卡) report first: on 2026-09-26 the ledger showed rings trading hundreds of times a day, and how many
+// accounts they would suspend is read off the owner's list before they suspend by themselves
+const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E').toUpperCase().split(/[^A-G]+/).filter(Boolean))
 const DAY = 86_400_000
+
+/**
+ * 倒卡: coins moved between accounts through the market (owner, 2026-09-26, with a screenshot: a gold nobody
+ * trades, 起拍 700, 一口价 168,397 — 「有零有整，一看就是小号把钱倒到大号」). Rules A–E look at how a buyer buys;
+ * these look at what a sale is: its price against what the same card at the same level goes for (saleValue),
+ * and how often the same two accounts trade. Both sides of it are suspended — the account the coins came
+ * from is usually a throwaway, and the one they went to is the point of it.
+ *
+ *   F  one sale at F_RATIO × what the card goes for, and at least F_GAP over it
+ *   G  the same two accounts trade G_N times inside 24 h, either way round, and it is not somebody filling a
+ *      collection from a prolific seller: the cards went BOTH ways between them, or G_OVER_N of the trades were
+ *      at G_RATIO × the card's price or more (owner: 「一天内两三次两个号互相倒，就已经很明显了」)
+ *
+ * Only trades in the last 24 h trigger it, and only after the account's last ban or lift, like the rest.
+ */
+export const TRANSFER = {
+  F_RATIO: 20, F_GAP: 30_000,
+  G_N: 3, G_RATIO: 3, G_OVER_N: 2,
+}
+
+/**
+ * One account's trades (bought or sold) → does any of them move coins? Pure.
+ * trades: [{ other, bought, price, ref, at }] — `ref` is what that card at that level goes for (saleValue).
+ * Returns { verdict, rule, others, evidence } — `others` are the accounts on the far side to suspend with it.
+ */
+export function judgeTransfers(trades, now = Date.now(), AUTO = autoRules()) {
+  const T = TRANSFER
+  const rows = trades.map((t) => ({ ...t, at: new Date(t.at).getTime(), ratio: t.price / Math.max(1, t.ref), over: t.price - t.ref }))
+    .filter((t) => Number.isFinite(t.at) && t.at <= now && now - t.at <= DAY)
+  const dumps = rows.filter((t) => t.ratio >= T.F_RATIO && t.over >= T.F_GAP)
+  const byOther = new Map()
+  for (const t of rows) byOther.set(t.other, [...(byOther.get(t.other) ?? []), t])
+  const loops = []
+  for (const [other, list] of byOther) {
+    if (list.length < T.G_N) continue
+    const both = list.some((t) => t.bought) && list.some((t) => !t.bought)
+    const pricey = list.filter((t) => t.ratio >= T.G_RATIO).length
+    if (both || pricey >= T.G_OVER_N) loops.push({ other, n: list.length, both, pricey })
+  }
+  const round = (x) => Math.round(x * 10) / 10
+  const evidence = {
+    dumps: dumps.slice(0, 6).map((t) => ({ other: String(t.other).slice(0, 8), bought: t.bought, price: t.price, ref: t.ref, ratio: round(t.ratio), card: t.card ?? null })),
+    loops: loops.slice(0, 6).map((l) => ({ other: String(l.other).slice(0, 8), n: l.n, both: l.both, pricey: l.pricey })),
+  }
+  // near: worth the owner's eye, not a suspension
+  const near = rows.some((t) => t.ratio >= T.F_RATIO / 2 && t.over >= T.F_GAP / 3)
+    || [...byOther.values()].some((l) => l.length >= T.G_N - 1 && l.some((t) => t.bought) && l.some((t) => !t.bought))
+  const rule = dumps.length ? 'F' : loops.length ? 'G' : null
+  if (rule) {
+    const others = [...new Set([...dumps.map((t) => t.other), ...loops.map((l) => l.other)])]
+    return { verdict: AUTO.has(rule) ? 'ban' : 'watch', rule, others, evidence }
+  }
+  return { verdict: near ? 'watch' : null, rule: near ? 'transfer' : null, others: [], evidence }
+}
 
 export const GUARD_SCHEMA = `
 create table if not exists market_bans (
@@ -210,15 +266,17 @@ export function saleValue(refRows, cardById = null) {
 export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUARD ?? 'ban', displayName = null, cardById = null } = {}) {
   const work = bg ?? sql
   const off = mode === 'off' || !sql
-  /** id_hash → until (ms), every ban still running; small, re-read once a minute */
+  /** id_hash → { until (ms), rule }, every ban still running; small, re-read once a minute */
   let active = new Map()
   let activeAt = 0
   let loading = null
   async function loadActive(force = false) {
     if (off) return active
     if (!force && Date.now() - activeAt < 60_000) return active
-    loading ??= work`select id_hash, max(until) as until from market_bans where lifted is null and until > now() group by id_hash`
-      .then((rows) => { active = new Map(rows.map((r) => [r.id_hash, new Date(r.until).getTime()])); activeAt = Date.now() })
+    loading ??= work`
+      select distinct on (id_hash) id_hash, until, rule from market_bans
+      where lifted is null and until > now() order by id_hash, until desc`
+      .then((rows) => { active = new Map(rows.map((r) => [r.id_hash, { until: new Date(r.until).getTime(), rule: r.rule }])); activeAt = Date.now() })
       // a database without the table yet bans nobody; asked again in a minute
       .catch((err) => { activeAt = Date.now(); if (!/market_bans/.test(err.message)) console.warn('guard: bans unread', err.message) })
       .finally(() => { loading = null })
@@ -229,9 +287,10 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   /** null, or { until, why } — what a suspended account is told. */
   async function banOf(me) {
     if (off || !me) return null
-    const until = (await loadActive()).get(me)
+    const { until, rule } = (await loadActive()).get(me) ?? {}
     if (!until || until <= Date.now()) return null
-    return { until, why: `检测到脚本抢拍，交易已暂停到 ${stamp(until)}。有误请联系群主。` }
+    const what = rule === 'F' || rule === 'G' ? '检测到账号之间倒卡' : '检测到脚本抢拍'
+    return { until, why: `${what}，交易已暂停到 ${stamp(until)}。有误请联系群主。` }
   }
   // 北京时间, whoever's server this is
   const stamp = (ms) => {
@@ -268,29 +327,110 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       select ${me}, ${until}, ${rule}, ${work.json(evidence)}, ${by}
       where ${by} = 'owner' or not exists (select 1 from market_bans where id_hash = ${me} and lifted is null and until > now())
       returning until`
-    if (!made.length) { await loadActive(true); return active.get(me) ?? null }
-    active.set(me, until.getTime())
+    if (!made.length) { await loadActive(true); return active.get(me)?.until ?? null }
+    active.set(me, { until: until.getTime(), rule })
     console.warn(`guard: ${me.slice(0, 8)} suspended ${days}d (${rule}, by ${by})`)
     return until.getTime()
   }
 
-  /** Look at one account — called after each 一口价 purchase, off the request's clock. */
+  /**
+   * What each card at each level goes for (saleValue over the month's sales), read at most every half hour
+   * and by one caller at a time: it is one grouped pass over a month of sales, and every purchase asks.
+   */
+  let values = null
+  let valuesAt = 0
+  let valuesLoading = null
+  async function valueFn() {
+    if (values && Date.now() - valuesAt < 30 * 60_000) return values
+    valuesLoading ??= work`
+      select l.card_id, l.level, count(*)::int as n,
+             percentile_cont(0.5) within group (order by o.price)::int as med
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.status = 'accepted' and l.status = 'sold' and l.closed > now() - interval '30 days'
+      group by l.card_id, l.level`
+      .then((rows) => { values = saleValue(rows, cardById); valuesAt = Date.now() })
+      .finally(() => { valuesLoading = null })
+    await valuesLoading
+    return values
+  }
+  /** Every sale this account stood on either side of since `since` (a day at most is judged), priced. */
+  async function tradesOf(me, since) {
+    const day = new Date(Math.max(new Date(since).getTime(), Date.now() - DAY))
+    const [bought, sold, value] = await Promise.all([
+      work`
+        select l.seller_h as other, o.price, l.card_id, l.level, l.closed as at
+        from card_offers o join card_listings l on l.id = o.listing
+        where o.buyer_h = ${me} and o.status = 'accepted' and l.status = 'sold' and l.closed > ${day}
+        limit 2000`,
+      work`
+        select o.buyer_h as other, o.price, l.card_id, l.level, l.closed as at
+        from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
+        where l.seller_h = ${me} and l.status = 'sold' and l.closed > ${day}
+        limit 2000`,
+      valueFn(),
+    ])
+    const priced = (t, b) => ({ other: t.other, bought: b, price: t.price, ref: value(t.card_id, t.level).ref, at: t.at, card: t.card_id })
+    return [...bought.map((t) => priced(t, true)), ...sold.map((t) => priced(t, false))].filter((t) => t.other !== me)
+  }
+
+  /** Look at one account — called after each purchase, off the request's clock. */
   async function check(me, { dry = false } = {}) {
     if (off) return null
     const { since, strikes } = await slate(me)
     const buys = await buysOf(me, since)
     const found = judge(buys)
+    // coins moved between accounts: this one and whoever was on the other side of it
+    const moved = judgeTransfers(await tradesOf(me, since))
+    found.transfer = moved
+    if (found.verdict !== 'ban' && moved.verdict) {
+      if (moved.verdict === 'ban' || !found.verdict) { found.verdict = moved.verdict; found.rule = moved.rule }
+    }
     if (found.verdict === 'ban' && mode === 'ban' && !dry && !(await banOf(me))) {
       const days = strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS
       const sample = buys.slice(0, 12).map((b) => ({
         card: b.card_id, price: b.price, made: b.made,
         age: Math.round((new Date(b.made) - new Date(b.created)) / 100) / 10, seller: String(b.seller).slice(0, 8),
       }))
-      found.until = await ban(me, { days, rule: found.rule, evidence: { counts: found.counts, sample } })
+      const rule = found.rule
+      const byMoving = rule === 'F' || rule === 'G'
+      const evidence = byMoving ? { transfer: moved.evidence, with: moved.others.map((h) => String(h).slice(0, 8)) } : { counts: found.counts, sample }
+      found.until = await ban(me, { days, rule, evidence })
+      // …and the far side of it, unless the owner let that account out after the trade (a lift forgives what came before)
+      if (byMoving) {
+        for (const other of moved.others) {
+          if (await banOf(other)) continue
+          const theirs = await slate(other)
+          if (!(await tradesOf(other, theirs.since)).some((t) => t.other === me)) continue
+          await ban(other, { days: theirs.strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS, rule, evidence: { transfer: moved.evidence, with: [me.slice(0, 8)] } })
+        }
+      }
     }
     return found
   }
-  const checkSoon = (me) => { if (!off) check(me).catch((err) => console.warn('guard: check failed', err.message)) }
+  /**
+   * After a sale, a moment later, one account at a time. Every auction that closes in a settler batch asks
+   * for its winner to be looked at, and fifty checks racing for the background connections at once is the
+   * shape of the 2026-09-17 slowness (market-sweep-pool-starvation); an account asked for twice is looked at once.
+   */
+  const queue = new Set()
+  let draining = false
+  const checkSoon = (me) => {
+    if (off || !me) return
+    queue.add(me)
+    if (draining) return
+    draining = true
+    const t = setTimeout(drain, 500)
+    t.unref?.()
+  }
+  async function drain() {
+    try {
+      while (queue.size) {
+        const [me] = queue
+        queue.delete(me)
+        await check(me).catch((err) => console.warn('guard: check failed', err.message))
+      }
+    } finally { draining = false }
+  }
 
   /**
    * Everybody who bought outright this week, judged — for the owner's list and the log line after boot.
@@ -324,8 +464,14 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       for (const r of await work`select id_hash, name from card_accounts where id_hash = any(${want})`) names.set(r.id_hash, r.name)
     }
     const who = (h) => ({ code: h.slice(0, 8).toUpperCase(), name: displayName ? displayName(names.get(h), h).name : names.get(h) ?? null })
+    // 倒卡 over the week: every sale over F and every pair over G, whoever bought — the dry version of what now suspends
+    const t = await transfers({ days: 7 })
+    const moving = {
+      sales: t.topSales.filter((x) => x.f).slice(0, 60),
+      pairs: t.topPairs.filter((x) => x.g).slice(0, 60),
+    }
     return {
-      mode, rules: GUARD,
+      mode, rules: GUARD, transfer: TRANSFER, moving,
       bans: bans.map((b) => ({ id: String(b.id), ...who(b.id_hash), until: b.until, rule: b.rule, by: b.by, made: b.made, lifted: b.lifted, running: !b.lifted && new Date(b.until) > new Date(), evidence: b.evidence })),
       flagged: flagged.map((f) => ({ ...who(f.id_hash), verdict: f.verdict, rule: f.rule, counts: f.counts })),
     }
@@ -388,6 +534,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       return { from: lo, to: hi === Infinity ? null : hi, n: inIt.length, buyouts: inIt.filter((r) => r.bo).length, over: inIt.reduce((a, r) => a + r.over, 0) }
     })
     // pairs, either way round
+    const pairKey = (a, b) => (a < b ? a + b : b + a)
     const pairs = new Map()
     const perSeller = new Map()
     const perBuyer = new Map()
@@ -399,13 +546,20 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       let p = pairs.get(k)
       if (!p) pairs.set(k, p = { x, y, n: 0, xy: 0, yx: 0, paid: 0, over: 0, maxRatio: 0, times: [], cards: new Set() })
       p.n++; if (r.b === x) p.xy++; else p.yx++
-      p.paid += r.price; p.over += r.over; p.maxRatio = Math.max(p.maxRatio, r.ratio); p.times.push(r.closed); p.cards.add(r.card_id)
+      p.paid += r.price; p.over += r.over; p.maxRatio = Math.max(p.maxRatio, r.ratio); p.times.push({ at: r.closed, xBought: r.b === x, ratio: r.ratio }); p.cards.add(r.card_id)
     }
     const DAYSEC = 86400
     for (const p of pairs.values()) {
-      p.times.sort((a, b) => a - b)
+      p.times.sort((a, b) => a.at - b.at)
       let best = 0
-      for (let i = 0, j = 0; i < p.times.length; i++) { while (p.times[i] - p.times[j] > DAYSEC) j++; best = Math.max(best, i - j + 1) }
+      p.g = false
+      for (let i = 0, j = 0; i < p.times.length; i++) {
+        while (p.times[i].at - p.times[j].at > DAYSEC) j++
+        best = Math.max(best, i - j + 1)
+        // rule G on this 24 h: enough trades, and either both ways or enough of them overpriced
+        const win = p.times.slice(j, i + 1)
+        if (win.length >= TRANSFER.G_N && ((win.some((t) => t.xBought) && win.some((t) => !t.xBought)) || win.filter((t) => t.ratio >= TRANSFER.G_RATIO).length >= TRANSFER.G_OVER_N)) p.g = true
+      }
       p.day = best
     }
     const list = [...pairs.values()]
@@ -421,7 +575,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const want = new Set()
     const topSales = rows.filter((r) => r.ratio >= 5 && r.over >= 3000).sort((a, b) => b.over - a.over).slice(0, 200)
     for (const r of topSales) { want.add(r.b); want.add(r.s) }
-    const topPairs = list.filter((p) => p.day >= 2).sort((a, b) => b.day - a.day || b.over - a.over).slice(0, 200)
+    const topPairs = list.filter((p) => p.day >= 2).sort((a, b) => b.g - a.g || b.day - a.day || b.over - a.over).slice(0, 200)
     for (const p of topPairs) { want.add(p.x); want.add(p.y) }
     const acc = new Map()
     if (want.size) {
@@ -438,19 +592,63 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       }
     }
     const ign = (id) => cardById?.(id)?.ign ?? cardById?.(id)?.name ?? id
-    const pairKey = (a, b) => (a < b ? a + b : b + a)
+    // who F and G would suspend over the window (both sides of each), and the rings they make
+    const fHit = new Set()
+    for (const r of rows) if (r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP) { fHit.add(r.b); fHit.add(r.s) }
+    const gHit = new Set()
+    const link = new Map()
+    for (const p of list) {
+      if (!p.g) continue
+      gHit.add(p.x); gHit.add(p.y)
+      link.set(p.x, [...(link.get(p.x) ?? []), p.y]); link.set(p.y, [...(link.get(p.y) ?? []), p.x])
+    }
+    const seen = new Set()
+    const rings = []
+    for (const h of link.keys()) {
+      if (seen.has(h)) continue
+      const stack = [h]; const ring = []
+      seen.add(h)
+      while (stack.length) { const c = stack.pop(); ring.push(c); for (const n of link.get(c) ?? []) if (!seen.has(n)) { seen.add(n); stack.push(n) } }
+      rings.push(ring)
+    }
+    const ringSizes = {}
+    for (const r of rings) ringSizes[Math.min(r.length, 10)] = (ringSizes[Math.min(r.length, 10)] ?? 0) + 1
+    // a few sales from each price band, to read by eye whether a band is people or rings
+    const bands = [[3, 5], [5, 10], [10, 20], [20, 50]].map(([lo, hi]) => {
+      const inBand = rows.filter((r) => r.ratio >= lo && r.ratio < hi && r.over >= 1000)
+      const pick = []
+      for (let i = 0; i < Math.min(20, inBand.length); i++) pick.push(inBand[Math.floor((i * inBand.length) / Math.min(20, inBand.length))])
+      return { lo, hi, n: inBand.length, notG: inBand.filter((r) => !pairs.get(pairKey(r.b, r.s)).g).length, sample: pick }
+    })
+    for (const b of bands) for (const r of b.sample) { want.add(r.b); want.add(r.s) }
+    const ringsTop = rings.sort((a, b) => b.length - a.length).slice(0, 15)
+    for (const r of ringsTop) for (const h of r.slice(0, 12)) want.add(h)
+    if (want.size) {
+      for (const a of await work`
+        select id_hash, name, created, (state->>'pulls')::int as pulls, (state->>'coins')::int as coins
+        from card_accounts where id_hash = any(${[...want].filter((h) => !acc.has(h))})`) acc.set(a.id_hash, a)
+    }
     return {
       ok: true, days: d, sales: rows.length, hist, pairDays: dist,
+      wouldSuspend: { F: fHit.size, G: gHit.size, either: new Set([...fHit, ...gHit]).size, onlyG: [...gHit].filter((h) => !fHit.has(h)).length, ringSizes },
+      rings: ringsTop.map((r) => ({ size: r.length, who: r.slice(0, 12).map(who) })),
+      bands: bands.map((b) => ({ lo: b.lo, hi: b.hi, n: b.n, notG: b.notG, sample: b.sample.map((r) => ({
+        buyer: who(r.b), seller: who(r.s), card: ign(r.card_id), rarity: cardById?.(r.card_id)?.rarity ?? null, level: r.level,
+        price: r.price, ref: r.ref, refN: r.refN, ratio: Math.round(r.ratio * 10) / 10, bo: r.bo, g: pairs.get(pairKey(r.b, r.s)).g,
+        pairN: pairs.get(pairKey(r.b, r.s)).n,
+      })) })),
       topSales: topSales.map((r) => ({
         buyer: who(r.b), seller: who(r.s), card: ign(r.card_id), rarity: cardById?.(r.card_id)?.rarity ?? null, level: r.level,
         price: r.price, ask: r.ask, buyout: r.buyout, bo: r.bo, ref: r.ref, refN: r.refN, refFrom: r.refFrom,
         ratio: Math.round(r.ratio * 10) / 10, age: Math.round(r.made - r.created), at: new Date(r.closed * 1000).toISOString(),
+        f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP,
         pair: (() => { const p = pairs.get(pairKey(r.b, r.s)); return { n: p.n, day: p.day, both: !!(p.xy && p.yx) } })(),
       })),
       topPairs: topPairs.map((p) => ({
         a: who(p.x), b: who(p.y), n: p.n, aBought: p.xy, bBought: p.yx, day: p.day, cards: p.cards.size,
-        paid: p.paid, over: Math.round(p.over), maxRatio: Math.round(p.maxRatio * 10) / 10,
+        paid: p.paid, over: Math.round(p.over), maxRatio: Math.round(p.maxRatio * 10) / 10, g: p.g,
       })),
+      gPairs: list.filter((p) => p.g).length, fSales: rows.filter((r) => r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP).length,
     }
   }
 

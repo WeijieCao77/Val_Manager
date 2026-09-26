@@ -414,6 +414,8 @@ export function makeMarketApi(sql, {
    * `seller` narrows it to one account's listings. Returns how many were closed.
    */
   async function settleBatch(limit = SETTLE_BATCH, seller = null, only = null, run = bgTx) {
+    // who won an auction here: once it has committed, the guard looks at them like at any buyer
+    const buyers = []
     return run(async (db) => {
       const ended = await db`
         select id, seller_h, card_id, level from card_listings
@@ -448,6 +450,7 @@ export function makeMarketApi(sql, {
         for (const l of ended) {
           const o = topOf.get(String(l.id))
           if (!o) continue
+          buyers.push(o.buyer_h)
           mail.push({ to_h: o.buyer_h, kind: 'bought', card_id: l.card_id, level: l.level, coins: 0,
             body: { price: o.price, who: names[l.seller_h] } })
           mail.push({ to_h: l.seller_h, kind: 'sold', card_id: null, level: 0, coins: o.price,
@@ -470,7 +473,11 @@ export function makeMarketApi(sql, {
       }
       await mailRows(db, mail)
       return ended.length
-    }).then((n) => { if (n) menuCache.clear(); return n })
+    }).then((n) => {
+      if (n) menuCache.clear()
+      for (const b of new Set(buyers)) guard2.checkSoon(b)
+      return n
+    })
   }
 
   /** The old make-an-offer listings' clock: bounded, and only ever a handful of rows since 2026-09-07. */
@@ -1813,6 +1820,7 @@ export function makeMarketApi(sql, {
       for (const r of rest) await post(r.buyer_h, 'outbid', { coins: r.price, body: { cardId: o.card_id } }, db)
       return { ok: true, price: o.price }
     })
+    if (out.ok) guard2.checkSoon(o.buyer_h)
     json(res, 200, out.gone ? { ok: false, gone: true } : out)
   }
 
