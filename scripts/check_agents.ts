@@ -9,10 +9,15 @@ import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { setupSeason } from '../src/engine/season'
 import { buildLineup, selectLineup, MatchSim, vetoOrder } from '../src/engine/match'
-import { agentFit, agentMod, agentRoleGaps, autoAgents, normalizeAgents, OFF_ROLE } from '../src/engine/agents'
+import { agentFit, agentMod, autoAgents, normalizeAgents, OFF_ROLE } from '../src/engine/agents'
 import { AGENT_CN, AGENT_ROLE, AGENTS, MAPS, MAP_META, canonAgent, mapCn } from '../src/engine/content'
 import { Rng } from '../src/engine/rng'
 import type { GameState, Role } from '../src/engine/types'
+
+/** a controller, and no job three deep */
+const proLike = (agents: string[]): boolean => agents.length === 5
+  && agents.some((a) => AGENT_ROLE[a] === '控场')
+  && (['决斗者', '先锋', '控场', '哨卫'] as Role[]).every((r) => agents.filter((a) => AGENT_ROLE[a] === r).length <= 2)
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -116,7 +121,7 @@ const mk = (): GameState => {
     const missing = CORE.length - byRole.size
     for (const m of MAPS) {
       const picks = autoAgents(g, t.id, five, m)
-      if (agentRoleGaps(five, picks).length) gaps++
+      if (!proLike(Object.values(picks))) gaps++
       // 「错位」问的是位置，不是熟不熟这个角色 —— 本职里没练过的英雄有惩罚，
       // 但那不叫错位，那是让他去练
       const off = five.filter((p) => {
@@ -129,7 +134,9 @@ const mk = (): GameState => {
     }
   }
   check('nobody is auto-assigned out of position avoidably', avoidable === 0, `${avoidable} 次可避免的错位`)
-  check('and every automatic comp still covers all four jobs', gaps === 0, `${gaps} 套缺位置`)
+  // since 2026-09-26 the sheet follows the pros' shapes (engine/agents.proShapes): a job
+  // may be empty where pros leave it empty (分离 2-1-2-0), but never a stack or no smokes
+  check('and every automatic comp is a shape pros run: a controller, no job three deep', gaps === 0, `${gaps} 套不像职业阵容`)
   console.log(`  ${forced} 次被迫错位（世界里现有的位置空缺）`)
 
   // The hole is built here rather than found: the world used to contain
@@ -150,14 +157,21 @@ const mk = (): GameState => {
   }
   let holeForced = 0
   let holeGaps = 0
+  let holeOnSentinel = 0
+  let holeWorst = 0
   for (const m of MAPS) {
     const picks = autoAgents(g, t.id, five, m)
-    if (agentRoleGaps(five, picks).length) holeGaps++
+    if (!proLike(Object.values(picks))) holeGaps++
     holeForced += five.filter((p) => agentFit(p, picks[p.id]) < 1).length
+    holeOnSentinel += five.filter((p) => AGENT_ROLE[picks[p.id]] === '哨卫').length
+    holeWorst = Math.max(holeWorst, five.filter((p) => !(p.roles ?? [p.role]).includes(AGENT_ROLE[picks[p.id]])).length)
   }
-  check('a five with nobody for 哨卫 still gets someone forced into it', holeForced > 0,
-    `${t.tag}: ${holeForced} 次 over ${MAPS.length} maps`)
-  check('and that forced sheet still covers all four jobs', holeGaps === 0, `${holeGaps} 套缺位置`)
+  // It used to be forced onto a sentinel. Pros run no sentinel in a fifth of their comps
+  // (2-1-2-0, 1-2-2-0), so the five plays one of those instead and nobody leaves his job.
+  // (a five left with three of one job still sends one man across — no pro shape runs three)
+  check('a five with nobody for 哨卫 runs a no-sentinel pro shape: nobody forced onto a sentinel, at most one man off his job',
+    holeOnSentinel === 0 && holeWorst <= 1, `${t.tag}: 哨卫 ${holeOnSentinel} 次，副位置 ${holeForced} 次 over ${MAPS.length} maps`)
+  check('and that sheet is still a pro shape', holeGaps === 0, `${holeGaps} 套不像职业阵容`)
 }
 
 // ---- a hand-made bad sheet really does weaken the side

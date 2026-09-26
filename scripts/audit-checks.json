@@ -739,5 +739,10 @@
     "runtime": "tsx",
     "file": "scripts/check_cup_seed.ts",
     "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_map_comps.ts",
+    "estimatedSeconds": 5
   }
 ]

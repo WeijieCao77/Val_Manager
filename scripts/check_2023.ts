@@ -137,7 +137,9 @@ check('LOCK//IN 决出冠军，32 队排满名次', !!lockinChamp && lockinDepth
 check('Masters（东京）有 12 队', news.some((n) => /Masters II（东京）参赛名单/.test(n)), news.find((n) => /Masters II（/.test(n))?.slice(0, 60))
 check('每个赛区都有 LCQ，中国有资格赛', news.filter((n) => /LCQ名单|冠军赛中国资格赛名单/.test(n)).length === 4, String(news.filter((n) => /LCQ名单|资格赛名单/.test(n)).length))
 check('Champions（洛杉矶）办了', news.some((n) => /VALORANT Champions（洛杉矶）/.test(n)))
-check('三次版本更替：LOCK//IN 不算，东京和洛杉矶各一次', (g.patchLog?.length ?? 0) === 2, String(g.patchLog?.length))
+// balance patches only; 2023's releases (Lotus, Gekko, Deadlock, Sunset, Iso) are entries of their own
+check('三次版本更替：LOCK//IN 不算，东京和洛杉矶各一次', (g.patchLog ?? []).filter((p) => !p.arrivals).length === 2,
+  `${(g.patchLog ?? []).filter((p) => !p.arrivals).length} 版本 + ${(g.patchLog ?? []).filter((p) => p.arrivals).length} 次上线`)
 check('每天的图池都是 7 张、都已上线', poolBad === 0, `${poolBad} 天不对`)
 check('LOCK//IN 用当年图池', poolOn['2023-02-13'] === 'Ascent,Fracture,Haven,Icebox,Lotus,Pearl,Split', poolOn['2023-02-13'])
 check('东京 Masters 和洛杉矶冠军赛用当年图池（源工重镇替下森寒冬港）', poolOn['2023-06-11'] === 'Ascent,Bind,Fracture,Haven,Lotus,Pearl,Split' && poolOn['2023-08-06'] === poolOn['2023-06-11'], `${poolOn['2023-06-11']} / ${poolOn['2023-08-06']}`)

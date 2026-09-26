@@ -151,6 +151,10 @@ export function realPool(s: { year: number; day: number }): string[] | null {
   return pool && pool.slice()
 }
 
+/** the maps that ship on this very game day — for the version notice */
+export const mapsReleasedToday = (s: { year: number; day: number }): string[] =>
+  Object.entries(MAP_SINCE).filter(([, d]) => d === isoOf(s)).map(([m]) => m)
+
 /** is this map in the game on this game date */
 export const mapReleased = (s: { year: number; day: number }, map: string): boolean =>
   !MAP_SINCE[map] || isoOf(s) >= MAP_SINCE[map]

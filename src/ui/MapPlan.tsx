@@ -17,7 +17,7 @@ import { useState } from 'react'
 import { agentAvailable } from '../engine/eras'
 import { useGame } from './ctx'
 import { selectLineup, sheetFor } from '../engine/match'
-import { agentMod, agentRoleGaps, agentWarn, autoAgents, byPro, normalizeAgents, proLabel } from '../engine/agents'
+import { agentMod, agentWarn, autoAgents, byPro, commonShapes, normalizeAgents, proLabel, proPickShares, shapeCn, sheetWarnings } from '../engine/agents'
 import { COMP_STYLE_CN, compStyle, famBonus, familiarity } from '../engine/comp'
 import type { CompStyle } from '../engine/comp'
 import { AGENT_ROLE, AGENTS, MAP_META, agentCn, mapCn } from '../engine/content'
@@ -98,11 +98,14 @@ export default function MapPlan({
   const fam = familiarity(game, game.myTeam, cur, picks)
   const famEdge = famBonus(fam)
   const pref = Math.round(me.mapPrefs[cur] ?? 50)
-  const gaps = agentRoleGaps(five, picks)
+  // measured against the pros on this map: a stack of one role, no smokes, a shape nobody runs
+  const gaps = sheetWarnings(cur, five.map((p) => picks[p.id]).filter((a): a is string => !!a))
   const planned = !!game.mapAgents?.[cur]
   const oppTeam = opp ? game.teams[opp] : undefined
   const oppStyle = oppTeam ? sheetFor(game, oppTeam.id, cur).style : null
-  const meta = MAP_META[cur] ?? []
+  // this map's pro picks and how often they are run; maps with no data fall back to the old list
+  const proShare = new Map(proPickShares(cur))
+  const meta = proShare.size ? [...proShare.keys()] : MAP_META[cur] ?? []
 
   return (
     <div>
@@ -180,9 +183,9 @@ export default function MapPlan({
                         onChange={(e) => set(cur, p.id, e.target.value)}
                         style={{ maxWidth: 200 }}
                       >
-                        <optgroup label={`${mapCn(cur)} 常用`}>
+                        <optgroup label={`${mapCn(cur)} 职业常用`}>
                           {byPro(p, meta.filter((x) => agentAvailable(game, x))).map((x) => (
-                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）{proLabel(p, x)}</option>
+                            <option key={x} value={x}>{agentCn(x)}（{AGENT_ROLE[x]}）{[proShare.has(x) ? `出场 ${Math.round(proShare.get(x)! * 100)}%` : '', (proLabel(p, x) === '练满' ? '练满' : `熟练 ${proLabel(p, x)}`)].filter(Boolean).join(' · ')}</option>
                           ))}
                         </optgroup>
                         {ROLES.filter((r) => r !== '自由人').map((r) => {
@@ -213,9 +216,12 @@ export default function MapPlan({
       <div className="row wrap" style={{ gap: 8, marginTop: 8, alignItems: 'baseline' }}>
         {gaps.length > 0 && (
           <span className="small" style={{ color: 'var(--warn)', fontWeight: 700 }}>
-            ⚠️ 这套阵容没有{gaps.join('、')}
+            ⚠️ {gaps.join('；')}
           </span>
         )}
+        <span className="tiny faint" style={{ flexBasis: '100%' }}>
+          {mapCn(cur)} 职业常见：{commonShapes(cur).map((s) => `${shapeCn(s.key)} ${Math.round(s.share * 100)}%`).join(' · ')}
+        </span>
         {planned && <span className="tiny faint">这是你给{mapCn(cur)}定的阵容</span>}
         <div style={{ flex: 1 }} />
         {planned && (

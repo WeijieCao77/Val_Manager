@@ -14,8 +14,9 @@ import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsor
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { MAP_META, agentCn, mapCn } from './content'
 import { FAM_MATCH, FAM_SCRIM, learnComp, rollPatch } from './comp'
+import type { Patch } from './comp'
 import { CHAMPIONS, endingsFor, MASTERS_1, MASTERS_2, tenureCn } from './endings'
-import { agentAvailable, agentsReleasedToday, finalYearOf, midYearOf, realPool, seasonsOf, startYearOf } from './eras'
+import { agentAvailable, agentsReleasedToday, finalYearOf, mapsReleasedToday, midYearOf, realPool, seasonsOf, startYearOf } from './eras'
 import { agentCn as agentName } from './content'
 import { hostCity } from './hosts'
 import { applyMatchBonds } from './bonds'
@@ -539,6 +540,39 @@ export function applyPatch(state: GameState, big: boolean, notes: string[] = [],
 }
 
 /** the manager has read the current patch; the 「新」 mark on 总览 goes out */
+/**
+ * A new agent or map, on the day it really came out: a line in the news and an
+ * entry in the version notice (the 「新」 mark on 总览, and its history). The
+ * entry carries the current version's numbers unchanged — a release is not a
+ * balance patch — so nothing about how any agent plays moves with it.
+ */
+function announceArrivals(state: GameState, notes: string[]): void {
+  const agents = agentsReleasedToday(state)
+  const maps = mapsReleasedToday(state)
+  if (!agents.length && !maps.length) return
+  for (const a of agents) {
+    const line = `🆕 新英雄 ${agentName(a)} 加入游戏，可以进预案和训练了。`
+    state.news.push({ day: state.day, kind: 'league', text: line, important: true })
+    notes.push(line)
+  }
+  for (const m of maps) {
+    const line = `🗺️ 新地图 ${mapCn(m)} 上线，之后的图池轮换里会进入比赛。`
+    state.news.push({ day: state.day, kind: 'league', text: line, important: true })
+    notes.push(line)
+  }
+  const prev = state.patch
+  const entry: Patch = {
+    since: state.day, year: state.year,
+    name: [...agents.map((a) => `新英雄 ${agentName(a)}`), ...maps.map((m) => `新地图 ${mapCn(m)}`)].join(' · '),
+    id: `${state.year}-new-${state.day}`,
+    after: prev?.after ?? '本赛段起',
+    coef: { ...(prev?.coef ?? {}) }, buffed: [], nerfed: [], big: false,
+    arrivals: { agents, maps },
+  }
+  state.patch = entry
+  state.patchLog = [...(state.patchLog ?? []), entry].slice(-8)
+}
+
 export function markPatchSeen(state: GameState): void {
   if (state.patch?.id) state.patchSeen = state.patch.id
 }
@@ -1971,11 +2005,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   }
 
   dailyLife(state, notes)
-  for (const a of agentsReleasedToday(state)) {
-    const line = `🆕 新英雄 ${agentName(a)} 加入游戏，可以进预案和训练了。`
-    state.news.push({ day: state.day, kind: 'league', text: line })
-    notes.push(line)
-  }
+  announceArrivals(state, notes)
   tickBirthdays(state, notes)
   tickDisputes(state, notes)
   tickLife(state, notes)
@@ -1991,7 +2021,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   if (real || stageChanged) {
     const prevPool = real
       ? (state.day > 1 ? realPool({ year: state.year, day: state.day - 1 }) : realPool({ year: state.year - 1, day: 364 })) ?? real
-      : activePool(state.seed + state.year, poolPhaseOf(prevStage))
+      : activePool(state.seed + state.year, poolPhaseOf(prevStage), state.year)
     const nowPool = poolFor(state)
     const gone = prevPool.filter((m) => !nowPool.includes(m))
     const fresh = nowPool.filter((m) => !prevPool.includes(m))

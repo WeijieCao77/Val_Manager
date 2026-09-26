@@ -451,6 +451,8 @@ export interface Patch {
   buffed: string[]
   nerfed: string[]
   big: boolean
+  /** a release, not a balance change: the agents and maps that came into the game that day */
+  arrivals?: { agents: string[]; maps: string[] }
 }
 
 /** 版本之子的门槛。也是归一化的分母：五个人全是版本之子刚好打满。 */

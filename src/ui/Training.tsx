@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ask } from './confirm'
 import { AGENTS, AGENT_ROLE, agentCn, mapCn } from '../engine/content'
 import { useGame } from './ctx'
+import { agentAvailable } from '../engine/eras'
 import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Potential } from './common'
 import { callerOf, squadOf } from '../engine/roster'
 import { stageName } from '../engine/season'
@@ -292,7 +293,8 @@ export default function Training() {
                       {ROLES.filter((r) => r !== '自由人').map((r) => (
                         <optgroup key={r} label={`${r}${(p.roles ?? [p.role]).includes(r) ? '（本职）' : ''}`}>
                           {/* 练满的也列着，只是点不了——藏起来就分不清是练满了还是没了 */}
-                          {byPro(p, AGENTS[r] ?? []).map((a) => (
+                          {/* only agents the game date has — a 2023 save does not train Vyse */}
+                          {byPro(p, (AGENTS[r] ?? []).filter((a) => agentAvailable(game, a))).map((a) => (
                             <option key={a} value={a} disabled={(p.agentPro?.[a] ?? 0) >= 100}>
                               {agentCn(a)} {proLabel(p, a)}
                             </option>

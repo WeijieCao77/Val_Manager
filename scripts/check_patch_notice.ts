@@ -129,11 +129,16 @@ const patchNews = (g: GameState) => g.news.filter((n) => n.text.startsWith('🔧
   // what must hold is that no patch line was ever written twice
   const news = patchNews(g)
   const ids = new Set((g.patchLog ?? []).map((p) => p.id))
-  check('一整季推进：三次国际赛三个版本，新闻不重复', (g.patchLog?.length ?? 0) === 3 && ids.size === 3
-    && new Set(news.map((n) => n.text)).size === news.length && news.length >= 1, `${g.patchLog?.length} 版本 / ${news.length} 条新闻`)
+  // balance patches only: since 2026-09-26 a release (Miks, Summit in June 2026) is an
+  // entry of its own in the log, carrying the numbers unchanged (check_map_comps)
+  const balance = (g.patchLog ?? []).filter((p) => !p.arrivals)
+  const releases = (g.patchLog ?? []).filter((p) => p.arrivals)
+  check('一整季推进：三次国际赛三个版本，新闻不重复', balance.length === 3 && ids.size === (g.patchLog?.length ?? 0)
+    && new Set(news.map((n) => n.text)).size === news.length && news.length >= 1, `${balance.length} 版本 + ${releases.length} 次上线 / ${news.length} 条新闻`)
+  check('2026 年 6 月的新英雄 Miks、新地图 Summit 都进了版本记录', releases.some((p) => p.arrivals!.agents.includes('Miks')) && releases.some((p) => p.arrivals!.maps.includes('Summit')))
   check('跨赛年后当前版本还是冠军赛后的大改', g.year === 2027 && g.patch?.big === true && g.patch?.year === 2026)
   const back = importSave(exportSave(g))
-  check('存档来回后版本、历史、已读标记都在', back.patch?.id === g.patch?.id && back.patchLog?.length === 3 && back.patchSeen === g.patchSeen)
+  check('存档来回后版本、历史、已读标记都在', back.patch?.id === g.patch?.id && back.patchLog?.length === g.patchLog?.length && back.patchSeen === g.patchSeen)
 
   // an old save: a patch without id/year, no log
   const raw = JSON.parse(exportSave(g))

@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng'
-import { MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
-import { realPool } from './eras'
+import { AGENT_ROLE, MAPS, HIGHLIGHT_TEMPLATES as HL, mapCn } from './content'
+import { MAP_SINCE, realPool } from './eras'
 import { agentMod, autoAgents, normalizeAgents } from './agents'
 import { isArena } from './types'
 import {
@@ -199,6 +199,17 @@ const GAP_COST: Record<string, number> = { 控场: 7, 哨卫: 5, 先锋: 4, 决�
  * versatility priced as a liability. With five players and four roles one
  * doubling is unavoidable anyway, so there is nothing there to charge for.
  */
+/** what an extreme agent shape costs: each agent past two in one job, and no controller at all */
+export function sheetShapeCost(agents: string[]): number {
+  let cost = 0
+  for (const r of CORE_ROLES) {
+    const n = agents.filter((a) => AGENT_ROLE[a] === r).length
+    if (n > 2) cost += (n - 2) * GAP_COST[r] * 0.6
+  }
+  if (agents.length >= 5 && !agents.some((a) => AGENT_ROLE[a] === '控场')) cost += GAP_COST['控场'] * 0.6
+  return cost
+}
+
 function compositionScore(players: Player[]): number {
   const coreOf = (p: Player) => (p.roles ?? [p.role]).filter((r) => CORE_ROLES.includes(r))
   const have = new Set(players.flatMap(coreOf))
@@ -319,7 +330,11 @@ export function buildLineup(
     (mine ? (skillMod(state.manager, 'tactics', 0.06) - 1) : 0) +
     // 对手研究: knowing what they run is worth about half a head coach
     (mine ? analystEdge(state, 'opponent') * 2.4 : 0)
-  const comp = compositionScore(players)
+  // compositionScore reads the players' jobs; a sheet can still put three of them
+  // on sentinels. Pros all but never do (12 in 3034 comps) and a side with no
+  // smokes cannot take a site, so those two extremes cost what a missing job
+  // does. The arena keeps its own structure.
+  const comp = compositionScore(players) - (isArena(state) ? 0 : sheetShapeCost(Object.values(picks)))
   const mapPref = ((team.mapPrefs[map] ?? 50) - 50) * 0.07
 
   // The dials, read through the shape of the five and the shape of theirs —
@@ -404,7 +419,7 @@ export const poolPhaseOf = (stage: StageKey): PoolPhase =>
  * with its own swap on top, not a fresh deal. Deterministic in (seed, phase),
  * so every screen and both veto paths agree on what is legal today.
  */
-export function activePool(seed: number, phase: PoolPhase = 0): string[] {
+export function activePool(seed: number, phase: PoolPhase = 0, year?: number): string[] {
   const rng = new Rng(seed ^ 0x5eed)
   const order = rng.shuffle(MAPS.slice() as string[])
   const pool = order.slice(0, 7)
@@ -419,15 +434,36 @@ export function activePool(seed: number, phase: PoolPhase = 0): string[] {
       bench[inn] = dropped
     }
   }
+  // A map that has not shipped by the time this window opens is not in it: the
+  // deal used to hand a 2026 save Summit in January, half a year before the map
+  // existed. Only the unreleased seat changes, to the first shipped bench map in
+  // deal order, so every other save's pool is exactly what it was.
+  if (year !== undefined) {
+    const opens = `${year}-${POOL_OPENS[phase]}`
+    const out = (m: string) => !!MAP_SINCE[m] && MAP_SINCE[m] > opens
+    for (let i = 0; i < pool.length; i++) {
+      if (!out(pool[i])) continue
+      const k = bench.findIndex((m) => !out(m))
+      if (k < 0) continue
+      const later = pool[i]
+      pool[i] = bench[k]
+      bench[k] = later
+    }
+  }
   return pool.sort()
 }
+
+/** roughly when each pool window opens (Kickoff, Stage 1, Stage 2) — a map shipped after it waits for the next */
+const POOL_OPENS = ['01-01', '04-01', '07-01'] as const
 
 /**
  * Today's pool for this save — the one every veto and every screen must use.
  * 2023–2025 play the pool Riot actually ran on that date (eras.REAL_POOLS).
  */
 export const poolFor = (state: Pick<GameState, 'seed' | 'year' | 'stage' | 'day'>): string[] =>
-  realPool(state) ?? activePool(state.seed + state.year, poolPhaseOf(state.stage))
+  realPool(state) ?? activePool(state.seed + state.year, poolPhaseOf(state.stage),
+    // the arena's world keeps the deal its balance was tuned on (check_coach_effect)
+    isArena(state as GameState) ? undefined : state.year)
 
 export function vetoOrder(bo: 1 | 3 | 5): ('ban' | 'pick')[] {
   // 7-map pool

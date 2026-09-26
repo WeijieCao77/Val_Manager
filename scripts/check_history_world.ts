@@ -164,7 +164,8 @@ for (const year of [2024, 2025]) {
   if (year === 2025) check('2025: 三月 Waylay、十一月 Veto 上线，Tejo 开档就在', releases.length === 2 && releases[0].includes('幻棱') && releases[1].includes('禁灭'), releases.join(' | '))
   // setupSeason has already cleared the comps for the new year; the three
   // internationals leave their mark as three version rolls
-  const names = (g.patchLog ?? []).map((p) => p.name)
+  // (releases are entries of their own since 2026-09-26 — they change no numbers)
+  const names = (g.patchLog ?? []).filter((p) => !p.arrivals).map((p) => p.name)
   check(`${year}: 三站国际赛都办了（三次版本更替）`, names.length === 3 && names[2] === `${year} 休赛期大改`, names.join(' | '))
   const back = importSave(exportSave(g))
   check(`${year}: 存档来回后起始年还在`, back.startYear === year && back.year === year + 1)
@@ -179,7 +180,7 @@ for (const year of [2024, 2025]) {
 {
   const g = createNewGame(WORLD_TEAMS[0].id, '审计', 1, createManager('审计', 30, 'expro'))
   check('默认开档还是 2026，不记起始年，抽签赛制', g.year === 2026 && g.startYear === undefined && midYearOf(g) === 2030 && finalYearOf(g) === 2036)
-  check('默认 2026 开档的图池照旧按种子发', poolFor(g).join() === activePool(g.seed + g.year, poolPhaseOf(g.stage)).join())
+  check('默认 2026 开档的图池照旧按种子发', poolFor(g).join() === activePool(g.seed + g.year, poolPhaseOf(g.stage), g.year).join())
 }
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

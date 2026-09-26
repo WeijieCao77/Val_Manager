@@ -1,4 +1,5 @@
 import { seedAgentPro } from './agents'
+import { agentAvailable } from './eras'
 import { canonAgents } from './content'
 import raw from '../data/world.json'
 import { dossierOf } from './dossier'
@@ -208,6 +209,10 @@ export function createNewGame(
   const s = seed ?? (hashStr(myTeamId + managerName + String(Date.now())) >>> 0)
   const rng = new Rng(s)
   const startYear = opts.year ?? 2026
+  // A 2023 career opens in January 2023: nobody knows Vyse, and nobody's pool
+  // holds an agent that does not exist yet. The arena borrows this world
+  // with its card pools as they are (its balance was tuned on them).
+  const released = (a: string) => !!opts.cards || agentAvailable({ year: startYear, day: 0 }, a)
   const rawPlayers = opts.world?.players ?? RAW.players
   const rawTeams = opts.world?.teams ?? WORLD_TEAMS
 
@@ -245,7 +250,11 @@ export function createNewGame(
         ? canonAgents(rp.agentPool)
         // canon also drops the repeat when two of his roles pick the same agent
         : canonAgents(((rp.roles as Role[] | undefined) ?? [rp.role as Role])
-            .flatMap((r) => pickAgents(r, prng))),
+            .flatMap((r) => pickAgents(r, prng)))
+          // drawn from the whole roster of agents, then held to what exists on
+          // the career's first day (the draw itself is unchanged, so the rest of
+          // his seed is too)
+          .filter((a) => released(a)),
       season: emptyStats(),
       career: emptyStats(),
       injuredUntil: 0,
@@ -270,7 +279,10 @@ export function createNewGame(
   // 否则签进来的人会一个英雄都不会。
   // 生涯英雄表只在播种时用一次，不跟着存档走：531 人的表让一份存档多出 200 KB
   for (const p of Object.values(players)) {
-    p.agentPro = seedAgentPro(p)
+    // the recorded pool too: a year's event table (2023's has Gekko from March)
+    // and the youth pool (scraped in 2026) both run past a January start
+    p.agentPool = p.agentPool.filter(released)
+    p.agentPro = seedAgentPro(p, released)
     delete p.agentUse
     delete p.agentR
   }

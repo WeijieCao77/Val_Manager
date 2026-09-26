@@ -105,19 +105,25 @@ export function PatchPanel() {
           <div className="row wrap small" style={{ gap: 14, marginBottom: 8 }}>
             <span><span className="faint">生效</span> {fmtDay(patch.since, patch.year ?? game.year)}</span>
             <span><span className="faint">影响</span> {patch.after ?? '本赛段起'}的比赛（刚结束的赛事用的是上一版）</span>
-            <span><span className="faint">幅度</span> {patch.big ? '休赛期大改' : '赛中小改'}</span>
+            <span><span className="faint">幅度</span> {patch.arrivals ? '新内容上线，英雄强度不变' : patch.big ? '休赛期大改' : '赛中小改'}</span>
           </div>
           {/* this patch's own changes first — the same names as the news line — then
               whoever the version still favours or has cut from earlier patches */}
           <div className="row wrap small" style={{ gap: 6, marginBottom: 6 }}>
             <span className="faint">这一版：</span>
+            {patch.arrivals?.agents.map((a) => (
+              <span key={a} className="tag t1">🆕 新英雄 {agentCn(a)}，已可进预案和训练</span>
+            ))}
+            {patch.arrivals?.maps.map((m) => (
+              <span key={m} className="tag t1">🗺️ 新地图 {mapCn(m)}，之后的图池轮换会加入</span>
+            ))}
             {advice.buffed.map((n) => (
               <span key={n.agent} className="tag win" title={`版本系数 ${pct(n.coef)}`}>▲ {agentCn(n.agent)} 加强，现在{coefLabel(n.coef)}</span>
             ))}
             {advice.nerfed.map((n) => (
               <span key={n.agent} className="tag warn" title={`版本系数 ${pct(n.coef)}`}>▼ {agentCn(n.agent)} 削弱，现在{coefLabel(n.coef)}</span>
             ))}
-            {!advice.buffed.length && !advice.nerfed.length && <span className="faint">只有微调，没有明显加强或削弱。</span>}
+            {!advice.buffed.length && !advice.nerfed.length && !patch.arrivals && <span className="faint">只有微调，没有明显加强或削弱。</span>}
           </div>
           {(advice.darlings.some((n) => !patch.buffed.includes(n.agent)) || advice.weak.some((n) => !patch.nerfed.includes(n.agent))) && (
             <div className="row wrap small" style={{ gap: 6, marginBottom: 10 }}>

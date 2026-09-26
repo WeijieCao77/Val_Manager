@@ -18,6 +18,7 @@ import type { GameState, Player } from './types'
 import type { Patch } from './comp'
 import { DARLING, alignN, familiarity, styleMix, versionN } from './comp'
 import { AGENTS, AGENT_ROLE, MAP_META, agentCn, mapCn } from './content'
+import { agentAvailable } from './eras'
 import { poolFor, selectLineup, sheetFor } from './match'
 
 /** the version's opinion of one agent, in words the panel prints */
@@ -90,12 +91,13 @@ function ranked(patch: Patch | undefined, sign: 1 | -1): AgentNote[] {
 }
 
 /** the version-favoured agents for this job the man could stand on, best first */
-function alternatives(patch: Patch, p: Player, agent: string, map: string, taken: Set<string>) {
+function alternatives(state: GameState, patch: Patch, p: Player, agent: string, map: string, taken: Set<string>) {
   const role = AGENT_ROLE[agent]
   const mine = patch.coef[agent] ?? 0
   const pool = new Set<string>([...(MAP_META[map] ?? []), ...(role ? AGENTS[role] ?? [] : [])])
   return [...pool]
-    .filter((a) => a !== agent && !taken.has(a) && AGENT_ROLE[a] === role)
+    // never an agent the game date does not have yet (a nerfed 2023 sentinel is not told to try Vyse)
+    .filter((a) => a !== agent && !taken.has(a) && AGENT_ROLE[a] === role && agentAvailable(state, a))
     .map((a) => ({ agent: a, coef: patch.coef[a] ?? 0, pro: p.agentPro?.[a] ?? 0 }))
     .filter((c) => c.coef - mine >= SWAP_GAIN)
     .sort((a, b) => b.coef - a.coef || b.pro - a.pro)
@@ -126,7 +128,7 @@ export function patchAdvice(state: GameState): PatchAdvice {
         const coef = patch.coef[agent] ?? 0
         if (isUp(agent)) upside.push({ ign: p.ign, agent, coef })
         if (!isDown(agent)) continue
-        const alts = alternatives(patch, p, agent, map, taken)
+        const alts = alternatives(state, patch, p, agent, map, taken)
         const swap = alts.find((a) => a.pro >= PLAYABLE) ?? null
         const train = swap ? null : alts[0] ?? null
         issues.push({ playerId: pid, ign: p.ign, agent, coef, swap, train })
@@ -166,6 +168,8 @@ export function patchAdvice(state: GameState): PatchAdvice {
 export const patchLine = (patch: Patch): string => {
   const say = (xs: string[]) => xs.map(agentCn).join('、')
   const parts: string[] = []
+  if (patch.arrivals?.agents.length) parts.push(`新英雄 ${say(patch.arrivals.agents)}`)
+  if (patch.arrivals?.maps.length) parts.push(`新地图 ${patch.arrivals.maps.map(mapCn).join('、')}`)
   if (patch.buffed.length) parts.push(`加强 ${say(patch.buffed)}`)
   if (patch.nerfed.length) parts.push(`削弱 ${say(patch.nerfed)}`)
   return parts.length ? parts.join('；') : '只有微调'
