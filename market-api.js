@@ -226,7 +226,7 @@ export function makeMarketApi(sql, {
   const tx = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
   const work = bg ?? sql
   /** scripts on the shelf: who is suspended from trading, and who is about to be (market-guard.js) */
-  const guard2 = makeMarketGuard(sql, { bg, displayName: (name, h) => displayName(name, h) })
+  const guard2 = makeMarketGuard(sql, { bg, displayName: (name, h) => displayName(name, h), cardById: (id) => engine.cardById(id) })
   const bgTx = (fn) => (work.begin ? work.begin(fn) : fn(work))
 
   /**
@@ -2154,7 +2154,7 @@ export function makeMarketApi(sql, {
         if (!token || !tokenOk || !tokenOk(given, token)) { json(res, 404, { ok: false }); return true }
         let b = null
         try { b = JSON.parse(await readBody(req, 2048)) } catch { /* no body: the report */ }
-        json(res, 200, b?.action === 'weekly' ? await guard2.weekly() : b?.action ? await guard2.manual(b) : { ok: true, ...(await guard2.report()) })
+        json(res, 200, b?.action === 'weekly' ? await guard2.weekly() : b?.action === 'transfers' ? await guard2.transfers(b) : b?.action ? await guard2.manual(b) : { ok: true, ...(await guard2.report()) })
         return true
       }
       return false

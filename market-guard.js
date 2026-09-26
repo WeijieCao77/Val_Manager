@@ -177,7 +177,37 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
   return { verdict, rule, counts }
 }
 
-export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUARD ?? 'ban', displayName = null } = {}) {
+/** what the game pays for a card of each rarity: nobody sells below it, so no card is worth less */
+const FLOOR = { mythic: 4000, gold: 700, silver: 200, bronze: 60 }
+/**
+ * What a card at a level is usually worth, from the month's sales (refRows: { card_id, level, n, med }).
+ * Its own median when it sold at least three times at that level; else the median of its rarity at that
+ * level (a 冷门卡 has no market of its own, and a gold nobody trades is still a gold); never under salvage.
+ */
+export function saleValue(refRows, cardById = null) {
+  const own = new Map(refRows.map((r) => [`${r.card_id}|${r.level}`, r]))
+  const rarityOf = (id) => cardById?.(id)?.rarity ?? null
+  const byRarity = new Map()
+  for (const r of refRows) {
+    if (r.n < 3) continue
+    const k = `${rarityOf(r.card_id)}|${r.level}`
+    const list = byRarity.get(k) ?? []
+    list.push(r.med)
+    byRarity.set(k, list)
+  }
+  const med = (xs) => { const s = xs.slice().sort((a, b) => a - b); return s[Math.floor(s.length / 2)] }
+  const rarityMed = new Map([...byRarity].map(([k, xs]) => [k, med(xs)]))
+  return (cardId, level) => {
+    const rarity = rarityOf(cardId)
+    const floor = FLOOR[rarity] ?? 60
+    const o = own.get(`${cardId}|${level}`)
+    if (o && o.n >= 3) return { ref: Math.max(floor, o.med), n: o.n, from: 'card' }
+    const r = rarityMed.get(`${rarity}|${level}`) ?? rarityMed.get(`${rarity}|0`)
+    return { ref: Math.max(floor, r ?? floor), n: o?.n ?? 0, from: r ? 'rarity' : 'floor' }
+  }
+}
+
+export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUARD ?? 'ban', displayName = null, cardById = null } = {}) {
   const work = bg ?? sql
   const off = mode === 'off' || !sql
   /** id_hash → until (ms), every ban still running; small, re-read once a minute */
@@ -325,6 +355,105 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return { ok: true, buyers: rows.length, activeAccounts: active[0]?.n ?? null, all: sorted('n'), buyouts: sorted('buyouts'), trading: sorted('trading') }
   }
 
+  /**
+   * For the owner, read only: every sale of the last `days`, each priced against what that card at that level
+   * usually goes for, and every pair of accounts that traded, with how often and which way. 「冷门卡挂一个巨额
+   * 一口价，小号拍下」 is a price nobody else would pay for that card; 「两个号互相倒」 is the same two accounts
+   * trading again and again. This is what a rule about either is read against before it suspends anybody.
+   */
+  async function transfers({ days = 14 } = {}) {
+    const d = Math.max(1, Math.min(30, Math.round(Number(days)) || 14))
+    // what a card at a level usually sells for: the median of the month, from every seller
+    const refRows = await work`
+      select l.card_id, l.level, count(*)::int as n,
+             percentile_cont(0.5) within group (order by o.price)::int as med
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.status = 'accepted' and l.status = 'sold' and l.closed > now() - interval '30 days'
+      group by l.card_id, l.level`
+    const sales = await work`
+      select o.buyer_h as b, l.seller_h as s, l.card_id, l.level, o.price, l.ask, l.buyout,
+             extract(epoch from o.made)::float8 as made, extract(epoch from l.created)::float8 as created,
+             extract(epoch from l.closed)::float8 as closed
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.status = 'accepted' and l.status = 'sold' and l.closed > now() - make_interval(days => ${d})`
+    const value = saleValue(refRows, cardById)
+    const rows = sales.map((r) => {
+      const v = value(r.card_id, r.level)
+      return { ...r, ref: v.ref, refN: v.n, refFrom: v.from, ratio: r.price / v.ref, over: Math.max(0, r.price - v.ref), bo: r.buyout != null && r.price >= r.buyout }
+    })
+    const buckets = [2, 3, 5, 10, 20, 50, 100, Infinity]
+    const hist = buckets.map((hi, i) => {
+      const lo = i ? buckets[i - 1] : 0
+      const inIt = rows.filter((r) => r.ratio >= lo && r.ratio < hi)
+      return { from: lo, to: hi === Infinity ? null : hi, n: inIt.length, buyouts: inIt.filter((r) => r.bo).length, over: inIt.reduce((a, r) => a + r.over, 0) }
+    })
+    // pairs, either way round
+    const pairs = new Map()
+    const perSeller = new Map()
+    const perBuyer = new Map()
+    for (const r of rows) {
+      perSeller.set(r.s, (perSeller.get(r.s) ?? 0) + 1)
+      perBuyer.set(r.b, (perBuyer.get(r.b) ?? 0) + 1)
+      const [x, y] = r.b < r.s ? [r.b, r.s] : [r.s, r.b]
+      const k = x + y
+      let p = pairs.get(k)
+      if (!p) pairs.set(k, p = { x, y, n: 0, xy: 0, yx: 0, paid: 0, over: 0, maxRatio: 0, times: [], cards: new Set() })
+      p.n++; if (r.b === x) p.xy++; else p.yx++
+      p.paid += r.price; p.over += r.over; p.maxRatio = Math.max(p.maxRatio, r.ratio); p.times.push(r.closed); p.cards.add(r.card_id)
+    }
+    const DAYSEC = 86400
+    for (const p of pairs.values()) {
+      p.times.sort((a, b) => a - b)
+      let best = 0
+      for (let i = 0, j = 0; i < p.times.length; i++) { while (p.times[i] - p.times[j] > DAYSEC) j++; best = Math.max(best, i - j + 1) }
+      p.day = best
+    }
+    const list = [...pairs.values()]
+    const dist = {}
+    for (const p of list) {
+      const k = Math.min(p.day, 6)
+      const e = dist[k] ??= { pairs: 0, both: 0, overpaid3: 0, overpaid10: 0 }
+      e.pairs++
+      if (p.xy && p.yx) e.both++
+      if (p.maxRatio >= 3) e.overpaid3++
+      if (p.maxRatio >= 10) e.overpaid10++
+    }
+    const want = new Set()
+    const topSales = rows.filter((r) => r.ratio >= 5 && r.over >= 3000).sort((a, b) => b.over - a.over).slice(0, 200)
+    for (const r of topSales) { want.add(r.b); want.add(r.s) }
+    const topPairs = list.filter((p) => p.day >= 2).sort((a, b) => b.day - a.day || b.over - a.over).slice(0, 200)
+    for (const p of topPairs) { want.add(p.x); want.add(p.y) }
+    const acc = new Map()
+    if (want.size) {
+      for (const a of await work`
+        select id_hash, name, created, (state->>'pulls')::int as pulls, (state->>'coins')::int as coins
+        from card_accounts where id_hash = any(${[...want]})`) acc.set(a.id_hash, a)
+    }
+    const who = (h) => {
+      const a = acc.get(h)
+      return {
+        code: h.slice(0, 8).toUpperCase(), name: a ? (displayName ? displayName(a.name, h).name : a.name) : null,
+        created: a?.created ?? null, pulls: a?.pulls ?? null, coins: a?.coins ?? null,
+        sold: perSeller.get(h) ?? 0, bought: perBuyer.get(h) ?? 0,
+      }
+    }
+    const ign = (id) => cardById?.(id)?.ign ?? cardById?.(id)?.name ?? id
+    const pairKey = (a, b) => (a < b ? a + b : b + a)
+    return {
+      ok: true, days: d, sales: rows.length, hist, pairDays: dist,
+      topSales: topSales.map((r) => ({
+        buyer: who(r.b), seller: who(r.s), card: ign(r.card_id), rarity: cardById?.(r.card_id)?.rarity ?? null, level: r.level,
+        price: r.price, ask: r.ask, buyout: r.buyout, bo: r.bo, ref: r.ref, refN: r.refN, refFrom: r.refFrom,
+        ratio: Math.round(r.ratio * 10) / 10, age: Math.round(r.made - r.created), at: new Date(r.closed * 1000).toISOString(),
+        pair: (() => { const p = pairs.get(pairKey(r.b, r.s)); return { n: p.n, day: p.day, both: !!(p.xy && p.yx) } })(),
+      })),
+      topPairs: topPairs.map((p) => ({
+        a: who(p.x), b: who(p.y), n: p.n, aBought: p.xy, bBought: p.yx, day: p.day, cards: p.cards.size,
+        paid: p.paid, over: Math.round(p.over), maxRatio: Math.round(p.maxRatio * 10) / 10,
+      })),
+    }
+  }
+
   async function byCode(code) {
     const c = String(code ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(c)) return null
@@ -349,5 +478,5 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return { ok: false, why: 'action' }
   }
 
-  return { mode, banOf, check, checkSoon, scan, report, manual, weekly, invalidate() { active = new Map(); activeAt = 0 } }
+  return { mode, banOf, check, checkSoon, scan, report, manual, weekly, transfers, invalidate() { active = new Map(); activeAt = 0 } }
 }

@@ -1351,7 +1351,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   --warn: #e8b23a; --win: #3dd68c;
   color: var(--text);
 }
-.pack-reveal { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; }
+.pack-reveal { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; width: 100%; }
 
 /* While the seal is up, a sideways swipe is a tear, never the browser's
    "back"; the stage swallows touch gestures so the page under it does not
@@ -1490,33 +1490,37 @@ html.pack-open, html.pack-open body { overscroll-behavior: none; }
  * and the count is printed above it either way. The reveal itself is untouched:
  * every card is still turned over at full size, one at a time. */
 .pack-strip {
-  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-  max-width: 760px;
+  --gap: 8px;
+  /* what the recap may not cover: the count line, the 收下 bar, the stage's padding */
+  --reserve: 210px;
+  display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: center;
+  width: 100%; max-width: 760px;
   /* room to scroll the last row out from under the sticky bar on the narrow,
-     short screens where even the shrunk recap does not fit */
+     short screens where even this does not fit */
   padding-bottom: 6px;
+  --cols: var(--cols-d); --rows: var(--rows-d);
 }
+/* Each card as wide as its row allows, as tall as the screen allows, no wider
+   than the pack's cap (stripLayout in Packs.tsx sets the variables). The vh
+   line is for browsers without svh, which would drop the second declaration. */
+.pack-strip > .pack-card {
+  width: min(var(--card-max), calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)), calc((100vh - var(--reserve)) / var(--rows) / 1.4 - var(--gap)));
+  width: min(var(--card-max), calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)), calc((100svh - var(--reserve)) / var(--rows) / 1.4 - var(--gap)));
+}
+.pack-strip > .pack-card > .card-img { width: 100%; }
 .pack-strip-head { color: var(--muted); letter-spacing: .04em; }
 .pack-strip-head b { color: var(--text); font-size: 13px; }
 @media (max-width: 560px) {
-  /* zoom, not transform: it shrinks the layout box too, so the row rewraps
-     four-up instead of three. Where it is not supported the strip simply
-     stays the size it is today and the count line above still tells the
-     truth. */
-  .pack-strip { gap: 6px; }
-  .pack-strip .pack-card { zoom: .78; }
-}
-/* 320-wide phones are still out there, and at .78 a ten-pack goes back to
-   three a row and four rows. Small enough that four fit. */
-@media (max-width: 360px) {
-  .pack-strip .pack-card { zoom: .66; }
+  .pack-strip { --gap: 6px; --cols: var(--cols-m); --rows: var(--rows-m); }
 }
 .pack-hint { color: var(--muted); font-size: var(--t-small); }
 .pack-card-focus {
   --rarity-light: #e69a52;
   position: relative; isolation: isolate;
   display: grid; place-items: center;
-  width: 184px; min-height: 268px;
+  /* as big as the screen leaves room for, with the meta line and 收下 under it */
+  --focus-w: min(250px, calc(100vw - 120px), calc((100vh - 320px) / 1.4));
+  width: var(--focus-w); min-height: calc(var(--focus-w) * 1.4 + 10px);
   color: var(--rarity-light); cursor: pointer; outline: none;
   animation: rarity-card-arrive .42s cubic-bezier(.16,.8,.24,1) both;
 }
@@ -1597,6 +1601,11 @@ html.pack-open, html.pack-open body { overscroll-behavior: none; }
 .pack-card-focus.rarity-mythic .pack-rarity-motes i:nth-child(4n+3) { color: #ffe579; }
 .pack-card-focus.rarity-mythic .pack-rarity-motes i:nth-child(4n) { color: #7fffc0; }
 .pack-card-focus.revealed .pack-rarity-motes { opacity: .42; transition: opacity .28s ease-out; }
+.pack-card-focus .flip-front > .card-img { width: var(--focus-w); }
+/* a custom property takes any value, so an svh line would not fall back by itself */
+@supports (height: 100svh) {
+  .pack-card-focus { --focus-w: min(250px, calc(100vw - 120px), calc((100svh - 320px) / 1.4)); }
+}
 .pack-card-meta-slot { display: flex; justify-content: center; min-height: 30px; }
 .pack-card-meta { animation: pack-meta-in .28s .18s ease-out both; }
 @keyframes rarity-card-arrive {

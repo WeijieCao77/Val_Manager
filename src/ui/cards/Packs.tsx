@@ -565,7 +565,7 @@ export function PackStage({
             <div className="pack-strip-head tiny">
               这一包 <b>{pulled.length}</b> 张{dupes > 0 ? ` · 重复 ${dupes} 张` : ''}
             </div>
-            <div className="pack-strip">
+            <div className="pack-strip" style={stripLayout(pulled.length)}>
               {pulled.map((p, i) => (
                 <div key={`${p.card.id}-${i}`} className="pack-card" style={{ animationDelay: `${i * 40}ms` }}>
                   <CardFace card={p.card} size="sm" footer={p.dupe ? '重复' : '新卡'} />
@@ -578,6 +578,22 @@ export function PackStage({
       </div>}
     </div>
   )
+}
+
+/**
+ * How the recap lays a pack out: columns and rows on a wide screen and on a
+ * phone. Every card was drawn at 96px (75 on a phone) whatever the pack, so a
+ * one-card pack showed one tiny card whose name could not be read. The CSS
+ * turns these into the biggest width that still fits the screen's width and
+ * height, capped per pack size.
+ */
+function stripLayout(n: number): React.CSSProperties {
+  const [cols, colsM, max] = n <= 1 ? [1, 1, 220] : n <= 3 ? [n, n, 170] : n <= 5 ? [n, 3, 150] : [5, 4, 140]
+  return {
+    '--cols-d': cols, '--rows-d': Math.ceil(n / cols),
+    '--cols-m': colsM, '--rows-m': Math.ceil(n / colsM),
+    '--card-max': `${max}px`,
+  } as React.CSSProperties
 }
 
 const REST_POSE = { x: 4, y: -20 }
