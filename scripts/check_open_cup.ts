@@ -355,6 +355,11 @@ try {
   check('我的冠军数', st.titles?.all === 1)
   check('往届列表里有冠军名字，取消的一场标了取消',
     st.recent.some((c: any) => c.champion?.name) && st.recent.some((c: any) => c.void))
+  // 往届夺冠阵容: each past champion carries the five it won with, cards and levels only
+  const withFive = st.recent.filter((c: any) => c.champion?.name)
+  check('往届冠军都带着夺冠阵容（五人 + 教练 + 等级）',
+    withFive.length > 0 && withFive.every((c: any) => Array.isArray(c.champion.five?.slots) && c.champion.five.slots.length === 5
+      && typeof c.champion.five.levels === 'object' && !('paper' in c.champion.five)), JSON.stringify(withFive[0]?.champion))
 
   // ---- what the API says
   const firstReal = real[0]

@@ -341,9 +341,13 @@ export function makeTeamCupApi(sql, {
   }
 
   /** One team as its members may be shown: names, scores, how their duels went. No hashes. */
-  async function teamView(id, team, me) {
-    const rows = await sql`select id_hash, name, score, duels, duel_wins from team_cup_entries where cup_id = ${id} and team = ${team} order by score desc, id_hash`
-    return rows.map((r) => ({ ...who(r.name, r.id_hash), score: r.score, duels: r.duels, duelWins: r.duel_wins, me: !!me && r.id_hash === me }))
+  async function teamView(id, team, me, withFive = false) {
+    const rows = await sql`select id_hash, name, score, duels, duel_wins, five from team_cup_entries where cup_id = ${id} and team = ${team} order by score desc, id_hash`
+    return rows.map((r) => ({
+      ...who(r.name, r.id_hash), score: r.score, duels: r.duels, duelWins: r.duel_wins, me: !!me && r.id_hash === me,
+      // the champions' fives, for the 夺冠阵容 on the page (cards and levels only)
+      ...(withFive && r.five?.slots ? { five: { slots: r.five.slots, coach: r.five.coach ?? null, levels: r.five.levels ?? {} } } : {}),
+    }))
   }
   async function tieView(id, t, me) {
     const ids = [...new Set((t.duels ?? []).flatMap((d) => [d.a, d.b]))]
@@ -373,7 +377,7 @@ export function makeTeamCupApi(sql, {
   async function finalOf(c, me) {
     if (!c || c.status !== 'done') return null
     const t = (await sql`select * from team_cup_ties where cup_id = ${c.id} and round = ${c.round - 1} order by slot limit 1`)[0]
-    return t ? { tie: await tieView(c.id, t, me), champions: await teamView(c.id, c.champion, me) } : null
+    return t ? { tie: await tieView(c.id, t, me), champions: await teamView(c.id, c.champion, me, true) } : null
   }
 
   async function gate(me) {

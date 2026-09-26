@@ -123,6 +123,8 @@ const before = mail.length
 await api.advance(now + 60_000)
 assert.equal((await sql`select count(*)::int as n from card_mail where kind = 'team_cup'`)[0].n, before, '发奖只发一次')
 assert(s.last.final?.champions?.length >= 5 && s.last.me?.ties?.length >= 1)
+// 夺冠阵容: the champions come with their fives
+assert(s.last.final.champions.every((m: any) => Array.isArray(m.five?.slots) && m.five.slots.length === 5), 'champions carry their fives')
 console.log(`ok  整届：${ties.length} 场对决、${played} 场单挑，三分定胜负，全队同奖，奖只发一次`)
 api.close()
 await db.close()

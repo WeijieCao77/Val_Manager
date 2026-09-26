@@ -499,9 +499,13 @@ export function makeOpenCupApi(sql, {
         }
         const done = cups.filter((c) => c.status === 'done' && c.champion)
         const champs = done.length ? await sql`
-          select e.cup_id::text as cup, e.id_hash, e.name from open_cup_entries e
+          select e.cup_id::text as cup, e.id_hash, e.name, e.five, e.score from open_cup_entries e
            where e.place = 1 and e.cup_id in (select (jsonb_array_elements_text(${sql.json(done.map((c) => c.id))}::jsonb))::bigint)` : []
-        const champOf = new Map(champs.map((r) => [r.cup, who(r.name, r.id_hash)]))
+        // every past champion's five as it stood that day (往届夺冠阵容): the cards and
+        // their levels only — the score breakdown stays with the match reports
+        const lineup = (f) => (f && Array.isArray(f.slots)
+          ? { slots: f.slots, coach: f.coach ?? null, levels: f.levels ?? {} } : null)
+        const champOf = new Map(champs.map((r) => [r.cup, { ...who(r.name, r.id_hash), five: lineup(r.five), score: r.score }]))
         const value = {
           next: next && { ...cupRow(next), signed },
           live: live && { ...cupRow(live), alive: aliveN, top: await topOf(live) },

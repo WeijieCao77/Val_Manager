@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import ChampionLineup from './ChampionLineup'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
@@ -11,7 +12,7 @@ import {
 } from '../../engine/openCup'
 import { swissRoundName } from '../../engine/openCupSwiss'
 import { PACKS } from '../../engine/gacha'
-import { cardById, cardName, squadRating } from '../../engine/cards'
+import { squadRating } from '../../engine/cards'
 import { serverNow } from '../../engine/account'
 import { GapOdds } from './GapOdds'
 import type { ArenaResult } from '../../engine/arena'
@@ -194,18 +195,8 @@ export default function OpenCup() {
               <span style={{ flex: 1, minWidth: 160 }}>
                 {st.last.champion.name} <span className="tiny faint mono">{st.last.champion.tag}</span>
                 <span className="tiny faint"> · 阵容分 {st.last.champion.score}</span>
-                {st.last.champion.five && (
-                  <span className="tiny muted" style={{ display: 'block', lineHeight: 1.7 }}>
-                    {[...st.last.champion.five.slots, st.last.champion.five.coach]
-                      .filter((id): id is string => !!id)
-                      .map((id) => {
-                        const c = cardById(id)
-                        const lv = st.last!.champion!.five!.levels[id] ?? 0
-                        return `${c ? cardName(c) : id}${lv ? ` +${lv}` : ''}`
-                      }).join(' · ')}
-                  </span>
-                )}
               </span>
+              {st.last.champion.five && <div style={{ width: '100%', marginTop: 8 }}><ChampionLineup five={st.last.champion.five} big /></div>}
             </div>
           )}
           <MyRun cup={st.last} me={st.last.me ?? null} onOpen={(m) => void open(st.last!.id, m)} />
@@ -245,17 +236,21 @@ export default function OpenCup() {
       </Panel>
 
       {!!st.recent.length && (
-        <Panel title="往届">
+        <Panel title="往届 · 夺冠阵容">
           <div className="grid" style={{ gap: 6 }}>
             {st.recent.map((c) => (
-              <div key={c.id} className="bracket-leg" style={{ cursor: c.void ? 'default' : 'pointer' }} onClick={() => { if (!c.void) void openOld(c.id) }}>
-                <b style={{ width: 52 }}>{clock(c.starts)}</b>
-                <span style={{ flex: 1 }}>
-                  {c.void
-                    ? <span className="muted">人数不足，取消</span>
-                    : <>{c.champion?.name ?? '?'} <span className="tiny faint mono">{c.champion?.tag}</span></>}
-                </span>
-                <span className="tiny faint">{c.entrants} 人</span>
+              <div key={c.id} className="champ-past">
+                <div className="bracket-leg" style={{ cursor: c.void ? 'default' : 'pointer' }} onClick={() => { if (!c.void) void openOld(c.id) }}>
+                  <b style={{ width: 52 }}>{clock(c.starts)}</b>
+                  <span style={{ flex: 1 }}>
+                    {c.void
+                      ? <span className="muted">人数不足，取消</span>
+                      : <>🏆 {c.champion?.name ?? '?'} <span className="tiny faint mono">{c.champion?.tag}</span>
+                        {c.champion?.score != null && <span className="tiny faint"> · 阵容分 {c.champion.score}</span>}</>}
+                  </span>
+                  <span className="tiny faint">{c.entrants} 人</span>
+                </div>
+                {!c.void && c.champion?.five && <ChampionLineup five={c.champion.five} />}
               </div>
             ))}
           </div>

@@ -65,7 +65,7 @@ export interface OpenCupState {
     top: OpenCupMatchRow[]
     me?: OpenCupMine | null
   }) | null
-  recent: { id: string; starts: number; entrants: number; void: boolean; champion: { name: string; tag: string } | null }[]
+  recent: { id: string; starts: number; entrants: number; void: boolean; champion: { name: string; tag: string; five?: OpenCupFive | null; score?: number | null } | null }[]
   boards: { day: string; today: OpenCupBoardRow[]; all: OpenCupBoardRow[] }
   titles?: { today: number; all: number }
 }

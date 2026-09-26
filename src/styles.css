@@ -3238,3 +3238,12 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 /* the front keeps its own width (the flip is as wide as it); the back lies exactly over it */
 .flip-back > .card-img { width: 100%; }
 .team-lineup-players > .card-img { width: 132px; }
+
+/* 夺冠阵容: the latest champion's six in a row that wraps; every past one a strip that scrolls sideways */
+.champ-lineup { display: flex; flex-wrap: wrap; gap: 8px; }
+.champ-lineup > .card-img { width: 96px; }
+/* a grid item sizes to its content unless told otherwise; this one must let the strip scroll instead */
+.champ-past { min-width: 0; }
+.champ-lineup-strip { max-width: 100%; display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 4px; -webkit-overflow-scrolling: touch; }
+.champ-lineup-strip > .card-img { width: 72px; }
+@media (max-width: 420px) { .champ-lineup > .card-img { width: calc((100% - 16px) / 3); } }

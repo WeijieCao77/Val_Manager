@@ -4,7 +4,11 @@ import { rememberedId } from './cardid'
 import type { TeamPrize } from './teamCup'
 
 export interface TeamWho { name: string; tag: string; score: number | null; me: boolean }
-export interface TeamMember extends TeamWho { duels: number; duelWins: number }
+export interface TeamMember extends TeamWho {
+  duels: number; duelWins: number
+  /** only on the champions: the five they won it with */
+  five?: { slots: (string | null)[]; coach: string | null; levels: Record<string, number> }
+}
 export interface TeamDuel { a: TeamWho; b: TeamWho; aWon: boolean; mapsA: number; mapsB: number }
 export interface TeamTie {
   round: number; slot: number; teamA: number; teamB: number | null; bye: boolean; played: boolean

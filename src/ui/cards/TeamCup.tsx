@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import ChampionLineup from './ChampionLineup'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import { teamCupJoin, teamCupLeave, teamCupState } from '../../engine/teamCupClient'
@@ -123,6 +124,17 @@ export default function TeamCup() {
               <p className="small" style={{ marginTop: 0 }}>
                 冠军队：{last.final.champions.map((m) => <b key={m.tag} style={{ marginRight: 8 }}>{m.name} <span className="faint">{m.tag}</span></b>)}
               </p>
+              {/* 夺冠阵容: each champion's own five, as the cup read it */}
+              {last.final.champions.some((m) => m.five) && (
+                <div className="grid" style={{ gap: 8, marginBottom: 10 }}>
+                  {last.final.champions.filter((m) => m.five).map((m) => (
+                    <div key={m.tag} className="champ-past">
+                      <div className="tiny muted">{m.name} <span className="faint mono">{m.tag}</span>{m.score != null ? ` · 阵容分 ${m.score}` : ''}</div>
+                      <ChampionLineup five={m.five!} />
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* the asker's own run below already shows the final if they were in it */}
               {!last.me?.ties?.some((t) => t.round === last.final!.tie.round) && <Tie tie={last.final.tie} rounds={last.rounds} />}
             </>
