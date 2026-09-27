@@ -123,9 +123,9 @@ const DAY = 86_400_000
  * Only trades in the last 24 h trigger it, and only after the account's last ban or lift, like the rest.
  */
 export const TRANSFER = {
-  // F_PAIR_N (owner, 2026-09-27, 「只买了一个一口价就被封」): the two accounts must have traded at least this often
-  // in the week — one dear purchase from a stranger is a rich player's choice on an inflated market, not a transfer
-  F_RATIO: 20, F_GAP: 30_000, F_PAIR_N: 2,
+  // F_PAIR_N (owner, 2026-09-27: 「一天内超过两次」): the two accounts traded at least this often inside 24 h —
+  // one dear purchase from a stranger is a rich player's choice on an inflated market, not a transfer
+  F_RATIO: 20, F_GAP: 30_000, F_PAIR_N: 3,
   G_N: 3, G_RATIO: 3, G_OVER_N: 2,
 }
 
@@ -138,9 +138,10 @@ export function judgeTransfers(trades, now = Date.now(), AUTO = autoRules()) {
   const T = TRANSFER
   const week = trades.map((t) => ({ ...t, at: new Date(t.at).getTime(), ratio: t.price / Math.max(1, t.ref), over: t.price - t.ref }))
     .filter((t) => Number.isFinite(t.at) && t.at <= now && now - t.at <= 7 * DAY)
-  const pairN = new Map()
-  for (const t of week) pairN.set(t.other, (pairN.get(t.other) ?? 0) + 1)
   const rows = week.filter((t) => now - t.at <= DAY)
+  // trades with each account inside the last 24 h
+  const pairN = new Map()
+  for (const t of rows) pairN.set(t.other, (pairN.get(t.other) ?? 0) + 1)
   const dear = rows.filter((t) => t.ratio >= T.F_RATIO && t.over >= T.F_GAP)
   const dumps = dear.filter((t) => pairN.get(t.other) >= T.F_PAIR_N)
   const byOther = new Map()
@@ -366,7 +367,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const more = !other && moved.others.length > 1 ? `（另有 ${moved.others.length - 1} 个号）` : ''
     if (rule === 'F' && dump) {
       const sold = other ? dump.bought : !dump.bought
-      return `${sold ? '卖给' : '从'} ${withTag} ${sold ? '' : '买下'}一张卡，成交 ${dump.price} 金币，是这张卡平时价格（约 ${dump.ref}）的 ${round1(dump.ratio)} 倍，你们一周内成交了 ${dump.pairN} 次${more}`
+      return `${sold ? '卖给' : '从'} ${withTag} ${sold ? '' : '买下'}一张卡，成交 ${dump.price} 金币，是这张卡平时价格（约 ${dump.ref}）的 ${round1(dump.ratio)} 倍，你们 24 小时内成交了 ${dump.pairN} 次${more}`
     }
     if (loop) return `和 ${withTag} 24 小时内成交 ${loop.n} 次${loop.both ? '，互相买过' : ''}${loop.pricey ? `，其中 ${loop.pricey} 次在平时价格 3 倍以上` : ''}${more}`
     return RULE_PLAIN[rule]
@@ -683,7 +684,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const ign = (id) => cardById?.(id)?.ign ?? cardById?.(id)?.name ?? id
     // who F and G would suspend over the window (both sides of each), and the rings they make
     const fHit = new Set()
-    for (const r of rows) if (r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N) { fHit.add(r.b); fHit.add(r.s) }
+    for (const r of rows) if (r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).day >= TRANSFER.F_PAIR_N) { fHit.add(r.b); fHit.add(r.s) }
     const gHit = new Set()
     const link = new Map()
     for (const p of list) {
@@ -730,14 +731,14 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
         buyer: who(r.b), seller: who(r.s), card: ign(r.card_id), rarity: cardById?.(r.card_id)?.rarity ?? null, level: r.level,
         price: r.price, ask: r.ask, buyout: r.buyout, bo: r.bo, ref: r.ref, refN: r.refN, refFrom: r.refFrom,
         ratio: Math.round(r.ratio * 10) / 10, age: Math.round(r.made - r.created), at: new Date(r.closed * 1000).toISOString(),
-        f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N,
+        f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).day >= TRANSFER.F_PAIR_N,
         pair: (() => { const p = pairs.get(pairKey(r.b, r.s)); return { n: p.n, day: p.day, both: !!(p.xy && p.yx) } })(),
       })),
       topPairs: topPairs.map((p) => ({
         a: who(p.x), b: who(p.y), n: p.n, aBought: p.xy, bBought: p.yx, day: p.day, cards: p.cards.size,
         paid: p.paid, over: Math.round(p.over), maxRatio: Math.round(p.maxRatio * 10) / 10, g: p.g,
       })),
-      gPairs: list.filter((p) => p.g).length, fSales: rows.filter((r) => r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N).length,
+      gPairs: list.filter((p) => p.g).length, fSales: rows.filter((r) => r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).day >= TRANSFER.F_PAIR_N).length,
     }
   }
 

@@ -40,13 +40,15 @@ assert.equal(judgeTransfers([], now).verdict, null)
 // the screenshot: a gold that sells for 860, 起拍 700, 一口价 168,397, bought by an alt
 // owner, 2026-09-27 (「只买了一个一口价就被封」): one dear sale between strangers is only reported
 assert.equal(judgeTransfers([t(30, 'alt', false, 168_397, 860)], now).verdict, 'watch', '和陌生人只有这一笔：只上报，不封')
-// …the same sale between two accounts that have traded before is a transfer
-const dump = judgeTransfers([t(30, 'alt', false, 168_397, 860), t(60 * 30, 'alt', true, 900, 860)], now)
-assert.deepEqual([dump.verdict, dump.rule, dump.others], ['ban', 'F', ['alt']], '一周内成交过两次、其中一笔巨额：卖家这边也算')
-assert.deepEqual(judgeTransfers([t(30, 'main', true, 168_397, 860), t(60 * 50, 'main', false, 700, 860)], now).others, ['main'], '买家这边一样')
+// owner, the same day: 「一天内超过两次」 — two accounts with three trades inside 24 h, one of them absurd
+assert.equal(judgeTransfers([t(30, 'alt', false, 168_397, 860), t(200, 'alt', false, 900, 860)], now).verdict, 'watch', '一天两次、其中一笔巨额：只上报')
+assert.equal(judgeTransfers([t(30, 'alt', false, 168_397, 860), t(200, 'alt', false, 900, 860), t(60 * 30, 'alt', false, 900, 860)], now).verdict, 'watch', '第三次在一天以前：不够')
+const dump = judgeTransfers([t(30, 'alt', false, 168_397, 860), t(200, 'alt', false, 900, 860), t(400, 'alt', false, 880, 860)], now)
+assert.deepEqual([dump.verdict, dump.rule, dump.others], ['ban', 'F', ['alt']], '一天内成交三次、其中一笔巨额：卖家这边也算')
+assert.deepEqual(judgeTransfers([t(30, 'main', true, 168_397, 860), t(50, 'main', true, 700, 860), t(70, 'main', true, 800, 860)], now).others, ['main'], '买家这边一样')
 assert.equal(judgeTransfers([t(30, 'x', true, 18_000, 1000)], now).verdict, null, '和陌生人一笔 18 倍：什么都不算')
-assert.equal(judgeTransfers([t(30, 'x', true, 18_000, 1000), t(90, 'x', true, 900, 1000)], now).verdict, 'watch', '熟人之间 18 倍、高出一万七：只上报')
-assert.equal(judgeTransfers([t(30, 'x', true, 25_000, 1000), t(90, 'x', true, 900, 1000)], now).verdict, 'watch', '25 倍但只高出两万四：只上报')
+assert.equal(judgeTransfers([t(30, 'x', true, 18_000, 1000), t(90, 'x', true, 900, 1000), t(95, 'x', true, 900, 1000)], now).verdict, 'watch', '一天三次、其中一笔 18 倍高出一万七：只上报')
+assert.equal(judgeTransfers([t(30, 'x', true, 25_000, 1000), t(90, 'x', true, 900, 1000), t(95, 'x', true, 900, 1000)], now).verdict, 'watch', '25 倍但只高出两万四：只上报')
 assert.equal(judgeTransfers([t(30, 'x', true, 300_000, 200_000)], now).verdict, null, '彩卡贵一点成交：倍数不够，不算')
 assert.equal(judgeTransfers([t(60 * 25, 'alt', false, 168_397, 860)], now).verdict, null, '一天以前的不在这里算（站长名单里看得到）')
 // two accounts trading again and again
@@ -59,7 +61,7 @@ const collector = Array.from({ length: 12 }, (_, i) => t(10 + i * 60, 'shop', tr
 assert.equal(judgeTransfers(collector, now).verdict, null, '从同一个大卖家手里按市价买十二张：是集卡，不算')
 assert.equal(judgeTransfers([...collector.slice(0, 5), t(5, 'shop', true, 3500)], now).verdict, null, '其中一张买贵了：还不算')
 // the owner can take either back to report-only
-assert.equal(judgeTransfers([t(30, 'alt', false, 168_397, 860), t(90, 'alt', true, 900, 860)], now, new Set(['A', 'E'])).verdict, 'watch')
+assert.equal(judgeTransfers([t(30, 'alt', false, 168_397, 860), t(90, 'alt', false, 900, 860), t(95, 'alt', false, 900, 860)], now, new Set(['A', 'E'])).verdict, 'watch')
 console.log('ok  规则：一笔离谱高价（F）双方都停；两个号一天互相成交三次（G）双方都停；按市价从同一卖家买很多不算')
 
 // ---- on the real market
@@ -110,13 +112,15 @@ assert.equal(await api.guard.banOf(hash(SHOP)), null)
 // the screenshot: the main puts up a cold gold at 700 with a 168,397 buy-now; the alt empties itself into it
 assert((await sale(MAIN, ALT, cold, 700, 168_397)).bought)
 assert.equal(await api.guard.banOf(hash(ALT)), null, '两个号之间只有这一笔：不封（只上报）')
-// …and they trade again: now it is two accounts with a history, one of the sales absurd
+// …and they trade again, and again: three trades in a day, one of them absurd
 await account(ALT, [fair], 200_000)
+assert((await sale(ALT, MAIN, fair, 800, 1000)).bought)
+assert.equal(await api.guard.banOf(hash(ALT)), null, '一天两次：还不够')
 assert((await sale(ALT, MAIN, fair, 800, 1000)).bought)
 const altBan = await api.guard.banOf(hash(ALT))
 const mainBan = await api.guard.banOf(hash(MAIN))
 assert(altBan && mainBan, '买的小号和卖的大号都停')
-assert(mainBan!.why.includes('③ 高价倒钱') && mainBan!.why.includes('168397') && mainBan!.why.includes('卖给'), mainBan!.why)
+assert(mainBan!.why.includes('③ 高价倒钱') && mainBan!.why.includes('168397') && mainBan!.why.includes('卖给') && mainBan!.why.includes('24 小时内成交了 3 次'), mainBan!.why)
 assert(altBan!.why.includes('③ 高价倒钱') && altBan!.why.includes('买下') && altBan!.why.includes('#' + hash(MAIN).slice(0, 4).toUpperCase()), altBan!.why)
 console.log('   大号看到：', mainBan!.why)
 console.log('   小号看到：', altBan!.why)
@@ -147,6 +151,6 @@ assert.equal(await api.guard.banOf(hash(SHOP)), null)
 process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
 console.log('ok  起算时间之前的违规不算：重新核对后，之前的暂停全部解除；之后还违规的保留并写明原因')
 const tr = await call('guard', { action: 'transfers' }, TOKEN)
-assert(tr.ok && tr.fSales === 1 && tr.sales === 7)
+assert(tr.ok && tr.fSales === 1 && tr.sales === 8)
 console.log('ok  站长名单里有这笔成交和两个号的证据')
 await db.close()
