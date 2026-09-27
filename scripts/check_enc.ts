@@ -87,6 +87,19 @@ check('清掉以后当天还能报名', runAction(healed, 'enc_enter', {}, env('
   && !!healed.enc.rivals[healed.enc.path[0]])
 check('然后打得了', runAction(healed, 'enc_play', {}, env('2026-09-27', 61)).ok)
 
+// a bracket drawn while the pool read every five back empty: unfinished is dropped, finished stays
+const hollow = (done: boolean) => {
+  const x = national(`VM-TEST-ENC-HOLLOW-${done}`, 'kr')
+  runAction(x, 'enc_enter', {}, env('2026-09-27', 70, pool))
+  for (const r of Object.values(x.enc!.rivals)) { r.slots = []; r.coach = null }
+  if (done) x.enc!.done = true
+  return migrateGacha(structuredClone(x), `VM-TEST-ENC-HOLLOW-${done}`)
+}
+check('对手是空阵容、还没打完的国家队杯：读档时清掉', !hollow(false).enc)
+check('对手是空阵容、已经打完的：留着（奖励已发）', !!hollow(true).enc)
+const hollowPool = pool.map((r) => ({ ...r, slots: [], coach: null }))
+check('池子里全是空阵容：报不了，不会白送 13–0', !runAction(national('VM-TEST-ENC-EMPTY', 'kr'), 'enc_enter', {}, env('2026-09-28', 71, hollowPool)).ok)
+
 // ---- through the server: the first entrant is kept for the second to meet
 const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
 const db = new PGlite()
@@ -117,13 +130,37 @@ const first = await call('/api/card/act', { id: A, action: 'enc_enter' })
 check('第一个报名的人碰到服务器找到的巴西玩家', first.body.ok === true && first.body.state?.enc?.path?.includes(`enc:${hash(B).slice(0, 8)}`), JSON.stringify(first.body).slice(0, 200))
 await new Promise((r) => setTimeout(r, 200))
 const kept = await sql`select id_hash, nat, score from enc_entries order by id_hash` as unknown as { id_hash: string; nat: string }[]
+const shapes = await sql`select jsonb_typeof(five) as t from enc_entries` as unknown as { t: string }[]
+check('池子里存的是阵容对象，不是字符串（postgres.js 会把手写的 JSON 字符串再编码一次）', shapes.length > 0 && shapes.every((r) => r.t === 'object'), shapes.map((r) => r.t).join(','))
 check('报名的人和扫到的人都进了池子', kept.some((r) => r.id_hash === hash(A) && r.nat === 'cn') && kept.some((r) => r.id_hash === hash(B) && r.nat === 'br'))
+// a row the way production stored it before the fix: the five as a JSON string inside jsonb
+const D = 'VM-4444-5555-6666-7777-8888'
+const dFive = national(D, 'jp')
+await sql`insert into enc_entries (id_hash, name, nat, five, score, updated)
+  values (${hash(D)}, ${'日本队'}, ${'jp'}, to_jsonb(${JSON.stringify({ slots: dFive.squad.slots, coach: dFive.squad.coach, levels: {} })}::text), ${80}, now())`
+await new Promise((r) => setTimeout(r, 1100))
 const second = await call('/api/card/act', { id: C, action: 'enc_enter' })
 const path: string[] = second.body.state?.enc?.path ?? []
 check('第二个人的对手里有第一个人（真人，不是人机）', second.body.ok === true && path.includes(`enc:${hash(A).slice(0, 8)}`), JSON.stringify(path))
 check('不会碰到自己', !path.includes(`enc:${hash(C).slice(0, 8)}`))
+const drawn = Object.values(second.body.state?.enc?.rivals ?? {}) as EncRival[]
+check('抽到的每个对手都有五名选手和教练', drawn.length > 0 && drawn.every((r) => r.slots.filter(Boolean).length === 5 && !!r.coach),
+  JSON.stringify(drawn.map((r) => r.slots.length)))
+const E = 'VM-5555-6666-7777-8888-9999'
+await put(E, national(E, 'us', 5))
+let eRivals: EncRival[] = []
+for (let i = 0; i < 3 && !eRivals.some((r) => r.id === `enc:${hash(D).slice(0, 8)}`); i++) {
+  await new Promise((r) => setTimeout(r, 300))
+  const e = await call('/api/card/act', { id: E, action: 'enc_enter' })
+  eRivals = Object.values(e.body.state?.enc?.rivals ?? {}) as EncRival[]
+  if (!eRivals.some((r) => r.id === `enc:${hash(D).slice(0, 8)}`)) await sql`update card_accounts set state = state - 'enc' where id_hash = ${hash(E)}`
+}
+const dRival = eRivals.find((r) => r.id === `enc:${hash(D).slice(0, 8)}`)
+check('修复前存成字符串的旧阵容：照样读得出五个人', !!dRival && dRival.slots.length === 5 && dRival.coach === dFive.squad.coach, JSON.stringify(dRival?.slots))
 const played = await call('/api/card/act', { id: C, action: 'enc_play' })
 check('打得了', played.body.ok === true && typeof played.body.result?.res?.win === 'boolean', JSON.stringify(played.body).slice(0, 160))
+const their = played.body.result?.res?.opp?.lines ?? []
+check('对方五个人都上场了（有数据），不是空阵容白送', their.length === 5, `对方 ${their.length} 人`)
 await db.close()
 
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')

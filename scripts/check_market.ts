@@ -89,7 +89,7 @@ const OTHER = 'VM-CCCC-CCCC-CCCC-CCCC-CCCC'
 const account = (id: string, name: string, coins: number, cards: Record<string, unknown>,
   pulls = TRADE_PULLS, ageDays = TRADE_DAYS + 1) =>
   sql`insert into card_accounts (id_hash, name, state, created) values (${hashOf(id)}, ${name},
-    ${JSON.stringify({ coins, cards, pulls })}, now() - make_interval(days => ${ageDays}))`
+    ${sql.json({ coins, cards, pulls })}, now() - make_interval(days => ${ageDays}))`
 const coinsOf = async (id: string) => (await sql`select (state->>'coins')::int as coins
   from card_accounts where id_hash = ${hashOf(id)}`)[0].coins as number
 const listingRow = async (lid: string) => (await sql`
@@ -484,7 +484,7 @@ check('加够一步就压过去了', r.ok === true && r.price === 1050, JSON.str
   check('新号也出不了价', x.newbie === true, JSON.stringify(x))
 
   // open enough packs and the door opens
-  await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${String(TRADE_PULLS)}::jsonb)
+  await sql`update card_accounts set state = jsonb_set(state, '{pulls}', ${sql.json(TRADE_PULLS)})
             where id_hash = ${hashOf(NEW)}`
   x = await call('/api/market/list', { id: NEW, cardId: GOLD, ask: 700, rarity: 'gold' })
   check(`开够 ${TRADE_PULLS} 抽就能挂了`, x.ok === true, JSON.stringify(x))

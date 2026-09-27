@@ -179,7 +179,7 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const card = ALL_CARDS.find((c) => c.kind === 'player' && c.rarity === 'gold')!
   // four days old: past the market's age gate as well as its pull gate
   await sql`insert into card_accounts (id_hash, name, state, created) values (${idHash}, '查我',
-    ${JSON.stringify({ coins: 1234, pulls: 60, cards: { [card.id]: { id: card.id, dupes: 0 } } })}, now() - interval '4 days')`
+    ${sql.json({ coins: 1234, pulls: 60, cards: { [card.id]: { id: card.id, dupes: 0 } } })}, now() - interval '4 days')`
   const lres = { code: 0, body: {} as Record<string, unknown> }
   await market.route({ body: JSON.stringify({ id: ID, cardId: card.id, ask: 3000 }), method: 'POST' } as never, lres as never, '/api/market/list', 't')
   // (these five had their arguments the wrong way round — a string where the
@@ -214,11 +214,11 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
     const row = await sql`select state from card_accounts where id_hash = ${h}`
     const s = row[0].state
     edit(s)
-    await sql`update card_accounts set state = ${JSON.stringify(s)} where id_hash = ${h}`
+    await sql`update card_accounts set state = ${sql.json(s)} where id_hash = ${h}`
   }
   await setState(idHash, (s) => { s.cards[legend.id] = { id: legend.id, level: 0, dupes: 0 } })
   await sql`insert into card_accounts (id_hash, name, state, created) values (${buyerHash}, '对手',
-    ${JSON.stringify({ coins: 400_000, pulls: 200, cards: {} })}, now() - interval '4 days')`
+    ${sql.json({ coins: 400_000, pulls: 200, cards: {} })}, now() - interval '4 days')`
   const ask = askFloor(legend.rarity)
   const PRICE = Math.min(500_000, Math.max(Math.ceil(ask * 1.2), 290_000))
   const l2 = { code: 0, body: {} as Record<string, unknown> }
@@ -332,7 +332,7 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   const P = 'VM-KNWQ-24Y1-6AH5-WF9H-CH9X'
   await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(P)}, '收礼的',
-    ${JSON.stringify({ coins: 0, cards: {}, packs: {} })})`
+    ${sql.json({ coins: 0, cards: {}, packs: {} })})`
   const code = hashOf(P).slice(0, 8)
 
   const admin = (body: unknown, token: string | undefined = TOKEN) =>
@@ -383,7 +383,7 @@ check(readDataUrl('data:image/png;base64,not base64!!') === null, 'junk in the p
   const ids = ['VM-2222-2222-2222-2222-2222', 'VM-3333-3333-3333-3333-3333', 'VM-5555-5555-5555-5555-5555']
   for (const [i, id] of ids.entries()) {
     await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(id)}, ${'批量' + i},
-      ${JSON.stringify({ coins: 0, cards: {}, packs: {} })})`
+      ${sql.json({ coins: 0, cards: {}, packs: {} })})`
   }
   const codes = ids.map((id) => hashOf(id).slice(0, 8))
   const mails = async () => {

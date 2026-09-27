@@ -61,7 +61,7 @@ const inbox = async (id: string) =>
   ((await call('/api/card/act', { id, action: 'mail_take', args: {}, client: {} })).result as
     { mail: { kind: string; cardId: string | null; level: number }[] }).mail
 const patch = async (id: string, path: string, value: unknown) =>
-  sql`update card_accounts set state = jsonb_set(state, ${`{${path}}`}::text[], ${JSON.stringify(value)}::jsonb) where id_hash = ${hashOf(id)}`
+  sql`update card_accounts set state = jsonb_set(state, ${`{${path}}`}::text[], ${sql.json(value)}::jsonb) where id_hash = ${hashOf(id)}`
 
 const A = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
 const B = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'

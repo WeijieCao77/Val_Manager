@@ -28,7 +28,7 @@ import {
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
-  encBlock, encNation, enterEnc, rollSeason,
+  encBlock, encNation, encRivalWhole, enterEnc, rollSeason,
 } from './gacha'
 import type { EncRival } from './gacha'
 import {
@@ -352,6 +352,7 @@ function dispatch(
       const oppId = cupOpponent(g, 'enc')
       const rival = oppId ? enc?.rivals?.[oppId] : undefined
       if (!enc || !oppId || !rival || !enc.registration) return { ok: false, why: '没有进行中的国家队杯' }
+      if (!encRivalWhole(rival)) return { ok: false, why: '这一轮的对手阵容读不出来，刷新一下再打' }
       const level = (id: string) => enc.registration!.levels[id] ?? 0
       // another player's five, on the same score curve as the ladder's real rivals
       const res = playRivalMatch(enc.registration.squad, level, rival, cupBo(enc), env.seed, undefined, enc.balance ?? true)

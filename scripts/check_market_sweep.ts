@@ -72,8 +72,8 @@ const browse = async (i: number) => {
 const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
 const SELLER = 'VM-SELL-0000-0000-0000-0001', BIDDER = 'VM-BIDS-0000-0000-0000-0002'
 await real`insert into card_accounts (id_hash, name, state, created) values
-  (${hashOf(SELLER)}, '卖家', ${JSON.stringify({ coins: 0, cards: {}, pulls: 99 })}, now() - interval '9 days'),
-  (${hashOf(BIDDER)}, '买家', ${JSON.stringify({ coins: 0, cards: {}, pulls: 99 })}, now() - interval '9 days')`
+  (${hashOf(SELLER)}, '卖家', ${real.json({ coins: 0, cards: {}, pulls: 99 })}, now() - interval '9 days'),
+  (${hashOf(BIDDER)}, '买家', ${real.json({ coins: 0, cards: {}, pulls: 99 })}, now() - interval '9 days')`
 // 1,000 auctions whose time is up — 600 with a bid standing, 400 without — and 40 still running
 await real`insert into card_listings (seller_h, card_id, level, ask, ends, hours)
   select ${hashOf(SELLER)}, 'p:P1', 0, 100, now() - interval '1 minute', 24 from generate_series(1, 1000)`
@@ -165,7 +165,7 @@ const sick = Object.assign(
     begin: (fn: (tx: unknown) => Promise<unknown>) => (real as any).begin((tx: any) => {
       const wrapped = Object.assign((st: TemplateStringsArray, ...v: unknown[]) => {
         const out = tx(st, ...v)
-        if (/insert into card_mail/.test(st.join('?')) && v.map(String).join(' ').includes(`"listing":"${poison}"`)) {
+        if (/insert into card_mail/.test(st.join('?')) && v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ').includes(`"listing":"${poison}"`)) {
           poisoned++
           return Promise.resolve(out).then(() => { throw new Error('这一行坏了') })
         }

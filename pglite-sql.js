@@ -9,6 +9,14 @@ const quoted = (name) => {
   return `"${name.replaceAll('"', '""')}"`
 }
 
+/**
+ * Parameters the server types as json/jsonb are JSON.stringify'd, whatever they are — postgres.js does exactly
+ * this (types.js serializers[114/3802]), so a string that was stringified by hand is stored as a JSON *string*.
+ * PGlite's own serializer passes strings through, which hid that in every local test until the 国家队杯 pool
+ * went out with its fives as strings (2026-09-27: rivals with no cards, every map 13–0).
+ */
+const AS_POSTGRES_JS = { 114: (x) => JSON.stringify(x), 3802: (x) => JSON.stringify(x) }
+
 export function makeSql(db) {
   const run = (strings, ...vals) => {
     if (!Array.isArray(strings) || !Object.hasOwn(strings, 'raw')) {
@@ -32,7 +40,7 @@ export function makeSql(db) {
       return `(${value.columns.join(', ')}) values ${value.rows.map((row) => `(${row.map(bind).join(', ')})`).join(', ')}`
     }
     const text = strings.reduce((q, part, i) => q + part + (i < vals.length ? interpolate(vals[i]) : ''), '')
-    return db.query(text, params).then((r) => Object.assign(r.rows, { count: r.affectedRows ?? 0 }))
+    return db.query(text, params, { serializers: AS_POSTGRES_JS }).then((r) => Object.assign(r.rows, { count: r.affectedRows ?? 0 }))
   }
   return Object.assign(run, {
     unsafe: async (q) => {
@@ -40,7 +48,8 @@ export function makeSql(db) {
       const r = results.at(-1)
       return Object.assign(r?.rows ?? [], { count: r?.affectedRows ?? 0 })
     },
-    json: (v) => JSON.stringify(v),
+    // postgres.js: sql.json(v) hands the value over and the json serializer encodes it once
+    json: (v) => v,
     // a PGlite Transaction has query/exec but no transaction of its own, so
     // a nested begin simply runs inside the one already open
     begin: (fn) => (typeof db.transaction === 'function'

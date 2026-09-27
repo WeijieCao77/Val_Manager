@@ -2114,6 +2114,11 @@ export function encBlock(g: GachaState, today: string): string | null {
   return e.day === today ? '国家队杯一天一次，明天再来' : null
 }
 
+/** five players and a coach, every one a card the game has */
+export const encRivalWhole = (r: EncRival | undefined): boolean =>
+  !!r && Array.isArray(r.slots) && r.slots.length === 5 && r.slots.every((id) => typeof id === 'string' && !!cardById(id))
+  && typeof r.coach === 'string' && !!cardById(r.coach)
+
 export const ENC_EMPTY = '还没有其他玩家的国家队可以对阵。你的阵容已经登记，别人报名时会碰到你；今天的次数没有用掉，晚点再来。'
 
 export function enterEnc(
@@ -2121,9 +2126,11 @@ export function enterEnc(
 ): EncState {
   if (g.enc && !g.enc.done) return g.enc
   if (g.enc && g.enc.day === today) throw new Error('国家队杯一天一次，明天再来')
+  // only a whole five can be drawn: one with nobody in it was a free 13–0 (the pool once read back empty)
+  const whole = pool.filter(encRivalWhole)
   // other countries first; one's own only when there are too few of them to fill a bracket
-  const abroad = pool.filter((r) => r.nat !== nat)
-  const field = abroad.length >= CUP_MIN_ROUNDS ? abroad : pool
+  const abroad = whole.filter((r) => r.nat !== nat)
+  const field = abroad.length >= CUP_MIN_ROUNDS ? abroad : whole
   if (!field.length) throw new Error(ENC_EMPTY)
   const table = field.map((r) => ({ id: r.id, rating: r.score }))
   const { rng, done } = roll(g)
@@ -2719,6 +2726,10 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   // teams are gone and the bracket has no `rivals`, so it could neither be played nor replaced. Nothing was
   // charged for it; drop it and the day's entry is open again.
   if (g.enc && !g.enc.rivals) delete g.enc
+  // and one drawn while the pool read every five back empty (fixed 2026-09-27): its rivals have no cards, so
+  // each round was a 13–0 against nobody. An unfinished one is dropped and the day is open again; a finished
+  // one has paid out and stays as it was.
+  else if (g.enc && !g.enc.done && g.enc.path.some((id) => !encRivalWhole(g.enc!.rivals[id]))) delete g.enc
   g.seed = typeof g.seed === 'number' && Number.isFinite(g.seed) ? g.seed >>> 0 : hashStr(id + g.createdAt) >>> 0
   return clampState(g)
 }

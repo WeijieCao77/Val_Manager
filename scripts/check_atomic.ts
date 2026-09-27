@@ -74,7 +74,7 @@ async function call(api: any, path: string, body: unknown): Promise<Res> {
 const stored = async (id: string): Promise<GachaState> =>
   (await sql`select state from card_accounts where id_hash = ${hashOf(id)}` as unknown as { state: GachaState }[])[0].state
 const patch = async (id: string, path: string, value: unknown) =>
-  sql`update card_accounts set state = jsonb_set(state, ${`{${path}}`}::text[], ${JSON.stringify(value)}::jsonb) where id_hash = ${hashOf(id)}`
+  sql`update card_accounts set state = jsonb_set(state, ${`{${path}}`}::text[], ${sql.json(value)}::jsonb) where id_hash = ${hashOf(id)}`
 
 const A = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
 const B = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'

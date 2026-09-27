@@ -73,7 +73,7 @@ const withCards = (ids: string[]) => Object.fromEntries(ids.map((id, i) => [id, 
 for (const [id, name, ids] of [['VM-1111-1111-1111-1111-1111', '阿伟', five('x')], ['VM-2222-2222-2222-2222-2222', '阿强', five('y')]] as [string, string, string[]][]) {
   await real`insert into card_accounts (id_hash, name, state) values (
     ${(await import('node:crypto')).createHash('sha256').update(id).digest('hex')}, ${name},
-    ${JSON.stringify({ ladder: { div: 5, points: 1200, stars: 0, wins: 3, losses: 1 }, squad: { slots: ids, coach: null }, cards: withCards(ids) })})`
+    ${real.json({ ladder: { div: 5, points: 1200, stars: 0, wins: 3, losses: 1 }, squad: { slots: ids, coach: null }, cards: withCards(ids) })})`
 }
 api.invalidate()
 

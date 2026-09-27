@@ -52,7 +52,7 @@ const call = async (api: ReturnType<typeof make>, path: string, body: unknown) =
 const ME = 'VM-TEST-0000-0000-0000-0001'
 const cards = engine.ALL_CARDS.map((c: { id: string }) => c.id)
 await sql`insert into card_accounts (id_hash, name, state, created, verified) values
-  (${hashOf(ME)}, '看货架的', ${JSON.stringify({ coins: 9, cards: { [cards[0]]: { id: cards[0], level: 1, dupes: 0 } }, pulls: 99 })}, now() - interval '9 days', now())`
+  (${hashOf(ME)}, '看货架的', ${sql.json({ coins: 9, cards: { [cards[0]]: { id: cards[0], level: 1, dupes: 0 } }, pulls: 99 })}, now() - interval '9 days', now())`
 await sql`insert into card_accounts (id_hash, name, state, created)
   select 'seller' || g, '卖家' || g, '{}'::jsonb, now() - interval '9 days' from generate_series(1, 400) g`
 await db.query(`

@@ -87,7 +87,7 @@ try {
     const account = newGacha(id, '预测并发', '2026-09-20')
     assert(runAction(account, 'predict', { event: EV.id, group: 'C', picks: cases[0][1] }, env(before)).ok)
     const starting = account.packs.ten ?? 0
-    await sql`insert into card_accounts (id_hash, name, state, verified) values (${hash}, '预测并发', ${JSON.stringify(account)}, now())`
+    await sql`insert into card_accounts (id_hash, name, state, verified) values (${hash}, '预测并发', ${sql.json(account)}, now())`
     const api = makeCardApi(sql, {
       rateLimited: () => false, readBody: async (req: { body: string }) => req.body,
       json: (res: any, _code: number, body: any) => { res.body = body },

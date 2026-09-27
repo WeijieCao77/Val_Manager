@@ -27,7 +27,7 @@ try {
   for (const id of [me, other, seller]) {
     const g = engine.newGacha(id, id, '2026-01-01'); g.coins = 100000; g.pulls = 99
     await sql`insert into card_accounts (id_hash, name, state, created, verified)
-      values (${hash(id)}, ${id}, ${JSON.stringify(g)}, now() - interval '9 days', now())`
+      values (${hash(id)}, ${id}, ${sql.json(g)}, now() - interval '9 days', now())`
   }
   const add = async () => String((await sql`insert into card_listings (seller_h, card_id, level, ask, ends, hours)
     values (${hash(seller)}, 'p:P1', 2, 1000, now() + interval '2 hours', 2) returning id`)[0].id)

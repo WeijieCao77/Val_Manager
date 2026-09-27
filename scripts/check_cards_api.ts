@@ -239,7 +239,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   const mk = async (id: string, name: string, div: number, points: number, wins: number) => {
     await sql`insert into card_accounts (id_hash, name, state)
       values (${hashOf(id)}, ${name},
-        ${JSON.stringify({ season: seasonOf(serverDay()), ladder: { div, points, stars: 0, wins, losses: 0 } })})`
+        ${sql.json({ season: seasonOf(serverDay()), ladder: { div, points, stars: 0, wins, losses: 0 } })})`
   }
   await mk('VM-1111-1111-1111-1111-1111', '阿伟', 5, 1800, 90)
   await mk('VM-2222-2222-2222-2222-2222', '傻逼', 5, 900, 40)
@@ -291,7 +291,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
     await db.exec('delete from card_accounts')
     const league = async (id: string, name: string, open: number, silver: number) => {
       await sql`insert into card_accounts (id_hash, name, state)
-        values (${hashOf(id)}, ${name}, ${JSON.stringify({
+        values (${hashOf(id)}, ${name}, ${sql.json({
           season: seasonOf(serverDay()),
           ladder: { div: 5, points: open, stars: 0, wins: 10, losses: 0 },
           leagues: silver >= 0
@@ -351,7 +351,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   const mkRival = async (id: string, name: string, div: number, points: number, ids: string[]) => {
     await sql`insert into card_accounts (id_hash, name, state) values (
       ${hashOf(id)}, ${name},
-      ${JSON.stringify({
+      ${sql.json({
         ladder: { div, points, stars: 0, wins: 1, losses: 0 },
         squad: squadOf(ids), cards: withCards([...ids, 'C-bonkar']),
       })})`
@@ -363,7 +363,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   // a five with an empty seat is not an opponent
   await sql`insert into card_accounts (id_hash, name, state) values (
     ${hashOf('VM-4444-4444-4444-4444-4444')}, '缺人',
-    ${JSON.stringify({ ladder: { div: 5, points: 999 }, squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
+    ${sql.json({ ladder: { div: 5, points: 999 }, squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
 
   const r = await call('/api/card/rivals', { div: 5, id: 'VM-1111-1111-1111-1111-1111' }, 'riv')
   const list = r.body.rivals as { name: string; slots: string[]; levels: Record<string, number>; div: number; coach: string | null }[]
@@ -395,7 +395,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   const hisCode = battleCode(hisHash)
   await sql`insert into card_accounts (id_hash, name, state) values (
     ${hisHash}, '老王',
-    ${JSON.stringify({
+    ${sql.json({
       ladder: { div: 4, points: 0, stars: 2, wins: 9, losses: 3 },
       squad: { slots: ['fa', 'fb', 'fc', 'fd', 'fe'], coach: 'C-bonkar' },
       cards: Object.fromEntries(['fa', 'fb', 'fc', 'fd', 'fe', 'C-bonkar']
@@ -432,7 +432,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   // a five with a hole in it cannot be played, and saying so beats a crash
   await sql`insert into card_accounts (id_hash, name, state) values (
     ${hashOf('VM-6666-6666-6666-6666-6666')}, '缺人',
-    ${JSON.stringify({ squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
+    ${sql.json({ squad: { slots: ['a', null, 'c', 'd', 'e'], coach: null }, cards: {} })})`
   f = await call('/api/card/friend', { code: battleCode(hashOf('VM-6666-6666-6666-6666-6666')) }, 'fr')
   check('对方阵容缺人时说清楚，而不是发一个打不了的队', f.body.empty === true, JSON.stringify(f.body))
 
@@ -440,7 +440,7 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   // somebody else's screen
   await sql`insert into card_accounts (id_hash, name, state) values (
     ${hashOf('VM-7777-7777-7777-7777-7777')}, 'VM-9DJ0-X6C7-8EP0-1234-5678',
-    ${JSON.stringify({
+    ${sql.json({
       squad: { slots: ['a', 'b', 'c', 'd', 'e'], coach: null },
       cards: {},
     })})`
@@ -462,9 +462,9 @@ const hashOf = (id: string) => createHash('sha256').update(id).digest('hex')
   const A = 'VM-AAAA-AAAA-AAAA-AAAA-AAAA'
   const B = 'VM-BBBB-BBBB-BBBB-BBBB-BBBB'
   await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(A)}, '送的人',
-    ${JSON.stringify({ cards: { 'p:P1': { id: 'p:P1', dupes: 2 } } })})`
+    ${sql.json({ cards: { 'p:P1': { id: 'p:P1', dupes: 2 } } })})`
   await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(B)}, '收的人',
-    ${JSON.stringify({ cards: {} })})`
+    ${sql.json({ cards: {} })})`
 
   // the route no longer exists: it is not handled at all, which the real
   // server turns into a 404 (see the `if (!handled)` in server.js)

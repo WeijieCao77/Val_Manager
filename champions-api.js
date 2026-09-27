@@ -32,7 +32,10 @@ export function makeChampionsApi(sql, { readBody, json, token, tokenFrom, normal
  const config = async () => {
   if (configCache && Date.now()-configAt < 30_000) return structuredCloneJson(configCache)
   const [r] = await sql`select value from site_config where key='champions_config'`
-  configCache = { enabled:true, popup:true, overrides:{}, ...r?.value }; configAt = Date.now()
+  // before 2026-09-27 the value went in hand-stringified and postgres.js stored it as a JSON string
+  let saved = r?.value
+  if (typeof saved === 'string') { try { saved = JSON.parse(saved) } catch { saved = null } }
+  configCache = { enabled:true, popup:true, overrides:{}, ...(saved && typeof saved === 'object' ? saved : {}) }; configAt = Date.now()
   return structuredCloneJson(configCache)
  }
  return { async route(req,res,path,url) {
@@ -75,7 +78,7 @@ export function makeChampionsApi(sql, { readBody, json, token, tokenFrom, normal
       next.overrides[body.day]=body.matches.map((m,i)=>({id:`manual-${body.day}-${i}`,day:body.day,time:m.time,a:clean(m.a,60),b:clean(m.b,60),start:new Date(`${body.day}T${m.time}:00+08:00`).toISOString()}))
      }
     }
-    await sql`insert into site_config(key,value) values('champions_config',${JSON.stringify(next)}::jsonb) on conflict(key) do update set value=excluded.value,updated=now()`
+    await sql`insert into site_config(key,value) values('champions_config',${sql.json(next)}) on conflict(key) do update set value=excluded.value,updated=now()`
     configCache=null
     json(res,200,{ok:true});return true
    }

@@ -1222,7 +1222,9 @@ export function makeCardApi(sql, {
   const encDb = () => slow ?? sql
   const encRival = (r) => {
     const shown = displayName(r.name, r.id_hash)
-    const five = r.five ?? {}
+    // rows written before 2026-09-27's fix hold the five as a JSON string
+    let five = r.five ?? {}
+    if (typeof five === 'string') { try { five = JSON.parse(five) } catch { five = {} } }
     return {
       id: `enc:${r.id_hash.slice(0, 8)}`, name: shown.name, tag: shown.tag, nat: r.nat,
       slots: Array.isArray(five.slots) ? five.slots : [], coach: five.coach ?? null, levels: five.levels ?? {},
@@ -1272,11 +1274,11 @@ export function makeCardApi(sql, {
         const nation = engine.encNation({ slots: r.squad.slots, coach: r.squad.coach })
         let score = 0
         try { score = engine.squadRating({ slots: r.squad.slots, coach: r.squad.coach }, (id) => lv[id] ?? 0) } catch { continue }
-        const five = JSON.stringify({ slots: r.squad.slots, coach: r.squad.coach, levels: lv })
+        const five = { slots: r.squad.slots, coach: r.squad.coach, levels: lv }
         // a five the player registered himself is never overwritten by the scan
         await db`
           insert into enc_entries (id_hash, name, nat, five, score, updated)
-          values (${r.id_hash}, ${r.name}, ${nation.nat}, ${five}::jsonb, ${score}, ${r.seen ?? new Date()})
+          values (${r.id_hash}, ${r.name}, ${nation.nat}, ${db.json(five)}, ${score}, ${r.seen ?? new Date()})
           on conflict (id_hash) do nothing`
         n++
       }
@@ -1300,10 +1302,13 @@ export function makeCardApi(sql, {
     let reg = null
     try { reg = engine.encRegistration(g) } catch { reg = null }
     if (!reg) return
-    const five = JSON.stringify({ slots: reg.slots, coach: reg.coach, levels: reg.levels })
-    encDb()`
+    // db.json, never a hand-made JSON string: postgres.js encodes a jsonb parameter itself, and a string went in
+    // as a JSON *string* — every five in the pool read back with no cards (2026-09-27, 13–0 against nobody)
+    const five = { slots: reg.slots, coach: reg.coach, levels: reg.levels }
+    const db = encDb()
+    db`
       insert into enc_entries (id_hash, name, nat, five, score, updated)
-      values (${me}, ${g.name ?? null}, ${reg.nat}, ${five}::jsonb, ${reg.score}, now())
+      values (${me}, ${g.name ?? null}, ${reg.nat}, ${db.json(five)}, ${reg.score}, now())
       on conflict (id_hash) do update set name = excluded.name, nat = excluded.nat, five = excluded.five,
         score = excluded.score, updated = now()`
       .then(() => { if (encAll) encAll.at = 0 })

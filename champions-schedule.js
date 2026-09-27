@@ -24,7 +24,9 @@ export function makeSchedule(sql, fetcher = fetch) {
   return async function readSchedule() {
     if (!restored && sql) {
       restored = true
-      const [saved] = await sql`select value from site_config where key = 'champions_calendar'`
+      const [row] = await sql`select value from site_config where key = 'champions_calendar'`
+      // before 2026-09-27 the value went in hand-stringified and postgres.js stored it as a JSON string
+      const saved = row && typeof row.value === 'string' ? { value: (() => { try { return JSON.parse(row.value) } catch { return null } })() } : row
       // only if nothing fresher has been fetched while that read was out
       if (saved?.value?.matches?.length && !(saved.value.syncedAt < syncedAt)) { matches = saved.value.matches; syncedAt = saved.value.syncedAt }
     }
@@ -39,7 +41,7 @@ export function makeSchedule(sql, fetcher = fetch) {
           const next = parseChampionsCalendar(text)
           if (!next.length) throw new Error('empty schedule')
           matches = next; syncedAt = new Date().toISOString(); stale = false
-          if (sql) await sql`insert into site_config(key,value) values('champions_calendar',${JSON.stringify({ matches, syncedAt })}::jsonb) on conflict(key) do update set value=excluded.value, updated=now()`
+          if (sql) await sql`insert into site_config(key,value) values('champions_calendar',${sql.json({ matches, syncedAt })}) on conflict(key) do update set value=excluded.value, updated=now()`
         } catch { stale = true } finally { pending = null }
       })()
     }
