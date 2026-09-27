@@ -233,9 +233,11 @@ export const dashboardHtml = () => `<!doctype html>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
-    <b>自动暂停（3 天，再犯 5 天）：</b>A 一天内 5 次在挂出（或保护期结束）后 2 秒内买下/报名；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）；
-    <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G <b>买卖双方一起停</b>（下面两个名单是近 7 天的情况）。
-    B 多家快买一天满 40、C 一周满 120、D 一周 100 张且跨 20 个钟点：<b>只上报不封</b>，下面名单里标着「过线 B/C/D」，你核实后用上面的按钮手动暂停。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
+    <b>自动暂停（3 天，再犯 5 天），编号和公告一致，玩家会看到违反的是哪一条和具体哪笔：</b>
+    ① A 连续 10 次在挂出（或保护期结束）后 2 秒内一口价；② E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡；
+    ③ F 一笔成交价是这张卡同等级平时价格的 20 倍以上、高出 3 万以上，<b>且两个号一周内成交过至少 2 次</b>（只有这一笔的只列在下面，不封）；
+    ④ G 两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在平时价格 3 倍以上；⑤ D 24 小时里超过 16 个小时都在一口价买卡。F、G 买卖双方一起停。
+    B 多家快买一天满 40、C 一周满 120：<b>只上报不封</b>，下面名单里标着「过线 B/C」，你核实后用上面的按钮手动暂停。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
     接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
   </p>
   <div id="mgOut" class="acct"></div>
@@ -1005,7 +1007,7 @@ const mgCall = async (body) => {
   if (!r.ok) throw new Error('HTTP ' + r.status)
   return r.json()
 }
-const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张，7天里算倒卖的 ' + (c.trading ?? '?') + '/' + c.week + ' · 2秒内 ' + c.ultra + ' · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
+const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张，7天里算倒卖的 ' + (c.trading ?? '?') + '/' + c.week + ' · 2秒内 ' + c.ultra + '（最多连续 ' + (c.ultraRun ?? '?') + '）· 24小时里 ' + (c.awake ?? '?') + ' 个小时在买 · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
 const mgMoved = (e) => e && e.transfer ? ('和 ' + (e.with || []).join('、') + ' 倒卡：'
   + (e.transfer.dumps || []).map((d) => (d.bought ? '买入 ' : '卖出 ') + d.price + '（一般 ' + d.ref + '，' + d.ratio + ' 倍）').join('，')
   + (e.transfer.loops || []).map((l) => ' 24 小时内成交 ' + l.n + ' 次' + (l.both ? '，互相买' : '') + (l.pricey ? '，其中 ' + l.pricey + ' 次高价' : '')).join('')) : ''
@@ -1017,8 +1019,9 @@ async function mgLoad() {
     const who = (x) => '<b>' + esc(x.name || '无名') + '</b> <a href="#" data-mg="' + esc(x.code) + '">' + esc(x.code) + '</a>'
     const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
       + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
-      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动暂停</b> 规则 ' + esc(f.rule) : /^[B-D]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
+      + '<div style="font-size:12px">玩家看到：' + esc(b.why || '') + '</div>'
+      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || '') + '</div></div>').join('')
+    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动暂停</b> 规则 ' + esc(f.rule) : /^[BC]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
       + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
     const mv = r.moving || { sales: [], pairs: [] }
     const acct = (x) => who(x) + ' <span class="muted" style="font-size:12px">（建号 ' + (x.created ? gWhen(x.created) : '?') + '，抽 ' + (x.pulls ?? '?') + '，金币 ' + (x.coins ?? '?') + '）</span>'

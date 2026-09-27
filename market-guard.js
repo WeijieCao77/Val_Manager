@@ -85,7 +85,11 @@ export const GUARD = {
   ULTRA_SEC: 2, QUICK_SEC: PROTECT_SEC + 45, FRESH_SEC: 300,
   // 大小号来回倒: this many TRADING purchases (bought before, or listed again) from ONE seller in a day, any age
   LOOP_N: 30,
-  ULTRA_N: 5,
+  // A (owner, 2026-09-27: 「连续拍10张一口价……才算脚本」): this many buy-nows IN A ROW, each within ULTRA_SEC
+  // of the listing (or of its protected minute ending). Five scattered over a day suspended people who are quick.
+  ULTRA_N: 10,
+  // D (the same day: 「24小时里超过其中16小时都在拍」): buy-nows in more than this many of the last 24 clock hours
+  AWAKE_HOURS: 16,
   SELLER_CAP: 3, QUICK_DAY: 40,
   SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
   FRESH_N: 100, FRESH_HOURS: 20,
@@ -94,7 +98,7 @@ export const GUARD = {
 /** the rules that suspend by themselves; the rest only report */
 // F and G (倒卡) reported for a day first: on the 2026-09-26 ledger they would have suspended 132 accounts that day
 // and 419 over the week, rings of up to 35 passing 500,000-coin buy-nows on bronzes; the owner turned them on (09-27)
-const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E,F,G').toUpperCase().split(/[^A-G]+/).filter(Boolean))
+const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,D,E,F,G').toUpperCase().split(/[^A-G]+/).filter(Boolean))
 const DAY = 86_400_000
 
 /**
@@ -112,7 +116,9 @@ const DAY = 86_400_000
  * Only trades in the last 24 h trigger it, and only after the account's last ban or lift, like the rest.
  */
 export const TRANSFER = {
-  F_RATIO: 20, F_GAP: 30_000,
+  // F_PAIR_N (owner, 2026-09-27, 「只买了一个一口价就被封」): the two accounts must have traded at least this often
+  // in the week — one dear purchase from a stranger is a rich player's choice on an inflated market, not a transfer
+  F_RATIO: 20, F_GAP: 30_000, F_PAIR_N: 2,
   G_N: 3, G_RATIO: 3, G_OVER_N: 2,
 }
 
@@ -123,9 +129,13 @@ export const TRANSFER = {
  */
 export function judgeTransfers(trades, now = Date.now(), AUTO = autoRules()) {
   const T = TRANSFER
-  const rows = trades.map((t) => ({ ...t, at: new Date(t.at).getTime(), ratio: t.price / Math.max(1, t.ref), over: t.price - t.ref }))
-    .filter((t) => Number.isFinite(t.at) && t.at <= now && now - t.at <= DAY)
-  const dumps = rows.filter((t) => t.ratio >= T.F_RATIO && t.over >= T.F_GAP)
+  const week = trades.map((t) => ({ ...t, at: new Date(t.at).getTime(), ratio: t.price / Math.max(1, t.ref), over: t.price - t.ref }))
+    .filter((t) => Number.isFinite(t.at) && t.at <= now && now - t.at <= 7 * DAY)
+  const pairN = new Map()
+  for (const t of week) pairN.set(t.other, (pairN.get(t.other) ?? 0) + 1)
+  const rows = week.filter((t) => now - t.at <= DAY)
+  const dear = rows.filter((t) => t.ratio >= T.F_RATIO && t.over >= T.F_GAP)
+  const dumps = dear.filter((t) => pairN.get(t.other) >= T.F_PAIR_N)
   const byOther = new Map()
   for (const t of rows) byOther.set(t.other, [...(byOther.get(t.other) ?? []), t])
   const loops = []
@@ -137,18 +147,19 @@ export function judgeTransfers(trades, now = Date.now(), AUTO = autoRules()) {
   }
   const round = (x) => Math.round(x * 10) / 10
   const evidence = {
-    dumps: dumps.slice(0, 6).map((t) => ({ other: String(t.other).slice(0, 8), bought: t.bought, price: t.price, ref: t.ref, ratio: round(t.ratio), card: t.card ?? null })),
+    dumps: dumps.slice(0, 6).map((t) => ({ other: String(t.other).slice(0, 8), bought: t.bought, price: t.price, ref: t.ref, ratio: round(t.ratio), card: t.card ?? null, pairN: pairN.get(t.other) })),
     loops: loops.slice(0, 6).map((l) => ({ other: String(l.other).slice(0, 8), n: l.n, both: l.both, pricey: l.pricey })),
   }
   // near: worth the owner's eye, not a suspension
-  const near = rows.some((t) => t.ratio >= T.F_RATIO / 2 && t.over >= T.F_GAP / 3)
+  const near = dear.length > 0 || rows.some((t) => t.ratio >= T.F_RATIO / 2 && t.over >= T.F_GAP / 3 && pairN.get(t.other) >= T.F_PAIR_N)
     || [...byOther.values()].some((l) => l.length >= T.G_N - 1 && l.some((t) => t.bought) && l.some((t) => !t.bought))
   const rule = dumps.length ? 'F' : loops.length ? 'G' : null
   if (rule) {
     const others = [...new Set([...dumps.map((t) => t.other), ...loops.map((l) => l.other)])]
-    return { verdict: AUTO.has(rule) ? 'ban' : 'watch', rule, others, evidence }
+    const full = { dumps: dumps.map((t) => ({ ...t, pairN: pairN.get(t.other) })), loops }
+    return { verdict: AUTO.has(rule) ? 'ban' : 'watch', rule, others, evidence, full }
   }
-  return { verdict: near ? 'watch' : null, rule: near ? 'transfer' : null, others: [], evidence }
+  return { verdict: near ? 'watch' : null, rule: near ? 'transfer' : null, others: [], evidence: { ...evidence, single: dear.length || undefined } }
 }
 
 export const GUARD_SCHEMA = `
@@ -196,7 +207,14 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
   /** each seller counted `cap` times at most: many purchases from one person are a hand-over, not a snipe */
   const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
   // within two seconds of the listing, or of the moment its protected minute ended
-  const ultra = entries.filter((b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC))
+  const isUltra = (b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC)
+  const ultra = entries.filter(isUltra)
+  // the longest run of buy-nows (entries in a draw included) that were all that fast, one after another
+  let run = 0
+  let ultraRun = 0
+  for (const b of entries.slice().sort((x, y) => x.made - y.made)) { run = isUltra(b) ? run + 1 : 0; ultraRun = Math.max(ultraRun, run) }
+  // clock hours of the last 24 in which this account bought outright (or entered a draw)
+  const awake = new Set(entries.map((b) => Math.floor(b.made / 3_600_000))).size
   const trades = (list) => list.filter((b) => b.trading)
   const quickDay = within(trades(day), GUARD.QUICK_SEC)
   const quickWeek = within(trades(week), GUARD.QUICK_SEC)
@@ -208,7 +226,7 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
     day: day.length, week: week.length,
     // of the week's purchases, the ones that were trading rather than collecting — what B, C and E count
     trading: trades(week).length,
-    ultra: ultra.length,
+    ultra: ultra.length, ultraRun, awake,
     quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
     quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
     // the most trading purchases from any ONE seller today, however old the listing: cards going round between accounts
@@ -218,18 +236,18 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
     median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
   }
   const over = []
-  if (counts.ultra >= GUARD.ULTRA_N) over.push('A')
+  if (counts.ultraRun >= GUARD.ULTRA_N) over.push('A')
   if (counts.loop >= GUARD.LOOP_N) over.push('E')
+  if (counts.awake > GUARD.AWAKE_HOURS) over.push('D')
   if (counts.quickCapped >= GUARD.QUICK_DAY) over.push('B')
   if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) over.push('C')
-  if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) over.push('D')
   const auto = over.find((r) => AUTO.has(r))
   let verdict = null
   let rule = null
   if (auto) { verdict = 'ban'; rule = auto }
   else if (over.length) { verdict = 'watch'; rule = over[0] }
   else if (counts.loop >= GUARD.LOOP_N / 3) { verdict = 'watch'; rule = 'loop' }
-  else if (counts.ultra >= 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60 || (hours >= 16 && counts.fresh >= 40)) { verdict = 'watch'; rule = 'near' }
+  else if (counts.ultraRun >= GUARD.ULTRA_N / 2 || counts.awake >= GUARD.AWAKE_HOURS - 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60) { verdict = 'watch'; rule = 'near' }
   return { verdict, rule, counts }
 }
 
@@ -263,6 +281,28 @@ export function saleValue(refRows, cardById = null) {
   }
 }
 
+/**
+ * What a suspended player is told: which rule, numbered as in the pinned market notice, and what of his did it
+ * (owner, 2026-09-27: 「被封了的都写清楚是违反了哪一个」). `detail` is written at the moment of the suspension and
+ * kept with it; a suspension from before that has only the rule's own words.
+ */
+export const RULE_LABEL = {
+  A: '① 连续秒拍', E: '② 大小号互相倒卡', F: '③ 高价倒钱', G: '④ 两个号互相成交', D: '⑤ 全天不停买', manual: '站长手动暂停',
+}
+const RULE_PLAIN = {
+  A: `连续 ${GUARD.ULTRA_N} 次在卡挂出（或保护期结束）2 秒内一口价`,
+  D: `24 小时里超过 ${GUARD.AWAKE_HOURS} 个小时都在一口价买卡`,
+  E: `一天内从同一个卖家手里买了 ${GUARD.LOOP_N} 张重复买或买来又挂出的卡`,
+  F: `和同一个号之间有成交价远超这张卡平时价格的交易`,
+  G: `和同一个号 24 小时内成交 ${TRANSFER.G_N} 次以上`,
+}
+export function banText(rule, detail, until, stamp) {
+  if (rule === 'manual') return `站长手动暂停交易${detail ? `：${detail}` : ''}。交易暂停到 ${stamp(until)}，有误请联系群主。`
+  const label = RULE_LABEL[rule] ?? '市场规则'
+  const what = detail || RULE_PLAIN[rule] || ''
+  return `违反市场规则${label}${what ? `：${what}` : ''}。交易暂停到 ${stamp(until)}，有误请联系群主。`
+}
+
 export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUARD ?? 'ban', displayName = null, cardById = null } = {}) {
   const work = bg ?? sql
   const off = mode === 'off' || !sql
@@ -274,9 +314,10 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     if (off) return active
     if (!force && Date.now() - activeAt < 60_000) return active
     loading ??= work`
-      select distinct on (id_hash) id_hash, until, rule from market_bans
+      select distinct on (id_hash) id_hash, until, rule, coalesce(evidence->>'why', case when rule = 'manual' and evidence->>'note' <> '站长手动' then evidence->>'note' end) as why,
+             evidence->'with' as partners from market_bans
       where lifted is null and until > now() order by id_hash, until desc`
-      .then((rows) => { active = new Map(rows.map((r) => [r.id_hash, { until: new Date(r.until).getTime(), rule: r.rule }])); activeAt = Date.now() })
+      .then((rows) => { active = new Map(rows.map((r) => [r.id_hash, { until: new Date(r.until).getTime(), rule: r.rule, detail: r.why ?? oldDetail(r) }])); activeAt = Date.now() })
       // a database without the table yet bans nobody; asked again in a minute
       .catch((err) => { activeAt = Date.now(); if (!/market_bans/.test(err.message)) console.warn('guard: bans unread', err.message) })
       .finally(() => { loading = null })
@@ -287,11 +328,43 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   /** null, or { until, why } — what a suspended account is told. */
   async function banOf(me) {
     if (off || !me) return null
-    const { until, rule } = (await loadActive()).get(me) ?? {}
+    const { until, rule, detail } = (await loadActive()).get(me) ?? {}
     if (!until || until <= Date.now()) return null
-    const what = rule === 'F' || rule === 'G' ? '检测到账号之间倒卡' : '检测到脚本抢拍'
-    return { until, why: `${what}，交易已暂停到 ${stamp(until)}。有误请联系群主。` }
+    return { until, rule, why: banText(rule, detail, until, stamp) }
   }
+  /** a suspension written before the detail was kept: the partner's tag, when the evidence has it */
+  function oldDetail(r) {
+    const with_ = Array.isArray(r.partners) ? r.partners : []
+    if ((r.rule !== 'F' && r.rule !== 'G') || !with_.length) return null
+    const tags = with_.slice(0, 3).map((c) => `#${String(c).slice(0, 4).toUpperCase()}`).join('、')
+    return `${RULE_PLAIN[r.rule].replace('同一个号', tags + (with_.length > 3 ? ` 等 ${with_.length} 个号` : ''))}`
+  }
+  const tagOf = async (h) => {
+    const [r] = await work`select name from card_accounts where id_hash = ${h}`
+    const d = displayName ? displayName(r?.name, h) : { name: r?.name ?? '', tag: h.slice(0, 4).toUpperCase() }
+    return `${d.name} #${d.tag}`
+  }
+  /** the detail of a suspension, from this account's side of it */
+  async function detailOf(rule, found, moved, me, other = null) {
+    const c = found?.counts ?? {}
+    if (rule === 'A') return `连续 ${c.ultraRun} 次在卡挂出（或保护期结束）2 秒内一口价`
+    if (rule === 'D') return `24 小时里有 ${c.awake} 个小时都在一口价买卡`
+    if (rule === 'E') return `一天内从同一个卖家手里买了 ${c.loop} 张重复买或买来又挂出的卡`
+    // F and G: the trade or the run of trades with one account — for the far side, with the account that set it off
+    const partner = other ?? moved.others[0]
+    // the trigger's trades are listed by the far account's hash, whichever side this is
+    const dump = moved.full.dumps.find((d) => d.other === partner) ?? (other ? null : moved.full.dumps[0])
+    const loop = moved.full.loops.find((l) => l.other === partner)
+    const withTag = await tagOf(other ? me : partner)
+    const more = !other && moved.others.length > 1 ? `（另有 ${moved.others.length - 1} 个号）` : ''
+    if (rule === 'F' && dump) {
+      const sold = other ? dump.bought : !dump.bought
+      return `${sold ? '卖给' : '从'} ${withTag} ${sold ? '' : '买下'}一张卡，成交 ${dump.price} 金币，是这张卡平时价格（约 ${dump.ref}）的 ${round1(dump.ratio)} 倍，你们一周内成交了 ${dump.pairN} 次${more}`
+    }
+    if (loop) return `和 ${withTag} 24 小时内成交 ${loop.n} 次${loop.both ? '，互相买过' : ''}${loop.pricey ? `，其中 ${loop.pricey} 次在平时价格 3 倍以上` : ''}${more}`
+    return RULE_PLAIN[rule]
+  }
+  const round1 = (x) => Math.round(x * 10) / 10
   // 北京时间, whoever's server this is
   const stamp = (ms) => {
     const d = new Date(ms + 8 * 3600_000)
@@ -328,7 +401,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       where ${by} = 'owner' or not exists (select 1 from market_bans where id_hash = ${me} and lifted is null and until > now())
       returning until`
     if (!made.length) { await loadActive(true); return active.get(me)?.until ?? null }
-    active.set(me, { until: until.getTime(), rule })
+    active.set(me, { until: until.getTime(), rule, detail: evidence.why ?? null })
     console.warn(`guard: ${me.slice(0, 8)} suspended ${days}d (${rule}, by ${by})`)
     return until.getTime()
   }
@@ -355,7 +428,8 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
   /** Every sale this account stood on either side of since `since` (a day at most is judged), priced. */
   async function tradesOf(me, since) {
-    const day = new Date(Math.max(new Date(since).getTime(), Date.now() - DAY))
+    // a week, so F can tell a partner from a stranger; judgeTransfers only suspends on the last day of it
+    const day = new Date(Math.max(new Date(since).getTime(), Date.now() - 7 * DAY))
     const [bought, sold, value] = await Promise.all([
       work`
         select l.seller_h as other, o.price, l.card_id, l.level, l.closed as at
@@ -393,15 +467,19 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       }))
       const rule = found.rule
       const byMoving = rule === 'F' || rule === 'G'
-      const evidence = byMoving ? { transfer: moved.evidence, with: moved.others.map((h) => String(h).slice(0, 8)) } : { counts: found.counts, sample }
+      const why = await detailOf(rule, found, moved, me)
+      const evidence = byMoving ? { why, transfer: moved.evidence, with: moved.others.map((h) => String(h).slice(0, 8)) } : { why, counts: found.counts, sample }
       found.until = await ban(me, { days, rule, evidence })
       // …and the far side of it, unless the owner let that account out after the trade (a lift forgives what came before)
       if (byMoving) {
         for (const other of moved.others) {
           if (await banOf(other)) continue
           const theirs = await slate(other)
-          if (!(await tradesOf(other, theirs.since)).some((t) => t.other === me)) continue
-          await ban(other, { days: theirs.strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS, rule, evidence: { transfer: moved.evidence, with: [me.slice(0, 8)] } })
+          if (!(await tradesOf(other, theirs.since)).some((t) => t.other === me && Date.now() - new Date(t.at).getTime() <= DAY)) continue
+          // their own rule: a dear sale with this account is F, a run of trades with it is G
+          const theirRule = moved.full.dumps.some((d) => d.other === other) ? 'F' : 'G'
+          const theirWhy = await detailOf(theirRule, found, moved, me, other)
+          await ban(other, { days: theirs.strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS, rule: theirRule, evidence: { why: theirWhy, with: [me.slice(0, 8)] } })
         }
       }
     }
@@ -472,7 +550,11 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     }
     return {
       mode, rules: GUARD, transfer: TRANSFER, moving,
-      bans: bans.map((b) => ({ id: String(b.id), ...who(b.id_hash), until: b.until, rule: b.rule, by: b.by, made: b.made, lifted: b.lifted, running: !b.lifted && new Date(b.until) > new Date(), evidence: b.evidence })),
+      bans: bans.map((b) => ({
+        id: String(b.id), ...who(b.id_hash), until: b.until, rule: b.rule, by: b.by, made: b.made, lifted: b.lifted, running: !b.lifted && new Date(b.until) > new Date(), evidence: b.evidence,
+        // what the player is told
+        why: banText(b.rule, b.evidence?.why ?? (b.rule === 'manual' && b.evidence?.note !== '站长手动' ? b.evidence?.note : null) ?? oldDetail({ rule: b.rule, partners: b.evidence?.with }), new Date(b.until).getTime(), stamp),
+      })),
       flagged: flagged.map((f) => ({ ...who(f.id_hash), verdict: f.verdict, rule: f.rule, counts: f.counts })),
     }
   }
@@ -594,7 +676,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const ign = (id) => cardById?.(id)?.ign ?? cardById?.(id)?.name ?? id
     // who F and G would suspend over the window (both sides of each), and the rings they make
     const fHit = new Set()
-    for (const r of rows) if (r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP) { fHit.add(r.b); fHit.add(r.s) }
+    for (const r of rows) if (r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N) { fHit.add(r.b); fHit.add(r.s) }
     const gHit = new Set()
     const link = new Map()
     for (const p of list) {
@@ -641,14 +723,14 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
         buyer: who(r.b), seller: who(r.s), card: ign(r.card_id), rarity: cardById?.(r.card_id)?.rarity ?? null, level: r.level,
         price: r.price, ask: r.ask, buyout: r.buyout, bo: r.bo, ref: r.ref, refN: r.refN, refFrom: r.refFrom,
         ratio: Math.round(r.ratio * 10) / 10, age: Math.round(r.made - r.created), at: new Date(r.closed * 1000).toISOString(),
-        f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP,
+        f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N,
         pair: (() => { const p = pairs.get(pairKey(r.b, r.s)); return { n: p.n, day: p.day, both: !!(p.xy && p.yx) } })(),
       })),
       topPairs: topPairs.map((p) => ({
         a: who(p.x), b: who(p.y), n: p.n, aBought: p.xy, bBought: p.yx, day: p.day, cards: p.cards.size,
         paid: p.paid, over: Math.round(p.over), maxRatio: Math.round(p.maxRatio * 10) / 10, g: p.g,
       })),
-      gPairs: list.filter((p) => p.g).length, fSales: rows.filter((r) => r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP).length,
+      gPairs: list.filter((p) => p.g).length, fSales: rows.filter((r) => r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP && pairs.get(pairKey(r.b, r.s)).n >= TRANSFER.F_PAIR_N).length,
     }
   }
 
@@ -669,7 +751,8 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     }
     if (action === 'ban') {
       const d = Math.max(1, Math.min(30, Math.round(Number(days)) || GUARD.FIRST_DAYS))
-      const until = await ban(me, { days: d, rule: 'manual', evidence: { note: String(note ?? '').slice(0, 200) }, by: 'owner' })
+      const text = String(note ?? '').slice(0, 200)
+      const until = await ban(me, { days: d, rule: 'manual', evidence: { note: text, why: text === '站长手动' ? null : text || null }, by: 'owner' })
       return { ok: true, until }
     }
     if (action === 'check') return { ok: true, ...(await check(me, { dry: true })) }
