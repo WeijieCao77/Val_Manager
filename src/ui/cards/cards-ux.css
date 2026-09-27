@@ -300,3 +300,10 @@
 @media (max-width: 720px) {
   .cardmode .seg:not(.wrap) button { min-height: 44px; }
 }
+
+/* 音效 on the pack reveal (Packs.tsx SoundToggle): top left, opposite 跳过, a thumb's size */
+.pack-sound {
+  position: absolute; left: 20px; top: max(16px, env(safe-area-inset-top)); z-index: 5; min-height: 44px;
+  display: inline-flex; align-items: center; gap: 6px; background: #192430; color: #ece8e1; border-color: #536477;
+}
+.pack-sound[aria-pressed="false"] { color: #9aa7b6; }

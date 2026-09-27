@@ -28,6 +28,14 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-27',
+    title: '开卡包音效',
+    changes: [
+      { kind: '新增', text: '开包有<b>音效</b>了：撕包、开包、翻卡都有声音，<b>铜、银、金、彩卡翻开的声音不一样</b>，金卡和彩卡的卡背出来时就能听出来。跳过动画也会响最好那张。' },
+      { kind: '调整', text: '音效有<b>自己的开关</b>（开包画面左上角「音效」），和背景音乐分开：音乐暂停了也能听到音效。' },
+    ],
+  },
+  {
+    date: '2026-09-27',
     title: '新作：噜噜卡（LoL 选手卡牌，内测）',
     pinned: true,
     changes: [

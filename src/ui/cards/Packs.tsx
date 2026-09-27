@@ -9,11 +9,11 @@ import {
   fullSetProgress, FULL_SET_REWARD,
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
-import type { Card } from '../../engine/cards'
-import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
+import type { Card, Rarity } from '../../engine/cards'
+import { RARITY_CN, cardById, isPlayerCard, rarityRank } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
-import { playPackCue } from '../packAudio'
+import { playPackCue, setSfxOn, sfxOn } from '../packAudio'
 import CardTilt from './CardTilt'
 import PackPouch from './PackPouch'
 import { SeoulCardBack } from './SeoulDesign'
@@ -473,11 +473,24 @@ export function PackStage({
   const dupes = pulled.filter((p) => p.dupe).length
   const last = shown === pulled.length
 
+  // each new back as it arrives — a gold or 彩卡 back already sounds like one — and the landing at the end
+  useEffect(() => {
+    if (unsealed && !finished && current && !faceUp) playPackCue('back', current.card.rarity)
+  }, [unsealed, shown])
+  useEffect(() => {
+    if (!unsealed || !finished) return
+    // a skipped pack never heard its best card turn, so it hears it now
+    const best = revealAll
+      ? pulled.reduce<Rarity>((b, p) => (rarityRank(p.card.rarity) > rarityRank(b) ? p.card.rarity : b), 'bronze')
+      : 'bronze'
+    playPackCue('summary', best, pulled.length)
+  }, [finished, unsealed])
+
   const advanceReveal = () => {
     if (!unsealed || finished || !current) return
     if (!faceUp) {
       setFaceUp(true)
-      playPackCue('reveal')
+      playPackCue('reveal', current.card.rarity)
       return
     }
     // One-card packs end on the revealed card so the collect action stays in
@@ -500,6 +513,7 @@ export function PackStage({
 
   return (
     <div className="pack-stage" ref={dialogRef} role="dialog" aria-modal="true" aria-label="开启卡包" tabIndex={-1} onClick={advanceReveal}>
+      <SoundToggle />
       {!finished && <button className="pack-skip" onClick={e => { e.stopPropagation(); setUnsealed(true); setRevealAll(true) }}>查看全部 · 跳过动画</button>}
       {!unsealed && <PackTearGate seoul={seoul} position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
@@ -637,7 +651,7 @@ function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number;
     if ('vibrate' in navigator) navigator.vibrate([18, 28, 35])
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     timer.current = window.setTimeout(() => {
-      playPackCue('reveal')
+      playPackCue('burst')
       onOpen()
     }, reduced ? 80 : 1450)
   }
@@ -750,5 +764,29 @@ function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number;
       </div>
       <div className="pack-tear-sub">鼠标或触屏拖动 · 也可按 Enter</div>
     </div>
+  )
+}
+
+/** 音效 on the reveal: its own switch, not the music's (packAudio.ts) */
+function SoundToggle() {
+  const [on, setOn] = useState(sfxOn)
+  return (
+    <button
+      className="pack-sound"
+      aria-pressed={on}
+      aria-label={on ? '关闭音效' : '打开音效'}
+      onClick={(e) => {
+        e.stopPropagation()
+        setSfxOn(!on)
+        setOn(!on)
+        if (!on) playPackCue('grab')
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 10v4h3l5 4V6l-5 4z" />
+        {on ? <path d="M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11" /> : <path d="M16 9l5 6 M21 9l-5 6" />}
+      </svg>
+      <span>音效{on ? '' : '关'}</span>
+    </button>
   )
 }
