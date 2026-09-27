@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
-import { ENC_EMPTY, newGacha, staminaNow } from '../src/engine/gacha'
+import { ENC_EMPTY, migrateGacha, newGacha, staminaNow } from '../src/engine/gacha'
 import type { EncRival, GachaState } from '../src/engine/gacha'
 import { runAction } from '../src/engine/cardActions'
 import { BASE_PLAYER_CARDS, COACH_CARDS, squadRating } from '../src/engine/cards'
@@ -74,6 +74,18 @@ const refused = runAction(mixed, 'enc_enter', {}, env('2026-09-28', 50, pool))
 check('混了一个中国选手：不能报，说清楚有哪几国', !refused.ok && /同一国籍/.test(refused.why) && /中国/.test(refused.why) && /韩国/.test(refused.why))
 mixed.squad = { ...national('x', 'kr').squad, coach: null }
 check('没有教练：不能报', !runAction(mixed, 'enc_enter', {}, env('2026-09-28', 51, pool)).ok)
+
+// a bracket left from the half hour ENC was played against AI national teams: no rivals, an AI path, ease
+const stale = national('VM-TEST-ENC-OLD', 'kr')
+;(stale as unknown as { enc: unknown }).enc = {
+  path: ['enc-us', 'enc-br', 'enc-cn'], round: 0, legs: [], done: false, won: false, entry: 0, double: true, ease: -4,
+  day: '2026-09-27', nat: 'kr', registration: { squad: stale.squad, levels: {} },
+}
+const healed = migrateGacha(structuredClone(stale), 'VM-TEST-ENC-OLD')
+check('旧版人机国家队杯（没有对手资料）：读档时清掉', !healed.enc)
+check('清掉以后当天还能报名', runAction(healed, 'enc_enter', {}, env('2026-09-27', 60, pool)).ok && healed.enc?.day === '2026-09-27'
+  && !!healed.enc.rivals[healed.enc.path[0]])
+check('然后打得了', runAction(healed, 'enc_play', {}, env('2026-09-27', 61)).ok)
 
 // ---- through the server: the first entrant is kept for the second to meet
 const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')

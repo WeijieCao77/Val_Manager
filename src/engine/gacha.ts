@@ -2715,6 +2715,10 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   else delete g.predict
   // a cup drawn against a club that has since left the world
   repairCup(g)
+  // a 国家队杯 drawn in the half hour it was played against AI national teams (a4b44eb → 4cd8661): those
+  // teams are gone and the bracket has no `rivals`, so it could neither be played nor replaced. Nothing was
+  // charged for it; drop it and the day's entry is open again.
+  if (g.enc && !g.enc.rivals) delete g.enc
   g.seed = typeof g.seed === 'number' && Number.isFinite(g.seed) ? g.seed >>> 0 : hashStr(id + g.createdAt) >>> 0
   return clampState(g)
 }
