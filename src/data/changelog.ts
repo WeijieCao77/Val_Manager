@@ -28,6 +28,14 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-27',
+    title: '新作：噜噜卡（LoL 选手卡牌，内测）',
+    pinned: true,
+    changes: [
+      { kind: '新增', text: '<b>首页多了一个入口：噜噜卡。</b>猪之家出品的 LoL 选手卡牌，玩法和开瓦包一样：开包收集 LPL、LCK 等赛区选手和名人堂彩卡，组阵容打天梯、杯赛，还有交易市场。它有自己的网站（lulucard-production.up.railway.app），<b>账号和开瓦包不通用</b>，要另外建档。还在内测，正式上线时会清档。' },
+    ],
+  },
+  {
+    date: '2026-09-27',
     title: '开瓦包：按国家筛选、脚本规则',
     changes: [
       { kind: '新增', text: '选卡筛选多了<b>国家</b>（收藏、卡组、选人、交易区都有），港澳台算中国，组国家队杯更方便。' },

@@ -219,6 +219,20 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             <button className="primary" onClick={() => { track('home_go', { go: 'player' }); location.href = '/player/' }}>开始生涯</button>
           </div>
         </article>
+        <article className="home-card home-preview" aria-labelledby="lulu-card-preview-title">
+          <div className="home-preview-art">
+            <img src={`${import.meta.env.BASE_URL}promo/lulu.webp`} alt="" loading="lazy" />
+          </div>
+          <div className="home-body">
+            <span className="home-preview-label">新作 · 内测</span>
+            <h2 id="lulu-card-preview-title">噜噜卡</h2>
+            <p className="blurb">猪之家出品的 LoL 选手卡牌：开包收集 LPL、LCK 等赛区选手和名人堂彩卡，组五人阵容打天梯、杯赛和交易。</p>
+          </div>
+          {/* its own site and its own accounts, not proxied here: a plain navigation away */}
+          <div className="home-go home-preview-go">
+            <button className="primary" onClick={() => { track('home_go', { go: 'lulu' }); location.href = 'https://lulucard-production.up.railway.app/' }}>去噜噜卡</button>
+          </div>
+        </article>
       </div>
 
       {/* ------------------------------------------ 账号一览，和工作室的另一款 */}
