@@ -13,8 +13,6 @@ import { makeMarketApi, TRADE_DAYS, TRADE_PULLS } from '../market-api.js'
 import { judgeTransfers, saleValue } from '../market-guard.js'
 import { displayName } from '../names.js'
 process.env.PHONE_GATE = '0'
-// the rules as they suspend (they report only until the owner turns them on)
-process.env.MARKET_GUARD_AUTO = 'A,E,F,G'
 
 // ---- what a card is worth
 const gold = engine.ALL_CARDS.filter((c) => c.rarity === 'gold').map((c) => c.id)

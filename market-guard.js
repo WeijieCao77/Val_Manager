@@ -92,9 +92,9 @@ export const GUARD = {
   FIRST_DAYS: 3, REPEAT_DAYS: 5,
 }
 /** the rules that suspend by themselves; the rest only report */
-// F and G (倒卡) report first: on 2026-09-26 the ledger showed rings trading hundreds of times a day, and how many
-// accounts they would suspend is read off the owner's list before they suspend by themselves
-const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E').toUpperCase().split(/[^A-G]+/).filter(Boolean))
+// F and G (倒卡) reported for a day first: on the 2026-09-26 ledger they would have suspended 132 accounts that day
+// and 419 over the week, rings of up to 35 passing 500,000-coin buy-nows on bronzes; the owner turned them on (09-27)
+const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E,F,G').toUpperCase().split(/[^A-G]+/).filter(Boolean))
 const DAY = 86_400_000
 
 /**
