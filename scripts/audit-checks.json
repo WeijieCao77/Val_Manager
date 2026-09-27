@@ -744,5 +744,20 @@
     "runtime": "tsx",
     "file": "scripts/check_map_comps.ts",
     "estimatedSeconds": 5
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_transfer.ts",
+    "estimatedSeconds": 8
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_seasons.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_enc.ts",
+    "estimatedSeconds": 6
   }
 ]

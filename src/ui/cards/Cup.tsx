@@ -4,13 +4,14 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   CUP_MAX_ROUNDS, CUP_MIN_ROUNDS, PACKS, STAMINA_COST, canPlay, cupBo, cupExitPrize, cupOpponent,
-  cupRoundName, cupTitlePrize, levelOf, staminaNow,
+  cupRoundName, cupTitlePrize, encNation, levelOf, staminaNow,
 } from '../../engine/gacha'
-import type { CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
+import type { CupKind, CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
+import { natName } from '../../engine/nat'
 import type { ArenaResult } from '../../engine/arena'
 import type { Squad } from '../../engine/cards'
 import { cardById, cardName, squadRating } from '../../engine/cards'
-import { CUP_TEAMS } from '../../engine/cupTeams'
+import { cupTeam } from '../../engine/cupTeams'
 import { track } from '../../engine/telemetry'
 import OpenCup from './OpenCup'
 import TeamCup from './TeamCup'
@@ -22,11 +23,12 @@ import TeamCup from './TeamCup'
  * seed of every map. What this screen does is show the draw and hand the
  * scoreboards back.
  */
+type CupMode = 'club' | 'enc' | 'open' | 'team'
 export default function Cup() {
-  const [mode, setMode] = useState<'club' | 'open' | 'team'>(() => {
-    try { const m = localStorage.getItem('vm-cup-mode'); return m === 'open' || m === 'team' ? m : 'club' } catch { return 'club' }
+  const [mode, setMode] = useState<CupMode>(() => {
+    try { const m = localStorage.getItem('vm-cup-mode'); return m === 'open' || m === 'team' || m === 'enc' ? m : 'club' } catch { return 'club' }
   })
-  const pick = (m: 'club' | 'open' | 'team') => {
+  const pick = (m: CupMode) => {
     setMode(m)
     try { localStorage.setItem('vm-cup-mode', m) } catch { /* private window */ }
   }
@@ -34,51 +36,59 @@ export default function Cup() {
     <>
       <div className="seg" style={{ marginBottom: 12 }}>
         <button className={mode === 'club' ? 'on' : ''} onClick={() => pick('club')}>俱乐部杯</button>
+        <button className={mode === 'enc' ? 'on' : ''} onClick={() => pick('enc')}>国家队杯</button>
         <button className={mode === 'open' ? 'on' : ''} onClick={() => pick('open')}>全服杯</button>
         <button className={mode === 'team' ? 'on' : ''} onClick={() => pick('team')}>组队杯</button>
       </div>
-      {mode === 'club' ? <ClubCup /> : mode === 'open' ? <OpenCup /> : <TeamCup />}
+      {mode === 'club' ? <ClubCup key="club" kind="club" /> : mode === 'enc' ? <ClubCup key="enc" kind="enc" /> : mode === 'open' ? <OpenCup /> : <TeamCup />}
     </>
   )
 }
 
 /**
- * The club cup: one ticket, a road of real clubs, two lives.
+ * The club cup: one ticket, a road of real clubs, two lives. 国家队杯 is the same bracket against national
+ * teams, one a day, no 体力, for a five and coach of one nationality.
  */
-function ClubCup() {
-  const { g, now, act, toast, go } = useCards()
+function ClubCup({ kind }: { kind: CupKind }) {
+  const { g, now, today, act, toast, go } = useCards()
+  const enc = kind === 'enc'
   const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<{ res: ArenaResult; opp: string; out: CupOutcome; squad: Squad; levels: Record<string, number> } | null>(null)
 
   const filled = g.squad.slots.filter(Boolean).length
-  const cup = g.cup
+  const cup = enc ? g.enc ?? null : g.cup
   const registration = cup?.registration
   const live = cup && !cup.done
   const rounds = cup?.path.length ?? 0
-  const can = canPlay(g, 'cup', now)
+  // 国家队杯: the day is the ticket; who the five would play for, or why it cannot
+  const nation = encNation(g.squad)
+  const encToday = enc && !!g.enc && g.enc.day === today
+  const can = enc ? !encToday && !('why' in nation) : canPlay(g, 'cup', now)
+  const cupName = enc ? '国家队杯' : '杯赛'
 
   const enter = async () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
     setBusy(true)
-    const r = await act('cup_enter')
+    const r = await act(enc ? 'enc_enter' : 'cup_enter')
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
-    const drawn = (r.result as { cup?: { path: string[] } } | undefined)?.cup?.path.length ?? 0
-    toast(`抽签完成：共 ${drawn} 轮双败，先打${cupRoundName(drawn, 0)}。`)
+    const drawn = (r.result as { cup?: { path: string[] }; enc?: { path: string[] } } | undefined)
+    const n = (drawn?.cup ?? drawn?.enc)?.path.length ?? 0
+    toast(`抽签完成：共 ${n} 轮双败，先打${cupRoundName(n, 0)}。`)
   }
 
   // The server fields this cup's registered five, even after inventory changes.
   const play = async () => {
-    if (!cupOpponent(g) || !cup) return
+    if (!cupOpponent(g, kind) || !cup) return
     const round = cup.round
     setBusy(true)
-    const r = await act('cup_play')
+    const r = await act(enc ? 'enc_play' : 'cup_play')
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
     const { res, opp, out, registration: played } = r.result as { res: ArenaResult; opp: string; out: CupOutcome; registration?: CupRegistration }
     const levels = played?.levels ?? Object.fromEntries([...g.squad.slots, g.squad.coach].filter((id): id is string => !!id).map(id => [id, levelOf(g, id)]))
     const rating = squadRating(played?.squad ?? g.squad, id => levels[id] ?? 0)
-    track('card_match', { mode: 'cup', won: res.win, round, rating, title: !!out.won })
+    track('card_match', { mode: enc ? 'enc' : 'cup', won: res.win, round, rating, title: !!out.won })
     setShown({ res, opp, out, levels, squad: played?.squad ?? g.squad })
   }
 
@@ -91,9 +101,25 @@ function ClubCup() {
   return (
     <>
       <Panel
-        title="俱乐部杯"
-        actions={<span className="tiny muted">入场 {STAMINA_COST.cup} 点体力 · 之后每轮免费</span>}
+        title={enc ? '国家队杯' : '俱乐部杯'}
+        actions={<span className="tiny muted">{enc ? '每天一次 · 不花体力' : <>入场 {STAMINA_COST.cup} 点体力 · 之后每轮免费</>}</span>}
       >
+        {enc ? (
+          <>
+            <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
+              <b>五名选手和教练必须同一国籍</b>（港澳台算中国），<b>每天一次，不花体力</b>。
+              对手是各国最强的五人加本国教练组成的国家队，不会碰到自己国家。
+              赛制和奖励跟俱乐部杯一样：{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮双败，决赛 BO5，冠军 {cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币加卡包。
+            </p>
+            {!live && (
+              <p className="small" style={{ lineHeight: 1.75 }}>
+                当前阵容：{'why' in nation
+                  ? <span style={{ color: 'var(--loss)' }}>{nation.why}</span>
+                  : <b style={{ color: 'var(--win)' }}>{natName(nation.nat)} ✓</b>}
+              </p>
+            )}
+          </>
+        ) : (
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           <b>{STAMINA_COST.cup} 点体力入场</b>，{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮，<b>之后每轮免费</b>。
           <b>双败</b>：第一次输进败者组，赢一场 BO3 回到下一轮，第二次输才出局。决赛输了先打败者组决赛，再重打决赛。
@@ -103,12 +129,15 @@ function ClubCup() {
           冠军 <b>{cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币 + {PACKS.elite.name}</b>，
           4 轮加{PACKS.scout.name}，5 轮换成<b>{PACKS.ten.name}</b>。
         </p>
+        )}
 
         {!cup && (
           <button className="primary" onClick={() => void enter()} disabled={busy || !can}>
-            {!can
-              ? `体力不够（${staminaNow(g, now)}/${STAMINA_COST.cup}）`
-              : filled < 5 ? '先去组队' : `报名（−${STAMINA_COST.cup} 体力）`}
+            {enc
+              ? ('why' in nation ? '阵容不符合' : filled < 5 ? '先去组队' : `代表${natName(nation.nat)}报名`)
+              : !can
+                ? `体力不够（${staminaNow(g, now)}/${STAMINA_COST.cup}）`
+                : filled < 5 ? '先去组队' : `报名（−${STAMINA_COST.cup} 体力）`}
           </button>
         )}
 
@@ -159,7 +188,7 @@ function ClubCup() {
                   rows.push({ key: `r${i}`, id: oppId, lower: false, leg: upper[1], now: !!isNow && !upper[1] })
                 }
                 return rows.map((row) => {
-                  const t = CUP_TEAMS.find((x) => x.id === row.id)
+                  const t = cupTeam(row.id)
                   const cls = row.leg ? (row.leg.win ? 'won' : 'lost') : row.now ? 'now' : ''
                   const label = row.lower
                     ? (final ? '败者组决赛' : '败者组')
@@ -192,6 +221,19 @@ function ClubCup() {
                 <button className="primary" onClick={() => void play()} disabled={busy}>
                   {busy ? '比赛中…' : `打${cup.lower ? (cup.round === rounds - 1 ? '败者组决赛' : '败者组') : cupRoundName(rounds, cup.round)}（BO${cupBo(cup)} · 不扣体力）`}
                 </button>
+              ) : enc ? (
+                <>
+                  <div className="small" style={{ marginRight: 'auto' }}>
+                    {cup.won
+                      ? <b style={{ color: 'var(--warn)' }}>🏆 国家队杯冠军（{rounds} 轮）</b>
+                      : <span className="muted">止步{cupRoundName(rounds, Math.min(rounds - 1, cup.round))}</span>}
+                  </div>
+                  {encToday
+                    ? <span className="tiny muted">今天已参加，明天再来</span>
+                    : <button className="primary" disabled={busy || !can} onClick={() => void enter()}>
+                      {'why' in nation ? '阵容不符合' : `代表${natName(nation.nat)}报名今天的`}
+                    </button>}
+                </>
               ) : (
                 <>
                   <div className="small" style={{ marginRight: 'auto' }}>
@@ -214,12 +256,13 @@ function ClubCup() {
         <MatchReport
           result={shown.res}
           opponentId={shown.opp}
+          opponentName={cupTeam(shown.opp)?.name}
           mySquad={shown.squad}
           level={id => shown.levels[id] ?? 0}
           onClose={() => setShown(null)}
           extra={
             <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
-              {shown.out.won && <span className="chiplet" style={{ color: 'var(--warn)' }}>🏆 杯赛冠军</span>}
+              {shown.out.won && <span className="chiplet" style={{ color: 'var(--warn)' }}>🏆 {cupName}冠军</span>}
               {shown.out.coins > 0 && <span className="chiplet">+{shown.out.coins} 金币</span>}
               {(Object.entries(shown.out.packs ?? {}) as [PackKind, number][]).map(([k, n]) => (
                 <span key={k} className="chiplet" style={{ color: 'var(--warn)' }}>{PACKS[k].name} ×{n}</span>

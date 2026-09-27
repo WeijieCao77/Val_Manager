@@ -10,6 +10,8 @@ import { BALANCE_VERSION } from './balance'
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
 import { CUP_TEAMS } from './cupTeams'
+import { encTeams } from './encTeams'
+import { natCountry, natName } from './nat'
 import { REGION_CN } from './types'
 import type { Role } from './types'
 import { cleanPredictions } from './predict'
@@ -588,8 +590,14 @@ export interface LadderState {
   streak: number
   /** 大师 and above only: the uncapped score the leaderboard ranks on */
   points?: number
-  /** the highest that score has ever been, which is what a career is judged on */
+  /** the highest that score has been THIS SEASON (see rollSeason) — a new title pays a 十连包 once a season */
   bestPoints?: number
+  /** the highest division and 大师 score of every season before this one; `best` is this season's */
+  peak?: number
+  peakPoints?: number
+  /** this season's record; `wins`/`losses` run on for a whole career (the pending draw and the checks read them) */
+  sWins?: number
+  sLosses?: number
   /**
    * The opponent already drawn for the match you have not played yet.
    *
@@ -786,6 +794,12 @@ export interface GachaState {
   seed: number
   /** 首尔征途 — see engine/seoulRoute.ts; absent until the first road */
   seoulRoute?: SeoulRouteState
+  /** the ladder season this account was last rolled into (0: before the first) — see rollSeason */
+  season?: number
+  /** where each ladder stood when the last season ended */
+  lastSeason?: SeasonRecord
+  /** 国家队杯 (ENC): one a day — see enterEnc */
+  enc?: EncState | null
 }
 
 /**
@@ -939,6 +953,8 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     id,
     name,
     createdAt: today,
+    // born into today's ladder season, so the first load has nothing to roll (and nothing to write)
+    season: seasonOf(today),
     coins: STARTER_COINS,
     cards: {},
     // enough to field a five on the first visit without spending anything
@@ -1702,6 +1718,7 @@ export function recordLadder(
   }
   if (win) {
     L.wins++
+    L.sWins = (L.sWins ?? 0) + 1
     L.streak = Math.max(1, L.streak + 1)
     // Lowered with the daily budget. The shop's two-a-day cap was binding on
     // 55 days out of 60, which means coins were never a decision — you always
@@ -1738,6 +1755,7 @@ export function recordLadder(
     bumpQuest(g, 'win2', 1)
   } else {
     L.losses++
+    L.sLosses = (L.sLosses ?? 0) + 1
     L.streak = Math.min(0, L.streak - 1)
     out.coins = 30
     if (master) {
@@ -1797,6 +1815,90 @@ export function recordLadder(
         : out.demoted ? `，掉到${rankName(L.div, L.stars, 0)}` : '')
     + (out.milestone ? `，第 ${out.milestoneWins} 胜，${PACKS[out.milestone].name} +1` : ''))
   return out
+}
+
+// ---------------------------------------------------------------- seasons
+
+/**
+ * 排位赛季 (owner, 2026-09-27: 「排位奖励都是一次性的，玩家打多了就不会想再打排位了」).
+ *
+ * Every promotion pack and every 大师 title pack was paid the first time and never again, so an account
+ * that had been to 大师 had nothing left to climb for. The ladder now runs in seasons of four weeks,
+ * Monday to Sunday by the server's (Beijing) calendar: long enough to climb from where the reset leaves
+ * you to where you were with evenings to spare, short enough that the next climb is never far off.
+ *
+ * At the turn every ladder a player has played drops two divisions (大师 and above to 铂金, 钻石 to 黄金,
+ * 铂金 to 白银, the rest to 青铜), and what was reached this season — `best`, `bestPoints` — starts again
+ * from there, so each promotion and each title pays its pack again on the way back up. A soft drop, not a
+ * wipe: the climb back is the part worth paying for, the bottom three divisions are not. Career wins and
+ * losses run on (the pending draw and the ladder checks count them); the season's own are `sWins`/`sLosses`,
+ * and the career best is kept in `peak`/`peakPoints`.
+ *
+ * Rolled lazily, on the first thing an account does in a new season (runAction, and the load route so the
+ * screen never shows last season's badge); the leaderboard only ranks accounts already in this season.
+ */
+export const SEASON_START = '2026-09-28'
+export const SEASON_DAYS = 28
+const dayNo = (day: string): number => Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
+const dayOf = (n: number): string => new Date(n * 86_400_000).toISOString().slice(0, 10)
+/** 0 before the first season, then 1, 2, … */
+export const seasonOf = (today: string): number => {
+  const n = dayNo(today) - dayNo(SEASON_START)
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n / SEASON_DAYS) + 1 : 0
+}
+/** the first and last day of a season (season 0 ends the day before the first begins) */
+export const seasonFirstDay = (season: number): string => dayOf(dayNo(SEASON_START) + (Math.max(1, season) - 1) * SEASON_DAYS)
+export const seasonLastDay = (season: number): string => dayOf(dayNo(SEASON_START) + Math.max(0, season) * SEASON_DAYS - 1)
+/** days left in today's season, today included */
+export const seasonDaysLeft = (today: string): number => dayNo(seasonLastDay(seasonOf(today))) - dayNo(today) + 1
+export const seasonName = (season: number): string => (season > 0 ? `S${season}` : '赛季前')
+/** where a division lands at the turn of a season */
+export const seasonResetDiv = (div: number): number => Math.max(0, Math.min(div, MASTER_DIV) - 2)
+
+export interface SeasonRecord {
+  season: number
+  ranks: Partial<Record<LeagueKind, { div: number; stars: number; points: number; best: number; bestPoints: number; wins: number; losses: number }>>
+}
+
+/**
+ * Move an account into today's season, if it is not there yet. Returns the season that ended, or null.
+ * Idempotent: a second call on the same day changes nothing.
+ */
+export function rollSeason(g: GachaState, today: string): SeasonRecord | null {
+  const now = seasonOf(today)
+  const was = typeof g.season === 'number' && Number.isFinite(g.season) ? g.season : 0
+  if (now <= was) return null
+  const record: SeasonRecord = { season: was, ranks: {} }
+  const ladders: [LeagueKind, LadderState | undefined][] = [['open', g.ladder], ...(Object.entries(g.leagues ?? {}) as [LeagueKind, LadderState][])]
+  const moved: string[] = []
+  for (const [league, L] of ladders) {
+    if (!L || L.wins + L.losses === 0) continue
+    record.ranks[league] = {
+      div: L.div, stars: L.stars, points: L.points ?? 0, best: L.best, bestPoints: L.bestPoints ?? 0,
+      wins: L.sWins ?? 0, losses: L.sLosses ?? 0,
+    }
+    L.peak = Math.max(L.peak ?? 0, L.best, L.div)
+    L.peakPoints = Math.max(L.peakPoints ?? 0, L.bestPoints ?? 0, L.points ?? 0)
+    const before = rankName(L.div, L.stars, L.points ?? 0)
+    // one drop a season missed, three at most: an account back after two seasons away starts lower
+    let div = L.div
+    for (let i = 0; i < Math.min(3, now - was); i++) div = seasonResetDiv(div)
+    L.div = div
+    L.stars = 0
+    L.best = div
+    L.points = 0
+    L.bestPoints = 0
+    L.streak = 0
+    L.sWins = 0
+    L.sLosses = 0
+    if (league === 'open') moved.push(`${before} → ${rankName(div, 0, 0)}`)
+  }
+  g.season = now
+  if (Object.keys(record.ranks).length) {
+    g.lastSeason = record
+    note(g, `${seasonName(now)} 赛季开始${moved.length ? `：天梯 ${moved[0]}` : ''}，升段奖励可以重新拿`)
+  }
+  return record
 }
 
 // ---------------------------------------------------------------- cup
@@ -1869,13 +1971,15 @@ export const CUP_SHARPEN_MAX = 4
  * it than anybody else's first round, and lifted the cup 22% of the time to
  * everybody else's 32%.
  */
-export const cupFloor = (): number => {
-  const low = CUP_TEAMS.map((t) => t.rating).sort((a, b) => a - b).slice(0, 6)
+/** a table the cup is drawn from: the clubs, or the national teams of 国家队杯 */
+interface CupTable { id: string; rating: number }
+export const cupFloor = (teams: readonly CupTable[] = CUP_TEAMS): number => {
+  const low = teams.map((t) => t.rating).sort((a, b) => a - b).slice(0, 6)
   return low.reduce((s, r) => s + r, 0) / low.length
 }
-export const cupEaseFor = (squadRating: number): number => {
-  const ratings = CUP_TEAMS.map((t) => t.rating)
-  const ease = clamp(Math.ceil(cupFloor() + CUP_CLIMB_FROM - squadRating), 0, CUP_EASE_MAX)
+export const cupEaseFor = (squadRating: number, teams: readonly CupTable[] = CUP_TEAMS): number => {
+  const ratings = teams.map((t) => t.rating)
+  const ease = clamp(Math.ceil(cupFloor(teams) + CUP_CLIMB_FROM - squadRating), 0, CUP_EASE_MAX)
   if (ease) return ease
   // and the other end: the best club there is sits at 99, so a levelled 彩卡
   // five never met its equal and a second life would have made its cup a
@@ -1898,8 +2002,19 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   if (g.cup && !g.cup.done) return g.cup
   if (!spendPlay(g, 'cup', now)) throw new Error(`体力不够，入场要 ${STAMINA_COST.cup} 点`)
   const { rng, done } = roll(g)
-  const sorted = CUP_TEAMS.slice().sort((a, b) => a.rating - b.rating)
-  const ease = cupEaseFor(squadRating)
+  const { path, ease } = drawBracket(rng, CUP_TEAMS, squadRating)
+  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY, double: true, balance: BALANCE_VERSION }
+  if (ease) g.cup.ease = ease
+  if (registration) g.cup.registration = registerCupSquad(registration.squad, id => registration.levels[id] ?? 0)
+  done()
+  note(g, `报名了一场 ${path.length} 轮的双败杯赛（−${STAMINA_COST.cup} 体力）`)
+  return g.cup
+}
+
+/** Three to five sides from `teams`, each harder than the last, climbing from where the five stands. */
+function drawBracket(rng: Rng, teams: readonly CupTable[], squadRating: number): { path: string[]; ease: number } {
+  const sorted = teams.slice().sort((a, b) => a.rating - b.rating)
+  const ease = cupEaseFor(squadRating, teams)
   let rounds = CUP_MIN_ROUNDS
   let dice = rng.next()
   for (const [n, p] of CUP_ROUND_ODDS) {
@@ -1935,12 +2050,61 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
   // whoever was drawn, the bracket climbs: the final is the strongest of them
   const ratingOf = new Map(sorted.map((t) => [t.id, t.rating]))
   path.sort((a, b) => (ratingOf.get(a) ?? 0) - (ratingOf.get(b) ?? 0))
-  g.cup = { path, round: 0, legs: [], done: false, won: false, entry: CUP_ENTRY, double: true, balance: BALANCE_VERSION }
-  if (ease) g.cup.ease = ease
-  if (registration) g.cup.registration = registerCupSquad(registration.squad, id => registration.levels[id] ?? 0)
+  return { path, ease }
+}
+
+// ---------------------------------------------------------------- 国家队杯 (ENC)
+
+/**
+ * 国家队杯 (owner, 2026-09-27: 「杯赛加一个ENC（国家队），六个人必须都是同一国籍才能参赛，一天一次」).
+ *
+ * The club cup's bracket — 双败, three to five rounds climbing from the five that entered, the same purse
+ * and packs — drawn from national teams (encTeams.ts) instead of clubs, and only for a five whose five
+ * players AND coach share one nationality (tw/hk/mo count as 中国, as chemistry counts them). One entry a
+ * day by the server's calendar, and no 体力: the day is the ticket. The country's own national team is
+ * never drawn against it. A bracket still open when the day turns can be played out the next day; the
+ * next entry waits until it is.
+ */
+export interface EncState extends CupState {
+  /** the server day it was entered on — one a day */
+  day: string
+  /** the nationality it was entered under (natCountry) */
+  nat: string
+}
+
+/** The one nationality all six share, or why not. */
+export function encNation(squad: Squad): { nat: string } | { why: string } {
+  const ids = [...squad.slots, squad.coach]
+  if (ids.some((id) => !id)) return { why: '国家队杯要五名选手加一名教练，六个人都要上' }
+  const nats = ids.map((id) => natCountry(cardById(id as string)?.nat ?? null))
+  if (nats.some((n) => !n)) return { why: '阵容里有国籍不明的人，不能参加国家队杯' }
+  const kinds = [...new Set(nats as string[])]
+  if (kinds.length > 1) return { why: `国家队杯要六个人同一国籍，现在有 ${kinds.map((n) => natName(n)).join('、')}` }
+  return { nat: kinds[0] }
+}
+
+/** today's entry is taken (finished or not), or yesterday's is still open */
+export function encBlock(g: GachaState, today: string): string | null {
+  const e = g.enc
+  if (!e) return null
+  if (!e.done) return null
+  return e.day === today ? '国家队杯一天一次，明天再来' : null
+}
+
+export function enterEnc(g: GachaState, squadRating: number, today: string, registration: CupRegistration, nat: string): EncState {
+  if (g.enc && !g.enc.done) return g.enc
+  if (g.enc && g.enc.day === today) throw new Error('国家队杯一天一次，明天再来')
+  const teams = encTeams().filter((t) => t.nat !== nat)
+  const { rng, done } = roll(g)
+  const { path, ease } = drawBracket(rng, teams, squadRating)
+  g.enc = {
+    path, round: 0, legs: [], done: false, won: false, entry: 0, double: true, balance: BALANCE_VERSION,
+    day: today, nat, registration: registerCupSquad(registration.squad, id => registration.levels[id] ?? 0),
+  }
+  if (ease) g.enc.ease = ease
   done()
-  note(g, `报名了一场 ${rounds} 轮的双败杯赛（−${STAMINA_COST.cup} 体力）`)
-  return g.cup
+  note(g, `代表${natName(nat)}报名国家队杯，${path.length} 轮双败`)
+  return g.enc
 }
 
 export interface CupOutcome {
@@ -1975,15 +2139,20 @@ const givePacks = (g: GachaState, packs: Partial<Record<PackKind, number>>): str
  * won, never one already in the bracket. Read off the table rather than
  * rolled, so there is nothing to refresh for.
  */
-function lowerClub(cup: CupState): string {
-  const rating = new Map(CUP_TEAMS.map((t) => [t.id, t.rating]))
+function lowerClub(cup: CupState, teams: readonly CupTable[] = CUP_TEAMS): string {
+  const rating = new Map(teams.map((t) => [t.id, t.rating]))
   const used = new Set([...cup.path, ...cup.legs.map((l) => l.opponent)])
   const target = rating.get(cup.path[cup.round]) ?? 70
-  const pick = CUP_TEAMS
+  const pick = teams
     .filter((t) => !used.has(t.id))
     .sort((a, b) => Math.abs(a.rating - target) - Math.abs(b.rating - target) || a.id.localeCompare(b.id))[0]
-  return (pick ?? CUP_TEAMS[0]).id
+  return (pick ?? teams[0]).id
 }
+/** which bracket: the club cup, or today's 国家队杯 */
+export type CupKind = 'club' | 'enc'
+const cupOf = (g: GachaState, kind: CupKind): CupState | null => (kind === 'enc' ? g.enc ?? null : g.cup)
+const tableOf = (g: GachaState, kind: CupKind): readonly CupTable[] =>
+  kind === 'enc' ? encTeams().filter((t) => t.nat !== g.enc?.nat) : CUP_TEAMS
 
 /**
  * Apply a cup result.
@@ -1997,8 +2166,9 @@ function lowerClub(cup: CupState): string {
  * it comes, is the end. A bracket drawn before this has no `double` and
  * ends on its first loss, as it was sold.
  */
-export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
-  const cup = g.cup
+export function recordCup(g: GachaState, leg: CupLeg, kind: CupKind = 'club'): CupOutcome {
+  const cup = cupOf(g, kind)
+  const label = kind === 'enc' ? '国家队杯' : '杯赛'
   if (!cup || cup.done) return { coins: 0, done: true, won: false }
   const inLower = !!cup.double && !!cup.lower
   const last = cup.path.length - 1
@@ -2007,8 +2177,8 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
   if (!leg.win) {
     if (cup.double && !cup.dropped) {
       cup.dropped = true
-      cup.lower = lowerClub(cup)
-      note(g, `杯赛${cupRoundName(cup.path.length, cup.round)}输了，掉入败者组`)
+      cup.lower = lowerClub(cup, tableOf(g, kind))
+      note(g, `${label}${cupRoundName(cup.path.length, cup.round)}输了，掉入败者组`)
       return { coins: 0, done: false, won: false, dropped: true }
     }
     cup.done = true
@@ -2017,7 +2187,7 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
     g.coins += coins
     const packs = cupExitPacks(cup.round)
     const given = givePacks(g, packs)
-    note(g, `杯赛止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}${given ? `，${given}` : ''}`)
+    note(g, `${label}止步${cupRoundName(cup.path.length, cup.round)}，奖金 ${coins}${given ? `，${given}` : ''}`)
     return { coins, packs, pack: (Object.keys(packs) as PackKind[])[0], done: true, won: false }
   }
   if (inLower) {
@@ -2034,14 +2204,16 @@ export function recordCup(g: GachaState, leg: CupLeg): CupOutcome {
     const coins = cupTitlePrize(cup.path.length)
     g.coins += coins
     const packs = cupTitlePacks(cup.path.length)
-    note(g, `杯赛冠军（${cup.path.length} 轮），奖金 ${coins}，${givePacks(g, packs)}`)
+    note(g, `${label}冠军（${cup.path.length} 轮），奖金 ${coins}，${givePacks(g, packs)}`)
     return { coins, packs, pack: (Object.keys(packs) as PackKind[])[0], done: true, won: true }
   }
   return { coins: 0, done: false, won: false }
 }
 
-export const cupOpponent = (g: GachaState): string | null =>
-  g.cup && !g.cup.done ? (g.cup.double && g.cup.lower) || (g.cup.path[g.cup.round] ?? null) : null
+export const cupOpponent = (g: GachaState, kind: CupKind = 'club'): string | null => {
+  const cup = cupOf(g, kind)
+  return cup && !cup.done ? (cup.double && cup.lower) || (cup.path[cup.round] ?? null) : null
+}
 
 /**
  * A bracket drawn before a club left the world.
@@ -2450,6 +2622,10 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
         streak: Math.trunc(Number(L.streak) || 0),
         points: Math.max(0, Math.round(Number(L.points) || 0)),
         bestPoints: Math.max(0, Math.round(Number(L.bestPoints) || 0)),
+        ...(L.peak != null ? { peak: Math.max(0, Math.trunc(Number(L.peak) || 0)) } : {}),
+        ...(L.peakPoints != null ? { peakPoints: Math.max(0, Math.round(Number(L.peakPoints) || 0)) } : {}),
+        ...(L.sWins != null ? { sWins: Math.max(0, Math.trunc(Number(L.sWins) || 0)) } : {}),
+        ...(L.sLosses != null ? { sLosses: Math.max(0, Math.trunc(Number(L.sLosses) || 0)) } : {}),
         pending: L.pending,
       }
     }
@@ -2518,6 +2694,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
   'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
+  'season', 'lastSeason', 'enc',
 ] as const
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 

@@ -7,6 +7,7 @@ import {
   ladderOpponent, ladderOf, leagueEntry, levelOf, masterTitle, oppBumpFor, pendingOpponent,
   LEAGUES, LEAGUE_RULES,
   rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
+  SEASON_DAYS, seasonDaysLeft, seasonFirstDay, seasonLastDay, seasonName, seasonOf,
 } from '../../engine/gacha'
 import { LADDER_BO, RIVAL_MERCY_GAP } from '../../engine/gacha'
 import type { LadderOutcome, LeagueKind } from '../../engine/gacha'
@@ -28,7 +29,10 @@ import { GapOdds } from './GapOdds'
  * What this screen does is ask, and show the scoreboard it is handed.
  */
 export default function Ladder() {
-  const { g, now, cloud, act, toast, go } = useCards()
+  const { g, now, today, cloud, act, toast, go } = useCards()
+  // 排位赛季 (gacha.ts rollSeason): the record on screen is this season's
+  const season = seasonOf(today)
+  const endDay = seasonLastDay(Math.max(1, season))
   const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<
     { res: ArenaResult; opp: string; who?: string; out: LadderOutcome } | null
@@ -137,7 +141,7 @@ export default function Ladder() {
               <b>{r.name}</b>
               <span className="tiny faint">
                 {/* past 大师 the title comes from the score, same as the badge below */}
-                {rec ? `${rec.div >= MASTER_DIV ? masterTitle(rec.points ?? 0) : DIVISIONS[rec.div]} · ${rec.wins}–${rec.losses}` : '未开始'}
+                {rec ? `${rec.div >= MASTER_DIV ? masterTitle(rec.points ?? 0) : DIVISIONS[rec.div]} · ${rec.sWins ?? rec.wins}–${rec.sLosses ?? rec.losses}` : '未开始'}
               </span>
             </button>
           )
@@ -162,13 +166,31 @@ export default function Ladder() {
             )}
           </div>
           <div className="small muted" style={{ marginTop: 10, lineHeight: 1.8 }}>
-            战绩 <b className="mono">{L.wins}–{L.losses}</b>
+            {/* in the body, not the panel head: a phone hides this panel's head (cards-ux.css) */}
+            <b>{season > 0 ? `${seasonName(season)} 赛季` : '赛季前'}</b>
+            <span className="tiny faint"> · {season > 0
+              ? `剩 ${seasonDaysLeft(today)} 天，${endDay.slice(5).replace('-', '/')} 结束`
+              : `S1 赛季 ${seasonFirstDay(1).slice(5).replace('-', '/')} 开始`}</span>
+            <br />
+            本赛季 <b className="mono">{L.sWins ?? L.wins}–{L.sLosses ?? L.losses}</b>
             {L.streak >= 2 && <span className="pos"> · {L.streak} 连胜</span>}
             {L.streak <= -2 && <span className="neg"> · {-L.streak} 连败</span>}
             <br />
             {master
-              ? <>最高 <b className="mono">{L.bestPoints ?? 0}</b> 分（{masterTitle(L.bestPoints ?? 0)}）</>
-              : <>最高 {DIVISIONS[L.best]}</>}
+              ? <>本赛季最高 <b className="mono">{L.bestPoints ?? 0}</b> 分（{masterTitle(L.bestPoints ?? 0)}）</>
+              : <>本赛季最高 {DIVISIONS[L.best]}</>}
+            {(() => {
+              // where this ladder stood when last season ended, and the best it has ever been
+              const last = g.lastSeason?.ranks[league]
+              const peak = Math.max(L.peak ?? 0, L.best)
+              const peakPts = Math.max(L.peakPoints ?? 0, L.bestPoints ?? 0)
+              return (
+                <>
+                  {last && <><br />{seasonName(g.lastSeason!.season)}：{rankName(last.div, last.stars, last.points)}</>}
+                  {(L.peak != null) && <><br />历史最高 {peak >= MASTER_DIV ? `${masterTitle(peakPts)} ${peakPts}` : DIVISIONS[peak]}</>}
+                </>
+              )
+            })()}
             <details className="cm-rules">
               <summary>升段与积分规则</summary>
             {master ? (
@@ -184,6 +206,10 @@ export default function Ladder() {
                 赢一场 +1★（钻石以下三连胜起 +2★），输一场 −1★，铂金起会掉段。到大师后改为计分，不封顶。
               </span>
             )}
+              <span className="tiny faint" style={{ display: 'block', marginTop: 6 }}>
+                每个赛季 {SEASON_DAYS} 天。赛季结束段位降两级（大师及以上回铂金，钻石回黄金，铂金回白银，其余回青铜），
+                升段和大师称号的卡包每个赛季都能再拿一次。
+              </span>
             </details>
           </div>
         </Panel>

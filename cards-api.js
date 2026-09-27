@@ -427,7 +427,7 @@ const stored = (state) => {
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
 /** The actions that simulate a match: the ones worth a worker thread. */
-const HEAVY = new Set(['ladder', 'cup_play', 'seoul_play'])
+const HEAVY = new Set(['ladder', 'cup_play', 'enc_play', 'seoul_play'])
 
 export function makeCardApi(sql, {
   rateLimited, readBody, json, staticRoot,
@@ -480,9 +480,12 @@ export function makeCardApi(sql, {
           where a.id_hash = ${hash(id)}`
         if (!rows.length) { json(res, 200, { ok: false, missing: true, today, now: serverNow() }); return }
         state = engine.migrateGacha(rows[0].state, id)
+        // a new ladder season shows on the first look, not only after the first action, and is written
+        // with the same compare-and-set as the stamina anchor below (rollSeason is idempotent)
+        const rolled = engine.rollSeason(state, today)
         saved = Number(rows[0].saved) || null
-        if (state.daily.staminaAt) break
-        state.daily.staminaAt = saved ?? serverNow()
+        if (state.daily.staminaAt && !rolled) break
+        state.daily.staminaAt ||= saved ?? serverNow()
         const wrote = await sql`
           update card_accounts set state = ${sql.json(stored(state))}, rev = rev + 1, seen = now()
            where id_hash = ${hash(id)} and rev = ${rows[0].rev}
@@ -1041,12 +1044,16 @@ export function makeCardApi(sql, {
       // its own under `state.leagues`. Picked once, in a CTE, so the name is a
       // plain parameter and never part of the query text — and so the six
       // fields below read one column instead of repeating the path.
+      // 排位赛季: only accounts already moved into this season (gacha.ts rollSeason) stand on its board, with
+      // this season's record; an account last seen before the turn still holds last season's rank
+      const season = String(engine.seasonOf(serverDay()))
       return sql`
         with lad as (
           select id_hash, name, suspect,
             case when ${league} = 'open' then state->'ladder'
                  else state->'leagues'->${league} end as l
           from card_accounts
+          where coalesce(state->>'season', '0') = ${season}
         ), ranked as (
           select
             id_hash, name,
@@ -1056,10 +1063,10 @@ export function makeCardApi(sql, {
                  then (l->>'points')::int else 0 end as points,
             case when l->>'stars' ~ '^[0-9]{1,3}$'
                  then (l->>'stars')::int else 0 end as stars,
-            case when l->>'wins' ~ '^[0-9]{1,7}$'
-                 then (l->>'wins')::int else 0 end as wins,
-            case when l->>'losses' ~ '^[0-9]{1,7}$'
-                 then (l->>'losses')::int else 0 end as losses
+            case when coalesce(l->>'sWins', l->>'wins') ~ '^[0-9]{1,7}$'
+                 then coalesce(l->>'sWins', l->>'wins')::int else 0 end as wins,
+            case when coalesce(l->>'sLosses', l->>'losses') ~ '^[0-9]{1,7}$'
+                 then coalesce(l->>'sLosses', l->>'losses')::int else 0 end as losses
           from lad
           where jsonb_typeof(l) = 'object'
             -- An account whose matches once outran the 体力 clock keeps

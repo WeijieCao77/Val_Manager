@@ -28,6 +28,7 @@ import {
   levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
+  encBlock, encNation, enterEnc, rollSeason,
 } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
@@ -65,7 +66,7 @@ export type ActResult =
 
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
-  'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'challenge', 'mail_seen',
+  'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
@@ -115,6 +116,8 @@ export function runAction(
   // the day and the meter are the server's to keep, and every action starts
   // from where they actually are
   refreshDaily(g, env.today)
+  // the first thing done in a new ladder season moves the account into it (gacha.ts rollSeason)
+  rollSeason(g, env.today)
   primeStamina(g, env.now)
 
   const out = dispatch(g, action, args ?? {}, env)
@@ -304,6 +307,34 @@ function dispatch(
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       })
       return { ok: true, result: { res, opp: oppId, out, registration: cup.registration } }
+    }
+    case 'enc_enter': {
+      if (g.enc && !g.enc.done) return { ok: true, result: { enc: g.enc } }
+      const block = encBlock(g, env.today)
+      if (block) return { ok: false, why: block }
+      const five = squadForPlay(g)
+      if (!five.ok) return five
+      const nation = encNation(five.squad)
+      if ('why' in nation) return { ok: false, why: nation.why }
+      try {
+        const level = (id: string) => levelOf(g, id)
+        g.seed = hashStr(`${g.seed}:enc:${env.seed}`) >>> 0
+        enterEnc(g, squadRating(five.squad, level), env.today, registerCupSquad(five.squad, level), nation.nat)
+        return { ok: true, result: { enc: g.enc } }
+      } catch (e) {
+        return { ok: false, why: e instanceof Error ? e.message : '报不了名' }
+      }
+    }
+    case 'enc_play': {
+      const enc = g.enc
+      const oppId = cupOpponent(g, 'enc')
+      if (!enc || !oppId || !enc.registration) return { ok: false, why: '没有进行中的国家队杯' }
+      const level = (id: string) => enc.registration!.levels[id] ?? 0
+      const res = playCupMatch(enc.registration.squad, level, oppId, cupBo(enc), env.seed, enc.ease ?? 0, enc.balance ?? 1)
+      const out = recordCup(g, {
+        opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
+      }, 'enc')
+      return { ok: true, result: { res, opp: oppId, out, registration: enc.registration } }
     }
     case 'cup_clear': {
       // only a finished bracket can be put away; an unfinished one is a paid

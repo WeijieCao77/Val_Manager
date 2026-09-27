@@ -19,7 +19,7 @@ process.env.ENGINE_FROM_SOURCE = '1'
 import { PGlite } from '@electric-sql/pglite'
 import { makeSql } from '../pglite-sql.js'
 import { createHash } from 'node:crypto'
-import { masterPoints, oppBumpFor } from '../src/engine/gacha'
+import { masterPoints, oppBumpFor, seasonOf } from '../src/engine/gacha'
 // these accounts are never bound to a phone; the gate is tested on its own in check_phone.ts
 process.env.PHONE_GATE = '0'
 const { CARD_SCHEMA, MAX_POINTS_PER_WIN, makeCardApi, serverDay } = await import('../cards-api.js')
@@ -84,11 +84,11 @@ const row = async (id: string) => (await sql`
     insert into card_accounts (id_hash, name, state, created, rev, suspect, ladder_at)
     values ('flagged1', 'old-cheat', ${sql.json({
       version: 1, coins: 0, cards: {}, daily: { claimed: null },
-      ladder: { div: 5, points: 900, wins: 300, losses: 2 },
+      season: seasonOf(serverDay()), ladder: { div: 5, points: 900, wins: 300, losses: 2 },
     })}, now() - interval '15 hours', 1, true, now()),
            ('honest1', 'old-honest', ${sql.json({
       version: 1, coins: 0, cards: {}, daily: { claimed: null },
-      ladder: { div: 3, points: 400, wins: 8, losses: 4 },
+      season: seasonOf(serverDay()), ladder: { div: 3, points: 400, wins: 8, losses: 4 },
     })}, now() - interval '15 hours', 1, false, now())`
   const r = await call('/api/card/top', {})
   const board = (r.body.rows ?? []) as { name: string }[]
@@ -103,17 +103,17 @@ const row = async (id: string) => (await sql`
     insert into card_accounts (id_hash, name, state, created, rev)
     values ('old1', 'legacy-cheat', ${sql.json({
       version: 1, coins: 0, cards: {}, daily: { claimed: null },
-      ladder: { div: 5, points: 900, wins: 300, losses: 2 },
+      season: seasonOf(serverDay()), ladder: { div: 5, points: 900, wins: 300, losses: 2 },
     })}, now() - interval '15 hours', 1),
            ('old2', 'legacy-honest', ${sql.json({
       version: 1, coins: 0, cards: {}, daily: { claimed: null },
-      ladder: { div: 3, points: 400, wins: 8, losses: 4 },
+      season: seasonOf(serverDay()), ladder: { div: 3, points: 400, wins: 8, losses: 4 },
     })}, now() - interval '15 hours', 1)`
   await sql`
     insert into card_accounts (id_hash, name, state, created, rev, pardon_seen, pardon_at)
     values ('old3', 'legacy-pardoned', ${sql.json({
       version: 1, coins: 0, cards: {}, daily: { claimed: null },
-      ladder: { div: 5, points: 300, wins: 200, losses: 2 },
+      season: seasonOf(serverDay()), ladder: { div: 5, points: 300, wins: 200, losses: 2 },
     })}, now() - interval '15 hours', 1, 202, now())`
   await db.exec(CARD_SCHEMA)
   const flag = async (name: string) => (await sql`select suspect from card_accounts where name = ${name}` as unknown as { suspect: boolean }[])[0].suspect

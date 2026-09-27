@@ -319,6 +319,19 @@ const dateAt = (n: number): string =>
     WORLD_PLAYERS.every((p) => !/^(TW|HK|MO)$/.test(natCell(p.id, p.id).value)))
 }
 
+// ---- 现役还是退役，单独一格（站长 2026-09-27）----
+{
+  const active = WORLD_PLAYERS.find((p) => p.teamId)!
+  const free = WORLD_PLAYERS.find((p) => !p.teamId)!
+  const gone = RETIRED[0], gone2 = RETIRED[1]
+  const cell = (answer: string, guess: string) => evaluate('player', answer, guess).cells.find((c) => c.label === '状态')!
+  check('状态一格紧跟在战队后面', evaluate('player', active.id, gone.id).cells.findIndex((c) => c.label === '状态')
+    === evaluate('player', active.id, gone.id).cells.findIndex((c) => c.label === '战队') + 1)
+  check('猜退役的、答案是现役：写「退役」，算错', cell(active.id, gone.id).value === '退役' && cell(active.id, gone.id).mark === 'miss')
+  check('两个退役的：命中', cell(gone.id, gone2.id).mark === 'hit')
+  check('自由人也算现役', !free || (cell(active.id, free.id).value === '现役' && cell(active.id, free.id).mark === 'hit'))
+}
+
 // ---- the picture sits a little off centre, differently per account and day
 {
   const W = 480, H = 300

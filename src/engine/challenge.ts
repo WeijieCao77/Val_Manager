@@ -353,6 +353,8 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
         { label: '赛区', value: String(g.region), mark: same(g.region, a.region) },
         // two retired men share the 退役 cell: that they are both gone is the clue
         { label: '战队', value: g.teamTag, mark: same(g.teamId, a.teamId) },
+        // 现役 or 退役 on its own (owner, 2026-09-27): a free agent and a man on a club are both still playing
+        { label: '状态', value: g.teamId === 'retired' ? '退役' : '现役', mark: same(g.teamId === 'retired', a.teamId === 'retired') },
         {
           label: '位置',
           value: String(g.role),

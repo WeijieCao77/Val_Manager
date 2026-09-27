@@ -97,9 +97,12 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           <Stat label="收集" value={`${prog.owned}/${prog.total}`} />
           <Stat label="抽卡次数" value={String(g.pulls)} />
           <Stat label="天梯" value={`${g.ladder.wins}–${g.ladder.losses}`} />
-          <Stat label="最高段位" value={g.ladder.div >= MASTER_DIV || g.ladder.best >= MASTER_DIV
-            ? `${masterTitle(g.ladder.bestPoints ?? 0)} ${g.ladder.bestPoints ?? 0}`
-            : DIVISIONS[g.ladder.best]} />
+          {/* career best: this season's best, or any season's before it (rollSeason keeps those in peak) */}
+          <Stat label="最高段位" value={(() => {
+            const best = Math.max(g.ladder.best, g.ladder.peak ?? 0)
+            const pts = Math.max(g.ladder.bestPoints ?? 0, g.ladder.peakPoints ?? 0)
+            return g.ladder.div >= MASTER_DIV || best >= MASTER_DIV ? `${masterTitle(pts)} ${pts}` : DIVISIONS[best]
+          })()} />
         </div>
       </Panel>
 
