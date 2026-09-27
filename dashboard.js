@@ -149,8 +149,8 @@ export const dashboardHtml = () => `<!doctype html>
     <div class="wx-side">
       <div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
         <textarea id="gWho" rows="2" spellcheck="false" autocomplete="off"
-          placeholder="8 位对战码，或者完整的账号 ID。发给多个号：一行一个，逗号、空格隔开也行"></textarea>
-        <button id="gLook" type="button" style="flex:none" title="按对战码看这个账号：段位、卡、金币、最近做了什么">查账号</button>
+          placeholder="8 位对战码、「昵称 #四位」或完整账号 ID。发给多个号：一行一个，逗号、空格隔开也行"></textarea>
+        <button id="gLook" type="button" style="flex:none" title="填对战码，或者「昵称 #四位」（举报里写的那种）">查账号</button>
       </div>
       <div class="row" style="gap:8px;margin-top:6px">
         <button id="gImport" type="button" title="txt 或 csv，里面的对战码和 ID 都会被挑出来">导入文件</button>
@@ -865,11 +865,34 @@ async function gOpen(who) {
     box.textContent = '查不到：' + e.message
   }
 }
+// 「昵称 #AB12」 (how the market and the ladder show an account, and how a report names it) → the 对战码
+async function gFind(q) {
+  const box = $('#gAcct')
+  box.style.display = ''
+  box.textContent = '查找中…'
+  try {
+    const r = await fetch('/api/admin/find?q=' + encodeURIComponent(q), { headers: auth() })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
+    if (j.hits.length === 1) { $('#gWho').value = j.hits[0].code; gOpen(j.hits[0].code); return }
+    box.innerHTML = j.hits.length
+      ? '<div class="muted" style="font-size:12px">「' + esc(q) + '」对上 ' + j.hits.length + ' 个账号，点一个：</div>'
+        + j.hits.map((h) => '<div><a href="#" data-gcode="' + esc(h.code) + '">' + esc(h.name) + ' #' + esc(h.tag) + '</a> · 对战码 ' + esc(h.code)
+          + ' · 建号 ' + gWhen(h.created) + ' · 最后上线 ' + gWhen(h.seen) + ' · 抽了 ' + (h.pulls ?? '?') + ' 次</div>').join('')
+      : '没有对上的账号'
+    box.querySelectorAll('a[data-gcode]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); $('#gWho').value = a.dataset.gcode; gOpen(a.dataset.gcode) } })
+  } catch (e) {
+    box.textContent = '查不到：' + e.message
+  }
+}
 $('#gLook').onclick = () => {
   gTrail.length = 0
-  const p = gParse($('#gWho').value)
-  if (p.list.length > 1) { $('#gAcct').style.display = ''; $('#gAcct').textContent = '查账号一次查一个'; return }
-  gOpen($('#gWho').value.trim())
+  const text = $('#gWho').value.trim()
+  // an 8-character 对战码 opens at once; anything else — 「昵称 #AB12」, 「#AB12」, a name — is looked up first
+  if (/^[0-9a-fA-F]{8}$/.test(text)) { gOpen(text); return }
+  const p = gParse(text)
+  if (p.list.length > 1 && p.list.every((c) => /^[0-9a-fA-F]{8}$/.test(c))) { $('#gAcct').style.display = ''; $('#gAcct').textContent = '查账号一次查一个'; return }
+  gFind(text)
 }
 
 // ---- 人工审核 ---------------------------------------------------------------

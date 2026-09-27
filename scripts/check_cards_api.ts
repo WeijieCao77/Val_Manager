@@ -140,6 +140,9 @@ check('the coins are still the server\'s', (r.body.state as { coins: number }).c
 
 const TWO = 'VM-2222-3333-4444-5555-6666'
 await call('/api/card/claim', { id: TWO, name: 'two' })
+// these saves use the name as their probe; a name changes once a week (gacha.ts RENAME_DAYS, check_rename.ts),
+// so the week is taken back before each one — what is tested here is the revision, not the rename limit
+const unlockName = () => sql`update card_accounts set state = state - 'nameAt' where id_hash = ${createHash('sha256').update(TWO).digest('hex')}`
 let phone = await call('/api/card/load', { id: TWO })
 const phoneRev = phone.body.rev as number
 
@@ -147,6 +150,7 @@ const phoneRev = phone.body.rev as number
 let desk = await call('/api/card/load', { id: TWO })
 let deskRev = desk.body.rev as number
 for (const name of ['桌一', '桌二']) {
+  await unlockName()
   const w = await call('/api/card/save', { id: TWO, baseRev: deskRev, client: { name } })
   deskRev = w.body.rev as number
 }
@@ -167,6 +171,7 @@ check('the evening on the desktop survives',
   `name ${(after.body.state as { name: string }).name}`)
 
 // and a client that resyncs can then write
+await unlockName()
 const resync = await call('/api/card/save', {
   id: TWO, baseRev: after.body.rev as number, client: { name: '桌三' },
 })

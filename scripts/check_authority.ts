@@ -239,7 +239,9 @@ console.log('\n杯赛与挑战：')
   check('一轮记进了对阵表', ((await stored(A)).cup?.legs.length ?? 0) === 1)
   // play it out: nothing is charged, and the purse arrives at the end
   let legs = 1
-  while (!(await stored(A)).cup?.done && legs < 6) { r = await act(A, 'cup_play'); if (!r.ok) break; legs++ }
+  // 双败: a bracket of R rounds is at most R + 2 matches (one loss, the 败者组 win, the final again) — the old
+  // cap of six stopped a five-round bracket short about one run in eight, the seed being the server's
+  while (!(await stored(A)).cup?.done && legs < 12) { r = await act(A, 'cup_play'); if (!r.ok) break; legs++ }
   const done = await stored(A)
   check('打到出局或夺冠为止，体力一直没动', !!done.cup?.done && done.daily.stamina === STAMINA_MAX - STAMINA_COST.cup, `${legs} 轮，体力 ${done.daily.stamina}`)
   check('出局或夺冠都有奖金', done.coins > c0, `${c0} → ${done.coins}`)

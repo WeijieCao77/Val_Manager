@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
-import { collectionProgress } from '../../engine/gacha'
+import { collectionProgress, RENAME_DAYS, renameFrom } from '../../engine/gacha'
 import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
 import { Thanks } from '../Credit'
 import PhoneGate from './PhoneGate'
@@ -41,6 +41,9 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
   const { g, cloud, phone, bound, toast, commit } = useCards()
   const [reveal, setReveal] = useState(false)
   const [name, setName] = useState(g.name)
+  // once a week (gacha.ts renameFrom): the server holds the date and refuses an early one either way
+  const renameAt = renameFrom(g)
+  const locked = renameAt > Date.now()
   const prog = collectionProgress(g)
 
   return (
@@ -76,11 +79,22 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           <span className="tiny faint">昵称</span>
           <input
             style={{ width: 160 }}
-            value={name}
+            value={locked ? g.name : name}
             maxLength={20}
+            disabled={locked}
             onChange={(e) => setName(e.target.value)}
-            onBlur={() => { g.name = name.trim().slice(0, 20) || '经理'; commit(true) }}
+            onBlur={() => {
+              const next = name.trim().slice(0, 20) || '经理'
+              if (locked || next === g.name) return
+              g.name = next
+              g.nameAt = Date.now()
+              commit(true)
+              toast(`昵称已改，${RENAME_DAYS} 天后才能再改。`)
+            }}
           />
+          <span className="tiny faint">{locked
+            ? `${new Date(renameAt).getMonth() + 1}月${new Date(renameAt).getDate()}日后可再改`
+            : `每 ${RENAME_DAYS} 天可改一次`}</span>
           <span className={`tag ${cloud ? 't1' : 't2'}`} title={cloud ? '收藏已同步到服务器' : '服务器连不上，只存在这台设备里'}>
             {cloud ? '云端同步中' : '仅本机'}
           </span>

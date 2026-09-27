@@ -759,5 +759,10 @@
     "runtime": "tsx",
     "file": "scripts/check_enc.ts",
     "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_rename.ts",
+    "estimatedSeconds": 3
   }
 ]

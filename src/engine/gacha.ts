@@ -799,6 +799,8 @@ export interface GachaState {
   lastSeason?: SeasonRecord
   /** 国家队杯 (ENC): one a day — see enterEnc */
   enc?: EncState | null
+  /** when the name was last changed (ms); absent until the first rename — see RENAME_DAYS */
+  nameAt?: number
 }
 
 /**
@@ -2730,8 +2732,13 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
   'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
-  'season', 'lastSeason', 'enc',
+  'season', 'lastSeason', 'enc', 'nameAt',
 ] as const
+/** a name may change once in this many days */
+export const RENAME_DAYS = 7
+/** the first moment the name may change again (0: now) */
+export const renameFrom = (g: Pick<GachaState, 'nameAt'>): number =>
+  typeof g.nameAt === 'number' && Number.isFinite(g.nameAt) ? g.nameAt + RENAME_DAYS * 86_400_000 : 0
 export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
 
 /**
@@ -2742,8 +2749,16 @@ export const CLIENT_KEYS = ['name', 'squad', 'presets', 'friends'] as const
  * the same person. Presets are lists of ids and are left as typed — they are
  * checked again the moment they are loaded onto the table.
  */
-export function mergeClientFields(server: GachaState, client: Partial<GachaState>): GachaState {
-  if (typeof client.name === 'string') server.name = client.name.slice(0, 40)
+export function mergeClientFields(server: GachaState, client: Partial<GachaState>, now: number = Date.now()): GachaState {
+  // a new name only once a week (owner, 2026-09-27): a report names an account by 昵称 #tag, and a name that
+  // changes every hour lets a seller slip it; the first rename is free (nameAt is absent until then)
+  if (typeof client.name === 'string') {
+    const next = client.name.slice(0, 40)
+    if (next !== server.name && renameFrom(server) <= now) {
+      server.name = next
+      server.nameAt = now
+    }
+  }
   if (client.squad && typeof client.squad === 'object') {
     const raw = Array.isArray(client.squad.slots) ? client.squad.slots.slice(0, 5) : []
     const seen = new Set<string>()

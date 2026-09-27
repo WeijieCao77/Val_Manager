@@ -25,6 +25,9 @@ const { CARD_SCHEMA, makeCardApi } = await import('../cards-api.js')
 
 const db = new PGlite()
 const sql = makeSql(db)
+// the name is this check's probe for which copy won; a name changes once a week (gacha.ts RENAME_DAYS,
+// check_rename.ts), so the week is taken back before each rename — the saves are what is tested here
+const unlockName = () => sql`update card_accounts set state = state - 'nameAt'`
 await db.exec(CARD_SCHEMA)
 
 interface Res { code: number; body: Record<string, unknown> }
@@ -115,6 +118,7 @@ check('offline, a pack cannot be opened', !refused.ok && refused.offline === tru
 check('and the local copy did not pretend it was', st.pulls === 1 && st.packs.scout === 2)
 
 // what the player CAN do offline is arrange the five and rename
+await unlockName()
 st.name = '离线改名'
 st.squad.slots[0] = first
 saveAccount(st, true)
@@ -138,6 +142,7 @@ use(desktop)
 const d = await loadAccount(ID)
 check('the desktop sees the server\'s account', d.ok && d.state.name === '离线改名' && d.state.pulls === 1)
 if (d.ok) {
+  await unlockName()
   d.state.name = '桌面改名'
   saveAccount(d.state, true)
   await settle()
@@ -157,6 +162,7 @@ const bare = JSON.parse(JSON.stringify((await serverState(ID))!)) as Record<stri
 bare.id = ID
 bare.coins = 4_242_424
 bare.pulls = 900
+await unlockName()
 bare.name = '篡改'
 bare.cards = { ...(bare.cards as object), 'p:P1': { id: 'p:P1', level: 5, dupes: 9, seen: 9, got: '2026-01-01' } }
 bare.ladder = { div: 5, points: 9999, stars: 0, best: 5, wins: 500, losses: 0, streak: 0 }
@@ -176,6 +182,7 @@ check('but the name it carried is taken — that much is the player\'s to write'
 use(desktop)
 const r2 = await loadAccount(ID)
 net = 'ratelimited'
+await unlockName()
 if (r2.ok) r2.state.name = '限流'
 const before = saves
 if (r2.ok) saveAccount(r2.state, true)
@@ -192,6 +199,7 @@ check('once the limit lifts, the retry lands', (await serverState(ID))?.name ===
   use(desktop)
   const r3 = await loadAccount(ID)
   if (!r3.ok) process.exit(1)
+  await unlockName()
   r3.state.name = '等它落地'
   const p = saveAccount(r3.state, true)
   check('saveAccount hands back something to wait on', typeof p?.then === 'function')

@@ -706,10 +706,49 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     })
   }
 
+  /**
+   * Who is 「昵称 #AB12」? A report names an account the way the market shows it: the name and the four
+   * characters after # — the first four of the 对战码. Four hex characters are 65,536 buckets, so the tag
+   * alone is nearly always one account; the name settles the rest. `q` may be 「昵称 #AB12」, 「#AB12」,
+   * 「AB12」, or a name alone (exact first, then partial). Returns every match with its 对战码.
+   */
+  async function find(res, url) {
+    const q = String(url.searchParams.get('q') ?? '').trim().slice(0, 60)
+    const m = q.match(/^(.*?)[\s#＃]*([0-9a-fA-F]{4})$/)
+    const tag = m ? m[2].toLowerCase() : null
+    const name = (m ? m[1] : q).replace(/[#＃]\s*$/, '').trim()
+    if (!tag && !name) { json(res, 200, { ok: false, why: '填「昵称 #四位」' }); return }
+    const rows = tag
+      ? await sql`
+          select id_hash, name, created, seen, (state->>'pulls')::int as pulls
+          from card_accounts where left(id_hash, 4) = ${tag} order by seen desc nulls last limit 50`
+      : await sql`
+          select id_hash, name, created, seen, (state->>'pulls')::int as pulls
+          from card_accounts where name = ${name} or name ilike ${'%' + name.replace(/[%_\\]/g, '\\$&') + '%'}
+          order by (name = ${name}) desc, seen desc nulls last limit 50`
+    const shown = (r) => (displayName ? displayName(r.name, r.id_hash) : { name: r.name ?? '', tag: r.id_hash.slice(0, 4).toUpperCase() })
+    let hits = rows.map((r) => ({ code: r.id_hash.slice(0, 8).toUpperCase(), name: shown(r).name, raw: r.name ?? '', tag: shown(r).tag, created: r.created, seen: r.seen, pulls: r.pulls }))
+    // a tag and a name: the name narrows the bucket, as shown or as typed into the box
+    if (tag && name) {
+      const exact = hits.filter((h) => h.name === name || h.raw === name)
+      if (exact.length) hits = exact
+    }
+    json(res, 200, { ok: true, q, tag: tag?.toUpperCase() ?? null, name: name || null, hits })
+  }
+
   return {
     /** Returns true when it handled the request. */
     async route(req, res, path, url) {
       if (await champions.route(req,res,path,url)) return true
+      if (path === '/api/admin/find') {
+        if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
+          return true
+        }
+        if (req.method !== 'GET') { json(res, 405, { ok: false }); return true }
+        await find(res, url)
+        return true
+      }
       if (path === '/api/admin/account') {
         if (!same(tokenFrom ? tokenFrom(req, url) : url.searchParams.get('token'), token) || !token) {
           res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found')
