@@ -81,6 +81,13 @@
  */
 export const PROTECT_SEC = 60
 
+/**
+ * Where the guard's memory starts (owner, 2026-09-27: 「封号从中国时间9/27 中午12点之后的违规行为才开始算」).
+ * Nothing before it counts toward a suspension or a repeat, whatever the rules say about it; the rules changed
+ * that morning and a player is judged on what he did after he could know them. MARKET_GUARD_FROM moves it.
+ */
+export const guardFrom = () => Date.parse(process.env.MARKET_GUARD_FROM ?? '2026-09-27T04:00:00Z') || 0
+
 export const GUARD = {
   ULTRA_SEC: 2, QUICK_SEC: PROTECT_SEC + 45, FRESH_SEC: 300,
   // 大小号来回倒: this many TRADING purchases (bought before, or listed again) from ONE seller in a day, any age
@@ -386,10 +393,10 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   /** When this account's slate was last wiped: its newest ban (or the lift of it). */
   async function slate(me) {
     const last = await work`
-      select made, lifted, (select count(*)::int from market_bans where id_hash = ${me} and lifted is null) as strikes
+      select made, lifted, (select count(*)::int from market_bans where id_hash = ${me} and lifted is null and made >= ${new Date(guardFrom())}) as strikes
       from market_bans where id_hash = ${me} order by made desc limit 1`
     const from = last.length ? new Date(last[0].lifted ?? last[0].made).getTime() : 0
-    return { since: new Date(Math.max(from, Date.now() - 7 * DAY)), strikes: last[0]?.strikes ?? 0 }
+    return { since: new Date(Math.max(from, Date.now() - 7 * DAY, guardFrom())), strikes: last[0]?.strikes ?? 0 }
   }
 
   async function ban(me, { days, rule, evidence = {}, by = 'auto' }) {
@@ -734,6 +741,36 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     }
   }
 
+  /**
+   * Every running automatic suspension, judged again on what the account did since GUARD_FROM only: lifted
+   * when nothing there breaks a rule, kept with a sentence about what does. The owner's hand for the day the
+   * start line moved; manual suspensions are the owner's own and are left alone.
+   */
+  async function recheck() {
+    const running = await work`
+      select id, id_hash, rule from market_bans where lifted is null and until > now() and by = 'auto' order by id`
+    const since = new Date(Math.max(guardFrom(), Date.now() - 7 * DAY))
+    const kept = []
+    const lifted = []
+    for (const b of running) {
+      const me = b.id_hash
+      const found = judge(await buysOf(me, since))
+      const moved = judgeTransfers(await tradesOf(me, since))
+      const rule = found.verdict === 'ban' ? found.rule : moved.verdict === 'ban' ? moved.rule : null
+      const code = me.slice(0, 8).toUpperCase()
+      if (!rule) {
+        await work`update market_bans set lifted = now() where id = ${b.id}`
+        lifted.push({ code, rule: b.rule })
+        continue
+      }
+      const why = await detailOf(rule, found, moved, me)
+      await work`update market_bans set rule = ${rule}, evidence = evidence || ${work.json({ why, recheck: true })} where id = ${b.id}`
+      kept.push({ code, rule, why })
+    }
+    await loadActive(true)
+    return { ok: true, since, kept, lifted }
+  }
+
   async function byCode(code) {
     const c = String(code ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(c)) return null
@@ -742,6 +779,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
   /** The owner's hand: suspend by 对战码, or lift (which forgives what came before). */
   async function manual({ code, action, days, note }) {
+    if (action === 'recheck') return recheck()
     const me = await byCode(code)
     if (!me) return { ok: false, why: '没有这个对战码' }
     if (action === 'lift') {

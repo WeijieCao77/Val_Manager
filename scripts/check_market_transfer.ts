@@ -13,6 +13,8 @@ import { makeMarketApi, TRADE_DAYS, TRADE_PULLS } from '../market-api.js'
 import { judgeTransfers, saleValue } from '../market-guard.js'
 import { displayName } from '../names.js'
 process.env.PHONE_GATE = '0'
+// these checks backdate trades and bans; the live start line (market-guard.js guardFrom) would hide them
+process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
 
 // ---- what a card is worth
 const gold = engine.ALL_CARDS.filter((c) => c.rarity === 'gold').map((c) => c.id)
@@ -132,6 +134,18 @@ console.log('ok  一天内互相成交：两个号都停 —', shopBan!.why)
 const report = await call('guard', {}, TOKEN)
 assert(report.ok && report.bans.filter((b: any) => b.rule === 'F').length === 2 && report.bans.filter((b: any) => b.rule === 'G').length === 2, JSON.stringify(report.bans.map((b: any) => b.rule)))
 assert(report.moving.sales.length === 1 && report.moving.sales[0].price === 168_397 && report.moving.sales[0].seller.code === hash(MAIN).slice(0, 8).toUpperCase())
+// the start line (owner, 2026-09-27: only what was done after 12:00 counts): judged from before the trades,
+// every suspension stands and says what it is for; moved past them, every one is lifted
+const kept = await call('guard', { action: 'recheck' }, TOKEN)
+assert(kept.ok && kept.kept.length === 4 && kept.lifted.length === 0, JSON.stringify(kept))
+assert(kept.kept.every((k: any) => /^(F|G)$/.test(k.rule) && k.why.length > 10))
+process.env.MARKET_GUARD_FROM = new Date(Date.now() + 1000).toISOString()
+const cleared = await call('guard', { action: 'recheck' }, TOKEN)
+assert(cleared.ok && cleared.kept.length === 0 && cleared.lifted.length === 4, JSON.stringify(cleared))
+assert.equal(await api.guard.banOf(hash(MAIN)), null)
+assert.equal(await api.guard.banOf(hash(SHOP)), null)
+process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
+console.log('ok  起算时间之前的违规不算：重新核对后，之前的暂停全部解除；之后还违规的保留并写明原因')
 const tr = await call('guard', { action: 'transfers' }, TOKEN)
 assert(tr.ok && tr.fSales === 1 && tr.sales === 7)
 console.log('ok  站长名单里有这笔成交和两个号的证据')

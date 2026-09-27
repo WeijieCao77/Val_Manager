@@ -13,6 +13,8 @@ import { makeMarketApi, PROTECT_SEC, TRADE_DAYS, TRADE_PULLS } from '../market-a
 import { judge } from '../market-guard.js'
 import { displayName } from '../names.js'
 process.env.PHONE_GATE = '0'
+// these checks backdate trades and bans; the live start line (market-guard.js guardFrom) would hide them
+process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
 process.env.MARKET_GUARD = 'watch'
 
 const db = new PGlite()

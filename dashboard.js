@@ -230,6 +230,7 @@ export const dashboardHtml = () => `<!doctype html>
     <input type="text" id="mgDays" placeholder="天数" maxlength="2" style="width:60px" value="3">
     <button id="mgBan" type="button">手动暂停交易</button>
     <button id="mgLift" type="button">解除暂停</button>
+    <button id="mgRecheck" type="button">按起算时间重新核对全部</button>
     <span id="mgMsg" class="muted" style="font-size:12px"></span>
   </div>
   <p class="why" style="margin:6px 0 10px">
@@ -1051,6 +1052,15 @@ async function mgAct(action, btn) {
 $('#mgLoad').onclick = mgLoad
 $('#mgBan').onclick = () => mgAct('ban', $('#mgBan'))
 $('#mgLift').onclick = () => mgAct('lift', $('#mgLift'))
+// every running automatic suspension judged again on what came after the start line (9/27 12:00): lifted or kept with its reason
+$('#mgRecheck').onclick = async () => {
+  if (!rvSure($('#mgRecheck'), '再点一次确认重新核对')) return
+  try {
+    const r = await mgCall({ action: 'recheck' })
+    $('#mgMsg').textContent = r.ok ? ('解除 ' + r.lifted.length + ' 个，保留 ' + r.kept.length + ' 个') : (r.why || '没成功')
+    mgLoad()
+  } catch (e) { $('#mgMsg').textContent = '没成功：' + e.message }
+}
 
 // ---- 微信群二维码 -------------------------------------------------------
 //
