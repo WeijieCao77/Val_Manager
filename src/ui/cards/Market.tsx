@@ -36,6 +36,9 @@ import { CardFilters, EMPTY_FILTER, matchesFilter } from './Filters'
 import { CardPicker, matchesQuery } from './Picker'
 import type { CardFilter } from './Filters'
 
+
+/** the owner's report form for 倒卡 and absurd buy-now prices; he handles them by hand */
+const REPORT_URL = 'https://v.wjx.cn/vm/h4v6ndk.aspx#'
 /** the old listings' haggling room, for the ones still running out */
 const HAGGLE = 0.1
 const money = (n: number) => n.toLocaleString('en-US')
@@ -850,6 +853,12 @@ export default function Market() {
               </button>
             ))}
           </div>
+          {/* 倒卡 goes to the owner by hand (2026-09-27): the seller's 昵称 #四位 finds the account (site-api.js account) */}
+          <a
+            className="tiny" style={{ marginLeft: 'auto' }}
+            href={REPORT_URL} target="_blank" rel="noopener noreferrer"
+            title="举报时写上对方的昵称和 # 后面四位"
+          >举报倒卡 / 异常一口价 ↗</a>
         </div>
         {/* The filter belongs to the thing it filters. It used to be its own
             panel at the top of the page, two panels away from the shelf and

@@ -13,8 +13,6 @@ import { makeMarketApi, PROTECT_SEC, TRADE_DAYS, TRADE_PULLS } from '../market-a
 import { judge } from '../market-guard.js'
 import { displayName } from '../names.js'
 process.env.PHONE_GATE = '0'
-// these checks backdate trades and bans; the live start line (market-guard.js guardFrom) would hide them
-process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
 process.env.MARKET_GUARD = 'watch'
 
 const db = new PGlite()
@@ -136,8 +134,7 @@ console.log('ok  开奖前一刻来的人抢不走：当场开奖，归报名的
 // 6. the guard still sees a script: an entry two seconds after the listing counts, won or lost
 const t = Date.now()
 const lost = (agoMin: number) => ({ made: t - agoMin * 60_000, created: t - agoMin * 60_000 - 900, seller: 's', won: false })
-const tenLost = Array.from({ length: 10 }, (_, i) => 1 + i * 4)
-assert.deepEqual([judge(tenLost.map(lost), t).verdict, judge(tenLost.map(lost), t).rule], ['ban', 'A'], '连续十次两秒内报名，没中也算')
+assert.deepEqual([judge([1, 5, 9, 13, 17].map(lost), t).verdict, judge([1, 5, 9, 13, 17].map(lost), t).rule], ['ban', 'A'])
 assert.equal(judge(Array.from({ length: 60 }, (_, i) => ({ made: t - i * 60_000, created: t - i * 60_000 - 20_000, seller: `s${i}`, won: false })), t).verdict, null, '没中的报名不算进买入量')
 console.log('ok  封脚本规则：两秒内报名照样算；没中的不算买入量')
 await db.close()

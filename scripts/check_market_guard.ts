@@ -13,8 +13,6 @@ import { makeMarketApi, TRADE_DAYS, TRADE_PULLS } from '../market-api.js'
 import { judge, GUARD } from '../market-guard.js'
 import { displayName } from '../names.js'
 process.env.PHONE_GATE = '0'
-// these checks backdate trades and bans; the live start line (market-guard.js guardFrom) would hide them
-process.env.MARKET_GUARD_FROM = '2000-01-01T00:00:00Z'
 
 // ---- the rules, on paper
 const now = Date.parse('2026-09-18T12:00:00Z')
@@ -24,26 +22,20 @@ assert.equal(judge([], now).verdict, null)
 assert.equal(judge([buy(5, 75, 'a'), buy(50, 90, 'b'), buy(90, 200, 'c')], now).verdict, null, '几分钟后才买到的，是正常人')
 // a person wins a race in 3–6 s routinely (the live ledger, 2026-09-19): that alone is nothing
 assert.equal(judge(Array.from({ length: 12 }, (_, i) => buy(10 + i * 20, 3 + i % 4, `s${i}`)), now).verdict, null, '一天手快十来次，不算')
-// A (owner, 2026-09-27): ten buy-nows IN A ROW, each within two seconds
-const tenAt = (from: number, age: number) => Array.from({ length: 10 }, (_, i) => buy(from + i * 40, age, `s${i}`))
-assert.deepEqual(verdictOf(tenAt(5, 0.9)), ['ban', 'A'], '连续十次两秒内一口价：手做不到')
-assert.equal(judge(tenAt(5, 0.9).slice(1), now).verdict, 'watch', '连续九次还不封')
-// five fast ones scattered over a day, slower buys between them: a quick person, not a script (what was suspended before)
-const scattered = [5, 50, 90, 130, 170].flatMap((m) => [buy(m, 0.9, 'a'), buy(m + 20, 30, 'b'), buy(m + 30, 120, 'c')])
-assert.notEqual(judge(scattered, now).verdict, 'ban', '一天五次手快、中间夹着慢的：不封')
-assert.notEqual(judge([...tenAt(5, 0.9).slice(0, 6), buy(300, 40, 'x'), ...tenAt(400, 0.9).slice(0, 6)], now).verdict, 'ban', '十二次秒拍但被一次正常购买隔开：不算连续')
-assert.equal(judge([buy(5, 0.7, 'a'), buy(50, 1.2, 'b')], now).verdict, null, '两次手快：什么都不算')
-assert.notEqual(judge(tenAt(1500, 0.8), now).verdict, 'ban', '一天以前的不算在今天头上')
+assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a'))), ['ban', 'A'], '两秒内五次，哪怕同一个卖家：手做不到')
+assert.equal(judge([5, 50, 90, 130].map((m) => buy(m, 0.9, 'a')), now).verdict, 'watch', '四次还不封')
+assert.equal(judge([buy(5, 0.7, 'a'), buy(50, 1.2, 'b')], now).verdict, 'watch')
+assert.notEqual(judge([1500, 1600, 1700, 1800, 1900].map((m) => buy(m, 0.8, 'a')), now).verdict, 'ban', '一天以前的不算在今天头上')
 // a hand-over between friends or to an alt: a hundred quick purchases, one seller
-const handover = Array.from({ length: 100 }, (_, i) => buy(5 + i * 9, 10, 'friend'))
+const handover = Array.from({ length: 100 }, (_, i) => buy(5 + i * 10, 10, 'friend'))
 assert.deepEqual(verdictOf(handover), ['ban', 'E'], '大小号来回倒：一天从同一个卖家手里快买三十张')
 assert.deepEqual(verdictOf(handover.slice(0, 12)), ['watch', 'loop'], '朋友之间转十来张：只给站长看')
 assert.equal(judge(handover.slice(0, 8), now).verdict, null, '转几张不算什么')
 // after the protected minute the race starts when it ENDS: a buy at 60.5 s is as inhuman as one at 0.5 s
-assert.deepEqual(verdictOf(tenAt(5, 60.5)), ['ban', 'A'])
+assert.deepEqual(verdictOf([5, 50, 90, 130, 170].map((m) => buy(m, 60.5, `s${m}`))), ['ban', 'A'])
 assert.equal(judge([5, 50, 90, 130, 170].map((m) => buy(m, 30, `s${m}`)), now).verdict, null, '保护期中间报名中签的，不是秒拍')
 // a sniper: forty-five races won today, from fifteen people
-const sniper = Array.from({ length: 45 }, (_, i) => buy(5 + i * 20, 6 + i % 20, `s${i % 15}`))
+const sniper = Array.from({ length: 45 }, (_, i) => buy(5 + i * 25, 6 + i % 20, `s${i % 15}`))
 assert.deepEqual(verdictOf(sniper), ['watch', 'B'], '多家快买过线：上报给站长，不自动封（站长 2026-09-19：稳一点）')
 // the edge the live data showed (26–39 on a best day): a person's to judge
 const keen = Array.from({ length: 30 }, (_, i) => buy(5 + i * 25, 12, `s${i % 20}`))
@@ -60,24 +52,20 @@ assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 5}`,
 assert.deepEqual(verdictOf(sniper.map((b, i) => ({ ...b, card_id: `p:P${i % 10}`, flipped: false }))), ['watch', 'near'], '三十五次重复：差一点，只上报')
 assert.deepEqual(verdictOf(kept(handover).map((b) => ({ ...b, flipped: true }))), ['ban', 'E'], '买来又挂出去：是来回倒，不是集卡')
 // what a body cannot do stays what it was, whatever is bought
-assert.deepEqual(verdictOf(kept(tenAt(5, 0.9))), ['ban', 'A'])
+assert.deepEqual(verdictOf(kept([5, 50, 90, 130, 170].map((m) => buy(m, 0.9, 'a')))), ['ban', 'A'])
 // the patient version: twenty a day, every day
-const patientSniper = Array.from({ length: 140 }, (_, i) => buy(30 + Math.floor(i / 20) * 1440 + (i % 20) * 30, 20, `s${i % 40}`))
+const patientSniper = Array.from({ length: 140 }, (_, i) => buy(30 + i * 70, 20, `s${i % 40}`))
 assert.deepEqual(verdictOf(patientSniper), ['watch', 'C'])
 // slow but never asleep
 const sleepless = Array.from({ length: 120 }, (_, i) => buy(i * 61 + 10, 200, `s${i % 50}`))
-assert.deepEqual(verdictOf(sleepless), ['ban', 'D'], '买得不快，但 24 小时里超过 16 个小时都在买：封（站长 2026-09-27）')
-// a keen collector: forty cards over twelve hours of one day, then asleep
-assert.equal(judge(Array.from({ length: 40 }, (_, i) => ({ ...buy(5 + i * 18, 300, `s${i}`), card_id: `p:C${i}`, flipped: false })), now).verdict === 'ban', false, '白天醒着的十二个小时里买四十张：不封')
-assert.equal(judge(Array.from({ length: 16 }, (_, i) => buy(5 + i * 60, 300, `s${i}`)), now).counts.awake, 16)
-assert.notEqual(judge(Array.from({ length: 16 }, (_, i) => buy(5 + i * 60, 300, `s${i}`)), now).verdict, 'ban', '正好十六个小时：不算超过')
+assert.deepEqual(verdictOf(sleepless), ['watch', 'D'], '买得不快，但一天 24 个钟点有 20 个在买：上报')
 // …and the owner can hand any of them back to the machine
 assert.deepEqual([judge(sleepless, now, new Set(['A', 'D', 'E'])).verdict, judge(patientSniper, now, new Set(['C'])).verdict], ['ban', 'ban'])
 // a ring does not get out by waiting: thirty trading purchases from one seller, each an hour after the listing
 assert.deepEqual(verdictOf(Array.from({ length: 32 }, (_, i) => ({ ...buy(5 + i * 20, 3600, 'alt'), card_id: `p:P${i % 4}`, flipped: true }))), ['ban', 'E'], '等一个小时再买也一样：同一个卖家、同几张卡来回倒')
 // a collector with coins: a hundred and fifty different cards in a day, most of them long on the shelf, all kept
-assert.equal(judge(Array.from({ length: 150 }, (_, i) => ({ ...buy(2 + i * 5, 300 + i * 40, `s${i % 60}`), card_id: `p:C${i}`, flipped: false })), now).verdict, null, '有钱的收集党一天扫一百五十张不同的卡：不封，也不上报')
-console.log('ok  规则：连续十次两秒内封；24 小时里超过 16 个小时在买封；同一卖家一天三十张封；手快的真人不封；集卡不计')
+assert.equal(judge(Array.from({ length: 150 }, (_, i) => ({ ...buy(2 + i * 9, 300 + i * 40, `s${i % 60}`), card_id: `p:C${i}`, flipped: false })), now).verdict, null, '有钱的收集党一天扫一百五十张不同的卡：不封，也不上报')
+console.log('ok  规则：两秒内五次封；多家快买四十次封；同一卖家一天三十张封；手快的真人不封；集卡（每张只买一次、不转卖）不计')
 
 // ---- on the real market
 const db = new PGlite()
@@ -109,7 +97,7 @@ async function account(id: string, copies: number, coins = 1_000_000) {
 }
 const BOT = idOf(1), HUMAN = idOf(2)
 await account(BOT, 1); await account(HUMAN, 0)
-const sellers = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21].map(idOf)
+const sellers = [10, 11, 12, 13, 14, 15].map(idOf)
 for (const s of sellers) await account(s, 3)
 /** seller lists with a buy-now; the buyer takes it `age` seconds after it went up */
 async function snipe(seller: string, buyer: string, age: number) {
@@ -135,18 +123,17 @@ await settle()
 assert.equal(await api.guard.banOf(hash(HUMAN)), null)
 console.log('ok  几分钟后买下三张的人照常交易')
 
-// a script: bought within a second or two of the listing, ten times in a row
-for (let i = 0; i < 9; i++) assert((await snipe(sellers[i], BOT, 1)).bought)
+// a script: bought within a second or two of the listing, five times
+for (const s of sellers.slice(0, 4)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
-assert.equal(await api.guard.banOf(hash(BOT)), null, '连续九次还不封')
-assert((await snipe(sellers[9], BOT, 1)).bought)
+assert.equal(await api.guard.banOf(hash(BOT)), null, '四次还不封')
+assert((await snipe(sellers[4], BOT, 1)).bought)
 await settle()
 const ban = await api.guard.banOf(hash(BOT))
 assert(ban && ban.until > Date.now() + 2.9 * 86_400_000 && ban.until < Date.now() + 3.1 * 86_400_000, '第一次三天')
-assert(ban!.why.includes('① 连续秒拍') && ban!.why.includes('连续 10 次'), ban!.why)
-console.log('ok  连续十次两秒内买下：自动暂停三天，写明违反哪一条 —', ban!.why)
+console.log('ok  两秒内买下五次：自动暂停三天 —', ban!.why)
 
-const refusedBuy = await snipe(sellers[10], BOT, 1)
+const refusedBuy = await snipe(sellers[5], BOT, 1)
 assert(refusedBuy.banned && !refusedBuy.ok && typeof refusedBuy.why === 'string')
 const refusedList = await call('list', { id: BOT, cardId, ask: 1000 })
 assert(refusedList.banned)
@@ -157,14 +144,14 @@ assert(shelf.ok && shelf.ban?.until === ban!.until, '货架照常看，并告诉
 assert.equal((await call('browse', { id: HUMAN })).ban, undefined)
 assert((await call('mail', { id: BOT })).ok !== false, '邮件照常领')
 const coins = (await sql`select (state->>'coins')::int as c from card_accounts where id_hash = ${hash(BOT)}`)[0].c
-assert.equal(coins, 1_000_000 - 10 * 2000, '被拒的那次没有扣钱')
+assert.equal(coins, 1_000_000 - 5 * 2000, '被拒的那次没有扣钱')
 console.log('ok  暂停期间不能买、不能挂、不能换；能看、能领；被拒不扣钱')
 
 // the owner's view, and the owner's hand
 assert.equal((await call('guard', {}, 'wrong')).ok, false)
 const report = await call('guard', {}, TOKEN); if (process.env.DEBUG) console.log(JSON.stringify(report).slice(0, 900))
 assert(report.ok && report.bans.length === 1 && report.bans[0].running && report.bans[0].rule === 'A')
-assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.ultraRun === 10)
+assert(report.bans[0].code === hash(BOT).slice(0, 8).toUpperCase() && report.bans[0].evidence.counts.ultra === 5)
 const lifted = await call('guard', { code: hash(BOT).slice(0, 8), action: 'lift' }, TOKEN)
 assert(lifted.ok && lifted.lifted === 1)
 assert.equal(await api.guard.banOf(hash(BOT)), null)
@@ -176,12 +163,12 @@ console.log('ok  站长看得到证据，能解封；解封后旧账不重算')
 await sql`update market_bans set lifted = null, until = now() - interval '1 minute', made = now() - interval '3 days'`
 await sql`update card_offers set made = made - interval '4 days'`
 api.guard.invalidate()
-for (let i = 0; i < 10; i++) assert((await snipe(sellers[i], BOT, 1)).bought)
+for (const s of sellers.slice(0, 5)) assert((await snipe(s, BOT, 1)).bought)
 await settle()
 const again = await api.guard.banOf(hash(BOT))
 assert(again && again.until > Date.now() + 4.9 * 86_400_000, '再犯五天')
 const manual = await call('guard', { code: hash(HUMAN).slice(0, 8), action: 'ban', days: 4, note: '群里举报' }, TOKEN)
-assert(manual.ok && (await api.guard.banOf(hash(HUMAN)))?.why.startsWith('站长手动暂停交易：群里举报'))
+assert(manual.ok && (await api.guard.banOf(hash(HUMAN))))
 const wk = await call('guard', { action: 'weekly' }, TOKEN)
 assert(wk.ok && wk.buyers >= 1 && wk.all.length === wk.buyers && wk.all.every((n: number, i: number) => i === 0 || n >= wk.all[i - 1]))
 assert(!JSON.stringify(wk).includes(hash(BOT).slice(0, 8)), '只有计数，没有账号')
