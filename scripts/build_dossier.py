@@ -60,6 +60,8 @@ LOGOS = ROOT / "public" / "logos"
 # world.json uses; these fields win over whatever vlr_staff.json says.
 COACH_FIX: dict[str, dict] = {
     "potter": {"real": "Christine Chi", "nat": "us", "vlrId": "3104"},
+    # VLG's head coach: no staff listing carries a flag for him; Chinese per the owner (2026-09-27)
+    "heav1n": {"nat": "cn"},
 }
 
 

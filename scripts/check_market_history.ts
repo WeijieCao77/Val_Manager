@@ -109,6 +109,12 @@ check('没成交过的卡：0 次，均价为空', r.ok === true && r.sold === 0
   const cn = ALL_CARDS.filter((c) => matchesFilter(c, { ...f, region: 'China' }))
   check('系列能和赛区一起用', cn.length > 0 && cn.length < 80 && cn.every((c) => c.region === 'China'))
   check('服务器读得懂系列，不认识的当全部', readFilter({ series: 'seoul-2024' }).series === 'seoul-2024' && readFilter({ series: 'x' }).series === 'all' && readFilter({}).series === 'all')
+  // 按国家筛选 (owner, 2026-09-27): players and coaches, 中国台湾 / 香港 / 澳门 under 中国
+  const byNat = ALL_CARDS.filter((c) => matchesFilter(c, { ...EMPTY_FILTER, nat: 'kr' }))
+  check('按国家筛：韩国只出韩国人，选手教练都有', byNat.length > 50 && byNat.every((c) => c.nat === 'kr') && byNat.some((c) => c.kind === 'coach'))
+  check('中国台湾的选手算在中国里', ALL_CARDS.filter((c) => matchesFilter(c, { ...EMPTY_FILTER, nat: 'cn' })).some((c) => c.nat === 'tw'))
+  check('国家也算「已筛选」，服务器读得懂，不认识的当全部',
+    filterActive({ ...EMPTY_FILTER, nat: 'kr' }) && readFilter({ nat: 'kr' }).nat === 'kr' && readFilter({ nat: 'korea' }).nat === 'all' && readFilter({}).nat === 'all')
   check('只选系列也算在筛选', filterActive(f) && !filterActive(EMPTY_FILTER))
   // a real shelf: one Seoul listing, one regular, browsed with the series set
   const S = seoul[0].id

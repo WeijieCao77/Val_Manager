@@ -24,7 +24,8 @@ import type { Role } from '../../engine/types'
 // The rule itself lives in the engine: the trading post's server runs it too,
 // and a filter that means one thing on each side of the wire is worse than no
 // filter at all. See engine/cardFilter.ts.
-import { EMPTY_FILTER, SERIES_CN, filterActive, matchesFilter } from '../../engine/cardFilter'
+import { EMPTY_FILTER, SERIES_CN, countryOf, filterActive, matchesFilter } from '../../engine/cardFilter'
+import { natName } from '../../engine/nat'
 import type { CardFilter, CardSeries } from '../../engine/cardFilter'
 
 export { EMPTY_FILTER, filterActive, matchesFilter, matchesQuery } from '../../engine/cardFilter'
@@ -38,6 +39,13 @@ export function clubsIn(cards: Card[]): { tag: string; n: number }[] {
   for (const c of cards) if (c.clubTag) n.set(c.clubTag, (n.get(c.clubTag) ?? 0) + 1)
   return [...n].map(([tag, k]) => ({ tag, n: k }))
     .sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag))
+}
+
+/** The countries present in a pile, busiest first, for the country menu (owner, 2026-09-27: 按国家筛选). */
+export function countriesIn(cards: Card[]): { nat: string; n: number }[] {
+  const n = new Map<string, number>()
+  for (const c of cards) { const k = countryOf(c); if (k) n.set(k, (n.get(k) ?? 0) + 1) }
+  return [...n].map(([nat, k]) => ({ nat, n: k })).sort((a, b) => b.n - a.n || a.nat.localeCompare(b.nat))
 }
 
 const METALS: { key: CardFilter['rarity']; label: string }[] = [
@@ -63,6 +71,8 @@ export function CardFilters({
   // the club menu follows the other three: only clubs with a card that
   // passes metal, region and position, counted after those filters
   const clubs = clubsIn(pool.filter((c) => matchesFilter(c, { ...value, club: 'all' })))
+  // the country menu follows the rest the same way, but not the club (a club is several countries)
+  const countries = countriesIn(pool.filter((c) => matchesFilter(c, { ...value, nat: 'all' })))
   const set = (patch: Partial<CardFilter>) => {
     const next = { ...value, ...patch }
     // a chosen club that the new region or metal leaves nothing of is let go
@@ -80,7 +90,7 @@ export function CardFilters({
           </button>
         ))}
       </div>
-      <button className="cm-filter-toggle" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? '收起筛选' : '赛区 / 位置 / 系列筛选'}{filterActive(value) ? ' · 已筛选' : ''}</button>
+      <button className="cm-filter-toggle" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? '收起筛选' : '赛区 / 位置 / 国家 / 系列筛选'}{filterActive(value) ? ' · 已筛选' : ''}</button>
       <div className={`card-filter-advanced${expanded ? ' expanded' : ''}`}>
       <div className="seg">
         <button aria-pressed={value.region === 'all'} className={value.region === 'all' ? 'on' : ''} onClick={() => set({ region: 'all' })}>全部赛区</button>
@@ -97,6 +107,17 @@ export function CardFilters({
         <option value="all">全部位置</option>
         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         <option value="igl">指挥（IGL）</option>
+      </select>
+      <select
+        className="sm" style={{ width: 'auto', padding: '4px 7px', maxWidth: 170 }}
+        aria-label="国家" data-key="nat"
+        value={value.nat ?? 'all'} onChange={(e) => set({ nat: e.target.value })}
+      >
+        <option value="all">全部国家</option>
+        {countries.map((c) => <option key={c.nat} value={c.nat}>{natName(c.nat)}（{c.n}）</option>)}
+        {(value.nat ?? 'all') !== 'all' && !countries.some((c) => c.nat === value.nat) && (
+          <option value={value.nat}>{natName(value.nat as string)}（0）</option>
+        )}
       </select>
       <select
         className="sm" style={{ width: 'auto', padding: '4px 7px' }}

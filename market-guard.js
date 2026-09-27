@@ -85,7 +85,11 @@ export const GUARD = {
   ULTRA_SEC: 2, QUICK_SEC: PROTECT_SEC + 45, FRESH_SEC: 300,
   // 大小号来回倒: this many TRADING purchases (bought before, or listed again) from ONE seller in a day, any age
   LOOP_N: 30,
-  ULTRA_N: 5,
+  // A (owner, 2026-09-27: 「连续拍10张一口价……才算脚本」): this many buy-nows IN A ROW, each within ULTRA_SEC
+  // of the listing (or of its protected minute ending). Five scattered over a day suspended people who are quick.
+  ULTRA_N: 10,
+  // D (the same day: 「24小时里超过其中16小时都在拍」): buy-nows in more than this many of the last 24 clock hours
+  AWAKE_HOURS: 16,
   SELLER_CAP: 3, QUICK_DAY: 40,
   SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
   FRESH_N: 100, FRESH_HOURS: 20,
@@ -94,7 +98,7 @@ export const GUARD = {
 /** the rules that suspend by themselves; the rest only report */
 // F and G (倒卡) report first: on 2026-09-26 the ledger showed rings trading hundreds of times a day, and how many
 // accounts they would suspend is read off the owner's list before they suspend by themselves
-const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,E').toUpperCase().split(/[^A-G]+/).filter(Boolean))
+const autoRules = (v = process.env.MARKET_GUARD_AUTO) => new Set(String(v ?? 'A,D,E').toUpperCase().split(/[^A-G]+/).filter(Boolean))
 const DAY = 86_400_000
 
 /**
@@ -196,7 +200,14 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
   /** each seller counted `cap` times at most: many purchases from one person are a hand-over, not a snipe */
   const capped = (list, cap) => [...perSeller(list).values()].reduce((sum, n) => sum + Math.min(n, cap), 0)
   // within two seconds of the listing, or of the moment its protected minute ended
-  const ultra = entries.filter((b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC))
+  const isUltra = (b) => b.age <= GUARD.ULTRA_SEC || (b.age >= PROTECT_SEC && b.age <= PROTECT_SEC + GUARD.ULTRA_SEC)
+  const ultra = entries.filter(isUltra)
+  // the longest run of buy-nows (entries in a draw included) that were all that fast, one after another
+  let run = 0
+  let ultraRun = 0
+  for (const b of entries.slice().sort((x, y) => x.made - y.made)) { run = isUltra(b) ? run + 1 : 0; ultraRun = Math.max(ultraRun, run) }
+  // clock hours of the last 24 in which this account bought outright (or entered a draw)
+  const awake = new Set(entries.map((b) => Math.floor(b.made / 3_600_000))).size
   const trades = (list) => list.filter((b) => b.trading)
   const quickDay = within(trades(day), GUARD.QUICK_SEC)
   const quickWeek = within(trades(week), GUARD.QUICK_SEC)
@@ -208,7 +219,7 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
     day: day.length, week: week.length,
     // of the week's purchases, the ones that were trading rather than collecting — what B, C and E count
     trading: trades(week).length,
-    ultra: ultra.length,
+    ultra: ultra.length, ultraRun, awake,
     quick: quickDay.length, quickCapped: capped(quickDay, GUARD.SELLER_CAP), quickSellers: perSeller(quickDay).size,
     quickWeek: quickWeek.length, quickWeekCapped: capped(quickWeek, GUARD.SELLER_CAP_WEEK),
     // the most trading purchases from any ONE seller today, however old the listing: cards going round between accounts
@@ -218,18 +229,18 @@ export function judge(buys, now = Date.now(), AUTO = autoRules()) {
     median: ages.length ? round1(ages[Math.floor(ages.length / 2)]) : null,
   }
   const over = []
-  if (counts.ultra >= GUARD.ULTRA_N) over.push('A')
+  if (counts.ultraRun >= GUARD.ULTRA_N) over.push('A')
   if (counts.loop >= GUARD.LOOP_N) over.push('E')
+  if (counts.awake > GUARD.AWAKE_HOURS) over.push('D')
   if (counts.quickCapped >= GUARD.QUICK_DAY) over.push('B')
   if (counts.quickWeekCapped >= GUARD.QUICK_WEEK) over.push('C')
-  if (counts.fresh >= GUARD.FRESH_N && hours >= GUARD.FRESH_HOURS) over.push('D')
   const auto = over.find((r) => AUTO.has(r))
   let verdict = null
   let rule = null
   if (auto) { verdict = 'ban'; rule = auto }
   else if (over.length) { verdict = 'watch'; rule = over[0] }
   else if (counts.loop >= GUARD.LOOP_N / 3) { verdict = 'watch'; rule = 'loop' }
-  else if (counts.ultra >= 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60 || (hours >= 16 && counts.fresh >= 40)) { verdict = 'watch'; rule = 'near' }
+  else if (counts.ultraRun >= GUARD.ULTRA_N / 2 || counts.awake >= GUARD.AWAKE_HOURS - 1 || counts.quickCapped >= 15 || counts.quickWeekCapped >= 60) { verdict = 'watch'; rule = 'near' }
   return { verdict, rule, counts }
 }
 

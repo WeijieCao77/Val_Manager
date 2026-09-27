@@ -14,6 +14,7 @@
  * that people look for a card by.
  */
 import { isPlayerCard } from './cards'
+import { natCountry } from './nat'
 import type { Card, Rarity } from './cards'
 import type { Series } from './gacha'
 import type { Role } from './types'
@@ -29,6 +30,11 @@ export interface CardFilter {
    * Optional so a filter saved or sent before it existed still reads as 'all'.
    */
   series?: 'all' | CardSeries
+  /**
+   * a country (natCountry: 中国台湾 / 香港 / 澳门 count as 中国, as chemistry and 国家队杯 count them) — players
+   * and coaches both have one. Optional like `series`.
+   */
+  nat?: 'all' | string
 }
 
 /** 'base' is every card that is not in a named series (彩卡 and coaches included). */
@@ -39,10 +45,14 @@ const SERIES_KEYS = Object.keys(SERIES_CN) as CardSeries[]
 export const seriesOf = (card: Card): CardSeries =>
   isPlayerCard(card) && card.event === 'seoul-2024' ? 'seoul-2024' : 'base'
 
-export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all', series: 'all' }
+export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all', series: 'all', nat: 'all' }
 
 export const filterActive = (f: CardFilter): boolean =>
   f.rarity !== 'all' || f.region !== 'all' || f.role !== 'all' || f.club !== 'all' || (f.series ?? 'all') !== 'all'
+  || (f.nat ?? 'all') !== 'all'
+
+/** the country a card is filed under, or null when nobody knows */
+export const countryOf = (card: Card): string | null => natCountry(card.nat ?? null)
 
 export function matchesFilter(card: Card, f: CardFilter): boolean {
   if (f.rarity === 'coach') { if (card.kind !== 'coach') return false }
@@ -53,6 +63,7 @@ export function matchesFilter(card: Card, f: CardFilter): boolean {
   else if (f.role !== 'all' && !(isPlayerCard(card) && card.roles.includes(f.role))) return false
   if (f.club !== 'all' && (card.clubTag ?? '') !== f.club) return false
   if ((f.series ?? 'all') !== 'all' && seriesOf(card) !== f.series) return false
+  if ((f.nat ?? 'all') !== 'all' && countryOf(card) !== f.nat) return false
   return true
 }
 
@@ -78,5 +89,6 @@ export function readFilter(b: Record<string, unknown> | null | undefined): CardF
     club: s(b?.club) as CardFilter['club'],
     // unknown or absent is 'all': an older client browses the whole shelf
     series: SERIES_KEYS.includes(b?.series as CardSeries) ? b!.series as CardSeries : 'all',
+    nat: typeof b?.nat === 'string' && /^[a-z]{2}$/.test(b.nat) ? b.nat : 'all',
   }
 }

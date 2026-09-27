@@ -196,6 +196,8 @@ export interface ShelfQuery {
   role?: string
   club?: string
   series?: string
+  /** a country (natCountry) — engine/cardFilter.ts */
+  nat?: string
   q?: string
   priceMin?: number
   priceMax?: number

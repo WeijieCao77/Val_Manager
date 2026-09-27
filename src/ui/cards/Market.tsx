@@ -206,6 +206,7 @@ export default function Market() {
       ...(filter.role !== 'all' ? { role: filter.role } : {}),
       ...(filter.club !== 'all' ? { club: filter.club } : {}),
       ...((filter.series ?? 'all') !== 'all' ? { series: filter.series } : {}),
+      ...((filter.nat ?? 'all') !== 'all' ? { nat: filter.nat } : {}),
       ...(qq.trim() ? { q: qq.trim() } : {}),
       ...(n(loSet) != null ? { priceMin: n(loSet) } : {}),
       ...(n(hiSet) != null ? { priceMax: n(hiSet) } : {}),
