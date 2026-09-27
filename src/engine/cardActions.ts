@@ -30,6 +30,7 @@ import {
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
   encBlock, encNation, enterEnc, rollSeason,
 } from './gacha'
+import type { EncRival } from './gacha'
 import {
   judgeMinigame, MINI_GAMES, MINIGAME_DAILY, MINIGAME_TTL_MS, newMinigame, refreshMinigame,
 } from './minigame'
@@ -58,6 +59,25 @@ export interface ActEnv {
   seed: number
   /** a real player's five for the ladder, when the division calls for one and the pool had one */
   rival?: RivalSquad | null
+  /** 国家队杯: other players' registered national fives (cards-api.js enc_entries), for enc_enter */
+  encPool?: EncRival[]
+}
+
+/**
+ * What 国家队杯 keeps of a five for OTHER players to meet: its six, their levels, the nationality and the
+ * score, or null when the five is not of one nationality. The server stores it on every entry attempt.
+ */
+export function encRegistration(g: GachaState): { nat: string; slots: string[]; coach: string; levels: Record<string, number>; score: number } | null {
+  const five = squadForPlay(g)
+  if (!five.ok) return null
+  const nation = encNation(five.squad)
+  if ('why' in nation) return null
+  const level = (id: string) => levelOf(g, id)
+  const reg = registerCupSquad(five.squad, level)
+  return {
+    nat: nation.nat, slots: reg.squad.slots as string[], coach: reg.squad.coach as string, levels: reg.levels,
+    score: squadRating(five.squad, level),
+  }
 }
 
 export type ActResult =
@@ -318,8 +338,10 @@ function dispatch(
       if ('why' in nation) return { ok: false, why: nation.why }
       try {
         const level = (id: string) => levelOf(g, id)
+        // the server leaves this account's own entry out of the pool it hands over
+        const pool = env.encPool ?? []
         g.seed = hashStr(`${g.seed}:enc:${env.seed}`) >>> 0
-        enterEnc(g, squadRating(five.squad, level), env.today, registerCupSquad(five.squad, level), nation.nat)
+        enterEnc(g, squadRating(five.squad, level), env.today, registerCupSquad(five.squad, level), nation.nat, pool)
         return { ok: true, result: { enc: g.enc } }
       } catch (e) {
         return { ok: false, why: e instanceof Error ? e.message : '报不了名' }
@@ -328,9 +350,11 @@ function dispatch(
     case 'enc_play': {
       const enc = g.enc
       const oppId = cupOpponent(g, 'enc')
-      if (!enc || !oppId || !enc.registration) return { ok: false, why: '没有进行中的国家队杯' }
+      const rival = oppId ? enc?.rivals?.[oppId] : undefined
+      if (!enc || !oppId || !rival || !enc.registration) return { ok: false, why: '没有进行中的国家队杯' }
       const level = (id: string) => enc.registration!.levels[id] ?? 0
-      const res = playCupMatch(enc.registration.squad, level, oppId, cupBo(enc), env.seed, enc.ease ?? 0, enc.balance ?? 1)
+      // another player's five, on the same score curve as the ladder's real rivals
+      const res = playRivalMatch(enc.registration.squad, level, rival, cupBo(enc), env.seed, undefined, enc.balance ?? true)
       const out = recordCup(g, {
         opponent: oppId, win: res.win, mapsWon: res.mapsWon, mapsLost: res.mapsLost,
       }, 'enc')

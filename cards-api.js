@@ -265,6 +265,17 @@ alter table card_listings add column if not exists draw_at timestamptz;
 create index if not exists listing_sold_card_idx on card_listings (card_id, closed desc) where status = 'sold';
 create index if not exists offer_accepted_buyer_idx on card_offers (buyer_h) where status = 'accepted';
 create index if not exists listing_draw_idx on card_listings (draw_at) where status = 'open' and draw_at is not null;
+-- 国家队杯: each account's latest national five, for OTHER players to meet (engine/gacha.ts enterEnc).
+-- Written on every entry attempt, and seeded from accounts already fielding six of one nationality.
+create table if not exists enc_entries (
+  id_hash text primary key,
+  name    text,
+  nat     text not null,
+  five    jsonb not null,
+  score   int not null,
+  updated timestamptz not null default now()
+);
+create index if not exists enc_entries_updated_idx on enc_entries (updated desc);
 ${GUARD_SCHEMA}`
 
 /** What a client may name a request: long enough not to collide, short enough to index. */
@@ -872,6 +883,11 @@ export function makeCardApi(sql, {
         const env = { now, today, seed }
         t = performance.now()
         if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, engine.ladderScore(g))
+        // 国家队杯: other players' national fives, and this one kept for them — whether or not it gets a bracket
+        if (action === 'enc_enter') {
+          env.encPool = await encPoolFor(me)
+          registerEnc(me, g)
+        }
         mark.rival += performance.now() - t
         t = performance.now()
         let out
@@ -1190,6 +1206,110 @@ export function makeCardApi(sql, {
     }).finally(() => { rivalFetch = null })
     return rivalFetch
   }
+  /**
+   * 国家队杯's pool: every account's latest national five from the last two weeks, cached a minute and read
+   * off the rival budget (`slow`), never inside a player's transaction. The first time it is asked for, the
+   * server also looks for accounts already fielding five players and a coach of one nationality and keeps
+   * those too — somebody has to be there to meet the first entrants — and again every six hours.
+   */
+  const ENC_TTL = 60_000
+  const ENC_FRESH_DAYS = 14
+  const ENC_SEED_EVERY = 6 * 3600_000
+  let encAll = null
+  let encFetch = null
+  let encSeedAt = 0
+  let encSeeding = null
+  const encDb = () => slow ?? sql
+  const encRival = (r) => {
+    const shown = displayName(r.name, r.id_hash)
+    const five = r.five ?? {}
+    return {
+      id: `enc:${r.id_hash.slice(0, 8)}`, name: shown.name, tag: shown.tag, nat: r.nat,
+      slots: Array.isArray(five.slots) ? five.slots : [], coach: five.coach ?? null, levels: five.levels ?? {},
+      score: r.score, div: 0, points: 0,
+    }
+  }
+  function refreshEnc() {
+    encFetch ??= encDb()`
+      select id_hash, name, nat, five, score from enc_entries
+      where updated > now() - make_interval(days => ${ENC_FRESH_DAYS})
+      order by updated desc limit 3000`
+      .then((rows) => { encAll = { at: Date.now(), rows: rows.map((r) => ({ id_hash: r.id_hash, rival: encRival(r) })) }; return encAll })
+      .finally(() => { encFetch = null })
+    return encFetch
+  }
+  function seedEnc() {
+    encSeeding ??= (async () => {
+      encSeedAt = Date.now()
+      const db = encDb()
+      const rows = await db`
+        select id_hash, name, seen, squad from (
+          select id_hash, name, seen, state->'squad' as squad from card_accounts
+          where not suspect and seen > now() - make_interval(days => ${ENC_FRESH_DAYS})
+          offset 0
+        ) a
+        where jsonb_typeof(squad->'slots') = 'array' and squad->>'coach' is not null`
+      const fit = rows.filter((r) => {
+        const slots = r.squad?.slots
+        if (!Array.isArray(slots) || slots.length !== 5 || !slots.every((x) => typeof x === 'string')) return false
+        try { return 'nat' in engine.encNation({ slots, coach: r.squad.coach }) } catch { return false }
+      })
+      if (!fit.length) return 0
+      // the levels of the six, and only if the account really owns all six
+      const owned = await db`
+        select a.id_hash, (select coalesce(jsonb_object_agg(k, coalesce(a.state->'cards'->k->'level', '0'::jsonb)), '{}'::jsonb)
+          from (select e #>> '{}' as k from jsonb_array_elements(a.state->'squad'->'slots') e
+                union select a.state->'squad'->>'coach') ks
+          where k is not null and a.state->'cards' ? k) as levels
+        from card_accounts a where a.id_hash = any(${fit.map((r) => r.id_hash)})`
+      const levelsOf = new Map(owned.map((r) => [r.id_hash, r.levels ?? {}]))
+      let n = 0
+      for (const r of fit) {
+        const levels = levelsOf.get(r.id_hash) ?? {}
+        const ids = [...r.squad.slots, r.squad.coach]
+        if (!ids.every((id) => id in levels)) continue
+        const lv = Object.fromEntries(ids.map((id) => [id, Math.max(0, Math.trunc(Number(levels[id]) || 0))]))
+        const nation = engine.encNation({ slots: r.squad.slots, coach: r.squad.coach })
+        let score = 0
+        try { score = engine.squadRating({ slots: r.squad.slots, coach: r.squad.coach }, (id) => lv[id] ?? 0) } catch { continue }
+        const five = JSON.stringify({ slots: r.squad.slots, coach: r.squad.coach, levels: lv })
+        // a five the player registered himself is never overwritten by the scan
+        await db`
+          insert into enc_entries (id_hash, name, nat, five, score, updated)
+          values (${r.id_hash}, ${r.name}, ${nation.nat}, ${five}::jsonb, ${score}, ${r.seen ?? new Date()})
+          on conflict (id_hash) do nothing`
+        n++
+      }
+      if (encAll) encAll.at = 0
+      return n
+    })().catch((err) => { console.warn('cards: enc seed failed', err.message); return 0 }).finally(() => { encSeeding = null })
+    return encSeeding
+  }
+  async function encPoolFor(me) {
+    if (Date.now() - encSeedAt >= ENC_SEED_EVERY) {
+      const seeding = seedEnc()
+      // the very first time, wait for it: an empty pool would turn the first entrants away
+      if (!encAll) await seeding
+    }
+    if (!encAll) await refreshEnc()
+    else if (Date.now() - encAll.at >= ENC_TTL) refreshEnc().catch((err) => console.warn('cards: enc refresh failed', err.message))
+    return encAll.rows.filter((r) => r.id_hash !== me).map((r) => r.rival)
+  }
+  /** keep this account's national five for others (fire and forget, never inside the caller's transaction) */
+  function registerEnc(me, g) {
+    let reg = null
+    try { reg = engine.encRegistration(g) } catch { reg = null }
+    if (!reg) return
+    const five = JSON.stringify({ slots: reg.slots, coach: reg.coach, levels: reg.levels })
+    encDb()`
+      insert into enc_entries (id_hash, name, nat, five, score, updated)
+      values (${me}, ${g.name ?? null}, ${reg.nat}, ${five}::jsonb, ${reg.score}, now())
+      on conflict (id_hash) do update set name = excluded.name, nat = excluded.nat, five = excluded.five,
+        score = excluded.score, updated = now()`
+      .then(() => { if (encAll) encAll.at = 0 })
+      .catch((err) => console.warn('cards: enc register failed', err.message))
+  }
+
   /** The eighty nearest a division: distance first, chance within a distance. */
   async function rivalsNear(div) {
     if (!rivalAll) await refreshRivals()

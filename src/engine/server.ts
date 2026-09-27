@@ -6,7 +6,7 @@
  * Nothing here is new code — it is the same rules the client ran, exported so
  * the server can run them instead. See engine/cardActions.ts for why.
  */
-export { runAction, wantsRival, squadForPlay, ladderScore, ACTIONS } from './cardActions'
+export { runAction, wantsRival, squadForPlay, ladderScore, ACTIONS, encRegistration } from './cardActions'
 export type { ActEnv, ActResult } from './cardActions'
 export {
   newGacha, migrateGacha, mergeClientFields, takeServerFields, clampState, refreshDaily,
@@ -14,7 +14,7 @@ export {
   masterPoints, oppBumpFor, canPlay, spendPlay, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS,
 } from './gacha'
 export type { GachaState } from './gacha'
-export { rankName, LEAGUES, LEAGUE_RULES, rollSeason, seasonOf } from './gacha'
+export { rankName, LEAGUES, LEAGUE_RULES, rollSeason, seasonOf, encNation } from './gacha'
 export type { LeagueKind } from './gacha'
 export { applyMail, escrowCard, restoreCard, mailLine } from './inbox'
 export type { MailItem } from './inbox'

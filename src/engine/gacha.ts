@@ -10,7 +10,6 @@ import { BALANCE_VERSION } from './balance'
 import { Rng, clamp, hashStr } from './rng'
 import { WORLD_TEAMS } from './teams'
 import { CUP_TEAMS } from './cupTeams'
-import { encTeams } from './encTeams'
 import { natCountry, natName } from './nat'
 import { REGION_CN } from './types'
 import type { Role } from './types'
@@ -2012,9 +2011,10 @@ export function enterCup(g: GachaState, squadRating: number, now: number, regist
 }
 
 /** Three to five sides from `teams`, each harder than the last, climbing from where the five stands. */
-function drawBracket(rng: Rng, teams: readonly CupTable[], squadRating: number): { path: string[]; ease: number } {
+function drawBracket(rng: Rng, teams: readonly CupTable[], squadRating: number, opts: { ease?: boolean } = {}): { path: string[]; ease: number } {
   const sorted = teams.slice().sort((a, b) => a.rating - b.rating)
-  const ease = cupEaseFor(squadRating, teams)
+  // real players' fives are what they are: nobody sends a rotation side (国家队杯)
+  const ease = opts.ease === false ? 0 : cupEaseFor(squadRating, teams)
   let rounds = CUP_MIN_ROUNDS
   let dice = rng.next()
   for (const [n, p] of CUP_ROUND_ODDS) {
@@ -2022,6 +2022,8 @@ function drawBracket(rng: Rng, teams: readonly CupTable[], squadRating: number):
     if (dice < p) break
     dice -= p
   }
+  // never more rounds than there are sides to meet (a thin 国家队杯 pool)
+  rounds = Math.min(rounds, sorted.length)
   const path: string[] = []
   const taken = new Set<string>()
   for (let round = 0; round < rounds; round++) {
@@ -2056,20 +2058,39 @@ function drawBracket(rng: Rng, teams: readonly CupTable[], squadRating: number):
 // ---------------------------------------------------------------- 国家队杯 (ENC)
 
 /**
- * 国家队杯 (owner, 2026-09-27: 「杯赛加一个ENC（国家队），六个人必须都是同一国籍才能参赛，一天一次」).
+ * 国家队杯 (owner, 2026-09-27: 「杯赛加一个ENC（国家队），六个人必须都是同一国籍才能参赛，一天一次」, and an hour
+ * later 「国家杯也是玩家之间对战，不是打人机队伍」).
  *
- * The club cup's bracket — 双败, three to five rounds climbing from the five that entered, the same purse
- * and packs — drawn from national teams (encTeams.ts) instead of clubs, and only for a five whose five
- * players AND coach share one nationality (tw/hk/mo count as 中国, as chemistry counts them). One entry a
- * day by the server's calendar, and no 体力: the day is the ticket. The country's own national team is
- * never drawn against it. A bracket still open when the day turns can be played out the next day; the
- * next entry waits until it is.
+ * The club cup's bracket — 双败, up to five rounds climbing from the five that entered, the same purse and
+ * packs — against OTHER PLAYERS' national fives, asynchronous the way the ladder's rivals are: every five
+ * that has entered (or that the server found fielding six of one nationality) is kept in a pool
+ * (cards-api.js enc_entries), and a bracket is drawn from it, other countries first. Only for a five whose
+ * five players AND coach share one nationality (tw/hk/mo count as 中国, as chemistry counts them). One entry
+ * a day by the server's calendar, and no 体力: the day is the ticket. When nobody else is in the pool yet
+ * the five is still registered, for the next player to meet, and the day's entry is not spent.
  */
+/** another player's registered national five, as the bracket holds it */
+export interface EncRival {
+  /** enc:<first eight of the account hash> */
+  id: string
+  name: string
+  tag: string
+  nat: string
+  slots: (string | null)[]
+  coach: string | null
+  levels: Record<string, number>
+  /** 综合分 when it registered */
+  score: number
+  div: number
+  points: number
+}
 export interface EncState extends CupState {
   /** the server day it was entered on — one a day */
   day: string
   /** the nationality it was entered under (natCountry) */
   nat: string
+  /** everybody this bracket can put in front of the five: the path, and a few more for the 败者组 */
+  rivals: Record<string, EncRival>
 }
 
 /** The one nationality all six share, or why not. */
@@ -2091,17 +2112,32 @@ export function encBlock(g: GachaState, today: string): string | null {
   return e.day === today ? '国家队杯一天一次，明天再来' : null
 }
 
-export function enterEnc(g: GachaState, squadRating: number, today: string, registration: CupRegistration, nat: string): EncState {
+export const ENC_EMPTY = '还没有其他玩家的国家队可以对阵。你的阵容已经登记，别人报名时会碰到你；今天的次数没有用掉，晚点再来。'
+
+export function enterEnc(
+  g: GachaState, squadRating: number, today: string, registration: CupRegistration, nat: string, pool: readonly EncRival[],
+): EncState {
   if (g.enc && !g.enc.done) return g.enc
   if (g.enc && g.enc.day === today) throw new Error('国家队杯一天一次，明天再来')
-  const teams = encTeams().filter((t) => t.nat !== nat)
+  // other countries first; one's own only when there are too few of them to fill a bracket
+  const abroad = pool.filter((r) => r.nat !== nat)
+  const field = abroad.length >= CUP_MIN_ROUNDS ? abroad : pool
+  if (!field.length) throw new Error(ENC_EMPTY)
+  const table = field.map((r) => ({ id: r.id, rating: r.score }))
   const { rng, done } = roll(g)
-  const { path, ease } = drawBracket(rng, teams, squadRating)
+  const { path } = drawBracket(rng, table, squadRating, { ease: false })
+  // and the nearest few left over, for the 败者组
+  const used = new Set(path)
+  const bench = table.filter((t) => !used.has(t.id))
+    .sort((a, b) => Math.abs(a.rating - squadRating) - Math.abs(b.rating - squadRating) || a.id.localeCompare(b.id))
+    .slice(0, 3).map((t) => t.id)
+  const byId = new Map(field.map((r) => [r.id, r]))
+  const rivals: Record<string, EncRival> = {}
+  for (const id of [...path, ...bench]) rivals[id] = byId.get(id)!
   g.enc = {
     path, round: 0, legs: [], done: false, won: false, entry: 0, double: true, balance: BALANCE_VERSION,
-    day: today, nat, registration: registerCupSquad(registration.squad, id => registration.levels[id] ?? 0),
+    day: today, nat, rivals, registration: registerCupSquad(registration.squad, id => registration.levels[id] ?? 0),
   }
-  if (ease) g.enc.ease = ease
   done()
   note(g, `代表${natName(nat)}报名国家队杯，${path.length} 轮双败`)
   return g.enc
@@ -2152,7 +2188,7 @@ function lowerClub(cup: CupState, teams: readonly CupTable[] = CUP_TEAMS): strin
 export type CupKind = 'club' | 'enc'
 const cupOf = (g: GachaState, kind: CupKind): CupState | null => (kind === 'enc' ? g.enc ?? null : g.cup)
 const tableOf = (g: GachaState, kind: CupKind): readonly CupTable[] =>
-  kind === 'enc' ? encTeams().filter((t) => t.nat !== g.enc?.nat) : CUP_TEAMS
+  kind === 'enc' ? Object.values(g.enc?.rivals ?? {}).map((r) => ({ id: r.id, rating: r.score })) : CUP_TEAMS
 
 /**
  * Apply a cup result.

@@ -2,7 +2,6 @@
 import { COACH_CARDS, BASE_PLAYER_CARDS, SQUAD_SLOTS, squadPaper, squadRating } from './cards'
 import type { Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
-import { encTeam } from './encTeams'
 
 export const CUP_TEAMS = WORLD_TEAMS.map(team => {
   const players = BASE_PLAYER_CARDS.filter(c => c.clubId === team.id && team.roster.includes(c.playerId))
@@ -33,5 +32,4 @@ export const CUP_TEAMS = WORLD_TEAMS.map(team => {
 })
 
 const byId = new Map(CUP_TEAMS.map(t => [t.id, t]))
-/** a club, or a 国家队杯 national team (enc-xx) — the arena seats either the same way */
-export const cupTeam = (id: string) => byId.get(id) ?? encTeam(id)
+export const cupTeam = (id: string) => byId.get(id)

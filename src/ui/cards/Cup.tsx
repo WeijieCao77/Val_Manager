@@ -108,7 +108,7 @@ function ClubCup({ kind }: { kind: CupKind }) {
           <>
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
               <b>五名选手和教练必须同一国籍</b>（港澳台算中国），<b>每天一次，不花体力</b>。
-              对手是各国最强的五人加本国教练组成的国家队，不会碰到自己国家。
+              对手是<b>其他玩家报名的国家队</b>（同样是同一国籍的五人加教练），优先碰别的国家；你报名的阵容也会留给别人来打。
               赛制和奖励跟俱乐部杯一样：{CUP_MIN_ROUNDS}～{CUP_MAX_ROUNDS} 轮双败，决赛 BO5，冠军 {cupTitlePrize(CUP_MIN_ROUNDS)}～{cupTitlePrize(CUP_MAX_ROUNDS)} 金币加卡包。
             </p>
             {!live && (
@@ -188,7 +188,11 @@ function ClubCup({ kind }: { kind: CupKind }) {
                   rows.push({ key: `r${i}`, id: oppId, lower: false, leg: upper[1], now: !!isNow && !upper[1] })
                 }
                 return rows.map((row) => {
-                  const t = cupTeam(row.id)
+                  // 国家队杯 opponents are other players' fives, carried on the bracket itself
+                  const rival = enc ? g.enc?.rivals?.[row.id] : undefined
+                  const t = rival
+                    ? { name: `${rival.name} #${rival.tag}`, rating: rival.score, nat: rival.nat }
+                    : cupTeam(row.id)
                   const cls = row.leg ? (row.leg.win ? 'won' : 'lost') : row.now ? 'now' : ''
                   const label = row.lower
                     ? (final ? '败者组决赛' : '败者组')
@@ -198,6 +202,7 @@ function ClubCup({ kind }: { kind: CupKind }) {
                       <b style={{ width: row.lower ? 84 : 48, whiteSpace: 'nowrap' }}>{label}</b>
                       <span style={{ flex: 1 }}>
                         {t?.name ?? '?'}
+                        {t && 'nat' in t && <span className="tiny faint"> · {natName(t.nat)}</span>}
                         <span className="tiny faint"> · 综合分 {t ? t.rating - (cup.ease ?? 0) : '?'}</span>
                         {final && !row.lower && <span className="tag t1" style={{ marginLeft: 6 }}>BO5</span>}
                       </span>
@@ -256,7 +261,9 @@ function ClubCup({ kind }: { kind: CupKind }) {
         <MatchReport
           result={shown.res}
           opponentId={shown.opp}
-          opponentName={cupTeam(shown.opp)?.name}
+          opponentName={enc
+            ? (g.enc?.rivals?.[shown.opp] ? `${g.enc.rivals[shown.opp].name} #${g.enc.rivals[shown.opp].tag}` : undefined)
+            : cupTeam(shown.opp)?.name}
           mySquad={shown.squad}
           level={id => shown.levels[id] ?? 0}
           onClose={() => setShown(null)}
