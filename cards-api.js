@@ -1054,6 +1054,100 @@ export function makeCardApi(sql, {
     return own ? [...hundred, own] : hundred
   }
 
+  /**
+   * 上赛季前十 (owner, 2026-09-27: 「再加一个排位上赛季前十排行榜」).
+   *
+   * A finished season does not move, so this is read once and kept ten minutes. Where each account's final
+   * rank is: an account already moved into this season froze it in `lastSeason` (gacha.ts rollSeason); one
+   * not seen since the turn still holds it live, and anything it does rolls it first, so neither changes.
+   * 赛季前 (season 0) had no season record of its own — it is everything before S1 — so its 战绩 is the career
+   * count, less what this season has added.
+   */
+  const LAST_TTL = 10 * 60_000
+  const lastCaches = new Map()
+  const lastBuilding = new Map()
+  const whole = (v, max = 1e7) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? Math.min(max, Math.trunc(n)) : 0
+  }
+  async function lastSeasonRows(league) {
+    const prev = engine.seasonOf(serverDay()) - 1
+    if (prev < 0) return { season: null, rows: [] }
+    const key = `${league}:${prev}`
+    const hit = lastCaches.get(key)
+    if (hit && Date.now() - hit.at < LAST_TTL) return hit.value
+    let job = lastBuilding.get(key)
+    if (!job) {
+      job = (async () => {
+        const found = await (slow ?? sql)`
+          select id_hash, name, coalesce(state->>'season', '0') as season,
+            case when ${league} = 'open' then state->'ladder' else state->'leagues'->${league} end as live,
+            state->'lastSeason'->'ranks'->${league} as rec
+          from card_accounts
+          where not suspect and (coalesce(state->>'season', '0') = ${String(prev)}
+            or state->'lastSeason'->>'season' = ${String(prev)})`
+        const rows = []
+        for (const r of found) {
+          const rolled = r.season !== String(prev)
+          const live = r.live && typeof r.live === 'object' ? r.live : null
+          const l = rolled ? r.rec : live
+          if (!l || typeof l !== 'object') continue
+          let wins, losses
+          if (prev === 0) {
+            wins = whole(live?.wins) - (rolled ? whole(live?.sWins) : 0)
+            losses = whole(live?.losses) - (rolled ? whole(live?.sLosses) : 0)
+          } else if (rolled) {
+            wins = whole(l.wins); losses = whole(l.losses)
+          } else {
+            wins = whole(l.sWins ?? l.wins); losses = whole(l.sLosses ?? l.losses)
+          }
+          wins = Math.max(0, wins); losses = Math.max(0, losses)
+          if (wins + losses === 0) continue
+          rows.push({
+            id_hash: r.id_hash, name: r.name, wins, losses,
+            div: whole(l.div, 99), points: whole(l.points, 1e9), stars: whole(l.stars, 999),
+          })
+        }
+        rows.sort((a, b) => b.div - a.div || b.points - a.points || b.stars - a.stars || b.wins - a.wins
+          || (a.id_hash < b.id_hash ? -1 : 1))
+        const value = { season: prev, rows }
+        lastCaches.set(key, { at: Date.now(), value })
+        return value
+      })().finally(() => lastBuilding.delete(key))
+      lastBuilding.set(key, job)
+    }
+    return job
+  }
+  async function topLast(req, res, bucket) {
+    if (guard(req, res, `ct:${bucket}`, 30)) return
+    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
+    let mine = null
+    let league = 'open'
+    try {
+      const body = JSON.parse(await readBody(req, 4096))
+      const id = normalizeId(body?.id)
+      if (id) mine = hash(id)
+      if (BOARDS.includes(body?.league)) league = body.league
+    } catch { /* an anonymous look is fine */ }
+    try {
+      const { season, rows } = await lastSeasonRows(league)
+      const at = mine ? rows.findIndex((r) => r.id_hash === mine) : -1
+      json(res, 200, {
+        ok: true, season,
+        // where this account finished, when it is not in the ten
+        mine: at >= 10 ? { rank: at + 1, div: rows[at].div, points: rows[at].points, stars: rows[at].stars } : null,
+        rows: rows.slice(0, 10).map((r, i) => ({
+          rank: i + 1, ...displayName(r.name, r.id_hash),
+          div: r.div, points: r.points, stars: r.stars, wins: r.wins, losses: r.losses,
+          me: !!mine && r.id_hash === mine,
+        })),
+      })
+    } catch (err) {
+      console.warn('cards: last-season board failed', err.message)
+      json(res, 500, { ok: false })
+    }
+  }
+
   async function rankedRows(league = 'open') {
       // Which record in the save this board reads: the open ladder is
       // `state.ladder`, where it has always been, and every other ladder keeps
@@ -1590,6 +1684,7 @@ export function makeCardApi(sql, {
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
+      if (path === '/api/card/top_last') { await topLast(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
       if (path === '/api/card/friend_cards') { await friendCards(req, res, bucket); return true }

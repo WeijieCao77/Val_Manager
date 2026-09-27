@@ -764,5 +764,10 @@
     "runtime": "tsx",
     "file": "scripts/check_rename.ts",
     "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_last_season.ts",
+    "estimatedSeconds": 3
   }
 ]

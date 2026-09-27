@@ -16,8 +16,8 @@ import { chemistry, squadRating } from '../../engine/cards'
 import { WORLD_TEAMS } from '../../engine/teams'
 import { REGION_CN } from '../../engine/types'
 import { track } from '../../engine/telemetry'
-import { fetchTop } from '../../engine/account'
-import type { TopRow } from '../../engine/account'
+import { fetchLastTop, fetchTop } from '../../engine/account'
+import type { LastBoard, TopRow } from '../../engine/account'
 import { GapOdds } from './GapOdds'
 
 /**
@@ -51,6 +51,8 @@ export default function Ladder() {
   const entry = filled === 5 ? leagueEntry(g.squad, league) : ({ ok: true } as const)
   const master = L.div >= MASTER_DIV
   const [top, setTop] = useState<TopRow[] | null | 'loading'>('loading')
+  // 本赛季 or 上赛季前十, one board at a time
+  const [board, setBoard] = useState<'now' | 'last'>('now')
   /**
    * The board, refetched whenever this account's record moves.
    *
@@ -286,14 +288,19 @@ export default function Ladder() {
 
       <Panel
         title={league === 'open' ? '排行榜' : `${rule.name}排行榜`}
-        actions={
+        actions={board === 'now' ? (
           <span className="tiny muted">
             按段位和大师分排
             {topAt > 0 && <FreshAt at={topAt} />}
           </span>
-        }
+        ) : undefined}
       >
-        {top === 'loading' ? <p className="empty">读取中…</p>
+        <div className="seg board-seg" role="group" aria-label="看哪个赛季的排行榜">
+          <button className={board === 'now' ? 'on' : ''} aria-pressed={board === 'now'} onClick={() => setBoard('now')}>本赛季</button>
+          <button className={board === 'last' ? 'on' : ''} aria-pressed={board === 'last'} onClick={() => setBoard('last')}>上赛季前十</button>
+        </div>
+        {board === 'last' ? <LastSeasonBoard league={league} />
+          : top === 'loading' ? <p className="empty">读取中…</p>
           : !top ? <div className="cm-empty" role="status"><p>暂时读不到排行榜，请检查网络后重试。</p><button onClick={() => setSaved(n => n + 1)}>重新加载排行榜</button></div>
             : top.length === 0 ? (
               <p className="empty">
@@ -399,5 +406,50 @@ function FreshAt({ at }: { at: number }) {
       {' · '}
       {s < 15 ? '刚刚更新' : s < 60 ? `${s} 秒前更新` : `${Math.round(s / 60)} 分钟前更新`}
     </span>
+  )
+}
+
+/**
+ * 上赛季前十: a finished season's ten, and where this account finished when it is not among them. A list of
+ * rows rather than a table, so a phone keeps every column: the rank, the name, then the division over the record.
+ */
+function LastSeasonBoard({ league }: { league: LeagueKind }) {
+  const [board, setBoard] = useState<LastBoard | null | 'loading'>('loading')
+  const [tries, setTries] = useState(0)
+  useEffect(() => {
+    let alive = true
+    setBoard('loading')
+    void fetchLastTop(league).then((b) => { if (alive) setBoard(b) })
+    return () => { alive = false }
+  }, [league, tries])
+  if (board === 'loading') return <p className="empty">读取中…</p>
+  if (!board) {
+    return <div className="cm-empty" role="status"><p>暂时读不到上赛季排行，请检查网络后重试。</p><button onClick={() => setTries((n) => n + 1)}>重新加载</button></div>
+  }
+  if (board.season === null) return <p className="empty">第一个赛季还没结束，结束后这里会留下前十名。</p>
+  if (!board.rows.length) return <p className="empty">{seasonName(board.season)}没有人打过这个天梯。</p>
+  return (
+    <>
+      <p className="tiny muted" style={{ margin: '0 0 10px' }}>{board.season === 0 ? 'S1 开始前' : `${seasonName(board.season)} 结束时`}的最终段位，前十名。</p>
+      <ol className="last-board">
+        {board.rows.map((r) => (
+          <li key={r.rank} className={`last-row${r.me ? ' me' : ''}${r.rank <= 3 ? ` podium p${r.rank}` : ''}`}>
+            <span className="last-rank mono" aria-label={`第 ${r.rank} 名`}>{r.rank}</span>
+            <span className="last-who">
+              <b style={{ color: r.hidden ? 'var(--faint)' : undefined }}>{r.name}</b>
+              <span className="tiny faint mono"> #{r.tag}</span>
+              {r.me && <span className="tag t1" style={{ marginLeft: 5 }}>我</span>}
+            </span>
+            <span className="last-div small">{rankName(r.div, r.stars, r.points)}</span>
+            <span className="last-wl mono tiny muted">{r.wins}–{r.losses}</span>
+          </li>
+        ))}
+      </ol>
+      {board.mine && (
+        <p className="small" style={{ margin: '10px 0 0' }}>
+          你上赛季第 <b>{board.mine.rank}</b> 名 · {rankName(board.mine.div, board.mine.stars, board.mine.points)}
+        </p>
+      )}
+    </>
   )
 }

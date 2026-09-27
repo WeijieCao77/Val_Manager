@@ -11,10 +11,10 @@ export const CARD_PAGES = [
   { key: 'cup', label: '杯赛', group: '赛事', description: '报名赛事，带领你的卡组争夺冠军。', icon: 'cup' },
   { key: 'seoul', label: '首尔征途', group: '赛事', description: '重走首尔 2024 冠军赛的晋级之路。', icon: 'route' },
   { key: 'minigames', label: '小游戏', group: '发现', description: '来一场小挑战，赢取位置奖励包。', icon: 'game', beta: true },
-  { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'target', beta: true },
+  { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'predict', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
   { key: 'dossier', label: '资料库', group: '发现', description: '查阅职业选手与战队资料。', icon: 'book' },
-  { key: 'champions', label: '上海应援', group: '发现', description: '查看今日赛程，为你支持的选手留言。', icon: 'cup' },
+  { key: 'champions', label: '上海应援', group: '发现', description: '查看今日赛程，为你支持的选手留言。', icon: 'cheer' },
   { key: 'account', label: '账号', group: '发现', description: '管理账号、保存 ID，查看你的游戏记录。', icon: 'user' },
 ] as const
 
@@ -31,6 +31,8 @@ const paths: Record<string, string> = {
   friends: 'M9 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6 M3 21v-6a6 6 0 0 1 12 0v6 M17 4a3 3 0 0 1 0 6 M18 13a4 4 0 0 1 3 4v4',
   book: 'M12 5Q7 2 3 4v16q4-2 9 1 5-3 9-1V4q-4-2-9 1v16',
   user: 'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-2a8 8 0 0 1 16 0v2',
+  cheer: 'M4 10v4h3l5 4V6l-5 4z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11',
+  predict: 'M4 20h16 M6 16l4-5 3 3 5-7 M15 7h3v3',
   more: 'M4 4h5v5H4z M15 4h5v5h-5z M4 15h5v5H4z M15 15h5v5h-5z',
 }
 export function NavIcon({ name }: { name: string }) {
@@ -60,14 +62,18 @@ export default function CardNavigation({ current, onNavigate, onExit }: { curren
     onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onNavigate(p.key); setOpen(false) }}>
     <NavIcon name={p.icon} /><span>{p.label}</span>{'beta' in p && <small>测试</small>}
   </a>
-  const groups = () => ['卡牌', '赛事', '发现'].map(group => <section className="cm-nav-group" key={group}><h2>{group}</h2>{CARD_PAGES.filter(p => p.group === group).map(link)}</section>)
+  // the phone's sheet lists what the dock does not: primary and secondary navigation kept apart
+  const groups = (skip: readonly string[] = []) => ['卡牌', '赛事', '发现'].map(group => {
+    const items = CARD_PAGES.filter(p => p.group === group && !skip.includes(p.key))
+    return items.length ? <section className="cm-nav-group" key={group}><h2>{group}</h2>{items.map(link)}</section> : null
+  })
   return <>
     <nav className="cm-rail" aria-label="开瓦包导航">{groups()}<button className="cm-rail-home ghost" onClick={onExit}>返回游戏首页</button><div className="cm-rail-note">真实选手 · 自由组队<br />你的 VCT 卡牌收藏</div></nav>
     <nav className="cm-dock" aria-label="常用导航">{primary.map(key => link(CARD_PAGES.find(p => p.key === key)!))}
       <button className={`cm-nav-link${!primary.includes(current) ? ' active' : ''}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><NavIcon name="more" /><span>更多</span></button>
     </nav>
     <dialog className="cm-nav-dialog" ref={dialog} onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false) }} aria-labelledby="cm-nav-title">
-      <div className="cm-nav-sheet" ref={sheetRef} tabIndex={-1}><header><h2 id="cm-nav-title">全部玩法</h2><button className="ghost" onClick={() => setOpen(false)} aria-label="关闭全部玩法">关闭 ×</button></header><nav aria-label="全部玩法">{groups()}</nav><button className="cm-exit ghost" onClick={onExit}>返回游戏首页</button></div>
+      <div className="cm-nav-sheet" ref={sheetRef} tabIndex={-1}><header><h2 id="cm-nav-title">更多玩法</h2><button className="ghost" onClick={() => setOpen(false)} aria-label="关闭更多玩法">关闭 ×</button></header><nav aria-label="更多玩法">{groups(primary)}</nav><button className="cm-exit ghost" onClick={onExit}>返回游戏首页</button></div>
     </dialog>
   </>
 }

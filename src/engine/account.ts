@@ -284,6 +284,27 @@ export async function fetchTop(league = 'open'): Promise<TopRow[] | null> {
   }
 }
 
+/** 上赛季前十: the season it was (null before the first season ends), the ten, and where this account finished */
+export interface LastBoard {
+  season: number | null
+  rows: TopRow[]
+  mine: { rank: number; div: number; points: number; stars: number } | null
+}
+export async function fetchLastTop(league = 'open'): Promise<LastBoard | null> {
+  try {
+    const r = await fetch(api('top_last'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rememberedId(), league }),
+    })
+    if (!r.ok) return null
+    const j = await r.json() as { ok?: boolean; season?: number | null; rows?: TopRow[]; mine?: LastBoard['mine'] }
+    return j.ok && Array.isArray(j.rows) ? { season: j.season ?? null, rows: j.rows, mine: j.mine ?? null } : null
+  } catch {
+    return null
+  }
+}
+
 export type FriendMiss = 'bad' | 'missing' | 'empty' | 'clash' | 'offline'
 
 /**
