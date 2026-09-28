@@ -210,7 +210,6 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             <img src={`${import.meta.env.BASE_URL}promo/player.webp`} alt="" loading="lazy" />
           </div>
           <div className="home-body">
-            <span className="home-preview-label">新作 · 测试版</span>
             <h2 id="player-career-preview-title">无畏契约选手生涯模拟</h2>
             <p className="blurb">从选手视角，开启一段职业生涯：天梯路人，打到冠军赛的舞台。还是测试版，会有 bug。</p>
           </div>
@@ -224,7 +223,6 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
             <img src={`${import.meta.env.BASE_URL}promo/lulu.webp`} alt="" loading="lazy" />
           </div>
           <div className="home-body">
-            <span className="home-preview-label">新作 · 内测</span>
             <h2 id="lulu-card-preview-title">噜噜卡</h2>
             <p className="blurb">猪之家出品的 LoL 选手卡牌：开包收集 LPL、LCK 等赛区选手和名人堂彩卡，组五人阵容打天梯、杯赛和交易。</p>
           </div>
