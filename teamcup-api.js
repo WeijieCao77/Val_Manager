@@ -2,8 +2,10 @@
  * 全服组队杯 — storage and a clock for the rules in src/engine/teamCup.ts.
  *
  * Four cups a day (09, 13, 17, 21 Shanghai). Until one starts, anybody who may
- * enter the solo cup may sign up. At the start the server reads every
- * entrant's five in ONE statement (one snapshot, as the solo cup does), deals
+ * enter the solo cup may sign up, confirming the five and coach they will
+ * field (`pick`). At the start the server reads every entrant's pick in ONE
+ * statement (one snapshot, as the solo cup does; a pick no longer whole falls
+ * back to the five the account fields then), deals
  * the field into balanced fives, and draws the first round. A tie is five
  * duels — first seat against first seat, fifth against fifth, each a BO3
  * between two real fives — and the team with three or more of them goes on.
@@ -58,6 +60,8 @@ create table if not exists team_cup_entries (
 );
 create index if not exists team_cup_entries_who_idx on team_cup_entries (id_hash, cup_id desc);
 create index if not exists team_cup_entries_team_idx on team_cup_entries (cup_id, team);
+-- the five and coach confirmed at sign-up (2026-09-30); the start plays these, at the levels it reads
+alter table team_cup_entries add column if not exists pick jsonb;
 create table if not exists team_cup_ties (
   cup_id  bigint not null references team_cups(id) on delete cascade,
   round   int not null,
@@ -124,6 +128,14 @@ export function makeTeamCupApi(sql, {
     if (!Number.isFinite(score)) return null
     return { five: { slots: five.squad.slots, coach: five.squad.coach, levels, cardPoolVersion, paper: engine.squadPaper?.(five.squad, (id) => levels[id] ?? 0) }, score: Math.round(score) }
   }
+  /** A five and coach as the client names it, or as an entry stored it — the solo cup's reading. */
+  const pickOf = (raw) => {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.slots)) return null
+    const id = (x) => (typeof x === 'string' && x.length > 0 && x.length <= 40 ? x : null)
+    return { slots: raw.slots.slice(0, 5).map(id), coach: id(raw.coach) }
+  }
+  /** the pick at the levels read now; the account's five when a card of the pick has gone */
+  const entryFive = (r) => (r.pick ? fiveOf({ squad: pickOf(r.pick), levels: r.levels }) : null) ?? fiveOf(r)
   const rivalOf = (e) => {
     const d = who(e.name, e.id_hash)
     return { name: d.name, tag: d.tag, slots: e.five.slots, coach: e.five.coach, levels: e.five.levels ?? {}, div: 0, points: 0 }
@@ -144,18 +156,22 @@ export function makeTeamCupApi(sql, {
       const held = await db`select status from team_cups where id = ${cup.id} for update`
       if (held[0]?.status !== 'open') return
       const rows = await db`
-        select a.id_hash, a.name, a.state->'squad' as squad,
+        select a.id_hash, a.name, a.state->'squad' as squad, e.pick,
           (select jsonb_object_agg(k, a.state->'cards'->k->'level')
-             from jsonb_array_elements_text(
-               (case when jsonb_typeof(a.state->'squad'->'slots') = 'array' then a.state->'squad'->'slots' else '[]'::jsonb end)
-               || jsonb_build_array(a.state->'squad'->'coach')) as k
+             from (select jsonb_array_elements_text(
+                     (case when jsonb_typeof(a.state->'squad'->'slots') = 'array' then a.state->'squad'->'slots' else '[]'::jsonb end)
+                     || jsonb_build_array(a.state->'squad'->'coach')) as k
+                   union
+                   select jsonb_array_elements_text(
+                     (case when jsonb_typeof(e.pick->'slots') = 'array' then e.pick->'slots' else '[]'::jsonb end)
+                     || jsonb_build_array(e.pick->'coach')) as k) ks
             where k is not null) as levels
         from team_cup_entries e join card_accounts a on a.id_hash = e.id_hash
         where e.cup_id = ${cup.id} and not a.suspect
         order by e.joined, e.id_hash limit ${engine.TEAM_CUP_MAX}`
       const fielded = []
       for (const r of rows) {
-        const f = fiveOf(r)
+        const f = entryFive(r)
         if (f) fielded.push({ id_hash: r.id_hash, name: r.name ?? null, five: f.five, score: f.score })
       }
       const teams = engine.dealTeams(fielded.map((f) => ({ id: f.id_hash, score: f.score })), Number(cup.seed))
@@ -416,14 +432,17 @@ export function makeTeamCupApi(sql, {
       let hit = mineCache.get(me)
       if (!hit || hit.key !== key || now - hit.at > 10_000) {
         hit = { key, at: now, value: {
-          joined: pub.next ? (await sql`select 1 as ok from team_cup_entries where cup_id = ${pub.next.id} and id_hash = ${me}`).length > 0 : false,
+          ...await (async () => {
+            const e = pub.next ? (await sql`select pick from team_cup_entries where cup_id = ${pub.next.id} and id_hash = ${me}`)[0] : null
+            return { joined: !!e, pick: e?.pick ? pickOf(e.pick) : null }
+          })(),
           live: pub.live ? await mineIn({ ...pub.live, id: pub.live.id }, me) : null,
           last: pub.last ? await mineIn({ ...pub.last, id: pub.last.id }, me) : null,
         } }
         if (mineCache.size > 5000) mineCache.clear()
         mineCache.set(me, hit)
       }
-      if (pub.next) out.next = { ...pub.next, joined: hit.value.joined }
+      if (pub.next) out.next = { ...pub.next, joined: hit.value.joined, pick: hit.value.pick ?? undefined }
       if (pub.live) out.live = { ...pub.live, me: hit.value.live }
       if (pub.last) out.last = { ...pub.last, me: hit.value.last }
     }
@@ -433,7 +452,7 @@ export function makeTeamCupApi(sql, {
 
   async function join(req, res, bucket) {
     if (guard(req, res, `tcj:${bucket}`, 30)) return
-    const { me } = await readMe(req)
+    const { body, me } = await readMe(req)
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const now = clock()
@@ -442,31 +461,40 @@ export function makeTeamCupApi(sql, {
     if (blocked?.missing) { json(res, 200, { ok: false, missing: true }); return }
     if (blocked?.why) { json(res, 200, { ok: false, why: blocked.why }); return }
     if (blocked) { json(res, 200, { ok: false, gate: blocked, why: `开过 ${blocked.need} 张卡、账号满 ${blocked.days} 天才能报名（现在 ${blocked.have} 张）。` }); return }
+    // the five confirmed on the sign-up sheet; an older client sends none and signs up the squad the server holds
+    const asked = pickOf(body?.squad)
     const mine = await sql`
       select a.id_hash, a.name, a.state->'squad' as squad,
         (select jsonb_object_agg(k, a.state->'cards'->k->'level')
-           from jsonb_array_elements_text(
-             (case when jsonb_typeof(a.state->'squad'->'slots') = 'array' then a.state->'squad'->'slots' else '[]'::jsonb end)
-             || jsonb_build_array(a.state->'squad'->'coach')) as k
+           from (select jsonb_array_elements_text(
+                   (case when jsonb_typeof(a.state->'squad'->'slots') = 'array' then a.state->'squad'->'slots' else '[]'::jsonb end)
+                   || jsonb_build_array(a.state->'squad'->'coach')) as k
+                 union
+                 select jsonb_array_elements_text(${sql.json([...(asked?.slots ?? []), asked?.coach ?? null])}::jsonb) as k) ks
           where k is not null) as levels
       from card_accounts a where a.id_hash = ${me}`
-    const five = mine.length ? fiveOf(mine[0]) : null
-    if (!five) { json(res, 200, { ok: false, why: '先凑齐五个人。' }); return }
+    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0]) : null
+    if (!five) { json(res, 200, { ok: false, why: asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。' }); return }
+    const pick = { slots: five.five.slots, coach: five.five.coach }
     const open = await sql`select id::text as id, starts from team_cups where status = 'open' and starts > ${new Date(now)} order by starts limit 1`
     if (!open.length) { json(res, 200, { ok: false, why: '现在没有可以报名的组队杯，稍后再试。' }); return }
     const seat = await tx(async (db) => {
       const cup = await db`select status, starts from team_cups where id = ${open[0].id} for update`
       if (cup[0]?.status !== 'open' || ms(cup[0].starts) <= clock()) return { why: '这一场已经开赛了，下一场再来。' }
       const had = await db`select 1 as ok from team_cup_entries where cup_id = ${open[0].id} and id_hash = ${me}`
-      if (had.length) return { ok: true, already: true }
+      // signing up again before the start swaps the pick for the one just confirmed
+      if (had.length) {
+        await db`update team_cup_entries set pick = ${db.json(pick)}::jsonb where cup_id = ${open[0].id} and id_hash = ${me}`
+        return { ok: true, already: true }
+      }
       const full = await db`select count(*)::int as n from team_cup_entries where cup_id = ${open[0].id}`
       if ((full[0]?.n ?? 0) >= engine.TEAM_CUP_MAX) return { why: '这一场报满了，下一场再来。' }
-      await db`insert into team_cup_entries (cup_id, id_hash, name) values (${open[0].id}, ${me}, ${mine[0].name ?? null})`
+      await db`insert into team_cup_entries (cup_id, id_hash, name, pick) values (${open[0].id}, ${me}, ${mine[0].name ?? null}, ${db.json(pick)}::jsonb)`
       return { ok: true }
     })
     if (!seat.ok) { json(res, 200, { ok: false, why: seat.why }); return }
     publicCache.at = 0; mineCache.delete(me)
-    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, already: seat.already === true ? true : undefined })
+    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, pick, already: seat.already === true ? true : undefined })
   }
 
   async function leave(req, res, bucket) {

@@ -90,6 +90,18 @@ let s = await call('', { id: ids[0] })
 assert.deepEqual([s.next.signed, s.next.joined, s.size], [N, true, 5])
 console.log('ok  报名、重复报名、退赛、没阵容的报不上')
 
+// 报名阵容: the five confirmed at sign-up is the five the start plays, whatever the squad is by then
+const stateOf = async (id: string) => (await sql`select state from card_accounts where id_hash = ${hash(id)}`)[0].state
+const sq2 = (await stateOf(ids[2])).squad
+const shown = { slots: sq2.slots.slice().reverse(), coach: sq2.coach }
+let j = await call('/join', { id: ids[2], squad: shown })
+assert(j.ok && j.already && JSON.stringify(j.pick.slots) === JSON.stringify(shown.slots), '再报一次换成确认框里的阵容')
+assert.deepEqual((await call('', { id: ids[2] })).next.pick?.slots, shown.slots, '页面读得到报名阵容')
+j = await call('/join', { id: ids[2], squad: { slots: [(await stateOf(ids[4])).squad.slots[0], ...sq2.slots.slice(1)], coach: sq2.coach } })
+assert(!j.ok && /不在收藏里/.test(j.why), '阵容里有别人的卡：报不了')
+{ const g = await stateOf(ids[3]); g.squad.slots[0] = null; await sql`update card_accounts set state = ${sql.json(g)} where id_hash = ${hash(ids[3])}` }
+console.log('ok  报名阵容：确认框里的阵容、换阵容、别人的卡报不了')
+
 now = Date.parse('2026-09-19T01:00:01Z')
 await api.advance(now)
 s = await call('', { id: ids[0] })
@@ -97,6 +109,13 @@ if (!s.live) console.log('no live cup:', JSON.stringify(await sql`select id, sta
 assert.deepEqual([s.live.teams, s.live.entrants, s.live.rounds], [9, 47, 4], '47 人 → 9 队（两队有第六人），4 轮')
 assert(s.live.me.seated && s.live.me.members.length >= 5 && s.live.me.members.some((m: any) => m.me))
 assert((await call('/join', { id: ids[1] })).cup !== s.live.id, '开赛以后报的是下一场')
+{
+  const five = async (id: string) => (await sql`select five, team from team_cup_entries where id_hash = ${hash(id)} and cup_id = ${s.live.id}`)[0]
+  assert.deepEqual((await five(ids[2])).five.slots, shown.slots, '按确认框里的阵容上场')
+  const three = await five(ids[3])
+  assert(three.team !== null && three.five.slots.every(Boolean), '报名后拆了卡组，照样按报名阵容上场')
+  console.log('ok  开赛按报名阵容上场')
+}
 // everything to the end; advance() is safe to call as often as anybody likes
 for (let k = 0; k < 8; k++) { now += 8 * 60_000; await api.advance(now); await api.advance(now) }
 s = await call('', { id: ids[0] })

@@ -12,9 +12,9 @@ import {
 } from '../../engine/openCup'
 import { swissRoundName } from '../../engine/openCupSwiss'
 import { PACKS } from '../../engine/gacha'
-import { squadRating } from '../../engine/cards'
 import { serverNow } from '../../engine/account'
 import { GapOdds } from './GapOdds'
+import CupLineupConfirm, { SignedLineup } from './CupLineupConfirm'
 import type { ArenaResult } from '../../engine/arena'
 
 const clock = (ms: number) =>
@@ -88,15 +88,22 @@ export default function OpenCup() {
   }, [st?.last, lastMe, collect])
 
   const filled = g.squad.slots.filter(Boolean).length
-  const join = async () => {
+  // 报名 opens the lineup sheet first; the sign-up sends the five it showed
+  const [confirming, setConfirming] = useState(false)
+  const ask = () => {
     if (filled < 5) { toast('先凑齐五个人。'); go('squad'); return }
+    setConfirming(true)
+  }
+  const join = async () => {
+    const swap = !!st?.next?.joined
     setBusy(true)
-    // the server reads the five it holds, so the five on screen has to be there first
+    // the server checks the five against the cards it holds, so a change still on this device goes up first
     await commit(true)
-    const r = await joinOpenCup()
+    const r = await joinOpenCup({ slots: g.squad.slots.slice(0, 5), coach: g.squad.coach })
     setBusy(false)
+    setConfirming(false)
     if (!r.ok) { toast(r.why ?? '报不了名。'); return }
-    toast(`报名成功，${clock(r.starts)} 开赛。开赛时用你当时的卡组。`)
+    toast(swap ? '已换成这套阵容。' : `报名成功，${clock(r.starts)} 开赛，按这套阵容上场。`)
     void load()
   }
   const leave = async () => {
@@ -121,7 +128,6 @@ export default function OpenCup() {
   if (!cloud) return <Panel title="全服杯"><p className="small muted">需要联网。</p></Panel>
   if (!st) return <Panel title="全服杯"><p className="small muted">{why ?? '读取中…'}</p></Panel>
 
-  const myScore = filled === 5 ? squadRating(g.squad, (id) => g.cards[id]?.level ?? 0) : null
   const rows = board === 'today' ? st.boards.today : st.boards.all
 
   return (
@@ -132,7 +138,7 @@ export default function OpenCup() {
       >
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
           {(st.next?.format ?? 1) === 2 ? <>先打<b>瑞士轮 BO3：两胜晋级、两败淘汰</b>，输第一场继续参赛；晋级后打<b>Playoff BO5 单败淘汰</b>，决赛也是 BO5。瑞士轮实胜每场 20 金币，Playoff 实胜每场 40 金币，轮空不发金币。</> : <>所有玩家打同一张签表，单败淘汰。BO3，决赛 BO5；每场实胜 40 金币。</>}
-          系统按本届赛程自动比赛，不用在线。<b>开赛时锁定卡组与强化</b>，之后本场不再变。名次奖励看参赛人数，奖励发到信箱。
+          系统按本届赛程自动比赛，不用在线。<b>按报名时确认的阵容上场</b>，强化等级按开赛时算。名次奖励看参赛人数，奖励发到信箱。
           不足 {OPEN_CUP_MIN} 人取消，{OPEN_CUP_RANKED_MIN} 人以上的冠军计入冠军榜。
         </p>
         <GapOdds />
@@ -147,15 +153,26 @@ export default function OpenCup() {
             </span>
             {st.next.joined ? (
               <>
-                <span className="tiny" style={{ color: 'var(--win)' }}>已报名{myScore ? ` · 现在 ${myScore} 分` : ''}</span>
+                <span className="tiny" style={{ color: 'var(--win)' }}>已报名</span>
                 <button className="sm" disabled={busy} onClick={() => void leave()}>退赛</button>
               </>
             ) : (
-              <button className="primary" disabled={busy} onClick={() => void join()}>
+              <button className="primary" disabled={busy} onClick={ask}>
                 {filled < 5 ? '先去组队' : '报名'}
               </button>
             )}
+            {st.next.joined && (
+              <div style={{ width: '100%' }}>
+                <SignedLineup g={g} pick={st.next.pick} busy={busy} onSwap={ask} />
+              </div>
+            )}
           </div>
+        )}
+        {confirming && st.next && (
+          <CupLineupConfirm
+            g={g} squad={g.squad} starts={clock(st.next.starts)} swap={!!st.next.joined} busy={busy}
+            onConfirm={() => void join()} onClose={() => setConfirming(false)}
+          />
         )}
         {st.next && (
           <p className="tiny faint" style={{ margin: '8px 0 0', lineHeight: 1.7 }}>
@@ -283,7 +300,7 @@ export default function OpenCup() {
 /** Where this account stands in a cup, and the ties it played. */
 function MyRun({ cup, me, onOpen }: { cup: OpenCupRow; me: OpenCupMine | null; onOpen: (m: OpenCupMatchRow) => void }) {
   if (!me) return null
-  const stand = me.outRound === -1 ? '开赛时阵容不满五人，没有参赛'
+  const stand = me.outRound === -1 ? '报名阵容和开赛时的卡组都不满五人，没有参赛'
     : me.place === 1 ? '🏆 冠军'
       : me.place === 2 ? '亚军'
         : me.place === 4 ? '四强'

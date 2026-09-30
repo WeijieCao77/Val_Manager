@@ -214,14 +214,41 @@ try {
   check('开赛前可以退赛', st.next?.signed === FIELD - 1 && st.next?.joined === false)
   await call('/api/card/opencup/join', { id: ids[36] })
 
-  // between sign-up and the start: one five is broken up, one card changes hands
+  // the sign-up records the five it was made with (报名阵容)
+  const pickOf = async (i: number) => (await sql`select pick from open_cup_entries where id_hash = ${hash(ids[i])} order by cup_id desc limit 1`)[0]?.pick
+  const signed = (await stored(ids[31])).squad
+  check('报名记下报名时的五人和教练', JSON.stringify((await pickOf(31))?.slots) === JSON.stringify(signed.slots) && (await pickOf(31))?.coach === signed.coach)
+  // the client sends the five it showed on the confirm sheet: that is what is registered, seat for seat
+  const shown = { slots: signed.slots.slice().reverse(), coach: signed.coach }
+  r = await call('/api/card/opencup/join', { id: ids[31], squad: shown })
+  check('再报一次换成确认框里的阵容，还是一个名额', r.body.ok && r.body.already === true
+    && JSON.stringify((await pickOf(31))?.slots) === JSON.stringify(shown.slots), JSON.stringify(r.body))
+  const stranger = (await stored(ids[30])).squad.slots[0]!
+  r = await call('/api/card/opencup/join', { id: ids[31], squad: { slots: [stranger, ...signed.slots.slice(1)], coach: signed.coach } })
+  check('阵容里有不属于自己的卡：报不了，原来的报名阵容不动', !r.body.ok && /不在收藏里/.test(r.body.why ?? '')
+    && JSON.stringify((await pickOf(31))?.slots) === JSON.stringify(shown.slots), r.body.why)
+  st = (await call('/api/card/opencup', { id: ids[31] })).body
+  check('页面读得到自己的报名阵容', JSON.stringify(st.next?.pick?.slots) === JSON.stringify(shown.slots))
+
+  // between sign-up and the start: one squad is broken up, one card changes hands, one pick card is sold
   { const g = await stored(ids[35]); g.squad.slots[0] = null; await setState(ids[35], g) }
   const moved = (await stored(ids[34])).squad.slots[1]!
+  const before33 = (await stored(ids[33])).squad.slots.slice()
   {
     const from = await stored(ids[34]); delete from.cards[moved]; await setState(ids[34], from)
     const to = await stored(ids[33]); to.cards[moved] = { id: moved, level: 0, dupes: 0, seen: 1, got: today } as never
     to.squad.slots[1] = moved; await setState(ids[33], to)
   }
+  const gotMoved = await stored(ids[33])
+  // ids[30] loses a card of its pick but fields a whole five without it: the start falls back to that five
+  const lost = (await stored(ids[30])).squad.slots[0]!
+  const spare = (await stored(ids[29])).squad.slots[0]!
+  {
+    const g = await stored(ids[30]); delete g.cards[lost]
+    g.cards[spare] = { id: spare, level: 0, dupes: 0, seen: 1, got: today } as never
+    g.squad.slots[0] = spare; await setState(ids[30], g)
+  }
+  const fallback = (await stored(ids[30])).squad
 
   // ---- the start, raced by two processes
   now = T - 1000
@@ -231,19 +258,24 @@ try {
   await Promise.all([api.advance(now), twin.advance(now)])
   const cupRow = async () => (await sql`select id::text as id, status, round, rounds, step_sec, entrants, champion from open_cups where starts = ${new Date(T)}`)[0]
   let cup = await cupRow()
-  const FIELDED = FIELD - 2
-  check('到点开赛，阵容不完整的两个号不进签表', cup.status === 'live' && cup.entrants === FIELDED, `${cup.status} ${cup.entrants}`)
+  const FIELDED = FIELD - 1
+  check('到点开赛，报名阵容和卡组都不完整的号不进签表', cup.status === 'live' && cup.entrants === FIELDED, `${cup.status} ${cup.entrants}`)
   const left = await sql`select id_hash, out_round, alive, five from open_cup_entries where cup_id = ${cup.id} and out_round = -1`
-  check('他们记为未参赛', left.length === 2 && left.every((e: any) => !e.alive && !e.five)
-    && left.map((e: any) => e.id_hash).sort().join() === [hash(ids[35]), hash(ids[34])].sort().join())
+  check('它记为未参赛', left.length === 1 && left.every((e: any) => !e.alive && !e.five) && left[0].id_hash === hash(ids[34]))
   const fives = await sql`select id_hash, five from open_cup_entries where cup_id = ${cup.id} and five is not null`
-  const holders = fives.filter((e: any) => [...e.five.slots, e.five.coach].includes(moved) && e.id_hash !== hash(ids[34]))
-  check('转手的卡只在现在持有它的人的阵容里', !fives.some((e: any) => e.id_hash === hash(ids[34]))
-    && holders.length === 1 && holders[0].id_hash === hash(ids[33]), `${holders.length}`)
+  const fiveOfId = (i: number) => fives.find((e: any) => e.id_hash === hash(ids[i]))?.five
+  check('报名后拆了卡组：照样按报名阵容上场', JSON.stringify(fiveOfId(35)?.slots) === JSON.stringify((await pickOf(35))?.slots))
+  check('报名后改了卡组：按报名阵容上场，不是开赛时的卡组', JSON.stringify(fiveOfId(33)?.slots) === JSON.stringify(before33)
+    && JSON.stringify(gotMoved.squad.slots) !== JSON.stringify(before33))
+  check('确认框里的顺序原样上场', JSON.stringify(fiveOfId(31)?.slots) === JSON.stringify(shown.slots))
+  check('报名阵容的卡没了：改用开赛时的卡组', JSON.stringify(fiveOfId(30)?.slots) === JSON.stringify(fallback.slots), JSON.stringify(fiveOfId(30)?.slots))
+  const holders = fives.filter((e: any) => [...e.five.slots, e.five.coach].includes(moved))
+  check('转手的卡不在任何人的阵容里（原主没了，新主报名时还没有它）', !fives.some((e: any) => e.id_hash === hash(ids[34]))
+    && holders.length === 0, `${holders.length}`)
   check('轮数和间隔按参赛人数定', cup.rounds === planOpenCup(FIELDED).rounds && cup.step_sec === planOpenCup(FIELDED).stepSec)
   check('开赛当时就打完第一轮，只打第一轮', cup.round === 1, `${cup.round}`)
   const dupMatches = await sql`select count(*)::int as n from open_cup_matches where cup_id = ${cup.id} and round = 0`
-  check('两个进程同时推进，第一轮也只有一份（3 场 + 29 个轮空）', dupMatches[0].n === 32, `${dupMatches[0].n}`)
+  check('两个进程同时推进，第一轮也只有一份（32 个签位）', dupMatches[0].n === 32, `${dupMatches[0].n}`)
 
   r = await call('/api/card/opencup/join', { id: ids[2] })
   check('开赛后报名报的是下一场', r.body.ok && r.body.starts === T + OPEN_CUP_EVERY_MS, JSON.stringify(r.body))
@@ -289,7 +321,7 @@ try {
   check('名次：一个冠军、一个亚军、至多两个四强',
     entries.filter((e: any) => e.place === 1).length === 1 && entries.filter((e: any) => e.place === 2).length === 1
     && entries.filter((e: any) => e.place === 4).length <= 2 && entries.filter((e: any) => e.place === 4).length >= 1)
-  check('没有人轮空两次', Math.max(...entries.map((e: any) => e.byes)) <= 1 && entries.filter((e: any) => e.byes === 1).length === 29)
+  check('没有人轮空两次', Math.max(...entries.map((e: any) => e.byes)) <= 1 && entries.filter((e: any) => e.byes === 1).length === 2 * 32 - FIELDED)
   const after = (await sql`select five from open_cup_entries where cup_id = ${cup.id} and id_hash = ${hash(ids[1])}`)[0].five
   check('开赛后改阵容不影响本场', JSON.stringify(after) === JSON.stringify(frozen))
   // every recorded match is the match the rules say it is — nothing was made up on the way to the table

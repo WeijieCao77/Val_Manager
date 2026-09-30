@@ -7,6 +7,7 @@ import type { TeamCupMine, TeamCupState, TeamMember, TeamTie } from '../../engin
 import { TEAM_CUP_HOURS, TEAM_CUP_MIN_TEAMS, TEAM_DUEL_COINS, TEAM_SIZE, teamCupPrize } from '../../engine/teamCup'
 import { PACKS } from '../../engine/gacha'
 import { serverNow } from '../../engine/account'
+import CupLineupConfirm, { SignedLineup } from './CupLineupConfirm'
 
 const clock = (ms: number) =>
   new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms))
@@ -34,7 +35,7 @@ const placeName = (p: number | null | undefined) => (p === 1 ? '冠军' : p === 
  * first seat against first seat, and the side with three of them goes on.
  */
 export default function TeamCup() {
-  const { toast } = useCards()
+  const { g, commit, toast, go } = useCards()
   const [st, setSt] = useState<TeamCupState | null>(null)
   const [why, setWhy] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -63,12 +64,22 @@ export default function TeamCup() {
     return () => clearTimeout(t)
   }, [dueAt, pull])
 
+  // 报名 opens the lineup sheet first; the sign-up sends the five it showed
+  const [confirming, setConfirming] = useState(false)
+  const ask = () => {
+    if (g.squad.slots.filter(Boolean).length < 5) { toast('先凑齐五个人。'); go('squad'); return }
+    setConfirming(true)
+  }
   const join = async () => {
+    const swap = !!st?.next?.joined
     setBusy(true)
-    const r = await teamCupJoin()
+    // the server checks the five against the cards it holds, so a change still on this device goes up first
+    await commit(true)
+    const r = await teamCupJoin({ slots: g.squad.slots.slice(0, 5), coach: g.squad.coach })
     setBusy(false)
+    setConfirming(false)
     if (!r.ok) { toast(r.why ?? '没报上，稍后再试。'); return }
-    toast(`报上了，${clock(r.starts)} 开赛。开赛那一刻的阵容（综合分 ${r.score}）就是你的参赛阵容。`)
+    toast(swap ? '已换成这套阵容。' : `报上了，${clock(r.starts)} 开赛，按这套阵容（阵容分 ${r.score}）上场。`)
     void pull()
   }
   const leave = async () => {
@@ -98,8 +109,15 @@ export default function TeamCup() {
             <span className="small">下一场 <b>{clock(next.starts)}</b> · 还有 {countdown(next.starts - now)} · 已报名 <b>{next.signed}</b> 人{guess >= TEAM_CUP_MIN_TEAMS ? `（约 ${guess} 队）` : ''}</span>
             {next.joined
               ? <button className="sm ghost" disabled={busy} onClick={() => void leave()}>已报名 · 退出</button>
-              : <button className="sm primary" disabled={busy} onClick={() => void join()}>报名</button>}
+              : <button className="sm primary" disabled={busy} onClick={ask}>报名</button>}
           </div>
+        )}
+        {next?.joined && <SignedLineup g={g} pick={next.pick} busy={busy} onSwap={ask} />}
+        {confirming && next && (
+          <CupLineupConfirm
+            g={g} squad={g.squad} starts={clock(next.starts)} swap={!!next.joined} busy={busy}
+            onConfirm={() => void join()} onClose={() => setConfirming(false)}
+          />
         )}
         {next && guess >= 1 && (
           <p className="tiny faint" style={{ marginBottom: 0 }}>
@@ -147,7 +165,7 @@ export default function TeamCup() {
 }
 
 function Mine({ cup, mine, done = false }: { cup: { teams: number; rounds: number }; mine: TeamCupMine; done?: boolean }) {
-  if (!mine.seated) return <p className="small faint" style={{ marginBottom: 0 }}>开赛时你的阵容不满五人，这一场没排上。</p>
+  if (!mine.seated) return <p className="small faint" style={{ marginBottom: 0 }}>报名的阵容和开赛时的卡组都不满五人，这一场没排上。</p>
   const place = placeName(mine.place)
   return (
     <div style={{ marginTop: 8 }}>

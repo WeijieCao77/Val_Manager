@@ -2,6 +2,7 @@
 import { api } from './account'
 import { rememberedId } from './cardid'
 import type { TeamPrize } from './teamCup'
+import type { CupPick } from './openCupClient'
 
 export interface TeamWho { name: string; tag: string; score: number | null; me: boolean }
 export interface TeamMember extends TeamWho {
@@ -24,7 +25,7 @@ export interface TeamCupMine {
 }
 export interface TeamCupState {
   ok: true; now: number; size: number; hours: number[]; duelCoins: number
-  next: (TeamCupRow & { signed: number; joined?: boolean }) | null
+  next: (TeamCupRow & { signed: number; joined?: boolean; pick?: CupPick }) | null
   live: (TeamCupRow & { me?: TeamCupMine | null }) | null
   last: (TeamCupRow & { me?: TeamCupMine | null; final?: { tie: TeamTie; champions: TeamMember[] } | null }) | null
 }
@@ -39,5 +40,6 @@ async function post<T>(path: string, body: Record<string, unknown> = {}): Promis
   } catch { return { ok: false, why: '连不上服务器。' } }
 }
 export const teamCupState = () => post<TeamCupState>('teamcup')
-export const teamCupJoin = () => post<{ ok: true; starts: number; score: number; already?: boolean }>('teamcup/join')
+export const teamCupJoin = (squad: CupPick) =>
+  post<{ ok: true; starts: number; score: number; pick: CupPick; already?: boolean }>('teamcup/join', { squad })
 export const teamCupLeave = () => post<{ ok: true }>('teamcup/leave')

@@ -3,12 +3,14 @@
  *
  * A cup starts on every even hour. Until it does, anybody who may trade may
  * sign up for it (the same fifty pulls and three days the market asks — an
- * account made tonight is no use for padding a field tonight). At the start
- * the server reads, in ONE statement, the five every entrant is fielding at
- * that moment: one statement is one snapshot, so a card cannot be in two
- * fives by being passed between accounts, and a five that is not whole is
- * left out rather than played short. After that nothing is read from an
- * account again until the purse is posted to its mail.
+ * account made tonight is no use for padding a field tonight). Signing up
+ * records the five and coach the player confirmed (`pick`). At the start the
+ * server reads, in ONE statement, whether every entrant still holds those
+ * cards and at what level: one statement is one snapshot, so a card cannot be
+ * in two fives by being passed between accounts. A pick that is no longer
+ * whole falls back to the five the account fields at that moment, and a five
+ * that is not whole either is left out rather than played short. After that
+ * nothing is read from an account again until the purse is posted to its mail.
  *
  * A bounded background timer advances the cups. Reads can nudge that timer,
  * but never await simulation. Legacy format 1 retains its round CAS; format 2
@@ -108,6 +110,8 @@ alter table open_cup_entries add column if not exists map_diff int not null defa
 alter table open_cup_entries add column if not exists met jsonb not null default '[]';
 alter table open_cup_entries add column if not exists playoff_seed int;
 alter table open_cup_matches add column if not exists stage text not null default 'knockout';
+-- the five and coach confirmed at sign-up (2026-09-30); the start plays these, at the levels it reads
+alter table open_cup_entries add column if not exists pick jsonb;
 alter table open_cup_matches add column if not exists stage_round int not null default 0;
 alter table open_cup_matches add column if not exists bo int;
 alter table open_cup_matches add column if not exists lease_until timestamptz;
@@ -198,6 +202,18 @@ export function makeOpenCupApi(sql, {
     return { five: { slots: five.squad.slots, coach: five.squad.coach, levels, cardPoolVersion, paper: engine.squadPaper?.(five.squad, (id) => levels[id] ?? 0), chemistry: engine.chemistry?.(five.squad)?.score, power: engine.squadPower?.(five.squad, (id) => levels[id] ?? 0), balance: engine.BALANCE_VERSION }, score: Math.round(score) }
   }
 
+  /** A five and coach as the client names it, or as an entry stored it: card ids in the squad's shape, nothing else. */
+  const pickOf = (raw) => {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.slots)) return null
+    const id = (x) => (typeof x === 'string' && x.length > 0 && x.length <= 40 ? x : null)
+    return { slots: raw.slots.slice(0, 5).map(id), coach: id(raw.coach) }
+  }
+  /**
+   * What an entry plays: the pick it confirmed at sign-up, at the levels read now — or, when a card of
+   * the pick has left the account since (sold, listed, handed on), the five the account fields now.
+   */
+  const entryFive = (r) => (r.pick ? fiveOf({ squad: pickOf(r.pick), levels: r.levels }) : null) ?? fiveOf(r)
+
   const rivalOf = (e) => {
     const d = who(e.name, e.id_hash)
     return { name: d.name, tag: d.tag, slots: e.five.slots, coach: e.five.coach, levels: e.five.levels ?? {}, div: 0, points: 0 }
@@ -226,13 +242,18 @@ export function makeOpenCupApi(sql, {
     await tx(async (db) => {
       const held = await db`select status from open_cups where id = ${cup.id} for update`
       if (held[0]?.status !== 'open') return
+      // the levels of the pick's cards and of the squad's, both: the squad is the fallback
       const rows = await db`
-        select a.id_hash, a.name, a.state->'squad' as squad,
+        select a.id_hash, a.name, a.state->'squad' as squad, e.pick,
           (select jsonb_object_agg(k, a.state->'cards'->k->'level')
-             from jsonb_array_elements_text(
-               (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
-                     then a.state->'squad'->'slots' else '[]'::jsonb end)
-               || jsonb_build_array(a.state->'squad'->'coach')) as k
+             from (select jsonb_array_elements_text(
+                     (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
+                           then a.state->'squad'->'slots' else '[]'::jsonb end)
+                     || jsonb_build_array(a.state->'squad'->'coach')) as k
+                   union
+                   select jsonb_array_elements_text(
+                     (case when jsonb_typeof(e.pick->'slots') = 'array' then e.pick->'slots' else '[]'::jsonb end)
+                     || jsonb_build_array(e.pick->'coach')) as k) ks
             where k is not null) as levels
         from open_cup_entries e join card_accounts a on a.id_hash = e.id_hash
         where e.cup_id = ${cup.id} and not a.suspect
@@ -240,7 +261,7 @@ export function makeOpenCupApi(sql, {
         limit ${engine.OPEN_CUP_MAX}`
       const fielded = []
       for (const r of rows) {
-        const f = fiveOf(r)
+        const f = entryFive(r)
         if (f) fielded.push({ id_hash: r.id_hash, name: r.name ?? null, five: f.five, score: f.score })
       }
       const n = fielded.length
@@ -621,11 +642,12 @@ export function makeOpenCupApi(sql, {
     const key = `${me}:${pub.next?.id ?? ''}:${pub.live?.id ?? ''}:${pub.live?.round ?? ''}:${pub.last?.id ?? ''}`
     const hit = mineCache.get(me)
     if (hit && hit.key === key && now - hit.at < 10_000) return hit.value
-    const joined = pub.next
-      ? (await sql`select 1 as ok from open_cup_entries where cup_id = ${pub.next.id} and id_hash = ${me}`).length > 0
-      : false
+    const entry = pub.next
+      ? (await sql`select pick from open_cup_entries where cup_id = ${pub.next.id} and id_hash = ${me}`)[0]
+      : null
     const value = {
-      joined,
+      joined: !!entry,
+      pick: entry?.pick ? pickOf(entry.pick) : null,
       live: pub.live ? await mineIn(pub.live, me) : null,
       last: pub.last ? await mineIn(pub.last, me) : null,
       titles: await myTitles(me, now),
@@ -651,7 +673,7 @@ export function makeOpenCupApi(sql, {
     const out = { ok: true, now, ...pub, boards: { day: board.day, today: strip(board.today), all: strip(board.all) } }
     if (me) {
       const mine = await mineState(me, pub, now)
-      if (pub.next) out.next = { ...pub.next, joined: mine.joined }
+      if (pub.next) out.next = { ...pub.next, joined: mine.joined, pick: mine.pick ?? undefined }
       if (pub.live) out.live = { ...pub.live, me: mine.live }
       if (pub.last) out.last = { ...pub.last, me: mine.last }
       out.titles = mine.titles
@@ -661,7 +683,7 @@ export function makeOpenCupApi(sql, {
 
   async function join(req, res, bucket) {
     if (guard(req, res, `ocj:${bucket}`, 30)) return
-    const { me } = await readMe(req)
+    const { body, me } = await readMe(req)
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const now = clock()
@@ -676,17 +698,22 @@ export function makeOpenCupApi(sql, {
       })
       return
     }
+    // the five the player confirmed on the sign-up sheet; an older client sends none and signs up the squad the server holds
+    const asked = pickOf(body?.squad)
     const mine = await sql`
       select a.id_hash, a.name, a.state->'squad' as squad,
         (select jsonb_object_agg(k, a.state->'cards'->k->'level')
-           from jsonb_array_elements_text(
-             (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
-                   then a.state->'squad'->'slots' else '[]'::jsonb end)
-             || jsonb_build_array(a.state->'squad'->'coach')) as k
+           from (select jsonb_array_elements_text(
+                   (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
+                         then a.state->'squad'->'slots' else '[]'::jsonb end)
+                   || jsonb_build_array(a.state->'squad'->'coach')) as k
+                 union
+                 select jsonb_array_elements_text(${sql.json([...(asked?.slots ?? []), asked?.coach ?? null])}::jsonb) as k) ks
           where k is not null) as levels
       from card_accounts a where a.id_hash = ${me}`
-    const five = mine.length ? fiveOf(mine[0]) : null
-    if (!five) { json(res, 200, { ok: false, why: '先凑齐五个人。' }); return }
+    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0]) : null
+    if (!five) { json(res, 200, { ok: false, why: asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。' }); return }
+    const pick = { slots: five.five.slots, coach: five.five.coach }
     const name = mine[0].name ?? null
     const open = await sql`
       select id::text as id, starts from open_cups
@@ -701,16 +728,20 @@ export function makeOpenCupApi(sql, {
       const cup = await db`select status, starts from open_cups where id = ${open[0].id} for update`
       if (cup[0]?.status !== 'open' || ms(cup[0].starts) <= clock()) return { why: '这一场已经开赛了，下一场再来。' }
       const mine = await db`select 1 as ok from open_cup_entries where cup_id = ${open[0].id} and id_hash = ${me}`
-      if (mine.length) return { ok: true, already: true }
+      // signing up again before the start swaps the pick for the one just confirmed
+      if (mine.length) {
+        await db`update open_cup_entries set pick = ${db.json(pick)}::jsonb, name = ${name} where cup_id = ${open[0].id} and id_hash = ${me}`
+        return { ok: true, already: true }
+      }
       const full = await db`select count(*)::int as n from open_cup_entries where cup_id = ${open[0].id}`
       if ((full[0]?.n ?? 0) >= engine.OPEN_CUP_MAX) return { why: '这一场报满了，下一场再来。' }
-      await db`insert into open_cup_entries (cup_id, id_hash, name) values (${open[0].id}, ${me}, ${name})`
+      await db`insert into open_cup_entries (cup_id, id_hash, name, pick) values (${open[0].id}, ${me}, ${name}, ${db.json(pick)}::jsonb)`
       return { ok: true }
     })
     if (!seat.ok) { json(res, 200, { ok: false, why: seat.why }); return }
     publicCache.at = 0
     mineCache.delete(me)
-    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, already: seat.already === true ? true : undefined })
+    json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, pick, already: seat.already === true ? true : undefined })
   }
 
   async function leave(req, res, bucket) {

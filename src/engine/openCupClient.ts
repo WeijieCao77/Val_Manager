@@ -58,7 +58,8 @@ export interface OpenCupBoardRow { rank: number; name: string; tag: string; titl
 export interface OpenCupState {
   ok: true
   now: number
-  next: (OpenCupRow & { signed: number; joined?: boolean }) | null
+  /** `pick`: the five and coach this account signed up with (报名阵容); the start plays it */
+  next: (OpenCupRow & { signed: number; joined?: boolean; pick?: CupPick }) | null
   live: (OpenCupRow & { alive: number; top: OpenCupMatchRow[]; me?: OpenCupMine | null }) | null
   last: (OpenCupRow & {
     champion: (OpenCupWho & { five: OpenCupFive | null }) | null
@@ -103,7 +104,11 @@ async function post<T>(path: string, body: Record<string, unknown>): Promise<T |
 }
 
 export const fetchOpenCup = () => post<OpenCupState>('opencup', {})
-export const joinOpenCup = () => post<{ ok: true; starts: number; score: number }>('opencup/join', {})
+/** The five and coach a cup entry is signed up with. */
+export interface CupPick { slots: (string | null)[]; coach: string | null }
+/** sign up with the five just confirmed; again before the start swaps it */
+export const joinOpenCup = (squad: CupPick) =>
+  post<{ ok: true; starts: number; score: number; pick: CupPick; already?: boolean }>('opencup/join', { squad })
 export const leaveOpenCup = () => post<{ ok: true }>('opencup/leave', {})
 export const fetchOpenCupMatch = (cup: string, round: number, slot: number) =>
   post<OpenCupMatchDetail>('opencup/match', { cup, round, slot })
