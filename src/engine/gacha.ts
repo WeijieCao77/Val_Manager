@@ -17,7 +17,7 @@ import { cleanPredictions } from './predict'
 import type { Picks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
 import {
-  ALL_CARDS, SEOUL_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating, squadPower,
 } from './cards'
@@ -47,7 +47,7 @@ export const SERIES = ['China', 'Pacific', 'Americas', 'EMEA'] as const
 export type Series = (typeof SERIES)[number]
 
 export type PackKind =
-  | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024'
+  | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024' | 'bangkok2025'
   // one 彩卡, nothing else — the reward for a full 图鉴; never sold
   | 'legend'
   // one per series — same three cards, drawn only from that region
@@ -87,7 +87,7 @@ export interface PackDef {
    */
   shop?: boolean
   /** coach packs deal from a different deck; a series deals from one region; a position from its players; 'legend' is every 彩卡 */
-  pool: 'player' | 'coach' | 'seoul2024' | 'legend' | Series | PackPosition
+  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'legend' | Series | PackPosition
 }
 
 /**
@@ -100,6 +100,12 @@ export interface PackDef {
  * decision the old two-a-day counter took away.
  */
 export const PACKS: Record<PackKind, PackDef> = {
+  // the 首尔包's price and odds, as the owner asked (2026-09-30); 11 golds of 41
+  bangkok2025: {
+    kind: 'bangkok2025', name: '曼谷 2025 大师赛包', pool: 'bangkok2025',
+    blurb: '8 支战队 · 41 位登场选手。三张曼谷赛事卡，至少一张银卡，不出彩卡。',
+    cost: 3000, draws: 3, mythic: 0, gold: .12, silver: .38, floor: 'silver', shop: true,
+  },
   seoul2024: {
     kind: 'seoul2024', name: '首尔 2024 冠军赛包', pool: 'seoul2024',
     blurb: '16 支战队 · 80 位登场选手。三张首尔赛事卡，至少一张银卡，不出彩卡。',
@@ -215,7 +221,7 @@ export const seriesOfPack = (kind: PackKind): Series | null =>
         : kind === 'emea' ? 'EMEA' : null
 
 export const PACK_ORDER: PackKind[] = [
-  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024',
+  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025',
 ]
 
 /**
@@ -1028,6 +1034,12 @@ const rolePool = (role: PackPosition) => ({
 })
 
 const POOLS = {
+  bangkok2025: {
+    mythic: [] as PlayerCard[],
+    gold: BANGKOK_CARDS.filter(c => c.rarity === 'gold'),
+    silver: BANGKOK_CARDS.filter(c => c.rarity === 'silver'),
+    bronze: BANGKOK_CARDS.filter(c => c.rarity === 'bronze'),
+  },
   seoul2024: {
     mythic: [] as PlayerCard[],
     gold: SEOUL_CARDS.filter(c => c.rarity === 'gold'),
@@ -1102,6 +1114,7 @@ export function openPack(
     g.packs[kind] = (g.packs[kind] ?? 0) - 1
   } else {
     if (def.shop === false) throw new Error(`${def.name}买不到，只能从玩法奖励获得`)
+    if (packRetired(kind, today)) throw new Error(`${def.name}已下线，库存里的还能打开`)
     const price = packCost(kind, today)
     if (g.coins < price) throw new Error('金币不够')
     g.coins -= price
@@ -1180,6 +1193,36 @@ export function openPack(
     : golds.length
       ? `${def.name}：抽到 ${golds.map((p) => name(p.card)).join('、')}（金卡）`
       : `${def.name}：${def.draws} 张，没有金卡`)
+  return out
+}
+
+/** the most packs one 连开 opens */
+export const MULTI_OPEN_MAX = 10
+
+/**
+ * 连开: up to MULTI_OPEN_MAX packs of one kind in one go, each exactly as
+ * openPack opens it — so pity, the floors, the quests and the log all move
+ * pack by pack. Everything that could refuse a pack is checked for all of
+ * them first: an action is saved even when it fails, so a run that stopped
+ * halfway would keep what it had charged.
+ */
+export function openPacks(
+  g: GachaState, kind: PackKind, payWith: 'pack' | 'coins', count: number, today?: string,
+): Pulled[][] {
+  if (!isPackKind(kind)) throw new Error('没有这种卡包')
+  if (!Number.isInteger(count) || count < 1 || count > MULTI_OPEN_MAX) throw new Error(`一次最多开 ${MULTI_OPEN_MAX} 包`)
+  const def = PACKS[kind]
+  if (payWith === 'pack') {
+    const own = g.packs[kind] ?? 0
+    if (own < count) throw new Error(own ? `库存只有 ${own} 个${def.name}` : '没有这种卡包')
+  } else {
+    if (def.shop === false) throw new Error(`${def.name}买不到，只能从玩法奖励获得`)
+    if (packRetired(kind, today)) throw new Error(`${def.name}已下线，库存里的还能打开`)
+    const price = packCost(kind, today)
+    if (g.coins < price * count) throw new Error(`金币不够，${count} 包要 ${price * count}`)
+  }
+  const out: Pulled[][] = []
+  for (let i = 0; i < count; i++) out.push(openPack(g, kind, payWith, today))
   return out
 }
 
@@ -1483,10 +1526,28 @@ export function featuredSeries(today: string): Series {
   return SERIES[((week % SERIES.length) + SERIES.length) % SERIES.length]
 }
 
-/** What a pack costs today — the featured series is off by a fifth. */
+/**
+ * The 曼谷包's launch: 15% off for its first three days (Beijing dates, as
+ * `today` always is), and the 首尔包 leaves the shop a week after the notice.
+ * Owned 首尔包 still open; only buying one stops.
+ */
+export const BANGKOK_LAUNCH = '2026-10-01'
+export const BANGKOK_SALE_LAST = '2026-10-03'
+export const BANGKOK_SALE_OFF = 0.15
+export const SEOUL_LAST_DAY = '2026-10-07'
+
+export const bangkokOnSale = (today?: string): boolean =>
+  !!today && today >= BANGKOK_LAUNCH && today <= BANGKOK_SALE_LAST
+
+/** A pack the shop no longer sells. */
+export const packRetired = (kind: PackKind, today?: string): boolean =>
+  kind === 'seoul2024' && !!today && today > SEOUL_LAST_DAY
+
+/** What a pack costs today — the featured series is off by a fifth, the new 曼谷包 by 15% for three days. */
 export function packCost(kind: PackKind, today?: string): number {
   const base = PACKS[kind].cost
   if (!today) return base
+  if (kind === 'bangkok2025') return bangkokOnSale(today) ? Math.round(base * (1 - BANGKOK_SALE_OFF)) : base
   const region = seriesOfPack(kind)
   if (!region || region !== featuredSeries(today)) return base
   return Math.round(base * (1 - FEATURE_OFF))
@@ -1548,7 +1609,7 @@ export function claimSeries(g: GachaState, region: Series): string | null {
 /**
  * 全图鉴: every card the ordinary packs can deal, held at once.
  *
- * Every 选手卡, every coach and every 首尔 card — the 彩卡 are the one thing
+ * Every 选手卡, every coach and every 首尔 and 曼谷 card — the 彩卡 are the one thing
  * left out, because they are what it pays: a 彩卡包, the only pack that
  * deals nothing else. Like the series ladder this is a landmark rather than
  * an income; the four regions alone cost some four hundred packs each to

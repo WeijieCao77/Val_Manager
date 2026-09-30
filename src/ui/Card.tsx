@@ -1,4 +1,5 @@
 import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
+import { BangkokCardBack, BangkokFace } from './cards/BangkokDesign'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ATTR_CN } from '../engine/types'
@@ -107,6 +108,14 @@ function Face({ src, alt }: { src: string | null; alt: string }) {
  */
 export const CARD_W = 160
 export const CARD_H = 224
+/**
+ * The 曼谷 2025 face sets its type in container units, so it is drawn on a
+ * canvas three times the size — at 160px its smallest print came out under
+ * 4px, which a phone's minimum font size blows up through the layout — and
+ * scaled like every other card. Still 5:7.
+ */
+const BANGKOK_W = 480
+const BANGKOK_H = 672
 /** the back is drawn for the pack reveal's 184px card; same 5:7, so it covers the face exactly */
 const BACK_W = 184
 const BACK_H = 257.6
@@ -179,6 +188,9 @@ export default function CardFace({
 }: CardFaceProps) {
   if (isPlayerCard(card) && card.event === 'seoul-2024') {
     return <CardScale size={size}><SeoulCard {...{ card, level, dupes, size: 'md', selected, dimmed, onClick, footer }} /></CardScale>
+  }
+  if (isPlayerCard(card) && card.event === 'bangkok-2025') {
+    return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, dupes, selected, dimmed, onClick, footer }} /></CardScale>
   }
   // The base rating, always: the number on the face says which card this is
   // (the 2024 EDG ZmjjKK is a 97 whatever you have done to it), the +N
@@ -361,8 +373,9 @@ export function PositionCrest({ position }: { position: PackPosition }) {
   </svg>
 }
 
-export function CardBack({ kind = 'player', position, seoul }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean }) {
+export function CardBack({ kind = 'player', position, seoul, bangkok }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean }) {
   if (seoul) return <CardScale size="lg" w={BACK_W} h={BACK_H}><SeoulCardBack /></CardScale>
+  if (bangkok) return <CardScale size="lg" w={BANGKOK_W} h={BANGKOK_H}><BangkokCardBack /></CardScale>
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined
   return (

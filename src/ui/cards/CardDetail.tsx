@@ -8,6 +8,7 @@ import { useDialogFocus } from './useDialogFocus'
  * collection and opening him there. Now the squad opens the same page, with
  * 替换 / 移出卡组 underneath (`actions`), and the collection opens it bare.
  */
+import { BANGKOK_TOTAL } from '../../engine/bangkok2025'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useCards } from './ctx'
@@ -86,7 +87,7 @@ export default function CardDetail({ cardId, onClose, actions }: {
               {isPlayerCard(sel) ? (
                 <>
                   <div className="small muted" style={{ marginBottom: 8, lineHeight: 1.8 }}>
-                    {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)}{!sel.seoul && ` · ${sel.age} 岁`}
+                    {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)}{!sel.seoul && !sel.bangkok && ` · ${sel.age} 岁`}
                     <br />
                     {REGION_CN[sel.region]} · {sel.clubTag ?? '自由人'} · {sel.roles.join(' / ')}
                     {sel.isIgl && ' · 指挥'}
@@ -105,6 +106,12 @@ export default function CardDetail({ cardId, onClose, actions }: {
                     <span className="tiny">能力值由赛事数据换算；头像摄于首尔冠军赛。</span><br />
                     <a href={sel.seoul.profile} target="_blank" rel="noreferrer">查看选手主页 ↗</a>
                     {' · '}<a href="/seoul-2024">浏览赛事图鉴 ↗</a>
+                  </div> : sel.bangkok ? <div className="small muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
+                    <b>曼谷 2025 · {String(sel.bangkok.number).padStart(3, '0')}/{String(BANGKOK_TOTAL).padStart(3, '0')}</b><br />
+                    当届数据：ACS {sel.bangkok.acs} · K/D {sel.bangkok.kd.toFixed(2)} · {sel.bangkok.maps} 张地图<br />
+                    <span className="tiny">能力值由赛事数据换算；头像摄于曼谷大师赛。</span><br />
+                    <a href={sel.bangkok.profile} target="_blank" rel="noreferrer">查看选手主页 ↗</a>
+                    {' · '}<a href="/bangkok-2025">浏览赛事图鉴 ↗</a>
                   </div> : <button className="sm" style={{ marginTop: 12 }} onClick={() => openDossier(sel.playerId)}>
                     查看选手资料 →
                   </button>}

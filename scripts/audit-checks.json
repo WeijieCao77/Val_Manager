@@ -521,6 +521,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_bangkok2025.ts",
+    "estimatedSeconds": 8
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_seoul_route.ts"
   },
   {

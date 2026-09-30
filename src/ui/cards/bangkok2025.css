@@ -1,0 +1,82 @@
+.bk25-card,.bk25-pack{--ink:#f3efff;--foil:#dcc48e;position:relative;isolation:isolate;overflow:hidden;color:var(--ink);background:#161024;font-family:Arial,'PingFang SC',sans-serif;box-sizing:border-box;container-type:inline-size}
+.bk25-card{width:100%;aspect-ratio:63/88;border:1px solid var(--foil);border-radius:3.2%;box-shadow:0 20px 35px #0005,inset 0 0 0 3px #120d1e}
+.bk25-silver{--foil:#c5d8eb}.bk25-bronze{--foil:#d69e81}
+.bk25-art{position:absolute;inset:0;background:url('/events/bangkok-2025/lotus-art.webp') center/cover no-repeat;z-index:-2;pointer-events:none}
+.bk25-inner{position:absolute;inset:2%;border:1px solid color-mix(in srgb,var(--foil),transparent 50%);border-radius:2%;z-index:5;pointer-events:none}
+.bk25-card:not(.bk25-back)::after{content:'';position:absolute;inset:0;z-index:6;pointer-events:none;background:linear-gradient(120deg,transparent 24%,#c7fff811 38%,transparent 49%,#dcbdff0c 71%,transparent 85%)}
+.bk25-card-header{position:absolute;top:5.7%;left:7%;right:7%;display:flex;justify-content:space-between;align-items:start;z-index:4;font-size:3.8cqw;font-weight:700;line-height:1.2;letter-spacing:.025em}
+.bk25-card-header strong{display:block;font-size:5.2cqw}.bk25-card-header i{font-style:normal;color:var(--foil)}.bk25-edition{text-align:right;color:var(--foil);font-size:2.5cqw;font-weight:400;line-height:1.65}
+.bk25-photo{position:absolute;inset:13% 4% 23%;overflow:hidden;mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 62%,transparent 97%),linear-gradient(90deg,transparent 0%,#000 20%,#000 80%,transparent 100%);mask-composite:intersect}
+.bk25-photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.68) contrast(1.06)}
+.bk25-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#161024 0%,#24143265 23%,transparent 53%),linear-gradient(100deg,#7453a94a,transparent 40%,#98cbd51a 85%);pointer-events:none}
+.bk25-photo.is-empty{inset:16% 11% 29%;background:radial-gradient(ellipse,#35294d88,transparent 72%);mask-image:none}
+.bk25-portrait-atmosphere{position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#161024 9%,#161024ef 22%,#16102480 33%,transparent 48%),radial-gradient(ellipse at 3% 46%,#9275d63d,transparent 32%),radial-gradient(ellipse at 97% 52%,#9ad1d62e,transparent 30%);z-index:1}
+.bk25-photo-guide{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#c6b5e2;gap:2cqw;font-size:4cqw}.bk25-photo-guide svg{width:43%;height:42%;fill:none;stroke:#b3a1d1;stroke-width:.7}.bk25-photo-guide small{font-size:2.5cqw;color:#a89abe}
+.bk25-rating{position:absolute;top:22%;left:6%;z-index:3;display:flex;flex-direction:column;gap:1cqw;background:#181125dd;border-left:2px solid var(--foil);padding:2cqw;color:var(--foil)}.bk25-rating strong{font-size:11cqw;line-height:1}.bk25-rating span{font-size:2.7cqw}
+.bk25-side{position:absolute;right:5%;top:23%;writing-mode:vertical-rl;font-size:2.1cqw;letter-spacing:.17em;color:#c9bddc}
+.bk25-player-info{position:absolute;bottom:5%;left:8%;right:8%;z-index:4}.bk25-team{display:flex;align-items:center;justify-content:space-between;font-size:3cqw;color:var(--foil)}.bk25-team b{font-size:4.3cqw}.bk25-team span{font-size:2.7cqw;letter-spacing:.07em}
+.bk25-ign{display:block;font-family:Impact,'Arial Narrow',sans-serif;font-size:15cqw;line-height:1.1;margin:1.5cqw 0 3cqw;font-weight:400;letter-spacing:.015em}
+.bk25-stats{border-top:1px solid #cabfe33d;display:flex;padding-top:3cqw;gap:15cqw}.bk25-stats span{display:flex;flex-direction:column;gap:1cqw;font-size:2.3cqw;color:#bdb0d3}.bk25-stats b{font-size:6cqw;line-height:1;color:#f1e9ff;font-weight:500}
+.bk25-player-info footer{margin-top:4cqw;border-top:1px solid #cabfe322;padding-top:2.8cqw;display:flex;justify-content:space-between;color:#b8aacd;font-size:2.2cqw}.bk25-player-info footer b{color:var(--foil);font-weight:400}
+.bk25-back{--foil:#bba5f2}.bk25-back .bk25-art{background-size:100% 78%;background-position:center 55%}.bk25-back header{position:absolute;top:7%;left:9%;right:9%;font-size:2.5cqw;display:flex;justify-content:space-between;letter-spacing:.08em;color:#cec2e6}.bk25-back header span{color:#d3efa4}
+.bk25-back-title{position:absolute;top:14%;width:100%;text-align:center}.bk25-back-title small{font-size:5cqw;letter-spacing:.2em}.bk25-back-title strong{display:block;font:400 15cqw/1.1 Impact,'Arial Narrow',sans-serif;letter-spacing:.025em}
+.bk25-back-bottom{position:absolute;bottom:7%;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3cqw}.bk25-back-bottom b{font-size:7cqw;line-height:1.05;letter-spacing:-.035em}.bk25-back-bottom span{font-size:3cqw;color:#d3c5ed}.bk25-back-bottom small{font-size:2cqw;letter-spacing:.08em;color:#a89abe}
+.bk25-pack{width:100%;aspect-ratio:2/3;border-radius:1% 1% 2% 2%;box-shadow:13px 24px 30px #0006;border:1px solid #cbb5ef66;background:#20152f}
+.bk25-pack .bk25-art{inset:3% 0;background-size:100% 78%;background-position:50% 55%}
+.bk25-seal{position:absolute;top:0;left:0;right:0;height:4.8%;background:repeating-linear-gradient(90deg,#9b89b644 0 1px,#21163066 1px 3px),linear-gradient(0deg,#352544,#9278b8,#3e2c55);border-bottom:1px solid #c1a8e888;z-index:4}.bk25-seal.bottom{top:auto;bottom:0;transform:rotate(180deg)}
+.bk25-pack-fold{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(90deg,#0008,transparent 4%,#cfb7ff27 6%,transparent 10%,transparent 90%,#c3a4ee33 95%,#0007),linear-gradient(115deg,transparent 43%,#eee5ff0b 48%,transparent 54%)}
+.bk25-pack header{position:absolute;top:8%;left:9%;right:9%;display:flex;justify-content:space-between;font-size:2.25cqw;letter-spacing:.025em;color:#d9cbef}.bk25-pack header b{font-size:3cqw;color:#d3efa4}
+.bk25-pack-title{position:absolute;top:14%;left:0;right:0;text-align:center;display:flex;flex-direction:column;align-items:center}.bk25-pack-title>span{font-size:7cqw;letter-spacing:.16em}.bk25-pack-title strong{font:400 18cqw/1.05 Impact,'Arial Narrow',sans-serif;letter-spacing:.015em}.bk25-pack-title small{font-size:3cqw;letter-spacing:.32em;margin-top:2cqw;color:#cabdde}
+.bk25-pack-bottom{position:absolute;bottom:9%;left:10%;right:10%}.bk25-pack-bottom>strong{font-size:8.3cqw;letter-spacing:-.04em;line-height:.95;display:block}.bk25-pack-bottom>div{display:flex;align-items:end;justify-content:space-between;margin-top:4cqw;border-top:1px solid #bfafd966;padding-top:3cqw}.bk25-pack-bottom span{font-size:3cqw;color:#d0c2e1}.bk25-pack-bottom b{font-size:7cqw;line-height:1}.bk25-pack-bottom b small{font-size:2.8cqw;font-weight:400}
+/* Fade the artwork's shorter print field into the pouch/card stock. */
+.bk25-back .bk25-art,.bk25-pack .bk25-art{mask-image:linear-gradient(transparent 18%,#000 30%,#000 73%,transparent 86%)}
+
+.bk25-photo:not(.is-empty)::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,#715591, #c1b2cf 40%,#c1b2cf 65%,#715591);mix-blend-mode:multiply;opacity:.65}
+.bk25-photo img{mask-image:linear-gradient(90deg,transparent,#000 14%,#000 78%,transparent)}
+
+/* Portrait-first face: a quiet purple field, with the series lotus only in the corner. */
+.bk25-front-ground{position:absolute;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(ellipse at 80% 22%,#38254b 0,transparent 56%),linear-gradient(145deg,#20152f,#161024 62%)}
+.bk25-corner-lotus{position:absolute;right:7%;bottom:11.5%;width:16%;aspect-ratio:1;background:url("/events/bangkok-2025/lotus-art.webp") center 54%/100% auto no-repeat;mask-image:radial-gradient(ellipse,#000 40%,transparent 73%);z-index:4;pointer-events:none}
+
+/* In the game: the face is drawn on a 480px canvas (Card.tsx CardScale) and scaled, so the cqw type never
+   drops under a phone's minimum font size; these states are sized for that canvas. */
+.bk25-face{position:relative;width:100%}
+.bk25-face.tap{cursor:pointer}
+.bk25-face.dim{opacity:.42;filter:grayscale(.4)}
+.bk25-face.sel .bk25-card{box-shadow:0 0 0 12px var(--accent,#ff4655),0 20px 35px #0005}
+.bk25-dupes{position:absolute;top:3%;right:4%;z-index:8;background:#161024e6;color:#f3efff;border:2px solid #c5b3e6;border-radius:999px;font:700 26px/1 Arial,sans-serif;padding:8px 16px}
+.bk25-back-scale{width:100%}
+.bk25-sources{margin:40px 0 0;color:#b9b0c9;font-size:13px;line-height:1.8}.bk25-sources summary{cursor:pointer;color:#ece8f4}.bk25-sources a{color:#c9b6f2}
+
+/* the shelf on the 抽卡 page — the 首尔 shelf's layout in the lotus palette */
+.bk25-shelf{display:flex;gap:28px;align-items:center;padding:28px 32px;margin:0 0 20px;background:radial-gradient(ellipse at 15% 0,#5b3f8a55,transparent 70%),#120c1d;border:1px solid #8e76b8;color:#ece6f7;border-radius:8px;overflow:hidden}
+.bk25-shelf-art{position:relative;min-width:180px;width:180px;height:216px;flex-shrink:0}
+.bk25-shelf-art .pack-pouch-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
+.bk25-shelf-art .bk25-shelf-back{position:absolute;width:108px;right:-6px;bottom:2px;transform:rotate(10deg)}
+.bk25-shelf-copy{flex:1}
+.bk25-shelf h3{font-size:27px;margin:8px 0 12px;color:#f3ecff}
+.bk25-shelf p{font-size:12px;color:#b9b0c9;line-height:1.8;margin:8px 0}
+.bk25-shelf .row{margin-top:17px;gap:8px;flex-wrap:wrap}
+.bk25-shelf a{color:#c9b6f2;font-size:12px}
+.bk25-shelf button{background:#cdb9f5;color:#161024;border-color:#cdb9f5}
+.bk25-shelf button:disabled{opacity:.4}
+.bk25-shelf .bk25-shelf-secondary{background:transparent;color:#d9cbf5;border-color:#6f5b91}
+.bk25-eyebrow{font-size:10px;letter-spacing:.2em;color:#a996cf}
+.bk25-sale{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:4px;background:#d3efa4;color:#161024;font-size:11px;font-weight:700;vertical-align:middle}
+.bk25-shelf s{opacity:.55;margin-left:4px;font-weight:400}
+@media(max-width:620px){.bk25-shelf{padding:22px 18px;gap:12px;flex-wrap:wrap}.bk25-shelf-art{min-width:140px;width:140px;height:190px;margin:auto}.bk25-shelf-art .pack-pouch-object{width:120px;left:0}}
+.pack-pouch-object{position:relative;width:220px;aspect-ratio:2/3;isolation:isolate}
+.pack-pouch-object>.pack-pouch{inset:-8% -12%;filter:drop-shadow(8px 16px 12px #0009)}
+.pack-pouch-bangkok .pack-pouch-fallback{padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;justify-content:center}.pack-pouch-bangkok .pack-pouch-fallback .bk25-pack{width:74%}
+.pack-tear-bangkok{--pack-accent:#cdb9f5;--pack-ink:#cdb9f5}.pack-tear-bangkok .pack-tear-kicker{color:#cdb9f5}
+/* Codex's rotatable pouch (BangkokPackDisplay), used on the /bangkok-2025 page */
+.bk25-physical-pack{position:relative}.bk25-pouch-stage{position:relative;width:100%;aspect-ratio:2/3;isolation:isolate}.bk25-pouch-stage::after{content:'';position:absolute;inset:auto 10% 0;height:5%;border-radius:50%;background:#0008;filter:blur(10px);z-index:-1}.bk25-pouch-stage canvas{position:absolute;inset:-6% -9%;width:118%;height:112%;opacity:0;filter:drop-shadow(12px 16px 12px #0008);pointer-events:none}.bk25-pouch-stage.is-ready canvas{opacity:1}.bk25-pouch-fallback{position:absolute;inset:4% 8%;transform:perspective(900px) rotateY(-20deg) rotateX(5deg)}.bk25-pouch-stage.is-ready .bk25-pouch-fallback{display:none}.bk25-pouch-views{position:relative;z-index:2;display:flex;justify-content:center;gap:5px;margin:10px 0 0}.bk25-pouch-views button{font-size:10px;padding:5px 9px;border:1px solid #635575;background:#20182c;color:#d6cbe5;border-radius:3px;cursor:pointer}.bk25-pouch-views button[aria-pressed=true]{background:#d4efa9;color:#161024}
+/* /bangkok-2025: the 首尔 exhibit's layout (seoul2024.css), recoloured */
+.bk25-exhibit{background:#100b18;color:#ece6f7}
+.bk25-exhibit .seoul-eyebrow,.bk25-exhibit .seoul-hero h1 span{color:#cdb9f5}
+.bk25-exhibit .seoul-cta{border-color:#cdb9f5;color:#ece6f7}
+.bk25-exhibit .seoul-card-grid .card-img,.bk25-exhibit .seoul-object-back .card-img{width:100%}
+.bk25-exhibit .seoul-object-front .card-img{width:188px}
+.bk25-exhibit .bk25-object-pack{width:236px}
+@media(max-width:620px){.bk25-exhibit .bk25-object-pack{width:194px}.bk25-exhibit .seoul-object-front .card-img{width:150px}}
+.bk25-shelf-art .bk25-shelf-back .card-img{width:100%}

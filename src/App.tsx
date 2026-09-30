@@ -20,6 +20,7 @@ import { setCurrentRuleset } from './engine/ruleset'
 const ChampionsPage = lazy(() => import('./ui/Champions'))
 const ChampionsNotice = lazy(() => import('./ui/Champions').then(m => ({default:m.ChampionsNotice})))
 const SeoulCollection = lazy(() => import('./ui/cards/SeoulCollection'))
+const BangkokCollection = lazy(() => import('./ui/cards/BangkokCollection'))
 const CardMode = lazy(() => import('./ui/CardMode'))
 const Home = lazy(() => import('./ui/Home'))
 const ManagerGame = lazy(() => import('./ManagerGame'))
@@ -28,8 +29,8 @@ import DomainNotice from './ui/DomainNotice'
 import ChunkBoundary from './ui/ChunkBoundary'
 import MusicPlayer from './ui/MusicPlayer'
 
-type Mode = 'home' | 'career' | 'career-test' | 'cards' | 'seoul' | 'champions'
-const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-test': '/manager/test', cards: '/cards', seoul: '/seoul-2024', champions:'/champions' }
+type Mode = 'home' | 'career' | 'career-test' | 'cards' | 'seoul' | 'bangkok' | 'champions'
+const PATHS: Record<Mode, string> = { home: '/', career: '/manager', 'career-test': '/manager/test', cards: '/cards', seoul: '/seoul-2024', bangkok: '/bangkok-2025', champions:'/champions' }
 
 /**
  * Every new career plays the 2026 rulebook with its draws (see
@@ -43,6 +44,7 @@ const modeOf = (): Mode => {
   const p = location.pathname.replace(/\/+$/, '')
   if (p.endsWith('/champions')) return 'champions'
   if (p.endsWith('/seoul-2024')) return 'seoul'
+  if (p.endsWith('/bangkok-2025')) return 'bangkok'
   if (p.endsWith('/cards')) return 'cards'
   if (p.endsWith('/manager/test')) return 'career-test'
   if (p.endsWith('/manager')) return 'career'
@@ -83,6 +85,7 @@ export default function App() {
   const page = mode === 'home' ? <Home onOpen={setMode} />
     : mode === 'champions' ? <ChampionsPage />
     : mode === 'seoul' ? <SeoulCollection />
+    : mode === 'bangkok' ? <BangkokCollection />
     : mode === 'cards' ? <CardMode onExit={() => setMode('home')} />
       : <ManagerGame key={mode} onHome={() => setMode('home')} testSaves={mode === 'career-test'} />
   return (

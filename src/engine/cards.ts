@@ -10,6 +10,8 @@
  */
 import { buildSeoulCards } from './seoul2024'
 import type { SeoulEntry } from './seoul2024'
+import { buildBangkokCards } from './bangkok2025'
+import type { BangkokEntry } from './bangkok2025'
 import { natCountry } from './nat'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
@@ -56,8 +58,9 @@ export const coachRarityOf = (rating: number): Rarity =>
 
 export interface PlayerCard {
   kind: 'player'
-  event?: 'seoul-2024'
+  event?: 'seoul-2024' | 'bangkok-2025'
   seoul?: SeoulEntry
+  bangkok?: BangkokEntry
   id: string
   /** the world.json player id this card is a face of */
   playerId: string
@@ -316,9 +319,10 @@ export const BASE_PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
 export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(BASE_PLAYER_CARDS)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
 export const SEOUL_CARDS: PlayerCard[] = buildSeoulCards(BASE_PLAYER_CARDS)
+export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(BASE_PLAYER_CARDS)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...buildCoachCards(), ...LEGEND_COACH_CARDS]
-export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...COACH_CARDS]
+export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...COACH_CARDS]
 
 const byId = new Map(ALL_CARDS.map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(

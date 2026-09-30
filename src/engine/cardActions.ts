@@ -25,7 +25,7 @@
  */
 import {
   awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
-  levelOf, oppBumpFor, openPack, pendingOpponent, primeStamina, recordCup, recordLadder,
+  levelOf, oppBumpFor, openPack, openPacks, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
   encBlock, encNation, encRivalWhole, enterEnc, rollSeason,
@@ -162,12 +162,18 @@ function dispatch(
       // Mixed here rather than inside openPack so the pack itself stays a
       // pure function of the state, which is what the odds scripts measure.
       g.seed = hashStr(`${g.seed}:${env.seed}`) >>> 0
+      const wire = (p: { card: { id: string }; dupe: boolean; salvage: number }) => ({ cardId: p.card.id, dupe: p.dupe, salvage: p.salvage })
       try {
+        // 连开: `count` packs of the kind in one go (gacha.ts openPacks checks them all first)
+        if (a.count !== undefined && a.count !== 1) {
+          const packs = openPacks(g, kind, payWith, Number(a.count), env.today)
+          return { ok: true, result: { packs: packs.length, pulled: packs.flat().map(wire) } }
+        }
         const pulled = openPack(g, kind, payWith, env.today)
         return {
           ok: true,
           result: {
-            pulled: pulled.map((p) => ({ cardId: p.card.id, dupe: p.dupe, salvage: p.salvage })),
+            pulled: pulled.map(wire),
           },
         }
       } catch (e) {

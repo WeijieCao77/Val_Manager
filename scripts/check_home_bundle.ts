@@ -6,6 +6,8 @@ import { resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
 const graph = await build({ entryPoints: ['src/App.tsx', 'src/ui/Home.tsx'], bundle: true,
   splitting: true, format: 'esm', platform: 'browser', outdir: '/tmp/home-dependency-audit',
+  // absolute URLs in a stylesheet (the 曼谷 lotus art) are files Vite serves out of public/
+  external: ['/events/*'],
   write: false, metafile: true, logLevel: 'silent' })
 const seen = new Set<string>()
 function visit(path: string) {

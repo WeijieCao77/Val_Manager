@@ -6,7 +6,7 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
-  fullSetProgress, FULL_SET_REWARD,
+  fullSetProgress, FULL_SET_REWARD, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card, Rarity } from '../../engine/cards'
@@ -20,7 +20,9 @@ import { SeoulCardBack } from './SeoulDesign'
 import SalvageConfirm from './SalvageConfirm'
 import type { SalvageAsk } from './SalvageConfirm'
 import SeoulPackDisplay from './SeoulPackDisplay'
-import { SEOUL_CARDS } from '../../engine/cards'
+import { SEOUL_CARDS, BANGKOK_CARDS } from '../../engine/cards'
+import BangkokShelfPack from './BangkokShelfPack'
+import MultiOpenSheet from './MultiOpenSheet'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
 import type { PackPosition } from './positionPackDesign'
 
@@ -31,6 +33,10 @@ export default function Packs() {
   const { g, today, act, toast } = useCards()
   const [opening, setOpening] = useState<Pulled[] | null>(null)
   const [openingKind, setOpeningKind] = useState<PackKind | null>(null)
+  /** how many packs the reveal on screen came from (连开) */
+  const [openingPacks, setOpeningPacks] = useState(1)
+  /** the 连开 sheet, open on one pack kind */
+  const [multi, setMulti] = useState<PackKind | null>(null)
   const [shown, setShown] = useState(0)
   const [busy, setBusy] = useState(false)
   const [claiming, setClaiming] = useState<string | null>(null)
@@ -45,12 +51,13 @@ export default function Packs() {
 
   // The pack is rolled on the server and comes back already in the
   // collection; what happens here is the reveal.
-  const open = async (kind: PackKind, payWith: 'pack' | 'coins') => {
+  const open = async (kind: PackKind, payWith: 'pack' | 'coins', count = 1) => {
     if (busy) return
     setBusy(true)
-    const r = await act('open', { kind, payWith })
+    const r = await act('open', count > 1 ? { kind, payWith, count } : { kind, payWith })
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
+    setMulti(null)
     const wire = ((r.result as { pulled?: PulledWire[] } | undefined)?.pulled ?? [])
     const out: Pulled[] = wire
       .map((p) => { const card = cardById(p.cardId); return card ? { card, dupe: p.dupe, salvage: p.salvage } : null })
@@ -67,6 +74,7 @@ export default function Packs() {
     track('card_pull', {
       kind,
       paid: payWith,
+      packs: count,
       gold: out.filter((p) => p.card.rarity === 'gold').length,
       dupes: out.filter((p) => p.dupe).length,
       // which cards, so 「我抽到过他」 can be checked against something —
@@ -75,8 +83,21 @@ export default function Packs() {
     })
     setOpening(out)
     setOpeningKind(kind)
+    setOpeningPacks(count)
     setShown(1)
   }
+
+  // 连开 is offered wherever at least two packs could be opened: two in the stock, or two affordable
+  const buyable = (kind: PackKind) => PACKS[kind].shop !== false && !packRetired(kind, today)
+  const canMulti = (kind: PackKind) =>
+    (g.packs[kind] ?? 0) >= 2 || (buyable(kind) && g.coins >= packCost(kind, today) * 2)
+  const multiButton = (kind: PackKind, className = 'sm') => canMulti(kind) && (
+    <button className={className} disabled={busy} onClick={() => setMulti(kind)} title={`一次最多 ${MULTI_OPEN_MAX} 包`}>连开</button>
+  )
+  const bangkokPrice = packCost('bangkok2025', today)
+  const bangkokSale = bangkokOnSale(today)
+  const seoulGone = packRetired('seoul2024', today)
+  const md = (d: string) => `${Number(d.slice(5, 7))} 月 ${Number(d.slice(8, 10))} 日`
 
   const done = () => {
     setOpening(null)
@@ -169,14 +190,27 @@ export default function Packs() {
         </Panel>
       </div>
 
+      <section className="bk25-shelf" aria-label="曼谷 2025 大师赛系列">
+        <div className="bk25-shelf-art"><BangkokShelfPack /><div className="bk25-shelf-back"><CardBack bangkok /></div></div>
+        <div className="bk25-shelf-copy"><span className="bk25-eyebrow">MASTERS BANGKOK / 2025 COLLECTION</span>
+          <h3>曼谷 2025 大师赛{bangkokSale && <span className="bk25-sale">上线 85 折</span>}</h3>
+          <p>8 支战队 · 41 位登场选手 · 专属莲花卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。{bangkokSale && <><br />85 折到 {md(BANGKOK_SALE_LAST)}。</>}</p>
+          <a href="/bangkok-2025">浏览完整系列 ↗</a><p>已收藏 {BANGKOK_CARDS.filter(c => g.cards[c.id]).length} / {BANGKOK_CARDS.length}</p>
+          <div className="row"><button disabled={busy || g.coins < bangkokPrice} onClick={() => void open('bangkok2025', 'coins')}>{bangkokPrice} 金币{bangkokSale && <s>{PACKS.bangkok2025.cost}</s>} · 开启曼谷包</button>
+            {(g.packs.bangkok2025 ?? 0) > 0 && <button className="bk25-shelf-secondary" disabled={busy} onClick={() => void open('bangkok2025', 'pack')}>打开库存（{g.packs.bangkok2025}）</button>}
+            {multiButton('bangkok2025', 'bk25-shelf-secondary')}</div>
+        </div>
+      </section>
+
       <section className="seoul-shelf" aria-label="首尔 2024 冠军赛系列">
         <div className="seoul-shelf-art"><SeoulPackDisplay /><SeoulCardBack /></div>
         <div className="seoul-shelf-copy"><span className="seoul-eyebrow">CHAMPIONS SEOUL / 2024 COLLECTION</span>
           <h3>首尔 2024 冠军赛</h3>
-          <p>16 支战队 · 80 位登场选手 · 专属黑金卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。</p>
+          <p>16 支战队 · 80 位登场选手 · 专属黑金卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。<br />{seoulGone ? '首尔包已下线，库存里的仍可打开。' : `首尔包 ${md(SEOUL_LAST_DAY)}后下线，库存里的仍可打开。`}</p>
           <a href="/seoul-2024">浏览完整系列 ↗</a><p>已收藏 {SEOUL_CARDS.filter(c => g.cards[c.id]).length} / 80</p>
-          <div className="row"><button disabled={busy || g.coins < PACKS.seoul2024.cost} onClick={() => void open('seoul2024', 'coins')}>{PACKS.seoul2024.cost} 金币 · 开启首尔包</button>
-            {(g.packs.seoul2024 ?? 0) > 0 && <button className="seoul-shelf-secondary" disabled={busy} onClick={() => void open('seoul2024', 'pack')}>打开库存（{g.packs.seoul2024}）</button>}</div>
+          <div className="row">{!seoulGone && <button disabled={busy || g.coins < PACKS.seoul2024.cost} onClick={() => void open('seoul2024', 'coins')}>{PACKS.seoul2024.cost} 金币 · 开启首尔包</button>}
+            {(g.packs.seoul2024 ?? 0) > 0 && <button className="seoul-shelf-secondary" disabled={busy} onClick={() => void open('seoul2024', 'pack')}>打开库存（{g.packs.seoul2024}）</button>}
+            {multiButton('seoul2024', 'seoul-shelf-secondary')}</div>
         </div>
       </section>
 
@@ -206,11 +240,12 @@ export default function Packs() {
                 <button className="primary sm" onClick={() => void open('legend', 'pack')} disabled={busy}>
                   打开（{g.packs.legend}）
                 </button>
+                {multiButton('legend')}
                 <span className="tiny faint" style={{ alignSelf: 'center' }}>非卖品</span>
               </div>
             </div>
           )}
-          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024').map((kind) => {
+          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024' && k !== 'bangkok2025').map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
             return (
@@ -235,6 +270,7 @@ export default function Packs() {
                       花 {def.cost} 金币
                     </button>
                   )}
+                  {multiButton(kind)}
                 </div>
               </div>
             )
@@ -255,7 +291,10 @@ export default function Packs() {
                 <div key={kind} className="pack-box">
                   <h4>{def.name}<span className="pack-own"> ×{own}</span></h4>
                   <p>{def.blurb}</p>
-                  <button className="primary sm" onClick={() => void open(kind, 'pack')} disabled={busy || own < 1}>打开（{own}）</button>
+                  <div className="row" style={{ gap: 6 }}>
+                    <button className="primary sm" onClick={() => void open(kind, 'pack')} disabled={busy || own < 1}>打开（{own}）</button>
+                    {multiButton(kind)}
+                  </div>
                 </div>
               )
             })}
@@ -342,6 +381,7 @@ export default function Packs() {
                     花 {price} 金币
                     {hot && <s className="faint" style={{ marginLeft: 4 }}>{def.cost}</s>}
                   </button>
+                  {multiButton(s.pack)}
                 </div>
               </div>
             )
@@ -379,7 +419,7 @@ export default function Packs() {
                 ? '全部收齐，彩卡包已领。'
                 : fullSet.ready
                   ? `全部收齐了：${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count} 可以领`
-                  : `收齐全部选手卡、教练卡和首尔卡（彩卡不计），送${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count}——只出彩卡的包。还差 ${fullSet.total - fullSet.owned} 张。`}
+                  : `收齐全部选手卡、教练卡、首尔卡和曼谷卡（彩卡不计），送${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count}——只出彩卡的包。还差 ${fullSet.total - fullSet.owned} 张。`}
             </span>
           </div>
           {fullSet.ready && (
@@ -393,6 +433,7 @@ export default function Packs() {
       {opening && (
         <PackStage
           pulled={opening}
+          packs={openingPacks}
           shown={shown}
           position={openingKind ? packPosition(openingKind) ?? undefined : undefined}
           // ceiling is length + 1, not length: `finished` is `shown >
@@ -425,6 +466,12 @@ export default function Packs() {
         />
       )}
       {ask && <SalvageConfirm ask={ask} busy={busy} onClose={() => { if (!busy) setAsk(null) }} />}
+      {multi && (
+        <MultiOpenSheet
+          kind={multi} own={g.packs[multi] ?? 0} coins={g.coins} price={packCost(multi, today)} buyable={buyable(multi)} busy={busy}
+          onOpen={(payWith, count) => void open(multi, payWith, count)} onClose={() => { if (!busy) setMulti(null) }}
+        />
+      )}
     </>
   )
 }
@@ -436,11 +483,11 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children, revealed, kind, position, seoul }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean }) {
+function Flip({ children, revealed, kind, position, seoul, bangkok }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean }) {
   return (
     <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
-        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} /><span className="card-specular" /></div>
+        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} /><span className="card-specular" /></div>
         <div className="flip-face flip-front" aria-hidden={!revealed}>{children}<span className="card-specular" /></div>
       </div>
     </div>
@@ -454,9 +501,11 @@ function Flip({ children, revealed, kind, position, seoul }: { children: React.R
  * A rare card can be first, in the middle, or last.
  */
 export function PackStage({
-  pulled, shown, onNext, onDone, onSellAll, position,
+  pulled, shown, onNext, onDone, onSellAll, position, packs = 1,
 }: {
   pulled: Pulled[]; shown: number
+  /** 连开: how many packs these cards came out of */
+  packs?: number
   /** Position of the reward source, not the first role on a multi-role player. */
   position?: PackPosition
   onNext: () => void; onDone: () => void; onSellAll: () => void
@@ -465,6 +514,11 @@ export function PackStage({
   const [faceUp, setFaceUp] = useState(false)
   const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
   const seoul = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'seoul-2024')
+  const bangkok = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'bangkok-2025')
+  // 连开's recap leads with the best cards; a single pack keeps the order it was dealt in
+  const recap = packs > 1
+    ? pulled.map((p, i) => ({ p, i })).sort((a, b) => rarityRank(b.p.card.rarity) - rarityRank(a.p.card.rarity) || Number(a.p.dupe) - Number(b.p.dupe) || a.i - b.i).map(x => x.p)
+    : pulled
   const single = pulled.length === 1
   const [revealAll, setRevealAll] = useState(false)
   const dialogRef = useDialogFocus(onDone)
@@ -515,7 +569,7 @@ export function PackStage({
     <div className="pack-stage" ref={dialogRef} role="dialog" aria-modal="true" aria-label="开启卡包" tabIndex={-1} onClick={advanceReveal}>
       <SoundToggle />
       {!finished && <button className="pack-skip" onClick={e => { e.stopPropagation(); setUnsealed(true); setRevealAll(true) }}>查看全部 · 跳过动画</button>}
-      {!unsealed && <PackTearGate seoul={seoul} position={kind === 'player' ? position : undefined} kind={kind} count={pulled.length} onOpen={() => setUnsealed(true)} />}
+      {!unsealed && <PackTearGate seoul={seoul} bangkok={bangkok} packs={packs} position={kind === 'player' ? position : undefined} kind={kind} count={Math.max(1, Math.round(pulled.length / packs))} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (
           <>
@@ -539,7 +593,7 @@ export function PackStage({
                 {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
               <CardTilt>
-                <Flip seoul={seoul} position={position} kind={current.card.kind} revealed={faceUp}>
+                <Flip seoul={seoul} bangkok={bangkok} position={position} kind={current.card.kind} revealed={faceUp}>
                   <CardFace card={current.card} size="lg" />
                 </Flip>
               </CardTilt>
@@ -577,10 +631,12 @@ export function PackStage({
                 a number there is no way to tell a hidden row from a short
                 pack — which is exactly what got reported. */}
             <div className="pack-strip-head tiny">
-              这一包 <b>{pulled.length}</b> 张{dupes > 0 ? ` · 重复 ${dupes} 张` : ''}
+              {packs > 1 ? <>连开 <b>{packs}</b> 包 · 共 <b>{pulled.length}</b> 张</> : <>这一包 <b>{pulled.length}</b> 张</>}
+              {dupes > 0 ? ` · 重复 ${dupes} 张` : ''}
+              {packs > 1 && ` · 新卡 ${pulled.length - dupes} 张`}
             </div>
-            <div className="pack-strip" style={stripLayout(pulled.length)}>
-              {pulled.map((p, i) => (
+            <div className={`pack-strip${pulled.length > 10 ? ' pack-strip-many' : ''}`} style={stripLayout(pulled.length)}>
+              {recap.map((p, i) => (
                 <div key={`${p.card.id}-${i}`} className="pack-card" style={{ animationDelay: `${i * 40}ms` }}>
                   <CardFace card={p.card} size="sm" footer={p.dupe ? '重复' : '新卡'} />
                 </div>
@@ -602,6 +658,9 @@ export function PackStage({
  * height, capped per pack size.
  */
 function stripLayout(n: number): React.CSSProperties {
+  // 连开 can bring back a hundred cards: past ten the recap stops shrinking to fit one screen and
+  // scrolls instead, sized as if three rows had to fit (four on a phone)
+  if (n > 10) return { '--cols-d': 6, '--rows-d': 3, '--cols-m': 4, '--rows-m': 4, '--card-max': '120px' } as React.CSSProperties
   const [cols, colsM, max] = n <= 1 ? [1, 1, 220] : n <= 3 ? [n, n, 170] : n <= 5 ? [n, 3, 150] : [5, 4, 140]
   return {
     '--cols-d': cols, '--rows-d': Math.ceil(n / cols),
@@ -613,7 +672,7 @@ function stripLayout(n: number): React.CSSProperties {
 const REST_POSE = { x: 4, y: -20 }
 
 /** A real pointer-driven foil seal before the first card is revealed. */
-function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean }) {
+function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1 }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean; bangkok?: boolean; packs?: number }) {
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [torn, setTorn] = useState(false)
@@ -723,9 +782,9 @@ function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number;
   }
 
   return (
-    <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
+    <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${bangkok ? ' pack-tear-bangkok' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
       <div className="pack-tear-aura" aria-hidden="true" />
-      <div className="pack-tear-kicker">{seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}</div>
+      <div className="pack-tear-kicker">{bangkok ? 'MASTERS BANGKOK · 2025' : seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}{packs > 1 ? ` · 连开 ${packs} 包` : ''}</div>
       <div
         className={`pack-wrapper${dragging ? ' dragging' : ''}`}
         style={{
@@ -747,12 +806,12 @@ function PackTearGate({ count, kind, position, onOpen, seoul }: { count: number;
           }
         }}
       >
-        <PackPouch seoul={seoul} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
+        <PackPouch seoul={seoul} bangkok={bangkok} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
         <div className="pack-card-emerge" aria-hidden="true">
           {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
             <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />
           ))}
-          <CardBack kind={kind} position={position} seoul={seoul} />
+          <CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} />
         </div>
         <div className="pack-tear-track" aria-hidden="true">
           <span className="pack-tear-cut" />

@@ -19,6 +19,7 @@
 import {
   FEATURE_OFF, PACKS, PACK_ORDER, SERIES, SERIES_REWARDS,
   claimSeries, featuredSeries, newGacha, openPack, packCost, seriesProgress,
+  bangkokOnSale, BANGKOK_SALE_OFF,
 } from '../src/engine/gacha'
 import type { Series } from '../src/engine/gacha'
 import { REGION_CN } from '../src/engine/types'
@@ -134,12 +135,14 @@ for (let d = 0; d < 364; d++) {
     }
     last = r
   }
-  // only the featured pack is discounted, and only the series packs at all
+  // only the featured pack is discounted, and only the series packs at all —
+  // besides the 曼谷包's own launch sale (check_bangkok2025.ts owns that one)
   for (const kind of PACK_ORDER) {
     const price = packCost(kind, date)
     const base = PACKS[kind].cost
     const isHot = kind === seriesProgress(fresh0).find((p) => p.region === r)!.pack
-    check(price === (isHot ? Math.round(base * (1 - FEATURE_OFF)) : base),
+    const launch = kind === 'bangkok2025' && bangkokOnSale(date)
+    check(price === (isHot ? Math.round(base * (1 - FEATURE_OFF)) : launch ? Math.round(base * (1 - BANGKOK_SALE_OFF)) : base),
       '只有本周主打打折', `${date} ${kind} ${price} vs ${base}`)
     check(price > 0, '价格是正数', `${kind} ${price}`)
   }

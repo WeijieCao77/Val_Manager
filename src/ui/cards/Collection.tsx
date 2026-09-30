@@ -227,6 +227,7 @@ export default function Collection() {
             <>
               <select aria-label="收藏排序" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}><option value="rating">能力从高到低</option><option value="name">按选手名字</option><option value="duplicates">重复卡优先</option></select>
               <a className="tiny" href="/seoul-2024">首尔系列图鉴 ↗</a>
+              <a className="tiny" href="/bangkok-2025">曼谷系列图鉴 ↗</a>
               {!missing && (
                 <button className={`sm${dupesOnly ? ' primary' : ''}`} aria-pressed={dupesOnly} onClick={() => { setDupesOnly((v) => !v); setPage(1) }}>
                   有重复

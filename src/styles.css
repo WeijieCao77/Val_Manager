@@ -3256,3 +3256,5 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 .champ-lineup-strip { max-width: 100%; display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 4px; -webkit-overflow-scrolling: touch; }
 .champ-lineup-strip > .card-img { width: 72px; }
 @media (max-width: 420px) { .champ-lineup > .card-img { width: calc((100% - 16px) / 3); } }
+/* 连开's recap: up to a hundred cards, scrolled rather than shrunk (stripLayout in Packs.tsx) */
+.pack-strip.pack-strip-many { max-width: 820px; }
