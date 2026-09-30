@@ -31,7 +31,7 @@ export const CHANGELOG: ChangeEntry[] = [
     title: '预告：明天更新普卡数值',
     pinned: true,
     changes: [
-      { kind: '调整', text: '<b>明天（10 月 1 日）更新普卡数值</b>（铜、银、金卡）。<b>上海冠军赛开赛前会公开评分算法</b>。' },
+      { kind: '调整', text: '<b>明天（10 月 1 日）更新普卡数值</b>（铜、银、金卡），<b>数据截至上海冠军赛开赛前</b>。评分算法也会公开。' },
     ],
   },
   {
