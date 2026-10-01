@@ -11,6 +11,8 @@
 .sc24-portrait>span{font-size:64px;color:#c7b47755}
 .sc24-rating{position:absolute;top:24%;left:8%;z-index:3;display:flex;flex-direction:column;text-shadow:0 1px 6px #000;background:#0b1016a6;padding:3px 4px;border-left:1px solid var(--foil)}
 .sc24-rating b{font-size:21px;line-height:1}.sc24-rating small{font-size:7px;margin-top:4px;color:var(--foil)}
+/* the team's caller (owner, 2026-10-01): under the role, because the team line hides on small faces */
+.sc24-igl{align-self:flex-start;margin-top:3px;padding:1px 3px;border-radius:2px;background:var(--foil);color:#0c1017;font:800 6px/1 Arial,sans-serif;font-style:normal;letter-spacing:.06em;text-shadow:none}.s-lg.sc24 .sc24-igl{font-size:8px}.s-sm.sc24 .sc24-igl{font-size:5px;margin-top:2px}
 .sc24-info{position:relative;z-index:3;width:100%;padding:8% 9% 8%;background:linear-gradient(transparent,#0a0c13e8 30%,#0a0c13 65%)}
 .sc24-team{display:flex;justify-content:space-between;align-items:center;color:var(--foil);font:700 8px monospace;letter-spacing:.08em}.sc24-team i{font:4.5px monospace;letter-spacing:.03em}
 .sc24-ign{display:block;font-family:Impact,'Arial Narrow',sans-serif;font-stretch:condensed;font-size:21px;line-height:1.25;letter-spacing:-.025em;color:#fff9e9;white-space:nowrap}

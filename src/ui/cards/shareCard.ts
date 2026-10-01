@@ -1,3 +1,4 @@
+import { natCountry } from '../../engine/nat'
 import { squadTeamIdentity, teamBackdrop } from '../../engine/teamIdentity'
 /**
  * The five, as a picture worth sending to somebody.
@@ -456,7 +457,7 @@ function paintSeoulSeat(
 
   // the side line, read top to bottom: the Latin turned on its side, the
   // rarity's two characters upright, as vertical-rl sets them
-  const latin = `${card.clubTag ?? ''} / ${(entry.nat ?? '').toUpperCase()} / `
+  const latin = `${card.clubTag ?? ''} / ${(natCountry(entry.nat) ?? '').toUpperCase()} / `
   ctx.save()
   ctx.translate(X(116), Y(59.8))
   ctx.rotate(Math.PI / 2)
@@ -477,11 +478,12 @@ function paintSeoulSeat(
   })
   ctx.textAlign = 'left'
 
-  // the rating plate
+  // the rating plate, taller by the IGL tag for a caller (.sc24-igl)
+  const plateH = (card.isIgl ? 52 : 41.5) * k
   ctx.fillStyle = 'rgba(11,16,22,.65)'
-  ctx.fillRect(X(11.4), Y(51.4), 33.8 * k, 41.5 * k)
+  ctx.fillRect(X(11.4), Y(51.4), 33.8 * k, plateH)
   ctx.fillStyle = foil
-  ctx.fillRect(X(11.4), Y(51.4), Math.max(1, k), 41.5 * k)
+  ctx.fillRect(X(11.4), Y(51.4), Math.max(1, k), plateH)
   ctx.shadowColor = '#000'
   ctx.shadowBlur = 6 * k
   ctx.fillStyle = '#f6edda'
@@ -491,6 +493,14 @@ function paintSeoulSeat(
   ctx.fillStyle = foil
   ctx.font = font(400, 7 * k)
   ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` ${levelMark(level)}` : ''}`, X(16.4), Y(80.5))
+  if (card.isIgl) {
+    ctx.font = font(800, 6 * k)
+    const tw = ctx.measureText('IGL').width + 6 * k
+    ctx.fillRect(X(16.4), Y(80.5) + 10 * k, tw, 8 * k)
+    ctx.fillStyle = '#0c1017'
+    ctx.fillText('IGL', X(16.4) + 3 * k, Y(80.5) + 11 * k)
+    ctx.fillStyle = foil
+  }
 
   // the info block over its own shade
   const shade = ctx.createLinearGradient(0, Y(115.1), 0, b.y + b.h)
@@ -711,10 +721,21 @@ function paintBangkokSeat(
   // team and nation
   ctx.font = font(700, W(4.28))
   ctx.fillText(card.clubTag ?? '', X(8.17), Y(57.86))
+  if (card.isIgl) {
+    // the caller's IGL tag after the team, as on the face (.bk25-igl)
+    const tx = X(8.17) + ctx.measureText(card.clubTag ?? '').width + W(1.4)
+    ctx.font = font(800, W(3))
+    const tw = ctx.measureText('IGL').width + W(2.4)
+    ctx.fillStyle = foil
+    ctx.fillRect(tx, Y(57.86), tw, W(4.2))
+    ctx.fillStyle = '#170f24'
+    ctx.fillText('IGL', tx + W(1.2), Y(57.86) + W(0.6))
+    ctx.fillStyle = foil
+  }
   ctx.textAlign = 'right'
   ctx.font = font(400, W(2.69))
   ctx.letterSpacing = `${W(2.69) * 0.07}px`
-  ctx.fillText(`${(card.nat ?? '').toUpperCase()} / 2025`, X(91.82), Y(58.72))
+  ctx.fillText(`${(natCountry(card.nat) ?? '').toUpperCase()} / 2025`, X(91.82), Y(58.72))
   ctx.letterSpacing = '0px'
   ctx.textAlign = 'left'
 

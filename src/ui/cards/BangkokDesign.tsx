@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CardFaceProps } from '../Card'
 import type { PlayerCard } from '../../engine/cards'
 import { BANGKOK_META, BANGKOK_TOTAL } from '../../engine/bangkok2025'
+import { natCountry } from '../../engine/nat'
 import './bangkok2025.css'
 
 export type BangkokRarity = 'gold' | 'silver' | 'bronze'
@@ -21,6 +22,8 @@ export interface BangkokPlayer {
   label?: string
   /** trained past +5 (进修): a small arrow after the label */
   evolved?: boolean
+  /** the team's caller: an IGL tag after the team, as the 普卡 face has */
+  igl?: boolean
 }
 const tiers = { gold: '金卡', silver: '银卡', bronze: '铜卡' }
 
@@ -39,7 +42,7 @@ export function BangkokCard({ player, rarity = 'gold', blank = false, footer }: 
     <div className="bk25-corner-lotus" aria-hidden="true" />
     <div className="bk25-rating"><strong>{player.rating ?? '—'}</strong><span>{player.label ?? '总评'}{player.evolved && <i className="evo-mark" title="进修过">↑</i>}</span></div>
     <span className="bk25-side">DAWN OF THE DUELIST</span>
-    <div className="bk25-player-info"><div className="bk25-team"><b>{player.team}</b><span>{player.nation} / 2025</span></div><strong className="bk25-ign">{player.ign}</strong>
+    <div className="bk25-player-info"><div className="bk25-team"><b>{player.team}{player.igl && <em className="bk25-igl" title="指挥">IGL</em>}</b><span>{player.nation} / 2025</span></div><strong className="bk25-ign">{player.ign}</strong>
       <div className="bk25-stats"><span><b>{player.acs ?? '—'}</b>ACS</span><span><b>{player.kd?.toFixed(2) ?? '—'}</b>K/D</span><span><b>{player.maps ?? '—'}</b>MAPS</span></div>
       <footer><span>{footer ?? '20 FEB — 02 MAR'}</span><b>{player.number}</b></footer>
     </div>
@@ -56,9 +59,10 @@ const pad = (n: number) => String(n).padStart(3, '0')
 export function BangkokFace({ card, level = 0, evolved = false, dupes = 0, selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard; evolved?: boolean }) {
   const e = card.bangkok!
   const player: BangkokPlayer = {
-    ign: card.ign, team: card.clubTag ?? '', nation: (card.nat ?? '').toUpperCase(), number: `${pad(e.number)} / ${pad(BANGKOK_TOTAL)}`,
+    ign: card.ign, team: card.clubTag ?? '', // 中国台湾 / 中国香港 / 中国澳门 read CN, as the flags do (nat.ts FLAG_AS)
+    nation: (natCountry(card.nat) ?? '').toUpperCase(), number: `${pad(e.number)} / ${pad(BANGKOK_TOTAL)}`,
     photo: card.face ?? undefined, photoPosition: '50% 30%', rating: card.rating, acs: e.acs, kd: e.kd, maps: e.maps,
-    label: `${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, evolved,
+    label: `${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, evolved, igl: card.isIgl,
   }
   return <div className={`bk25-face${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
     onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}
