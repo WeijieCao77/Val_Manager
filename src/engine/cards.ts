@@ -223,6 +223,14 @@ function buildCoachCards(): CoachCard[] {
  */
 /** How far above his ordinary card a彩卡 of the same man always sits. */
 export const LEGEND_EDGE = 2
+/**
+ * Every 彩卡 sits in 90–95. The 普卡 took the v15 ratings on 2026-10-01 and top out at 92, so the old
+ * authored 96–97 stood five above the best 普卡 — 「抽到就无敌」. The owner set the band: the top comes down to
+ * 95, the ones that were never high (Shao 92, Haodong 90) stay, and the lowest (zeek, Boaster) come up to 90.
+ */
+export const LEGEND_MIN = 90
+export const LEGEND_MAX = 95
+const legendBand = (r: number) => clamp(r, LEGEND_MIN, LEGEND_MAX)
 
 function legendAttrs(base: Attrs, delta: number): Attrs {
   const out = { ...base }
@@ -253,8 +261,8 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
         region: own.region, clubId: l.clubId, clubTag: l.clubTag,
         role: l.roles?.[0] ?? own.roles[0], roles: l.roles ?? own.roles,
         isIgl: l.isIgl ?? false, age: own.age,
-        attrs: { ...legendAttrs(own.attrs, l.rating - own.overall), ...l.attrs },
-        rating: l.rating, rarity: 'mythic',
+        attrs: { ...legendAttrs(own.attrs, legendBand(l.rating) - own.overall), ...l.attrs },
+        rating: legendBand(l.rating), rarity: 'mythic',
       })
       continue
     }
@@ -272,10 +280,8 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
     // day; ratings move (CHICHOO reached 94 on 2026-09-03 while his 2024
     // Seoul card still said 93), so the彩卡 floors at the ordinary card
     // plus two, and the authored number only ever lifts it further.
-    // Since the 普卡 took the v14.1 scale (2026-10-01) the floor also keeps the overall the night was written
-    // against: a 彩卡 is that night's snapshot, and a lower everyday card must not pull it down.
-    const was = WORLD_PLAYERS.find((p) => p.id === base.playerId)?.overall ?? base.rating
-    const rating = Math.min(99, Math.max(l.rating, base.rating + LEGEND_EDGE, was + LEGEND_EDGE))
+    // All of it inside the 90–95 band (LEGEND_MIN/MAX above).
+    const rating = legendBand(Math.max(l.rating, base.rating + LEGEND_EDGE))
     out.push({
       ...base,
       id: l.id,

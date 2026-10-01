@@ -1624,18 +1624,20 @@ export function claimSeries(g: GachaState, region: Series): string | null {
 }
 
 /**
- * 全图鉴: every card the ordinary packs can deal, held at once.
+ * 全图鉴: every ordinary card, held at once.
  *
- * Every 选手卡, every coach and every 首尔 and 曼谷 card — the 彩卡 are the one thing
- * left out, because they are what it pays: a 彩卡包, the only pack that
- * deals nothing else. Like the series ladder this is a landmark rather than
+ * Every 选手卡 and every coach. The 彩卡 are left out because they are what it
+ * pays (a 彩卡包, the only pack that deals nothing else), and since 2026-10-01
+ * so are the series cards: 首尔包 leaves the shelf on 10-08, and a set a new
+ * player can no longer finish is not a goal. An account that collected the
+ * reward under the old rule keeps `fullSet = 1` and is not paid twice. Like the series ladder this is a landmark rather than
  * an income; the four regions alone cost some four hundred packs each to
  * finish, and a prize at the end of that should be the rarest thing the
  * game has. Once, ever — the card the pack deals goes to the level of the
  * one you hold if you hold it already.
  */
 export const FULL_SET_CARDS: ReadonlySet<string> = new Set(
-  ALL_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id),
+  ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event)).map((c) => c.id),
 )
 export const FULL_SET_REWARD = { pack: 'legend' as PackKind, count: 1 }
 

@@ -1357,10 +1357,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .pack-reveal { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: auto; width: 100%; }
 
 /* While the seal is up, a sideways swipe is a tear, never the browser's
-   "back"; the stage swallows touch gestures so the page under it does not
-   scroll or navigate. */
+   "back": the seal itself (.pack-wrapper) takes every touch. The stage only
+   refuses sideways pans — it must still scroll up and down, or a 连开 recap
+   of thirty cards on a phone shows its first three rows and nothing more
+   (touch-action: none here did exactly that, 2026-10-01). Overscroll stays
+   contained so the page under it does not move. */
 html.pack-open, html.pack-open body { overscroll-behavior: none; }
-.pack-stage { touch-action: none; overscroll-behavior: contain; }
+.pack-stage { touch-action: pan-y; overscroll-behavior: contain; }
 
 /* A pointer-driven foil gate before the first card. */
 .pack-tear-scene {

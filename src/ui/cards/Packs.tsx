@@ -387,7 +387,7 @@ export default function Packs() {
             )
           })}
         </div>
-        {/* 全图鉴: every card that is not a 彩卡, and the one pack that deals nothing else. */}
+        {/* 全图鉴: every 选手卡 and coach (no 彩卡, no series cards), and the one pack that deals nothing else. */}
         <div
           className="row wrap"
           style={{
@@ -419,7 +419,7 @@ export default function Packs() {
                 ? '全部收齐，彩卡包已领。'
                 : fullSet.ready
                   ? `全部收齐了：${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count} 可以领`
-                  : `收齐全部选手卡、教练卡、首尔卡和曼谷卡（彩卡不计），送${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count}——只出彩卡的包。还差 ${fullSet.total - fullSet.owned} 张。`}
+                  : `收齐全部选手卡和教练卡（彩卡、首尔卡、曼谷卡不计），送${PACKS[FULL_SET_REWARD.pack].name} ×${FULL_SET_REWARD.count}——只出彩卡的包。还差 ${fullSet.total - fullSet.owned} 张。`}
             </span>
           </div>
           {fullSet.ready && (

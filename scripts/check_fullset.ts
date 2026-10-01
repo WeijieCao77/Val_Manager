@@ -14,7 +14,7 @@ import {
   fullSetProgress, claimFullSet, FULL_SET_CARDS, SERVER_KEYS,
 } from '../src/engine/gacha'
 import { runAction } from '../src/engine/cardActions'
-import { ALL_CARDS, LEGEND_CARDS, LEGEND_COACH_CARDS } from '../src/engine/cards'
+import { ALL_CARDS, LEGEND_CARDS, LEGEND_COACH_CARDS, SEOUL_CARDS, BANGKOK_CARDS, BASE_PLAYER_CARDS, COACH_CARDS } from '../src/engine/cards'
 
 const def = PACKS.legend
 assert.equal(def.mythic, 1)
@@ -47,8 +47,11 @@ assert.equal(g.mythicDry, 0)
 
 // the full set
 const h = newGacha('FULLSET2', '审计', '2026-09-12')
-assert.equal(FULL_SET_CARDS.size, ALL_CARDS.filter((c) => c.rarity !== 'mythic').length)
+// since 2026-10-01: 选手卡 and coaches only — no 彩卡, no 首尔/曼谷 series cards
+assert.equal(FULL_SET_CARDS.size, ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event)).length)
 assert(!FULL_SET_CARDS.has(LEGEND_CARDS[0].id))
+assert(!FULL_SET_CARDS.has(SEOUL_CARDS[0].id) && !FULL_SET_CARDS.has(BANGKOK_CARDS[0].id), 'series cards are not in the set')
+assert(BASE_PLAYER_CARDS.every((c) => FULL_SET_CARDS.has(c.id)) && COACH_CARDS.every((c) => c.rarity === 'mythic' || FULL_SET_CARDS.has(c.id)))
 let p = fullSetProgress(h)
 assert.deepEqual([p.owned, p.total, p.ready, p.claimed], [0, FULL_SET_CARDS.size, false, false])
 assert.equal(claimFullSet(h), null)
@@ -83,4 +86,16 @@ assert.equal(saved.fullSet, 1)
 assert.equal(saved.packs.legend, 1)
 const junk = migrateGacha({ ...JSON.parse(JSON.stringify(h)), fullSet: 'yes' }, h.id)
 assert.equal(junk.fullSet, undefined)
+// 2026-10-01: the set lost its series cards. Someone who never got a 首尔 card can finish it now…
+const fresh = newGacha('FULLSET3', '审计', '2026-10-01')
+for (const id of FULL_SET_CARDS) fresh.cards[id] = { id, level: 0, dupes: 0, seen: 1, got: '2026-10-01' }
+assert(fullSetProgress(fresh).ready, 'every 选手卡 and coach is enough')
+assert(runAction(fresh, 'fullset', {}, env).ok)
+// …and an account that already collected the 彩卡包 under the old rule is never paid again
+const old = migrateGacha({ ...JSON.parse(JSON.stringify(fresh)), fullSet: 1, packs: {} }, fresh.id)
+for (const c of [...SEOUL_CARDS, ...BANGKOK_CARDS]) delete old.cards[c.id]
+p = fullSetProgress(old)
+assert(p.claimed && !p.ready, 'collected before the rule changed')
+assert.equal(runAction(old, 'fullset', {}, env).ok, false, 'no second 彩卡包')
+assert.equal(old.packs.legend ?? 0, 0)
 console.log(`彩卡包 deals ${seen.size} 彩卡, 全图鉴 is ${FULL_SET_CARDS.size} cards — all good`)

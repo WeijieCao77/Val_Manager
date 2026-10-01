@@ -28,6 +28,15 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-01',
+    title: '彩卡评分调整 · 全图鉴只算普卡',
+    changes: [
+      { kind: '调整', text: '<b>彩卡评分统一在 90–95 之间</b>。ZmjjKK、CHICHOO（曼谷）97 → 95，CHICHOO（首尔）96 → 93，brawk 95 → 94；zeek 88 → 90，Boaster 86 → 90。其余彩卡不变。' },
+      { kind: '调整', text: '<b>全图鉴只算选手卡和教练卡</b>，首尔卡、曼谷卡不再计入，收齐照样送一个彩卡包。已经领过的不能再领。' },
+      { kind: '修复', text: '手机上连开多包后，结果页上下滑不动、看不到全部卡。' },
+    ],
+  },
+  {
+    date: '2026-10-01',
     title: '普卡数值更新 · 进修',
     pinned: true,
     changes: [
