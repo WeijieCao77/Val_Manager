@@ -20,9 +20,10 @@
 import { createHash } from 'node:crypto'
 import { buildArena, playRivalMatch, ARENA_TEAM } from '../src/engine/arena'
 import {
-  ALL_CARDS, COACH_LEVEL_LIFT, LEVEL_GAIN, MAX_LEVEL, POWER_PER_LEVEL, POWER_PER_SQUAD_POINT, cardPower, growthOf,
+  ALL_CARDS, COACH_LEVEL_LIFT, EVO_LEVEL_ROOM, LEVEL_GAIN, MAX_LEVEL, POWER_PER_LEVEL, POWER_PER_SQUAD_POINT, cardPower, growthOf,
   isCoachCard, isPlayerCard, ratingAt, squadPaper, squadPower, squadRating,
 } from '../src/engine/cards'
+import { playLevel } from '../src/engine/evolve'
 import { migrateGacha, newGacha, levelOf } from '../src/engine/gacha'
 import type { GachaState } from '../src/engine/gacha'
 import { Rng } from '../src/engine/rng'
@@ -51,13 +52,17 @@ const coaches = ALL_CARDS.filter(isCoachCard)
     for (let l = 0; l <= MAX_LEVEL; l++) {
       if (cardPower(c, l) !== 100 * c.rating + POWER_PER_LEVEL * l) off++
     }
-    if (cardPower(c, MAX_LEVEL + 3) !== cardPower(c, MAX_LEVEL)) off++
+    // 进修 (evolve.ts) rides above +5 as a fraction, up to EVO_LEVEL_ROOM; nothing past that counts
+    if (cardPower(c, MAX_LEVEL + EVO_LEVEL_ROOM + 3) !== cardPower(c, MAX_LEVEL + EVO_LEVEL_ROOM)) off++
     if (ratingAt(c.rating, MAX_LEVEL) !== c.rating + MAX_LEVEL * LEVEL_GAIN) off++
   }
   check(`${players.length} 张选手卡：每级战力 +${POWER_PER_LEVEL}，满级 +${POWER_PER_LEVEL * MAX_LEVEL}，规则评分不再封 99`, off === 0, `${off} 处不对`)
   const grows = coaches.every((c) => cardPower(c, MAX_LEVEL) === 100 * c.rating + POWER_PER_LEVEL * MAX_LEVEL)
   check(`${coaches.length} 张教练卡：每级战力 +${POWER_PER_LEVEL}，和选手一样`, grows)
-  check('growthOf 只认 0～5 级', growthOf(-2) === 0 && growthOf(3) === 3 && growthOf(9) === MAX_LEVEL)
+  check(`growthOf 只认 0～${MAX_LEVEL} 级，加进修最多 ${EVO_LEVEL_ROOM} 级`, growthOf(-2) === 0 && growthOf(3) === 3 && growthOf(99) === MAX_LEVEL + EVO_LEVEL_ROOM)
+  // what a save or a snapshot stores as `level` still stops at +5: only a real 进修 goes above it
+  check('存档里的等级超过 5 也只算 +5', playLevel(players[0].id, { level: 9 }) === MAX_LEVEL
+    && playLevel(players[0].id, { level: 20, evo: 'x' }) === MAX_LEVEL)
 }
 
 // ---- the +0 state: original uncoached fixtures, coached fixtures updated for
@@ -66,13 +71,15 @@ const coaches = ALL_CARDS.filter(isCoachCard)
 // (P527) got their real birthdates from 号角 (20 → 24 and 18 → 23), and age is
 // part of a bond. Their ratings and attributes did not move — only `bonds`.
 const PINNED: Record<string, string> = {
-  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': '6b96eb4ef77c',
-  'p:P260,p:P65,p:P360,p:P266,p:P536|-': 'a0240f257957',
+  // re-pinned 2026-10-01: the 普卡 took the v15 ratings (src/data/card_ratings.json) and their attributes moved with them;
+  // with that table emptied the old pins all still match, so nothing else changed
+  'p:P529,p:P313,p:P238,p:P532,p:P518|c:nokaze37': '39235f1b49f3',
+  'p:P260,p:P65,p:P360,p:P266,p:P536|-': '3b71fa886cce',
   // re-pinned 2026-09-18: Shao's flag went from vlr's blank "un" to Russia, and a shared flag is part of a bond
-  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '1c1ce08e3d50',
-  'p:P227,p:P382,p:P95,p:P300,p:P48|-': '595896154188',
-  'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': '32470f4bdca0',
-  'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'e27e63094203',
+  'L:shao-copenhagen-2022,s24:3021,p:P113,p:P301,p:P257|L:muggle-champions-2024': '163d2a6145cd',
+  'p:P227,p:P382,p:P95,p:P300,p:P48|-': 'f18dfb1f5096',
+  'p:P262,p:P227,p:P16,p:P2,p:P267|c:Ann': 'c16f968cfc53',
+  'p:P117,s24:15559,p:P489,p:P527,p:P114|-': 'ffe02eaedaf6',
 }
 type Seated = { overall: number; attrs: Record<string, number>; isIgl?: boolean }
 function seated(slots: string[], coach: string | null, level: (id: string) => number): { ps: Seated[]; hash: string } {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import MatchReport from './Report'
-import { levelOf, rankName, recordFriend } from '../../engine/gacha'
+import { playLevelOf, rankName, recordFriend } from '../../engine/gacha'
 import { squadRating } from '../../engine/cards'
 import type { FriendRec } from '../../engine/gacha'
 import { playRivalMatch } from '../../engine/arena'
@@ -44,7 +44,7 @@ export default function Friends() {
   const [found, setFound] = useState<Found | null>(null)
   const [why, setWhy] = useState<string | null>(null)
   const [shown, setShown] = useState<{ res: ArenaResult; who: Found; rec: FriendRec } | null>(null)
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   const mine = myCode()
   const filled = g.squad.slots.filter(Boolean).length
   const rating = squadRating(g.squad, level)

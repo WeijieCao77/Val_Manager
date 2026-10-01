@@ -60,6 +60,8 @@ export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: 
     setSpares(owned, spares)
     return { ok: true, level: pick }
   }
+  // a card through 进修 is the one copy that stays: its duplicates and spares went above, it does not
+  if (owned.evo) return { ok: false, level }
   if (spares.length) {
     owned.level = spares.pop()!
     setSpares(owned, spares)

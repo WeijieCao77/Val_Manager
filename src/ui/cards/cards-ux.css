@@ -272,6 +272,26 @@
 .team-board-content { position:relative; }
 @media(max-width:720px) { .team-board { padding:14px; } .team-board-title { gap:10px; padding-bottom:18px; } .team-board-title > img { width:44px;height:44px; } .team-board-title > b { display:none; } }
 
+/* 进修 (Evolve.tsx): eight attribute buttons, a five-slot tray */
+.evo-attrs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.evo-attr { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; text-align: left; min-width: 0; }
+.evo-attr .mono { font-size: 18px; line-height: 1.2; }
+.evo-attr.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.evo-attr-name { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.evo-key { font-style: normal; font-size: 10px; padding: 0 4px; border-radius: 3px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.evo-tray { margin-top: 4px; }
+.evo-slot { width: 100%; max-width: 132px; aspect-ratio: 5 / 7; border: 1.5px dashed var(--line); border-radius: 8px; display: grid; place-items: center; color: var(--faint); font-size: 18px; justify-self: center; }
+@media (max-width: 560px) {
+  .evo-attrs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .evo-attr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 6px; }
+  .evo-attr .tiny { grid-column: 1 / -1; }
+  /* the five stay one row on a phone: the tray is a strip, not a squad sheet */
+  .cardmode .evo-tray { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .evo-tray > .card-img { width: 100%; }
+  .evo-slot { font-size: 14px; border-radius: 6px; }
+  .evo-head > .card-img { width: 132px; }
+}
+
 /* 上赛季前十 (Ladder.tsx LastSeasonBoard): ranked rows, the podium tinted by metal, the account's own row marked */
 .board-seg { margin-bottom: 12px; }
 .last-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

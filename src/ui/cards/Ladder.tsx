@@ -4,7 +4,7 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   DIVISIONS, MASTER_DIV, MASTER_TITLES, PACKS, STAMINA_COST, STAMINA_MAX, canPlay,
-  ladderOpponent, ladderOf, leagueEntry, levelOf, masterTitle, oppBumpFor, pendingOpponent,
+  ladderOpponent, ladderOf, leagueEntry, playLevelOf, masterTitle, oppBumpFor, pendingOpponent,
   LEAGUES, LEAGUE_RULES,
   rankName, staminaFillHours, staminaNow, staminaRate, starsOnTier, tierStars,
   SEASON_DAYS, seasonDaysLeft, seasonFirstDay, seasonLastDay, seasonName, seasonOf,
@@ -43,7 +43,7 @@ export default function Ladder() {
   // of — which was the whole point of splitting them.
   const [league, setLeague] = useState<LeagueKind>('open')
   const rule = LEAGUE_RULES[league]
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   const filled = g.squad.slots.filter(Boolean).length
   const rating = squadRating(g.squad, level)
   const opp0 = ladderOpponent(g, league)

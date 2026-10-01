@@ -4,7 +4,7 @@ import { useCards } from './ctx'
 import CardFace, { CardSlot } from '../Card'
 import { Panel } from '../common'
 import {
-  autoSquad, collection, levelOf, personTaken, setSlot,
+  autoSquad, collection, playLevelOf, personTaken, setSlot,
 } from '../../engine/gacha'
 import { SQUAD_SLOTS, chemistry, isCoachCard, isPlayerCard, cardById, squadPaper, squadPower, squadPowerPoints, squadRating } from '../../engine/cards'
 import { roleGaps } from '../../engine/arena'
@@ -36,7 +36,7 @@ export default function SquadScreen() {
   const [sharing, setSharing] = useState(false)
   const pickerRef = useDialogFocus(() => setPicking(null), picking !== null)
 
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   // Not memoised on g.squad: the squad object is mutated in place, so a memo
   // keyed on it never recomputes and the chemistry panel goes stale the moment
   // a slot changes. Ten pairs of comparisons is not worth caching anyway.

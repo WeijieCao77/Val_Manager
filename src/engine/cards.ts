@@ -20,6 +20,7 @@ import { LEGENDS } from './legends'
 // which players each coach actually coached: a staff role at a club in months the
 // player was on it — scripts/build_coached.py, off vlr.gg careers and Liquipedia tenure
 import COACHED_JSON from '../data/coached.json'
+import RATED from '../data/card_ratings.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -37,13 +38,28 @@ export const rarityRank = (r: Rarity): number => RARITY_ORDER.indexOf(r)
 /**
  * Where the three metals sit.
  *
- * Picked off the real distribution rather than off a round number: 84 puts 91
- * of the 518 professionals in gold (17.6%), which is roughly "a starter at a
- * VCT club having a good year". Move it to 86 and half the partnered league
- * turns silver, which reads wrong to anyone who watches the games.
+ * Since 2026-10-01 the 普卡 are rated by the published v14.1 scale
+ * (src/data/card_ratings.json, explained at /cards/stats) and the metals are
+ * its quantiles: about the top fifth gold (79), the next 35% silver (70) —
+ * 109 / 200 / 229 of 538. It was 84 / 72 on the world's own overall.
  */
-export const GOLD_AT = 84
-export const SILVER_AT = 72
+export const GOLD_AT = RATED.gold_at
+export const SILVER_AT = RATED.silver_at
+
+/**
+ * A 普卡's rating: the v14.1 scale, or the owner's hand where the data cannot
+ * see the job (Boaster's calling). The manager game keeps the world's overall —
+ * only the cards moved.
+ */
+const cardRating = (id: string, overall: number): number =>
+  (RATED.manual as Record<string, { rating: number }>)[id]?.rating ?? (RATED.ratings as Record<string, number>)[id] ?? overall
+
+/**
+ * The attributes follow the rating: every one moved by the same gap, so the six
+ * on the face add up to the number above them as they did before.
+ */
+const shiftAttrs = (attrs: Attrs, by: number): Attrs =>
+  by ? Object.fromEntries(Object.entries(attrs).map(([k, v]) => [k, Math.max(1, Math.min(99, v + by))])) as unknown as Attrs : attrs
 
 /**
  * The metal a rating earns. Never 彩卡 — that tier is not something a number
@@ -149,9 +165,9 @@ function buildPlayerCards(): PlayerCard[] {
       roles: (p.roles as Role[] | undefined)?.length ? (p.roles as Role[]) : [p.role as Role],
       isIgl: !!p.isIgl,
       age: p.age,
-      attrs: p.attrs,
-      rating: p.overall,
-      rarity: rarityOf(p.overall),
+      attrs: shiftAttrs(p.attrs, cardRating(p.id, p.overall) - p.overall),
+      rating: cardRating(p.id, p.overall),
+      rarity: rarityOf(cardRating(p.id, p.overall)),
     }
   })
 }
@@ -256,7 +272,10 @@ function buildLegendCards(players: PlayerCard[]): PlayerCard[] {
     // day; ratings move (CHICHOO reached 94 on 2026-09-03 while his 2024
     // Seoul card still said 93), so the彩卡 floors at the ordinary card
     // plus two, and the authored number only ever lifts it further.
-    const rating = Math.min(99, Math.max(l.rating, base.rating + LEGEND_EDGE))
+    // Since the 普卡 took the v14.1 scale (2026-10-01) the floor also keeps the overall the night was written
+    // against: a 彩卡 is that night's snapshot, and a lower everyday card must not pull it down.
+    const was = WORLD_PLAYERS.find((p) => p.id === base.playerId)?.overall ?? base.rating
+    const rating = Math.min(99, Math.max(l.rating, base.rating + LEGEND_EDGE, was + LEGEND_EDGE))
     out.push({
       ...base,
       id: l.id,
@@ -387,8 +406,14 @@ export const SALVAGE: Record<Rarity, number> = {
 export const ratingAt = (base: number, level: number): number =>
   base + growthOf(level) * LEVEL_GAIN
 
-/** the levels a card has actually earned, 0–MAX_LEVEL */
-export const growthOf = (level: number): number => Math.max(0, Math.min(MAX_LEVEL, level))
+/**
+ * How far above +5 进修 can take a card, in levels (engine/evolve.ts): five 进修 of three points on the
+ * attribute the card's position weighs most (a duelist's aim, 0.28) is 4.2 rating, 2.8 levels.
+ */
+export const EVO_LEVEL_ROOM = 3
+
+/** the levels a card has actually earned, 0–MAX_LEVEL, and 进修 above it as a fraction (evolve.ts playLevel) */
+export const growthOf = (level: number): number => Math.max(0, Math.min(MAX_LEVEL + EVO_LEVEL_ROOM, level))
 
 /**
  * What one level is worth, in ability points.

@@ -25,7 +25,7 @@
  */
 import {
   awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
-  levelOf, oppBumpFor, openPack, openPacks, pendingOpponent, primeStamina, recordCup, recordLadder,
+  levelOf, playLevelOf, oppBumpFor, openPack, openPacks, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
   encBlock, encNation, encRivalWhole, enterEnc, rollSeason,
@@ -37,6 +37,7 @@ import {
 import type { MiniGame } from './minigame'
 import type { GachaState, QuestKey, Series } from './gacha'
 import { playArenaMatch, playCupMatch, playRivalMatch } from './arena'
+import { evolve } from './evolve'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, challengeSig, guessChallenge } from './challenge'
 import { hashStr } from './rng'
@@ -74,7 +75,7 @@ export function encRegistration(g: GachaState): { nat: string; slots: string[]; 
   if (!five.ok) return null
   const nation = encNation(five.squad)
   if ('why' in nation) return null
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   const reg = registerCupSquad(five.squad, level)
   return {
     nat: nation.nat, slots: reg.squad.slots as string[], coach: reg.squad.coach as string, levels: reg.levels,
@@ -89,7 +90,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'mail_seen',
-  'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
+  'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
   'bangkok_start', 'bangkok_play', 'bangkok_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
@@ -101,7 +102,7 @@ export const wantsRival = (g: GachaState, action: string): boolean =>
 /** What the five this account would field is worth on paper, for finding it a fair rival. */
 export function ladderScore(g: GachaState): number | null {
   const five = squadForPlay(g)
-  return five.ok ? squadRating(five.squad, (id) => levelOf(g, id)) : null
+  return five.ok ? squadRating(five.squad, (id) => playLevelOf(g, id)) : null
 }
 
 /**
@@ -238,6 +239,13 @@ function dispatch(
       if (!upgrade(g, cardId)) return { ok: false, why: '还升不了' }
       return { ok: true, result: { level: levelOf(g, cardId) } }
     }
+    case 'evolve': {
+      // 进修: five spare copies for one attribute on a +5 card (engine/evolve.ts)
+      const feed = Array.isArray(a.feed) ? a.feed.slice(0, 10).map((x) => str(x)) : []
+      const r = evolve(g, str(a.cardId), str(a.attr, 16), feed)
+      if (!r.ok) return r
+      return { ok: true, result: { gain: r.gain, attr: r.attr, evo: r.evo } }
+    }
     case 'dismantle': {
       const r = dismantle(g, str(a.cardId), Number(a.level))
       if (!r.ok) return r
@@ -285,7 +293,7 @@ function dispatch(
       // the league's own handicap, and above 大师 the sharpening on top
       const bump = LEAGUE_RULES[league].oppBump + (master ? oppBumpFor(L.points ?? 0) : 0)
       if (!spendPlay(g, 'ladder', env.now)) return { ok: false, why: '体力不够' }
-      const level = (id: string) => levelOf(g, id)
+      const level = (id: string) => playLevelOf(g, id)
       const res: ArenaResult = rival
         ? playRivalMatch(five.squad, level, rival, LADDER_BO, env.seed, undefined, true)
         : playArenaMatch(five.squad, level, oppId, LADDER_BO, env.seed, bump)
@@ -307,7 +315,7 @@ function dispatch(
       if (!five.ok) return five
       if (!canPlay(g, 'cup', env.now)) return { ok: false, why: `体力不够，入场要 ${STAMINA_COST.cup} 点` }
       try {
-        const level = (id: string) => levelOf(g, id)
+        const level = (id: string) => playLevelOf(g, id)
         // the bracket is drawn from the account's seed, which the client holds —
         // without the server's number it could be foreseen before paying, as a
         // pack could (see 'open')
@@ -327,7 +335,7 @@ function dispatch(
       if (!cup.registration) {
         const five = squadForPlay(g)
         if (!five.ok) return { ok: false, why: '这届旧杯赛还没有报名阵容，请先凑齐五个人再继续；不会重新收费或抽签。' }
-        cup.registration = registerCupSquad(five.squad, id => levelOf(g, id))
+        cup.registration = registerCupSquad(five.squad, id => playLevelOf(g, id))
       }
       // the ticket was the whole price: nothing is charged per round
       const level = (id: string) => cup.registration!.levels[id] ?? 0
@@ -346,7 +354,7 @@ function dispatch(
       const nation = encNation(five.squad)
       if ('why' in nation) return { ok: false, why: nation.why }
       try {
-        const level = (id: string) => levelOf(g, id)
+        const level = (id: string) => playLevelOf(g, id)
         // the server leaves this account's own entry out of the pool it hands over
         const pool = env.encPool ?? []
         g.seed = hashStr(`${g.seed}:enc:${env.seed}`) >>> 0

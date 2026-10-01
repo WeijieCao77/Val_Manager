@@ -1,4 +1,4 @@
-/** Shared card scale, truthful cup ratings, and meaningful 95-vs-85 advantage. */
+/** Shared card scale, truthful cup ratings, and a meaningful ten-point advantage. */
 import assert from 'node:assert/strict'
 import { ARENA_TEAM, buildCupArena, playCupMatch, playRivalMatch } from '../src/engine/arena'
 import { ALL_CARDS, cardById, isCoachCard, isPlayerCard, personOf, squadRating } from '../src/engine/cards'
@@ -42,25 +42,32 @@ for (const tag of ['EDG', 'NOVA', 'AT']) {
 }
 console.log('ok cup and ranked PvP produce identical maps for the same squads and seeds')
 
+// A ten-point lead must be worth something. The two scores were 95 and 85 on the old card scale; since the
+// 普卡 took the v15 ratings (2026-10-01) the clubs top out lower, so the pair is the highest score at least
+// three club fives reach with some coach, and ten under it.
 const coaches = ALL_CARDS.filter(isCoachCard)
-const fives = CUP_TEAMS.flatMap(club => {
-  const coach = coaches.find(c => squadRating({ ...club.squad, coach: c.id }) === 95)
+const fivesAt = (score: number) => CUP_TEAMS.flatMap(club => {
+  const coach = coaches.find(c => squadRating({ ...club.squad, coach: c.id }) === score)
   return coach ? [{ ...club.squad, coach: coach.id }] : []
 }).slice(0, 4)
-assert(fives.length >= 3, 'multiple distinct 95-point squads')
-const opponents = CUP_TEAMS.filter(t => t.rating === 85)
+const TOP = [99, 98, 97, 96, 95, 94, 93, 92, 91, 90].find(s => fivesAt(s).length >= 3 && CUP_TEAMS.filter(t => t.rating === s - 10).length >= 2)!
+assert(TOP, 'three fives at one score and two clubs ten under it')
+const LOW = TOP - 10
+const fives = fivesAt(TOP)
+assert(fives.length >= 3, `multiple distinct ${TOP}-point squads`)
+const opponents = CUP_TEAMS.filter(t => t.rating === LOW)
 assert(opponents.length >= 2)
 for (const bo of [3, 5] as const) {
   let wins = 0
   const N = 600
   for (let i = 0; i < N; i++) {
     const squad = fives[i % fives.length], opponent = opponents[Math.floor(i / fives.length) % opponents.length]
-    assert.equal(squadRating(squad), 95)
+    assert.equal(squadRating(squad), TOP)
     if (playCupMatch(squad, () => 0, opponent.id, bo, hashStr(`fairness95:${bo}:${i}`)).win) wins++
   }
   const rate = wins / N
-  assert(rate >= .70 && rate < 1, `95 vs 85 BO${bo}: ${rate}`)
-  console.log(`ok 95 vs 85 BO${bo}: ${wins}/${N} (${(rate * 100).toFixed(1)}%), stronger favoured with upsets retained`)
+  assert(rate >= .70 && rate < 1, `${TOP} vs ${LOW} BO${bo}: ${rate}`)
+  console.log(`ok ${TOP} vs ${LOW} BO${bo}: ${wins}/${N} (${(rate * 100).toFixed(1)}%), stronger favoured with upsets retained`)
 }
 // Equal cards must still be a contest; this also catches one-sided buffs.
 let mirrorWins = 0

@@ -184,17 +184,20 @@ export function makeOpenCupApi(sql, {
     const coach = typeof row.squad?.coach === 'string' ? row.squad.coach : null
     const held = row.levels && typeof row.levels === 'object' ? row.levels : {}
     const cards = {}
-    for (const [id, lv] of Object.entries(held)) {
+    for (const [id, raw] of Object.entries(held)) {
+      // { level, evo } per card (进修 rides beside the level); a bare number from an older query
+      const lv = raw && typeof raw === 'object' ? raw.level : raw
       if (lv === null || lv === undefined) continue
       const n = Math.trunc(Number(lv) || 0)
-      cards[id] = { id, level: Math.max(0, Math.min(20, n)), dupes: 0, seen: 1 }
+      cards[id] = { id, level: Math.max(0, Math.min(20, n)), dupes: 0, seen: 1, evo: raw?.evo ?? undefined }
     }
     let five
     try { five = engine.squadForPlay({ squad: { slots, coach }, cards }) } catch { return null }
     if (!five?.ok) return null
     const levels = {}
     for (const id of [...five.squad.slots, five.squad.coach]) {
-      if (id && cards[id]?.level) levels[id] = cards[id].level
+      const lv = id && cards[id] ? engine.playLevel(id, cards[id]) : 0
+      if (lv) levels[id] = lv
     }
     let score
     try { score = engine.squadRating(five.squad, (id) => levels[id] ?? 0) } catch { return null }
@@ -245,7 +248,7 @@ export function makeOpenCupApi(sql, {
       // the levels of the pick's cards and of the squad's, both: the squad is the fallback
       const rows = await db`
         select a.id_hash, a.name, a.state->'squad' as squad, e.pick,
-          (select jsonb_object_agg(k, a.state->'cards'->k->'level')
+          (select jsonb_object_agg(k, jsonb_build_object('level', a.state->'cards'->k->'level', 'evo', a.state->'cards'->k->'evo'))
              from (select jsonb_array_elements_text(
                      (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
                            then a.state->'squad'->'slots' else '[]'::jsonb end)
@@ -702,7 +705,7 @@ export function makeOpenCupApi(sql, {
     const asked = pickOf(body?.squad)
     const mine = await sql`
       select a.id_hash, a.name, a.state->'squad' as squad,
-        (select jsonb_object_agg(k, a.state->'cards'->k->'level')
+        (select jsonb_object_agg(k, jsonb_build_object('level', a.state->'cards'->k->'level', 'evo', a.state->'cards'->k->'evo'))
            from (select jsonb_array_elements_text(
                    (case when jsonb_typeof(a.state->'squad'->'slots') = 'array'
                          then a.state->'squad'->'slots' else '[]'::jsonb end)

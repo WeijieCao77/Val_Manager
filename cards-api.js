@@ -1231,7 +1231,9 @@ export function makeCardApi(sql, {
     // here for a day, and every rival five arrived un-upgraded
     const lvOf = (id) => {
       const lv = r.cards?.[id]?.level
-      return typeof lv === 'number' && lv > 0 ? Math.min(20, Math.trunc(lv)) : 0
+      if (!(typeof lv === 'number' && lv > 0)) return 0
+      // 进修 above +5 rides in as a fraction of a level (engine/evolve.ts playLevel)
+      return engine.playLevel(id, { level: Math.min(20, Math.trunc(lv)), evo: r.cards[id].evo })
     }
     const levels = {}
     for (const id of slots) {
@@ -1353,7 +1355,7 @@ export function makeCardApi(sql, {
       if (!fit.length) return 0
       // the levels of the six, and only if the account really owns all six
       const owned = await db`
-        select a.id_hash, (select coalesce(jsonb_object_agg(k, coalesce(a.state->'cards'->k->'level', '0'::jsonb)), '{}'::jsonb)
+        select a.id_hash, (select coalesce(jsonb_object_agg(k, jsonb_build_object('level', coalesce(a.state->'cards'->k->'level', '0'::jsonb), 'evo', a.state->'cards'->k->'evo')), '{}'::jsonb)
           from (select e #>> '{}' as k from jsonb_array_elements(a.state->'squad'->'slots') e
                 union select a.state->'squad'->>'coach') ks
           where k is not null and a.state->'cards' ? k) as levels
@@ -1364,7 +1366,7 @@ export function makeCardApi(sql, {
         const levels = levelsOf.get(r.id_hash) ?? {}
         const ids = [...r.squad.slots, r.squad.coach]
         if (!ids.every((id) => id in levels)) continue
-        const lv = Object.fromEntries(ids.map((id) => [id, Math.max(0, Math.trunc(Number(levels[id]) || 0))]))
+        const lv = Object.fromEntries(ids.map((id) => [id, engine.playLevel(id, levels[id])]))
         const nation = engine.encNation({ slots: r.squad.slots, coach: r.squad.coach })
         let score = 0
         try { score = engine.squadRating({ slots: r.squad.slots, coach: r.squad.coach }, (id) => lv[id] ?? 0) } catch { continue }
@@ -1459,7 +1461,7 @@ export function makeCardApi(sql, {
         case when a.state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
              then (a.state->'ladder'->>'points')::int else 0 end as points,
         -- the six cards on the sheet and nothing else of the collection
-        (select coalesce(jsonb_object_agg(k, jsonb_build_object('level', a.state->'cards'->k->'level')), '{}'::jsonb)
+        (select coalesce(jsonb_object_agg(k, jsonb_build_object('level', a.state->'cards'->k->'level', 'evo', a.state->'cards'->k->'evo')), '{}'::jsonb)
            from (select e #>> '{}' as k from jsonb_array_elements(a.state->'squad'->'slots') e
                  union select a.state->'squad'->>'coach') ks
           where k is not null and a.state->'cards' ? k) as cards

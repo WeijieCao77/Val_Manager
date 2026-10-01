@@ -4,13 +4,13 @@ import { Panel } from '../common'
 import MatchReport from './Report'
 import {
   CUP_MAX_ROUNDS, CUP_MIN_ROUNDS, PACKS, STAMINA_COST, canPlay, cupBo, cupExitPrize, cupOpponent,
-  cupRoundName, cupTitlePrize, encNation, levelOf, staminaNow,
+  cupRoundName, cupTitlePrize, encNation, playLevelOf, staminaNow,
 } from '../../engine/gacha'
 import type { CupKind, CupOutcome, CupRegistration, PackKind } from '../../engine/gacha'
 import { natName } from '../../engine/nat'
 import type { ArenaResult } from '../../engine/arena'
 import type { Squad } from '../../engine/cards'
-import { cardById, cardName, squadRating } from '../../engine/cards'
+import { MAX_LEVEL, cardById, cardName, squadRating } from '../../engine/cards'
 import { cupTeam } from '../../engine/cupTeams'
 import { track } from '../../engine/telemetry'
 import OpenCup from './OpenCup'
@@ -86,7 +86,7 @@ function ClubCup({ kind }: { kind: CupKind }) {
     setBusy(false)
     if (!r.ok) { toast(r.why); return }
     const { res, opp, out, registration: played } = r.result as { res: ArenaResult; opp: string; out: CupOutcome; registration?: CupRegistration }
-    const levels = played?.levels ?? Object.fromEntries([...g.squad.slots, g.squad.coach].filter((id): id is string => !!id).map(id => [id, levelOf(g, id)]))
+    const levels = played?.levels ?? Object.fromEntries([...g.squad.slots, g.squad.coach].filter((id): id is string => !!id).map(id => [id, playLevelOf(g, id)]))
     const rating = squadRating(played?.squad ?? g.squad, id => levels[id] ?? 0)
     track('card_match', { mode: enc ? 'enc' : 'cup', won: res.win, round, rating, title: !!out.won })
     setShown({ res, opp, out, levels, squad: played?.squad ?? g.squad })
@@ -148,7 +148,7 @@ function ClubCup({ kind }: { kind: CupKind }) {
                 本届报名阵容（{squadRating(registration.squad, id => registration.levels[id] ?? 0)} 分）：
                 {[...registration.squad.slots, registration.squad.coach].filter((id): id is string => !!id).map(id => {
                   const card = cardById(id)
-                  return `${card ? cardName(card) : id} +${registration.levels[id] ?? 0}`
+                  return `${card ? cardName(card) : id} +${Math.min(MAX_LEVEL, Math.floor(registration.levels[id] ?? 0))}${(registration.levels[id] ?? 0) > MAX_LEVEL ? '↑' : ''}`
                 }).join(' · ')}
               </p>
             ) : live ? (

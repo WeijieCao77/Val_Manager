@@ -69,3 +69,6 @@ export function useCards(): CardCtxValue {
   if (!v) throw new Error('useCards must be used inside CardCtx')
   return v
 }
+
+/** sessionStorage key: the card 卡牌详情's 去进修 opens the 进修 page on */
+export const EVO_TARGET = 'vm-evo-target'

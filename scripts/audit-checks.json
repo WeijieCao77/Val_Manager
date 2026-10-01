@@ -779,5 +779,10 @@
     "runtime": "tsx",
     "file": "scripts/check_last_season.ts",
     "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_evolve.ts",
+    "estimatedSeconds": 6
   }
 ]

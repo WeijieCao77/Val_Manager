@@ -17,6 +17,7 @@ const Market = lazy(() => import('./cards/Market'))
 const Cup = lazy(() => import('./cards/Cup'))
 const Predict = lazy(() => import('./cards/Predict'))
 const BangkokRoute = lazy(() => import('./cards/BangkokRoute'))
+const Evolve = lazy(() => import('./cards/Evolve'))
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import OddsFab from './cards/OddsFab'
@@ -349,6 +350,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     cup: Cup,
     predict: Predict,
     bangkok: BangkokRoute,
+    evolve: Evolve,
   } as Record<string, ComponentType>)[tab]
 
   const signOut = () => {

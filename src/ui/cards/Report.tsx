@@ -247,7 +247,7 @@ function Board({ title, lines, mvp, level }: {
                       <>
                         {spot.label} {spot.stat(l)}
                         <span className="tiny faint" style={{ marginLeft: 6 }}>
-                          {ATTR_CN[spot.attr]} {Math.min(99, card.attrs[spot.attr] + level(l.cardId))}
+                          {ATTR_CN[spot.attr]} {Math.min(99, Math.round(card.attrs[spot.attr] + level(l.cardId)))}
                         </span>
                       </>
                     )}

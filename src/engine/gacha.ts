@@ -20,9 +20,11 @@ import type { EventRouteState } from './eventRoute'
 import {
   ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
-  squadRating, squadPower,
+  squadRating, squadPower, EVO_LEVEL_ROOM,
 } from './cards'
 import type { Card, PlayerCard, Rarity, Squad } from './cards'
+import { cleanEvo, playLevel } from './evolve'
+import type { Evo } from './evolve'
 import { newChallenge } from './challenge'
 import { MINI_CN, MINI_COINS, MINI_PAYS_PACK, newMinigame } from './minigame'
 import type { MiniGame, MinigameState, Tier } from './minigame'
@@ -380,6 +382,8 @@ export interface OwnedCard {
    * (engine/dismantle.ts).
    */
   spares?: number[]
+  /** 进修 past +5, one attribute at a time (engine/evolve.ts) */
+  evo?: Evo
   /** total copies ever pulled, for the collection stats */
   seen: number
   /** ISO date of the first copy */
@@ -408,6 +412,9 @@ function cleanOwnedCards(raw: unknown): Record<string, OwnedCard> {
       .map(x => wholeCount(x)).filter(x => x >= 1 && x <= MAX_LEVEL).sort((a, b) => a - b).slice(0, 99)
     if (spares.length) owned.spares = spares
     else delete owned.spares
+    const evo = cleanEvo(row.evo)
+    if (evo) owned.evo = evo
+    else delete owned.evo
     out[id] = owned
   }
   return out
@@ -693,10 +700,15 @@ export interface CupRegistration {
 }
 
 /** Copy the validated five and their current levels; never retain save references. */
+/** a registered level: 0–5, and 进修 above it (growthOf's ceiling), never NaN */
+const regLevel = (raw: unknown): number => {
+  const n = Number(raw)
+  return Number.isFinite(n) ? Math.max(0, Math.min(MAX_LEVEL + EVO_LEVEL_ROOM, n)) : 0
+}
 export function registerCupSquad(squad: Squad, level: (id: string) => number): CupRegistration {
   const registered = { slots: squad.slots.slice(0, 5), coach: squad.coach }
   const ids = [...registered.slots, registered.coach].filter((id): id is string => !!id)
-  return { squad: registered, levels: Object.fromEntries(ids.map(id => [id, ownedLevel(level(id))])) }
+  return { squad: registered, levels: Object.fromEntries(ids.map(id => [id, regLevel(level(id))])) }
 }
 
 export type QuestKey = 'play3' | 'win2' | 'open2' | 'upgrade1' | 'cup1'
@@ -1014,6 +1026,8 @@ export const note = (g: GachaState, text: string) => {
 }
 
 export const levelOf = (g: GachaState, cardId: string): number => ownedLevel(g.cards[cardId]?.level)
+/** the level a match and 阵容分 read: levelOf, and 进修 above +5 as a fraction (evolve.ts) */
+export const playLevelOf = (g: GachaState, cardId: string): number => playLevel(cardId, g.cards[cardId])
 export const owns = (g: GachaState, cardId: string): boolean => !!g.cards[cardId]
 
 // ---------------------------------------------------------------- pulling
@@ -1364,7 +1378,7 @@ export function collection(g: GachaState): { card: Card; owned: OwnedCard; ratin
     .map(([id, owned]) => {
       if (!owned || typeof owned !== 'object' || Array.isArray(owned)) return null
       const card = cardById(id)
-      return card ? { card, owned, rating: ratingAt(card.rating, levelOf(g, id)) } : null
+      return card ? { card, owned, rating: ratingAt(card.rating, playLevelOf(g, id)) } : null
     })
     .filter((x): x is { card: Card; owned: OwnedCard; rating: number } => !!x)
     .sort((a, b) => b.rating - a.rating)
@@ -2605,7 +2619,7 @@ const personSeated = (squad: Squad, cardId: string, exceptSlot: number): boolean
  * not call would still beat an 86 who does on the number alone.
  */
 export function autoSquad(g: GachaState): Squad {
-  const level = (id: string) => g.cards[id]?.level ?? 0
+  const level = (id: string) => playLevelOf(g, id)
   const mine = collection(g).filter((c) => isPlayerCard(c.card))
   const squad = emptySquad()
   // keyed on the person, not the card: the legend and the ordinary card are

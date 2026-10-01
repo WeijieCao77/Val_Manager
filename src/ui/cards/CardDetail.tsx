@@ -13,7 +13,9 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useCards } from './ctx'
 import CardFace, { Flag, natName } from '../Card'
-import { upgradeCost } from '../../engine/gacha'
+import { playLevelOf, upgradeCost } from '../../engine/gacha'
+import { EVO_STEPS, cleanEvo, evoAttrs } from '../../engine/evolve'
+import { EVO_TARGET } from './ctx'
 import SalvageConfirm from './SalvageConfirm'
 import type { SalvageAsk } from './SalvageConfirm'
 import { dismantleFee, dismantleYield } from '../../engine/dismantle'
@@ -32,13 +34,15 @@ export default function CardDetail({ cardId, onClose, actions }: {
   /** buttons under the card — the squad's 替换 and 移出卡组 */
   actions?: ReactNode
 }) {
-  const { g, act, toast, openDossier } = useCards()
+  const { g, act, toast, openDossier, go } = useCards()
   const [ask, setAsk] = useState<SalvageAsk | null>(null)
   const [busy, setBusy] = useState(false)
   const dialogRef = useDialogFocus(onClose)
   const sel = cardById(cardId)
   const owned = g.cards[cardId]
   if (!sel || !owned) return null
+  const evo = cleanEvo(owned.evo)
+  const played = playLevelOf(g, cardId)
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
@@ -50,7 +54,7 @@ export default function CardDetail({ cardId, onClose, actions }: {
         </div>
         <div className="modal-body">
           <div className="row cm-card-intro" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <CardFace card={sel} level={owned.level} size="lg" />
+            <CardFace card={sel} level={played} size="lg" />
             <div style={{ flex: 1, minWidth: 0 }}>
               {sel.legend && (
                 <div
@@ -96,7 +100,8 @@ export default function CardDetail({ cardId, onClose, actions }: {
                     {ATTR_KEYS.map((k) => (
                       <div key={k} className="tiny">
                         <span className="faint">{ATTR_CN[k]}</span>{' '}
-                        <b className="mono">{Math.min(99, sel.attrs[k] + owned.level)}</b>
+                        <b className="mono">{Math.min(99, evoAttrs(sel, evo)[k] + owned.level)}</b>
+                        {!!evo?.add[k] && <span className="mono" style={{ color: 'var(--win)' }}> ↑{evo.add[k]}</span>}
                       </div>
                     ))}
                   </div>
@@ -133,7 +138,8 @@ export default function CardDetail({ cardId, onClose, actions }: {
                 <div className="small">
                   等级 <b>+{owned.level}</b> / +{MAX_LEVEL}
                   <span className="faint"> · 评分 {sel.rating}</span>
-                  {' '}· 战力 <b>{coin(cardPower(sel, owned.level))}</b>
+                  {' '}· 战力 <b>{coin(Math.round(cardPower(sel, played)))}</b>
+                  {evo && <span className="faint"> · 进修 {evo.n}/{EVO_STEPS}</span>}
                 </div>
                 <div className="tiny faint">
                   重复卡 {owned.dupes} 张
@@ -143,6 +149,19 @@ export default function CardDetail({ cardId, onClose, actions }: {
               </div>
             </div>
             <Upgrade cardId={sel.id} />
+            {isPlayerCard(sel) && owned.level >= MAX_LEVEL && (evo?.n ?? 0) < EVO_STEPS && (
+              <button
+                className="primary sm"
+                style={{ marginLeft: 8 }}
+                onClick={() => {
+                  try { sessionStorage.setItem(EVO_TARGET, sel.id) } catch { /* the page opens on its own list */ }
+                  onClose()
+                  go('evolve')
+                }}
+              >
+                去进修
+              </button>
+            )}
             {owned.dupes > 0 && (
               <button
                 className="sm"

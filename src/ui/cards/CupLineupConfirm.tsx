@@ -1,8 +1,8 @@
 import ChampionLineup from './ChampionLineup'
 import { useDialogFocus } from './useDialogFocus'
-import { cardById, cardName, squadRating } from '../../engine/cards'
+import { MAX_LEVEL, cardById, cardName, squadRating } from '../../engine/cards'
 import type { Squad } from '../../engine/cards'
-import { levelOf } from '../../engine/gacha'
+import { playLevelOf } from '../../engine/gacha'
 import type { GachaState } from '../../engine/gacha'
 import type { CupPick } from '../../engine/openCupClient'
 
@@ -28,7 +28,7 @@ export default function CupLineupConfirm({
   onClose: () => void
 }) {
   const dialogRef = useDialogFocus(() => { if (!busy) onClose() })
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   const ids = [...squad.slots, squad.coach].filter((id): id is string => !!id)
   const levels = Object.fromEntries(ids.map((id) => [id, level(id)]))
   return (
@@ -63,7 +63,11 @@ export default function CupLineupConfirm({
 
 /** 「A +3 · B +5 · … · 教练 C +1」 */
 export function lineupText(five: CupPick, level: (id: string) => number): string {
-  const name = (id: string) => { const c = cardById(id); return `${c ? cardName(c) : id} +${level(id)}` }
+  // 进修 rides above +5 as a fraction (evolve.ts): the badge stays +5 and gains an arrow, as on the card face
+  const name = (id: string) => {
+    const c = cardById(id), lv = level(id)
+    return `${c ? cardName(c) : id} +${Math.min(MAX_LEVEL, Math.floor(lv))}${lv > MAX_LEVEL ? '↑' : ''}`
+  }
   const players = five.slots.filter((id): id is string => !!id).map(name)
   return [...players, ...(five.coach ? [`教练 ${name(five.coach)}`] : [])].join(' · ')
 }
@@ -84,7 +88,7 @@ export function SignedLineup({
   busy: boolean
   onSwap: () => void
 }) {
-  const level = (id: string) => levelOf(g, id)
+  const level = (id: string) => playLevelOf(g, id)
   const now: CupPick = { slots: g.squad.slots.slice(0, 5), coach: g.squad.coach }
   const filled = now.slots.filter(Boolean).length === 5
   if (!pick) {
