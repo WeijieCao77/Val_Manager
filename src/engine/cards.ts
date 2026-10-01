@@ -52,7 +52,31 @@ export const SILVER_AT = RATED.silver_at
  * only the cards moved.
  */
 const cardRating = (id: string, overall: number): number =>
-  (RATED.manual as Record<string, { rating: number }>)[id]?.rating ?? (RATED.ratings as Record<string, number>)[id] ?? overall
+  (RATED.manual as Record<string, { rating: number }>)[id]?.rating ?? (RATED.ratings as Record<string, number>)[id] ?? onCardScale(overall)
+
+/**
+ * A world overall read on the card scale, for people the ratings file does not cover — a retired man's
+ * 预估能力 in 资料库 and 每日挑战. Same rank, same number: the n-th best overall among the rated players maps
+ * to the n-th best card rating (old 95 → 92, 90 → 87, 88 → 85). Above the top it keeps the old step.
+ */
+const SCALE_PAIRS: [number, number][] = (() => {
+  const rated = RATED.ratings as Record<string, number>
+  const ps = WORLD_PLAYERS.filter((p) => p.id in rated)
+  const old = ps.map((p) => p.overall).sort((a, b) => b - a)
+  const neu = ps.map((p) => rated[p.id]).sort((a, b) => b - a)
+  return old.map((o, i) => [o, neu[i]] as [number, number])
+})()
+export function onCardScale(overall: number): number {
+  if (!SCALE_PAIRS.length) return overall
+  const [topOld, topNew] = SCALE_PAIRS[0]
+  if (overall >= topOld) return Math.min(99, topNew + (overall - topOld))
+  const [lowOld, lowNew] = SCALE_PAIRS[SCALE_PAIRS.length - 1]
+  if (overall <= lowOld) return Math.max(1, lowNew - (lowOld - overall))
+  for (const [o, n] of SCALE_PAIRS) if (o <= overall) return n
+  return overall
+}
+/** What a player's card says, or what it would say: 每日挑战 and 资料库 show this, not the manager's overall. */
+export const cardRatingOf = (id: string, overall: number): number => cardRating(id, overall)
 
 /**
  * The attributes follow the rating: every one moved by the same gap, so the six

@@ -23,6 +23,7 @@ import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
 import { natCountry, natName } from './nat'
 import { hashStr } from './rng'
 import { WORLD_PLAYERS } from './world'
+import { cardRatingOf, onCardScale } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { DOSSIER } from './dossier'
 import { RETIRED, RETIRED_BY_ID } from './retired'
@@ -308,13 +309,14 @@ function personOf(id: string): Person | null {
     return {
       id: p.id, ign: p.ign, region: p.region, teamId: p.teamId,
       teamTag: WORLD_TEAMS.find((t) => t.id === p.teamId)?.tag ?? '自由',
-      role: p.role, roles: p.roles, nat: p.nat, age: p.age, overall: p.overall,
+      // the card's number, not the manager's (the 普卡 took their own scale on 2026-10-01)
+      role: p.role, roles: p.roles, nat: p.nat, age: p.age, overall: cardRatingOf(p.id, p.overall),
     }
   }
   const r = RETIRED_BY_ID.get(id)
   return r ? {
     id: r.id, ign: r.ign, region: r.region, teamId: 'retired', teamTag: '退役',
-    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: r.peak,
+    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: onCardScale(r.peak),
   } : null
 }
 

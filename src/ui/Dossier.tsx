@@ -5,7 +5,7 @@ import { RETIRED } from '../engine/retired'
 import type { RetiredPlayer } from '../engine/retired'
 import { DOSSIER, dossierOf, faceUrl, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
 import type { Records } from '../engine/dossier'
-import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN } from '../engine/cards'
+import { BASE_PLAYER_CARDS, LEGEND_CARDS, RARITY_CN, onCardScale } from '../engine/cards'
 import type { PlayerCard } from '../engine/cards'
 import CardFace, { Flag, natName } from './Card'
 import { AgentIcon, Panel, Bar, moneyFull } from './common'
@@ -208,7 +208,7 @@ function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
               <div className="tiny muted">{r.real ?? '—'}</div>
               <div className="small"><Flag nat={r.nat} /> {natName(r.nat)} · {REGION_CN[r.region] ?? r.region}</div>
               <div className="small">{r.ageEstimated ? '约 ' : ''}{r.age} 岁 · {r.role}</div>
-              <div className="tiny faint">预估能力 {r.peak}</div>
+              <div className="tiny faint">预估能力 {onCardScale(r.peak)}</div>
             </div>
           </article>
         ))}
