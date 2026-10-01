@@ -13,7 +13,7 @@ import { squadTeamIdentity, teamBackdrop } from '../../engine/teamIdentity'
  * lands outside the canvas or on top of anything else without a canvas to
  * draw on.
  */
-import { RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
+import { MAX_LEVEL, RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import type { Card, CoachCard, PlayerCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
 import { qrMatrix } from '../../engine/qr'
@@ -154,6 +154,16 @@ const load = (src: string | null): Promise<HTMLImageElement | null> =>
     img.src = src
   })
 
+/**
+ * The level as the faces print it: the whole level, and an arrow once 进修 has
+ * taken the card past +5 (a match's level carries that as a fraction —
+ * 「+5.56」 is not something a card says).
+ */
+const levelMark = (level: number): string => {
+  const whole = Math.max(0, Math.min(MAX_LEVEL, Math.floor(level)))
+  return whole > 0 ? `+${whole}${level > MAX_LEVEL ? '↑' : ''}` : ''
+}
+
 /** the photo, cropped to fill its box from the top — faces sit high */
 function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, b: Box): void {
   const scale = Math.max(b.w / img.width, b.h / img.height)
@@ -174,9 +184,10 @@ function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, b: Box): vo
 function paintSeat(
   ctx: CanvasRenderingContext2D, b: Box, card: Card | null, role: string,
   level: number, face: HTMLImageElement | null, crest: HTMLImageElement | null,
-  mark: HTMLImageElement | null = null,
+  mark: HTMLImageElement | null = null, lotus: HTMLImageElement | null = null,
 ): void {
   if (card && isSeoul(card)) { paintSeoulSeat(ctx, b, card, level, face, mark); return }
+  if (card && isBangkok(card)) { paintBangkokSeat(ctx, b, card, level, face, lotus); return }
   if (!card) {
     ctx.save()
     round(ctx, b, 10)
@@ -243,7 +254,7 @@ function paintSeat(
   if (level > 0) {
     ctx.fillStyle = shot ? 'rgba(255,220,220,.95)' : '#7a2018'
     ctx.font = font(800, 9.5 * k)
-    ctx.fillText(`+${level}`, b.x + 9 * k + measure(ctx, rate, 800, rateSize) + 3 * k,
+    ctx.fillText(levelMark(level), b.x + 9 * k + measure(ctx, rate, 800, rateSize) + 3 * k,
       b.y + 7 * k + rateSize - 10 * k)
   }
   ctx.fillStyle = ink
@@ -479,7 +490,7 @@ function paintSeoulSeat(
   ctx.shadowBlur = 0
   ctx.fillStyle = foil
   ctx.font = font(400, 7 * k)
-  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, X(16.4), Y(80.5))
+  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` ${levelMark(level)}` : ''}`, X(16.4), Y(80.5))
 
   // the info block over its own shade
   const shade = ctx.createLinearGradient(0, Y(115.1), 0, b.y + b.h)
@@ -544,6 +555,222 @@ function paintSeoulSeat(
   ctx.stroke()
 }
 
+const isBangkok = (card: Card): card is PlayerCard & { bangkok: NonNullable<PlayerCard['bangkok']> } =>
+  isPlayerCard(card) && card.event === 'bangkok-2025' && !!card.bangkok
+
+/** the lotus the 曼谷 cards carry in their corner, as bangkok2025.css loads it */
+const BANGKOK_LOTUS = '/events/bangkok-2025/lotus-art.webp'
+const BANGKOK_FOIL: Record<Rarity, string> = { mythic: '#dcc48e', gold: '#dcc48e', silver: '#c5d8eb', bronze: '#d69e81' }
+const BANGKOK_TIER: Record<Rarity, string> = { mythic: '金卡', gold: '金卡', silver: '银卡', bronze: '铜卡' }
+
+/**
+ * A 曼谷 2025 card, drawn the way BangkokDesign.tsx draws it.
+ *
+ * Every position below is bangkok2025.css measured on the rendered face, as a
+ * percentage of the card (x and sizes of its width, y of its height), so the
+ * seat — 132×212, a little taller than the face's 63:88 — keeps each block
+ * where the face has it and the type at the face's size.
+ */
+function paintBangkokSeat(
+  ctx: CanvasRenderingContext2D, b: Box, card: PlayerCard & { bangkok: NonNullable<PlayerCard['bangkok']> },
+  level: number, face: HTMLImageElement | null, lotus: HTMLImageElement | null,
+): void {
+  const X = (n: number) => b.x + (n / 100) * b.w
+  const Y = (n: number) => b.y + (n / 100) * b.h
+  const W = (n: number) => (n / 100) * b.w
+  const H = (n: number) => (n / 100) * b.h
+  const foil = BANGKOK_FOIL[card.rarity]
+  const entry = card.bangkok
+  const hair = Math.max(1, b.w / 480)
+
+  ctx.save()
+  round(ctx, b, W(3.2))
+  ctx.clip()
+  // the field: a quiet purple, lit from the upper right (.bk25-front-ground)
+  const ground = ctx.createLinearGradient(b.x, b.y, b.x + b.w * 0.75, b.y + b.h)
+  ground.addColorStop(0, '#20152f')
+  ground.addColorStop(0.62, '#161024')
+  ctx.fillStyle = ground
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  const lit = ctx.createRadialGradient(X(80), Y(22), 0, X(80), Y(22), b.w * 0.9)
+  lit.addColorStop(0, '#38254b')
+  lit.addColorStop(0.56, 'rgba(56,37,75,0)')
+  ctx.fillStyle = lit
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+
+  // the portrait window (.bk25-photo): cover at 50% 30%, toned, faded on every side
+  const pb = { x: X(4.19), y: Y(13.11), w: W(91.62), h: H(63.81) }
+  if (face) {
+    const off = document.createElement('canvas')
+    off.width = Math.ceil(pb.w)
+    off.height = Math.ceil(pb.h)
+    const o = off.getContext('2d')!
+    o.filter = 'saturate(.68) contrast(1.06)'
+    const scale = Math.max(pb.w / face.width, pb.h / face.height)
+    const fw = face.width * scale, fh = face.height * scale
+    o.drawImage(face, (pb.w - fw) / 2, (pb.h - fh) * 0.3, fw, fh)
+    o.filter = 'none'
+    // the lilac multiply over the photo (::before, .65)
+    o.globalCompositeOperation = 'multiply'
+    o.globalAlpha = 0.65
+    const tint = o.createLinearGradient(0, 0, pb.w, 0)
+    tint.addColorStop(0, '#715591'); tint.addColorStop(0.4, '#c1b2cf'); tint.addColorStop(0.65, '#c1b2cf'); tint.addColorStop(1, '#715591')
+    o.fillStyle = tint
+    o.fillRect(0, 0, pb.w, pb.h)
+    o.globalAlpha = 1
+    // the shade rising from the foot (::after)
+    o.globalCompositeOperation = 'source-over'
+    const foot = o.createLinearGradient(0, pb.h, 0, 0)
+    foot.addColorStop(0, '#161024'); foot.addColorStop(0.23, 'rgba(36,20,50,.4)'); foot.addColorStop(0.53, 'rgba(36,20,50,0)')
+    o.fillStyle = foot
+    o.fillRect(0, 0, pb.w, pb.h)
+    // the masks: top and foot, the window's sides, the photo's own sides
+    o.globalCompositeOperation = 'destination-in'
+    const vt = o.createLinearGradient(0, 0, 0, pb.h)
+    vt.addColorStop(0, 'rgba(0,0,0,0)'); vt.addColorStop(0.13, '#000'); vt.addColorStop(0.62, '#000'); vt.addColorStop(0.97, 'rgba(0,0,0,0)')
+    o.fillStyle = vt
+    o.fillRect(0, 0, pb.w, pb.h)
+    for (const [a, z] of [[0.2, 0.8], [0.14, 0.78]] as const) {
+      const hz = o.createLinearGradient(0, 0, pb.w, 0)
+      hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(a, '#000'); hz.addColorStop(z, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)')
+      o.fillStyle = hz
+      o.fillRect(0, 0, pb.w, pb.h)
+    }
+    ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
+  } else {
+    ctx.fillStyle = 'rgba(205,185,245,.25)'
+    ctx.font = IMPACT(W(30))
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(card.ign.slice(0, 2), pb.x + pb.w / 2, pb.y + pb.h * 0.45)
+  }
+  // the atmosphere over the lower card (.bk25-portrait-atmosphere)
+  const atm = ctx.createLinearGradient(0, b.y + b.h, 0, b.y)
+  atm.addColorStop(0.09, '#161024'); atm.addColorStop(0.22, 'rgba(22,16,36,.94)'); atm.addColorStop(0.33, 'rgba(22,16,36,.5)'); atm.addColorStop(0.48, 'rgba(22,16,36,0)')
+  ctx.fillStyle = atm
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+
+  // the small lotus in the lower right (.bk25-corner-lotus), faded at its rim
+  if (lotus) {
+    const lb = { x: X(76.89), y: Y(76.98), w: W(15.93), h: H(11.41) }
+    const off = document.createElement('canvas')
+    off.width = Math.ceil(lb.w)
+    off.height = Math.ceil(lb.h)
+    const o = off.getContext('2d')!
+    const lh = lb.w * (lotus.height / lotus.width)
+    o.drawImage(lotus, 0, (lb.h - lh) * 0.54, lb.w, lh)
+    o.globalCompositeOperation = 'destination-in'
+    const rim = o.createRadialGradient(lb.w / 2, lb.h / 2, 0, lb.w / 2, lb.h / 2, Math.max(lb.w, lb.h) / 2)
+    rim.addColorStop(0.4, '#000'); rim.addColorStop(0.73, 'rgba(0,0,0,0)')
+    o.fillStyle = rim
+    o.fillRect(0, 0, lb.w, lb.h)
+    ctx.drawImage(off, lb.x, lb.y)
+  }
+
+  // the head: MASTERS / BANGKOK 25, and the tier on the right
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f3efff'
+  ctx.letterSpacing = `${W(3.78) * 0.025}px`
+  ctx.font = font(700, W(3.78))
+  ctx.fillText('MASTERS', X(7.18), Y(5.83) + W(0.4))
+  ctx.font = font(700, W(5.18))
+  ctx.fillText('BANGKOK ', X(7.18), Y(9.08))
+  const bw = ctx.measureText('BANGKOK ').width
+  ctx.fillStyle = foil
+  ctx.fillText('25', X(7.18) + bw, Y(9.08))
+  ctx.letterSpacing = '0px'
+  ctx.textAlign = 'right'
+  ctx.font = font(400, W(2.49))
+  ctx.fillText(BANGKOK_TIER[card.rarity], X(92.83), Y(5.83) + W(0.4))
+  ctx.fillText('赛事系列', X(92.83), Y(5.83) + W(0.4) + W(2.49) * 1.65)
+  ctx.textAlign = 'left'
+
+  // the side line, DAWN OF THE DUELIST, set top to bottom
+  ctx.save()
+  ctx.translate(X(91.68) + W(3.14) / 2, Y(23.08))
+  ctx.rotate(Math.PI / 2)
+  ctx.font = font(400, W(2.09))
+  ctx.letterSpacing = `${W(2.09) * 0.17}px`
+  ctx.fillStyle = '#c9bddc'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('DAWN OF THE DUELIST', 0, 0)
+  ctx.restore()
+  ctx.letterSpacing = '0px'
+
+  // the rating plate: the number, and the role (with the level) under it
+  ctx.fillStyle = 'rgba(24,17,37,.87)'
+  ctx.fillRect(X(6.18), Y(21.09), W(21.7), H(18.28))
+  ctx.fillStyle = foil
+  ctx.fillRect(X(6.18), Y(21.09), Math.max(1, W(0.42)), H(18.28))
+  ctx.font = font(700, W(13.94))
+  ctx.fillText(String(card.rating), X(9.38), Y(22.94))
+  ctx.font = font(400, W(3.49))
+  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` ${levelMark(level)}` : ''}`, X(9.38), Y(33.78))
+
+  // team and nation
+  ctx.font = font(700, W(4.28))
+  ctx.fillText(card.clubTag ?? '', X(8.17), Y(57.86))
+  ctx.textAlign = 'right'
+  ctx.font = font(400, W(2.69))
+  ctx.letterSpacing = `${W(2.69) * 0.07}px`
+  ctx.fillText(`${(card.nat ?? '').toUpperCase()} / 2025`, X(91.82), Y(58.72))
+  ctx.letterSpacing = '0px'
+  ctx.textAlign = 'left'
+
+  // the name, shrinking rather than running past the frame
+  ctx.fillStyle = '#f3efff'
+  let ignSize = W(14.94)
+  ctx.font = IMPACT(ignSize)
+  while (ignSize > 6 && ctx.measureText(card.ign).width > W(83.65)) { ignSize -= 0.5; ctx.font = IMPACT(ignSize) }
+  ctx.textBaseline = 'middle'
+  ctx.fillText(card.ign, X(8.17), Y(63.53) + H(11.76) / 2)
+  ctx.textBaseline = 'top'
+
+  // ACS · K/D · MAPS between two rules
+  ctx.fillStyle = 'rgba(202,191,227,.24)'
+  ctx.fillRect(X(8.17), Y(77.42), W(83.65), hair)
+  const stats: [string, string, number][] = [[String(entry.acs), 'ACS', 8.17], [entry.kd.toFixed(2), 'K/D', 33.08], [String(entry.maps), 'MAPS', 59.65]]
+  for (const [value, label, x] of stats) {
+    ctx.fillStyle = '#f1e9ff'
+    ctx.font = font(500, W(5.97))
+    ctx.fillText(value, X(x), Y(79.71))
+    ctx.fillStyle = '#bdb0d3'
+    ctx.font = font(400, W(2.29))
+    ctx.fillText(label, X(x), Y(79.71) + H(7.45) - W(2.29) * 1.15)
+  }
+  ctx.fillStyle = 'rgba(202,191,227,.13)'
+  ctx.fillRect(X(8.17), Y(89.59), W(83.65), hair)
+  ctx.font = font(400, W(3.19))
+  ctx.fillStyle = '#d6cbe9'
+  ctx.fillText('20 FEB — 02 MAR', X(8.17), Y(91.44))
+  ctx.textAlign = 'right'
+  ctx.font = font(400, W(2.19))
+  ctx.fillStyle = foil
+  ctx.fillText(`${String(entry.number).padStart(3, '0')} / 041`, X(91.82), Y(92.19))
+  ctx.textAlign = 'left'
+
+  // the faint sheen (.bk25-card::after)
+  const sheen = ctx.createLinearGradient(b.x, b.y + b.h, b.x + b.w, b.y)
+  sheen.addColorStop(0.24, 'rgba(199,255,248,0)')
+  sheen.addColorStop(0.38, 'rgba(199,255,248,.07)')
+  sheen.addColorStop(0.49, 'rgba(199,255,248,0)')
+  ctx.fillStyle = sheen
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  ctx.restore()
+
+  ctx.textBaseline = 'alphabetic'
+  // the inner frame and the foil edge
+  round(ctx, { x: X(2.2), y: Y(2.14), w: W(95.6), h: H(95.71) }, W(2))
+  ctx.strokeStyle = foil + '80'
+  ctx.lineWidth = hair
+  ctx.stroke()
+  round(ctx, b, W(3.2))
+  ctx.strokeStyle = foil
+  ctx.lineWidth = hair
+  ctx.stroke()
+}
+
 function paintQr(ctx: CanvasRenderingContext2D, b: Box, url: string): void {
   ctx.fillStyle = '#fff'
   round(ctx, b, 14)
@@ -579,9 +806,10 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   const coachCard = model.squad.coach ? cardOf(model.squad.coach) : null
   const all = [...seatCards, coachCard]
   const faces = await Promise.all(all.map((c) => load(c?.face ?? null)))
-  // a Seoul card shows the Champions mark, not its club's crest
-  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) ? crestUrl(c.clubId) : null)))
+  // a Seoul card shows the Champions mark and a 曼谷 card its lotus, not the club's crest
+  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) ? crestUrl(c.clubId) : null)))
   const mark = await load(all.some((c) => c && isSeoul(c)) ? SEOUL_MARK : null)
+  const lotus = await load(all.some((c) => c && isBangkok(c)) ? BANGKOK_LOTUS : null)
 
   // ---- the plate
   const bg = ctx.createLinearGradient(0, 0, L.width, L.height)
@@ -636,7 +864,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   // ---- the five
   const ROLES = ['决斗者', '先锋', '控场', '哨卫', '自由人']
   L.seats.forEach((b, i) => {
-    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark)
+    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark, lotus)
   })
 
   // ---- the coach

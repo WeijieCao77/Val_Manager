@@ -1164,6 +1164,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
   color: #7a2018;
 }
 .s-lg .cf-plus { font-size: 12px; }
+/* 进修 past +5 (engine/evolve.ts): the badge stays +5 and grows a small arrow */
+.cardface .cf-plus.cf-evo::after { content: '↑'; margin-left: 1px; color: #1f8a5c; }
+.cardface.r-mythic .cf-plus.cf-evo::after { color: #8ff0bf; }
 
 .cf-dupes {
   position: absolute; top: 7px; right: 8px; z-index: 3;

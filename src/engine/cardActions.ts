@@ -48,6 +48,8 @@ import { dismantle } from './dismantle'
 import { setPicks, claimPrediction } from './predict'
 import { SEOUL_TEAMS } from './seoul2024'
 import { SEOUL_FIVES, SEOUL_POOL, SEOUL_ROUTES, quitRoute, recordRoute, routeState, startRoute } from './seoulRoute'
+import { BANGKOK_FIVES, BANGKOK_POOL, BANGKOK_ROUTES, bangkokRouteState, quitBangkokRoute, recordBangkokRoute, startBangkokRoute } from './bangkokRoute'
+import { BANGKOK_TEAMS } from './bangkok2025'
 
 /** What the server knows that the rules need. */
 export interface ActEnv {
@@ -88,6 +90,7 @@ export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
+  'bangkok_start', 'bangkok_play', 'bangkok_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -442,6 +445,32 @@ function dispatch(
     }
     case 'seoul_quit': {
       quitRoute(g)
+      return { ok: true }
+    }
+    // ---- 曼谷征途: the same, on Masters Bangkok 2025 — engine/bangkokRoute.ts
+    case 'bangkok_start': {
+      const out = startBangkokRoute(g, a.team, env.now)
+      return out.ok ? { ok: true, result: { route: g.bangkokRoute } } : out
+    }
+    case 'bangkok_play': {
+      const run = bangkokRouteState(g).run
+      if (!run) return { ok: false, why: '先选一支队出发' }
+      const st = BANGKOK_ROUTES[run.team][run.stage]
+      const name = (tag: string) => BANGKOK_TEAMS.find((t) => t.tag === tag)?.name ?? tag
+      const res = playRivalMatch(
+        { ...BANGKOK_FIVES[run.team], name: name(run.team), tag: run.team }, () => 0,
+        { ...BANGKOK_FIVES[st.opp], name: name(st.opp), tag: st.opp, levels: {}, div: 0, points: 0 },
+        st.bo, env.seed, BANGKOK_POOL,
+      )
+      const out = recordBangkokRoute(g, {
+        won: res.mapsWon,
+        lost: res.mapsLost,
+        maps: res.result.maps.map((m) => `${m.map} ${m.scoreA}:${m.scoreB}`),
+      }, env.now)
+      return { ok: true, result: { res, out } }
+    }
+    case 'bangkok_quit': {
+      quitBangkokRoute(g)
       return { ok: true }
     }
     default:

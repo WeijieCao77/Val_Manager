@@ -12,12 +12,12 @@
 .bk25-photo.is-empty{inset:16% 11% 29%;background:radial-gradient(ellipse,#35294d88,transparent 72%);mask-image:none}
 .bk25-portrait-atmosphere{position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#161024 9%,#161024ef 22%,#16102480 33%,transparent 48%),radial-gradient(ellipse at 3% 46%,#9275d63d,transparent 32%),radial-gradient(ellipse at 97% 52%,#9ad1d62e,transparent 30%);z-index:1}
 .bk25-photo-guide{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#c6b5e2;gap:2cqw;font-size:4cqw}.bk25-photo-guide svg{width:43%;height:42%;fill:none;stroke:#b3a1d1;stroke-width:.7}.bk25-photo-guide small{font-size:2.5cqw;color:#a89abe}
-.bk25-rating{position:absolute;top:22%;left:6%;z-index:3;display:flex;flex-direction:column;gap:1cqw;background:#181125dd;border-left:2px solid var(--foil);padding:2cqw;color:var(--foil)}.bk25-rating strong{font-size:11cqw;line-height:1}.bk25-rating span{font-size:2.7cqw}
+.bk25-rating{position:absolute;top:21%;left:6%;z-index:3;display:flex;flex-direction:column;gap:1.2cqw;background:#181125dd;border-left:2px solid var(--foil);padding:2.6cqw 3cqw 2.6cqw 2.8cqw;color:var(--foil)}.bk25-rating strong{font-size:14cqw;line-height:1}.bk25-rating span{font-size:3.5cqw}
 .bk25-side{position:absolute;right:5%;top:23%;writing-mode:vertical-rl;font-size:2.1cqw;letter-spacing:.17em;color:#c9bddc}
 .bk25-player-info{position:absolute;bottom:5%;left:8%;right:8%;z-index:4}.bk25-team{display:flex;align-items:center;justify-content:space-between;font-size:3cqw;color:var(--foil)}.bk25-team b{font-size:4.3cqw}.bk25-team span{font-size:2.7cqw;letter-spacing:.07em}
 .bk25-ign{display:block;font-family:Impact,'Arial Narrow',sans-serif;font-size:15cqw;line-height:1.1;margin:1.5cqw 0 3cqw;font-weight:400;letter-spacing:.015em}
 .bk25-stats{border-top:1px solid #cabfe33d;display:flex;padding-top:3cqw;gap:15cqw}.bk25-stats span{display:flex;flex-direction:column;gap:1cqw;font-size:2.3cqw;color:#bdb0d3}.bk25-stats b{font-size:6cqw;line-height:1;color:#f1e9ff;font-weight:500}
-.bk25-player-info footer{margin-top:4cqw;border-top:1px solid #cabfe322;padding-top:2.8cqw;display:flex;justify-content:space-between;color:#b8aacd;font-size:2.2cqw}.bk25-player-info footer b{color:var(--foil);font-weight:400}
+.bk25-player-info footer{margin-top:3.4cqw;border-top:1px solid #cabfe322;padding-top:2.4cqw;display:flex;justify-content:space-between;align-items:baseline;color:#b8aacd;font-size:2.2cqw}.bk25-player-info footer span{font-size:3.2cqw;color:#d6cbe9}.bk25-player-info footer b{color:var(--foil);font-weight:400}
 .bk25-back{--foil:#bba5f2}.bk25-back .bk25-art{background-size:100% 78%;background-position:center 55%}.bk25-back header{position:absolute;top:7%;left:9%;right:9%;font-size:2.5cqw;display:flex;justify-content:space-between;letter-spacing:.08em;color:#cec2e6}.bk25-back header span{color:#d3efa4}
 .bk25-back-title{position:absolute;top:14%;width:100%;text-align:center}.bk25-back-title small{font-size:5cqw;letter-spacing:.2em}.bk25-back-title strong{display:block;font:400 15cqw/1.1 Impact,'Arial Narrow',sans-serif;letter-spacing:.025em}
 .bk25-back-bottom{position:absolute;bottom:7%;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3cqw}.bk25-back-bottom b{font-size:7cqw;line-height:1.05;letter-spacing:-.035em}.bk25-back-bottom span{font-size:3cqw;color:#d3c5ed}.bk25-back-bottom small{font-size:2cqw;letter-spacing:.08em;color:#a89abe}
@@ -80,3 +80,5 @@
 .bk25-exhibit .bk25-object-pack{width:236px}
 @media(max-width:620px){.bk25-exhibit .bk25-object-pack{width:194px}.bk25-exhibit .seoul-object-front .card-img{width:150px}}
 .bk25-shelf-art .bk25-shelf-back .card-img{width:100%}
+/* 进修 on an event face: the same small green arrow the ordinary face puts after +5 */
+.bk25-card .evo-mark{font-style:normal;margin-left:.15em;color:#8ff0bf}

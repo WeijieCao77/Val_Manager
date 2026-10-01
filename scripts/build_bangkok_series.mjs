@@ -1,0 +1,46 @@
+/** The 16 series of Masters Bangkok 2025, as played, for 曼谷征途 — build_seoul_series.mjs on event 2281.
+ *
+ *   node scripts/build_bangkok_series.mjs
+ *
+ * Reads scripts/cache/vlr_matches_bangkok2025.json (fetch_bangkok2025_maps.py) and keeps what a route needs:
+ * VLR's stage label, the two teams by their tag in src/data/bangkok2025.json, and each map's name and score
+ * with the sides in the series' own order. The showmatch (Team International v Team Thailand) is not a series
+ * of the event and is left out.
+ */
+import assert from 'node:assert/strict'
+import { readFileSync, writeFileSync } from 'node:fs'
+
+const RAW = JSON.parse(readFileSync('src/data/bangkok2025.json', 'utf8'))
+const cache = JSON.parse(readFileSync('scripts/cache/vlr_matches_bangkok2025.json', 'utf8'))
+
+// VLR now writes the later name 「KIWOOM DRX」 for the DRX of the event
+const tagOf = (name) => {
+  const n = name.toLowerCase().replace('kiwoom ', '')
+  const hits = RAW.teams.filter((t) => t.name.toLowerCase() === n)
+  assert.equal(hits.length, 1, `exactly one team for ${name}`)
+  return hits[0].tag
+}
+
+const series = Object.entries(cache.matches)
+  .filter(([, m]) => !/showmatch/i.test(m.stage ?? ''))
+  .map(([id, m]) => {
+    const [a, b] = m.maps[0].teams.map(tagOf)
+    assert.notEqual(a, b, id)
+    for (const map of m.maps) assert.deepEqual(map.teams.map(tagOf), [a, b], `${id} keeps its sides on every map`)
+    return { id, stage: m.stage, a, b, maps: m.maps.map((x) => [x.map, x.score[0], x.score[1]]) }
+  }).sort((x, y) => Number(x.id) - Number(y.id))
+
+assert.equal(series.length, 16, 'all 16 series of the event')
+for (const t of RAW.teams) assert(series.some((s) => s.a === t.tag || s.b === t.tag), `${t.tag} played`)
+for (const s of series) {
+  const won = s.maps.filter(([, x, y]) => x > y).length
+  const lost = s.maps.length - won
+  assert(Math.max(won, lost) === 2 || Math.max(won, lost) === 3, `${s.id} is a finished BO3 or BO5`)
+}
+
+writeFileSync('src/data/bangkok2025_series.json', JSON.stringify({
+  source: 'https://www.vlr.gg/event/matches/2281/valorant-masters-bangkok-2025/?series_id=all',
+  retrieved: '2026-09-30',
+  series,
+}, null, 1) + '\n')
+console.log(`${series.length} series, ${series.reduce((n, s) => n + s.maps.length, 0)} maps → src/data/bangkok2025_series.json`)

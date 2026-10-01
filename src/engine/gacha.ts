@@ -16,6 +16,7 @@ import type { Role } from './types'
 import { cleanPredictions } from './predict'
 import type { Picks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
+import type { EventRouteState } from './eventRoute'
 import {
   ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
@@ -799,6 +800,8 @@ export interface GachaState {
   seed: number
   /** 首尔征途 — see engine/seoulRoute.ts; absent until the first road */
   seoulRoute?: SeoulRouteState
+  /** 曼谷征途 — see engine/bangkokRoute.ts; the same rules on Masters Bangkok 2025 */
+  bangkokRoute?: EventRouteState
   /** the ladder season this account was last rolled into (0: before the first) — see rollSeason */
   season?: number
   /** where each ladder stood when the last season ended */
@@ -2807,7 +2810,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute',
   'season', 'lastSeason', 'enc', 'nameAt',
 ] as const
 /** a name may change once in this many days */

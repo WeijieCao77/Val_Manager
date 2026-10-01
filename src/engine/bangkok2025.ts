@@ -3,6 +3,7 @@ import STAGED from '../data/bangkok2025_stages.json'
 import FACES from '../data/bangkok2025_faces.json'
 import type { PlayerCard } from './cards'
 import type { Attrs, Player, Region, Role } from './types'
+import { MVP_BONUS } from './seoul2024'
 import { emptyStats } from './types'
 
 /**
@@ -56,6 +57,9 @@ const standing = (k: Stat) => {
   return (x: number) => (x - mean) / sd
 }
 const KAST_Z = standing('kast'), APR_Z = standing('apr')
+// The event MVP — Meteor (vlr 13039), named on Riot's own photos of the bracelet — gets 首尔's MVP honour
+// (seoul2024.ts MVP_BONUS): his VLR rating, 1.04 across the event, put him at 82.
+const MVP = '13039'
 
 type Face = { face?: string; sure?: boolean; confirmed?: boolean; note?: string | null; source?: string }
 /** the Features Day portrait and how sure the caption match is (scripts/bangkok2025_faces.py) */
@@ -79,7 +83,8 @@ export function buildBangkokCards(base: readonly PlayerCard[]): PlayerCard[] {
     const opener = (usage.get('先锋') ?? 0) / ([...usage.values()].reduce((a, b) => a + b, 0) || 1)
     const lift = Math.round(opener * Math.max(0, Math.min(3, KAST_Z(s('kast')) + APR_Z(s('apr')))))
     const sub = isSub(p) ? SUB_PENALTY : 0
-    const rating = bounded(combat + call + lift - sub)
+    const mvp = p.vlrId === MVP ? MVP_BONUS : 0
+    const rating = bounded(combat + call + lift + mvp - sub)
     const attrs: Attrs = {
       aim: bounded(55 + s('acs') * .145 - sub), reaction: bounded(52 + s('kpr') * 42 - sub),
       awareness: bounded(20 + s('kast') * .85 - sub), utility: bounded(62 + s('apr') * 58 - sub),

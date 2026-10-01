@@ -9,7 +9,7 @@ export const CARD_PAGES = [
   { key: 'challenge', label: '挑战', group: '赛事', description: '挑战职业战队，赢取阵容成长奖励。', icon: 'target' },
   { key: 'ladder', label: '天梯', group: '赛事', description: '检验你的阵容，向更高段位进发。', icon: 'rank' },
   { key: 'cup', label: '杯赛', group: '赛事', description: '报名赛事，带领你的卡组争夺冠军。', icon: 'cup' },
-  { key: 'seoul', label: '首尔征途', group: '赛事', description: '重走首尔 2024 冠军赛的晋级之路。', icon: 'route' },
+  { key: 'bangkok', label: '曼谷征途', group: '赛事', description: '重走曼谷 2025 大师赛的晋级之路。', icon: 'route' },
   { key: 'minigames', label: '小游戏', group: '发现', description: '来一场小挑战，赢取位置奖励包。', icon: 'game', beta: true },
   { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'predict', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
@@ -39,7 +39,8 @@ export function NavIcon({ name }: { name: string }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] ?? paths.pack} /></svg>
 }
 const primary = ['packs', 'collection', 'squad', 'ladder']
-export const cardPageFromHash = () => CARD_PAGES.find(p => `#${p.key}` === window.location.hash)?.key ?? 'packs'
+// 首尔征途 was replaced by 曼谷征途 (2026-10-01); a saved #seoul link lands on the road that took its place
+export const cardPageFromHash = () => CARD_PAGES.find(p => `#${p.key}` === (window.location.hash === '#seoul' ? '#bangkok' : window.location.hash))?.key ?? 'packs'
 
 export default function CardNavigation({ current, onNavigate, onExit }: { current: string; onNavigate: (key: string) => void; onExit: () => void }) {
   const [open, setOpen] = useState(false)

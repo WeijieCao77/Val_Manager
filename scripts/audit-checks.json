@@ -530,6 +530,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_bangkok_route.ts",
+    "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_card_integrity.ts"
   },
   {

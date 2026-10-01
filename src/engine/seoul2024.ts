@@ -52,6 +52,10 @@ const standing = (k: Stat) => {
   return (x: number) => (x - mean) / sd
 }
 const KAST_Z = standing('kast'), APR_Z = standing('apr')
+// The event MVP, whom Riot picks for impact a VLR rating does not read: ZmjjKK (vlr 3520) sat at 87 under
+// Derke and Chronicle's 88. The owner asked for the honour on the card (2026-10-01), as on 曼谷's Meteor.
+const MVP = '3520'
+export const MVP_BONUS = 5
 
 /** Frozen tournament statistics become game attributes, never an official 0–99 rating.
  * The same explicit formula is used for all 80 players, including retired players.
@@ -72,7 +76,8 @@ export function buildSeoulCards(base: readonly PlayerCard[]): PlayerCard[] {
     const call = isIgl ? CALL_BONUS[team.placement] ?? 0 : 0
     const opener = (usage.get('先锋') ?? 0) / ([...usage.values()].reduce((a, b) => a + b, 0) || 1)
     const lift = Math.round(opener * Math.max(0, Math.min(3, KAST_Z(s('kast')) + APR_Z(s('apr')))))
-    const rating = bounded(combat + call + lift)
+    const mvp = p.profile.split('/')[4] === MVP ? MVP_BONUS : 0
+    const rating = bounded(combat + call + lift + mvp)
     const attrs: Attrs = {
       aim: bounded(55 + s('acs') * .145), reaction: bounded(52 + s('kpr') * 42),
       awareness: bounded(20 + s('kast') * .85), utility: bounded(62 + s('apr') * 58),

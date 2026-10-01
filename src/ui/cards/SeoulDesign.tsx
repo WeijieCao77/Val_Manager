@@ -9,7 +9,7 @@ export const SEOUL_MARK = '/events/seoul-2024/champions.png'
 export function SeoulMark({ className = '' }: { className?: string }) {
   return <img className={`seoul-mark ${className}`} src={SEOUL_MARK} alt="VALORANT Champions" />
 }
-export function SeoulCard({ card, level = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard }) {
+export function SeoulCard({ card, level = 0, evolved = false, dupes = 0, size = 'md', selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard; evolved?: boolean }) {
   const [failed, setFailed] = useState(false)
   const entry = card.seoul!
   return <div className={`cardface sc24 s-${size} sc24-${card.rarity}${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
@@ -20,7 +20,7 @@ export function SeoulCard({ card, level = 0, dupes = 0, size = 'md', selected, d
     <div className="sc24-head"><span>CHAMPIONS<br /><b>SEOUL 2024</b></span><SeoulMark /></div>
     <span className="sc24-side">{card.clubTag} / {entry.nat.toUpperCase()} / {RARITY_CN[card.rarity]}</span>
     <div className="sc24-portrait">{card.face && !failed ? <img src={card.face} alt={card.ign} loading="lazy" onError={() => setFailed(true)} /> : <span>{card.ign.slice(0, 2)}</span>}</div>
-    <div className="sc24-rating"><b>{card.rating}</b><small>{card.role.slice(0, 2)}{level > 0 ? ` +${level}` : ''}</small></div>
+    <div className="sc24-rating"><b>{card.rating}</b><small>{card.role.slice(0, 2)}{level > 0 ? ` +${level}` : ''}{evolved && <i className="evo-mark" title="进修过">↑</i>}</small></div>
     <div className="sc24-info"><span className="sc24-team">{card.clubTag}<i>{card.clubTag === 'EDG' ? 'WORLD CHAMPION' : 'SEOUL CONTENDER'}</i></span>
       <strong className="sc24-ign">{card.ign}</strong>
       <div className="sc24-stats"><span><b>{entry.acs}</b>ACS</span><span><b>{entry.kd.toFixed(2)}</b>K/D</span><span><b>{entry.maps}</b>MAPS</span></div>

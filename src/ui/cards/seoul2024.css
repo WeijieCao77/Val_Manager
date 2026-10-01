@@ -62,3 +62,4 @@
 .seoul-shelf-art>.sc24-pack-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
 .seoul-object-pack>.sc24-pack-object{width:226px}
 @media(max-width:620px){.seoul-shelf-art>.sc24-pack-object{width:120px;left:0}.seoul-object-pack>.sc24-pack-object{width:194px}}
+.sc24 .evo-mark{font-style:normal;margin-left:.15em;color:#8ff0bf}

@@ -19,6 +19,8 @@ export interface BangkokPlayer {
   maps?: number
   /** under the number: the card's role in the game (the 首尔 face shows it there too); 总评 when absent */
   label?: string
+  /** trained past +5 (进修): a small arrow after the label */
+  evolved?: boolean
 }
 const tiers = { gold: '金卡', silver: '银卡', bronze: '铜卡' }
 
@@ -35,7 +37,7 @@ export function BangkokCard({ player, rarity = 'gold', blank = false, footer }: 
     </div>
     <div className="bk25-portrait-atmosphere" aria-hidden="true" />
     <div className="bk25-corner-lotus" aria-hidden="true" />
-    <div className="bk25-rating"><strong>{player.rating ?? '—'}</strong><span>{player.label ?? '总评'}</span></div>
+    <div className="bk25-rating"><strong>{player.rating ?? '—'}</strong><span>{player.label ?? '总评'}{player.evolved && <i className="evo-mark" title="进修过">↑</i>}</span></div>
     <span className="bk25-side">DAWN OF THE DUELIST</span>
     <div className="bk25-player-info"><div className="bk25-team"><b>{player.team}</b><span>{player.nation} / 2025</span></div><strong className="bk25-ign">{player.ign}</strong>
       <div className="bk25-stats"><span><b>{player.acs ?? '—'}</b>ACS</span><span><b>{player.kd?.toFixed(2) ?? '—'}</b>K/D</span><span><b>{player.maps ?? '—'}</b>MAPS</span></div>
@@ -51,12 +53,12 @@ const pad = (n: number) => String(n).padStart(3, '0')
  * own numbers, the level beside the role (as the 首尔 face shows it), and the
  * states every face has — selected, dimmed, tappable, a spare count.
  */
-export function BangkokFace({ card, level = 0, dupes = 0, selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard }) {
+export function BangkokFace({ card, level = 0, evolved = false, dupes = 0, selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard; evolved?: boolean }) {
   const e = card.bangkok!
   const player: BangkokPlayer = {
     ign: card.ign, team: card.clubTag ?? '', nation: (card.nat ?? '').toUpperCase(), number: `${pad(e.number)} / ${pad(BANGKOK_TOTAL)}`,
     photo: card.face ?? undefined, photoPosition: '50% 30%', rating: card.rating, acs: e.acs, kd: e.kd, maps: e.maps,
-    label: `${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`,
+    label: `${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, evolved,
   }
   return <div className={`bk25-face${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
     onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}

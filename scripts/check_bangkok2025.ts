@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { ALL_CARDS, BANGKOK_CARDS, BASE_PLAYER_CARDS, cardById, personOf } from '../src/engine/cards'
+import { ALL_CARDS, BANGKOK_CARDS, BASE_PLAYER_CARDS, SEOUL_CARDS, cardById, personOf } from '../src/engine/cards'
 import { BANGKOK_TEAMS } from '../src/engine/bangkok2025'
 import {
   PACKS, MYTHIC_FLOOR, HARD_PITY, MULTI_OPEN_MAX, BANGKOK_SALE_OFF, SEOUL_LAST_DAY,
@@ -35,7 +35,10 @@ ok('八支队各一个指挥（VIT 是 Sayf）', callers.join() === ['stax', 'va
 const carpe = BANGKOK_CARDS.find(c => c.ign === 'carpe')!
 ok('出场不到本队三分之一的替补减分：carpe 2 图', carpe.bangkok!.maps === 2 && carpe.rating === 73, `${carpe.rating}`)
 const counts = ['gold', 'silver', 'bronze'].map(r => BANGKOK_CARDS.filter(c => c.rarity === r).length)
-ok('金 / 银 / 铜 = 11 / 26 / 4，没有彩卡', counts.join('/') === '11/26/4' && !BANGKOK_CARDS.some(c => c.rarity === 'mythic'), counts.join('/'))
+ok('金 / 银 / 铜 = 12 / 25 / 4，没有彩卡', counts.join('/') === '12/25/4' && !BANGKOK_CARDS.some(c => c.rarity === 'mythic'), counts.join('/'))
+const meteor = BANGKOK_CARDS.find(c => c.ign === 'Meteor')!, kk = SEOUL_CARDS.find(c => c.ign === 'ZmjjKK')!
+ok('赛事 MVP 加 5 分：Meteor 87（金）、首尔 ZmjjKK 92', meteor.rating === 87 && meteor.rarity === 'gold' && kk.rating === 92, `${meteor.rating} / ${kk.rating}`)
+ok('别人不受 MVP 加分影响：iZu 84、首尔 Derke 88', BANGKOK_CARDS.find(c => c.ign === 'iZu')!.rating === 84 && SEOUL_CARDS.find(c => c.ign === 'Derke')!.rating === 88)
 ok('进了全部卡牌', BANGKOK_CARDS.every(c => ALL_CARDS.includes(c)))
 
 // ---- the pack: the 首尔包's price and odds

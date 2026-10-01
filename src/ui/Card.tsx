@@ -7,7 +7,7 @@ import { RARITY_CN } from '../engine/cards'
 import { crestUrl } from '../engine/dossier'
 import { FLAG_AS, natName } from '../engine/nat'
 import type { Card, PlayerCard, CoachCard } from '../engine/cards'
-import { isCoachCard, isPlayerCard, legendOf } from '../engine/cards'
+import { MAX_LEVEL, isCoachCard, isPlayerCard, legendOf } from '../engine/cards'
 import { POSITION_PACKS, positionPackStyle } from './cards/positionPackDesign'
 import type { PackPosition } from './cards/positionPackDesign'
 import { COACH_CREST } from './cards/coachCrest'
@@ -184,13 +184,19 @@ export interface CardFaceProps {
  * look like a gold at a glance, across a grid, on a phone.
  */
 export default function CardFace({
-  card, level = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer,
+  card, level: played = 0, dupes = 0, size = 'md', selected, dimmed, onClick, footer,
 }: CardFaceProps) {
+  // a match's level carries 进修 above +5 as a fraction (engine/evolve.ts); the badge is the whole level,
+  // and a card that has been trained past it is marked
+  const level = Math.max(0, Math.min(MAX_LEVEL, Math.floor(played)))
+  const evolved = played > MAX_LEVEL
+  // the event faces show the year's ACS, K/D and maps where a card has its attributes, so the mark
+  // beside the level is the one place a 进修 shows on them (the attributes are in the detail)
   if (isPlayerCard(card) && card.event === 'seoul-2024') {
-    return <CardScale size={size}><SeoulCard {...{ card, level, dupes, size: 'md', selected, dimmed, onClick, footer }} /></CardScale>
+    return <CardScale size={size}><SeoulCard {...{ card, level, evolved, dupes, size: 'md', selected, dimmed, onClick, footer }} /></CardScale>
   }
   if (isPlayerCard(card) && card.event === 'bangkok-2025') {
-    return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, dupes, selected, dimmed, onClick, footer }} /></CardScale>
+    return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
   }
   // The base rating, always: the number on the face says which card this is
   // (the 2024 EDG ZmjjKK is a 97 whatever you have done to it), the +N
@@ -255,7 +261,7 @@ export default function CardFace({
             like it was doing, because it was. */}
         <span className="cf-num">
           <b>{rating}</b>
-          {level > 0 && <i className="cf-plus">+{level}</i>}
+          {level > 0 && <i className={`cf-plus${evolved ? ' cf-evo' : ''}`} title={evolved ? '进修过' : undefined}>+{level}</i>}
         </span>
         {/* Every position he can actually play, not just the first one.
             A card badged 哨卫 sitting in the 决斗者 slot reads as a mistake

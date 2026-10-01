@@ -1,0 +1,344 @@
+{
+ "source": "https://www.vlr.gg/event/matches/2281/valorant-masters-bangkok-2025/?series_id=all",
+ "retrieved": "2026-09-30",
+ "series": [
+  {
+   "id": "448597",
+   "stage": "Swiss Stage: Round 1",
+   "a": "G2",
+   "b": "TE",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     8
+    ],
+    [
+     "Abyss",
+     13,
+     3
+    ]
+   ]
+  },
+  {
+   "id": "448598",
+   "stage": "Swiss Stage: Round 1",
+   "a": "EDG",
+   "b": "TL",
+   "maps": [
+    [
+     "Split",
+     18,
+     16
+    ],
+    [
+     "Pearl",
+     13,
+     6
+    ]
+   ]
+  },
+  {
+   "id": "448599",
+   "stage": "Swiss Stage: Round 1",
+   "a": "VIT",
+   "b": "T1",
+   "maps": [
+    [
+     "Fracture",
+     13,
+     10
+    ],
+    [
+     "Bind",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "448600",
+   "stage": "Swiss Stage: Round 1",
+   "a": "DRX",
+   "b": "SEN",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     3
+    ],
+    [
+     "Haven",
+     13,
+     10
+    ]
+   ]
+  },
+  {
+   "id": "449000",
+   "stage": "Swiss Stage: Round 2 (1-0)",
+   "a": "DRX",
+   "b": "VIT",
+   "maps": [
+    [
+     "Bind",
+     8,
+     13
+    ],
+    [
+     "Abyss",
+     13,
+     11
+    ],
+    [
+     "Split",
+     11,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "449001",
+   "stage": "Swiss Stage: Round 2 (1-0)",
+   "a": "EDG",
+   "b": "G2",
+   "maps": [
+    [
+     "Pearl",
+     16,
+     18
+    ],
+    [
+     "Bind",
+     13,
+     8
+    ],
+    [
+     "Fracture",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "449002",
+   "stage": "Swiss Stage: Round 2 (0-1)",
+   "a": "T1",
+   "b": "TE",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     3
+    ],
+    [
+     "Haven",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "449003",
+   "stage": "Swiss Stage: Round 2 (0-1)",
+   "a": "TL",
+   "b": "SEN",
+   "maps": [
+    [
+     "Lotus",
+     7,
+     13
+    ],
+    [
+     "Abyss",
+     16,
+     14
+    ],
+    [
+     "Bind",
+     13,
+     1
+    ]
+   ]
+  },
+  {
+   "id": "449004",
+   "stage": "Swiss Stage: Round 3",
+   "a": "T1",
+   "b": "DRX",
+   "maps": [
+    [
+     "Fracture",
+     13,
+     11
+    ],
+    [
+     "Pearl",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "449005",
+   "stage": "Swiss Stage: Round 3",
+   "a": "G2",
+   "b": "TL",
+   "maps": [
+    [
+     "Haven",
+     13,
+     5
+    ],
+    [
+     "Lotus",
+     13,
+     7
+    ]
+   ]
+  },
+  {
+   "id": "449008",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "EDG",
+   "b": "T1",
+   "maps": [
+    [
+     "Split",
+     13,
+     7
+    ],
+    [
+     "Bind",
+     6,
+     13
+    ],
+    [
+     "Pearl",
+     13,
+     11
+    ]
+   ]
+  },
+  {
+   "id": "449009",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "VIT",
+   "b": "G2",
+   "maps": [
+    [
+     "Bind",
+     13,
+     15
+    ],
+    [
+     "Lotus",
+     9,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "449010",
+   "stage": "Playoffs: Upper Final",
+   "a": "EDG",
+   "b": "G2",
+   "maps": [
+    [
+     "Lotus",
+     8,
+     13
+    ],
+    [
+     "Split",
+     7,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "449011",
+   "stage": "Playoffs: Grand Final",
+   "a": "G2",
+   "b": "T1",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     5
+    ],
+    [
+     "Haven",
+     9,
+     13
+    ],
+    [
+     "Abyss",
+     13,
+     11
+    ],
+    [
+     "Split",
+     13,
+     15
+    ],
+    [
+     "Pearl",
+     14,
+     16
+    ]
+   ]
+  },
+  {
+   "id": "449012",
+   "stage": "Playoffs: Lower Round 1",
+   "a": "T1",
+   "b": "VIT",
+   "maps": [
+    [
+     "Lotus",
+     12,
+     14
+    ],
+    [
+     "Haven",
+     13,
+     4
+    ],
+    [
+     "Split",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "449013",
+   "stage": "Playoffs: Lower Final",
+   "a": "EDG",
+   "b": "T1",
+   "maps": [
+    [
+     "Bind",
+     4,
+     13
+    ],
+    [
+     "Haven",
+     10,
+     13
+    ],
+    [
+     "Fracture",
+     14,
+     12
+    ],
+    [
+     "Split",
+     5,
+     13
+    ]
+   ]
+  }
+ ]
+}
