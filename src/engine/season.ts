@@ -42,6 +42,7 @@ import { tickDisputes } from './disputes'
 import { rulebookOf, stageAtIn, stagesOf } from './rulebook'
 import type { StageDef } from './rulebook'
 import { tickBirthdays } from './birthdays'
+import { settleBreaks, sparkAfterMatch } from './breakthrough'
 import { tickLife } from './managerLife'
 import type { Competition, Fixture, GameState, Player, Region, StageKey, Tactics, Team, Tier } from './types'
 import { recordMatch, scoutTitle, scoutWinter } from './scouting'
@@ -1800,6 +1801,7 @@ export function commitFixture(
       const knockout = f.stage === 'masters1' || f.stage === 'masters2' || f.stage === 'champions' ||
         !/常规赛|瑞士|小组/.test(f.label)
       recordMatch(state, f, plans, knockout)
+      sparkAfterMatch(state, f, result, knockout)
     }
   }
   // scrims build form and cost condition but never enter the record books
@@ -2009,6 +2011,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   tickBirthdays(state, notes)
   tickDisputes(state, notes)
   tickLife(state, notes)
+  settleBreaks(state, notes)
 
   state.stage = stageAtIn(state, state.day)
   const stageChanged = state.stage !== prevStage

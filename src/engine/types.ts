@@ -279,6 +279,16 @@ export interface Player {
   potential: number
   /** Career count of winter potential re-evaluations; absent in old saves means zero. */
   potentialRevisions?: number
+  /** 潜力突破 (engine/breakthrough.ts): the bar, 0-100, filled by official matches at his ceiling */
+  breakSpark?: number
+  /** successful breakthroughs in his career */
+  breakDone?: number
+  /** the day a running 突破特训 ends */
+  breakUntil?: number
+  /** its odds, fixed when it started */
+  breakChance?: number
+  /** the season of his last attempt — one a season */
+  breakYear?: number
   /** 0-100, short-term performance swing */
   form: number
   morale: number

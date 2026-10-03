@@ -55,6 +55,7 @@ def load(p: Path):
 def main() -> int:
     w = json.loads(WORLD.read_text("utf-8"))
     players, teams = w["players"], w["teams"]
+    META = w.get("meta") or {}
     P = {p["id"]: p for p in players}
     T = {t["id"]: t for t in teams}
 
@@ -203,7 +204,13 @@ def main() -> int:
     weak_callers = []
     for t in teams:
         for caller in (P[r] for r in t["roster"] if r in P and P[r].get("isIgl")):
-            if caller["attrs"]["igl"] < min(t["rating"], 96) - 2:
+            # build_world floors him at the club's level minus two. Since the
+            # world moved onto the card scale (2026-10-03, sync_world_ratings)
+            # his attributes move with his OWN published rating, which already
+            # prices the calling, so a caller re-rated harder than his club
+            # sits a little under it (Munchkin 78 at an 84 T1)
+            slack = 7 if META.get("ratingScale") else 2
+            if caller["attrs"]["igl"] < min(t["rating"], 96) - slack:
                 weak_callers.append((t["tag"], t["rating"], caller["ign"], caller["attrs"]["igl"]))
     check("a designated caller calls at his club's level", not weak_callers,
           str(weak_callers[:4]))
@@ -555,8 +562,17 @@ def main() -> int:
     if len(base) > 30:
         rho = rank_rho([(prof[p["ign"]]["rating2"] / prof[p["ign"]]["rating2_w"],
                          p["overall"]) for p in base])
-        check("ability tracks the VCT rating it is built from (rho > 0.85)",
-              rho > 0.85, f"rho={rho:.3f} over {len(base)} tier-1 players")
+        # on the card scale the ability is the published study's number, which
+        # reads honours, role and region as well as the VCT rating
+        if META.get("ratingScale"):
+            rated = json.loads((ROOT / "src" / "data" / "card_ratings.json").read_text("utf-8"))
+            off = [(p["ign"], p["overall"], rated["ratings"].get(p["id"])) for p in players
+                   if rated["ratings"].get(p["id"]) not in (None, p["overall"])]
+            check("a career rates every man at his card's number", not off and META["ratingScale"] == rated["version"],
+                  f"{META['ratingScale']} vs {rated['version']}: {off[:5]}")
+        floor = 0.75 if META.get("ratingScale") else 0.85
+        check(f"ability tracks the VCT rating it is built from (rho > {floor})",
+              rho > floor, f"rho={rho:.3f} over {len(base)} tier-1 players")
         aim = rank_rho([(prof[p["ign"]]["acs"] / prof[p["ign"]]["acs_w"],
                          p["attrs"]["aim"]) for p in base])
         check("aim tracks ACS (rho > 0.8)", aim > 0.8, f"rho={aim:.3f}")

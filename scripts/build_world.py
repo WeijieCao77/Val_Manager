@@ -1830,6 +1830,10 @@ def main():
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(world, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    # onto the card rating scale (src/data/card_ratings.json): the career and
+    # the card must say the same number — scripts/sync_world_ratings.py
+    import sync_world_ratings
+    sync_world_ratings.sync_world()
 
     t1 = [t for t in out_teams if t["tier"] == 1]
     print(f"teams {len(out_teams)} (T1 {len(t1)}, T2 {len(out_teams) - len(t1)})")

@@ -34,8 +34,11 @@ const check = (ok: boolean, what: string, detail = '') => {
 }
 
 const EDG = WORLD_TEAMS.find((t) => t.tag === 'EDG')!.id
-const fresh = (seed = 20260923): GameState => {
-  const g = createNewGame(EDG, '审计', seed)
+// the strongest tier-one club on the data — EDG was, until the world moved
+// onto the card scale (2026-10-03) and put it sixth
+const TOP = WORLD_TEAMS.filter((t) => t.tier === 1).sort((a, b) => b.rating - a.rating)[0].id
+const fresh = (seed = 20260923, club = EDG): GameState => {
+  const g = createNewGame(club, '审计', seed)
   setupSeason(g)
   return g
 }
@@ -117,8 +120,8 @@ const fresh = (seed = 20260923): GameState => {
 
 // ---------------------------------------------------------------- 2 + 3. seasons
 interface Run { w: number; l: number; heat: number; titles: number; nemesis: boolean }
-function play(diff: 'normal' | 'hard' | 'pro' | 'old', maxed: boolean, seed: number, seasons: number): Run {
-  const g = fresh(seed)
+function play(diff: 'normal' | 'hard' | 'pro' | 'old', maxed: boolean, seed: number, seasons: number, club = EDG): Run {
+  const g = fresh(seed, club)
   if (diff === 'old') { delete g.scout; delete g.difficulty; delete g.nemesis }
   else if (diff !== 'normal') g.difficulty = diff
   const run: Run = { w: 0, l: 0, heat: 0, titles: 0, nemesis: false }
@@ -156,7 +159,7 @@ const rate = (r: Run) => r.w / Math.max(1, r.w + r.l)
 const pct = (x: number) => `${(x * 100).toFixed(0)}%`
 
 {
-  const old = play('old', false, 20260924, 1)
+  const old = play('old', false, 20260924, 1, TOP)
   check(old.w + old.l > 30, '没有新字段的旧存档照常打完一个赛季', `${old.w}-${old.l}`)
   check(old.heat > 40, '强队打一季，针对度涨起来', `最高 ${old.heat}`)
 }

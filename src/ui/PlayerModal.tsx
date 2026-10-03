@@ -110,6 +110,7 @@ export default function PlayerModal(
               {p.age} 岁{p.ageEstimated ? '（推算）' : ''}
             </span>
             <span className="tag">潜力 <Potential p={p} game={game} /></span>
+            {!!p.breakDone && <span className="tag" title="潜力突破成功的次数">已突破 {p.breakDone} 次</span>}
             {p.injuredUntil > game.day && (
               <span className="tag warn">⚕ {p.injuryNote}（{p.injuredUntil - game.day} 天）</span>
             )}

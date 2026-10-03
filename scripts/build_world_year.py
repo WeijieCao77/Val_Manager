@@ -860,6 +860,9 @@ def main():
             "derived": "attributes percentile-mapped from real per-round statistics of the seasons before the start",
             "everyoneReal": True,
             "regions": sorted(by_region),
+            # matched to 2026's distribution above, so already on its ruler
+            # (scripts/sync_world_ratings.py must not map it a second time)
+            **({"ratingScale": world26["meta"]["ratingScale"]} if world26.get("meta", {}).get("ratingScale") else {}),
         },
         "teams": out_teams,
         "players": out_players,

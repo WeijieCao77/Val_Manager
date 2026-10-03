@@ -2,6 +2,7 @@ import { Rng, clamp } from './rng'
 import { INJURIES } from './content'
 import { recomputeOverall, refreshValue, ageDrift, weightsFor } from './player'
 import { coachOr, squadOf } from './roster'
+import { inCamp } from './breakthrough'
 import { duoBonded, weeklyBonds } from './bonds'
 import { analystEdge, staffBonus } from './staff'
 import { weeklyTrust } from './trust'
@@ -721,7 +722,10 @@ export function weeklyTick(state: GameState, rng: Rng): string[] {
         continue
       }
 
-      if (isMine) {
+      if (isMine && inCamp(p, state.day)) {
+        // 突破特训: no ordinary practice this week, and harder work than one
+        p.fatigue = clamp(p.fatigue + rng.range(8, 13), 0, 100)
+      } else if (isMine) {
         const note = trainPlayer(state, p, team, rng)
         if (note) notes.push(note)
       } else {

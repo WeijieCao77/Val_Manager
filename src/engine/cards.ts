@@ -47,34 +47,14 @@ export const GOLD_AT = RATED.gold_at
 export const SILVER_AT = RATED.silver_at
 
 /**
- * A 普卡's rating: the v14.1 scale, or the owner's hand where the data cannot
- * see the job (Boaster's calling). The manager game keeps the world's overall —
- * only the cards moved.
+ * A 普卡's rating: the v15 scale, or the owner's hand where the data cannot
+ * see the job. Since 2026-10-03 the manager worlds are on the same scale
+ * (scripts/sync_world_ratings.py), so for everyone rated this is also his
+ * world overall.
  */
 const cardRating = (id: string, overall: number): number =>
-  (RATED.manual as Record<string, { rating: number }>)[id]?.rating ?? (RATED.ratings as Record<string, number>)[id] ?? onCardScale(overall)
+  (RATED.manual as Record<string, { rating: number }>)[id]?.rating ?? (RATED.ratings as Record<string, number>)[id] ?? overall
 
-/**
- * A world overall read on the card scale, for people the ratings file does not cover — a retired man's
- * 预估能力 in 资料库 and 每日挑战. Same rank, same number: the n-th best overall among the rated players maps
- * to the n-th best card rating (old 95 → 92, 90 → 87, 88 → 85). Above the top it keeps the old step.
- */
-const SCALE_PAIRS: [number, number][] = (() => {
-  const rated = RATED.ratings as Record<string, number>
-  const ps = WORLD_PLAYERS.filter((p) => p.id in rated)
-  const old = ps.map((p) => p.overall).sort((a, b) => b - a)
-  const neu = ps.map((p) => rated[p.id]).sort((a, b) => b - a)
-  return old.map((o, i) => [o, neu[i]] as [number, number])
-})()
-export function onCardScale(overall: number): number {
-  if (!SCALE_PAIRS.length) return overall
-  const [topOld, topNew] = SCALE_PAIRS[0]
-  if (overall >= topOld) return Math.min(99, topNew + (overall - topOld))
-  const [lowOld, lowNew] = SCALE_PAIRS[SCALE_PAIRS.length - 1]
-  if (overall <= lowOld) return Math.max(1, lowNew - (lowOld - overall))
-  for (const [o, n] of SCALE_PAIRS) if (o <= overall) return n
-  return overall
-}
 /** What a player's card says, or what it would say: 每日挑战 and 资料库 show this, not the manager's overall. */
 export const cardRatingOf = (id: string, overall: number): number => cardRating(id, overall)
 

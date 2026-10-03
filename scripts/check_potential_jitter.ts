@@ -46,8 +46,14 @@ check('从来不低于当前能力', ids.every((id) => a.players[id].potential >
 check('从来不超过 99', ids.every((id) => a.players[id].potential <= 99))
 const moved = diffs.filter((d) => d !== 0).length
 check('大约一半的人动了', moved > ids.length * 0.35 && moved < ids.length * 0.85, `${moved}/${ids.length}`)
-const top = ids.filter((id) => base.get(id)!.potential >= 97)
-check('数据里潜力 97+ 的人在某个档里会掉到 96 以下', top.some((id) => a.players[id].potential <= 95 || b.players[id].potential <= 95))
+// 2026-10-03 the world moved onto the card scale and the top potentials came
+// down with it (fourteen men at 97+, was far more), so the gem is 95+ and the
+// question is whether he can lose two points in some save
+const top = ids.filter((id) => base.get(id)!.potential >= 95)
+check('数据里潜力 95+ 的人在某个档里会掉 2 点以上', top.some((id) => {
+  const was = base.get(id)!.potential
+  return a.players[id].potential <= was - 2 || b.players[id].potential <= was - 2
+}))
 // prospects too
 const pros = Object.values(a.players).filter((p) => !base.has(p.id))
 const prosB = pros.filter((p) => b.players[p.id] && b.players[p.id].potential !== p.potential).length

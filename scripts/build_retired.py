@@ -96,7 +96,10 @@ for r in rows:
         "lastClub": reg[r["vlr"]]["years"][str(last)].get("club"), "tier1": bool(r["tier1"]),
         "coach": r["group"] == "bench", "img": face,
     })
-json.dump({"_note": "built by scripts/build_retired.py — retired players with a photograph, ages on 2026-01-01", "players": shown},
+# peaks are read off the year worlds, so they are on whatever ruler those are
+SCALE = J("src", "data", "world_2025.json")["meta"].get("ratingScale")
+json.dump({"_note": "built by scripts/build_retired.py — retired players with a photograph, ages on 2026-01-01",
+           **({"ratingScale": SCALE} if SCALE else {}), "players": shown},
           open(os.path.join(ROOT, "src", "data", "retired.json"), "w"), ensure_ascii=False, indent=1)
 print("src/data/retired.json:", len(shown), "shown,", sum(1 for x in shown if x["tier1"]), "tier-one,",
       sum(1 for x in shown if x["ageEstimated"]), "ages estimated")

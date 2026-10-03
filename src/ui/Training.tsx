@@ -16,6 +16,7 @@ import {
   REST_AT, reviewIglXp, trainingAdvice,
 } from '../engine/training'
 import { useAction } from './useAction'
+import { BREAK, breakBlock, breakChance, breakFee, inCamp, sparkOpen, startBreak } from '../engine/breakthrough'
 import {
   analystMarket, approachForCoach, askingSalary, clearedCoaches, demoteHead, employedCoaches,
   facilityCost, offerToStaff, promoteToHead, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus,
@@ -508,6 +509,8 @@ export default function Training() {
         </div>
       </Panel>
 
+      <BreakthroughPanel />
+
       <div className="grid c2">
         <Panel title="训练设施">
           <div className="row" style={{ gap: 10, marginBottom: 10 }}>
@@ -885,8 +888,79 @@ export default function Training() {
 
       <p className="tiny muted">
         个人专项设一次一直生效，每 7 天结算；团队训练一轮 7 天，期满后要重新安排。
-        疲劳超过 70 成长大减；20 岁以下成长约是 27 岁以上的三倍；到潜力上限后不再涨。
+        疲劳超过 70 成长大减；20 岁以下成长约是 27 岁以上的三倍；到潜力上限后不再涨，要靠潜力突破。
       </p>
     </>
+  )
+}
+
+/**
+ * 潜力突破 (engine/breakthrough.ts): who is at his ceiling, how full his bar
+ * is, and the camp — with its odds and fee written on the button before
+ * anybody commits to it.
+ */
+function BreakthroughPanel() {
+  const { game, commit, toast, openPlayer } = useGame()
+  const squad = squadOf(game, game.myTeam)
+  const shown = squad
+    .filter((p) => inCamp(p, game.day) || sparkOpen(p) || (p.breakSpark ?? 0) > 0)
+    .sort((a, b) => (b.breakSpark ?? 0) - (a.breakSpark ?? 0))
+  return (
+    <Panel title="潜力突破">
+      <p className="small muted" style={{ marginTop: 0 }}>
+        练到潜力上限（差 {BREAK.near} 点以内）后，打正式比赛攒<b>突破契机</b>：赢一场 +{BREAK.win}、输一场 +{BREAK.loss}，{''}
+        MVP 再 +{BREAK.mvp}，淘汰赛 ×{BREAK.knockout}、国际赛 ×{BREAK.international}，训练赛不算。{''}
+        攒满 {BREAK.full} 可以花钱做 <b>{BREAK.campDays} 天突破特训</b>，期间不练别的、更累。{''}
+        成功潜力 +{BREAK.gain}，失败契机留 {BREAK.keepOnFail}。每人每赛季试一次，一生最多成功 {BREAK.maxTimes} 次。
+      </p>
+      {!shown.length && <p className="small faint" style={{ margin: 0 }}>队里还没有练到潜力上限的选手。</p>}
+      <div style={{ display: 'grid', gap: 8 }}>
+        {shown.map((p) => {
+          const camp = inCamp(p, game.day)
+          const why = breakBlock(game, p.id)
+          const odds = breakChance(game, p)
+          const fee = breakFee(p)
+          const spark = Math.floor(p.breakSpark ?? 0)
+          return (
+            <div key={p.id} className="row wrap" style={{ gap: 10 }}>
+              <span className="clickable" style={{ minWidth: 120 }} onClick={() => openPlayer(p.id)}>
+                <Face id={p.id} /><b>{p.ign}</b>
+              </span>
+              <span className="tiny muted">潜力 <Potential p={p} game={game} /> · 已突破 {p.breakDone ?? 0}/{BREAK.maxTimes}</span>
+              {camp ? (
+                <span className="tiny warn">特训中，还有 {(p.breakUntil ?? 0) - game.day} 天（成功率 {p.breakChance}%）</span>
+              ) : (
+                <>
+                  <span className="row" style={{ gap: 6, minWidth: 140 }}>
+                    <Bar value={spark} max={BREAK.full} color="var(--violet)" />
+                    <span className="tiny mono muted">{spark}/{BREAK.full}</span>
+                  </span>
+                  <span className="tiny muted" title={odds.parts.map((x) => `${x.label} ${x.v > 0 ? '+' : ''}${x.v}`).join('，') || '没有加减'}>
+                    成功率 {odds.pct}%
+                  </span>
+                  <button
+                    className="sm"
+                    disabled={!!why}
+                    title={why ?? undefined}
+                    onClick={async () => {
+                      if (!(await ask(`${p.ign} 做 ${BREAK.campDays} 天突破特训，花费 ${money(fee)}，成功率 ${odds.pct}%。期间不做个人训练。确定？`))) return
+                      const note = startBreak(game, p.id)
+                      if (note) {
+                        logActivity(game, 'training', note)
+                        toast(note)
+                        commit()
+                      }
+                    }}
+                  >
+                    突破特训 · {money(fee)}
+                  </button>
+                  {why && <span className="tiny faint">{why}</span>}
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </Panel>
   )
 }

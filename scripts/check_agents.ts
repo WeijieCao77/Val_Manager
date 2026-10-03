@@ -70,9 +70,12 @@ const mk = (): GameState => {
 // ---- a pick out of position costs, and training buys it back
 {
   const g = mk()
-  const duelist = selectLineup(g, g.myTeam).find((p) => (p.roles ?? [p.role]).includes('决斗者'))!
   const ownAgent = (MAP_META.Ascent).find((a) => AGENT_ROLE[a] === '决斗者')!
   const wrongAgent = (MAP_META.Ascent).find((a) => AGENT_ROLE[a] === '哨卫')!
+  // a duelist who has mastered the map's duelist and never touched its
+  // sentinel — the starting five's order moves whenever the ratings do
+  const duelist = selectLineup(g, g.myTeam).find((p) => (p.roles ?? [p.role]).includes('决斗者') &&
+    (p.agentPro?.[ownAgent] ?? 0) >= 100 && !p.agentPro?.[wrongAgent])!
   check('his own job costs nothing', agentFit(duelist, ownAgent) === 1)
   const off = agentMod(duelist, wrongAgent)
   // the job is the whole penalty now — the old extra for an agent outside his

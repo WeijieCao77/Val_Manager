@@ -788,5 +788,10 @@
     "runtime": "tsx",
     "file": "scripts/check_evolve.ts",
     "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_breakthrough.ts",
+    "estimatedSeconds": 12
   }
 ]

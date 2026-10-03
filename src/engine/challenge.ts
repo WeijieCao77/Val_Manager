@@ -23,7 +23,7 @@ import { agentCn, AGENTS, ALL_AGENTS, MAPS, mapCn } from './content'
 import { natCountry, natName } from './nat'
 import { hashStr } from './rng'
 import { WORLD_PLAYERS } from './world'
-import { cardRatingOf, onCardScale } from './cards'
+import { cardRatingOf } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { DOSSIER } from './dossier'
 import { RETIRED, RETIRED_BY_ID } from './retired'
@@ -324,7 +324,7 @@ function personOf(id: string): Person | null {
   const r = RETIRED_BY_ID.get(id)
   return r ? {
     id: r.id, ign: r.ign, region: r.region, teamId: 'retired', teamTag: '退役',
-    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: onCardScale(r.peak),
+    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: r.peak,
   } : null
 }
 
