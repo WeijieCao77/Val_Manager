@@ -67,12 +67,13 @@ export const CHAMPIONS_2026: PredictEvent = {
     KC: { tag: 'KC', clubId: 'T23', name: 'Karmine Corp' },
     XLG: { tag: 'XLG', clubId: 'T37', name: 'Xi Lai Gaming' },
   },
-  // Beijing 17:00 and 20:00 are 09:00 and 12:00 UTC
+  // Beijing 17:00 and 20:00 are 09:00 and 12:00 UTC; from the winners' match on,
+  // B played the early slot and A the late one (vlr.gg/event/2766, 2026-10-03)
   groups: [
     { key: 'A', deadline: CHAMPIONS_2026_DEADLINE, teams: ['100T', 'T1', 'JDG', 'FUT'],
-      at: at('2026-09-27T09:00Z', '2026-09-27T12:00Z', '2026-09-30T09:00Z', '2026-10-02T09:00Z', '2026-10-04T09:00Z') },
+      at: at('2026-09-27T09:00Z', '2026-09-27T12:00Z', '2026-09-30T12:00Z', '2026-10-02T12:00Z', '2026-10-04T12:00Z') },
     { key: 'B', deadline: CHAMPIONS_2026_DEADLINE, teams: ['GE', 'VIT', 'LOUD', 'EDG'],
-      at: at('2026-09-26T09:00Z', '2026-09-26T12:00Z', '2026-09-30T12:00Z', '2026-10-02T12:00Z', '2026-10-04T12:00Z') },
+      at: at('2026-09-26T09:00Z', '2026-09-26T12:00Z', '2026-09-30T09:00Z', '2026-10-02T09:00Z', '2026-10-04T09:00Z') },
     { key: 'C', deadline: CHAMPIONS_2026_DEADLINE, teams: ['TL', 'PRX', 'TYL', 'G2'],
       at: at('2026-09-24T09:00Z', '2026-09-24T12:00Z', '2026-09-29T09:00Z', '2026-10-01T09:00Z', '2026-10-03T09:00Z') },
     { key: 'D', deadline: CHAMPIONS_2026_DEADLINE, teams: ['NS', 'NRG', 'KC', 'XLG'],
@@ -168,7 +169,13 @@ export function cleanPredictions(raw: unknown): GachaState['predict'] {
 }
 
 
-export interface GroupResult { first: string; second: string; confirmedAt: number }
+/**
+ * A group as it was played: who won each of its five matches, and the two who
+ * went through. The places are written down as well as the winners so the one
+ * checks the other — a result whose winners do not lead to its own first and
+ * second is not a result.
+ */
+export interface GroupResult { first: string; second: string; winners: Record<SlotKey, string>; confirmedAt: number }
 export type PredictionReward = { elite: number; ten: number }
 /** Reviewed results ship with the server. No action accepts results from a player. */
 export const PREDICT_RESULTS: Record<string, Record<string, GroupResult>> = publishedResults
@@ -178,6 +185,10 @@ export function confirmedResult(eventId: string, group: PredictGroup, now: numbe
   if (!result || !group.teams.includes(result.first) || !group.teams.includes(result.second)
     || result.first === result.second || !Number.isSafeInteger(result.confirmedAt)
     || result.confirmedAt <= group.at.d || now < result.confirmedAt) return null
+  const w = result.winners
+  if (!w || typeof w !== 'object' || SLOTS.some(k => cleanPicks(group, w)[k] !== w[k])) return null
+  const st = standing(group, w)
+  if (st.first !== result.first || st.second !== result.second) return null
   return result
 }
 
@@ -207,4 +218,55 @@ export function claimPrediction(g: GachaState, eventId: string, groupKey: string
   g.packs.ten = (g.packs.ten ?? 0) + reward.ten
   row.claimedAt = now
   return { ok: true, reward }
+}
+
+/** 正确率: the matches of the confirmed groups this account called right, out of all of them. */
+export interface PredictScore { correct: number; total: number; places: number }
+
+/**
+ * One account's record against every confirmed group of an event. A match
+ * counts when the team picked for it is the team that won it; a match not
+ * picked, or a group not predicted, counts as missed, so the share is out of
+ * every match played and not out of the ones chosen. `places` is how many of
+ * the real first and second places were called in the right place. Null when
+ * the account has no valid pick in any confirmed group.
+ */
+export function predictScore(eventId: string, saved: unknown, now: number): PredictScore | null {
+  const event = PREDICT_EVENTS.find(e => e.id === eventId)
+  if (!event) return null
+  const rows = saved && typeof saved === 'object' ? (saved as Record<string, { picks?: unknown; at?: unknown } | undefined>) : {}
+  let correct = 0, total = 0, places = 0, any = false
+  for (const group of event.groups) {
+    const result = confirmedResult(eventId, group, now)
+    if (!result) continue
+    total += SLOTS.length
+    const row = rows[group.key]
+    const at = Number(row?.at)
+    if (!row || typeof row !== 'object' || !Number.isFinite(at) || at >= lockAt(group)) continue
+    const picks = cleanPicks(group, row.picks)
+    if (!Object.keys(picks).length) continue
+    any = true
+    correct += SLOTS.filter(k => picks[k] === result.winners[k]).length
+    const st = standing(group, picks)
+    places += Number(st.first === result.first) + Number(st.second === result.second)
+  }
+  return any ? { correct, total, places } : null
+}
+
+/**
+ * 正确率排行: every account with a scored pick, most matches right first.
+ * Accounts level on matches share a rank (1, 1, 3); places right then name
+ * only order the rows inside a tie.
+ */
+export function predictBoard<T extends { id: string; name: string; saved: unknown }>(eventId: string, accounts: T[], now: number) {
+  const scored = accounts
+    .map(a => ({ ...a, score: predictScore(eventId, a.saved, now) }))
+    .filter((a): a is T & { score: PredictScore } => !!a.score)
+    .sort((a, b) => b.score.correct - a.score.correct || b.score.places - a.score.places
+      || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  let rank = 0
+  return scored.map((a, i) => {
+    if (i === 0 || scored[i - 1].score.correct !== a.score.correct) rank = i + 1
+    return { id: a.id, name: a.name, rank, ...a.score }
+  })
 }
