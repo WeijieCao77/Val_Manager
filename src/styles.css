@@ -59,6 +59,8 @@
   --loss:     #8497ab;
   /* the defending side, in the round strip and the map graph */
   --def:      #5fa8d3;
+  --chart-a:  #3d8fd6;
+  --chart-b:  #ff4655;
   /* the card game's metal, where its wordmark wears it */
   --gold:     #f0c14b;
   /* ink that stays legible on a tinted cell — the dressing-room matrix */
@@ -131,6 +133,8 @@
   --on-warn:  #ffffff;
   --loss:     #5c7086;
   --def:      #266b9f;
+  --chart-a:  #266b9f;
+  --chart-b:  var(--accent);
   --gold:     #8f6a05;
   --pos-ink:  #0f6b41;
   --neg-ink:  #a11c28;
@@ -185,6 +189,8 @@
   --on-warn:  #ffffff;
   --loss:     #6b6558;
   --def:      #266b9f;
+  --chart-a:  #266b9f;
+  --chart-b:  var(--accent);
   --gold:     #8a6607;
   --pos-ink:  #146b41;
   --neg-ink:  #a11c28;
@@ -3264,3 +3270,19 @@ button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); 
 @media (max-width: 420px) { .champ-lineup > .card-img { width: calc((100% - 16px) / 3); } }
 /* 连开's recap: up to a hundred cards, scrolled rather than shrunk (stripLayout in Packs.tsx) */
 .pack-strip.pack-strip-many { max-width: 820px; }
+
+/* 全服杯 · 分差和实际胜率 (LiveGapOdds.tsx) */
+.lgo-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 4px 0 6px; color: var(--muted); }
+.lgo-legend i, .lgo-tip i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.lgo-plot { position: relative; width: 100%; }
+.lgo-plot svg { display: block; cursor: pointer; }
+.lgo-grid { stroke: var(--line-soft); stroke-width: 1; }
+.lgo-base { stroke: var(--line-hi); stroke-width: 1; stroke-dasharray: 3 3; }
+.lgo-axis { fill: var(--faint); font-size: 11px; font-family: var(--mono); }
+.lgo-axis.on { fill: var(--text); font-weight: 700; }
+.lgo-hl { fill: var(--panel-2); }
+.lgo-tip {
+  position: absolute; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  background: var(--panel-3); border: 1px solid var(--line-hi); border-radius: var(--radius);
+  padding: 6px 9px; line-height: 1.6; box-shadow: var(--shadow-fab); color: var(--text);
+}

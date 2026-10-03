@@ -14,6 +14,7 @@ import { swissRoundName } from '../../engine/openCupSwiss'
 import { PACKS } from '../../engine/gacha'
 import { serverNow } from '../../engine/account'
 import { GapOdds } from './GapOdds'
+import { LiveGapOdds } from './LiveGapOdds'
 import CupLineupConfirm, { SignedLineup } from './CupLineupConfirm'
 import type { ArenaResult } from '../../engine/arena'
 
@@ -222,6 +223,8 @@ export default function OpenCup() {
           <Schedule cup={st.last} onOpen={(m) => void open(st.last!.id, m)} />
         </Panel>
       )}
+
+      <LiveGapOdds />
 
       <Panel
         title="冠军榜"
