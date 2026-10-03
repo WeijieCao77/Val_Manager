@@ -5,7 +5,7 @@ import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
   allChoices, beijingDay, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeDay, challengeSig, challengeToday,
-  detail, evaluate, hourOn, KIND_CN, nextTurnover, revealed, triesLeft,
+  detail, evaluate, HOUR_EVERY, hourLockedUntil, hourOn, KIND_CN, nextTurnover, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
 import { FRAME_ASPECT, FRAME_MAX, paintPuzzle, puzzleShift } from './puzzle'
@@ -130,6 +130,7 @@ export default function Challenge() {
   const inForce = hourOn(g.challenge, date)
   const chosen = hourOn(g.challenge, '9999-12-31')
   const next = nextTurnover(g.challenge, now)
+  const locked = hourLockedUntil(g.challenge, date)
   const nextAt = `${beijingDay(next) === date ? '今天' : '明天'} ${hh(hourOn(g.challenge, beijingDay(next)))}`
 
   // the answer's own row, used for the reveal — built here rather than stored
@@ -212,11 +213,12 @@ export default function Challenge() {
         </p>
         <p className="small muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           每天
-          <select value={chosen} disabled={busy} style={{ width: 'auto' }} onChange={(e) => pickHour(Number(e.target.value))}>
+          <select value={chosen} disabled={busy || !!locked} style={{ width: 'auto' }} onChange={(e) => pickHour(Number(e.target.value))}>
             {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hh(h)}</option>)}
           </select>
-          换题，改了明天起生效。
+          换题，改了明天起生效，{HOUR_EVERY} 天可改一次。
           <span className="faint">
+            {locked ? `${locked.slice(5)} 起可再改，` : ''}
             {chosen !== inForce ? `今天还是 ${hh(inForce)}，` : ''}下一题 {nextAt}
           </span>
         </p>

@@ -103,6 +103,15 @@ for (let from = 0; from < 24; from++) {
   check('明天 10 点还是 10-03 的题（20 点才换）', g.challenge?.day === '2026-10-03' && g.challenge.guesses.length === 2)
   runAction(g, 'challenge', { guessId: 'nope', sig: challengeSig() }, env(bj('2026-10-04', 20, 1)))
   check('明天 20 点换成 10-04 的题', g.challenge?.day === '2026-10-04' && g.challenge.guesses.length === 1)
+  // once every seven days
+  r = runAction(g, 'challenge_hour', { hour: 8 }, env(bj('2026-10-03', 11)))
+  check('同一天不能再改', !r.ok && /7 天/.test(r.why) && g.challenge?.hour === 20, r.ok ? '' : r.why)
+  r = runAction(g, 'challenge_hour', { hour: 8 }, env(bj('2026-10-09', 23, 59)))
+  check('第 6 天还不能改', !r.ok && g.challenge?.hour === 20)
+  r = runAction(g, 'challenge_hour', { hour: 8 }, env(bj('2026-10-10', 0, 1)))
+  check('第 7 天可以改', r.ok && g.challenge?.hour === 8 && g.challenge?.prevHour === 20 && g.challenge?.hourFrom === '2026-10-11')
+  r = runAction(g, 'challenge_hour', { hour: 9 }, env(bj('2026-10-12', 12)))
+  check('改完又锁 7 天', !r.ok)
 }
 
 console.log(`${switches} hour switches walked; ${bad ? `${bad} FAILED` : 'all ok'}`)

@@ -76,6 +76,8 @@ export interface ChallengeState {
   prevHour?: number
   /** the Beijing date a changed `hour` starts on — always the day after it was chosen */
   hourFrom?: string
+  /** the Beijing date the hour was last chosen; it can be chosen again HOUR_EVERY days later */
+  hourSetAt?: string
 }
 
 export const newChallenge = (): ChallengeState => ({
@@ -522,10 +524,30 @@ export function nextTurnover(c: ChallengeState | undefined, now: number): number
   return t > now ? t : at(nextDay(today))
 }
 
+/** How many days apart the hour may be chosen — the owner's call, so the hour is not a toy. */
+export const HOUR_EVERY = 7
+
+const addDays = (day: string, n: number): string => {
+  const d = new Date(`${day}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+/** The first Beijing date the hour may be chosen again, or null when it may be chosen now. */
+export function hourLockedUntil(c: ChallengeState | undefined, today: string): string | null {
+  if (!c?.hourSetAt) return null
+  const free = addDays(c.hourSetAt, HOUR_EVERY)
+  return today < free ? free : null
+}
+
 /** Choose the turnover hour; it starts on the Beijing date after `today`. */
 export function setChallengeHour(g: GachaState, hour: number, today: string): string | null {
   if (!okHour(hour)) return '时间不对'
   const c = (g.challenge ??= newChallenge())
+  const locked = hourLockedUntil(c, today)
+  if (locked) return `${HOUR_EVERY} 天只能改一次，${locked.slice(5)} 起可再改`
+  if (hour === hourOn(c, '9999-12-31')) return '已经是这个时间了'
+  c.hourSetAt = today
   c.prevHour = hourOn(c, today)
   c.hour = hour
   c.hourFrom = nextDay(today)

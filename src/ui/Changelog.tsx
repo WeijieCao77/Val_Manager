@@ -15,6 +15,14 @@ import Rich from './rich'
 
 const SEEN = 'valmgr.changelog.seen'
 
+/**
+ * How many update days show before 「更早的更新」. The list had grown to a few
+ * hundred entries with five pinned on top (2026-10-03, 「太多置顶了，很乱」):
+ * now one standing-rules pin, the latest days, and the rest behind a button.
+ */
+const RECENT_DAYS = 5
+const recentDates = new Set([...new Set(CHANGELOG.map((e) => e.date))].slice(0, RECENT_DAYS))
+
 const readSeen = (): string => {
   try { return localStorage.getItem(SEEN) ?? '' } catch { return '' }
 }
@@ -22,6 +30,10 @@ const readSeen = (): string => {
 export default function Changelog({ raised = false }: { raised?: boolean }) {
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState(readSeen)
+  const [all, setAll] = useState(false)
+  const pinned = CHANGELOG.filter((e) => e.pinned)
+  const rest = CHANGELOG.filter((e) => !e.pinned)
+  const shown = all ? rest : rest.filter((e) => recentDates.has(e.date))
 
   // Escape closes it, like every other panel in the game
   useEffect(() => {
@@ -71,7 +83,7 @@ export default function Changelog({ raised = false }: { raised?: boolean }) {
             </p>
 
             <div className="log-list">
-              {[...CHANGELOG.filter((e) => e.pinned), ...CHANGELOG.filter((e) => !e.pinned)].map((entry) => (
+              {[...pinned, ...shown].map((entry) => (
                 <section key={entry.date + entry.title}>
                   <header>
                     <b>{entry.pinned && <span className="tag" style={{ marginRight: 6 }}>置顶</span>}{entry.title}</b>
@@ -87,6 +99,11 @@ export default function Changelog({ raised = false }: { raised?: boolean }) {
                   </ul>
                 </section>
               ))}
+              {shown.length < rest.length && (
+                <button className="sm ghost" style={{ alignSelf: 'center' }} onClick={() => setAll(true)}>
+                  更早的更新（{rest.length - shown.length} 条）
+                </button>
+              )}
             </div>
 
             <div className="support-foot">
