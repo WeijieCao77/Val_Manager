@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { natName } from '../engine/nat'
-import { AgentIcon, Bar, Face, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
+import { AgentIcon, Bar, ComebackTags, Face, Modal, OvrBadge, Radar, Roles, Traits, money, moneyFull, Potential } from './common'
+import { FAME_LABEL } from '../engine/fun'
+import { startYearOf } from '../engine/eras'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
 import { renewContract, renewalBlock } from '../engine/transfer'
 import { loyaltyOnListed } from '../engine/loyalty'
@@ -116,7 +118,17 @@ export default function PlayerModal(
             )}
             {p.listed && <span className="tag warn">已挂牌</span>}
             {p.retiring && <span className="tag warn">📢 本赛季后退役</span>}
+            <ComebackTags p={p} />
           </div>
+          {p.comeback && (
+            <p className="tiny muted" style={{ margin: '-4px 0 12px', lineHeight: 1.7 }}>
+              {p.comeback.kind === 'retired'
+                ? `退役复出${p.comeback.lastClub ? `，上一站 ${p.comeback.lastClub}（${p.comeback.lastYear}）` : ''}。离开赛场的几年，配合和道具丢得最多；进队后每周找回一部分状态。`
+                : '主播，没有职业联赛经历，按同水平联赛选手的数据定能力。'}
+              {p.comeback.fame > 0 && ` ${FAME_LABEL[p.comeback.fame]}：直播合同更值钱，在队时俱乐部声望慢慢上涨；要价更高，训练少一些。`}
+              {!p.teamId && ' 只愿意为你复出，AI 俱乐部不会签他。'}
+            </p>
+          )}
           {mine && birthdayFor(game, p.id) && (() => {
             const e = birthdayFor(game, p.id)!
             const opts: [BirthdayChoice, string, string][] = [
@@ -243,7 +255,9 @@ export default function PlayerModal(
           })()}
           {p.vlr?.rating != null && (
             <div className="tiny faint center" style={{ lineHeight: 1.7 }}>
-              属性来源 · vlr.gg 2026 赛季<br />
+              属性来源 · vlr.gg {p.comeback
+                ? (p.comeback.kind === 'streamer' ? (p.comeback.lastYear ? '生涯数据' : '表演赛数据') : `${p.comeback.lastYear} 赛季`)
+                : `${startYearOf(game)} 赛季`}<br />
               Rating {p.vlr.rating.toFixed(2)}
               {p.vlr.acs != null && <> · ACS {p.vlr.acs.toFixed(0)}</>}
               {' '}· {p.vlr.rounds} 回合

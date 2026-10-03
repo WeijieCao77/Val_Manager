@@ -6,6 +6,7 @@
  * training while claiming to train, and stranded a competition on a match that
  * could never be played.
  */
+import { SEASON_WEEKS } from '../src/engine/clock'
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
@@ -108,7 +109,8 @@ const mk = (tag = 'TYL'): GameState => {
   for (let i = 0; i < 7; i++) advanceDay(g)
   charged = -(g.finances.log.filter((l) => l.label === '运营开支').reduce((a, b) => a + b.amount, 0))
   check('the screen projects what the ledger charges',
-    seasonUpkeep(g, g.myTeam) === weeklyUpkeep(g, g.myTeam) * 48 && charged === weeklyUpkeep(g, g.myTeam),
+    // a season settles 52 times (days 0, 7 … 357), so the projection is ×52, not the ×48 it once was
+    seasonUpkeep(g, g.myTeam) === weeklyUpkeep(g, g.myTeam) * SEASON_WEEKS && charged === weeklyUpkeep(g, g.myTeam),
     `周扣 $${charged}，年估 $${seasonUpkeep(g, g.myTeam)}`)
 }
 

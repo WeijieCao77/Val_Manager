@@ -41,6 +41,12 @@ export async function loadWorld(year: number): Promise<RawWorld | null> {
   return null
 }
 
+/** 娱乐模式's extra free agents (engine/fun.ts), downloaded only when a career asks for them */
+export async function loadFunPool(): Promise<import('./fun').FunRow[]> {
+  const raw = (await import('../data/funPool.json')).default as unknown as { players: import('./fun').FunRow[] }
+  return raw.players
+}
+
 export const startYearOf = (s: { startYear?: number }): number => s.startYear ?? DEFAULT_START_YEAR
 
 /** the seasons a career has run, the first counting as one */

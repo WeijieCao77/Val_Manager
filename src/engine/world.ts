@@ -15,6 +15,10 @@ import { squadOf, callerOf } from './roster'
 import { currentRuleset } from './ruleset'
 import { isCoolingOff } from './clock'
 import { newLife } from './managerLife'
+import { sponsorWorth } from './commercial'
+import { recomputeOverall } from './player'
+import { FUN_YEAR, makeComeback } from './fun'
+import type { FunRow } from './fun'
 
 export interface RawPlayer {
   id: string; ign: string; teamId: string | null; region: string; role: string
@@ -66,15 +70,57 @@ export const WORLD_PLAYERS = RAW.players
 
 /** Coaching quality when a club has no real head coach on record. */
 
+/**
+ * A club's sponsors on day one.
+ *
+ * A tier-one deal used to be drawn from 280K–1.25M — about 2.4× what any deal
+ * the manager can later pitch is worth (sponsorWorth) — so the median VCT club
+ * took $3.3M against $1.2M of wages and every budget in the league doubled in
+ * four seasons (2026-10-03, scripts/measure_manager_balance.ts). Tier-one deals
+ * are now priced off sponsorWorth like every later one, a little above a fresh
+ * pitch for an established partner. Challengers deals were already in line and
+ * are drawn as before, so their numbers do not move.
+ */
+/** a tier-one club's day-one sponsorship in all, as a multiple of what one fresh pitch is worth */
+export const TIER1_SPONSOR_TOTAL: [number, number] = [4.8, 6.2]
+
+/**
+ * A club's sponsors on day one.
+ *
+ * Tier-one deals used to be drawn one by one from 280K–1.25M — about 2.4×
+ * what any deal the manager can later pitch is worth (sponsorWorth), and two
+ * to four of them, so the median VCT club took $3.3M against $1.2M of wages
+ * and every budget in the league doubled in four seasons (2026-10-03,
+ * scripts/measure_manager_balance.ts). Now the club's total is priced off its
+ * standing, sponsorWorth × 4.8–6.2 (about $2.5M at the median), and split over
+ * its partners — how many it has no longer decides how rich it is. Challengers
+ * deals were already in line with their league and are drawn as before.
+ */
 function makeSponsors(team: RawTeam, rng: Rng): Sponsor[] {
   const count = team.tier === 1 ? rng.int(2, 4) : rng.int(1, 2)
   const names = rng.shuffle(SPONSOR_NAMES.slice()).slice(0, count)
   const scale = team.tier === 1 ? 1 : 0.22
+  let draws: number[]
+  if (team.tier === 1) {
+    const total = sponsorWorth({ tier: 1, reputation: team.reputation } as Team) *
+      rng.range(TIER1_SPONSOR_TOTAL[0], TIER1_SPONSOR_TOTAL[1])
+    const weights = names.map(() => rng.range(0.6, 1.4))
+    const sum = weights.reduce((a, b) => a + b, 0)
+    draws = weights.map((w) => total * w / sum)
+  } else {
+    draws = names.map(() => rng.range(280000, 1250000) * scale * (1 + team.reputation / 160))
+  }
+  // A placement bonus pays for finishing high, so in VCT the bar is the top
+  // three for the lead partner and the top six for the rest (top eight of
+  // twelve paid a mid-table club three bonuses a year), and it is a share of
+  // the deal rather than a flat draw.
   return names.map((name, i) => ({
     name,
-    perSeason: Math.round((rng.range(280000, 1250000) * scale * (1 + team.reputation / 160)) / 1000) * 1000,
-    bonusPlacement: i === 0 ? 4 : 8,
-    bonus: Math.round((rng.range(80000, 400000) * scale) / 1000) * 1000,
+    perSeason: Math.round(draws[i] / 1000) * 1000,
+    bonusPlacement: team.tier === 1 ? (i === 0 ? 3 : 6) : (i === 0 ? 4 : 8),
+    bonus: team.tier === 1
+      ? Math.round(draws[i] * rng.range(0.15, 0.3) / 1000) * 1000
+      : Math.round((rng.range(80000, 400000) * scale) / 1000) * 1000,
   }))
 }
 
@@ -201,6 +247,11 @@ export interface NewGameOptions {
    * leaves him out, the arena must not.
    */
   cards?: boolean
+  /**
+   * 娱乐模式 (beta): funPool.json's retired players and streamers, joining the
+   * free agents (engine/fun.ts). A 2026 world only — the pool is built for it.
+   */
+  fun?: FunRow[]
 }
 
 export function createNewGame(
@@ -213,7 +264,10 @@ export function createNewGame(
   // holds an agent that does not exist yet. The arena borrows this world
   // with its card pools as they are (its balance was tuned on them).
   const released = (a: string) => !!opts.cards || agentAvailable({ year: startYear, day: 0 }, a)
-  const rawPlayers = opts.world?.players ?? RAW.players
+  const funRows = opts.fun && startYear === FUN_YEAR ? opts.fun : []
+  // a comeback row is an ordinary world record without a club, aged to this year
+  const rawPlayers = [...(opts.world?.players ?? RAW.players),
+    ...funRows.map((r) => ({ ...r, teamId: null, contractYears: 0, potential: r.overall ?? 60, overall: r.overall ?? 60 }) as unknown as RawPlayer)]
   const rawTeams = opts.world?.teams ?? WORLD_TEAMS
 
   const players: Record<string, Player> = {}
@@ -275,6 +329,20 @@ export function createNewGame(
     players[p.id] = p
   }
 
+  // the overall a man plays at is what his attributes add up to: 23 records in
+  // the year worlds were stored a point off, and when the save's ceiling landed
+  // on the stored number the first recompute left him above it for good
+  for (const p of Object.values(players)) {
+    if (opts.cards) break
+    recomputeOverall(p)
+    if (p.potential < p.overall) p.potential = p.overall
+  }
+
+  for (const row of funRows) {
+    const p = players[row.id]
+    if (p) makeComeback(p, row, startYear)
+  }
+
   // 熟练度按英雄记，种子是他真正打过的那些角色。自由球员和青训也一起播，
   // 否则签进来的人会一个英雄都不会。
   // 生涯英雄表只在播种时用一次，不跟着存档走：531 人的表让一份存档多出 200 KB
@@ -320,6 +388,7 @@ export function createNewGame(
     day: 0,
     year: startYear,
     startYear: startYear !== 2026 ? startYear : undefined,
+    ...(funRows.length ? { mode: 'fun' as const } : {}),
     stage: 'preseason',
     myTeam: myTeamId,
     managerName: manager?.name ?? managerName,
@@ -486,6 +555,9 @@ export const CALLER_STAMP = hashStr(
  */
 export function syncCallersWithWorld(state: GameState): string[] {
   if (state.callerSync === CALLER_STAMP) return []
+  // a 2023–2025 career was built from its own year's callers; the 2026 list
+  // matched through reused ids rewrote up to 27 clubs' calls on day one
+  if (state.startYear != null && state.startYear < 2026) { state.callerSync = CALLER_STAMP; return [] }
   const notes: string[] = []
   const touched = new Set<string>()
   for (const w of WORLD_PLAYERS) {

@@ -100,6 +100,8 @@ export interface SaveMeta {
   year: number
   day: number
   savedAt: string
+  /** 娱乐模式, so the list can say so */
+  mode?: 'fun'
 }
 
 const readIndex = (): SaveMeta[] => {
@@ -130,6 +132,7 @@ export function saveGame(slot: string, state: GameState): SaveMeta {
     year: state.year,
     day: state.day,
     savedAt: new Date().toISOString(),
+    ...(state.mode === 'fun' ? { mode: 'fun' as const } : {}),
   }
   localStorage.setItem(prefix() + slot, packState(state))
   // The data write is the one that can fail for size; if the small index write
@@ -389,6 +392,8 @@ function repairClocks(state: GameState): void {
   for (const p of Object.values(state.players)) {
     if (p.injuredUntil > d + 45) p.injuredUntil = d + 10
     if (p.stream && p.stream.until > d + 200) p.stream.until = d + 84
+    // a camp begun after day 343 used to end on a day the calendar never reaches
+    if (p.breakUntil != null && p.breakUntil > d + 21) p.breakUntil = d + 1
   }
 }
 

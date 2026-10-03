@@ -172,6 +172,7 @@ function harvest(): void {
     // describe the game, not whichever strategy the audit happened to pick.
     const forPotential = s % 2 === 1
     const startFac = g.teams[g.myTeam]?.facilities ?? 0
+    let peakBalance = g.finances.balance
 
     let guard = 0
     const cap = 12 * SEASON_DAYS
@@ -206,6 +207,7 @@ function harvest(): void {
       const team = g.teams[g.myTeam]
       note('titles', g.honours.length)
       note('balance', g.finances.balance)
+      peakBalance = Math.max(peakBalance, g.finances.balance)
       note('signed', g.tally?.signed ?? 0)
       note('hired', g.tally?.hired ?? 0)
       note('earned', g.tally?.earned ?? 0)
@@ -237,6 +239,7 @@ function harvest(): void {
     })
     console.log(`  ${tag} → ${g.year} 年，${g.honours.length} 冠，`
       + `签 ${g.tally?.signed ?? 0} 人／聘 ${g.tally?.hired ?? 0} 人／设施 +${(g.teams[g.myTeam]?.facilities ?? 0) - startFac}`
+      + `／商务赞助累计 ${((g.tally?.commercial ?? 0) / 1e4).toFixed(0)} 万／账面最高 ${(peakBalance / 1e4).toFixed(0)} 万`
       + `（${forPotential ? '养成流' : '即战力'}）`)
   }
 }

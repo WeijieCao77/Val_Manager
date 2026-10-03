@@ -361,34 +361,35 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (s) => (s.finances?.log ?? []).some((e) => e.amount >= 1_000_000),
   },
   {
-    // 600万. Clubs are dealt 2-4 sponsors at world creation and the richest
-    // opening book in the league is FUT's at 534万 — eighteen of the 78 start
-    // above 350万 — so anything lower is handed to whoever picked the right
-    // job. The audited ceiling is 685万.
+    // 450万. Since 2026-10-03 a tier-one club opens on sponsorWorth × 4.8–6.2
+    // (about 250万, the richest near 300万), so this is a book built by
+    // pitching, well past any opening one. The audited ceiling is 491万.
     key: 'sponsorBook', scope: 'run', group: '经营', title: '商业版图',
-    brief: '赞助总收入达到每赛季 600 万',
+    brief: '赞助总收入达到每赛季 450 万',
     hard: true,
     test: (s) => (s.teams[s.myTeam]?.sponsors ?? [])
-      .reduce((n, sp) => n + sp.perSeason, 0) >= 6_000_000,
+      .reduce((n, sp) => n + sp.perSeason, 0) >= 4_500_000,
   },
   {
     key: 'commercial20', scope: 'run', group: '经营', title: '会做生意',
-    brief: '商务与赞助累计进账 2000 万',
-    test: (s) => tally(s).commercial >= 20_000_000,
+    brief: '商务与赞助累计进账 1000 万',
+    test: (s) => tally(s).commercial >= 10_000_000,
   },
   {
     key: 'commercial60', scope: 'run', group: '经营', title: '商业帝国',
-    // 3500万, which every audited career cleared. The figure swings with how
-    // big a club you are at — runs harvested anywhere from 3870万 to 5729万 —
-    // so the bar sits under the weakest of them rather than under the best.
-    brief: '商务与赞助累计进账 3500 万',
+    // 2000万, which every audited tier-one career cleared. The figure swings
+    // with how big a club you are at — after the 2026-10-03 sponsor rebalance
+    // tier-one runs harvested 2237万 to 2502万 over the decade, Challengers
+    // runs 500–650万 — so the bar sits under the weakest tier-one run.
+    brief: '商务与赞助累计进账 2000 万',
     hard: true,
-    test: (s) => tally(s).commercial >= 35_000_000,
+    test: (s) => tally(s).commercial >= 20_000_000,
   },
   {
     key: 'rich', scope: 'run', group: '经营', title: '家底',
-    brief: '账面资金超过 2000 万',
-    test: (s) => (s.finances?.balance ?? 0) >= 20_000_000,
+    // audited tier-one peaks 437万–1942万 since the 2026-10-03 sponsor rebalance
+    brief: '账面资金超过 1500 万',
+    test: (s) => (s.finances?.balance ?? 0) >= 15_000_000,
   },
   {
     key: 'savings', scope: 'run', group: '经营', title: '积蓄',

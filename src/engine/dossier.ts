@@ -76,8 +76,17 @@ export interface LegendPhoto {
 
 export const DOSSIER = RAW as unknown as DossierFile
 
+/**
+ * 娱乐模式's streamers who never had a season in our worlds (build_fun_pool.py):
+ * their vlr photo, kept beside the others in public/faces. tarik's vlr page
+ * has none, so he has none here.
+ */
+const FUN_FACES: Record<string, DossierEntry> = {
+  Hv3018: { img: 'Hv3018.webp' } as DossierEntry,
+}
+
 export const dossierOf = (playerId: string): DossierEntry | undefined =>
-  DOSSIER.players[playerId] ?? DOSSIER.hist?.[playerId]
+  DOSSIER.players[playerId] ?? DOSSIER.hist?.[playerId] ?? FUN_FACES[playerId]
 
 export const titleCount = (playerId: string): number => dossierOf(playerId)?.t ?? 0
 

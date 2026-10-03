@@ -47,6 +47,7 @@ import { tickLife } from './managerLife'
 import type { Competition, Fixture, GameState, Player, Region, StageKey, Tactics, Team, Tier } from './types'
 import { recordMatch, scoutTitle, scoutWinter } from './scouting'
 import { track } from './telemetry'
+import { aiMayApproach, fameWeek, recoverRust } from './fun'
 import {
   DOUBLE_8, GROUPS, advanceTemplate, championsGroups, championsSeeds, decided, doubleFor,
   mastersSeeds, swissDone, swissNext, swissOutcome, templateDone, MASTERS_8, TRIPLE_12, TRIPLE_12_PLACES, STAGE_8, STAGE_8_PLACES, swissRoundOf, SWISS_ROUNDS, swissRecord
@@ -2130,6 +2131,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   if (state.day % 7 === 0) {
     streamWeek(state, rng, notes)
     notes.push(...weeklyTick(state, rng))
+    if (state.mode === 'fun') { recoverRust(state, notes); fameWeek(state) }
     weeklyLife(state, rng, notes)
     weeklyFinance(state)
     aiTransferTick(state, rng, notes)
@@ -2566,6 +2568,8 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   const noticed: string[] = []
   for (const p of Object.values(state.players)) {
     if (p.retiring) continue
+    // 娱乐模式: a man in the pool already retired once; he waits for a call, not a farewell
+    if (p.comeback && !p.teamId) continue
     let announceP = p.age >= 33 ? 0.45 : p.age >= 31 ? 0.2 : p.age >= 29 ? 0.06 : 0
     if (p.contractYears >= 3) announceP = 0
     else if (p.contractYears === 2) announceP *= 0.5
@@ -2636,6 +2640,12 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
   state.lastChampionsTeams = state.comps.champions?.teams ?? state.lastChampionsTeams
   state.draws = (state.draws ?? []).filter((d) => d.year >= state.year - 1)
   state.pendingDrawId = undefined
+  // 2023's shape (LOCK//IN, Tokyo, LCQ) was one year's; from 2024 the world
+  // plays the classic calendar a 2024 career starts on
+  if (state.rulesetId === 'vct-2023' && state.year >= 2024) {
+    state.rulesetId = 'vct-2025'
+    notes.push('📅 新赛季改用经典赛制：Kickoff、两站 Masters、两个联赛赛段和冠军赛。')
+  }
   setupSeason(state, notes)
 }
 
@@ -2681,6 +2691,8 @@ function rebaseSeasonClock(state: GameState, shift: number): void {
     if (p.listedOn != null) p.listedOn = move(p.listedOn)
     if (p.payAskedOn != null) p.payAskedOn = move(p.payAskedOn)
     if (p.rumourOn != null) p.rumourOn = move(p.rumourOn)
+    // a 突破 camp begun in the last three weeks ends in the new year, on its 21st day
+    if (p.breakUntil != null) p.breakUntil -= shift
     if (p.stream) {
       p.stream.since -= shift
       p.stream.until -= shift
@@ -2723,7 +2735,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
     if (team.id === state.myTeam) continue
     let guard = 0
     while (team.roster.length < 5 && guard++ < 10) {
-      const free = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring)
+      const free = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring && aiMayApproach(p))
       // under the import rule a club refills from its own region first;
       // fielding five still outranks the rule when the pool runs dry
       const legal = free.filter((p) => !importBlock(state, team.id, p))

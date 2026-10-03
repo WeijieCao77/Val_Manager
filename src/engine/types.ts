@@ -352,6 +352,8 @@ export interface Player {
   formFlag?: 'hot' | 'cold'
   /** announced: this season is his last. A year's notice, not a vanishing. */
   retiring?: boolean
+  /** 娱乐模式: a retired player or streamer back in the game — engine/fun.ts */
+  comeback?: import('./fun').Comeback
   /** clubs served IN THIS SAVE, year granularity — the farewell card's CV */
   clubHist?: { team: string; from: number; to: number }[]
   /** titles lifted IN THIS SAVE — credited to the champion's roster as they happen; see engine/history.ts */
@@ -976,6 +978,8 @@ export interface GameState {
   rivalry?: number
   /** 难度; absent is 普通 — see engine/difficulty.ts */
   difficulty?: import('./difficulty').Difficulty
+  /** 'fun' = 娱乐模式 (beta): retired players and streamers in the free-agent pool — engine/fun.ts */
+  mode?: 'fun'
   /** 对手针对: the league's attention and what it has seen — engine/scouting.ts */
   scout?: import('./scouting').ScoutState
   /** the contender that made us personal for one season (the year it runs) */

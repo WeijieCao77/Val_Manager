@@ -1,7 +1,9 @@
+import { SEASON_WEEKS } from './clock'
 import { Rng, clamp, hashStr } from './rng'
 import { squadOf } from './roster'
 import { skillMod } from './manager'
 import { duoBonded } from './bonds'
+import { FAME_DRAW } from './fun'
 import type { GameState, Gig, GigKind, Player, Sponsor, SponsorTalk, StreamDeal, Team, VentureKind } from './types'
 
 /**
@@ -66,7 +68,7 @@ const PARTNERS: Record<GigKind, string[]> = {
 /** What one gig is worth, scaled to the size of the club. */
 function feeFor(state: GameState, t: GigTemplate, rng: Rng): number {
   const team = state.teams[state.myTeam]
-  const weekly = (team?.sponsors.reduce((s, x) => s + x.perSeason, 0) ?? 0) / 48
+  const weekly = (team?.sponsors.reduce((s, x) => s + x.perSeason, 0) ?? 0) / SEASON_WEEKS
   // a bigger name commands more for the same afternoon
   const pull = 0.6 + (team?.reputation ?? 50) / 100
   // 商务: a manager who can sell gets more for the same afternoon
@@ -564,7 +566,8 @@ export function streamOffer(state: GameState, playerId: string): StreamDeal | nu
   const team = state.teams[state.myTeam]
   const rng = new Rng(hashStr(`stream:${state.seed}:${state.year}:${playerId}`))
   // platforms pay for an audience: ability, and the club's profile behind him
-  const draw = p.overall - 55 + (team ? (team.reputation - 55) * 0.5 : 0)
+  // 娱乐模式: a streamer brings an audience of his own (engine/fun.ts)
+  const draw = p.overall - 55 + (team ? (team.reputation - 55) * 0.5 : 0) + FAME_DRAW[p.comeback?.fame ?? 0]
   if (draw <= 0) return null
   // platforms sign short and renegotiate — a season-long deal took the decision
   // away for a whole year, and the player's draw changes faster than that

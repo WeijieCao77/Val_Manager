@@ -11,6 +11,7 @@ import { KEPT_GAIN, RENEWAL_GAIN, loyaltyOnJoin, loyaltyOnListed, shiftLoyalty }
 import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from './types'
 import { rivalryOf } from './difficulty'
 import { isNemesis } from './scouting'
+import { aiMayApproach } from './fun'
 
 /**
  * The active-roster ceiling, matching how real circuits register players.
@@ -340,7 +341,7 @@ export function canSell(state: GameState, p: Player): boolean {
   // of the season two against five.
   if (p.teamId === state.myTeam) return false
   // a five-man club can still sell, as long as someone real is left to sign
-  return Object.values(state.players).some((x) => !x.teamId)
+  return Object.values(state.players).some((x) => !x.teamId && aiMayApproach(x))
 }
 
 /** Why this club cannot let anyone else go, or null when it can. */
@@ -400,7 +401,7 @@ export function doTransfer(
     // Keep the promise here rather than at the next weekly tick — an AI club
     // that sold on a Monday played the week's fixture with four.
     if (from.id !== state.myTeam && from.roster.length < 5) {
-      const pool = Object.values(state.players).filter((x) => !x.teamId && x.id !== p.id && !x.retiring)
+      const pool = Object.values(state.players).filter((x) => !x.teamId && x.id !== p.id && !x.retiring && aiMayApproach(x))
       // fielding five outranks the import rule, so an illegal cover is the
       // last resort rather than a forbidden one
       const cover = (pool.filter((x) => !importBlock(state, from.id, x)).length ? pool.filter((x) => !importBlock(state, from.id, x)) : pool)
@@ -572,7 +573,8 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
 
   const teams = Object.values(state.teams).filter((t) => t.id !== state.myTeam)
   // a free agent on his farewell season is done job-hunting
-  const agents = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring)
+  // 娱乐模式: the retired and the streamers come back for the manager's club, not the AI's
+  const agents = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring && aiMayApproach(p))
 
   for (const team of teams) {
     // a nemesis is at the market every other week the window is open

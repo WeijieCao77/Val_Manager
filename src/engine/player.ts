@@ -66,11 +66,21 @@ export function marketValue(p: Player): number {
  */
 export const SALARY_BASE = 33000
 export const TIER2_WAGE = 0.14
+/** what a 娱乐模式 comeback asks at a Challengers club, as a share of his VCT pay */
+export const COMEBACK_TIER2_WAGE = 0.5
+
+/** 娱乐模式: what a streamer asks over an ordinary player of his ability, by 人气 (engine/fun.ts) */
+export const FAME_WAGE: Record<0 | 1 | 2 | 3, number> = { 0: 1, 1: 1.1, 2: 1.2, 3: 1.35 }
 
 export function expectedSalary(p: Player, tier: 1 | 2): number {
   let base = SALARY_BASE * Math.exp((p.overall - 55) / 12)
-  if (tier === 2) base *= TIER2_WAGE
+  // 娱乐模式: a name who comes back has a stream to give up — at a Challengers
+  // club he asks half his VCT pay, not the league's 14%, so one or two fit a
+  // tier-two budget and five do not
+  if (tier === 2) base *= p.comeback ? COMEBACK_TIER2_WAGE : TIER2_WAGE
   base *= 1 + (p.ambition - 60) / 320
+  // 娱乐模式: a streamer has an income of his own to give up (engine/fun.ts)
+  base *= FAME_WAGE[p.comeback?.fame ?? 0]
   return Math.round(base / 1000) * 1000
 }
 

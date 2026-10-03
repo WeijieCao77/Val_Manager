@@ -3,7 +3,7 @@ import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
-import { Club, clubMatches, Face, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
+import { Club, clubMatches, ComebackTags, Face, fmtDay, Modal, OvrBadge, Panel, Roles, money, moneyFull, Potential } from './common'
 import {
   answerIncoming, askingPrice, committedFunds, enquireAbout, incomingOffers,
   INTEREST_CN, makeOffer, rosterBlock, TRANSFER_WINDOWS, windowBlock, windowOpen,
@@ -21,7 +21,7 @@ export default function Transfers() {
   // enquiries indexed by player, so each row knows what we have already asked
   const enq = new Map((game.enquiries ?? []).map((e) => [e.playerId, e]))
   const me = game.teams[game.myTeam]
-  const [tab, setTab] = useState<'free' | 'listed' | 'all'>('free')
+  const [tab, setTab] = useState<'free' | 'listed' | 'all' | 'comeback'>(game.mode === 'fun' ? 'comeback' : 'free')
   const [askClub, setAskClub] = useState<string | null>(null)
   const [askRegion, setAskRegion] = useState<string>('all')
   // 按位置找人：不先挑俱乐部，而是先说要什么位置
@@ -76,7 +76,8 @@ export default function Transfers() {
 
   const pool = useMemo(() => {
     let list = Object.values(game.players).filter((p) => p.teamId !== game.myTeam)
-    if (tab === 'free') list = list.filter((p) => p.teamId === null)
+    if (tab === 'free') list = list.filter((p) => p.teamId === null && !p.comeback)
+    else if (tab === 'comeback') list = list.filter((p) => p.teamId === null && p.comeback)
     else if (tab === 'listed') list = list.filter((p) => p.teamId !== null && p.listed)
     if (role === 'igl') list = list.filter((p) => p.isIgl)
     else if (role !== 'all') list = list.filter((p) => p.role === role)
@@ -514,6 +515,9 @@ export default function Transfers() {
         actions={
           <div className="row wrap" style={{ gap: 8 }}>
             <div className="seg">
+              {game.mode === 'fun' && (
+                <button className={tab === 'comeback' ? 'on' : ''} onClick={() => setTab('comeback')}>退役 · 主播</button>
+              )}
               <button className={tab === 'free' ? 'on' : ''} onClick={() => setTab('free')}>自由人</button>
               <button className={tab === 'listed' ? 'on' : ''} onClick={() => setTab('listed')}>挂牌</button>
               <button className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>全部</button>
@@ -560,6 +564,7 @@ export default function Transfers() {
                       <span className="tag warn" style={{ marginLeft: 6 }} title="来自其他赛区，占用外援名额">外援</span>
                     )}
                     {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
+                    <ComebackTags p={p} />
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>

@@ -67,6 +67,7 @@ import { facilityCost } from './staff'
 import { ATTR_CN, ATTR_KEYS } from './types'
 import { lifeMod } from './managerLife'
 import { agentAvailable } from './eras'
+import { FAME_TRAIN } from './fun'
 import type { AgentPick, Attrs, GameState, Player, Role, Team, TeamDrill } from './types'
 
 /**
@@ -229,9 +230,11 @@ function trainPlayer(state: GameState, p: Player, team: Team, rng: Rng): string 
       (p.age <= 22 ? skillMod(state.manager, 'youth', 0.006) : 1) * lifeMod(state)
     : 1
   const chasing = aiGrowthMultiplier(state, p, team)
+  // 娱乐模式: the nights a streamer spends on stream come out of practice
+  const streaming = FAME_TRAIN[p.comeback?.fame ?? 0]
   const gain =
     rng.range(7, 16) * age * tired * motivated * (1 + coach + facility) *
-    clamp(headroom / 12, 0.25, 1.6) * available * talent * chasing
+    clamp(headroom / 12, 0.25, 1.6) * available * talent * chasing * streaming
 
   // kept to a hundredth: the bar is a hundred to the point, and a float's
   // sixteen characters on every attribute of every player is what tipped a

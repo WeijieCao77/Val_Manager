@@ -9,6 +9,13 @@
  */
 export const SEASON_DAYS = 364
 
+/**
+ * Weekly settlements in a season: days 0, 7 … 357. Every per-season figure
+ * (wages, sponsors, stipend, upkeep) is paid in this many parts — dividing by
+ * 48 paid 52/48 of what the finance screen showed.
+ */
+export const SEASON_WEEKS = SEASON_DAYS / 7
+
 export const careerDayOf = (s: { year: number; day: number }): number => s.year * SEASON_DAYS + s.day
 
 /** a career day back into the year and day it names */

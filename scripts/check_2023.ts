@@ -146,6 +146,9 @@ check('东京 Masters 和洛杉矶冠军赛用当年图池（源工重镇替下�
 check('2023 全年图池里没有日落之城', !Object.values(poolOn).some((p) => p.includes('Sunset')))
 check('联赛中途有图池轮换的消息（源工重镇替下森寒冬港）', rotations.some((n) => n.includes('源工重镇 加入') && n.includes('森寒冬港 移出')), rotations.join(' | '))
 const back = importSave(exportSave(g))
-check('读档后规则集不变', back.rulesetId === 'vct-2023' && stageAtIn(back, 30) === 'kickoff')
+// 2023's shape was one year's: the rollover into 2024 hands the career the classic calendar
+check('2024 起改用经典赛制，2024 有 Masters I', g.rulesetId === 'vct-2025' && Object.keys(g.comps).some((k) => k.startsWith('kickoff'))
+  && stagesOf(g).some((st) => st.key === 'masters1'), `${g.rulesetId}`)
+check('读档后规则集不变', back.rulesetId === g.rulesetId && stageAtIn(back, 30) === 'kickoff')
 console.log(bad ? `\n${bad} 处不对` : '\n全部通过')
 process.exit(bad ? 1 : 0)

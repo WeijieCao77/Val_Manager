@@ -90,7 +90,7 @@ export default function Saves() {
             <tbody>
               {saves.map((s) => (
                 <tr key={s.slot}>
-                  <td><b>{s.slot === 'autosave' ? '自动存档' : s.slot}</b></td>
+                  <td><b>{s.slot === 'autosave' ? '自动存档' : s.slot}</b>{s.mode === 'fun' && <span className="tag t2" style={{ marginLeft: 6 }}>娱乐</span>}</td>
                   <td>{s.team}</td>
                   <td className="muted">{s.manager}</td>
                   <td className="num">{s.year}</td>

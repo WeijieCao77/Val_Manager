@@ -321,6 +321,9 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
           </div>
           <div className="chip">{dateLabel(game)}</div>
           <div className="chip">{stageName(game.stage)}</div>
+          {game.mode === 'fun' && (
+            <div className="chip small" title="娱乐模式：退役选手和主播在自由人里，只为你复出">娱乐模式 <span className="tag t2">beta</span></div>
+          )}
           <div className="spacer" />
           <div className="chip" title="可用资金" aria-label="可用资金"><span aria-hidden="true">💰</span> <b>{money(game.finances.balance)}</b></div>
           <div

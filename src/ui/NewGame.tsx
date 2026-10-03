@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DEFAULT_START_YEAR, ERA_CN, HISTORICAL_YEARS, loadWorld } from '../engine/eras'
+import { DEFAULT_START_YEAR, ERA_CN, HISTORICAL_YEARS, loadFunPool, loadWorld } from '../engine/eras'
 import type { RawWorld } from '../engine/eras'
 import { RULESET_CN, currentRuleset } from '../engine/ruleset'
 import { ask } from './confirm'
@@ -48,6 +48,9 @@ export default function NewGame({ onHome,
   const [err, setErr] = useState<string | null>(null)
   const [importLimit, setImportLimit] = useState(false)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
+  // 娱乐模式 (beta): retired players and streamers in the free-agent pool — 2026 only
+  const [fun, setFun] = useState(false)
+  const [starting, setStarting] = useState(false)
 
   // the three on offer are dealt from the eight, and stay fixed for this run
   const [dealSeed] = useState(() => (hashStr(String(Date.now())) >>> 0))
@@ -109,11 +112,22 @@ export default function NewGame({ onHome,
 
   const selected = teamId ? worldTeams.find((t) => t.id === teamId) : null
 
-  const begin = () => {
+  const funOn = fun && startYear === DEFAULT_START_YEAR
+  const begin = async () => {
     if (!manager) return setErr('请先选择一个出身。')
     if (!teamId) return setErr('请先选择一支战队。')
     if (startYear !== DEFAULT_START_YEAR && !era) return setErr('那一年的世界还在加载。')
-    const g = createNewGame(teamId, manager.name, undefined, manager, era ? { world: era, year: startYear } : {})
+    if (starting) return
+    let pool: Awaited<ReturnType<typeof loadFunPool>> | undefined
+    if (funOn) {
+      setStarting(true)
+      try { pool = await loadFunPool() } catch {
+        setStarting(false)
+        return setErr('娱乐模式的选手名单没加载出来，请检查网络后重试。')
+      }
+    }
+    const g = createNewGame(teamId, manager.name, undefined, manager,
+      era ? { world: era, year: startYear } : pool ? { fun: pool } : {})
     g.importLimit = importLimit
     if (difficulty !== 'normal') g.difficulty = difficulty
     setupSeason(g)
@@ -125,6 +139,7 @@ export default function NewGame({ onHome,
       age,
       era: startYear,
       difficulty,
+      mode: funOn ? 'fun' : 'normal',
     })
     onStart(g)
   }
@@ -437,10 +452,24 @@ export default function NewGame({ onHome,
         </span>
       </label>
 
+      <label className="row small" style={{ gap: 8, marginTop: 12, cursor: startYear === DEFAULT_START_YEAR ? 'pointer' : 'default',
+        alignItems: 'flex-start', opacity: startYear === DEFAULT_START_YEAR ? 1 : 0.55 }}>
+        <input type="checkbox" checked={funOn} disabled={startYear !== DEFAULT_START_YEAR}
+          style={{ width: 16, marginTop: 2 }} onChange={(e) => setFun(e.target.checked)} />
+        <span>
+          <b>娱乐模式</b> <span className="tag t2">beta</span>
+          <span className="muted">
+            {' '}— 自由人里多出两百多位退役选手和主播（TenZ、Sacy、yay、Babyblue、tarik、TryTryz 等），只愿意为你复出，
+            AI 俱乐部不会签他们。复出要找回状态，主播带人气、直播合同更值钱，但要价更高、训练少一些。
+            {startYear !== DEFAULT_START_YEAR && ' 只能从 2026 赛季开档。'}
+          </span>
+        </span>
+      </label>
+
       {err && <p className="neg small">{err}</p>}
       <div style={{ marginTop: 14 }}>
-        <button className="primary" onClick={begin} disabled={!manager || !teamId}>
-          开始职业生涯 →
+        <button className="primary" onClick={() => void begin()} disabled={!manager || !teamId || starting}>
+          {starting ? '加载中…' : '开始职业生涯 →'}
         </button>
       </div>
 

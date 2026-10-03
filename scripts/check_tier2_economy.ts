@@ -12,6 +12,7 @@
  * league. It also watches the two things that changed today: club
  * reputation now moves, and AI clubs now spend on treatment and buildings.
  */
+import { SEASON_WEEKS } from '../src/engine/clock'
 import { createNewGame } from '../src/engine/world'
 import { squadOf, wageBill } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
@@ -32,7 +33,7 @@ const g: GameState = createNewGame(me.id, '旁观', 20260905)
 setupSeason(g)
 const mine = g.teams[g.myTeam]
 console.log(`旁观 ${mine.name}（${mine.league}，评分 ${mine.rating}，声望 ${mine.reputation}，设施 ${mine.facilities}，起始资金 ${money(g.finances.balance)}）`)
-console.log(`薪资 ${money(wageBill(g, g.myTeam))}/年 · 运营 ${money(weeklyUpkeep(g, g.myTeam) * 48)}/年 · 津贴 ${money(weeklyStipend(2) * 48)}/年 · 赞助 ${money(mine.sponsors.reduce((s, x) => s + x.perSeason, 0))}/年（${mine.sponsors.length} 家）\n`)
+console.log(`薪资 ${money(wageBill(g, g.myTeam))}/年 · 运营 ${money(weeklyUpkeep(g, g.myTeam) * SEASON_WEEKS)}/年 · 津贴 ${money(weeklyStipend(2) * SEASON_WEEKS)}/年 · 赞助 ${money(mine.sponsors.reduce((s, x) => s + x.perSeason, 0))}/年（${mine.sponsors.length} 家）\n`)
 
 const aiOf = (tier: 1 | 2) => Object.values(g.teams).filter((t) => t.id !== g.myTeam && t.tier === tier)
 const line = (tier: 1 | 2) => {
@@ -115,7 +116,7 @@ for (const tier of [2, 1] as const) {
   const club = tier === 2 ? mine : aiOf(1)[0]
   const rep = Math.round(club.reputation)
   const fake: Team = { ...club, tier, reputation: club.reputation }
-  console.log(`  T${tier}（声望 ${rep}）：一份赞助 ${money(sponsorWorth(fake))}/年；津贴 ${money(weeklyStipend(tier) * 48)}/年`)
+  console.log(`  T${tier}（声望 ${rep}）：一份赞助 ${money(sponsorWorth(fake))}/年；津贴 ${money(weeklyStipend(tier) * SEASON_WEEKS)}/年`)
 }
 for (const ovr of [65, 72, 80]) {
   const p = squadOf(g, g.myTeam)[0]

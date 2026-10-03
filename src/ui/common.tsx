@@ -6,6 +6,7 @@ import { scoutedPotential } from '../engine/manager'
 import { analystEdge } from '../engine/staff'
 import { crestUrl, dossierOf, faceUrl } from '../engine/dossier'
 import { AGENT_ROLE, agentCn, canonAgent } from '../engine/content'
+import { FAME_LABEL, rustRecovered } from '../engine/fun'
 import type { GameState, Player, Role, Trait } from '../engine/types'
 
 export const money = (n: number): string => {
@@ -113,6 +114,31 @@ export function Crest({
  * names sit in columns, and a column where one name in nine starts further
  * left reads as misaligned rather than as "no photo".
  */
+/**
+ * 娱乐模式: what kind of comeback this is — 退役 with his last club and year,
+ * or 主播 with his 人气 — and, once he is on a club, how much of the rust is back.
+ */
+export function ComebackTags({ p, rust = true }: { p: Player; rust?: boolean }) {
+  const cb = p.comeback
+  if (!cb) return null
+  const back = rustRecovered(p)
+  return (
+    <>
+      {cb.kind === 'retired' && (
+        <span className="tag" style={{ marginLeft: 6 }}
+          title={cb.lastClub ? `最后一站 ${cb.lastClub}（${cb.lastYear}）` : undefined}>退役{cb.lastYear ? ` ${cb.lastYear}` : ''}</span>
+      )}
+      {cb.fame > 0 && (
+        <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+          title="人气：直播合同更值钱，在队时俱乐部声望慢慢上涨；要价更高，训练少一些">{FAME_LABEL[cb.fame]}</span>
+      )}
+      {rust && p.teamId && back < 1 && (
+        <span className="tag warn" style={{ marginLeft: 6 }} title="复出后每周找回一部分状态">状态 {Math.round(back * 100)}%</span>
+      )}
+    </>
+  )
+}
+
 export function Face({ id, size = 20 }: { id: string | null | undefined; size?: number }) {
   const d = id ? dossierOf(id) : undefined
   if (!d?.img) return <span className="face" aria-hidden="true" style={{ width: size, height: size }} />

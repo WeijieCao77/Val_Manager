@@ -3,7 +3,7 @@ import { ask } from './confirm'
 import { useGame } from './ctx'
 import { NO_ACTIONS_LEFT, spendAction } from '../engine/actions'
 import { logActivity } from '../engine/agenda'
-import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
+import { Bar, ComebackTags, Condition, Face, money, OvrBadge, Panel, Roles, Traits, Potential } from './common'
 import { appointIgl, autoStarters } from '../engine/world'
 import { callerOf, squadOf } from '../engine/roster'
 import { statLine } from '../engine/player'
@@ -256,6 +256,7 @@ export default function Squad() {
                         </span>
                       )}
                       {p.retiring && <span className="tag warn" title="已宣布本赛季结束后退役">退役</span>}
+                      <ComebackTags p={p} />
                       {(p.grievance ?? 0) > 45 && !p.listed && (
                         <span className="tag warn"
                           title={`不满 ${Math.round(p.grievance ?? 0)}/100，出场承诺、薪资、被拒的转会都会积累；不满高的更容易接受别队报价。`}>

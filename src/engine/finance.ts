@@ -1,3 +1,4 @@
+import { SEASON_WEEKS } from './clock'
 import { squadOf, wageBill } from './roster'
 import { skillMod } from './manager'
 import { weeklyStipend } from './leagueShare'
@@ -65,14 +66,14 @@ export function weeklyUpkeep(state: GameState, teamId: string): number {
 
 /** A season of the same, as the finance screen projects it. */
 export const seasonUpkeep = (state: GameState, teamId: string): number =>
-  weeklyUpkeep(state, teamId) * 48
+  weeklyUpkeep(state, teamId) * SEASON_WEEKS
 
 /** Weekly payroll and sponsorship, charged to every club. */
 export function weeklyFinance(state: GameState): void {
   for (const team of Object.values(state.teams)) {
-    const wages = Math.round(wageBill(state, team.id) / 48)
+    const wages = Math.round(wageBill(state, team.id) / SEASON_WEEKS)
     // 商务: sponsors pay a club whose manager works the relationship
-    const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / 48 *
+    const sponsor = Math.round(team.sponsors.reduce((s, x) => s + x.perSeason, 0) / SEASON_WEEKS *
       (team.id === state.myTeam ? skillMod(state.manager, 'business', 0.005) : 1))
     // Operating costs scale with the tier the club actually competes in.
     //

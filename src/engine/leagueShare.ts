@@ -24,6 +24,7 @@
  * already uses, so the finance screen and the board read it like any other
  * line.
  */
+import { SEASON_WEEKS } from './clock'
 import { clamp } from './rng'
 import type { GameState, LeagueDeal } from './types'
 
@@ -38,7 +39,7 @@ export const leagueDealOf = (state: GameState): LeagueDeal =>
 
 /** The stipend as the weekly settlement pays it. */
 export const weeklyStipend = (tier: number): number =>
-  Math.round((LEAGUE_STIPEND[tier] ?? 0) / 48)
+  Math.round((LEAGUE_STIPEND[tier] ?? 0) / SEASON_WEEKS)
 
 /**
  * The season's bundle pot, before the club's share is applied.

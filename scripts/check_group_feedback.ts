@@ -3,6 +3,7 @@
  * mid-career money (league share), AI clubs benching their own signings,
  * and retirements that arrive with no warning and leave no trace.
  */
+import { SEASON_WEEKS } from '../src/engine/clock'
 import { createNewGame } from '../src/engine/world'
 import { squadOf } from '../src/engine/roster'
 import { WORLD_TEAMS } from '../src/engine/teams'
@@ -41,7 +42,7 @@ const mk = (): GameState => {
   if (g.finances.balance <= myBudget - 200_000) fail('津贴应缓解每周净支出')
   void aiBudget
   if (weeklyStipend(1) <= weeklyStipend(2)) fail('VCT 津贴应高于次级')
-  console.log(`✅ 联盟津贴：VCT $${(weeklyStipend(1) * 48).toLocaleString()}/年，次级 $${(weeklyStipend(2) * 48).toLocaleString()}/年，AI 俱乐部同样领取`)
+  console.log(`✅ 联盟津贴：VCT $${(weeklyStipend(1) * SEASON_WEEKS).toLocaleString()}/年，次级 $${(weeklyStipend(2) * SEASON_WEEKS).toLocaleString()}/年，AI 俱乐部同样领取`)
 
   // 谈判一年一次
   const deal = leagueDealOf(g)
