@@ -1150,12 +1150,12 @@ export function makeCardApi(sql, {
     if (guard(req, res, `ct:${bucket}`, 30)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
     let mine = null
-    let eventId = engine.PREDICT_EVENTS[0].id
+    let eventId = engine.PREDICT_EVENT_IDS[0]
     try {
       const body = JSON.parse(await readBody(req, 4096))
       const id = normalizeId(body?.id)
       if (id) mine = hash(id)
-      if (engine.PREDICT_EVENTS.some((e) => e.id === body?.event)) eventId = body.event
+      if (engine.PREDICT_EVENT_IDS.includes(body?.event)) eventId = body.event
     } catch { /* an anonymous look is fine */ }
     try {
       const rows = await predictRows(eventId)

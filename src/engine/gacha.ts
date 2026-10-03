@@ -14,7 +14,7 @@ import { natCountry, natName } from './nat'
 import { REGION_CN } from './types'
 import type { Role } from './types'
 import { cleanPredictions } from './predict'
-import type { Picks } from './predict'
+import type { SavedPicks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
 import type { EventRouteState } from './eventRoute'
 import {
@@ -806,7 +806,7 @@ export interface GachaState {
   /** what the inbox has delivered, newest first — see MailEntry */
   mail?: MailEntry[]
   /** 赛事预测 — picks per event and group, see engine/predict.ts */
-  predict?: Record<string, Record<string, { picks: Picks; at: number; claimedAt?: number }>>
+  predict?: Record<string, Record<string, { picks: SavedPicks; at: number; claimedAt?: number }>>
   log: LogEntry[]
   /** rolling seed, so a reload cannot reroll the same pack */
   seed: number
