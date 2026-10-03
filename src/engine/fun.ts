@@ -28,6 +28,7 @@
  * while he is still without a club.
  */
 import { clamp } from './rng'
+import { careerDayOf } from './clock'
 import { recomputeOverall, refreshValue } from './player'
 import { ATTR_KEYS } from './types'
 import type { Attrs, GameState, Player } from './types'
@@ -206,8 +207,13 @@ export function rustRecovered(p: Player): number {
   return clamp(1 - left / cb.rustStart, 0, 1)
 }
 
-/** AI clubs never chase them: they come back for the manager's club or not at all. */
-export const aiMayApproach = (p: Player): boolean => !p.comeback
+/**
+ * May an AI club sign this free agent? Not a 娱乐模式 comeback — they come back
+ * for the manager's club or not at all — and not a 历史档 newcomer whose real
+ * club is the manager's while his reservation runs (engine/arrivals.ts).
+ */
+export const aiMayApproach = (p: Player, state?: Pick<GameState, 'year' | 'day'>): boolean =>
+  !p.comeback && !(p.reservedFor && state && p.reservedFor.until > careerDayOf(state))
 
 export const fameOf = (p: Player): Fame => p.comeback?.fame ?? 0
 

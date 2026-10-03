@@ -41,6 +41,11 @@ export async function loadWorld(year: number): Promise<RawWorld | null> {
   return null
 }
 
+/** 历史档's real newcomers by year (engine/arrivals.ts), downloaded only by a historical career */
+export async function loadArrivals(): Promise<import('./arrivals').ArrivalsFile> {
+  return (await import('../data/arrivals.json')).default as unknown as import('./arrivals').ArrivalsFile
+}
+
 /** 娱乐模式's extra free agents (engine/fun.ts), downloaded only when a career asks for them */
 export async function loadFunPool(): Promise<import('./fun').FunRow[]> {
   const raw = (await import('../data/funPool.json')).default as unknown as { players: import('./fun').FunRow[] }

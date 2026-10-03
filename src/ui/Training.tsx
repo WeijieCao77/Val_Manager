@@ -18,7 +18,7 @@ import {
 import { useAction } from './useAction'
 import { BREAK, breakBlock, breakChance, breakFee, inCamp, sparkOpen, startBreak } from '../engine/breakthrough'
 import {
-  analystMarket, approachForCoach, askingSalary, clearedCoaches, demoteHead, employedCoaches,
+  analystMarket, approachForCoach, approachForStaff, askingSalary, clearedCoaches, demoteHead, employedCoaches, employedStaff,
   facilityCost, offerToStaff, promoteToHead, releaseStaff, ROLE_CN, SPEC_CN, STAFF_CAP, staffBonus,
   staffMarket, staffRaw, staffShare, upgradeFacility,
 } from '../engine/staff'
@@ -667,7 +667,7 @@ export default function Training() {
               <div className="row wrap" style={{ gap: 8, marginBottom: 8 }}>
                 <div className="seg">
                   <button className={!poach ? 'on' : ''} onClick={() => setPoach(false)}>自由教练</button>
-                  <button className={poach ? 'on' : ''} onClick={() => setPoach(true)}>挖别队主教练</button>
+                  <button className={poach ? 'on' : ''} onClick={() => setPoach(true)}>挖别队教练</button>
                 </div>
                 {!poach && (
                   <div className="seg">
@@ -705,6 +705,7 @@ export default function Training() {
                 const cleared = clearedCoaches(game)
                 const rows = employedCoaches(game).filter(({ team, coach }) => hit(coach.name, team.name, team.tag))
                 return (
+                <>
                 <div className="table-wrap" style={{ maxHeight: 360, overflowY: 'auto' }}>
                   <table>
                     <thead>
@@ -802,6 +803,92 @@ export default function Training() {
                     </tbody>
                   </table>
                 </div>
+                {(() => {
+                  // assistants and analysts on other clubs' books — the ones a
+                  // manager left behind when he changed jobs (engine/staff.ts employedStaff)
+                  const others = employedStaff(game).filter(({ team, member }) => hit(member.name, team.name, team.tag))
+                  if (!others.length) return null
+                  return (
+                    <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto', marginTop: 10 }}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>助教 / 分析师</th><th>现俱乐部</th><th className="num">战术</th>
+                            <th className="num">培养</th><th className="num">激励</th>
+                            <th className="num">参考补偿</th><th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {others.map(({ team, member, ask }) => {
+                            const mine = (a: { teamId: string; name: string }) => a.teamId === team.id && a.name === member.name
+                            const pending = (game.staffApproaches ?? []).find((a) => mine(a) && !a.answer)
+                            const granted = (game.staffApproaches ?? []).find((a) => mine(a) && a.answer === 'granted')
+                            const refused = (game.staffApproaches ?? []).find((a) => mine(a) && a.answer === 'refused')
+                            const key = `${team.id}:${member.name}`
+                            const fee = poachFee[key] ?? ask
+                            const waiting = (game.staffOffers ?? []).find((o) => o.name === member.name && !o.answer)
+                            const cand = cleared.find((c) => c.name === member.name)
+                            return (
+                              <tr key={key}>
+                                <td>
+                                  <b>{member.name}</b> <span className="tag">{ROLE_CN[member.role]}</span>
+                                  {member.spec && <div className="tiny" style={{ color: 'var(--controller)' }}>{SPEC_CN[member.spec].label}</div>}
+                                  <div className="tiny faint">合同还剩 {member.years} 年 · 年薪 {money(member.salary)} · 曾是你的下属</div>
+                                </td>
+                                <td className="small muted">{team.name}</td>
+                                <td className="num mono">{member.tactics}</td>
+                                <td className="num mono">{member.development}</td>
+                                <td className="num mono">{member.motivation}</td>
+                                <td className="num mono">{money(ask)}</td>
+                                <td>
+                                  {granted ? (waiting ? (
+                                    <span className="tiny faint">已报价，等他本人答复（{Math.max(0, waiting.replyOn - game.day)} 天）</span>
+                                  ) : !cand ? (
+                                    <span className="tiny faint">他已经不在这支球队了</span>
+                                  ) : bidOn === member.name ? (
+                                    <div className="row" style={{ gap: 5 }}>
+                                      <input type="number" className="sm" style={{ width: 92 }} value={bidPay} step={5000}
+                                        onChange={(e) => setBidPay(Number(e.target.value))} />
+                                      <select className="sm" style={{ width: 62 }} value={bidYears}
+                                        onChange={(e) => setBidYears(Number(e.target.value))}>
+                                        <option value={1}>1年</option>
+                                        <option value={2}>2年</option>
+                                        <option value={3}>3年</option>
+                                      </select>
+                                      <button className="sm primary" onClick={() => act('staff', () => {
+                                        toast(offerToStaff(game, member.name, member.role, bidPay, bidYears))
+                                        logActivity(game, 'squad', `向 ${member.name} 发出${ROLE_CN[member.role]}邀请`)
+                                        setBidOn(null)
+                                      })}>发出</button>
+                                    </div>
+                                  ) : (
+                                    <button className="sm primary" onClick={() => { setBidOn(member.name); setBidPay(askingSalary(cand, member.role)) }}>
+                                      ✅ 已获准 · 谈合同（要价 {money(askingSalary(cand, member.role))}）
+                                    </button>
+                                  )) : pending ? (
+                                    <span className="tiny faint">等待答复（{Math.max(0, pending.replyOn - game.day)} 天）</span>
+                                  ) : refused ? (
+                                    <span className="tiny faint">已拒绝：{refused.reason}</span>
+                                  ) : (
+                                    <div className="row" style={{ gap: 5 }}>
+                                      <input type="number" className="sm" style={{ width: 96 }} step={10000} value={fee}
+                                        onChange={(e) => setPoachFee((x) => ({ ...x, [key]: Number(e.target.value) }))} />
+                                      <button className="sm" onClick={() => act('staff', () => {
+                                        toast(approachForStaff(game, team.id, member.name, fee))
+                                        logActivity(game, 'squad', `就 ${member.name} 联系 ${team.name}`)
+                                      })}>接触</button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })()}
+                </>
                 )
               })() : (
               <div className="table-wrap" style={{ maxHeight: 360, overflowY: 'auto' }}>

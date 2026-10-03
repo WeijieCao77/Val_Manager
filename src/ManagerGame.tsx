@@ -24,6 +24,8 @@ import QualifyPoster from './ui/QualifyPoster'
 import ChampionPoster from './ui/ChampionPoster'
 import { autosave, claimAutosave, hasAutosave, loadAutosave, loadGame, packState } from './engine/save'
 import { syncCallersWithWorld } from './engine/world'
+import { loadArrivals } from './engine/eras'
+import { arrivalsLoaded, registerArrivals } from './engine/arrivals'
 import { dateLabel, nextRealFixtureFor, nextScrimFor, stageName } from './engine/season'
 import { actionsForTurn, actionsLeft } from './engine/actions'
 import Tutorial, { tutorialSeen } from './ui/Tutorial'
@@ -199,6 +201,12 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     // a career carries its own players: the world's caller corrections
     // (who is an IGL) are brought into it here, once per change of the data
     const synced = syncCallersWithWorld(g)
+    // 历史档: the real newcomers of the years ahead arrive on the season's first
+    // day once this file is in (engine/arrivals.ts); a day missed while it
+    // downloads is caught up on the next one
+    if (g.startYear != null && g.startYear < 2026 && !arrivalsLoaded()) {
+      void loadArrivals().then(registerArrivals).catch(() => { /* next open tries again */ })
+    }
     // a save closed on a pick it was waiting for opens back onto it — unless
     // the tour is about to run, which the ceremony would sit on top of; the
     // tour's end opens it then

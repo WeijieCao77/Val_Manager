@@ -354,6 +354,8 @@ export interface Player {
   retiring?: boolean
   /** 娱乐模式: a retired player or streamer back in the game — engine/fun.ts */
   comeback?: import('./fun').Comeback
+  /** 历史档: a real newcomer at the manager's club waits for his offer until this career day — engine/arrivals.ts */
+  reservedFor?: { team: string; until: number }
   /** clubs served IN THIS SAVE, year granularity — the farewell card's CV */
   clubHist?: { team: string; from: number; to: number }[]
   /** titles lifted IN THIS SAVE — credited to the champion's roster as they happen; see engine/history.ts */
@@ -434,6 +436,12 @@ export interface StaffApproach {
   name: string
   /** compensation offered to the club */
   fee: number
+  /**
+   * Set when the approach is for a member of the club's staff below the head
+   * coach (an assistant or analyst on its supportStaff — engine/staff.ts
+   * employedStaff); absent for the head coach.
+   */
+  role?: StaffRole
   day: number
   replyOn: number
   answer?: 'granted' | 'refused'
@@ -980,6 +988,8 @@ export interface GameState {
   difficulty?: import('./difficulty').Difficulty
   /** 'fun' = 娱乐模式 (beta): retired players and streamers in the free-agent pool — engine/fun.ts */
   mode?: 'fun'
+  /** 历史档: the later years whose real newcomers have arrived — engine/arrivals.ts */
+  arrivalsDone?: number[]
   /** 对手针对: the league's attention and what it has seen — engine/scouting.ts */
   scout?: import('./scouting').ScoutState
   /** the contender that made us personal for one season (the year it runs) */

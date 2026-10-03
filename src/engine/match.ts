@@ -790,6 +790,21 @@ export class MapSim {
     return this.ctx.highlights
   }
 
+  /**
+   * Every player's line on this map so far, for the pause screen: who is
+   * hot is what 「围绕一名选手打」 is a bet on. A copy — ACS is per round
+   * played, the way result() works it out at the end.
+   */
+  liveLines(): Record<string, MapLine> {
+    const out: Record<string, MapLine> = {}
+    for (const [id, l] of Object.entries(this.ctx.lines)) {
+      // damage rounded first, the order result() does it in, so the last look agrees with the card
+      const damage = Math.round(l.damage)
+      out[id] = { ...l, damage, rounds: this.round, acs: this.round ? Math.round((damage / this.round) * 1.45) : 0 }
+    }
+    return out
+  }
+
   /** True when this side still has a timeout and the map is live. */
   canTimeout(side: Side): boolean {
     return !this.over && this.timeouts[side] > 0 && this.round > 0

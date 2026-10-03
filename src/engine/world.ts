@@ -254,6 +254,58 @@ export interface NewGameOptions {
   fun?: FunRow[]
 }
 
+/**
+ * One raw world record as a player of a career: the conversion createNewGame
+ * runs on every record, and engine/arrivals.ts runs on a real newcomer who
+ * joins a historical career in a later year.
+ */
+export function playerFromRaw(rp: RawPlayer, s: number, released: (a: string) => boolean, startYear: number): Player {
+  const prng = new Rng(hashStr(rp.id + 'init') ^ s)
+  // world.json was built before the player pages were scraped and is missing
+  // a nationality for 178 of the 518, and a real name for rather more. The
+  // dossier has both for everyone. Overlaid here rather than rewritten into
+  // world.json so the two files keep their jobs — world.json is what the
+  // simulation reads, dossier.json is who these people are.
+  const d = dossierOf(rp.id)
+  return {
+    ...rp,
+    nat: rp.nat || d?.nat || undefined,
+    realName: rp.realName ?? d?.real ?? null,
+    // The spread is shallow. Nested objects that the game MUTATES must be
+    // copied, or every career in one page session shares them with the
+    // imported world file — the roster array taught this lesson below, and
+    // attrs re-taught it when a test that rolled many worlds watched its
+    // "fresh" players arrive pre-trained by the previous world's seasons.
+    attrs: { ...rp.attrs },
+    // this save's ceiling for him — see potentialJitter
+    potential: jitteredPotential(s, rp.id, rp.overall, rp.potential),
+    traits: rp.traits ? [...rp.traits] : rp.traits,
+    // the scrape leaves this null when vlr does not record a join date
+    joined: rp.joined ?? undefined,
+    region: rp.region as Player['region'],
+    role: rp.role as Role,
+    roles: (rp.roles as Role[] | undefined) ?? [rp.role as Role],
+    // the agents this player really used, where we have them; otherwise a
+    // plausible pool for the roles they cover
+    agentPool: rp.agentPool?.length
+      ? canonAgents(rp.agentPool)
+      // canon also drops the repeat when two of his roles pick the same agent
+      : canonAgents(((rp.roles as Role[] | undefined) ?? [rp.role as Role])
+          .flatMap((r) => pickAgents(r, prng)))
+        // drawn from the whole roster of agents, then held to what exists on
+        // the career's first day (the draw itself is unchanged, so the rest of
+        // his seed is too)
+        .filter((a) => released(a)),
+    season: emptyStats(),
+    career: emptyStats(),
+    injuredUntil: 0,
+    xp: {},
+    // the in-save CV starts on day one — the farewell card reads this,
+    // never the real-world record
+    clubHist: rp.teamId ? [{ team: rp.teamId, from: startYear, to: startYear }] : [],
+  }
+}
+
 export function createNewGame(
   myTeamId: string, managerName: string, seed?: number, manager?: Manager, opts: NewGameOptions = {},
 ): GameState {
@@ -273,50 +325,7 @@ export function createNewGame(
   const players: Record<string, Player> = {}
   for (const rp of rawPlayers) {
     if (rp.nowCoach && !opts.cards) continue   // he is on a bench in this world, not on the market
-    const prng = new Rng(hashStr(rp.id + 'init') ^ s)
-    // world.json was built before the player pages were scraped and is missing
-    // a nationality for 178 of the 518, and a real name for rather more. The
-    // dossier has both for everyone. Overlaid here rather than rewritten into
-    // world.json so the two files keep their jobs — world.json is what the
-    // simulation reads, dossier.json is who these people are.
-    const d = dossierOf(rp.id)
-    players[rp.id] = {
-      ...rp,
-      nat: rp.nat || d?.nat || undefined,
-      realName: rp.realName ?? d?.real ?? null,
-      // The spread is shallow. Nested objects that the game MUTATES must be
-      // copied, or every career in one page session shares them with the
-      // imported world file — the roster array taught this lesson below, and
-      // attrs re-taught it when a test that rolled many worlds watched its
-      // "fresh" players arrive pre-trained by the previous world's seasons.
-      attrs: { ...rp.attrs },
-      // this save's ceiling for him — see potentialJitter
-      potential: jitteredPotential(s, rp.id, rp.overall, rp.potential),
-      traits: rp.traits ? [...rp.traits] : rp.traits,
-      // the scrape leaves this null when vlr does not record a join date
-      joined: rp.joined ?? undefined,
-      region: rp.region as Player['region'],
-      role: rp.role as Role,
-      roles: (rp.roles as Role[] | undefined) ?? [rp.role as Role],
-      // the agents this player really used, where we have them; otherwise a
-      // plausible pool for the roles they cover
-      agentPool: rp.agentPool?.length
-        ? canonAgents(rp.agentPool)
-        // canon also drops the repeat when two of his roles pick the same agent
-        : canonAgents(((rp.roles as Role[] | undefined) ?? [rp.role as Role])
-            .flatMap((r) => pickAgents(r, prng)))
-          // drawn from the whole roster of agents, then held to what exists on
-          // the career's first day (the draw itself is unchanged, so the rest of
-          // his seed is too)
-          .filter((a) => released(a)),
-      season: emptyStats(),
-      career: emptyStats(),
-      injuredUntil: 0,
-      xp: {},
-      // the in-save CV starts on day one — the farewell card reads this,
-      // never the real-world record
-      clubHist: rp.teamId ? [{ team: rp.teamId, from: startYear, to: startYear }] : [],
-    }
+    players[rp.id] = playerFromRaw(rp, s, released, startYear)
   }
 
   // The rest of the professional scene: real players from below the simulated

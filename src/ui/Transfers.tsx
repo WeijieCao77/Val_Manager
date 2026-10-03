@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { careerDayOf } from '../engine/clock'
 import { useGame } from './ctx'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
@@ -565,6 +566,12 @@ export default function Transfers() {
                     )}
                     {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
                     <ComebackTags p={p} />
+                    {p.reservedFor?.team === game.myTeam && p.reservedFor.until > careerDayOf(game) && (
+                      <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                        title="现实中他在这一年加入了你的俱乐部；这几天只有你能签他">
+                        现实新人 · 等你 {p.reservedFor.until - careerDayOf(game)} 天
+                      </span>
+                    )}
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>

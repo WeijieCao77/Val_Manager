@@ -9,7 +9,7 @@ import { MatchSim } from '../engine/match'
 import { mapCn } from '../engine/content'
 import type { Side } from '../engine/match'
 import { commitFixture, fixtureRng } from '../engine/season'
-import type { Fixture } from '../engine/types'
+import type { Fixture, MapLine } from '../engine/types'
 import { track } from '../engine/telemetry'
 
 type Phase = 'choose' | 'bp' | 'watching' | 'timeout' | 'done'
@@ -267,14 +267,33 @@ export default function MatchLive({
             <p className="tiny faint" style={{ marginTop: 0, marginBottom: 14 }}>
               战术滑杆在赛前的「各图预案」里，一张图一套；暂停只管接下来 3 个回合。
             </p>
-            <div className="small muted" style={{ marginBottom: 6 }}>或者围绕一名选手打：</div>
-            <div className="row wrap" style={{ gap: 6 }}>
-              {(mySide === 'a' ? map.A : map.B).players.map((p) => (
-                <button key={p.id} className="sm" onClick={() => callTimeout('focus', p.id)}>
-                  <Face id={p.id} size={16} />{p.ign} <OvrBadge value={p.overall} />
-                </button>
-              ))}
-            </div>
+            {(() => {
+              // this map so far: who is hot is what building around a man is a bet on
+              const lines = map.liveLines()
+              const mine = (mySide === 'a' ? map.A : map.B).players
+              const theirs = (mySide === 'a' ? map.B : map.A).players
+              const hot = [...mine].sort((x, y) => (lines[y.id]?.acs ?? 0) - (lines[x.id]?.acs ?? 0))[0]
+              return (
+                <>
+                  <LiveBoard title="本图我方" players={mine} lines={lines} hot={hot?.id} />
+                  <LiveBoard title="本图对手" players={theirs} lines={lines} />
+                  <div className="small muted" style={{ margin: '10px 0 6px' }}>或者围绕一名选手打：</div>
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {mine.map((p) => {
+                      const l = lines[p.id]
+                      return (
+                        <button key={p.id} className={`sm${p.id === hot?.id ? ' primary' : ''}`} onClick={() => callTimeout('focus', p.id)}
+                          title={p.id === hot?.id ? '本图手感最好' : undefined}>
+                          <Face id={p.id} size={16} />{p.ign} <OvrBadge value={p.overall} />
+                          {l && <span className="tiny mono" style={{ marginLeft: 4 }}>{l.kills}/{l.deaths} · {l.acs}</span>}
+                          {p.id === hot?.id && <span aria-hidden="true"> 🔥</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )
+            })()}
             <div style={{ marginTop: 12 }}>
               {/* 「取消」 read as "discard something" — there is nothing here to
                   discard. A timeout is only spent by the three calls above, so
@@ -319,5 +338,43 @@ export default function MatchLive({
         </div>
       )}
     </Modal>
+  )
+}
+
+/**
+ * A pause-screen scoreboard for one side: K/D/A, ACS, first kills and clutches
+ * on this map so far, best first. Reported 2026-10-03: 「暂停时看不到选手的
+ * 战绩，不知道以谁为核心比较好」.
+ */
+function LiveBoard({ title, players, lines, hot }: {
+  title: string; players: { id: string; ign: string }[]; lines: Record<string, MapLine>; hot?: string
+}) {
+  const rows = [...players].sort((a, b) => (lines[b.id]?.acs ?? 0) - (lines[a.id]?.acs ?? 0))
+  return (
+    <div className="table-wrap" style={{ marginBottom: 8 }}>
+      <table className="tiny">
+        <thead>
+          <tr>
+            <th>{title}</th><th className="num">K / D / A</th><th className="num">ACS</th>
+            <th className="num" title="首杀 / 首死">首杀</th><th className="num">残局</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => {
+            const l = lines[p.id]
+            if (!l) return null
+            return (
+              <tr key={p.id} style={p.id === hot ? { background: 'var(--panel-2)' } : undefined}>
+                <td><Face id={p.id} size={16} /> <b>{p.ign}</b>{p.id === hot && <span title="本图手感最好"> 🔥</span>}</td>
+                <td className="num mono">{l.kills} / {l.deaths} / {l.assists}</td>
+                <td className="num mono">{l.acs}</td>
+                <td className="num mono">{l.firstKills}–{l.firstDeaths}</td>
+                <td className="num mono">{l.clutches}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }

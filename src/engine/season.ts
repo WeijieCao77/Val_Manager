@@ -48,6 +48,7 @@ import type { Competition, Fixture, GameState, Player, Region, StageKey, Tactics
 import { recordMatch, scoutTitle, scoutWinter } from './scouting'
 import { track } from './telemetry'
 import { aiMayApproach, fameWeek, recoverRust } from './fun'
+import { applyArrivals } from './arrivals'
 import {
   DOUBLE_8, GROUPS, advanceTemplate, championsGroups, championsSeeds, decided, doubleFor,
   mastersSeeds, swissDone, swissNext, swissOutcome, templateDone, MASTERS_8, TRIPLE_12, TRIPLE_12_PLACES, STAGE_8, STAGE_8_PLACES, swissRoundOf, SWISS_ROUNDS, swissRecord
@@ -1995,6 +1996,8 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
   const notes: string[] = []
   const playedMine: Fixture[] = []
   state.lastResults = []
+  // 历史档: the year's real newcomers, once per year (engine/arrivals.ts)
+  applyArrivals(state, notes)
 
   // Going down was announced; coming back never was. A player simply became
   // selectable again at some point and you found out by opening the squad
@@ -2735,7 +2738,7 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
     if (team.id === state.myTeam) continue
     let guard = 0
     while (team.roster.length < 5 && guard++ < 10) {
-      const free = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring && aiMayApproach(p))
+      const free = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring && aiMayApproach(p, state))
       // under the import rule a club refills from its own region first;
       // fielding five still outranks the rule when the pool runs dry
       const legal = free.filter((p) => !importBlock(state, team.id, p))

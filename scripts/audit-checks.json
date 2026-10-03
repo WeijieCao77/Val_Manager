@@ -94,6 +94,19 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_staff_poach.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_live_lines.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_arrivals.ts",
+    "estimatedSeconds": 40
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_cup_path.ts"
   },
   {
