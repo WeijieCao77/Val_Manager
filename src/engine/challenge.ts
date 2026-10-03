@@ -70,6 +70,12 @@ export interface ChallengeState {
   best: number
   /** how many have ever been solved */
   total: number
+  /** the hour (0–23, Beijing time) this account's puzzle turns over; absent means midnight */
+  hour?: number
+  /** the hour in force before the last change, until `hourFrom` */
+  prevHour?: number
+  /** the Beijing date a changed `hour` starts on — always the day after it was chosen */
+  hourFrom?: string
 }
 
 export const newChallenge = (): ChallengeState => ({
@@ -468,6 +474,64 @@ export function rewardFor(tries: number, solved: boolean, streak: number): Chall
   return out
 }
 
+// ------------------------------------------------------------------ the day
+
+/**
+ * Each account picks the hour its puzzle turns over.
+ *
+ * At midnight everyone came back for the new puzzle at once and the server
+ * crawled (2026-10-03). So the day is the account's own: a puzzle labelled D
+ * runs from D at `hour` to D+1 at `hour`, Beijing time. The label is still a
+ * date, so the answer, the kind and the streak all work exactly as before.
+ *
+ * A change applies from the next Beijing date, never today. At that midnight
+ * the label of any old hour is D and of the new hour D or D+1, so it never
+ * goes backwards: no puzzle is replayed, none is added, today's is untouched.
+ */
+const HOUR_MS = 3_600_000
+const BEIJING_MS = 8 * HOUR_MS
+/** Beijing has no summer time, so this is the server's serverDay() at `ms`. */
+export const beijingDay = (ms: number): string => new Date(ms + BEIJING_MS).toISOString().slice(0, 10)
+
+const nextDay = (day: string): string => {
+  const d = new Date(`${day}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+const okHour = (h: unknown): h is number => typeof h === 'number' && Number.isInteger(h) && h >= 0 && h <= 23
+
+/** The hour in force on a Beijing date. */
+export function hourOn(c: ChallengeState | undefined, date: string): number {
+  if (!c) return 0
+  const h = c.hourFrom && date < c.hourFrom ? c.prevHour : c.hour
+  return okHour(h) ? h : 0
+}
+
+/** Which puzzle this account is on at `now` (epoch ms) — the date its current puzzle is labelled with. */
+export function challengeDay(c: ChallengeState | undefined, now: number): string {
+  return beijingDay(now - hourOn(c, beijingDay(now)) * HOUR_MS)
+}
+
+/** The next moment this account's puzzle turns over, epoch ms. */
+export function nextTurnover(c: ChallengeState | undefined, now: number): number {
+  // within a day either the current date's hour comes later today, or the next turnover is tomorrow's
+  const today = beijingDay(now)
+  const at = (date: string) => Date.parse(`${date}T00:00:00Z`) - BEIJING_MS + hourOn(c, date) * HOUR_MS
+  const t = at(today)
+  return t > now ? t : at(nextDay(today))
+}
+
+/** Choose the turnover hour; it starts on the Beijing date after `today`. */
+export function setChallengeHour(g: GachaState, hour: number, today: string): string | null {
+  if (!okHour(hour)) return '时间不对'
+  const c = (g.challenge ??= newChallenge())
+  c.prevHour = hourOn(c, today)
+  c.hour = hour
+  c.hourFrom = nextDay(today)
+  return null
+}
+
 // ------------------------------------------------------------------ play
 
 /** Bring the state onto today's puzzle, resetting yesterday's attempt. */
@@ -494,7 +558,7 @@ export const triesLeft = (c: ChallengeState): number =>
 export function challengeBlock(g: GachaState, today: string): string | null {
   const c = g.challenge
   if (!c) return null
-  if (c.day === today && c.done) return '今天的挑战已结束，明天换一道。'
+  if (c.day === today && c.done) return '这道题已结束，等下一题。'
   const owed = c.day === today && c.paid ? 0 : CHALLENGE_COST
   if (g.coins < owed) return `金币不够，入场要 ${CHALLENGE_COST} 金币`
   return null

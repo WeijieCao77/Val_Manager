@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '../../engine/account'
+import { api, serverNow } from '../../engine/account'
 import { useCards } from './ctx'
 import { Panel } from '../common'
 import { track } from '../../engine/telemetry'
 import {
-  allChoices, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeSig, challengeToday,
-  detail, evaluate, KIND_CN, revealed, triesLeft,
+  allChoices, beijingDay, CHALLENGE_COST, CHALLENGE_TRIES, challengeBlock, challengeDay, challengeSig, challengeToday,
+  detail, evaluate, hourOn, KIND_CN, nextTurnover, revealed, triesLeft,
 } from '../../engine/challenge'
 import type { ChallengeTurn, GuessRow, HintMark } from '../../engine/challenge'
 import { FRAME_ASPECT, FRAME_MAX, paintPuzzle, puzzleShift } from './puzzle'
@@ -18,6 +18,8 @@ const MARK_STYLE: Record<HintMark, { bg: string; fg: string; suffix?: string }> 
   up: { bg: 'var(--panel-2)', fg: 'var(--muted)', suffix: ' ↑' },
   down: { bg: 'var(--panel-2)', fg: 'var(--muted)', suffix: ' ↓' },
 }
+
+const hh = (h: number): string => `${String(h).padStart(2, '0')}:00`
 
 const assetBase = (): string =>
   typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
@@ -65,9 +67,17 @@ function rankMatches<T extends { id: string; name: string; hint: string }>(all: 
 }
 
 export default function Challenge() {
-  const { g, today, act, toast } = useCards()
+  const { g, act, toast } = useCards()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
+  // the puzzle turns over at the hour this account chose, not at midnight for everybody — so the
+  // screen keeps its own clock (the server's, through the skew) and moves on when that hour comes
+  const [now, setNow] = useState(() => serverNow())
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(serverNow()), 30_000)
+    return () => window.clearInterval(t)
+  }, [])
+  const today = challengeDay(g.challenge, now)
 
   const { kind, answer, state, rows } = challengeToday(g, today)
   // One list, all four kinds. The screen deliberately does not say which sort
@@ -108,6 +118,19 @@ export default function Challenge() {
       }
     }
   }
+
+  const pickHour = async (hour: number) => {
+    if (busy) return
+    setBusy(true)
+    const r = await act('challenge_hour', { hour })
+    setBusy(false)
+    toast(r.ok ? `明天起每天 ${hh(hour)} 换题` : r.why)
+  }
+  const date = beijingDay(now)
+  const inForce = hourOn(g.challenge, date)
+  const chosen = hourOn(g.challenge, '9999-12-31')
+  const next = nextTurnover(g.challenge, now)
+  const nextAt = `${beijingDay(next) === date ? '今天' : '明天'} ${hh(hourOn(g.challenge, beijingDay(next)))}`
 
   // the answer's own row, used for the reveal — built here rather than stored
   const answerRow: GuessRow = evaluate(kind, answer, answer)
@@ -186,6 +209,16 @@ export default function Challenge() {
           <br />
           每天一题，<b>每个账号题目不同</b>，入场 <b>{CHALLENGE_COST} 金币</b>。
           猜中按次数给卡包（<b>一次猜中给十连包</b>），没猜中退一半。
+        </p>
+        <p className="small muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          每天
+          <select value={chosen} disabled={busy} style={{ width: 'auto' }} onChange={(e) => pickHour(Number(e.target.value))}>
+            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hh(h)}</option>)}
+          </select>
+          换题，改了明天起生效。
+          <span className="faint">
+            {chosen !== inForce ? `今天还是 ${hh(inForce)}，` : ''}下一题 {nextAt}
+          </span>
         </p>
         {stale && (
           <p className="small warn" style={{ lineHeight: 1.7 }}>
@@ -349,7 +382,7 @@ export default function Challenge() {
               {state.solved
                 ? `第 ${used} 次猜中，连续第 ${state.streak} 天。`
                 : '今天没猜出来，连胜清零了。'}
-              答案是<b style={{ color: 'var(--text)' }}>{KIND_CN[kind]}「{answerRow.name}」</b>。明天换一道。
+              答案是<b style={{ color: 'var(--text)' }}>{KIND_CN[kind]}「{answerRow.name}」</b>。下一题 {nextAt}。
             </p>
             {/* Everybody on earth has today's puzzle, and this is the exact
                 moment somebody screenshots it. Loud enough to actually stop

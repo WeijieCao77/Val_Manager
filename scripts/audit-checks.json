@@ -138,6 +138,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_challenge_hour.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_minigame.ts"
   },
   {

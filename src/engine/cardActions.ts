@@ -39,7 +39,7 @@ import type { GachaState, QuestKey, Series } from './gacha'
 import { playArenaMatch, playCupMatch, playRivalMatch } from './arena'
 import { evolve } from './evolve'
 import type { ArenaResult, RivalSquad } from './arena'
-import { challengeBlock, challengeSig, guessChallenge } from './challenge'
+import { challengeBlock, challengeDay, challengeSig, guessChallenge, setChallengeHour } from './challenge'
 import { hashStr } from './rng'
 import { cardById, isPlayerCard, personOf, squadRating } from './cards'
 import type { Rarity, Squad } from './cards'
@@ -89,7 +89,7 @@ export type ActResult =
 
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
-  'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'mail_seen',
+  'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
   'bangkok_start', 'bangkok_play', 'bangkok_quit',
 ] as const
@@ -386,15 +386,21 @@ function dispatch(
       return { ok: true }
     }
     case 'challenge': {
-      const why = challengeBlock(g, env.today)
+      // the puzzle's day is this account's own, turning over at the hour it chose (challengeDay)
+      const day = challengeDay(g.challenge, env.now)
+      const why = challengeBlock(g, day)
       if (why) return { ok: false, why }
       const guessId = str(a.guessId, 80)
       if (!guessId) return { ok: false, why: '先选一个' }
       // a page from before a data update marks its hints against the wrong answer (see challengeSig):
       // nothing is charged and no try is spent until it has been refreshed
       if (str(a.sig, 16) !== challengeSig()) return { ok: false, why: '游戏数据更新了，刷新页面后再猜。这次不扣次数。' }
-      const turn = guessChallenge(g, env.today, guessId)
+      const turn = guessChallenge(g, day, guessId)
       return { ok: true, result: { turn } }
+    }
+    case 'challenge_hour': {
+      const why = setChallengeHour(g, Number(a.hour), env.today)
+      return why ? { ok: false, why } : { ok: true }
     }
     case 'mail_seen': {
       markMailSeen(g)

@@ -1622,7 +1622,18 @@ export function makeCardApi(sql, {
     let id = null
     try { id = normalizeId(JSON.parse(await readBody(req, 4096))?.id) } catch { /* below */ }
     if (!id) { json(res, 400, { ok: false, bad: true }); return }
-    const today = serverDay()
+    // the account's own puzzle day (it picks the hour it turns over), read from its saved state:
+    // trusting a day the page names would show tomorrow's picture to anyone who asked for it early
+    let today = serverDay()
+    if (sql) {
+      try {
+        const rows = await sql`select state->'challenge' as c from card_accounts where id_hash = ${hash(id)}`
+        today = engine.challengeDay(rows[0]?.c ?? undefined, serverNow())
+      } catch (err) {
+        console.warn('cards: puzzle day failed', err.message)
+        json(res, 500, { ok: false }); return
+      }
+    }
     const kind = engine.kindFor(today, id)
     const rel = engine.imgOf(kind, engine.answerFor(today, id))
     if (!rel || !staticRoot) { json(res, 404, { ok: false }); return }

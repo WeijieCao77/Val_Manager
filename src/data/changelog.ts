@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-03',
+    title: '每日挑战可以自选换题时间',
+    changes: [
+      { kind: '新增', text: '<b>每日挑战可以选每天几点换题</b>（0–23 点任选），在挑战页设置。改了明天起生效，今天的题不变。避开 0 点高峰就不卡了。' },
+    ],
+  },
+  {
     date: '2026-10-01',
     title: '彩卡评分调整 · 全图鉴只算普卡',
     changes: [

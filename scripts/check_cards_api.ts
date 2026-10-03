@@ -528,6 +528,23 @@ check('without a database the route says so instead of throwing',
     String(got.head['Content-Disposition']).includes('puzzle.webp') && got.head['Cache-Control'] === 'no-store')
   check('and no player id anywhere in the headers',
     !JSON.stringify(got.head).match(/P\d{2,}/))
+  // an account whose turnover hour has not come yet is still on yesterday's puzzle, and the route must
+  // not hand it the next one early (the hour is read from the saved state, never from the page)
+  {
+    const bjHour = new Date(Date.now() + 8 * 3_600_000).getUTCHours()
+    if (bjHour < 23) {
+      const h = bjHour + 1
+      const ch = { hour: h, hourFrom: '2000-01-01' }
+      await sql`delete from card_accounts where id_hash = ${hashOf(ID)}`
+      await sql`insert into card_accounts (id_hash, name, state) values (${hashOf(ID)}, 'hour', ${sql.json({ challenge: ch })})`
+      await api3.route({ body: JSON.stringify({ id: ID }), method: 'POST' } as never, res as never, '/api/card/puzzle', 'pz')
+      const day = engine.challengeDay(ch, Date.now())
+      const relY = engine.imgOf(engine.kindFor(day, ID), engine.answerFor(day, ID))
+      const wantY = relY ? await readFile(join(root, relY)) : null
+      check(`turnover at ${h}:00 not reached: the picture is ${day}'s, not today's`,
+        day < today && got.code === 200 && !!wantY && Buffer.compare(got.body!, wantY!) === 0)
+    }
+  }
   await api3.route({ body: JSON.stringify({ id: 'nope' }), method: 'POST' } as never, res as never, '/api/card/puzzle', 'pz')
   check('a bad id is 400, not a picture', got.code === 400)
 }

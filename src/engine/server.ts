@@ -33,7 +33,7 @@ export * from './teamCup'
 export { squadPaper, chemistry, squadPower } from './cards'
 export { playLevel } from './evolve'
 export { progressOf } from '../../progress.js'
-export { answerFor, kindFor, imgOf, challengeSig } from './challenge'
+export { answerFor, kindFor, imgOf, challengeSig, challengeDay } from './challenge'
 
 // Profile merges prefer real unlocks over unknown historical keys when bounded.
 // Export only identifiers; the HTTP module reuses this already-loaded bundle.
