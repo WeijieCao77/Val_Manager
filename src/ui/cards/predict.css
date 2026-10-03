@@ -46,3 +46,15 @@ button.pd-team.lost { opacity: .42; }
 .pd-rewards ul { padding-left: 20px; margin: 6px 0; }
 .pd-rewards > span { color: var(--muted); }
 .pd-settlement { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* 淘汰赛: the upper bracket over the lower, four columns each, scrolling sideways on a phone */
+.pd-bracket.po { grid-template-columns: repeat(4, minmax(160px, 1fr)); }
+.pd-bracket.po + .pd-bracket.po { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+/* the title stays on top; auto margins spread the matches so a later round sits between its feeders */
+.pd-bracket.po .pd-match { margin: auto 0; }
+button.pd-team.hit { box-shadow: inset 3px 0 0 var(--good, #3fa66b); }
+button.pd-team.miss { box-shadow: inset 3px 0 0 var(--bad, #d0524a); }
+.pd-real { font: 11px var(--mono); color: var(--muted); padding: 2px 8px; border-top: 1px solid var(--line-soft); }
+@media (max-width: 720px) {
+  .pd-bracket.po { grid-template-columns: repeat(4, minmax(112px, 1fr)); }
+}

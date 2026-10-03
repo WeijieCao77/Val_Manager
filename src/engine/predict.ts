@@ -15,11 +15,18 @@
  */
 import type { GachaState } from './gacha'
 import publishedResults from '../data/predictResults.json'
+import publishedPlayoffs from '../data/predictPlayoffResults.json'
+import {
+  PLAYOFF_EVENTS, PLAYOFF_KEY, P_SLOTS, cleanPlayoffPicks, playedWinners, playoffEvent, playoffOpen, playoffPlacing, playoffReward,
+} from './predictPlayoffs'
+import type { PlayoffEvent, PlayoffResult } from './predictPlayoffs'
 
 export type SlotKey = 'o1' | 'o2' | 'w' | 'e' | 'd'
 /** in the order each depends only on the ones before it */
 export const SLOTS: SlotKey[] = ['o1', 'o2', 'w', 'e', 'd']
 export type Picks = Partial<Record<SlotKey, string>>
+/** what a save holds for one group or bracket: a group's five slots, or the playoffs' fourteen */
+export type SavedPicks = Partial<Record<string, string>>
 export type Pair = [string | null, string | null]
 
 export interface PredictTeam { tag: string; clubId: string; name: string }
@@ -136,6 +143,8 @@ export const picksOf = (g: GachaState, eventId: string, groupKey: string): Picks
 export function setPicks(
   g: GachaState, eventId: string, groupKey: string, raw: unknown, now: number,
 ): { ok: true; picks: Picks } | { ok: false; why: string } {
+  const po = playoffEvent(eventId)
+  if (po) return setPlayoffPicks(g, po, groupKey, raw, now)
   const ev = PREDICT_EVENTS.find((e) => e.id === eventId)
   const group = ev?.groups.find((x) => x.key === groupKey)
   if (!ev || !group) return { ok: false, why: '没有这个赛事' }
@@ -164,6 +173,16 @@ export function cleanPredictions(raw: unknown): GachaState['predict'] {
       out[ev.id][group.key] = { picks, at: Math.max(0, Math.trunc(Number(row.at) || 0)),
         ...(Number.isSafeInteger(claimedAt) && claimedAt > 0 ? { claimedAt } : {}) }
     }
+  }
+  for (const ev of PLAYOFF_EVENTS) {
+    const row = ((raw as Record<string, Record<string, unknown> | undefined>)[ev.id])?.[PLAYOFF_KEY] as
+      { picks?: unknown; at?: unknown; claimedAt?: unknown } | undefined
+    if (!row || typeof row !== 'object') continue
+    const picks = cleanPlayoffPicks(ev, row.picks)
+    if (!Object.keys(picks).length) continue
+    const claimedAt = Number(row.claimedAt)
+    out[ev.id] = { [PLAYOFF_KEY]: { picks, at: Math.max(0, Math.trunc(Number(row.at) || 0)),
+      ...(Number.isSafeInteger(claimedAt) && claimedAt > 0 ? { claimedAt } : {}) } }
   }
   return Object.keys(out).length ? out : undefined
 }
@@ -204,6 +223,8 @@ export function predictionReward(group: PredictGroup, picks: Picks, result: Grou
 
 export function claimPrediction(g: GachaState, eventId: string, groupKey: string, now: number):
   { ok: true; reward: PredictionReward } | { ok: false; why: string } {
+  const po = playoffEvent(eventId)
+  if (po) return claimPlayoff(g, po, groupKey, now)
   const event = PREDICT_EVENTS.find(e => e.id === eventId)
   const group = event?.groups.find(gr => gr.key === groupKey)
   if (!group) return { ok: false, why: '没有这个赛事或小组' }
@@ -232,6 +253,8 @@ export interface PredictScore { correct: number; total: number; places: number }
  * the account has no valid pick in any confirmed group.
  */
 export function predictScore(eventId: string, saved: unknown, now: number): PredictScore | null {
+  const po = playoffEvent(eventId)
+  if (po) return playoffScore(po, saved, now)
   const event = PREDICT_EVENTS.find(e => e.id === eventId)
   if (!event) return null
   const rows = saved && typeof saved === 'object' ? (saved as Record<string, { picks?: unknown; at?: unknown } | undefined>) : {}
@@ -269,4 +292,83 @@ export function predictBoard<T extends { id: string; name: string; saved: unknow
     if (i === 0 || scored[i - 1].score.correct !== a.score.correct) rank = i + 1
     return { id: a.id, name: a.name, rank, ...a.score }
   })
+}
+
+// ---- 淘汰赛 (engine/predictPlayoffs.ts holds the bracket; the save, the clock and the pay are here)
+
+/** every event a pick can be saved for, groups and playoffs */
+export const PREDICT_EVENT_IDS: string[] = [...PREDICT_EVENTS.map(e => e.id), ...PLAYOFF_EVENTS.map(e => e.id)]
+/** Reviewed playoff results ship with the server, one row per event, filled in as matches finish. */
+export const PLAYOFF_RESULTS: Record<string, PlayoffResult | null> = publishedPlayoffs as Record<string, PlayoffResult | null>
+
+/** The eight teams through the groups the playoffs draw from — only once every group is confirmed. */
+export function qualifiers(po: PlayoffEvent, now: number): string[] {
+  const ev = PREDICT_EVENTS.find(e => e.id === po.from)
+  if (!ev) return []
+  const out: string[] = []
+  for (const group of ev.groups) {
+    const r = confirmedResult(ev.id, group, now)
+    if (!r) return []
+    out.push(r.first, r.second)
+  }
+  return out
+}
+
+/** Open for picks: the draw is known, it is the real eight, and the deadline has not passed. */
+export const playoffReady = (po: PlayoffEvent, now: number): boolean => playoffOpen(po, qualifiers(po, now))
+export const playoffLocked = (po: PlayoffEvent, now: number): boolean => now >= po.deadline
+
+/** The winners played so far, on the shipped results; null before any are confirmed. */
+export const playoffPlayed = (po: PlayoffEvent, now: number) =>
+  playoffReady(po, now) ? playedWinners(po, PLAYOFF_RESULTS[po.id] ?? undefined, now) : null
+
+function setPlayoffPicks(g: GachaState, po: PlayoffEvent, key: string, raw: unknown, now: number):
+  { ok: true; picks: SavedPicks } | { ok: false; why: string } {
+  if (key !== PLAYOFF_KEY) return { ok: false, why: '没有这个赛事' }
+  if (playoffLocked(po, now)) return { ok: false, why: '淘汰赛预测已截止，不能再修改' }
+  if (!playoffReady(po, now)) return { ok: false, why: '淘汰赛对阵还没确定，小组赛结束后开放' }
+  const picks = cleanPlayoffPicks(po, raw)
+  g.predict ??= {}
+  g.predict[po.id] = { [PLAYOFF_KEY]: { picks, at: now } }
+  return { ok: true, picks }
+}
+
+/** Paid once the grand final is confirmed, on the saved bracket's champion and runner-up. */
+export function playoffFinal(po: PlayoffEvent, now: number): { champion: string; runnerUp: string } | null {
+  const w = playoffPlayed(po, now)
+  if (!w?.gf) return null
+  const p = playoffPlacing(po, w)
+  return p.champion && p.runnerUp ? { champion: p.champion, runnerUp: p.runnerUp } : null
+}
+
+function claimPlayoff(g: GachaState, po: PlayoffEvent, key: string, now: number):
+  { ok: true; reward: PredictionReward } | { ok: false; why: string } {
+  if (key !== PLAYOFF_KEY) return { ok: false, why: '没有这个赛事或小组' }
+  const real = playoffFinal(po, now)
+  if (!real) return { ok: false, why: '总决赛赛果尚未确认，请在赛后领取' }
+  const row = g.predict?.[po.id]?.[PLAYOFF_KEY]
+  if (!row || !Number.isFinite(row.at) || row.at >= po.deadline) return { ok: false, why: '没有有效的赛前淘汰赛预测' }
+  if (row.claimedAt) return { ok: false, why: '淘汰赛预测奖励已经领取' }
+  const reward = playoffReward(playoffPlacing(po, cleanPlayoffPicks(po, row.picks)), real)
+  if (!reward.elite && !reward.ten) return { ok: false, why: '没有猜中决赛队伍，暂无奖励' }
+  g.packs.elite = (g.packs.elite ?? 0) + reward.elite
+  g.packs.ten = (g.packs.ten ?? 0) + reward.ten
+  row.claimedAt = now
+  return { ok: true, reward }
+}
+
+/** 正确率 in the playoffs: matches called right out of the matches played so far. */
+function playoffScore(po: PlayoffEvent, saved: unknown, now: number): PredictScore | null {
+  const played = playoffPlayed(po, now)
+  if (!played) return null
+  const total = P_SLOTS.filter(k => played[k]).length
+  const row = saved && typeof saved === 'object' ? (saved as Record<string, { picks?: unknown; at?: unknown } | undefined>)[PLAYOFF_KEY] : undefined
+  const at = Number(row?.at)
+  if (!total || !row || typeof row !== 'object' || !Number.isFinite(at) || at >= po.deadline) return null
+  const picks = cleanPlayoffPicks(po, row.picks)
+  if (!Object.keys(picks).length) return null
+  const correct = P_SLOTS.filter(k => played[k] && picks[k] === played[k]).length
+  const mine = playoffPlacing(po, picks), real = played.gf ? playoffPlacing(po, played) : null
+  const places = real ? Number(mine.champion === real.champion) + Number(mine.runnerUp === real.runnerUp) : 0
+  return { correct, total, places }
 }
