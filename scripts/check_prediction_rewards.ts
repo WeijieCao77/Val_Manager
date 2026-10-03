@@ -12,8 +12,7 @@ import type { Picks } from '../src/engine/predict'
 
 const group = EV.groups.find(g => g.key === 'C')!
 const before = Date.parse('2026-09-20T00:00Z'), after = group.at.d + 4 * 3600000
-// a made-up finish for the tier table (the real one is checked in check_predict_settlement.ts)
-const result = { first: 'PRX', second: 'TL', winners: { o1: 'PRX', o2: 'G2', w: 'PRX', e: 'TL', d: 'TL' }, confirmedAt: after }
+const result = { first: 'PRX', second: 'TL', confirmedAt: after }
 const cases: [string, Picks, { elite: number; ten: number }][] = [
   ['两队名次全对', { o1: 'PRX', o2: 'G2', w: 'PRX', e: 'TL', d: 'TL' }, { elite: 0, ten: 2 }],
   ['两队颠倒', { o1: 'TL', o2: 'G2', w: 'TL', e: 'PRX', d: 'PRX' }, { elite: 5, ten: 0 }],
@@ -46,10 +45,6 @@ try {
   for (const bad of [
     { ...result, second: 'PRX' }, { ...result, first: 'EDG' },
     { ...result, confirmedAt: group.at.d }, { ...result, confirmedAt: NaN },
-    // winners that lead somewhere else than the places written beside them
-    { ...result, winners: { ...result.winners, d: 'G2' } },
-    { ...result, winners: { ...result.winners, w: 'TL' } },
-    { ...result, winners: { o1: 'PRX', o2: 'G2', w: 'PRX', e: 'TL' } },
   ]) {
     PREDICT_RESULTS[EV.id].C = bad
     assert.equal(confirmedResult(EV.id, group, after), null)

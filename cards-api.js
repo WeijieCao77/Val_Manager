@@ -1118,62 +1118,6 @@ export function makeCardApi(sql, {
     }
     return job
   }
-  /**
-   * 赛事预测 正确率排行. The picks are server fields and locked since the event
-   * deadline, so the board only moves when a group's result ships with a
-   * release; five minutes of cache is fresher than that. Grading is the
-   * engine's (predict.ts predictBoard), the same code the claim pays from.
-   */
-  const PREDICT_TTL = 5 * 60_000
-  const predictCaches = new Map()
-  const predictBuilding = new Map()
-  async function predictRows(eventId) {
-    const hit = predictCaches.get(eventId)
-    if (hit && Date.now() - hit.at < PREDICT_TTL) return hit.rows
-    let job = predictBuilding.get(eventId)
-    if (!job) {
-      job = (async () => {
-        const found = await (slow ?? sql)`
-          select id_hash, name, state->'predict'->${eventId} as saved
-          from card_accounts
-          where not suspect and jsonb_typeof(state->'predict'->${eventId}) = 'object'`
-        const rows = engine.predictBoard(eventId,
-          found.map((r) => ({ id: r.id_hash, name: r.name, saved: r.saved })), Date.now())
-        predictCaches.set(eventId, { at: Date.now(), rows })
-        return rows
-      })().finally(() => predictBuilding.delete(eventId))
-      predictBuilding.set(eventId, job)
-    }
-    return job
-  }
-  async function predictTop(req, res, bucket) {
-    if (guard(req, res, `ct:${bucket}`, 30)) return
-    if (!sql) { json(res, 200, { ok: false, offline: true }); return }
-    let mine = null
-    let eventId = engine.PREDICT_EVENTS[0].id
-    try {
-      const body = JSON.parse(await readBody(req, 4096))
-      const id = normalizeId(body?.id)
-      if (id) mine = hash(id)
-      if (engine.PREDICT_EVENTS.some((e) => e.id === body?.event)) eventId = body.event
-    } catch { /* an anonymous look is fine */ }
-    try {
-      const rows = await predictRows(eventId)
-      const shown = (r) => ({ rank: r.rank, ...displayName(r.name, r.id), correct: r.correct, total: r.total, places: r.places,
-        me: !!mine && r.id === mine })
-      // the fifty places, but never a page of hundreds when many tie near the top
-      const top = rows.filter((r) => r.rank <= 50).slice(0, 100)
-      const own = mine ? rows.find((r) => r.id === mine) : null
-      json(res, 200, {
-        ok: true, players: rows.length, total: rows[0]?.total ?? 0,
-        rows: top.map(shown),
-        mine: own ? shown(own) : null,
-      })
-    } catch (err) {
-      console.warn('cards: predict board failed', err.message)
-      json(res, 500, { ok: false })
-    }
-  }
   async function topLast(req, res, bucket) {
     if (guard(req, res, `ct:${bucket}`, 30)) return
     if (!sql) { json(res, 200, { ok: false, offline: true }); return }
@@ -1747,14 +1691,13 @@ export function makeCardApi(sql, {
 
   return {
     /** Forget the cached board and rival pools — for tests that reseed the table. */
-    invalidate() { topCaches.clear(); predictCaches.clear(); rivalCache.clear(); rivalAll = null },
+    invalidate() { topCaches.clear(); rivalCache.clear(); rivalAll = null },
     /** Stage timings of the last few hundred actions, the match queue and the rival sample. */
     timings,
     /** Returns true when it handled the request. */
     async route(req, res, path, bucket) {
       if (path === '/api/card/top') { await top(req, res, bucket); return true }
       if (path === '/api/card/top_last') { await topLast(req, res, bucket); return true }
-      if (path === '/api/card/predict_top') { await predictTop(req, res, bucket); return true }
       if (path === '/api/card/rivals') { await rivals(req, res, bucket); return true }
       if (path === '/api/card/friend') { await friend(req, res, bucket); return true }
       if (path === '/api/card/friend_cards') { await friendCards(req, res, bucket); return true }

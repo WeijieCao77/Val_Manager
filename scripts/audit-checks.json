@@ -90,10 +90,6 @@
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_predict_settlement.ts"
-  },
-  {
-    "runtime": "tsx",
     "file": "scripts/check_cup_path.ts"
   },
   {

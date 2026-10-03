@@ -1,16 +1,3 @@
 {
-  "champions-2026": {
-    "C": {
-      "winners": { "o1": "PRX", "o2": "G2", "w": "PRX", "e": "TL", "d": "G2" },
-      "first": "PRX",
-      "second": "G2",
-      "confirmedAt": 1791041400000
-    },
-    "D": {
-      "winners": { "o1": "NRG", "o2": "KC", "w": "NRG", "e": "NS", "d": "NS" },
-      "first": "NRG",
-      "second": "NS",
-      "confirmedAt": 1791041400000
-    }
-  }
+  "champions-2026": {}
 }

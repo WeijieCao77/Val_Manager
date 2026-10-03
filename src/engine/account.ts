@@ -305,25 +305,6 @@ export async function fetchLastTop(league = 'open'): Promise<LastBoard | null> {
   }
 }
 
-/** 赛事预测 正确率排行: the top fifty (ties share a rank), how many are ranked, and this account's row */
-export interface PredictTopRow { rank: number; name: string; tag: string; correct: number; total: number; places: number; me: boolean }
-export interface PredictBoard { players: number; total: number; rows: PredictTopRow[]; mine: PredictTopRow | null }
-export async function fetchPredictTop(event: string): Promise<PredictBoard | null> {
-  try {
-    const r = await fetch(api('predict_top'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: rememberedId(), event }),
-    })
-    if (!r.ok) return null
-    const j = await r.json() as { ok?: boolean } & Partial<PredictBoard>
-    return j.ok && Array.isArray(j.rows)
-      ? { players: j.players ?? 0, total: j.total ?? 0, rows: j.rows, mine: j.mine ?? null } : null
-  } catch {
-    return null
-  }
-}
-
 export type FriendMiss = 'bad' | 'missing' | 'empty' | 'clash' | 'offline'
 
 /**

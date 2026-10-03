@@ -16,8 +16,6 @@ import {
 } from '../../engine/predict'
 import type { Picks, PredictGroup, SlotKey } from '../../engine/predict'
 import SharePrediction from './SharePrediction'
-import { fetchPredictTop } from '../../engine/account'
-import type { PredictBoard } from '../../engine/account'
 import './predict.css'
 
 const EV = CHAMPIONS_2026
@@ -28,10 +26,9 @@ const bj = (ms: number): string => new Date(ms).toLocaleString('zh-CN', {
 })
 
 export default function Predict() {
-  const { g, now } = useCards()
+  const { g } = useCards()
   const [sharing, setSharing] = useState(false)
   const saved = EV.groups.reduce((n, gr) => n + Object.keys(picksOf(g, EV.id, gr.key)).length, 0)
-  const settled = EV.groups.filter((gr) => confirmedResult(EV.id, gr, now)).map((gr) => gr.key)
   return (
     <>
       <Panel title={`赛事预测 · ${EV.name}`} actions={<span className="tiny muted">每组最高 2 个十连包</span>}>
@@ -58,7 +55,6 @@ export default function Predict() {
         </div>
       </Panel>
       {sharing && <SharePrediction onClose={() => setSharing(false)} />}
-      {settled.length > 0 && <Board settled={settled} />}
       <div className="pd-groups">
         {EV.groups.map((gr) => <Group key={gr.key} group={gr} />)}
       </div>
@@ -191,59 +187,6 @@ function Group({ group }: { group: PredictGroup }) {
           {!cloud && <span className="tiny faint">联网才能保存</span>}
         </div>
       )}
-    </Panel>
-  )
-}
-
-/**
- * 正确率排行: matches called right across the groups settled so far, out of
- * every match in them — an unpicked match counts as missed. Accounts level on
- * matches share a rank.
- */
-function Board({ settled }: { settled: string[] }) {
-  const [board, setBoard] = useState<PredictBoard | null | 'loading'>('loading')
-  const [tries, setTries] = useState(0)
-  const key = settled.join('')
-  useEffect(() => {
-    let alive = true
-    setBoard('loading')
-    void fetchPredictTop(EV.id).then((b) => { if (alive) setBoard(b) })
-    return () => { alive = false }
-  }, [key, tries])
-  const pct = (r: { correct: number; total: number }) => r.total ? `${Math.round((r.correct / r.total) * 100)}%` : '—'
-  const waiting = EV.groups.map((gr) => gr.key).filter((k) => !settled.includes(k))
-  return (
-    <Panel title="正确率排行" actions={<span className="tiny muted">已结算 {settled.join('、')} 组</span>}>
-      <p className="tiny muted" style={{ margin: '0 0 10px', lineHeight: 1.8 }}>
-        按已结算小组的每场胜负算，没预测的场次算猜错。猜对场次相同名次并列。
-        {waiting.length > 0 && <>{waiting.join('、')} 组打完后加入。</>}
-      </p>
-      {board === 'loading' && <p className="empty">读取中…</p>}
-      {board === null && (
-        <div className="cm-empty" role="status"><p>暂时读不到排行，请检查网络后重试。</p><button onClick={() => setTries((n) => n + 1)}>重新加载</button></div>
-      )}
-      {board && board !== 'loading' && (board.rows.length === 0 ? <p className="empty">还没有人上榜。</p> : <>
-        <ol className="last-board">
-          {board.rows.map((r, i) => (
-            <li key={i} className={`last-row${r.me ? ' me' : ''}${r.rank <= 3 ? ` podium p${r.rank}` : ''}`}>
-              <span className="last-rank mono" aria-label={`第 ${r.rank} 名`}>{r.rank}</span>
-              <span className="last-who">
-                <b>{r.name}</b>
-                <span className="tiny faint mono"> #{r.tag}</span>
-                {r.me && <span className="tag t1" style={{ marginLeft: 5 }}>我</span>}
-              </span>
-              <span className="last-div small">{pct(r)}</span>
-              <span className="last-wl mono tiny muted">{r.correct}/{r.total}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="small" style={{ margin: '10px 0 0' }}>
-          {board.mine
-            ? <>你第 <b>{board.mine.rank}</b> 名 · 猜对 {board.mine.correct}/{board.mine.total} 场 · 正确率 {pct(board.mine)}</>
-            : <span className="muted">已结算的小组里你没有预测。</span>}
-          <span className="tiny faint"> · 共 {board.players} 人上榜</span>
-        </p>
-      </>)}
     </Panel>
   )
 }
