@@ -1,0 +1,102 @@
+/* The directory has two distinct game worlds; shared tokens retain all three themes. */
+.game-portal { min-height: 100dvh; background: var(--bg); color: var(--text); padding: 0 40px 100px; }
+.portal-bar, .portal-main, .portal-footer { max-width: 1260px; margin: 0 auto; }
+.portal-bar { min-height: 86px; display: flex; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); }
+.portal-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+.portal-brand-icon { display: block; width: 36px; height: 36px; flex-shrink: 0; }
+.portal-brand b { font-size: 18px; letter-spacing: 1px; }.portal-brand b span { font-weight: 400; margin-left: 6px; }
+.portal-domain { color: var(--muted); font-size: 12px; }.portal-account { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+.portal-id { color: var(--text); background: transparent; border: 1px solid var(--line-hi); padding: 9px 13px; border-radius: 4px; }
+.portal-intro { padding: 48px 0 34px; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.portal-kicker { margin: 0 0 14px; color: var(--muted); font-size: 13px; }.portal-intro h1 { font-size: clamp(26px, 2.65vw, 38px); line-height: 1.35; letter-spacing: -.035em; margin: 0; font-weight: 750; }
+.portal-intro-note { color: var(--muted); font-size: 13px; line-height: 1.9; margin: 0 0 2px; }.portal-mobile-break { display: none; }
+.portal-jump { display: flex; gap: 24px; align-items: center; padding: 0 0 18px; font-size: 12px; }.portal-jump a { color: var(--text); text-decoration: none; }.portal-jump a span { color: var(--muted); margin-left: 7px; }.portal-jump > span { margin-left: auto; color: var(--muted); }
+.portal-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 26px; align-items: stretch; }
+.portal-world { --world-accent: #ff7d87; --world-button: #ff5968; --world-ink: #200d13; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); min-width: 0; scroll-margin-top: 20px; }
+.portal-league { --world-accent: #dfbf7e; --world-button: #dfbf7e; --world-ink: #192331; }
+.portal-world-head { display: flex; justify-content: space-between; align-items: center; position: relative; overflow: hidden; padding: 28px 30px; min-height: 177px; color: #fff1ee; background: #3b202c; border-top: 3px solid #ff5968; }
+.portal-league .portal-world-head { background: #152f45; color: #f2e6c9; border-top-color: #d3b77b; }
+.portal-world-head::after { content: ''; position: absolute; width: 180px; height: 260px; border-left: 1px solid #ffffff12; border-right: 35px solid #ffffff04; right: 60px; transform: skew(-24deg); pointer-events: none; }
+.portal-world-en { font-family: 'Arial Narrow', Impact, sans-serif; font-size: 13px; letter-spacing: .065em; color: #e8a5ae; }.portal-league .portal-world-en { color: #cbb888; }
+.portal-world-head h2 { margin: 4px 0 8px; font-size: 36px; font-weight: 800; letter-spacing: .02em; }.portal-world-head p { margin: 0; font-size: 12px; opacity: .76; }
+.portal-world-symbol { width: 105px; height: 105px; color: var(--world-accent); opacity: .85; margin-left: 15px; flex-shrink: 0; }
+.portal-world-content { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.portal-game { border: 1px solid var(--line); background: var(--bg); border-radius: 5px; overflow: hidden; min-width: 0; transition: border-color .18s; }.portal-game:hover { border-color: var(--world-accent); }
+.portal-game-body { padding: 21px 22px; }.portal-game-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; font-size: 11px; color: var(--muted); }.portal-status { color: var(--world-accent); }.portal-status::before { content: ''; display: inline-block; width: 5px; height: 5px; background: currentColor; border-radius: 50%; margin: 0 5px 2px 0; }
+.portal-game h3 { font-size: 25px; margin: 9px 0 8px; letter-spacing: -.025em; }.portal-game p { font-size: 13px; line-height: 1.85; color: var(--muted); margin: 0; }
+.portal-details { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: 11px; color: var(--muted); margin-top: 14px; }.portal-details > span { height: 9px; width: 1px; background: var(--line-hi); }
+.portal-game-action { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 23px; }.portal-play { display: inline-flex; justify-content: space-between; align-items: center; gap: 34px; font-size: 13px; font-weight: 700; color: var(--world-ink); background: var(--world-button); border: 1px solid transparent; border-radius: 3px; padding: 11px 17px; text-decoration: none; }.portal-play:hover { filter: brightness(1.1); color: var(--world-ink); }.portal-play > span[aria-hidden] { font-size: 17px; }
+.portal-resume { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.portal-manager-art, .portal-cover { height: 210px; overflow: hidden; }.portal-cover img { width: 100%; height: 100%; object-fit: cover; }
+.portal-manager-art { position: relative; background: #101d2b; padding: 27px 28px 20px; color: #ecdedb; isolation: isolate; }.portal-manager-art::before { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg,#45222f70,transparent 70%); z-index: -1; }.portal-art-caption { font-size: 18px; font-weight: 600; position: relative; z-index: 1; }.portal-art-watermark { position: absolute; right: 8px; top: -28px; font-family: Impact, sans-serif; font-size: 146px; color: #ffffff04; font-style: italic; z-index: -1; }
+.portal-leagues { display: flex; justify-content: space-between; gap: 15px; margin-top: 31px; }.portal-leagues > div { display: flex; flex-direction: column; align-items: center; gap: 9px; }.portal-leagues img { width: 52px; height: 52px; object-fit: contain; }.portal-leagues span { font-size: 10px; color: #a8b4c7; }
+.portal-compact { display: grid; grid-template-columns: 140px minmax(0,1fr); }.portal-compact .portal-game-body { padding: 18px; }.portal-compact h3 { font-size: 19px; }.portal-compact p { font-size: 12px; }.portal-compact-art { background: #101c26; display: flex; align-items: center; }.portal-compact-art img { display: block; width: 100%; height: auto; }
+.portal-text-link { display: inline-flex; gap: 18px; align-items: center; font-size: 12px; color: var(--world-accent); font-weight: 650; background: none; padding: 0; border: 0; border-radius: 0; text-decoration: none; margin-top: 15px; }.portal-text-link:hover { color: var(--world-accent); text-decoration: underline; background: none; }
+.portal-player-cards { position: relative; min-height: 155px; background: #1c2534; overflow: hidden; }.portal-player-cards img { position: absolute; width: 64px; height: 90px; object-fit: cover; object-position: top; border: 2px solid #8c717b; border-radius: 3px; background: #334259; top: 40px; left: 8px; transform: rotate(-14deg); }.portal-player-cards img:nth-child(2) { left: 39px; top: 30px; transform: rotate(0); z-index: 1; }.portal-player-cards img:nth-child(3) { left: 73px; transform: rotate(14deg); }
+.portal-event { display: flex; gap: 13px; align-items: center; padding: 7px 3px; color: var(--text); text-decoration: none; }.portal-event-icon { color: var(--world-accent); font-size: 28px; }.portal-event div { flex: 1; }.portal-event b { display: block; font-size: 13px; font-weight: 600; }.portal-event div span { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }.portal-event > span:last-child { color: var(--world-accent); }
+.portal-lulu { display: grid; grid-template-columns: 42% minmax(0,1fr); min-height: 257px; }.portal-lulu-art { background: #101b30; display: flex; align-items: center; overflow: hidden; }.portal-lulu-art img { width: 100%; height: auto; }.portal-lulu .portal-game-body { align-self: center; }.portal-lulu h3 { font-size: 23px; }.portal-world-note { margin: 0; color: var(--muted); font-size: 11px; text-align: center; padding: 8px 0; }
+.portal-record { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 36px; padding: 26px 0 20px; }.portal-record-heading h2 { font-size: 17px; margin: 0 0 7px; }.portal-record-heading p { font-size: 11px; color: var(--muted); margin: 0; }.portal-record dl { display: flex; flex: 1; justify-content: space-around; gap: 20px; margin: 0; }.portal-record dt { font-size: 11px; color: var(--muted); }.portal-record dd { font-size: 25px; margin: 3px 0 0; font-variant-numeric: tabular-nums; }.portal-record dd span { font-size: 12px; color: var(--muted); }.portal-record-note { width: 100%; font-size: 11px; color: var(--muted); margin: 0; }
+.portal-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); padding-top: 24px; }.portal-footer-divider { margin: 0 10px; color: var(--line-hi); }
+.game-portal :is(a,button):focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+[data-theme] .portal-valorant { --world-accent: #b82b3e; }[data-theme] .portal-league { --world-accent: #856322; }.portal-world-head .portal-world-symbol { color: #ff7d87; }.portal-league .portal-world-head .portal-world-symbol { color: #dfbf7e; }
+@media (min-width: 901px) { .portal-feature .portal-game-body { min-height: 242px; display: flex; flex-direction: column; }.portal-feature .portal-game-action { margin-top: auto; padding-top: 23px; } }
+@media (max-width: 1100px) { .game-portal { padding-left: 24px; padding-right: 24px; }.portal-columns { gap: 18px; }.portal-world-content { padding: 14px; }.portal-compact { grid-template-columns: 105px minmax(0,1fr); }.portal-player-cards img { left: -10px; }.portal-player-cards img:nth-child(2) { left: 21px; }.portal-player-cards img:nth-child(3) { left: 53px; }.portal-intro-note { display: none; }.portal-lulu { grid-template-columns: 35% minmax(0,1fr); } }
+@media (max-width: 760px) { .game-portal { padding: 0 16px 130px; }.portal-bar { min-height: 72px; gap: 10px; }.portal-domain { display: none; }.portal-account { gap: 10px; }.portal-brand b { font-size: 15px; }.portal-brand-icon { width: 30px; height: 30px; font-size: 17px; }.portal-id { padding: 7px 9px; font-size: 11px; }.portal-intro { padding: 31px 0 24px; }.portal-intro h1 { font-size: 29px; }.portal-mobile-break { display: block; }.portal-kicker { font-size: 11px; }.portal-jump { gap: 15px; font-size: 11px; }.portal-jump > span { font-size: 10px; }.portal-columns { grid-template-columns: minmax(0,1fr); gap: 26px; }.portal-world-head { padding: 22px; min-height: 153px; }.portal-world-head h2 { font-size: 32px; }.portal-world-symbol { width: 85px; height: 85px; }.portal-game-body { padding: 19px; }.portal-manager-art, .portal-cover { height: auto; aspect-ratio: 1.905; }.portal-manager-art { padding: 20px; }.portal-leagues { margin-top: 23px; }.portal-leagues img { width: 40px; height: 40px; }.portal-art-caption { font-size: 16px; }.portal-lulu { min-height: 225px; grid-template-columns: 37% minmax(0,1fr); }.portal-record { gap: 22px; margin-top: 28px; }.portal-record-heading { width: 100%; }.portal-record dl { justify-content: space-between; gap: 8px; }.portal-record dd { font-size: 23px; }.portal-footer { line-height: 1.8; } }
+@media (prefers-reduced-motion: reduce) { .portal-game { transition: none; } }
+.game-portal .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* Open Packs leads with one compact campaign image on every screen. */
+.portal-columns { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+.portal-cards-feature { border-color: color-mix(in srgb, var(--world-accent) 40%, var(--line)); }
+.portal-card-banner { aspect-ratio: 12 / 5; overflow: hidden; background: #121c2b; }
+.portal-card-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.portal-popular { color: var(--world-accent); font-weight: 700; }
+.portal-popular::before { content: ''; display: inline-block; width: 5px; height: 5px; background: currentColor; border-radius: 50%; margin: 0 5px 2px 0; }
+.portal-cards-feature .portal-game-body { min-height: 250px; }
+.portal-cards-feature h3 { font-size: 34px; }
+.portal-feature-note { color: var(--muted); font-size: 11px; }
+.portal-cards-feature .portal-play { min-width: 166px; }
+.portal-manager-mini { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #142334; color: #eee4e2; padding: 16px 8px; }
+.portal-manager-mini > strong { font-family: Impact, 'Arial Narrow', sans-serif; font-size: 38px; font-style: italic; letter-spacing: 1px; }
+.portal-manager-mini > span { font-size: 12px; margin: 4px 0 20px; }
+.portal-manager-mini > div { display: grid; grid-template-columns: repeat(2, 24px); gap: 12px; }
+.portal-manager-mini img { object-fit: contain; }
+.portal-manager-compact .portal-details { font-size: 10px; gap: 6px; }
+.portal-manager-compact .portal-game-action { margin-top: 14px; }
+.portal-manager-compact .portal-play { background: transparent; color: var(--world-accent); border-color: var(--line-hi); font-size: 12px; padding: 8px 12px; }
+@media (max-width: 760px) {
+  .portal-columns { grid-template-columns: minmax(0, 1fr); }
+  .portal-cards-feature .portal-game-body { min-height: 0; }
+  .portal-cards-feature h3 { font-size: 30px; }
+}
+
+/* Promotional artwork is authored at 1000 × 525. Let the picture define its
+   own height, with the description below instead of in a taller side column. */
+.portal-banner, .portal-lulu {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.portal-cover, .portal-compact-art, .portal-lulu-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 525;
+  overflow: hidden;
+}
+.portal-cover img, .portal-compact-art img, .portal-lulu-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+.portal-banner .portal-game-body, .portal-lulu .portal-game-body {
+  align-self: stretch;
+  padding: 18px 22px;
+}
+.portal-banner h3, .portal-lulu h3 { font-size: 21px; }
+.portal-banner .portal-text-link, .portal-lulu .portal-text-link { margin-top: 12px; }
+@media (max-width: 760px) {
+  .portal-banner .portal-game-body, .portal-lulu .portal-game-body { padding: 18px; }
+}

@@ -1,22 +1,10 @@
-/**
- * The front page: two playable games, one account, and a coming-soon preview.
- *
- * Everything here is read-only and cheap. Neither game's bundle is loaded
- * until a card is clicked — this page exists partly so that a visitor who is
- * only looking downloads a page rather than a simulation.
- *
- * The career used to live at `/`, so most of the people who open this already
- * have a save. That is why the manager card leads with 「继续上次存档」 and the
- * club it belongs to: a returning player should recognise their own game from
- * the front page, not wonder where it went.
- */
+/** Game directory. Game bundles remain lazy until a visitor opens a game. */
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { readCareerPreview } from '../engine/savePreview'
 import { homeCrestUrl, HOME_COUNTS } from '../engine/homeClubs'
 import { ENDING_COUNT } from '../engine/endings'
 import { ACHIEVEMENT_COUNT } from '../engine/achievements'
 import { readProfile, siteId, syncProfile, type Profile } from '../engine/profile'
-import { REGION_CN } from '../engine/types'
 import type { Region } from '../engine/types'
 import { maskId } from '../engine/cardid'
 import Support from './Support'
@@ -24,6 +12,8 @@ import { track } from '../engine/telemetry'
 import Changelog from './Changelog'
 import WeChat from './WeChat'
 import ThemeToggle from './ThemeToggle'
+import './Home.css'
+import HomeFeaturedCards from './HomeFeaturedCards'
 
 /**
  * The account panel is loaded when it is opened, not when the page is.
@@ -97,195 +87,83 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
   const badges = profile.achievements.length
 
   return (
-    <div className="home">
-      <header className="home-bar">
-        <div className="home-mark">
-          猪之家<span>游戏</span>
+    <div className="game-portal">
+      <header className="portal-bar">
+        <a className="portal-brand" href="/" aria-label="猪之家游戏首页"><svg className="portal-brand-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <path d="M9 15C5 12 5 6 7 4c4 0 8 3 10 7m14 4c4-3 4-9 2-11-4 0-8 3-10 7" fill="#f49cac" stroke="#e9899d" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="m8 7 2 7 4-3Zm24 0-2 7-4-3Z" fill="#d86a86" />
+          <path d="M35 23c0 9-6 13-15 13S5 32 5 23C5 14 11 9 20 9s15 5 15 14Z" fill="#ffc2ca" />
+          <ellipse cx="10.5" cy="25" rx="3" ry="2" fill="#ef94a7" />
+          <ellipse cx="29.5" cy="25" rx="3" ry="2" fill="#ef94a7" />
+          <ellipse cx="13.5" cy="20" rx="1.6" ry="2.1" fill="#462c37" />
+          <ellipse cx="26.5" cy="20" rx="1.6" ry="2.1" fill="#462c37" />
+          <ellipse cx="20" cy="27" rx="8" ry="5.5" fill="#f296aa" />
+          <ellipse cx="17" cy="27" rx="1.4" ry="2" fill="#9f4f68" />
+          <ellipse cx="23" cy="27" rx="1.4" ry="2" fill="#9f4f68" />
+        </svg><b>猪之家<span>游戏</span></b></a>
+        <span className="portal-domain">vctgames.com</span>
+        <div className="portal-account">
+          <ThemeToggle compact />
+          <button className="portal-id" onClick={() => setAcct(true)} title={id ? '查看或切换游戏 ID' : '创建游戏 ID'}>
+            {id ? maskId(id) : '创建账号'}<span aria-hidden="true"> ↗</span>
+          </button>
         </div>
-        <div className="spacer" />
-        <ThemeToggle compact />
-        <button
-          className="home-id"
-          onClick={() => setAcct(true)}
-          title={id ? '账号设置：查看、复制或换一个 ID' : '创建一个 ID，成就和结局才能跨设备保存'}
-        >
-          <span className="k">ID</span>
-          <b className="mono">{id ? maskId(id) : '创建账号'}</b>
-        </button>
       </header>
 
-      <section className="home-hero">
-        <h1>无畏契约小游戏</h1>
-        <p>
-          已开放的两款游戏全部免费，打开就能玩，不用注册。
-          {id
-            ? ' 两边共用同一个 ID，成就、结局和收藏都记在它上面。'
-            : ' 两边共用同一个 ID，第一次进入时会自动给你一串。'}
-        </p>
-      </section>
+      <main className="portal-main">
+        <section className="portal-intro">
+          <div><p className="portal-kicker">猪之家 · 电竞游戏馆</p><h1>热爱不止观赛。<br className="portal-mobile-break" />上场，写你的故事。</h1></div>
+          <p className="portal-intro-note">从幕后执教，到聚光灯下。<br />选一个游戏，开启你的电竞人生。</p>
+        </section>
+        <nav className="portal-jump" aria-label="游戏分类"><a href="#valorant-games">无畏契约 <span>03</span></a><a href="#league-games">英雄联盟 <span>02</span></a><span>全部免费 · 浏览器即玩</span></nav>
 
-      <a href="/champions" className="home-champions-link"><b>上海全球冠军赛</b><span>今日赛程 · 为你支持的选手留言</span><span>进入应援墙 ↗</span></a>
-      <div className="home-cards">
-        {/* ---------------------------------------------------------- 经理 */}
-        <article className="home-card">
-          <div className="home-art crests">
-            {REGION_FACES.map((r) => (
-              <div key={r.region} className="home-region">
-                <img
-                  src={`${import.meta.env.BASE_URL}leagues/${r.region}.webp`}
-                  alt=""
-                  loading="lazy"
-                />
-                <span>{REGION_CN[r.region]}</span>
-              </div>
-            ))}
-          </div>
-          <div className="home-body">
-            <h2>VCT电竞经理</h2>
-            <p className="lede">无畏契约电竞经理模拟</p>
-            <p className="blurb">
-              接手一支真实战队，从 2026 出发。
-              签人、训练、排兵、BP、谈赞助，打满五年可以收官领结局，
-              也可以一直带到 2036。
-              {HOME_COUNTS.players} 名选手和 {HOME_COUNTS.headCoaches} 名已收录主教练全是真人，没有程序生成的。
-            </p>
-            <ul className="home-facts">
-              <li><b>{HOME_COUNTS.teams}</b> 支战队 · 四大赛区与次级联赛</li>
-              <li><b>{ENDING_COUNT}</b> 种结局 · <b>{ACHIEVEMENT_COUNT}</b> 项成就</li>
-            </ul>
-            <div className="home-go">
-              <button className="primary" onClick={() => { track('home_go', { go: 'career' }); onOpen('career') }}>
-                {resume ? (resume.over ? '查看结果' : '继续上次存档') : '开始执教'}
-              </button>
-              {resume && (
-                <span className="home-resume">
-                  {homeCrestUrl(resume.clubId) && <img className="crest" src={homeCrestUrl(resume.clubId)!} alt="" aria-hidden="true" loading="lazy" width={16} height={16} style={{ width: 16, height: 16 }} />}
-                  {resume.club} · {resume.year} 年
-                </span>
-              )}
+        <div className="portal-columns">
+          <section className="portal-world portal-valorant" id="valorant-games" aria-labelledby="valorant-title">
+            <header className="portal-world-head">
+              <div><span className="portal-world-en">Valorant</span><h2 id="valorant-title">无畏契约</h2><p>从第一回合，到世界之巅。</p></div>
+              <svg className="portal-world-symbol" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M12 25v28l32 34h25L12 25Zm76 0L57 59h24l7-8V25Z" fill="currentColor" /></svg>
+            </header>
+            <div className="portal-world-content">
+              <article className="portal-game portal-feature portal-cards-feature">
+                <HomeFeaturedCards />
+                <div className="portal-game-body">
+                  <div className="portal-game-meta"><span>收集 / 阵容对战</span><span className="portal-popular">热门游戏</span></div>
+                  <h3>开瓦包</h3>
+                  <p>把喜欢的选手收入收藏，组出你的梦幻五人首发。从第一包惊喜，到天梯与杯赛的冠军。</p>
+                  <div className="portal-details">真实选手卡<span />赛事纪念卡<span />天梯与杯赛</div>
+                  <div className="portal-game-action">
+                    <button className="portal-play" onClick={() => { track('home_go', { go: 'cards' }); onOpen('cards') }}>进入卡池<span aria-hidden="true">↗</span></button>
+                    <span className="portal-feature-note">免费游玩 · 测试版</span>
+                  </div>
+                </div>
+              </article>
+              <article className="portal-game portal-compact portal-manager-compact">
+                <div className="portal-manager-mini" aria-hidden="true"><strong>VCT</strong><span>电竞经理</span><div>{REGION_FACES.map(r => <img key={r.region} src={`${import.meta.env.BASE_URL}leagues/${r.region}.webp`} alt="" width={24} height={24} />)}</div></div>
+                <div className="portal-game-body"><div className="portal-game-meta"><span>战队经营 / 策略模拟</span><span className="portal-status">可游玩</span></div><h3>VCT 电竞经理</h3><p>接手一支真实战队，签约、训练、排兵布阵。从 2026 出发，把你的名字写进冠军史。</p><div className="portal-details">{HOME_COUNTS.teams} 支战队<span />{HOME_COUNTS.players} 名真实选手<span />{ENDING_COUNT} 种结局</div>
+                  <div className="portal-game-action"><button className="portal-play" onClick={() => { track('home_go', { go: 'career' }); onOpen('career') }}>{resume ? (resume.over ? '查看结果' : '继续上次存档') : '开始执教'}<span aria-hidden="true">↗</span></button>{resume && <span className="portal-resume">{homeCrestUrl(resume.clubId) && <img src={homeCrestUrl(resume.clubId)!} alt="" width={16} height={16} />}{resume.club} · {resume.year}</span>}</div>
+                </div>
+              </article>
+              <article className="portal-game portal-banner">
+                <div className="portal-compact-art"><img src={`${import.meta.env.BASE_URL}promo/player.webp`} alt="" loading="lazy" /></div>
+                <div className="portal-game-body"><div className="portal-game-meta"><span>选手生涯模拟</span><span>测试版</span></div><h3>无畏契约选手生涯</h3><p>从天梯路人，打到冠军赛的舞台。这一次，你就是主角。</p><a className="portal-text-link" href="/player/" onClick={() => track('home_go', { go: 'player' })}>开始生涯 <span aria-hidden="true">↗</span></a></div>
+              </article>
+              <a className="portal-event" href="/champions"><span className="portal-event-icon" aria-hidden="true">✦</span><div><b>上海全球冠军赛</b><span>查看赛程，为你支持的选手留言</span></div><span aria-hidden="true">↗</span></a>
             </div>
-          </div>
-        </article>
+          </section>
 
-        {/* ---------------------------------------------------------- 抽卡 */}
-        <article className="home-card">
-          {/* one player from each region, for the same reason the crests are:
-              the collection is not a single league's */}
-          <div className="home-art faces">
-            {REGION_FACES.map((r) => (
-              <img
-                key={r.face}
-                src={`${import.meta.env.BASE_URL}faces/${r.face}.webp`}
-                alt=""
-                loading="lazy"
-              />
-            ))}
-          </div>
-          <div className="home-body">
-            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-              <h2 style={{ margin: 0 }}>开瓦包</h2>
-              <span className="tag beta">Beta</span>
+          <section className="portal-world portal-league" id="league-games" aria-labelledby="league-title">
+            <header className="portal-world-head"><div><span className="portal-world-en">League of Legends</span><h2 id="league-title">英雄联盟</h2><p>下一段传奇，由你书写。</p></div><svg className="portal-world-symbol" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="36" stroke="currentColor" strokeWidth="2"/><path d="M36 20h15v53h25l-5 10H36V20Z" fill="currentColor"/><path d="m50 5 45 45-45 45L5 50 45 10" stroke="currentColor" opacity=".35"/></svg></header>
+            <div className="portal-world-content">
+              <article className="portal-game portal-feature"><div className="portal-cover"><img src={`${import.meta.env.BASE_URL}promo/poxiao.webp`} alt="破晓，电竞选手生涯模拟" /></div><div className="portal-game-body"><div className="portal-game-meta"><span>选手生涯 / 角色扮演</span><span className="portal-status">可游玩</span></div><h3>破晓</h3><p>从 S12 到 S16，五年职业生涯。走上赛场，去挑战那个王朝，成为被记住的选手。</p><div className="portal-details">五年职业生涯<span />你的冠军之路</div><div className="portal-game-action"><a className="portal-play" href="https://www.poxiao.lol" target="_blank" rel="noopener noreferrer" onClick={() => track('home_go', { go: 'poxiao' })}>开启职业生涯<span aria-hidden="true">↗</span><span className="sr-only">（在新标签页打开）</span></a></div></div></article>
+              <article className="portal-game portal-lulu"><div className="portal-lulu-art"><img src={`${import.meta.env.BASE_URL}promo/lulu.webp`} alt="" loading="lazy" /></div><div className="portal-game-body"><div className="portal-game-meta"><span>选手卡牌 / 收集对战</span></div><h3>噜噜卡</h3><p>收集 LPL、LCK 等赛区选手与名人堂彩卡。组建五人阵容，打天梯、战杯赛、自由交易。</p><a className="portal-text-link" href="https://lulucard-production.up.railway.app/" onClick={() => track('home_go', { go: 'lulu' })}>去噜噜卡 <span aria-hidden="true">↗</span></a></div></article>
+              <p className="portal-world-note">两款游戏使用各自的账号与存档。</p>
             </div>
-            <p className="lede">选手卡收集与对战</p>
-            <p className="blurb">
-              开包抽选手卡，凑五人首发打天梯。
-              每天有体力和任务，签到连着算。卡面是选手本人的照片。
-            </p>
-            <ul className="home-facts">
-              <li>每日签到 · 体力恢复</li>
-              <li>天梯段位 · 杯赛</li>
-            </ul>
-            <div className="home-go">
-              <button
-                className="primary"
-                onClick={() => { track('home_go', { go: 'cards' }); onOpen('cards') }}
-              >进入卡池</button>
-            </div>
-          </div>
-        </article>
-        <article className="home-card home-preview" aria-labelledby="player-career-preview-title">
-          {/* the new game's own key art, taken from its front page, so the row
-              is a picture of that game rather than a line of text about it */}
-          <div className="home-preview-art">
-            <img src={`${import.meta.env.BASE_URL}promo/player.webp`} alt="" loading="lazy" />
-          </div>
-          <div className="home-body">
-            <h2 id="player-career-preview-title">无畏契约选手生涯模拟</h2>
-            <p className="blurb">从选手视角，开启一段职业生涯：天梯路人，打到冠军赛的舞台。还是测试版，会有 bug。</p>
-          </div>
-          {/* the other game lives at /player/ (player-proxy.js): its own page, so a real navigation, slash included */}
-          <div className="home-go home-preview-go">
-            <button className="primary" onClick={() => { track('home_go', { go: 'player' }); location.href = '/player/' }}>开始生涯</button>
-          </div>
-        </article>
-        <article className="home-card home-preview" aria-labelledby="lulu-card-preview-title">
-          <div className="home-preview-art">
-            <img src={`${import.meta.env.BASE_URL}promo/lulu.webp`} alt="" loading="lazy" />
-          </div>
-          <div className="home-body">
-            <h2 id="lulu-card-preview-title">噜噜卡</h2>
-            <p className="blurb">猪之家出品的 LoL 选手卡牌：开包收集 LPL、LCK 等赛区选手和名人堂彩卡，组五人阵容打天梯、杯赛和交易。</p>
-          </div>
-          {/* its own site and its own accounts, not proxied here: a plain navigation away */}
-          <div className="home-go home-preview-go">
-            <button className="primary" onClick={() => { track('home_go', { go: 'lulu' }); location.href = 'https://lulucard-production.up.railway.app/' }}>去噜噜卡</button>
-          </div>
-        </article>
-      </div>
+          </section>
+        </div>
 
-      {/* ------------------------------------------ 账号一览，和工作室的另一款 */}
-      <div className="home-cards home-row">
-      <section className="home-strip">
-        <div className="home-stat">
-          <span className="k">结局</span>
-          <span className="v">{endings}<em>/{ENDING_COUNT}</em></span>
-        </div>
-        <div className="home-stat">
-          <span className="k">成就</span>
-          <span className="v">{badges}<em>/{ACHIEVEMENT_COUNT}</em></span>
-        </div>
-        <div className="home-stat">
-          <span className="k">执教生涯</span>
-          <span className="v">{profile.record.careers}<em> 段</em></span>
-        </div>
-        <div className="home-stat">
-          <span className="k">累计冠军</span>
-          <span className="v">{profile.record.titles}<em> 座</em></span>
-        </div>
-        <p className="tiny faint home-note">
-          这些记在你的 ID 上，跨存档累计，被解雇不清零。
-          换设备时把 ID 填进任一游戏就能找回。
-          <b>ID 相当于密码，不要发给别人</b>。
-        </p>
-      </section>
-
-      {/* The studio's other game. A plain link out, tracked like the two
-          buttons above so the funnel can see whether anyone follows it. */}
-      <a
-        className="home-promo"
-        href="https://www.poxiao.lol"
-        target="_blank"
-        rel="noopener"
-        onClick={() => track('home_go', { go: 'poxiao' })}
-      >
-        <img
-          src={`${import.meta.env.BASE_URL}promo/poxiao.webp`}
-          alt="破晓 · LOL 电竞生涯模拟"
-          loading="lazy"
-        />
-        <div className="home-promo-body">
-          <span className="k">工作室的另一款游戏</span>
-          <h3>破晓<em>LOL 电竞生涯模拟</em></h3>
-          <p>S12 到 S16，五年。一段有限的职业生涯，去终结那个王朝。</p>
-          <span className="home-promo-go">www.poxiao.lol ↗</span>
-        </div>
-      </a>
-      </div>
-
-      <footer className="home-foot">
-        <span>猪之家出品 · 小红书/抖音 @点点点点点点点点 · @Greenle4f</span>
-        <span className="faint">游戏全部免费</span>
-      </footer>
+        <section className="portal-record" aria-labelledby="portal-record-title"><div className="portal-record-heading"><h2 id="portal-record-title">我的执教足迹</h2><p>VCT 电竞经理 · 随 ID 跨存档累计</p></div><dl><div><dt>已解锁结局</dt><dd>{endings}<span> / {ENDING_COUNT}</span></dd></div><div><dt>已达成成就</dt><dd>{badges}<span> / {ACHIEVEMENT_COUNT}</span></dd></div><div><dt>执教生涯</dt><dd>{profile.record.careers}<span> 段</span></dd></div><div><dt>累计冠军</dt><dd>{profile.record.titles}<span> 座</span></dd></div></dl><p className="portal-record-note">电竞经理与开瓦包共用 ID。换设备可用 ID 找回；ID 相当于密码，请勿分享。</p></section>
+      </main>
+      <footer className="portal-footer"><span>猪之家出品 <span className="portal-footer-divider">/</span> 为热爱，做点好玩的。</span><span>小红书 / 抖音 @点点点点点点点点 · @Greenle4f</span></footer>
 
       {acct && (
         <Suspense fallback={null}>
