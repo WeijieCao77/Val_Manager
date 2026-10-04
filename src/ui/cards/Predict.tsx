@@ -196,11 +196,14 @@ function Group({ group }: { group: PredictGroup }) {
         <div className="pd-settlement">
           {result ? <>
             <span className="small">实际晋级：第一 {result.first} · 第二 {result.second}</span>
-            <span className="small">{claimed ? '已领取：' : '本组奖励：'}{rewardText}</span>
-            {!!(reward?.elite || reward?.ten) && <button className="primary sm" disabled={claimed || busy || !cloud} onClick={() => void claim()}>
-              {claimed ? '奖励已领取' : busy ? '领取中…' : '领取预测奖励'}
-            </button>}
-            {!cloud && !claimed && <span className="tiny faint">联网后领取</span>}
+            {/* a group nobody picked has nothing to have missed */}
+            {savedKey === '{}' ? <span className="small muted">你没有预测这一组。</span> : <>
+              <span className="small">{claimed ? '已领取：' : '本组奖励：'}{rewardText}</span>
+              {!!(reward?.elite || reward?.ten) && <button className="primary sm" disabled={claimed || busy || !cloud} onClick={() => void claim()}>
+                {claimed ? '奖励已领取' : busy ? '领取中…' : '领取预测奖励'}
+              </button>}
+              {!cloud && !claimed && !!(reward?.elite || reward?.ten) && <span className="tiny faint">联网后领取</span>}
+            </>}
           </> : <span className="small muted">预测已锁定，赛果确认后可在这里领取奖励。</span>}
         </div>
       )}

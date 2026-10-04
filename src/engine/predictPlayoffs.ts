@@ -65,8 +65,9 @@ export const CHAMPIONS_2026_PLAYOFFS: PlayoffEvent = {
   id: 'champions-2026-playoffs',
   name: '上海冠军赛淘汰赛',
   from: 'champions-2026',
-  // filled from vlr.gg/event/2766 once the groups are over and the bracket shows its teams
-  quarters: null,
+  // vlr.gg/event/2766 bracket and match list, 2026-10-04 after the last decider:
+  // A1 v C2, B1 v D2, D1 v A2, C1 v B2 (754730–754733), in vlr's order
+  quarters: [['100T', 'G2'], ['VIT', 'NS'], ['NRG', 'T1'], ['PRX', 'LOUD']],
   deadline: CHAMPIONS_2026_PLAYOFF_DEADLINE,
   // vlr.gg match times (data-utc-ts), 2026-10-03
   at: {

@@ -1,13 +1,49 @@
 {
   "champions-2026": {
+    "A": {
+      "winners": {
+        "o1": "100T",
+        "o2": "FUT",
+        "w": "100T",
+        "e": "T1",
+        "d": "T1"
+      },
+      "first": "100T",
+      "second": "T1",
+      "confirmedAt": 1791126000000
+    },
+    "B": {
+      "winners": {
+        "o1": "VIT",
+        "o2": "LOUD",
+        "w": "VIT",
+        "e": "GE",
+        "d": "LOUD"
+      },
+      "first": "VIT",
+      "second": "LOUD",
+      "confirmedAt": 1791126000000
+    },
     "C": {
-      "winners": { "o1": "PRX", "o2": "G2", "w": "PRX", "e": "TL", "d": "G2" },
+      "winners": {
+        "o1": "PRX",
+        "o2": "G2",
+        "w": "PRX",
+        "e": "TL",
+        "d": "G2"
+      },
       "first": "PRX",
       "second": "G2",
       "confirmedAt": 1791041400000
     },
     "D": {
-      "winners": { "o1": "NRG", "o2": "KC", "w": "NRG", "e": "NS", "d": "NS" },
+      "winners": {
+        "o1": "NRG",
+        "o2": "KC",
+        "w": "NRG",
+        "e": "NS",
+        "d": "NS"
+      },
       "first": "NRG",
       "second": "NS",
       "confirmedAt": 1791041400000

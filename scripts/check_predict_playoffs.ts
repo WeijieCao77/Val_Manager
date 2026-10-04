@@ -62,6 +62,7 @@ check('淘汰赛的预测能存，排行接口认得它', PREDICT_EVENT_IDS.incl
 
 // ---- opening: closed until all four groups are confirmed and the draw is the real eight
 const realQuarters = PO.quarters
+const realQuartersAtStart = JSON.parse(JSON.stringify(PO.quarters))
 const savedResults = JSON.stringify(PREDICT_RESULTS[EV.id])
 const before = Date.parse('2026-10-06T00:00Z')
 const env = (now: number) => ({ now, today: new Date(now).toISOString().slice(0, 10), seed: 1 })
@@ -72,13 +73,29 @@ const FAKE_AB = {
   B: { winners: { o1: 'VIT', o2: 'LOUD', w: 'VIT', e: 'GE', d: 'GE' }, first: 'VIT', second: 'GE', confirmedAt: Date.parse('2026-10-04T15:00Z') },
 }
 const DRAW: [string, string][] = [['100T', 'GE'], ['PRX', 'NS'], ['VIT', 'T1'], ['NRG', 'G2']]
+// ---- the real draw (vlr.gg/event/2766, 2026-10-04): A1 v C2, B1 v D2, D1 v A2, C1 v B2
+{
+  const R = PREDICT_RESULTS[EV.id]
+  const want = [[R.A.first, R.C.second], [R.B.first, R.D.second], [R.D.first, R.A.second], [R.C.first, R.B.second]]
+  check('真实八强对阵 = 100T–G2、VIT–NS、NRG–T1、PRX–LOUD，按小组名次交叉',
+    JSON.stringify(realQuartersAtStart) === JSON.stringify(want)
+      && JSON.stringify(realQuartersAtStart) === JSON.stringify([['100T', 'G2'], ['VIT', 'NS'], ['NRG', 'T1'], ['PRX', 'LOUD']]),
+    JSON.stringify(realQuartersAtStart))
+  check('四组都确认后开放预测（北京时间 10 月 4 日 23:00 起）', playoffReady(PO, Date.parse('2026-10-04T15:00:00Z')))
+  check('A、B 组确认前不开放', !playoffReady(PO, Date.parse('2026-10-04T14:59:59Z')))
+}
+
 try {
   {
+    PO.quarters = null
     const g = fresh(1)
     const r = runAction(g, 'predict', { event: PO.id, group: PLAYOFF_KEY, picks: { q1: '100T' } }, env(before))
     check('对阵没定时不能存', !r.ok && !g.predict?.[PO.id], r.ok ? '' : r.why)
   }
   PO.quarters = DRAW
+  // with A and B taken back out, two groups are unsettled
+  delete (PREDICT_RESULTS[EV.id] as Record<string, unknown>).A
+  delete (PREDICT_RESULTS[EV.id] as Record<string, unknown>).B
   check('小组赛没全部结算，有对阵也不开放', !playoffReady(PO, before))
   Object.assign(PREDICT_RESULTS[EV.id], FAKE_AB)
   check('四组结算、对阵是真实八强，开放', playoffReady(PO, before))

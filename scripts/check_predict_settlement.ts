@@ -24,9 +24,23 @@ const check = (name: string, ok: boolean, detail = '') => {
   if (!ok) bad++
 }
 
-// ---- the real group stage, copied from vlr.gg/event/matches/2766 on 2026-10-03
+// ---- the real group stage, copied from vlr.gg/event/matches/2766 (C, D on 2026-10-03; A, B on 2026-10-04)
 // [stage, team, score, team, score] — names as vlr writes them
 const PLAYED: Record<string, [string, string, number, string, number][]> = {
+  A: [
+    ['Opening', '100 Thieves', 2, 'T1', 0],
+    ['Opening', 'JD Gaming', 0, 'FUT Esports', 2],
+    ["Winner's", '100 Thieves', 2, 'FUT Esports', 0],
+    ['Elimination', 'T1', 2, 'JD Gaming', 1],
+    ['Decider', 'FUT Esports', 0, 'T1', 2],
+  ],
+  B: [
+    ['Opening', 'Global Esports', 1, 'Team Vitality', 2],
+    ['Opening', 'LOUD', 2, 'EDward Gaming', 0],
+    ["Winner's", 'Team Vitality', 2, 'LOUD', 0],
+    ['Elimination', 'Global Esports', 2, 'EDward Gaming', 0],
+    ['Decider', 'LOUD', 2, 'Global Esports', 0],
+  ],
   C: [
     ['Opening', 'Team Liquid', 1, 'Paper Rex', 2],
     ['Opening', 'TYLOO', 0, 'G2 Esports', 2],
@@ -44,12 +58,14 @@ const PLAYED: Record<string, [string, string, number, string, number][]> = {
 }
 // what vlr's group page and prize table say came of it
 const PLACED: Record<string, [string, string, string, string]> = {
+  A: ['100T', 'T1', 'FUT', 'JDG'],
+  B: ['VIT', 'LOUD', 'GE', 'EDG'],
   C: ['PRX', 'G2', 'TL', 'TYL'],
   D: ['NRG', 'NS', 'KC', 'XLG'],
 }
 
 const tagOf = (name: string) => Object.values(EV.teams).find(t => t.name === name)?.tag ?? `?${name}`
-const nowAfter = Date.parse('2026-10-03T16:00:00Z')
+const nowAfter = Date.parse('2026-10-04T16:00:00Z')
 
 for (const group of EV.groups) {
   const shipped = PREDICT_RESULTS[EV.id]?.[group.key]
@@ -155,8 +171,8 @@ for (const group of EV.groups) {
   const C = EV.groups.find(g => g.key === 'C')!
   const perfect = PREDICT_RESULTS[EV.id].C.winners
   check('截止后才有的预测不计分', predictScore(EV.id, { C: { picks: perfect, at: lockAt(C) } }, nowAfter) === null)
-  check('截止前的满分预测：C 组 5/10 场', JSON.stringify(predictScore(EV.id, { C: { picks: perfect, at: 1 } }, nowAfter))
-    === JSON.stringify({ correct: 5, total: 10, places: 2 }))
+  check('截止前的满分预测：只猜 C 组，5/20 场', JSON.stringify(predictScore(EV.id, { C: { picks: perfect, at: 1 } }, nowAfter))
+    === JSON.stringify({ correct: 5, total: 20, places: 2 }))
   check('结算前看不到分数', predictScore(EV.id, { C: { picks: perfect, at: 1 } }, Date.parse('2026-10-03T10:00Z')) === null)
 }
 
@@ -169,12 +185,12 @@ for (const group of EV.groups) {
     acc('a', { C: { picks: C, at: 1 }, D: { picks: D, at: 1 } }), // 10
     acc('b', { C: { picks: C, at: 1 } }), // 5, places 2
     acc('c', { D: { picks: { o1: 'NRG', o2: 'KC', w: 'KC', e: 'NS', d: 'NS' }, at: 1 }, C: { picks: { o1: 'PRX' }, at: 1 } }), // 5, places 1
-    acc('f', { A: { picks: { o1: '100T' }, at: 1 } }), // nothing settled
+    acc('f', { A: { picks: { o1: '100T' }, at: 1 } }), // 1: A's opener
     acc('g', 'junk'),
   ], nowAfter)
-  check('排行：猜对多的在前，同分并列，未结算组不上榜',
+  check('排行：猜对多的在前，同分并列，没预测的场次算错（四组 20 场）',
     JSON.stringify(rows.map(r => [r.id, r.rank, r.correct, r.total, r.places]))
-      === JSON.stringify([['a', 1, 10, 10, 4], ['b', 2, 5, 10, 2], ['c', 2, 5, 10, 1], ['e', 4, 0, 10, 0]]),
+      === JSON.stringify([['a', 1, 10, 20, 4], ['b', 2, 5, 20, 2], ['c', 2, 5, 20, 1], ['f', 4, 1, 20, 0], ['e', 5, 0, 20, 0]]),
     JSON.stringify(rows.map(r => [r.id, r.rank, r.correct, r.places])))
 }
 
@@ -206,7 +222,7 @@ for (const group of EV.groups) {
     const res: { body?: any } = {}
     await api.route({ method: 'POST', body: JSON.stringify({ id: half, event: EV.id }) } as never, res, '/api/card/predict_top', 'settle')
     const b = res.body
-    check('接口：两人上榜，可疑账号与没预测的不上', b?.ok && b.players === 2 && b.total === 10
+    check('接口：两人上榜，可疑账号与没预测的不上', b?.ok && b.players === 2 && b.total === 20
       && JSON.stringify(b.rows.map((r: any) => [r.rank, r.name, r.correct, r.me])) === JSON.stringify([[1, '全对', 10, false], [2, '半对', 5, true]]),
       JSON.stringify(b))
     check('接口：自己的名次单独返回，不回传账号 ID', b?.mine?.rank === 2 && b.mine.correct === 5 && !JSON.stringify(b).includes('VM-PRED'))
