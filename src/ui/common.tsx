@@ -125,15 +125,15 @@ export function ComebackTags({ p, rust = true }: { p: Player; rust?: boolean }) 
   return (
     <>
       {cb.kind === 'retired' && (
-        <span className="tag" style={{ marginLeft: 6 }}
+        <span className="tag"
           title={cb.lastClub ? `最后一站 ${cb.lastClub}（${cb.lastYear}）` : undefined}>退役{cb.lastYear ? ` ${cb.lastYear}` : ''}</span>
       )}
       {cb.fame > 0 && (
-        <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+        <span className="tag" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
           title="人气：直播合同更值钱，在队时俱乐部声望慢慢上涨；要价更高，训练少一些">{FAME_LABEL[cb.fame]}</span>
       )}
       {rust && p.teamId && back < 1 && (
-        <span className="tag warn" style={{ marginLeft: 6 }} title="复出后每周找回一部分状态">状态 {Math.round(back * 100)}%</span>
+        <span className="tag warn" title="复出后每周找回一部分状态">状态 {Math.round(back * 100)}%</span>
       )}
     </>
   )

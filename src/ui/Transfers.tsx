@@ -555,23 +555,28 @@ export default function Transfers() {
                 <tr key={p.id}>
                   <td className="clickable sticky-name at-left" onClick={() => openPlayer(p.id)}>
                     <Face id={p.id} /><b>{p.ign}</b>
+                    {/* on a phone the tags drop under the name (.name-tags), so the pinned name
+                        column stays narrow and 能力 / 期望年薪 / 报价 stay on screen — a comeback
+                        with four tags pushed the button out of reach */}
+                    <span className="name-tags">
                     {p.isIgl && (
-                      <span className="tag" style={{ marginLeft: 6 }}
+                      <span className="tag"
                         title={p.iglSource === 'inferred' ? '真实指挥未确认，暂由他代行' : '队内指挥'}>
                         {p.iglSource === 'inferred' ? '推定 IGL' : 'IGL'}
                       </span>
                     )}
                     {game.importLimit && isImport(p, me) && (
-                      <span className="tag warn" style={{ marginLeft: 6 }} title="来自其他赛区，占用外援名额">外援</span>
+                      <span className="tag warn" title="来自其他赛区，占用外援名额">外援</span>
                     )}
-                    {p.listed && <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
+                    {p.listed && <span className="tag" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>挂牌</span>}
                     <ComebackTags p={p} />
                     {p.reservedFor?.team === game.myTeam && p.reservedFor.until > careerDayOf(game) && (
-                      <span className="tag" style={{ marginLeft: 6, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                      <span className="tag" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
                         title="现实中他在这一年加入了你的俱乐部；这几天只有你能签他">
                         现实新人 · 等你 {p.reservedFor.until - careerDayOf(game)} 天
                       </span>
                     )}
+                    </span>
                   </td>
                   <td><Roles p={p} /></td>
                   <td className="num"><OvrBadge value={p.overall} /></td>

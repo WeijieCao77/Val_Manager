@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-04',
+    title: '电竞经理：手机上转会市场的报价按钮',
+    changes: [
+      { kind: '修复', text: '手机上转会市场里，标签多的选手（比如娱乐模式的退役选手）把报价按钮挤出屏幕，只能先搜名字才能报价。现在标签放到名字下面一行，每一行都能直接报价。' },
+    ],
+  },
+  {
     date: '2026-10-03',
     title: '电竞经理：挖回老部下 · 历史档真实新人 · 暂停看战绩',
     changes: [
