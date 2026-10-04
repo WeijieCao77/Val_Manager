@@ -1222,24 +1222,28 @@ export const MULTI_OPEN_MAX = 10
  * pack by pack. Everything that could refuse a pack is checked for all of
  * them first: an action is saved even when it fails, so a run that stopped
  * halfway would keep what it had charged.
+ *
+ * 'auto' spends the stock first and buys the rest with coins — six in stock
+ * and ten asked for is six from the stock and four bought.
  */
 export function openPacks(
-  g: GachaState, kind: PackKind, payWith: 'pack' | 'coins', count: number, today?: string,
+  g: GachaState, kind: PackKind, payWith: 'pack' | 'coins' | 'auto', count: number, today?: string,
 ): Pulled[][] {
   if (!isPackKind(kind)) throw new Error('没有这种卡包')
   if (!Number.isInteger(count) || count < 1 || count > MULTI_OPEN_MAX) throw new Error(`一次最多开 ${MULTI_OPEN_MAX} 包`)
   const def = PACKS[kind]
-  if (payWith === 'pack') {
-    const own = g.packs[kind] ?? 0
-    if (own < count) throw new Error(own ? `库存只有 ${own} 个${def.name}` : '没有这种卡包')
-  } else {
-    if (def.shop === false) throw new Error(`${def.name}买不到，只能从玩法奖励获得`)
-    if (packRetired(kind, today)) throw new Error(`${def.name}已下线，库存里的还能打开`)
+  const own = g.packs[kind] ?? 0
+  const fromStock = payWith === 'pack' ? count : payWith === 'auto' ? Math.min(own, count) : 0
+  const bought = count - fromStock
+  if (own < fromStock) throw new Error(own ? `库存只有 ${own} 个${def.name}` : '没有这种卡包')
+  if (bought > 0) {
+    if (def.shop === false) throw new Error(fromStock ? `库存只有 ${own} 个${def.name}，这种包买不到` : `${def.name}买不到，只能从玩法奖励获得`)
+    if (packRetired(kind, today)) throw new Error(fromStock ? `库存只有 ${own} 个${def.name}，这种包已下线买不到` : `${def.name}已下线，库存里的还能打开`)
     const price = packCost(kind, today)
-    if (g.coins < price * count) throw new Error(`金币不够，${count} 包要 ${price * count}`)
+    if (g.coins < price * bought) throw new Error(`金币不够，${bought} 包要 ${price * bought}`)
   }
   const out: Pulled[][] = []
-  for (let i = 0; i < count; i++) out.push(openPack(g, kind, payWith, today))
+  for (let i = 0; i < count; i++) out.push(openPack(g, kind, i < fromStock ? 'pack' : 'coins', today))
   return out
 }
 

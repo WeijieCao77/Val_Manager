@@ -51,8 +51,11 @@ export default function Packs() {
 
   // The pack is rolled on the server and comes back already in the
   // collection; what happens here is the reveal.
-  const open = async (kind: PackKind, payWith: 'pack' | 'coins', count = 1) => {
+  const open = async (kind: PackKind, payWith: 'pack' | 'coins' | 'auto', count = 1) => {
     if (busy) return
+    // what 'auto' (连开: stock first, coins for the rest) actually spent, read before the stock moves
+    const own = g.packs[kind] ?? 0
+    const paid = payWith !== 'auto' ? payWith : count <= own ? 'pack' : own > 0 ? 'mixed' : 'coins'
     setBusy(true)
     const r = await act('open', count > 1 ? { kind, payWith, count } : { kind, payWith })
     setBusy(false)
@@ -73,7 +76,7 @@ export default function Packs() {
     }
     track('card_pull', {
       kind,
-      paid: payWith,
+      paid,
       packs: count,
       gold: out.filter((p) => p.card.rarity === 'gold').length,
       dupes: out.filter((p) => p.dupe).length,
@@ -87,10 +90,10 @@ export default function Packs() {
     setShown(1)
   }
 
-  // 连开 is offered wherever at least two packs could be opened: two in the stock, or two affordable
+  // 连开 is offered wherever at least two packs could be opened, the stock and the coins together
   const buyable = (kind: PackKind) => PACKS[kind].shop !== false && !packRetired(kind, today)
   const canMulti = (kind: PackKind) =>
-    (g.packs[kind] ?? 0) >= 2 || (buyable(kind) && g.coins >= packCost(kind, today) * 2)
+    (g.packs[kind] ?? 0) + (buyable(kind) ? Math.floor(g.coins / packCost(kind, today)) : 0) >= 2
   const multiButton = (kind: PackKind, className = 'sm') => canMulti(kind) && (
     <button className={className} disabled={busy} onClick={() => setMulti(kind)} title={`一次最多 ${MULTI_OPEN_MAX} 包`}>连开</button>
   )
@@ -469,7 +472,7 @@ export default function Packs() {
       {multi && (
         <MultiOpenSheet
           kind={multi} own={g.packs[multi] ?? 0} coins={g.coins} price={packCost(multi, today)} buyable={buyable(multi)} busy={busy}
-          onOpen={(payWith, count) => void open(multi, payWith, count)} onClose={() => { if (!busy) setMulti(null) }}
+          onOpen={(count) => void open(multi, 'auto', count)} onClose={() => { if (!busy) setMulti(null) }}
         />
       )}
     </>

@@ -119,6 +119,33 @@ for (const [kind, payWith] of [['bangkok2025', 'coins'], ['elite', 'coins'], ['t
   ok('刚好够的时候开得了：7000 金币开 2 个曼谷包', openPacks(a, 'bangkok2025', 'coins', 2, '2026-10-05').length === 2 && a.coins === 1000)
 }
 {
+  // 'auto': the stock first, coins for the rest — six in stock and ten asked for is four bought
+  const env = { today: '2026-10-05', now: Date.parse('2026-10-05T04:00:00Z'), seed: 3 } as never
+  const a = newGacha('MULTI-AUTO', '连开', '2026-10-05'); a.packs.elite = 6; a.coins = 1e5
+  const price = packCost('elite', '2026-10-05')
+  const b = twin(a)
+  const many = openPacks(a, 'elite', 'auto', 10, '2026-10-05')
+  const one: string[][] = []
+  for (let i = 0; i < 10; i++) one.push(openPack(b, 'elite', i < 6 ? 'pack' : 'coins', '2026-10-05').map(p => p.card.id))
+  ok('库存 6 个、连开 10 包：先开库存 6 个，再花金币买 4 包',
+    many.length === 10 && a.packs.elite === 0 && a.coins === 1e5 - 4 * price
+    && JSON.stringify(many.map(p => p.map(x => x.card.id))) === JSON.stringify(one), `${a.coins}`)
+  const c = newGacha('MULTI-AUTO2', '连开', '2026-10-05'); c.packs.elite = 8; c.coins = 0
+  ok('库存够的时候一个金币都不花', openPacks(c, 'elite', 'auto', 5, '2026-10-05').length === 5 && c.packs.elite === 3 && c.coins === 0)
+  const d = newGacha('MULTI-AUTO3', '连开', '2026-10-05'); d.packs.elite = 6; d.coins = price * 3
+  const before = JSON.stringify(d)
+  const refuse = (f: () => unknown) => { try { f(); return '' } catch (e) { return (e as Error).message } }
+  const why = refuse(() => openPacks(d, 'elite', 'auto', 10, '2026-10-05'))
+  ok('金币只够补 3 包时 10 包一包都不开，库存不动', /金币不够，4 包/.test(why) && JSON.stringify(d) === before, why)
+  const e = newGacha('MULTI-AUTO4', '连开', '2026-10-05'); e.packs.ten = 3; e.coins = 1e6
+  ok('买不到的包库存不够就不开', /买不到/.test(refuse(() => openPacks(e, 'ten', 'auto', 4, '2026-10-05'))) && e.packs.ten === 3)
+  const f = newGacha('MULTI-AUTO5', '连开', '2026-10-05'); f.packs.elite = 6; f.coins = 1e5
+  const r = runAction(f, 'open', { kind: 'elite', payWith: 'auto', count: 10 }, env)
+  ok('服务器动作认 auto', r.ok && f.packs.elite === 0 && f.coins === 1e5 - 4 * price)
+  const g1 = newGacha('MULTI-AUTO6', '单开', '2026-10-05'); g1.packs.elite = 1; g1.coins = 1e5
+  ok('auto 单开有库存先用库存', runAction(g1, 'open', { kind: 'elite', payWith: 'auto' }, env).ok && g1.packs.elite === 0 && g1.coins === 1e5)
+}
+{
   const a = newGacha('MULTI-ACT', '连开', '2026-10-05'); a.packs.scout = 10
   const r = runAction(a, 'open', { kind: 'scout', payWith: 'pack', count: 10 }, { today: '2026-10-05', now: Date.parse('2026-10-05T04:00:00Z'), seed: 99 } as never)
   const res = (r as { result?: { packs: number; pulled: unknown[] } }).result

@@ -156,7 +156,7 @@ function dispatch(
     case 'open': {
       const kind = a.kind
       if (!isPackKind(kind)) return { ok: false, why: '没有这种卡包' }
-      const payWith = a.payWith === 'coins' ? 'coins' : 'pack'
+      const payWith = a.payWith === 'coins' ? 'coins' : a.payWith === 'auto' ? 'auto' : 'pack'
       // A pack must not be knowable before it is bought. `seed` lives in the
       // account, the account is handed to the client with every reply, and
       // openPack is a pure function of it — so a player holding their own
@@ -173,7 +173,8 @@ function dispatch(
           const packs = openPacks(g, kind, payWith, Number(a.count), env.today)
           return { ok: true, result: { packs: packs.length, pulled: packs.flat().map(wire) } }
         }
-        const pulled = openPack(g, kind, payWith, env.today)
+        // a single 'auto' takes the stock's pack when there is one
+        const pulled = openPack(g, kind, payWith === 'auto' ? ((g.packs[kind] ?? 0) > 0 ? 'pack' : 'coins') : payWith, env.today)
         return {
           ok: true,
           result: {
