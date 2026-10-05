@@ -655,6 +655,20 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .news-item.important { box-shadow: inset 2px 0 0 var(--accent); background: var(--accent-wash); }
 
 /* ---------------------------------------------------------------- modal */
+/* A turn being simulated (Dashboard runTurn): nothing behind takes a tap until it is done.
+   Clear, so a one-day turn does not flash; the date only fades in on a turn long enough to read it. */
+.sim-veil {
+  position: fixed; inset: 0; z-index: 300; cursor: progress;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 16px calc(104px + env(safe-area-inset-bottom));
+}
+.sim-veil-pill {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; box-shadow: var(--shadow-pop);
+  opacity: 0; animation: sim-veil-in .2s ease .4s forwards;
+}
+@keyframes sim-veil-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sim-veil-pill { animation-duration: 0s; } }
 .modal-bg {
   position: fixed; inset: 0; background: var(--scrim);
   display: flex; align-items: flex-start; justify-content: center;

@@ -29,6 +29,11 @@ try {
    source = source.replace(/import \{ PGlite \} from '@electric-sql\/pglite'/, `import postgres from 'postgres';\nimport {safeTransactions} from '${resolve('db-transactions.js')}';\nclass PGlite { sql; constructor() { this.sql = safeTransactions(postgres(process.env.PG_TEST_URL, { max: 12, onnotice: () => {}, connection: { statement_timeout: 30000, lock_timeout: 15000 } })) }; exec(q) { return this.sql.unsafe(q).simple() }; close() { return this.sql.end({timeout: 5}) } }`)
      .replace(/import \{ makeSql \} from '[^']*pglite-sql.js'/, 'const makeSql = (db: PGlite): any => db.sql')
    if (name === 'check_market_sweep') source = source.replace(/\$\{JSON.stringify\((\{[^\n]*\})\)\}/g, '${real.json($1)}').replace("v.map(String)", "v.map(x => typeof x?.value === 'object' ? JSON.stringify(x.value) : String(x?.value ?? x))")
+   // PG_WITH_PROJECTION=1: the same guarantees with the ladder-projection trigger (account-projection.js)
+   // installed and marked ready, so every account write in these races also fires it
+   if (process.env.PG_WITH_PROJECTION === '1') {
+     source = source.replace(/(\b\w+)\.exec\(CARD_SCHEMA\)/g, (_, db) => `${db}.exec(CARD_SCHEMA); await ${db}.exec((await import(${JSON.stringify(resolve('db-schema.js'))})).PROJECTION_SCHEMA + "; insert into account_projection_marks (name) values ('v1') on conflict do nothing")`)
+   }
    source = source.replace(/(from\s*|import\s*\()('|")(\.\.?\/[^'"]+)\2/g, (_, prefix, quote, spec) => prefix + quote + resolve(dirname(original), spec) + quote)
    source = source.replace(/new URL\((['"])(\.\.?\/[^'"]+)\1,\s*import.meta.url\)/g, (_, quote, spec) => 'new URL(' + JSON.stringify(pathToFileURL(resolve(dirname(original),spec)).href) + ')')
    const { symlink } = await import('node:fs/promises')

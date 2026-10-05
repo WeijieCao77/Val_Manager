@@ -3,8 +3,17 @@ import type { Fixture, GameState } from '../engine/types'
 
 export interface GameCtxValue {
   game: GameState
-  /** re-render after the engine mutated state in place, and autosave */
-  commit: () => void
+  /**
+   * Re-render after the engine mutated state in place, and autosave — a
+   * moment later, so the click paints first; `true` writes before returning.
+   */
+  commit: (now?: boolean) => void
+  /**
+   * The career changed in memory and the commit for it has not happened yet
+   * (a turn between two of its days): the next flush — tab hidden, page left,
+   * mode left — writes it even if no commit is pending.
+   */
+  markUnsaved: () => void
   toast: (msg: string) => void
   /**
    * Open a player's card. `renew` opens it straight onto the renewal panel,

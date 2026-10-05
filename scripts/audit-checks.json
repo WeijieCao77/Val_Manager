@@ -593,6 +593,18 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_account_projection.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_manager_turn_abort.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_squad_sync.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_market_guard.ts"
   },
   {

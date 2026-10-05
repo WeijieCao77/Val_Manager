@@ -1,0 +1,17 @@
+{
+  "Home-": {
+    "staticJsKB": 275.41,
+    "gzipKB": 91.62,
+    "includesChangelog": false
+  },
+  "CardMode-": {
+    "staticJsKB": 1561.4,
+    "gzipKB": 417.96,
+    "includesChangelog": false
+  },
+  "ManagerGame-": {
+    "staticJsKB": 1891.11,
+    "gzipKB": 517.89,
+    "includesChangelog": false
+  }
+}

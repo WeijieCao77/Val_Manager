@@ -137,11 +137,87 @@ const clientFields = (state: GachaState): Partial<GachaState> => {
   return out
 }
 
-/** Take what the server handed back as the truth about everything it owns. */
-function absorb(state: GachaState, fresh: unknown): boolean {
-  if (!fresh || typeof fresh !== 'object') return false
-  takeServerFields(state, migrateGacha(fresh as GachaState, state.id))
-  return true
+/**
+ * Whose five is newer: this tab's, or the server's.
+ *
+ * 「刚换完卡组就又跳回之前的那套」 (2026-10-05). Every reply carries the
+ * account, and taking it used to take the server's five too (takeServerFields
+ * — the server's copy is the checked one). But a reply only knows the five
+ * that went up with ITS request: switch A→B→C quickly and B's reply landed
+ * after the tap on C and put B back; an action tapped before a switch did the
+ * same with the five before it. And a save refused because the revision had
+ * moved — under an action, a trade, this tab's own page-hide beacon — was read
+ * as another device's choice and the five on screen was thrown away.
+ *
+ * So the edits are counted. `editSeq` moves on every local change of the
+ * client fields (every one goes through saveAccount); a request remembers the
+ * count when it captured the fields it sends; and a reply's five is taken
+ * only when nothing was edited since. Otherwise the five on screen stays, and
+ * goes up again. A refused save asks whether the five the server holds is
+ * this tab's own doing — the copy it last took from the server, one riding a
+ * request still in the air, or the last page-hide beacon — and if so keeps
+ * the five on screen and sends it again on the new revision; anything else
+ * was chosen on another device and is taken, as before.
+ */
+let editSeq = 0
+/** the count whose fields the server is known to hold */
+let syncedSeq = 0
+const unsent = (): boolean => editSeq !== syncedSeq
+/** client fields as a stable string: Postgres hands jsonb keys back in its own order */
+const canon = (v: unknown): string => JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.keys(x as Record<string, unknown>).sort().map((k) => [k, (x as Record<string, unknown>)[k]]))
+  : x))
+const fieldsKey = (state: GachaState): string => canon(clientFields(state))
+/** the client fields of the last server copy this tab took or had confirmed */
+let serverClient: string | null = null
+/** the fields riding each request still in the air */
+const inAir = new Map<number, string>()
+let airSeq = 0
+const lift = (key: string): number => { inAir.set(++airSeq, key); return airSeq }
+/** what the last page-hide beacon carried, until a save of this tab's lands after it */
+let beaconKey: string | null = null
+const ours = (theirs: string): boolean => theirs === serverClient || theirs === beaconKey || [...inAir.values()].includes(theirs)
+/** a fresh session: what this tab knows starts from the copy just read */
+const resetSync = (state: GachaState): void => {
+  editSeq = 0; syncedSeq = 0; inAir.clear(); beaconKey = null
+  serverClient = fieldsKey(state)
+}
+
+/**
+ * Take what the server handed back as the truth about everything it owns —
+ * unless it is older than a copy already taken (replies overtake each other),
+ * and keeping this tab's five if it was edited after the request captured it
+ * (`seqAtSend`; a reply that carried no five of ours, like the trading post's,
+ * passes the count of the moment it is taken, so only an unsent edit is kept).
+ * Returns the migrated copy, or null when it was refused as older or empty.
+ */
+function absorb(state: GachaState, fresh: unknown, revision?: unknown, seqAtSend: number = syncedSeq): GachaState | null {
+  if (!fresh || typeof fresh !== 'object') return null
+  if (typeof revision === 'number' && rev != null && revision < rev) return null
+  const server = migrateGacha(fresh as GachaState, state.id)
+  const mine = state.squad
+  takeServerFields(state, server)
+  if (typeof revision === 'number') rev = revision
+  serverClient = fieldsKey(server)
+  if (editSeq !== seqAtSend) state.squad = mine
+  else syncedSeq = seqAtSend
+  return server
+}
+
+/**
+ * After a reply: the mirror says whether anything is still unsent, and an
+ * edit the reply's five predates goes up again — an action tapped with the
+ * old five can land after the save of the new one and put the old one back on
+ * the server.
+ */
+function settleClient(state: GachaState, server: GachaState | null, seqAtSend: number = syncedSeq): void {
+  if (server && editSeq !== seqAtSend && fieldsKey(server) !== fieldsKey(state)) {
+    // edited since the request captured its five, and the server does not hold the edit: it goes up
+    syncedSeq = -1
+    void pushClient(state)
+    return
+  }
+  writeMirror(state, unsent())
 }
 
 /**
@@ -149,9 +225,9 @@ function absorb(state: GachaState, fresh: unknown): boolean {
  * hands the account back after a listing or a bid, because it changed it.
  */
 export function takeServer(state: GachaState, fresh: unknown, revision?: unknown): boolean {
-  if (!absorb(state, fresh)) return false
-  if (typeof revision === 'number') rev = revision
-  writeMirror(state, false)
+  const server = absorb(state, fresh, revision)
+  if (!server) return false
+  settleClient(state, server)
   return true
 }
 
@@ -180,6 +256,8 @@ export async function act(
   // keeps the answer beside the account, in the same transaction, so sending
   // it again can only ever read that answer back — never open a second pack.
   const requestId = newRequestId()
+  const seqAtSend = editSeq
+  const air = lift(fieldsKey(state))
   const payload = JSON.stringify({ id: state.id, action, args, requestId, client: clientFields(state) })
   const send = async (): Promise<{ status: number; j: ActReply | null }> => {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
@@ -200,9 +278,11 @@ export async function act(
   }
   const settle = (status: number, j: ActReply): ActOutcome => {
     noteNow(j.now)
-    if (typeof j.rev === 'number') rev = j.rev
     if (typeof j.code === 'string') code = j.code
-    if (j.state && absorb(state, j.state)) writeMirror(state, false)
+    if (j.state) {
+      const server = absorb(state, j.state, j.rev, seqAtSend)
+      if (server) settleClient(state, server, seqAtSend)
+    } else if (typeof j.rev === 'number' && (rev == null || j.rev > rev)) rev = j.rev
     // it landed the first time but the report was too big to keep: the account above is already
     // up to date, and no screen should be handed an empty result to unpack
     if (j.ok && j.trimmed && j.result === undefined) return { ok: false, why: '这一步已经成功，账号已更新。' }
@@ -219,9 +299,13 @@ export async function act(
     try { got = await send() } catch { got = null }
     if (!unknown(got)) break
   }
-  if (!got) return { ok: false, why: '连不上服务器，结果还不确定，请刷新后核对。', offline: true, unknown: true }
-  if (!got.j) return { ok: false, why: `服务器没有回应（${got.status}）`, unknown: got.status >= 500 }
-  return settle(got.status, got.j)
+  try {
+    if (!got) return { ok: false, why: '连不上服务器，结果还不确定，请刷新后核对。', offline: true, unknown: true }
+    if (!got.j) return { ok: false, why: `服务器没有回应（${got.status}）`, unknown: got.status >= 500 }
+    return settle(got.status, got.j)
+  } finally {
+    inAir.delete(air)
+  }
 }
 
 interface ActReply {
@@ -453,6 +537,7 @@ export async function loadAccount(rawId: string): Promise<LoadResult> {
     if (j?.today) today = j.today
     if (j?.ok && j.state) {
       const state = migrateGacha(j.state as GachaState, id)
+      resetSync(state)
       const m = readMirror(id)
       // Cosmetic edits this device made and never got to send — a five
       // rearranged and the tab swiped away before the debounced save fired.
@@ -515,6 +600,7 @@ export async function createAccount(name: string): Promise<CreateResult> {
       if (typeof j.rev === 'number') rev = j.rev
       if (typeof j.code === 'string') code = j.code
       const state = migrateGacha(j.state as GachaState, id)
+      resetSync(state)
       rememberId(id)
       writeMirror(state, false)
       return { ok: true, state, today: j.today ?? localToday() }
@@ -538,43 +624,101 @@ let retries = 0
  * taken as the truth about everything it owns.
  */
 export function saveAccount(state: GachaState, immediate = false): Promise<void> {
+  editSeq++
+  return pushClient(state, immediate)
+}
+
+/** refused saves in a row whose revision moved under them; past a few, back off */
+let staleTries = 0
+
+/** Send the client fields as they stand now — saveAccount's sender, also used to re-send without it being a new edit. */
+function pushClient(state: GachaState, immediate = false): Promise<void> {
   writeMirror(state, true)
   if (pending) { clearTimeout(pending); pending = null }
   const send = async () => {
     if (inflight) { pending = window.setTimeout(send, 400); return }
     inflight = true
+    // what goes up, captured at the moment it goes
+    const seqAtSend = editSeq
+    const sent = clientFields(state)
+    const key = canon(sent)
+    const air = lift(key)
     try {
       const r = await fetch(api('save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: state.id, name: state.name, client: clientFields(state), baseRev: rev }),
+        // lean: a save that lands changes nothing the server owns, so it need
+        // not send the whole account back (an older server ignores this)
+        body: JSON.stringify({ id: state.id, name: state.name, client: sent, baseRev: rev, lean: true }),
       })
       const j = await r.json().catch(() => null)
-      if (typeof j?.rev === 'number') rev = j.rev
       if (typeof j?.code === 'string') code = j.code
-      if (j?.stale && j.state) {
-        // Another device wrote its own five since this one last read: theirs
-        // is the newer choice, and nothing of value rides on either. Adopted
-        // INTO the object this tab is holding, not beside it — a tab told it
-        // was stale must not be able to save the copy it was holding a moment
-        // later with the revision it was just handed.
-        const fresh = migrateGacha(j.state as GachaState, state.id)
-        takeServerFields(state, fresh)
-        mergeClientFields(state, fresh)
-        writeMirror(state, false)
-        onStale?.(state)
+      // Overtaken: a newer copy of the account has already been taken while
+      // this reply was on its way (an action that landed after this save was
+      // refused, or after it landed). It no longer says anything about the
+      // five — nothing is taken from it, nothing is marked, nobody is told;
+      // whatever is still unsent goes up on the revision this tab now holds.
+      // (Codex's third recheck: a late refusal carrying another device's B
+      // used to be merged over a C both sides already held, and the queued
+      // save then wrote B back to the server.)
+      const overtaken = typeof j?.rev === 'number' && rev != null && j.rev < rev
+      if (overtaken && (j?.stale || r.ok)) {
+        if (r.ok) retries = 0
+        if (unsent() && !pending) pending = window.setTimeout(send, 0)
+      } else if (j?.stale && j.state) {
+        const server = migrateGacha(j.state as GachaState, state.id)
+        const theirs = fieldsKey(server)
+        if (ours(theirs)) {
+          // The five on the server is one this tab put there: the revision
+          // moved under the save (an action, a trade, the page-hide beacon),
+          // nobody else chose anything. Take what the server owns, keep the
+          // five on screen, and send it again on the new revision.
+          absorb(state, j.state, j.rev, -1)
+          if (fieldsKey(state) === theirs) { syncedSeq = editSeq; staleTries = 0; writeMirror(state, false) }
+          else {
+            if (pending) clearTimeout(pending)
+            pending = window.setTimeout(send, ++staleTries > 4 ? 1500 : 0)
+          }
+        } else {
+          // Another device wrote its own five since this one last read: theirs
+          // is the newer choice, and nothing of value rides on either. Adopted
+          // INTO the object this tab is holding, not beside it — a tab told it
+          // was stale must not be able to save the copy it was holding a moment
+          // later with the revision it was just handed.
+          staleTries = 0
+          absorb(state, j.state, j.rev, editSeq)
+          mergeClientFields(state, server)
+          syncedSeq = editSeq
+          writeMirror(state, false)
+          onStale?.(state)
+        }
       } else if (!r.ok) {
         throw new Error(`save ${r.status}`)
       } else {
         retries = 0
-        if (j?.state) absorb(state, j.state)
-        writeMirror(state, false)
+        staleTries = 0
+        beaconKey = null
+        if (j?.state) {
+          settleClient(state, absorb(state, j.state, j.rev, seqAtSend), seqAtSend)
+        } else {
+          // lean reply: the server holds exactly what was sent, checked, on this revision
+          if (typeof j?.rev === 'number' && (rev == null || j.rev > rev)) rev = j.rev
+          const raw = j?.squad as GachaState['squad'] | undefined
+          const checked = raw && typeof raw === 'object' && Array.isArray(raw.slots) ? raw : sent.squad
+          serverClient = canon({ ...sent, squad: checked })
+          if (editSeq === seqAtSend) {
+            if (checked) state.squad = checked
+            syncedSeq = seqAtSend
+          }
+          writeMirror(state, unsent())
+        }
       }
     } catch {
       // back off, but do not give up while the tab is alive
       const wait = Math.min(30_000, 1500 * 2 ** retries++)
       pending = window.setTimeout(send, wait)
     } finally {
+      inAir.delete(air)
       inflight = false
     }
   }
@@ -598,7 +742,7 @@ export function saveAccount(state: GachaState, immediate = false): Promise<void>
  */
 export async function refreshAccount(state: GachaState): Promise<boolean> {
   const m = readMirror(state.id)
-  if (m?.dirty) return false
+  if (m?.dirty || unsent()) return false
   const base = typeof m?.rev === 'number' ? m.rev : rev
   try {
     const r = await fetch(api('load'), {
@@ -610,11 +754,14 @@ export async function refreshAccount(state: GachaState): Promise<boolean> {
     noteNow(j?.now)
     if (!j?.ok || !j.state || typeof j.rev !== 'number') return false
     if (typeof j.code === 'string') code = j.code
+    // an edit made while this was in flight, or a newer reply already taken: this copy is not the one to show
+    if (unsent() || (rev != null && j.rev < rev)) return false
     if (j.rev === base) { rev = j.rev; return false }
     rev = j.rev
     const fresh = migrateGacha(j.state as GachaState, state.id)
     takeServerFields(state, fresh)
     mergeClientFields(state, fresh)
+    serverClient = fieldsKey(fresh)
     writeMirror(state, false)
     return true
   } catch { return false }
@@ -624,6 +771,9 @@ export async function refreshAccount(state: GachaState): Promise<boolean> {
 export function flushAccount(state: GachaState): void {
   if (pending) { clearTimeout(pending); pending = null }
   writeMirror(state, true)
+  // the beacon has no reply: remember what it carried, so the refusal the next
+  // save meets (the revision it moved) is read as this tab's own doing
+  beaconKey = fieldsKey(state)
   try {
     const body = JSON.stringify({ id: state.id, name: state.name, client: clientFields(state), baseRev: rev })
     const blob = new Blob([body], { type: 'application/json' })
@@ -641,7 +791,7 @@ export function flushAccount(state: GachaState): void {
  */
 export function retryPending(state: GachaState): void {
   const m = readMirror(state.id)
-  if (m?.dirty) { retries = 0; saveAccount(state, true) }
+  if (m?.dirty) { retries = 0; void pushClient(state, true) }
 }
 
 

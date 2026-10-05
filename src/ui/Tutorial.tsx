@@ -271,7 +271,8 @@ export default function Tutorial({
     Object.assign(game, before)
     try { localStorage.removeItem(TUTORIAL_SNAPSHOT) } catch { /* best effort */ }
     markSeen()
-    commit()
+    // written now: the parked copy is gone, so the disk must hold the real save before anything else happens
+    commit(true)
     go('dashboard')
     onDone()
   }

@@ -1,0 +1,16 @@
+[
+  {
+    "case": "warm_rival_cache_after_failure_and_repair",
+    "pendingRivals": 1,
+    "dirtyAfterRival": true,
+    "repaired": true,
+    "rivalsAfterRepair": 1,
+    "expected": "Flagged account excluded while dirty and after repair; cached rivals bypass health check and survive repair."
+  },
+  {
+    "case": "failed_save_drops_dirty_flag",
+    "attempts": 1,
+    "dirtyAfterFailure": false,
+    "expected": "Keep dirty flag until successful persistence, so later visibility/unmount flush can retry."
+  }
+]

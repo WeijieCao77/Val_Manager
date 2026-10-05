@@ -61,7 +61,8 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
 {
   console.log('=== 建表清单 ===')
   // seven since 2026-09-18: the 全服杯's later columns are a list entry of their own (OPEN_CUP_V2_SCHEMA)
-  check('九份 schema 都在（含冠军赛留言审核）', SCHEMAS.length === 9, `${SCHEMAS.length} 份`)
+  // ten since 2026-10-05: the ladder board / rival pool tables and their trigger (account-projection.js)
+  check('十份 schema 都在（含冠军赛留言审核、排行榜投影）', SCHEMAS.length === 10, `${SCHEMAS.length} 份`)
   check('每份都不是空的', SCHEMAS.every((s) => typeof s === 'string' && s.trim().length > 40))
   const all = SCHEMAS.join('\n')
   for (const t of ['card_accounts', 'card_listings', 'events', 'champion_messages', 'champion_message_reviews']) {
@@ -89,6 +90,8 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
   const tables = [...others.matchAll(/create table if not exists (\w+)/g)].map((m) => m[1])
   const columns = [...others.matchAll(/alter table (\w+) add column if not exists (\w+)/g)].map((m) => [m[1], m[2]])
   const indexes = [...others.matchAll(/create (?:unique )?index if not exists (\w+)/g)].map((m) => m[1])
+  const functions = [...others.matchAll(/create or replace function (\w+)/g)].map((m) => m[1])
+  const triggers = [...others.matchAll(/create trigger (\w+)/g)].map((m) => m[1])
   const ran: string[] = []
   const tx = { unsafe: async (q: string) => { ran.push(q); return [] } }
   const sql = {
@@ -99,6 +102,8 @@ const fakeSql = (opts: { failTimes: number; tables: boolean }) => {
         return [...tables.map((t) => ({ table_name: t, column_name: 'id' })), ...columns.map(([t, c]) => ({ table_name: t, column_name: c }))]
       }
       if (q.includes('pg_indexes')) return indexes.map((i) => ({ indexname: i }))
+      if (q.includes('pg_proc')) return functions.map((f) => ({ proname: f }))
+      if (q.includes('pg_trigger')) return triggers.map((t) => ({ tgname: t }))
       if (q.includes('to_regclass')) return [{ t: null }]
       return []
     },

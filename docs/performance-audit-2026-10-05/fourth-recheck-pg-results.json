@@ -1,0 +1,34 @@
+{
+  "postgres": "18.6",
+  "accounts": 5000,
+  "results": [
+    {
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "scripts/pg/check_projection_pg.ts"
+      ],
+      "exitCode": 0,
+      "seconds": 3.52,
+      "log": "/private/tmp/codex-projection-pg-zdpd9q_y/check-0.log",
+      "stdout": "ok   1. 启动迁移在真实 PG 上建好全部 schema\nok   1. 第二次启动什么都不锁  — analytics: schema already at this version, nothing to lock\nok   1. 触发器已装上\nok   1. 缺了触发器：只补这一份  — analytics: 1 of 10 schema(s) have something to add | analytics: connected, schema ready\nok   2. 前置：X 还没有投影\nok   2. 写入未提交时，普通读仍看到旧存档（旧的插入式回填就是读到这个）\nok   2. 重新投影在等 W 的行锁，没有先读旧存档  — 等待锁 1\nok   2. W 提交后读到的是新存档：被删掉的行没有复活  — 0 行\nok   2. 反过来：写入等重新投影提交\nok   2. 之后写入的触发器覆盖投影：7777  — {\"points\":7777}\nok   3. 两个实例同时回填，都完成  — 1440 + 1440 次，1167 ms\nok   3. 期间 8 个写入者、含双账号交易，没有死锁或其他错误  — 15086 次写入、2512 笔交易，错误 0\nok   3. 结束后：每一行天梯投影都等于存档推算的结果  — 0 处不一致\nok   3. 结束后：对手池投影逐条等于存档  — 0 处不一致\nok   3. 没有待修复账号\nok   4. 投影失败：写入照常成功，账号记入待修复  — new row for relation \"account_rivals\" violates check constraint \"projection_fixture\"\nok   4. 修复后干净且全部一致  — {\"ladder\":0,\"rivals\":0}\nok   4. 并发写入时 60 个 /top、/rivals 请求全部成功\n\n全部通过\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/pg/check_concurrency_pg.mjs",
+        "check_squad_sync",
+        "check_save_race",
+        "check_ladder_match"
+      ],
+      "exitCode": 0,
+      "seconds": 8.66,
+      "log": "/private/tmp/codex-projection-pg-zdpd9q_y/check-1.log",
+      "stdout": "\nREAL POSTGRES: check_squad_sync (verify_1791220326733_5f6aaa35)\nok   夹具：卡够组三套不同的阵容  — 11\nok   1. 换到 C 后，B 的回包不会把画面拉回 B  — p:P231,p:P304,p:P355,p:P370,p:P406\nok   1. 服务器最终是 C\nok   2. 前置：B 先存上了\nok   2. 旧阵容的操作回包不会把画面拉回 A  — p:P220,p:P231,p:P304,p:P355,p:P370\nok   2. 服务器被旧操作写回 A 之后又补存成 B  — p:P220,p:P231,p:P304,p:P355,p:P370\nok   3. 自己的操作挪动了版本：保存被拒后不当成别的设备，画面保持 A  — p:P158,p:P220,p:P231,p:P304,p:P355 · 提示 0 次\nok   3. 重发后服务器是 A\nok   3. 切后台的 beacon 之后再换阵容：不跳回、不误报  — p:P231,p:P304,p:P355,p:P370,p:P406 · 提示 0\nok   3. 服务器是 C\nok   4. 先发后到的旧回包不把金币改回去  — 488000 vs 488000\nok   5. 别的设备换了阵容：保存被拒时采用对方的（原规则不变）  — p:P220,p:P231,p:P304,p:P355,p:P370 · 提示 1\nok   5. 精简回包：服务器校验后的阵容回到画面  — null\nok   5. 刷新后与服务器一致\nok   6. 前置：新操作让两边都是 C\nok   6. 迟到的旧冲突回包不把画面改回 B、不弹“别的设备”  — p:P231,p:P304,p:P355,p:P370,p:P406 · 提示 0\nok   6. 也不会经排队的保存把服务器写回 B  — p:P231,p:P304,p:P355,p:P370,p:P406\n\n全部通过\nREAL POSTGRES check_squad_sync: EXIT=0\n\nREAL POSTGRES: check_save_race (verify_1791220333381_603bd057)\nok   开包确实成功了\nok   开包花掉的金币没有被存档盖回去  — 库里 9250\nok   开出的卡还在\nok   抢跑的 save 被拒并拿到当前版本  — code 409 rev 2/2\nok   上架确实成功了\nok   上架的卡不会同时留在账号里\nok   抢跑的 save 被拒  — code 409\nok   同时上架 + 存档，没有一次复制出卡  — 0/24\nok   版本对得上的存档照常写入\nok   旧版本的存档被拒，名字不变\nok   声称更新版本的存档被拒\nok   没有版本号的存档被拒\n\n全部通过\nREAL POSTGRES check_save_race: EXIT=0\n\nREAL POSTGRES: check_ladder_match (verify_1791220334181_d1e0b410)\nok   池子里有接近的人时，抽到的都在 4 分以内  — 40 次真人，最大分差 4，0 次俱乐部\nok   抽到的不是自己，也不总是同一个人  — #8249 #CE30 #552F #7662 #C5EA #6184 #A034 #E426 #34D5 #053C #D088 #8435\nok   8 分以内没有人：打俱乐部，不硬塞一个差很多的真人  — 我 79，池子最高 67\nok   4 分以内没有、8 分以内有：抽最近的那个  — 对面 84，我 79\nok   强敌局输了不掉星\nok   普通局输了照常掉星\nok   大师强敌局只扣一半  — -8\nok   大师普通局照常扣\nok   强敌局赢了照常加分，没有额外奖励\nok   分差 18 ≥ 6：每一场输的都受保护，星没少  — 12/12\n\n全部通过\nREAL POSTGRES check_ladder_match: EXIT=0\n",
+      "stderr": ""
+    }
+  ],
+  "serverStopped": true
+}

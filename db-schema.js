@@ -1,7 +1,8 @@
 import { SCHEMA } from './analytics.js'
 import { createHash } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { CARD_SCHEMA } from './cards-api.js'
+import { BOARDS, CARD_SCHEMA } from './cards-api.js'
+import { projectionSchema } from './account-projection.js'
 import { PROFILE_SCHEMA } from './profile-api.js'
 import { CHAMPIONS_SCHEMA } from './champions-api.js'
 import { SITE_SCHEMA } from './site-api.js'
@@ -29,7 +30,9 @@ import { TEAM_CUP_SCHEMA } from './teamcup-api.js'
  * game genuinely cannot run is a database with no card_accounts in it, so
  * that is the only thing asked before keeping the connection.
  */
-export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, CHAMPIONS_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, TEAM_CUP_SCHEMA]
+/** the ladder board and rival pool tables, kept by a trigger on card_accounts (account-projection.js) */
+export const PROJECTION_SCHEMA = projectionSchema(BOARDS)
+export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROJECTION_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, CHAMPIONS_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, TEAM_CUP_SCHEMA]
 /** any constant, as long as every deploy of this service uses the same one */
 const SCHEMA_LOCK = 5150409
 
@@ -57,6 +60,10 @@ const declaredIn = (text) => {
     tables: [...new Set([...t.matchAll(/create table if not exists (\w+)/g)].map((m) => m[1]))],
     columns: [...t.matchAll(/alter table (\w+) add column if not exists (\w+)/g)].map((m) => [m[1], m[2]]),
     indexes: [...new Set([...t.matchAll(/create (?:unique )?index if not exists (\w+)/g)].map((m) => m[1]))],
+    // by name: a changed body under the same name is not noticed, so a new
+    // body gets a new name (account-projection.js's _v1)
+    functions: [...new Set([...t.matchAll(/create or replace function (\w+)/g)].map((m) => m[1]))],
+    triggers: [...new Set([...t.matchAll(/create trigger (\w+)/g)].map((m) => m[1]))],
   }
 }
 
@@ -77,11 +84,17 @@ async function pendingSchemas(sql) {
   const tables = new Set((Array.isArray(cols) ? cols : []).map((r) => r.table_name))
   const idx = await sql.unsafe(`select indexname from pg_indexes where schemaname = 'public'`)
   const names = new Set((Array.isArray(idx) ? idx : []).map((r) => r.indexname))
+  const fns = await sql.unsafe(`select proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'`)
+  const procs = new Set((Array.isArray(fns) ? fns : []).map((r) => r.proname))
+  const trg = await sql.unsafe(`select tgname from pg_trigger where not tgisinternal`)
+  const trigs = new Set((Array.isArray(trg) ? trg : []).map((r) => r.tgname))
   return SCHEMAS.filter((schema) => {
     const d = declaredIn(schema)
     return d.tables.some((t) => !tables.has(t))
       || d.columns.some(([t, c]) => !have.has(`${t}.${c}`))
       || d.indexes.some((i) => !names.has(i))
+      || d.functions.some((f) => !procs.has(f))
+      || d.triggers.some((t) => !trigs.has(t))
   })
 }
 

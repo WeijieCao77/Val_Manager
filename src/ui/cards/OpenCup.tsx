@@ -16,6 +16,7 @@ import { serverNow } from '../../engine/account'
 import { GapOdds } from './GapOdds'
 import { LiveGapOdds } from './LiveGapOdds'
 import CupLineupConfirm, { SignedLineup } from './CupLineupConfirm'
+import Ticking from './Ticking'
 import type { ArenaResult } from '../../engine/arena'
 
 const clock = (ms: number) =>
@@ -44,12 +45,7 @@ const prizeText = (n: number, place: 1 | 2 | 4) => {
  */
 export default function OpenCup() {
   const { g, cloud, commit, toast, go, collect } = useCards()
-  // the countdowns here are in seconds, so this page keeps its own second hand on the server's clock
-  const [now, setNow] = useState(() => serverNow())
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(serverNow()), 1000)
-    return () => window.clearInterval(t)
-  }, [])
+  // the countdowns here are in seconds; each one keeps its own second hand (Ticking), not the page
   const [st, setSt] = useState<OpenCupState | null>(null)
   const [why, setWhy] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -74,10 +70,15 @@ export default function OpenCup() {
   // and again every ten seconds until the server has played it — a big round takes it a few
   const asked = useRef(0)
   useEffect(() => {
-    if (!dueAt || now < dueAt + 4000 || now - asked.current < 10_000) return
-    asked.current = now
-    void load()
-  }, [dueAt, now, load])
+    if (!dueAt) return
+    const t = window.setInterval(() => {
+      const now = serverNow()
+      if (document.hidden || now < dueAt + 4000 || now - asked.current < 10_000) return
+      asked.current = now
+      void load()
+    }, 1000)
+    return () => window.clearInterval(t)
+  }, [dueAt, load])
 
   // my cup is over and it paid: bring the prize in from the inbox, once
   const lastMe = st?.last?.me
@@ -149,7 +150,7 @@ export default function OpenCup() {
             <b>{clock(st.next.starts)} 场</b>
             <span style={{ flex: 1, minWidth: 150 }}>
               <span className="tiny muted">
-                已报名 {st.next.signed} 人 · {countdown(st.next.starts - now)}后开赛
+                已报名 {st.next.signed} 人 · <Ticking>{(now) => countdown(st.next!.starts - now)}</Ticking>后开赛
               </span>
             </span>
             {st.next.joined ? (
@@ -192,7 +193,7 @@ export default function OpenCup() {
           <p className="small" style={{ marginTop: 0 }}>
             {st.live.format === 2 ? `${st.live.phase === 'swiss' ? '瑞士轮' : 'Playoff'} · 已打 ${st.live.round} 轮` : `已打 ${st.live.round}/${st.live.rounds} 轮`}
             {st.live.nextAt && (
-              <span className="muted"> · {roundLabel(st.live, { round: st.live.round, stage: st.live.phase, stageRound: st.live.stageRound })} {now >= st.live.nextAt ? '结算中…' : `${clock(st.live.nextAt)} 开打（${countdown(st.live.nextAt - now)}后）`}</span>
+              <span className="muted"> · {roundLabel(st.live, { round: st.live.round, stage: st.live.phase, stageRound: st.live.stageRound })} <Ticking>{(now) => (now >= st.live!.nextAt! ? '结算中…' : `${clock(st.live!.nextAt!)} 开打（${countdown(st.live!.nextAt! - now)}后）`)}</Ticking></span>
             )}
           </p>
           <MyRun cup={st.live} me={st.live.me ?? null} onOpen={(m) => void open(st.live!.id, m)} />

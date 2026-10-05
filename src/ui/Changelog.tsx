@@ -9,8 +9,8 @@
  * nothing at all once you have — a permanent badge is just noise, and the last
  * date read is the whole of the state it keeps.
  */
-import { useEffect, useState } from 'react'
-import { CHANGELOG, LATEST } from '../data/changelog'
+import { useEffect, useMemo, useState } from 'react'
+import type { ChangeEntry } from '../data/changelog'
 import Rich from './rich'
 
 const SEEN = 'valmgr.changelog.seen'
@@ -21,7 +21,20 @@ const SEEN = 'valmgr.changelog.seen'
  * now one standing-rules pin, the latest days, and the rest behind a button.
  */
 const RECENT_DAYS = 5
-const recentDates = new Set([...new Set(CHANGELOG.map((e) => e.date))].slice(0, RECENT_DAYS))
+
+/**
+ * The newest entry's key, baked in at build time (vite.config.ts) so the dot
+ * needs none of the list. The list itself — a couple of hundred KB of text —
+ * is fetched the first time the panel opens, and kept for the session.
+ */
+const LATEST = typeof __CHANGELOG_LATEST__ === 'string' ? __CHANGELOG_LATEST__ : ''
+let listing: Promise<ChangeEntry[]> | null = null
+const loadList = () => {
+  listing ??= import('../data/changelog').then((m) => m.CHANGELOG)
+  // a failed fetch (offline, or a release that replaced the chunk) can be tried again on the next open
+  listing.catch(() => { listing = null })
+  return listing
+}
 
 const readSeen = (): string => {
   try { return localStorage.getItem(SEEN) ?? '' } catch { return '' }
@@ -31,8 +44,23 @@ export default function Changelog({ raised = false }: { raised?: boolean }) {
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState(readSeen)
   const [all, setAll] = useState(false)
-  const pinned = CHANGELOG.filter((e) => e.pinned)
-  const rest = CHANGELOG.filter((e) => !e.pinned)
+  const [log, setLog] = useState<ChangeEntry[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    if (!open || log) return
+    let live = true
+    setFailed(false)
+    loadList().then((l) => { if (live) setLog(l) }, () => { if (live) setFailed(true) })
+    return () => { live = false }
+  }, [open, log])
+  const { pinned, rest, recentDates } = useMemo(() => {
+    const list = log ?? []
+    return {
+      pinned: list.filter((e) => e.pinned),
+      rest: list.filter((e) => !e.pinned),
+      recentDates: new Set([...new Set(list.map((e) => e.date))].slice(0, RECENT_DAYS)),
+    }
+  }, [log])
   const shown = all ? rest : rest.filter((e) => recentDates.has(e.date))
 
   // Escape closes it, like every other panel in the game
@@ -83,6 +111,7 @@ export default function Changelog({ raised = false }: { raised?: boolean }) {
             </p>
 
             <div className="log-list">
+              {!log && <p className="small muted" style={{ margin: 0 }}>{failed ? '读取失败，检查网络或刷新页面后再试。' : '读取中…'}</p>}
               {[...pinned, ...shown].map((entry) => (
                 <section key={entry.date + entry.title}>
                   <header>

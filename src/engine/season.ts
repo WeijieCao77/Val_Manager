@@ -2819,11 +2819,21 @@ export function advanceToNextMatch(
   for (let i = 0; i < maxDays; i++) {
     const r = advanceDay(state, opts)
     reports.push(r)
-    if (r.playedMine.length || r.pendingMine || r.pendingDraw || r.seasonEnded) break
-    const next = nextFixtureFor(state, state.myTeam)
-    if (next && next.day === state.day + 1) break
+    if (stopsBeforeNextMatch(state, r)) break
   }
   return reports
+}
+
+/**
+ * Where advanceToNextMatch stops: after a day that played or is holding one
+ * of ours, held a draw, or ended the season — or on the eve of our next
+ * fixture. Shared with the dashboard, which runs the same days in slices so a
+ * phone can paint between them.
+ */
+export function stopsBeforeNextMatch(state: GameState, r: DayReport): boolean {
+  if (r.playedMine.length || r.pendingMine || r.pendingDraw || r.seasonEnded) return true
+  const next = nextFixtureFor(state, state.myTeam)
+  return !!next && next.day === state.day + 1
 }
 
 /** A scrim is arranged, not drawn: you name the opponent, the map and the format. */

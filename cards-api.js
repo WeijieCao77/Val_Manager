@@ -20,6 +20,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
 import { progressOf } from './progress.js'
 import { GUARD_SCHEMA } from './market-guard.js'
+import { backfill, boardOwn, boardTop, projectionClean, projectionComplete, repairDirty, rivalSample } from './account-projection.js'
 
 /**
  * The rules, running here.
@@ -505,7 +506,10 @@ export function makeCardApi(sql, {
         // four lost races in a row: hand back what was just read, unwritten; the next load tries again
         if (attempt >= 3) break
       }
-      await sql`update card_accounts set seen = now() where id_hash = ${hash(id)}`
+      // 「最后上线」 to five minutes: a load that only moves this stamp is still
+      // a row write plus an index entry, and a player reloading or switching
+      // tabs did that every time. Nothing reads it finer than a day.
+      await sql`update card_accounts set seen = now() where id_hash = ${hash(id)} and seen < now() - interval '5 minutes'`
       json(res, 200, {
         ok: true, today, now: serverNow(), saved,
         // 「太多人开小号了」: an account plays only after a phone has answered
@@ -585,10 +589,14 @@ export function makeCardApi(sql, {
         })
         return
       }
-      json(res, 200, {
-        ok: true, today, now: serverNow(), rev: rows[0].rev,
-        state: stored(merged), code: battleCode(hash(id)),
-      })
+      // A save that lands changed only the client's own fields, on the revision
+      // the client already holds, so a client that says `lean` is told the new
+      // revision and the five as the server checked it — not the whole account
+      // back, which on every switch of 卡组 was the collection downloaded and
+      // re-read to change five ids (2026-10-05). An older client gets it all.
+      json(res, 200, body?.lean === true
+        ? { ok: true, today, now: serverNow(), rev: rows[0].rev, squad: merged.squad ?? null, code: battleCode(hash(id)) }
+        : { ok: true, today, now: serverNow(), rev: rows[0].rev, state: stored(merged), code: battleCode(hash(id)) })
     } catch (err) {
       console.warn('cards: save failed', err.message)
       json(res, 500, { ok: false, today })
@@ -708,10 +716,13 @@ export function makeCardApi(sql, {
     // two statements on rows that cannot overlap (older than the forget line,
     // and between it and the keep line), so neither waits on the other's locks
     const forget = new Date(t - REQUEST_FORGET_MS)
-    sql`delete from card_requests where ctid in (
+    // on the rival budget, not the interactive pool: a batch delete is
+    // housekeeping, and nobody's tap should queue behind it
+    const db = slow ?? sql
+    db`delete from card_requests where ctid in (
           select ctid from card_requests where at < ${forget} limit ${REQUEST_FORGET_BATCH})`
       .catch((err) => console.warn('cards: request forget failed', err.message))
-    sql`update card_requests set reply = jsonb_build_object('ok', coalesce((reply->>'ok')::boolean, false), 'trimmed', true, 'why', reply->>'why') where ctid in (
+    db`update card_requests set reply = jsonb_build_object('ok', coalesce((reply->>'ok')::boolean, false), 'trimmed', true, 'why', reply->>'why') where ctid in (
           select ctid from card_requests where at < ${new Date(t - REQUEST_KEEP_MS)} and at >= ${forget}
           and reply is not null and not (reply ? 'trimmed') limit ${REQUEST_SWEEP})`
       .catch((err) => console.warn('cards: request sweep failed', err.message))
@@ -1020,7 +1031,128 @@ export function makeCardApi(sql, {
   const topCaches = new Map()
   /** the rebuild in the air for each board, shared by everybody waiting on it */
   const topBuilding = new Map()
+
+  /**
+   * Whether the board and the rival pool can read account_ladder /
+   * account_rivals (account-projection.js) instead of scanning every save.
+   * Yes once the trigger exists and the backfill has finished; the first look
+   * that finds the trigger but no finished backfill starts one, on the rival
+   * budget, and the old scans keep serving until it is done. Asked at most
+   * every thirty seconds until the answer is yes, then never again.
+   */
+  let projReady = false
+  let projAskedAt = 0
+  /** thirty seconds between looks; ten minutes after a backfill that failed, which should not be retried in a loop */
+  let projWait = 30_000
+  let projFilling = null
+  async function projectionReady() {
+    if (projReady) return true
+    if (Date.now() - projAskedAt < projWait) return false
+    projAskedAt = Date.now()
+    const db = slow ?? sql
+    try {
+      const st = await projectionComplete(db)
+      if (st.done) { projReady = true; return true }
+      if (st.trigger && !projFilling) {
+        projFilling = backfill(db)
+          .then((n) => { projReady = true; console.log(`cards: ladder projection filled, ${n} accounts`) })
+          .catch((err) => { projWait = 10 * 60_000; console.warn('cards: ladder projection backfill failed, old scans keep serving', err.message) })
+          .finally(() => { projFilling = null; projAskedAt = Date.now() })
+      }
+    } catch (err) {
+      // no tables (a database the schema step has not reached): the old scans serve
+      void err
+    }
+    return false
+  }
+
+  /**
+   * Ready, and nothing waiting on a repair. A projection that failed inside a
+   * write is noted dirty (account-projection.js); while any account is, its
+   * rows cannot be trusted, so the readers take the old scans and a repair is
+   * started — one at a time, ten minutes apart after one that failed. Asked
+   * at most every five seconds.
+   */
+  let cleanAt = 0
+  let cleanNow = false
+  let repairing = null
+  let repairAfter = 0
+  async function projectionUsable() {
+    if (!(await projectionReady())) return false
+    if (Date.now() - cleanAt < 5_000) return cleanNow
+    cleanAt = Date.now()
+    const db = slow ?? sql
+    const was = cleanNow
+    try { cleanNow = await projectionClean(db) } catch { cleanNow = false }
+    // gone dirty: whatever was built off the tables is no longer to be served
+    if (was && !cleanNow) dropProjected()
+    if (!cleanNow && !repairing && Date.now() >= repairAfter) {
+      repairing = repairDirty(db)
+        .then((n) => console.log(`cards: ladder projection repaired, ${n} accounts`))
+        .catch((err) => { repairAfter = Date.now() + 10 * 60_000; console.warn('cards: ladder projection repair failed, old scans keep serving', err.message) })
+        .finally(() => { repairing = null; cleanAt = 0 })
+    }
+    return cleanNow
+  }
+
+  /** the hundred on each board, keyed by ladder and season; a build carries the moment it started */
+  const boardCaches = new Map()
+  const boardBuilding = new Map()
+  /** bumped by invalidate(), so a build already in the air does not refill a cache just cleared */
+  let boardGen = 0
   async function topRows(mine, league = 'open') {
+    if (!(await projectionUsable())) return scannedTopRows(mine, league)
+    try {
+      return await projectedTopRows(mine, league)
+    } catch (err) {
+      console.warn('cards: board from projection failed, scanning', err.message)
+      return scannedTopRows(mine, league)
+    }
+  }
+  /**
+   * The board off the projection. The caller's own row and place are read
+   * fresh on every look — one indexed row and a count — so his own write no
+   * longer throws away everybody's cached hundred. The hundred is rebuilt
+   * early only when he stands in it (or has just reached it) and has written
+   * since it was built; otherwise it is twenty seconds old at most.
+   */
+  async function projectedTopRows(mine, league) {
+    const season = String(engine.seasonOf(serverDay()))
+    const key = `${league}:${season}`
+    const own = mine ? await boardOwn(sql, mine, league, season) : null
+    const cache = boardCaches.get(key) ?? null
+    let stale = !cache || Date.now() - cache.at > TOP_TTL
+    const need = own ? own.at - 1000 : 0
+    if (!stale && own && own.at > cache.at - 1000
+      && ((own.row && own.row.rk <= 100) || cache.rows.some((r) => r.id_hash === mine))) stale = true
+    let hundred
+    if (stale) {
+      // one build at a time per board, joined by whoever arrives while it runs —
+      // unless it started before this caller's own write, which it would not show
+      let job = boardBuilding.get(key)
+      if (!job || job.at < need) {
+        const at = Date.now()
+        const gen = boardGen
+        const built = boardTop(sql, league, season).then((rows) => {
+          const cur = boardCaches.get(key)
+          if (gen === boardGen && (!cur || cur.at <= at)) boardCaches.set(key, { at, rows })
+          return rows
+        })
+        const entry = { at, p: built }
+        entry.p = built.finally(() => { if (boardBuilding.get(key) === entry) boardBuilding.delete(key) })
+        boardBuilding.set(key, entry)
+        job = entry
+      }
+      hundred = await job.p
+    } else {
+      hundred = cache.rows
+    }
+    if (!mine || hundred.some((r) => r.id_hash === mine)) return hundred
+    return own?.row ? [...hundred, own.row] : hundred
+  }
+
+  /** The board as it was read before the projection: a ranking of every save. Serves until the projection is ready. */
+  async function scannedTopRows(mine, league = 'open') {
     const topCache = topCaches.get(league) ?? null
     // a player who has just played waits for his own write (CardMode's
     // commit), so a board built before that write must not be handed back
@@ -1338,10 +1470,35 @@ export function makeCardApi(sql, {
   let rivalFetch = null
   let rivalMs = null
   const rivalCache = new Map()
+  /** bumped when a cached pool is thrown away, so a fetch already in the air does not put it back */
+  let rivalGen = 0
+  /**
+   * The board and the pool built off the projection, dropped: the projection
+   * has an account waiting on a repair, and the old scans serve until it is
+   * clean. A build in the air is disowned rather than waited for.
+   */
+  function dropProjected() {
+    boardCaches.clear(); boardBuilding.clear(); boardGen++
+    if (rivalAll?.source === 'projection') { rivalAll = null; rivalCache.clear() }
+    rivalGen++
+    rivalFetch = null
+  }
   function refreshRivals() {
     if (rivalFetch) return rivalFetch
     const t = performance.now()
-    rivalFetch = rivalRows(slow ?? sql).then((found) => {
+    const gen = rivalGen
+    const job = (async () => {
+      const db = slow ?? sql
+      // the small table once it is ready; the scan of every save until then, or if it fails
+      if (await projectionUsable()) {
+        try { return { found: await rivalSample(db, RIVAL_PER_DIV), source: 'projection' } } catch (err) {
+          console.warn('cards: rival pool from projection failed, scanning', err.message)
+        }
+      }
+      return { found: await rivalRows(db), source: 'scan' }
+    })().then(({ found, source }) => {
+      // disowned while it ran (dropProjected): what it read is not to be kept
+      if (gen !== rivalGen) return rivalAll
       // kept as the five and its paper score, not as the account
       const rows = found.map((x) => {
         const five = squadOf(x)
@@ -1351,12 +1508,14 @@ export function makeCardApi(sql, {
         }
         return { id_hash: x.id_hash, div: x.div, five, score: Number.isFinite(score) ? score : null }
       })
-      rivalAll = { at: Date.now(), rows }
+      rivalAll = { at: Date.now(), rows, source }
       rivalMs = Math.round(performance.now() - t)
       rivalCache.clear()
       return rivalAll
-    }).finally(() => { rivalFetch = null })
-    return rivalFetch
+    })
+    const tracked = job.finally(() => { if (rivalFetch === tracked) rivalFetch = null })
+    rivalFetch = tracked
+    return tracked
   }
   /**
    * 国家队杯's pool: every account's latest national five from the last two weeks, cached a minute and read
@@ -1469,8 +1628,12 @@ export function makeCardApi(sql, {
 
   /** The eighty nearest a division: distance first, chance within a distance. */
   async function rivalsNear(div) {
-    if (!rivalAll) await refreshRivals()
-    else if (Date.now() - rivalAll.at >= RIVAL_TTL) refreshRivals().catch((err) => console.warn('cards: rival refresh failed', err.message))
+    // a pool read off the projection is only as good as the projection: asked again on every use
+    // (the answer is cached five seconds), and thrown away the moment it is not clean
+    if (rivalAll?.source === 'projection' && !(await projectionUsable())) dropProjected()
+    for (let i = 0; !rivalAll && i < 3; i++) await refreshRivals()
+    if (!rivalAll) throw new Error('rival pool unavailable')
+    if (Date.now() - rivalAll.at >= RIVAL_TTL) refreshRivals().catch((err) => console.warn('cards: rival refresh failed', err.message))
     let near = rivalCache.get(div)
     if (!near) {
       near = rivalAll.rows
@@ -1747,7 +1910,7 @@ export function makeCardApi(sql, {
 
   return {
     /** Forget the cached board and rival pools — for tests that reseed the table. */
-    invalidate() { topCaches.clear(); predictCaches.clear(); rivalCache.clear(); rivalAll = null },
+    invalidate() { topCaches.clear(); predictCaches.clear(); boardCaches.clear(); boardBuilding.clear(); boardGen++; rivalCache.clear(); rivalAll = null; rivalGen++; rivalFetch = null },
     /** Stage timings of the last few hundred actions, the match queue and the rival sample. */
     timings,
     /** Returns true when it handled the request. */

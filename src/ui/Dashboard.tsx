@@ -1,7 +1,8 @@
 import { ask } from './confirm'
 import { DRAW_KIND_CN, drawById } from '../engine/draw'
 import { finishDraw } from '../engine/season'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { earnedNow } from '../engine/achievements'
 import { record } from '../engine/profile'
 import { agentCn, mapCn } from '../engine/content'
@@ -9,7 +10,7 @@ import { useGame } from './ctx'
 import { countTurn, countTurnDone } from '../engine/telemetry'
 import { windowEnd, windowOpen } from '../engine/transfer'
 import { Bar, Condition, Face, money, OvrBadge, Panel, Roles, Stat, fmtDay } from './common'
-import { advanceDay, advanceToNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName } from '../engine/season'
+import { advanceDay, stopsBeforeNextMatch, acceptJob, declineJob, makeScrim, scrimReply, nextRealFixtureFor, noticeHint, recentResultsFor, stageName } from '../engine/season'
 import { stagesOf } from '../engine/rulebook'
 import { nextInEvent, upcomingInternational } from '../engine/qualify'
 import type { ScrimFormat } from '../engine/season'
@@ -33,11 +34,24 @@ import { statLine } from '../engine/player'
 import type { DayReport } from '../engine/season'
 
 export default function Dashboard() {
-  const { game, commit, toast, openPlayer, openMatch, playLive, go, openDraw } = useGame()
+  const { game, commit, markUnsaved, toast, openPlayer, openMatch, playLive, go, openDraw } = useGame()
   const act = useAction()
   const [busy, setBusy] = useState(false)
   // set when a turn starts, read when its reports come back
   const simStartRef = useRef(0)
+  // a turn in progress stops at its next day if this screen goes away
+  const mountedRef = useRef(true)
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
+  // the date on the veil while a long turn runs, written straight to the node: re-rendering
+  // the dashboard between simulated days would cost the time the slices are there to give back
+  const simDayRef = useRef<HTMLSpanElement>(null)
+  // and the keyboard out of reach too: the veil stops taps, inert stops Tab-and-Enter
+  useEffect(() => {
+    if (!busy) return
+    const root = document.getElementById('root')
+    root?.setAttribute('inert', '')
+    return () => root?.removeAttribute('inert')
+  }, [busy])
   const [digest, setDigest] = useState<{ reports: DayReport[]; fromDay: number } | null>(null)
   const [scrimOpp, setScrimOpp] = useState<string>('')
   const [scrimMap, setScrimMap] = useState<string>('')
@@ -92,41 +106,78 @@ export default function Dashboard() {
     simStartRef.current = performance.now()
     countTurn(game.day, game.year, fast)
     setBusy(true)
-    // let the button paint its disabled state before the sim blocks the thread
-    window.setTimeout(() => {
-      try {
-        // one turn is a day in-season and a week in a long gap, so the plain
-        // advance follows the same cadence the action budget is granted on
-        const span = cycleDays(game)
-        const from = game.day
-        const reports: DayReport[] = []
-        if (fast) {
-          // In the offseason there is no fixture to stop at, so this used to
-          // run the clock to the end of the season — a single click spent the
-          // whole 25-day transfer window and the rebuild that goes with it.
-          // Stop at the edge of an open window instead.
-          const stopAt = windowOpen(game.day) ? windowEnd(game.day) : undefined
-          const budget = stopAt != null ? Math.max(1, stopAt - game.day) : 40
-          reports.push(...advanceToNextMatch(game, budget, { deferMine: true }))
-        } else {
-          for (let i = 0; i < span; i++) {
-            // over a multi-day turn, practice matches play themselves so the
-            // week actually runs; a competitive fixture still stops for you
-            // The tutorial's trial day is a sandbox rolled back at its end, so a
-            // draw waiting on the manager is held by the coaches there — the
-            // last step says 「推进」 and the day has to move (2026-09-07: a new
-            // career opened onto the Kickoff draw and the tour at once, and the
-            // draw kept 31 December from ending).
-            reports.push(advanceDay(game, { deferMine: true, autoScrims: span > 1, autoResolveDrawDecisions: !!game.tutorialDay }))
-            const last = reports[reports.length - 1]
-            if (last.pendingMine || last.seasonEnded) break
-          }
+    // let the button paint its disabled state before the sim takes the thread
+    window.setTimeout(() => { void runTurn(fast) }, 10)
+  }
+
+  /**
+   * One turn, a day at a time, giving the thread back every ~50 ms.
+   *
+   * The league simulates on the main thread, and 「直接推进到下一场比赛」 can run
+   * forty days in one go — seconds on a phone, all of it frozen. The days and
+   * the rules for stopping are exactly the ones they were (advanceDay, and
+   * stopsBeforeNextMatch is advanceToNextMatch's own test); only the browser
+   * now gets to paint between them. Every day ends in a whole state, so a
+   * pause between two is a pause between two turns of a day-by-day player.
+   * The veil below keeps every other control out of reach until it is done.
+   */
+  const runTurn = async (fast: boolean) => {
+    // the screen went away before the turn started: play nothing
+    if (!mountedRef.current) return
+    try {
+      // one turn is a day in-season and a week in a long gap, so the plain
+      // advance follows the same cadence the action budget is granted on
+      const span = cycleDays(game)
+      const from = game.day
+      const reports: DayReport[] = []
+      let sliceAt = performance.now()
+      /**
+       * false when the screen went away mid-turn: nothing more is played and
+       * nothing is reported. The days already played are not lost — each one
+       * called markUnsaved(), and leaving the mode or the page writes them.
+       */
+      const breathe = async (): Promise<boolean> => {
+        if (performance.now() - sliceAt >= 50) {
+          if (simDayRef.current) simDayRef.current.textContent = fmtDay(game.day, game.year)
+          await new Promise((r) => window.setTimeout(r, 0))
+          sliceAt = performance.now()
         }
-        handleReports(reports, from)
-      } finally {
-        setBusy(false)
+        return mountedRef.current
       }
-    }, 10)
+      if (fast) {
+        // In the offseason there is no fixture to stop at, so this used to
+        // run the clock to the end of the season — a single click spent the
+        // whole 25-day transfer window and the rebuild that goes with it.
+        // Stop at the edge of an open window instead.
+        const stopAt = windowOpen(game.day) ? windowEnd(game.day) : undefined
+        const budget = stopAt != null ? Math.max(1, stopAt - game.day) : 40
+        for (let i = 0; i < budget; i++) {
+          const r = advanceDay(game, { deferMine: true })
+          markUnsaved()
+          reports.push(r)
+          if (stopsBeforeNextMatch(game, r)) break
+          if (i < budget - 1 && !(await breathe())) return
+        }
+      } else {
+        for (let i = 0; i < span; i++) {
+          // over a multi-day turn, practice matches play themselves so the
+          // week actually runs; a competitive fixture still stops for you
+          // The tutorial's trial day is a sandbox rolled back at its end, so a
+          // draw waiting on the manager is held by the coaches there — the
+          // last step says 「推进」 and the day has to move (2026-09-07: a new
+          // career opened onto the Kickoff draw and the tour at once, and the
+          // draw kept 31 December from ending).
+          reports.push(advanceDay(game, { deferMine: true, autoScrims: span > 1, autoResolveDrawDecisions: !!game.tutorialDay }))
+          markUnsaved()
+          const last = reports[reports.length - 1]
+          if (last.pendingMine || last.seasonEnded) break
+          if (i < span - 1 && !(await breathe())) return
+        }
+      }
+      handleReports(reports, from)
+    } finally {
+      if (mountedRef.current) setBusy(false)
+    }
   }
 
   // long gaps between fixtures are where scrims belong
@@ -306,6 +357,13 @@ export default function Dashboard() {
           </Panel>
         )}
       </div>
+
+      {busy && createPortal(
+        <div className="sim-veil" aria-live="polite">
+          <span className="sim-veil-pill">模拟中… <span ref={simDayRef} /></span>
+        </div>,
+        document.body,
+      )}
 
       {/* Advancing time is the one thing you always need and the thing players
           could not find, so it gets its own bar rather than a corner button. */}

@@ -60,3 +60,31 @@ PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres PG_LOAD_ACTION=ladder P
 ```
 
 50/100/300档使用450个不同账号；每号30体力、最多15次唯一requestId的真实BO5，绝不恢复体力。记录实际匹配类型、BO5地图数、数据库胜负/体力核对、失败原因、事务reserve等待/持有分位和天梯在途期间的市场分位。默认512个fixture账号，所选档位人数之和不能超出512。可用PG_LOAD_WAVES=300只测一档。
+
+## 排行榜投影（account-projection.js）的真实并发验收（2026-10-05）
+
+本机起一个一次性 PG（Homebrew `postgresql@18`）：
+
+```sh
+PG=/opt/homebrew/opt/postgresql@18/bin; D=$(mktemp -d)/pgdata
+$PG/initdb -D $D -U postgres --auth=trust -E UTF8 --locale=en_US.UTF-8
+LC_ALL=en_US.UTF-8 $PG/pg_ctl -D $D -o "-p 55439 -k /tmp -c listen_addresses=127.0.0.1" -l $D.log start
+```
+
+macOS 上不设 `LC_ALL` 会报 `postmaster became multithreaded during startup` 起不来。
+
+```sh
+PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres node --import tsx scripts/pg/check_projection_pg.ts
+PG_PROJ_N=20000 PG_TEST_URL=... node --import tsx scripts/pg/check_projection_pg.ts   # 回填窗口更长
+```
+
+覆盖：启动迁移（安装、第二次不锁、只补缺失触发器）；重新投影在写入者的行锁上等待、读到提交后的新存档（被删的行不复活），以及反向——写入等重新投影提交后覆盖；两个实例同时回填 + 8 个写入者 + 按固定顺序加锁的双账号交易，结束后每行投影与存档推算逐条一致、无死锁、无待修复；投影失败记入待修复并修复；并发写入下 /top、/rivals 全部成功。2026-10-05 一次 2 万账号的运行：回填与写入重叠 7 秒、12.4 万次写入、2 万笔交易，0 错误、0 不一致。
+
+已有的并发检查也可以在装好投影触发器的情况下重跑（每次账号写入都会触发它）：
+
+```sh
+PG_WITH_PROJECTION=1 PG_TEST_URL=... node scripts/pg/check_concurrency_pg.mjs
+PG_WITH_PROJECTION=1 PG_TEST_URL=... node scripts/pg/check_concurrency_pg.mjs check_squad_sync check_save_race check_ladder_match
+```
+
+`check_cards_api` 不能走这个改写器：它按相对路径读 `public/faces/*.webp`，复制到临时目录后找不到文件（与投影无关，不加投影也一样）。

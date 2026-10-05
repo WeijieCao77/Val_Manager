@@ -8,6 +8,7 @@ import { TEAM_CUP_HOURS, TEAM_CUP_MIN_TEAMS, TEAM_DUEL_COINS, TEAM_SIZE, teamCup
 import { PACKS } from '../../engine/gacha'
 import { serverNow } from '../../engine/account'
 import CupLineupConfirm, { SignedLineup } from './CupLineupConfirm'
+import Ticking from './Ticking'
 
 const clock = (ms: number) =>
   new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms))
@@ -39,7 +40,6 @@ export default function TeamCup() {
   const [st, setSt] = useState<TeamCupState | null>(null)
   const [why, setWhy] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [now, setNow] = useState(() => serverNow())
 
   const pull = useCallback(async () => {
     const r = await teamCupState()
@@ -49,10 +49,9 @@ export default function TeamCup() {
     void pull()
     const hidden = () => document.visibilityState === 'hidden'
     const poll = setInterval(() => { if (!hidden()) void pull() }, 45_000)
-    const tick = setInterval(() => { if (!hidden()) setNow(serverNow()) }, 1000)
     const onVis = () => { if (!hidden()) void pull() }
     document.addEventListener('visibilitychange', onVis)
-    return () => { clearInterval(poll); clearInterval(tick); document.removeEventListener('visibilitychange', onVis) }
+    return () => { clearInterval(poll); document.removeEventListener('visibilitychange', onVis) }
   }, [pull])
   // a round or a start falling due: ask again a few seconds after it
   const dueAt = st?.live?.nextAt ?? st?.next?.starts ?? null
@@ -106,7 +105,7 @@ export default function TeamCup() {
         {why && <p className="small warn">{why}</p>}
         {next && (
           <div className="row wrap" style={{ gap: 10, alignItems: 'center' }}>
-            <span className="small">下一场 <b>{clock(next.starts)}</b> · 还有 {countdown(next.starts - now)} · 已报名 <b>{next.signed}</b> 人{guess >= TEAM_CUP_MIN_TEAMS ? `（约 ${guess} 队）` : ''}</span>
+            <span className="small">下一场 <b>{clock(next.starts)}</b> · 还有 <Ticking>{(now) => countdown(next.starts - now)}</Ticking> · 已报名 <b>{next.signed}</b> 人{guess >= TEAM_CUP_MIN_TEAMS ? `（约 ${guess} 队）` : ''}</span>
             {next.joined
               ? <button className="sm ghost" disabled={busy} onClick={() => void leave()}>已报名 · 退出</button>
               : <button className="sm primary" disabled={busy} onClick={ask}>报名</button>}
@@ -129,7 +128,7 @@ export default function TeamCup() {
       {live && (
         <Panel title={`进行中 · ${live.teams} 队 · ${roundName(live.rounds, live.round)}`}>
           <p className="small muted" style={{ marginTop: 0 }}>
-            {live.entrants} 人参赛，共 {live.rounds} 轮。{live.nextAt ? <>下一轮 <b>{clock(live.nextAt)}</b>（{countdown(live.nextAt - now)}）</> : null}
+            {live.entrants} 人参赛，共 {live.rounds} 轮。{live.nextAt ? <>下一轮 <b>{clock(live.nextAt)}</b>（<Ticking>{(now) => countdown(live.nextAt! - now)}</Ticking>）</> : null}
           </p>
           {live.me ? <Mine cup={live} mine={live.me} /> : <p className="small faint" style={{ marginBottom: 0 }}>这一场你没报名。</p>}
         </Panel>

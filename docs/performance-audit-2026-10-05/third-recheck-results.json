@@ -1,0 +1,6 @@
+{
+  "command": "node --import tsx docs/performance-audit-2026-10-05/third-recheck-squad.mts",
+  "exitCode": 1,
+  "stdout": "ok   夹具：卡够组三套不同的阵容  — 12\nok   前置：新操作已经让客户端和服务端采用 C\nFAIL 旧冲突回包不能覆盖更新回包的 C  — knownRev 17 newerRev 17; local p:P37,p:P45,p:P90,p:P229,p:P273\nFAIL 旧冲突回包不能把服务端也写回 B  — p:P37,p:P45,p:P90,p:P229,p:P273\n\n2 failures\n",
+  "stderr": ""
+}

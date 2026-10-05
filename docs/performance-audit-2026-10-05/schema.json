@@ -1,0 +1,3283 @@
+{
+  "source": "Current checkout SCHEMAS applied to fresh local in-memory PGlite; not production",
+  "tables": [
+    {
+      "table_name": "card_accounts",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "seen",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "rev",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "state",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "saved",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "ladder_seen",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "ladder_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "suspect",
+      "data_type": "boolean",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "pardon_seen",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "pardon_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "verified",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_accounts",
+      "column_name": "verify_via",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "from_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "to_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "card_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "note",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "sent",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_gifts",
+      "column_name": "claimed",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "seller_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "card_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "level",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "ask",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "closed",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "ignored",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "ends",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "buyout",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "hours",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "cur_price",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "top_bid",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "top_buyer_h",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "open_n",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "bid_n",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_listings",
+      "column_name": "draw_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "to_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "kind",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "card_id",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "level",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "coins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "pack",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "count",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "body",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "made",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_mail",
+      "column_name": "taken",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "listing",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "buyer_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "price",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "made",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_offers",
+      "column_name": "settled",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_phones",
+      "column_name": "phone_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_phones",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_phones",
+      "column_name": "id_enc",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_phones",
+      "column_name": "last4",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_phones",
+      "column_name": "bound",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_requests",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_requests",
+      "column_name": "request_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_requests",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_requests",
+      "column_name": "reply",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_requests",
+      "column_name": "at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_sms",
+      "column_name": "phone_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_sms",
+      "column_name": "code_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_sms",
+      "column_name": "sent",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_sms",
+      "column_name": "tries",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_sms",
+      "column_name": "ip",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "from_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "to_h",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "give_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "give_level",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "want_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "made",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "card_swaps",
+      "column_name": "settled",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "message_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "before_status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "after_status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "reason",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "event",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "account_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "request_key",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "author",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "target",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "body",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "reviewed",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "champion_messages",
+      "column_name": "reason",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "day",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "visitors",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "new_visitors",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "sessions",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "active_min",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "career_starts",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "turns",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "card_starts",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "card_pulls",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "card_matches",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "errors",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "events",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_stats",
+      "column_name": "built",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "nat",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "five",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "score",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "enc_entries",
+      "column_name": "updated",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "ts",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "client_t",
+      "data_type": "bigint",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "events",
+      "column_name": "visitor_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "session_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "seq",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "events",
+      "column_name": "device",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "events",
+      "column_name": "tz",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "events",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "events",
+      "column_name": "props",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "events",
+      "column_name": "n",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "rule",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "evidence",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "by",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "made",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "market_bans",
+      "column_name": "lifted",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "column_name": "hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "column_name": "compressed",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "five",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "score",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "alive",
+      "data_type": "boolean",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "wins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "byes",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "out_round",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "place",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "joined",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "swiss_wins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "swiss_losses",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "swiss_real_wins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "playoff_wins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "floats",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "map_diff",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "met",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "playoff_seed",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "column_name": "pick",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "slot",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "a",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "b",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "winner",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "maps_a",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "maps_b",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "detail",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "stage",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "stage_round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "bo",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "lease_until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "lease_token",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "attempts",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "column_name": "error",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "starts",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "rounds",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "step_sec",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "seed",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "entrants",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "champion",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "finished",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "balance_version",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "engine_hash",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "format_version",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "phase",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "stage_round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "open_cups",
+      "column_name": "playoff",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "day",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "career_starts",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "old_turns",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "card_starts",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "card_pulls",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "card_matches",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "errors",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "column_name": "events",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "column_name": "day",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "column_name": "session_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "column_name": "secs",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "column_name": "turn_total",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_visitors",
+      "column_name": "day",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_day_visitors",
+      "column_name": "visitor_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_state",
+      "column_name": "key",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_state",
+      "column_name": "last_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rollup_state",
+      "column_name": "bootstrap_day",
+      "data_type": "date",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "rollup_state",
+      "column_name": "updated",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_config",
+      "column_name": "key",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_config",
+      "column_name": "value",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_config",
+      "column_name": "updated",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_profiles",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_profiles",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_profiles",
+      "column_name": "seen",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "site_profiles",
+      "column_name": "profile",
+      "data_type": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "joined",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "five",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "score",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "team",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "duels",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "duel_wins",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "place",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "column_name": "pick",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "column_name": "id_hash",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "cup_id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "slot",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "team_a",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "team_b",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "wins_a",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "wins_b",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "winner",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "column_name": "duels",
+      "data_type": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "starts",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "seed",
+      "data_type": "bigint",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "round",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "rounds",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "step_sec",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "entrants",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "teams",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "champion",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "balance_version",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "created",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "team_cups",
+      "column_name": "finished",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "visitors",
+      "column_name": "visitor_id",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "visitors",
+      "column_name": "first_seen",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "visitors",
+      "column_name": "last_seen",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "visitors",
+      "column_name": "device",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "visitors",
+      "column_name": "host",
+      "data_type": "text",
+      "is_nullable": "YES"
+    }
+  ],
+  "indexes": [
+    {
+      "tablename": "card_accounts",
+      "indexname": "card_accounts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_accounts_pkey ON public.card_accounts USING btree (id_hash)"
+    },
+    {
+      "tablename": "card_accounts",
+      "indexname": "card_code_idx",
+      "indexdef": "CREATE INDEX card_code_idx ON public.card_accounts USING btree (\"left\"(id_hash, 8))"
+    },
+    {
+      "tablename": "card_accounts",
+      "indexname": "card_seen_idx",
+      "indexdef": "CREATE INDEX card_seen_idx ON public.card_accounts USING btree (seen DESC)"
+    },
+    {
+      "tablename": "card_gifts",
+      "indexname": "card_gifts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_gifts_pkey ON public.card_gifts USING btree (id)"
+    },
+    {
+      "tablename": "card_gifts",
+      "indexname": "gift_to_idx",
+      "indexdef": "CREATE INDEX gift_to_idx ON public.card_gifts USING btree (to_h) WHERE (claimed IS NULL)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "card_listings_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_listings_pkey ON public.card_listings USING btree (id)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_draw_idx",
+      "indexdef": "CREATE INDEX listing_draw_idx ON public.card_listings USING btree (draw_at) WHERE ((status = 'open'::text) AND (draw_at IS NOT NULL))"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_ends_idx",
+      "indexdef": "CREATE INDEX listing_ends_idx ON public.card_listings USING btree (ends) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_open_idx",
+      "indexdef": "CREATE INDEX listing_open_idx ON public.card_listings USING btree (created DESC) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_seller_idx",
+      "indexdef": "CREATE INDEX listing_seller_idx ON public.card_listings USING btree (seller_h)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_shelf_card_idx",
+      "indexdef": "CREATE INDEX listing_shelf_card_idx ON public.card_listings USING btree (card_id) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_shelf_ends_idx",
+      "indexdef": "CREATE INDEX listing_shelf_ends_idx ON public.card_listings USING btree (ends, id) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_shelf_new_idx",
+      "indexdef": "CREATE INDEX listing_shelf_new_idx ON public.card_listings USING btree (created DESC, id) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_shelf_price_idx",
+      "indexdef": "CREATE INDEX listing_shelf_price_idx ON public.card_listings USING btree (cur_price, id) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_listings",
+      "indexname": "listing_sold_card_idx",
+      "indexdef": "CREATE INDEX listing_sold_card_idx ON public.card_listings USING btree (card_id, closed DESC) WHERE (status = 'sold'::text)"
+    },
+    {
+      "tablename": "card_mail",
+      "indexname": "card_mail_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_mail_pkey ON public.card_mail USING btree (id)"
+    },
+    {
+      "tablename": "card_mail",
+      "indexname": "mail_to_idx",
+      "indexdef": "CREATE INDEX mail_to_idx ON public.card_mail USING btree (to_h) WHERE (taken IS NULL)"
+    },
+    {
+      "tablename": "card_offers",
+      "indexname": "card_offers_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_offers_pkey ON public.card_offers USING btree (id)"
+    },
+    {
+      "tablename": "card_offers",
+      "indexname": "offer_accepted_buyer_idx",
+      "indexdef": "CREATE INDEX offer_accepted_buyer_idx ON public.card_offers USING btree (buyer_h) WHERE (status = 'accepted'::text)"
+    },
+    {
+      "tablename": "card_offers",
+      "indexname": "offer_buyer_idx",
+      "indexdef": "CREATE INDEX offer_buyer_idx ON public.card_offers USING btree (buyer_h)"
+    },
+    {
+      "tablename": "card_offers",
+      "indexname": "offer_listing_idx",
+      "indexdef": "CREATE INDEX offer_listing_idx ON public.card_offers USING btree (listing)"
+    },
+    {
+      "tablename": "card_offers",
+      "indexname": "offer_open_idx",
+      "indexdef": "CREATE INDEX offer_open_idx ON public.card_offers USING btree (listing) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_phones",
+      "indexname": "card_phones_id_hash_key",
+      "indexdef": "CREATE UNIQUE INDEX card_phones_id_hash_key ON public.card_phones USING btree (id_hash)"
+    },
+    {
+      "tablename": "card_phones",
+      "indexname": "card_phones_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_phones_pkey ON public.card_phones USING btree (phone_h)"
+    },
+    {
+      "tablename": "card_requests",
+      "indexname": "card_requests_at_idx",
+      "indexdef": "CREATE INDEX card_requests_at_idx ON public.card_requests USING btree (at)"
+    },
+    {
+      "tablename": "card_requests",
+      "indexname": "card_requests_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_requests_pkey ON public.card_requests USING btree (id_hash, request_id)"
+    },
+    {
+      "tablename": "card_sms",
+      "indexname": "card_sms_phone_idx",
+      "indexdef": "CREATE INDEX card_sms_phone_idx ON public.card_sms USING btree (phone_h, sent DESC)"
+    },
+    {
+      "tablename": "card_swaps",
+      "indexname": "card_swaps_pkey",
+      "indexdef": "CREATE UNIQUE INDEX card_swaps_pkey ON public.card_swaps USING btree (id)"
+    },
+    {
+      "tablename": "card_swaps",
+      "indexname": "swap_from_idx",
+      "indexdef": "CREATE INDEX swap_from_idx ON public.card_swaps USING btree (from_h) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "card_swaps",
+      "indexname": "swap_to_idx",
+      "indexdef": "CREATE INDEX swap_to_idx ON public.card_swaps USING btree (to_h) WHERE (status = 'open'::text)"
+    },
+    {
+      "tablename": "champion_message_reviews",
+      "indexname": "champion_message_reviews_pkey",
+      "indexdef": "CREATE UNIQUE INDEX champion_message_reviews_pkey ON public.champion_message_reviews USING btree (id)"
+    },
+    {
+      "tablename": "champion_messages",
+      "indexname": "champion_messages_account_hash_request_key_key",
+      "indexdef": "CREATE UNIQUE INDEX champion_messages_account_hash_request_key_key ON public.champion_messages USING btree (account_hash, request_key)"
+    },
+    {
+      "tablename": "champion_messages",
+      "indexname": "champion_messages_account_idx",
+      "indexdef": "CREATE INDEX champion_messages_account_idx ON public.champion_messages USING btree (account_hash, created DESC)"
+    },
+    {
+      "tablename": "champion_messages",
+      "indexname": "champion_messages_pkey",
+      "indexdef": "CREATE UNIQUE INDEX champion_messages_pkey ON public.champion_messages USING btree (id)"
+    },
+    {
+      "tablename": "champion_messages",
+      "indexname": "champion_messages_public_idx",
+      "indexdef": "CREATE INDEX champion_messages_public_idx ON public.champion_messages USING btree (event, status, created DESC)"
+    },
+    {
+      "tablename": "daily_stats",
+      "indexname": "daily_stats_pkey",
+      "indexdef": "CREATE UNIQUE INDEX daily_stats_pkey ON public.daily_stats USING btree (day)"
+    },
+    {
+      "tablename": "enc_entries",
+      "indexname": "enc_entries_pkey",
+      "indexdef": "CREATE UNIQUE INDEX enc_entries_pkey ON public.enc_entries USING btree (id_hash)"
+    },
+    {
+      "tablename": "enc_entries",
+      "indexname": "enc_entries_updated_idx",
+      "indexdef": "CREATE INDEX enc_entries_updated_idx ON public.enc_entries USING btree (updated DESC)"
+    },
+    {
+      "tablename": "events",
+      "indexname": "events_dedupe_idx",
+      "indexdef": "CREATE UNIQUE INDEX events_dedupe_idx ON public.events USING btree (session_id, n) WHERE (n IS NOT NULL)"
+    },
+    {
+      "tablename": "events",
+      "indexname": "events_name_idx",
+      "indexdef": "CREATE INDEX events_name_idx ON public.events USING btree (name, ts DESC)"
+    },
+    {
+      "tablename": "events",
+      "indexname": "events_pkey",
+      "indexdef": "CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)"
+    },
+    {
+      "tablename": "events",
+      "indexname": "events_ts_idx",
+      "indexdef": "CREATE INDEX events_ts_idx ON public.events USING btree (ts DESC)"
+    },
+    {
+      "tablename": "events",
+      "indexname": "events_visitor_idx",
+      "indexdef": "CREATE INDEX events_visitor_idx ON public.events USING btree (visitor_id, ts)"
+    },
+    {
+      "tablename": "market_bans",
+      "indexname": "market_bans_pkey",
+      "indexdef": "CREATE UNIQUE INDEX market_bans_pkey ON public.market_bans USING btree (id)"
+    },
+    {
+      "tablename": "market_bans",
+      "indexname": "market_bans_who_idx",
+      "indexdef": "CREATE INDEX market_bans_who_idx ON public.market_bans USING btree (id_hash, made DESC)"
+    },
+    {
+      "tablename": "open_cup_engine_builds",
+      "indexname": "open_cup_engine_builds_pkey",
+      "indexdef": "CREATE UNIQUE INDEX open_cup_engine_builds_pkey ON public.open_cup_engine_builds USING btree (hash)"
+    },
+    {
+      "tablename": "open_cup_entries",
+      "indexname": "open_cup_entries_pkey",
+      "indexdef": "CREATE UNIQUE INDEX open_cup_entries_pkey ON public.open_cup_entries USING btree (cup_id, id_hash)"
+    },
+    {
+      "tablename": "open_cup_entries",
+      "indexname": "open_cup_entries_who_idx",
+      "indexdef": "CREATE INDEX open_cup_entries_who_idx ON public.open_cup_entries USING btree (id_hash, cup_id)"
+    },
+    {
+      "tablename": "open_cup_matches",
+      "indexname": "open_cup_matches_a_idx",
+      "indexdef": "CREATE INDEX open_cup_matches_a_idx ON public.open_cup_matches USING btree (cup_id, a)"
+    },
+    {
+      "tablename": "open_cup_matches",
+      "indexname": "open_cup_matches_b_idx",
+      "indexdef": "CREATE INDEX open_cup_matches_b_idx ON public.open_cup_matches USING btree (cup_id, b)"
+    },
+    {
+      "tablename": "open_cup_matches",
+      "indexname": "open_cup_matches_pending_idx",
+      "indexdef": "CREATE INDEX open_cup_matches_pending_idx ON public.open_cup_matches USING btree (cup_id, round, slot) WHERE (winner IS NULL)"
+    },
+    {
+      "tablename": "open_cup_matches",
+      "indexname": "open_cup_matches_pkey",
+      "indexdef": "CREATE UNIQUE INDEX open_cup_matches_pkey ON public.open_cup_matches USING btree (cup_id, round, slot)"
+    },
+    {
+      "tablename": "open_cup_matches",
+      "indexname": "open_cup_matches_stage_idx",
+      "indexdef": "CREATE INDEX open_cup_matches_stage_idx ON public.open_cup_matches USING btree (cup_id, stage, round, slot)"
+    },
+    {
+      "tablename": "open_cup_payouts",
+      "indexname": "open_cup_payouts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX open_cup_payouts_pkey ON public.open_cup_payouts USING btree (cup_id, id_hash)"
+    },
+    {
+      "tablename": "open_cups",
+      "indexname": "open_cups_champion_idx",
+      "indexdef": "CREATE INDEX open_cups_champion_idx ON public.open_cups USING btree (champion, finished) WHERE (champion IS NOT NULL)"
+    },
+    {
+      "tablename": "open_cups",
+      "indexname": "open_cups_pkey",
+      "indexdef": "CREATE UNIQUE INDEX open_cups_pkey ON public.open_cups USING btree (id)"
+    },
+    {
+      "tablename": "open_cups",
+      "indexname": "open_cups_starts_key",
+      "indexdef": "CREATE UNIQUE INDEX open_cups_starts_key ON public.open_cups USING btree (starts)"
+    },
+    {
+      "tablename": "open_cups",
+      "indexname": "open_cups_status_idx",
+      "indexdef": "CREATE INDEX open_cups_status_idx ON public.open_cups USING btree (status, starts)"
+    },
+    {
+      "tablename": "rollup_day_counts",
+      "indexname": "rollup_day_counts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rollup_day_counts_pkey ON public.rollup_day_counts USING btree (day)"
+    },
+    {
+      "tablename": "rollup_day_sessions",
+      "indexname": "rollup_day_sessions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rollup_day_sessions_pkey ON public.rollup_day_sessions USING btree (day, session_id)"
+    },
+    {
+      "tablename": "rollup_day_visitors",
+      "indexname": "rollup_day_visitors_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rollup_day_visitors_pkey ON public.rollup_day_visitors USING btree (day, visitor_id)"
+    },
+    {
+      "tablename": "rollup_state",
+      "indexname": "rollup_state_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rollup_state_pkey ON public.rollup_state USING btree (key)"
+    },
+    {
+      "tablename": "site_config",
+      "indexname": "site_config_pkey",
+      "indexdef": "CREATE UNIQUE INDEX site_config_pkey ON public.site_config USING btree (key)"
+    },
+    {
+      "tablename": "site_profiles",
+      "indexname": "site_profiles_pkey",
+      "indexdef": "CREATE UNIQUE INDEX site_profiles_pkey ON public.site_profiles USING btree (id_hash)"
+    },
+    {
+      "tablename": "team_cup_entries",
+      "indexname": "team_cup_entries_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_cup_entries_pkey ON public.team_cup_entries USING btree (cup_id, id_hash)"
+    },
+    {
+      "tablename": "team_cup_entries",
+      "indexname": "team_cup_entries_team_idx",
+      "indexdef": "CREATE INDEX team_cup_entries_team_idx ON public.team_cup_entries USING btree (cup_id, team)"
+    },
+    {
+      "tablename": "team_cup_entries",
+      "indexname": "team_cup_entries_who_idx",
+      "indexdef": "CREATE INDEX team_cup_entries_who_idx ON public.team_cup_entries USING btree (id_hash, cup_id DESC)"
+    },
+    {
+      "tablename": "team_cup_payouts",
+      "indexname": "team_cup_payouts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_cup_payouts_pkey ON public.team_cup_payouts USING btree (cup_id, id_hash)"
+    },
+    {
+      "tablename": "team_cup_ties",
+      "indexname": "team_cup_ties_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_cup_ties_pkey ON public.team_cup_ties USING btree (cup_id, round, slot)"
+    },
+    {
+      "tablename": "team_cups",
+      "indexname": "team_cups_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_cups_pkey ON public.team_cups USING btree (id)"
+    },
+    {
+      "tablename": "team_cups",
+      "indexname": "team_cups_starts_key",
+      "indexdef": "CREATE UNIQUE INDEX team_cups_starts_key ON public.team_cups USING btree (starts)"
+    },
+    {
+      "tablename": "visitors",
+      "indexname": "visitors_first_idx",
+      "indexdef": "CREATE INDEX visitors_first_idx ON public.visitors USING btree (first_seen)"
+    },
+    {
+      "tablename": "visitors",
+      "indexname": "visitors_pkey",
+      "indexdef": "CREATE UNIQUE INDEX visitors_pkey ON public.visitors USING btree (visitor_id)"
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_suspect_not_null",
+      "contype": "n",
+      "definition": "NOT NULL suspect"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_seen_not_null",
+      "contype": "n",
+      "definition": "NOT NULL seen"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_rev_not_null",
+      "contype": "n",
+      "definition": "NOT NULL rev"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_state_not_null",
+      "contype": "n",
+      "definition": "NOT NULL state"
+    },
+    {
+      "table_name": "card_accounts",
+      "conname": "card_accounts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id_hash)"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_from_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL from_h"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_to_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL to_h"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_card_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_id"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_sent_not_null",
+      "contype": "n",
+      "definition": "NOT NULL sent"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "card_gifts",
+      "conname": "card_gifts_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_level_not_null",
+      "contype": "n",
+      "definition": "NOT NULL level"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_hours_not_null",
+      "contype": "n",
+      "definition": "NOT NULL hours"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_ignored_not_null",
+      "contype": "n",
+      "definition": "NOT NULL ignored"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_seller_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL seller_h"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_card_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_id"
+    },
+    {
+      "table_name": "card_listings",
+      "conname": "card_listings_ask_not_null",
+      "contype": "n",
+      "definition": "NOT NULL ask"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_level_not_null",
+      "contype": "n",
+      "definition": "NOT NULL level"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_to_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL to_h"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_kind_not_null",
+      "contype": "n",
+      "definition": "NOT NULL kind"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_coins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL coins"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_count_not_null",
+      "contype": "n",
+      "definition": "NOT NULL count"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_made_not_null",
+      "contype": "n",
+      "definition": "NOT NULL made"
+    },
+    {
+      "table_name": "card_mail",
+      "conname": "card_mail_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_buyer_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL buyer_h"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_price_not_null",
+      "contype": "n",
+      "definition": "NOT NULL price"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_made_not_null",
+      "contype": "n",
+      "definition": "NOT NULL made"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_listing_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (listing) REFERENCES card_listings(id)"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "card_offers",
+      "conname": "card_offers_listing_not_null",
+      "contype": "n",
+      "definition": "NOT NULL listing"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (phone_h)"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_id_hash_key",
+      "contype": "u",
+      "definition": "UNIQUE (id_hash)"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_phone_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL phone_h"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_id_enc_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_enc"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_last4_not_null",
+      "contype": "n",
+      "definition": "NOT NULL last4"
+    },
+    {
+      "table_name": "card_phones",
+      "conname": "card_phones_bound_not_null",
+      "contype": "n",
+      "definition": "NOT NULL bound"
+    },
+    {
+      "table_name": "card_requests",
+      "conname": "card_requests_action_not_null",
+      "contype": "n",
+      "definition": "NOT NULL action"
+    },
+    {
+      "table_name": "card_requests",
+      "conname": "card_requests_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id_hash, request_id)"
+    },
+    {
+      "table_name": "card_requests",
+      "conname": "card_requests_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "card_requests",
+      "conname": "card_requests_request_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL request_id"
+    },
+    {
+      "table_name": "card_requests",
+      "conname": "card_requests_at_not_null",
+      "contype": "n",
+      "definition": "NOT NULL at"
+    },
+    {
+      "table_name": "card_sms",
+      "conname": "card_sms_phone_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL phone_h"
+    },
+    {
+      "table_name": "card_sms",
+      "conname": "card_sms_code_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL code_h"
+    },
+    {
+      "table_name": "card_sms",
+      "conname": "card_sms_tries_not_null",
+      "contype": "n",
+      "definition": "NOT NULL tries"
+    },
+    {
+      "table_name": "card_sms",
+      "conname": "card_sms_sent_not_null",
+      "contype": "n",
+      "definition": "NOT NULL sent"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_to_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL to_h"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_give_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL give_id"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_give_level_not_null",
+      "contype": "n",
+      "definition": "NOT NULL give_level"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_want_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL want_id"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_made_not_null",
+      "contype": "n",
+      "definition": "NOT NULL made"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "card_swaps",
+      "conname": "card_swaps_from_h_not_null",
+      "contype": "n",
+      "definition": "NOT NULL from_h"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_message_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL message_id"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_before_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL before_status"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_after_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL after_status"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_reason_not_null",
+      "contype": "n",
+      "definition": "NOT NULL reason"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "champion_message_reviews",
+      "conname": "champion_message_reviews_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_body_not_null",
+      "contype": "n",
+      "definition": "NOT NULL body"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_target_not_null",
+      "contype": "n",
+      "definition": "NOT NULL target"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_author_not_null",
+      "contype": "n",
+      "definition": "NOT NULL author"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_request_key_not_null",
+      "contype": "n",
+      "definition": "NOT NULL request_key"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_account_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL account_hash"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_event_not_null",
+      "contype": "n",
+      "definition": "NOT NULL event"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_status_check",
+      "contype": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_account_hash_request_key_key",
+      "contype": "u",
+      "definition": "UNIQUE (account_hash, request_key)"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_reason_not_null",
+      "contype": "n",
+      "definition": "NOT NULL reason"
+    },
+    {
+      "table_name": "champion_messages",
+      "conname": "champion_messages_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_career_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL career_starts"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_turns_not_null",
+      "contype": "n",
+      "definition": "NOT NULL turns"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_card_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_starts"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_card_pulls_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_pulls"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_card_matches_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_matches"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_errors_not_null",
+      "contype": "n",
+      "definition": "NOT NULL errors"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_events_not_null",
+      "contype": "n",
+      "definition": "NOT NULL events"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_built_not_null",
+      "contype": "n",
+      "definition": "NOT NULL built"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (day)"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_day_not_null",
+      "contype": "n",
+      "definition": "NOT NULL day"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_visitors_not_null",
+      "contype": "n",
+      "definition": "NOT NULL visitors"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_new_visitors_not_null",
+      "contype": "n",
+      "definition": "NOT NULL new_visitors"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_sessions_not_null",
+      "contype": "n",
+      "definition": "NOT NULL sessions"
+    },
+    {
+      "table_name": "daily_stats",
+      "conname": "daily_stats_active_min_not_null",
+      "contype": "n",
+      "definition": "NOT NULL active_min"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id_hash)"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_updated_not_null",
+      "contype": "n",
+      "definition": "NOT NULL updated"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_five_not_null",
+      "contype": "n",
+      "definition": "NOT NULL five"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_score_not_null",
+      "contype": "n",
+      "definition": "NOT NULL score"
+    },
+    {
+      "table_name": "enc_entries",
+      "conname": "enc_entries_nat_not_null",
+      "contype": "n",
+      "definition": "NOT NULL nat"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_name_not_null",
+      "contype": "n",
+      "definition": "NOT NULL name"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_ts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL ts"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_visitor_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL visitor_id"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "events",
+      "conname": "events_session_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL session_id"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_made_not_null",
+      "contype": "n",
+      "definition": "NOT NULL made"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_evidence_not_null",
+      "contype": "n",
+      "definition": "NOT NULL evidence"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_by_not_null",
+      "contype": "n",
+      "definition": "NOT NULL by"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_until_not_null",
+      "contype": "n",
+      "definition": "NOT NULL until"
+    },
+    {
+      "table_name": "market_bans",
+      "conname": "market_bans_rule_not_null",
+      "contype": "n",
+      "definition": "NOT NULL rule"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "conname": "open_cup_engine_builds_compressed_not_null",
+      "contype": "n",
+      "definition": "NOT NULL compressed"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "conname": "open_cup_engine_builds_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "conname": "open_cup_engine_builds_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (hash)"
+    },
+    {
+      "table_name": "open_cup_engine_builds",
+      "conname": "open_cup_engine_builds_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL hash"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_joined_not_null",
+      "contype": "n",
+      "definition": "NOT NULL joined"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_met_not_null",
+      "contype": "n",
+      "definition": "NOT NULL met"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_map_diff_not_null",
+      "contype": "n",
+      "definition": "NOT NULL map_diff"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_wins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL wins"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_byes_not_null",
+      "contype": "n",
+      "definition": "NOT NULL byes"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, id_hash)"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_floats_not_null",
+      "contype": "n",
+      "definition": "NOT NULL floats"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_playoff_wins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL playoff_wins"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_swiss_real_wins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL swiss_real_wins"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_swiss_losses_not_null",
+      "contype": "n",
+      "definition": "NOT NULL swiss_losses"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_swiss_wins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL swiss_wins"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "open_cup_entries",
+      "conname": "open_cup_entries_alive_not_null",
+      "contype": "n",
+      "definition": "NOT NULL alive"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, round, slot)"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_slot_not_null",
+      "contype": "n",
+      "definition": "NOT NULL slot"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_stage_not_null",
+      "contype": "n",
+      "definition": "NOT NULL stage"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_stage_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL stage_round"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_attempts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL attempts"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL round"
+    },
+    {
+      "table_name": "open_cup_matches",
+      "conname": "open_cup_matches_a_not_null",
+      "contype": "n",
+      "definition": "NOT NULL a"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "conname": "open_cup_payouts_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "conname": "open_cup_payouts_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "conname": "open_cup_payouts_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "open_cup_payouts",
+      "conname": "open_cup_payouts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, id_hash)"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_stage_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL stage_round"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_rounds_not_null",
+      "contype": "n",
+      "definition": "NOT NULL rounds"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_step_sec_not_null",
+      "contype": "n",
+      "definition": "NOT NULL step_sec"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_seed_not_null",
+      "contype": "n",
+      "definition": "NOT NULL seed"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_entrants_not_null",
+      "contype": "n",
+      "definition": "NOT NULL entrants"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_starts_key",
+      "contype": "u",
+      "definition": "UNIQUE (starts)"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_balance_version_not_null",
+      "contype": "n",
+      "definition": "NOT NULL balance_version"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_phase_not_null",
+      "contype": "n",
+      "definition": "NOT NULL phase"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_format_version_not_null",
+      "contype": "n",
+      "definition": "NOT NULL format_version"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL starts"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "open_cups",
+      "conname": "open_cups_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL round"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_errors_not_null",
+      "contype": "n",
+      "definition": "NOT NULL errors"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_events_not_null",
+      "contype": "n",
+      "definition": "NOT NULL events"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (day)"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_card_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_starts"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_old_turns_not_null",
+      "contype": "n",
+      "definition": "NOT NULL old_turns"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_career_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL career_starts"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_day_not_null",
+      "contype": "n",
+      "definition": "NOT NULL day"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_card_matches_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_matches"
+    },
+    {
+      "table_name": "rollup_day_counts",
+      "conname": "rollup_day_counts_card_pulls_not_null",
+      "contype": "n",
+      "definition": "NOT NULL card_pulls"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "conname": "rollup_day_sessions_secs_not_null",
+      "contype": "n",
+      "definition": "NOT NULL secs"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "conname": "rollup_day_sessions_day_not_null",
+      "contype": "n",
+      "definition": "NOT NULL day"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "conname": "rollup_day_sessions_session_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL session_id"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "conname": "rollup_day_sessions_turn_total_not_null",
+      "contype": "n",
+      "definition": "NOT NULL turn_total"
+    },
+    {
+      "table_name": "rollup_day_sessions",
+      "conname": "rollup_day_sessions_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (day, session_id)"
+    },
+    {
+      "table_name": "rollup_day_visitors",
+      "conname": "rollup_day_visitors_day_not_null",
+      "contype": "n",
+      "definition": "NOT NULL day"
+    },
+    {
+      "table_name": "rollup_day_visitors",
+      "conname": "rollup_day_visitors_visitor_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL visitor_id"
+    },
+    {
+      "table_name": "rollup_day_visitors",
+      "conname": "rollup_day_visitors_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (day, visitor_id)"
+    },
+    {
+      "table_name": "rollup_state",
+      "conname": "rollup_state_key_not_null",
+      "contype": "n",
+      "definition": "NOT NULL key"
+    },
+    {
+      "table_name": "rollup_state",
+      "conname": "rollup_state_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "rollup_state",
+      "conname": "rollup_state_updated_not_null",
+      "contype": "n",
+      "definition": "NOT NULL updated"
+    },
+    {
+      "table_name": "rollup_state",
+      "conname": "rollup_state_last_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL last_id"
+    },
+    {
+      "table_name": "site_config",
+      "conname": "site_config_key_not_null",
+      "contype": "n",
+      "definition": "NOT NULL key"
+    },
+    {
+      "table_name": "site_config",
+      "conname": "site_config_value_not_null",
+      "contype": "n",
+      "definition": "NOT NULL value"
+    },
+    {
+      "table_name": "site_config",
+      "conname": "site_config_updated_not_null",
+      "contype": "n",
+      "definition": "NOT NULL updated"
+    },
+    {
+      "table_name": "site_config",
+      "conname": "site_config_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "site_profiles",
+      "conname": "site_profiles_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id_hash)"
+    },
+    {
+      "table_name": "site_profiles",
+      "conname": "site_profiles_seen_not_null",
+      "contype": "n",
+      "definition": "NOT NULL seen"
+    },
+    {
+      "table_name": "site_profiles",
+      "conname": "site_profiles_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "site_profiles",
+      "conname": "site_profiles_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "site_profiles",
+      "conname": "site_profiles_profile_not_null",
+      "contype": "n",
+      "definition": "NOT NULL profile"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_cup_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (cup_id) REFERENCES team_cups(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, id_hash)"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_duel_wins_not_null",
+      "contype": "n",
+      "definition": "NOT NULL duel_wins"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_duels_not_null",
+      "contype": "n",
+      "definition": "NOT NULL duels"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_joined_not_null",
+      "contype": "n",
+      "definition": "NOT NULL joined"
+    },
+    {
+      "table_name": "team_cup_entries",
+      "conname": "team_cup_entries_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "conname": "team_cup_payouts_cup_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (cup_id) REFERENCES team_cups(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "conname": "team_cup_payouts_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "conname": "team_cup_payouts_id_hash_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id_hash"
+    },
+    {
+      "table_name": "team_cup_payouts",
+      "conname": "team_cup_payouts_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, id_hash)"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_cup_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (cup_id) REFERENCES team_cups(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (cup_id, round, slot)"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_team_a_not_null",
+      "contype": "n",
+      "definition": "NOT NULL team_a"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_cup_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL cup_id"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL round"
+    },
+    {
+      "table_name": "team_cup_ties",
+      "conname": "team_cup_ties_slot_not_null",
+      "contype": "n",
+      "definition": "NOT NULL slot"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_status_not_null",
+      "contype": "n",
+      "definition": "NOT NULL status"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_starts_not_null",
+      "contype": "n",
+      "definition": "NOT NULL starts"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL id"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_entrants_not_null",
+      "contype": "n",
+      "definition": "NOT NULL entrants"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_teams_not_null",
+      "contype": "n",
+      "definition": "NOT NULL teams"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_created_not_null",
+      "contype": "n",
+      "definition": "NOT NULL created"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_starts_key",
+      "contype": "u",
+      "definition": "UNIQUE (starts)"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_seed_not_null",
+      "contype": "n",
+      "definition": "NOT NULL seed"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_round_not_null",
+      "contype": "n",
+      "definition": "NOT NULL round"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_rounds_not_null",
+      "contype": "n",
+      "definition": "NOT NULL rounds"
+    },
+    {
+      "table_name": "team_cups",
+      "conname": "team_cups_step_sec_not_null",
+      "contype": "n",
+      "definition": "NOT NULL step_sec"
+    },
+    {
+      "table_name": "visitors",
+      "conname": "visitors_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (visitor_id)"
+    },
+    {
+      "table_name": "visitors",
+      "conname": "visitors_last_seen_not_null",
+      "contype": "n",
+      "definition": "NOT NULL last_seen"
+    },
+    {
+      "table_name": "visitors",
+      "conname": "visitors_first_seen_not_null",
+      "contype": "n",
+      "definition": "NOT NULL first_seen"
+    },
+    {
+      "table_name": "visitors",
+      "conname": "visitors_visitor_id_not_null",
+      "contype": "n",
+      "definition": "NOT NULL visitor_id"
+    }
+  ],
+  "extra_boot_table": {
+    "table": "schema_marks",
+    "columns": "hash text primary key, at timestamptz default now()",
+    "source": "db-schema.js: MARK_TABLE; only created by applySchema mark path"
+  }
+}

@@ -1,5 +1,5 @@
 import { useDialogFocus } from './useDialogFocus'
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useCards } from './ctx'
 import CardFace, { CardSlot } from '../Card'
 import { Panel } from '../common'
@@ -19,6 +19,8 @@ import type { CardFilter } from './Filters'
 const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
 const COACH_WHY_CN = { club: '同队', coached: '带过', region: '同赛区' } as const
 const fmt = (n: number) => n.toLocaleString('en-US')
+/** cards drawn in the picker at a time: a collection of several hundred, each a scaled card face, froze the sheet on a phone */
+const PICK_PAGE = 60
 
 export default function SquadScreen() {
   const { g, version, commit, toast, go } = useCards()
@@ -35,6 +37,10 @@ export default function SquadScreen() {
   const [filter, setFilter] = useState<CardFilter>(EMPTY_FILTER)
   const [sharing, setSharing] = useState(false)
   const pickerRef = useDialogFocus(() => setPicking(null), picking !== null)
+  // typing filters on the next idle moment, not inside every keystroke
+  const query = useDeferredValue(q)
+  const [shown, setShown] = useState(PICK_PAGE)
+  useEffect(() => { setShown(PICK_PAGE) }, [picking, query, filter])
 
   const level = (id: string) => playLevelOf(g, id)
   // Not memoised on g.squad: the squad object is mutated in place, so a memo
@@ -50,7 +56,9 @@ export default function SquadScreen() {
   const filled = g.squad.slots.filter(Boolean).length
 
   /** everything that could go in this seat, before the filter bar narrows it */
+  // both lists only while the picker is open: every change to the five used to rebuild them for nothing
   const pool = useMemo(() => {
+    if (picking === null) return []
     const want = picking === 'coach' ? 'coach' : 'player'
     return collection(g)
       .filter(({ card }) => (want === 'coach' ? isCoachCard(card) : isPlayerCard(card)))
@@ -58,8 +66,9 @@ export default function SquadScreen() {
   }, [g, picking, version])
 
   const options = useMemo(() => {
+    if (picking === null) return []
     const want = picking === 'coach' ? 'coach' : 'player'
-    const text = q.trim().toLowerCase()
+    const text = query.trim().toLowerCase()
     return collection(g)
       .filter(({ card }) => (want === 'coach' ? isCoachCard(card) : isPlayerCard(card)))
       .filter(({ card }) => matchesFilter(card, filter))
@@ -80,7 +89,7 @@ export default function SquadScreen() {
         }
         return b.rating - a.rating
       })
-  }, [g, picking, q, filter, version])
+  }, [g, picking, query, filter, version])
 
   const pick = (cardId: string | null) => {
     if (picking === 'coach') g.squad.coach = cardId
@@ -329,8 +338,9 @@ export default function SquadScreen() {
                   ? <button onClick={() => { setPicking(null); go('packs') }}>去抽卡</button>
                   : <button onClick={() => { setQ(''); setFilter(EMPTY_FILTER) }}>清除搜索与筛选</button>}</div>
               ) : (
-                <div className="cm-grid sm">
-                  {options.map(({ card, owned }) => {
+                <>
+                <div className="cm-grid sm" aria-busy={query !== q}>
+                  {options.slice(0, shown).map(({ card, owned }) => {
                     const inSquad = g.squad.slots.includes(card.id) || g.squad.coach === card.id
                     // the same man under another card — picking him replaces
                     // that one rather than putting him on twice
@@ -352,6 +362,14 @@ export default function SquadScreen() {
                     )
                   })}
                 </div>
+                {options.length > shown && (
+                  <div className="row" style={{ justifyContent: 'center', marginTop: 12 }}>
+                    <button className="sm" onClick={() => setShown((n) => n + PICK_PAGE)}>
+                      再显示 {Math.min(PICK_PAGE, options.length - shown)} 张（共 {options.length} 张）
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>

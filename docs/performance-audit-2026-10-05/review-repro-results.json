@@ -1,0 +1,76 @@
+[
+  {
+    "case": "projection_failure",
+    "actual": {
+      "account": {
+        "suspect": true,
+        "points": "5000"
+      },
+      "status": {
+        "trigger": true,
+        "done": true
+      },
+      "board": [
+        {
+          "id_hash": "failure",
+          "name": "failure",
+          "div": 3,
+          "points": 7,
+          "stars": 0,
+          "wins": 1,
+          "losses": 0,
+          "rk": 1
+        }
+      ],
+      "rivalCount": 1
+    },
+    "finding": "Projection still considered ready after skipped write; flagged account remains on board and in rival pool."
+  },
+  {
+    "case": "backfill_stale_snapshot_after_delete",
+    "actual": {
+      "resurrectedBoard": {
+        "id_hash": "removed",
+        "name": "removed",
+        "div": 3,
+        "points": 7,
+        "stars": 0,
+        "wins": 1,
+        "losses": 0,
+        "rk": 2
+      },
+      "resurrectedRival": {
+        "id_hash": "removed",
+        "name": "removed",
+        "squad": {
+          "coach": "f",
+          "slots": [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e"
+          ]
+        },
+        "div": 3,
+        "points": 7,
+        "cards": {
+          "a": {
+            "evo": null,
+            "level": 1
+          }
+        }
+      }
+    },
+    "finding": "Old snapshot resurrects ladder and valid five removed by newer state. This is controlled snapshot injection, not real PG concurrency."
+  },
+  {
+    "case": "manager_unmount_during_yield",
+    "actual": {
+      "day": 11,
+      "commits": 0,
+      "saveCalls": 0
+    },
+    "finding": "Completed day mutates state, then unmount return skips handleReports/commit; parent flush sees no pending timer. Callback harness, not full browser test."
+  }
+]

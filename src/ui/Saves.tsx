@@ -144,7 +144,7 @@ export default function Saves() {
                     if (i <= cur) return
                     if (!await ask(`调到「${DIFFICULTY[d].label}」？${DIFFICULTY[d].blurb}调上去就不能再调回来。`, '调高难度')) return
                     const why = raiseDifficulty(game, d)
-                    commit()
+                    commit(true)
                     toast(why ?? `难度已调到「${DIFFICULTY[d].label}」。`)
                   }}>
                   {DIFFICULTY[d].label}
@@ -158,7 +158,7 @@ export default function Saves() {
           <input type="checkbox" checked={!!game.importLimit} style={{ width: 16, marginTop: 2 }}
             onChange={(e) => {
               game.importLimit = e.target.checked
-              commit()
+              commit(true)
               toast(e.target.checked
                 ? '已开启外援限制：每队最多两名外区选手，AI 同样受限，只限新引进。'
                 : '已关闭外援限制。')

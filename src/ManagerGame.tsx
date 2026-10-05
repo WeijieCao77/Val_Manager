@@ -46,6 +46,9 @@ import Dossier from './ui/Dossier'
 import ThemeToggle from './ui/ThemeToggle'
 import { nextInEvent, qualifiedEvent, upcomingInternational } from './engine/qualify'
 
+/** how long after a change the autosave is written (ManagerGame commit) */
+const SAVE_DELAY = 250
+
 const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'dashboard', label: '总览', group: '俱乐部' },
   { key: 'squad', label: '阵容' },
@@ -75,6 +78,8 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
   const mainRef = useRef<HTMLElement>(null)
   const goScreen = (k: string) => {
     countScreen(k)
+    // the save list reads the disk: put the latest autosave there first
+    if (k === 'saves' && unsaved()) saveNow()
     if (k !== 'dossier') setDossierId(null)
     setScreen(k)
   }
@@ -131,8 +136,21 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     return () => whenUnlocked(null)
   }, [])
 
-  const commit = useCallback(() => {
-    bump()
+  /**
+   * The autosave, written now: packed (a megabyte or more by midseason) and
+   * handed to localStorage, with the warnings that go with it.
+   */
+  const saveTimer = useRef<number | null>(null)
+  /**
+   * Set when the career has changed in memory and no commit has been made for
+   * it yet — the dashboard sets it after every simulated day of a turn, so a
+   * turn cut short (the back button between two days) is still written by the
+   * flushes below rather than dropped.
+   */
+  const dirtyRef = useRef(false)
+  const unsaved = () => saveTimer.current != null || dirtyRef.current
+  const saveNow = useCallback(() => {
+    if (saveTimer.current != null) { window.clearTimeout(saveTimer.current); saveTimer.current = null }
     if (gameRef.current) {
       try {
         // 'behind' means another tab holds a career further along than this
@@ -140,6 +158,9 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
         // point, but the player has to be told — silently not saving is the
         // failure they cannot see coming.
         const how = autosave(gameRef.current)
+        // unsaved until something was actually written: a refused or failed
+        // write leaves the mark, so the next hide or exit tries again
+        if (how !== 'behind') dirtyRef.current = false
         if (how === 'behind') setSaveWarn('behind')
         else if (how === 'shrunk') {
           // it fitted on the second attempt, so the career is safe — but the
@@ -191,6 +212,35 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     }
   }, [])
 
+  /**
+   * Re-render now; write the autosave a moment later.
+   *
+   * Packing and storing the career took tens of milliseconds on a phone, and
+   * it ran inside every click, before the click's own result could paint. The
+   * screen updates first now, and the write follows SAVE_DELAY later —
+   * one write for a burst of clicks. It is never left behind: hiding the tab,
+   * leaving the page, leaving the mode and opening 存档 all write at once, and
+   * `commit(true)` writes immediately for the few callers that need the disk
+   * to be current the moment they return (the tutorial handing the real save
+   * back, the 存档 screen's own settings).
+   */
+  const commit = useCallback((now = false) => {
+    bump()
+    if (now) { saveNow(); return }
+    saveTimer.current ??= window.setTimeout(saveNow, SAVE_DELAY)
+  }, [saveNow])
+  useEffect(() => {
+    const flush = () => { if (saveTimer.current != null || dirtyRef.current) saveNow() }
+    const onVis = () => { if (document.visibilityState === 'hidden') flush() }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVis)
+      flush()
+    }
+  }, [saveNow])
+
   const toast = useCallback((msg: string) => {
     setToastMsg(msg)
     window.setTimeout(() => setToastMsg((cur) => (cur === msg ? null : cur)), 3200)
@@ -224,6 +274,7 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     () => ({
       game: gameRef.current!,
       commit,
+      markUnsaved: () => { dirtyRef.current = true },
       toast,
       openPlayer: (id: string, renew = false) => { setPlayerRenew(renew); setPlayerId(id) },
       loadSlot: (slot: string) => {
@@ -515,7 +566,7 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
         })()}
         {game.midReview && !game.gameOver && <MidReview />}
         {game.gameOver && (
-          <GameOver onRestart={() => { gameRef.current = null; bump() }} />
+          <GameOver onRestart={() => { if (unsaved()) saveNow(); gameRef.current = null; bump() }} />
         )}
         {tour && !game.gameOver && (
           <Tutorial screen={screen} go={goScreen} playerOpen={!!playerId} onDone={() => {
