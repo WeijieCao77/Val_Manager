@@ -58,7 +58,7 @@ export const PLAYOFF_KEY = 'P'
 
 const t = (iso: string) => Date.parse(iso)
 
-/** Beijing 16:00 on the first playoff day, an hour before the first quarterfinal */
+/** Beijing 16:00 on Oct 7, an hour before the first quarterfinal (owner, 2026-10-05: 「北京时间10/7 16:00截止」) */
 export const CHAMPIONS_2026_PLAYOFF_DEADLINE = t('2026-10-07T08:00:00Z')
 
 export const CHAMPIONS_2026_PLAYOFFS: PlayoffEvent = {
@@ -69,9 +69,11 @@ export const CHAMPIONS_2026_PLAYOFFS: PlayoffEvent = {
   // A1 v C2, B1 v D2, D1 v A2, C1 v B2 (754730–754733), in vlr's order
   quarters: [['100T', 'G2'], ['VIT', 'NS'], ['NRG', 'T1'], ['PRX', 'LOUD']],
   deadline: CHAMPIONS_2026_PLAYOFF_DEADLINE,
-  // vlr.gg match times (data-utc-ts), 2026-10-03
+  // vlr.gg match times (data-utc-ts), 2026-10-03; on 2026-10-05 the quarterfinal
+  // days swapped — NRG–T1 and PRX–LOUD on Oct 7, 100T–G2 and VIT–NS on Oct 8 —
+  // with the bracket itself unchanged (754730–33 still feed the same semis)
   at: {
-    q1: t('2026-10-07T09:00Z'), q2: t('2026-10-07T12:00Z'), q3: t('2026-10-08T09:00Z'), q4: t('2026-10-08T12:00Z'),
+    q1: t('2026-10-08T09:00Z'), q2: t('2026-10-08T12:00Z'), q3: t('2026-10-07T09:00Z'), q4: t('2026-10-07T12:00Z'),
     l1a: t('2026-10-09T09:00Z'), l1b: t('2026-10-09T12:00Z'),
     s1: t('2026-10-10T09:00Z'), s2: t('2026-10-10T12:00Z'),
     l2a: t('2026-10-11T09:00Z'), l2b: t('2026-10-11T12:00Z'),
@@ -165,7 +167,7 @@ export type PlayoffReward = { elite: number; ten: number }
 /**
  * Paid once, after the grand final, on the champion and the runner-up the
  * saved bracket arrives at — only the highest tier, as in the groups.
- * PENDING the owner's decision (2026-10-03): a proposal shaped like the group tiers.
+ * Confirmed by the owner 2026-10-05 (「奖励就按你提的」), shaped like the group tiers.
  */
 export function playoffReward(predicted: { champion: string | null; runnerUp: string | null }, real: { champion: string; runnerUp: string }): PlayoffReward {
   const exact = Number(predicted.champion === real.champion) + Number(predicted.runnerUp === real.runnerUp)

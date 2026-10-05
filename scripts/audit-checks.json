@@ -116,6 +116,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_share_playoff.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_cup_path.ts"
   },
   {

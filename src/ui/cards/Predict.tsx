@@ -21,6 +21,7 @@ import {
 import type { PPicks, PSlot } from '../../engine/predictPlayoffs'
 import type { Picks, PredictGroup, SlotKey } from '../../engine/predict'
 import SharePrediction from './SharePrediction'
+import SharePlayoffPrediction from './SharePlayoffPrediction'
 import { fetchPredictTop } from '../../engine/account'
 import type { PredictBoard } from '../../engine/account'
 import './predict.css'
@@ -313,6 +314,7 @@ function Playoffs() {
   const claimed = !!row?.claimedAt
   const rewardText = reward?.ten ? `${reward.ten} 个十连包` : reward?.elite ? `${reward.elite} 个选拔包` : '没有猜中决赛队伍'
   const count = Object.keys(JSON.parse(savedKey) as PPicks).length
+  const [sharing, setSharing] = useState(false)
 
   const pick = (k: PSlot, tag: string) => {
     if (locked || !ready) return
@@ -365,9 +367,15 @@ function Playoffs() {
         </p>
         <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>
           {ready
-            ? <>点队伍选谁赢，整张对阵一起保存，北京时间 10 月 7 日 16:00 截止，此后不能修改。已保存 <b>{count}</b> / 14 场。</>
+            ? <>点队伍选谁赢，整张对阵一起保存，北京时间 <b>10 月 7 日 16:00</b> 截止，此后不能修改。已保存 <b>{count}</b> / 14 场。</>
             : <>小组赛 10 月 4 日打完、八强对阵确定后开放，北京时间 10 月 7 日 16:00 截止。</>}
         </p>
+        {ready && (
+          <div className="row" style={{ marginTop: 12, gap: 10 }}>
+            <button className="primary sm" disabled={!count} onClick={() => setSharing(true)}>分享我的预测</button>
+            <span className="tiny muted">{count ? '生成一张对阵图，可以保存或发给好友' : '保存预测后可以分享'}</span>
+          </div>
+        )}
         <div className="pd-rewards" aria-label="淘汰赛预测奖励">
           <b>总决赛后结算，只发最高一档，不叠加</b>
           <ul>
@@ -411,6 +419,7 @@ function Playoffs() {
             </> : <span className="small muted">{valid ? '预测已锁定，总决赛赛果确认后可在这里领取奖励。' : '你没有保存淘汰赛预测。'}</span>}
           </div>
         )}
+        {sharing && <SharePlayoffPrediction onClose={() => setSharing(false)} />}
         {ready && !locked && (
           <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
             <button className="primary sm" disabled={!dirty || busy || !cloud} onClick={() => void save()}>保存淘汰赛预测</button>

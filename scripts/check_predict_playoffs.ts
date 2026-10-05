@@ -57,7 +57,8 @@ check('每场都排在它依赖的比赛之后', P_SLOTS.every(k => {
     l2a: ['s2', 'l1a'], l2b: ['s1', 'l1b'], uf: ['s1', 's2'], l3: ['l2a', 'l2b'], lf: ['uf', 'l3'], gf: ['uf', 'lf'] }
   return (feeds[k] ?? []).every(f => PO.at[f as keyof typeof PO.at] < PO.at[k])
 }))
-check('北京时间 10 月 7 日 16:00 截止，在第一场八强之前', PO.deadline === Date.parse('2026-10-07T08:00Z') && PO.deadline < Math.min(...P_SLOTS.map(k => PO.at[k])))
+check('北京时间 10 月 7 日 16:00 截止，在第一场八强（10/7 17:00 NRG–T1）之前', PO.deadline === Date.parse('2026-10-07T08:00Z')
+  && Math.min(...P_SLOTS.map(k => PO.at[k])) === PO.at.q3 && PO.at.q3 - PO.deadline === 3600_000)
 check('淘汰赛的预测能存，排行接口认得它', PREDICT_EVENT_IDS.includes(PO.id) && PREDICT_EVENT_IDS.includes(EV.id))
 
 // ---- opening: closed until all four groups are confirmed and the draw is the real eight
