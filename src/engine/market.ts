@@ -13,6 +13,7 @@
  */
 import { rememberedId } from './cardid'
 import type { GachaState } from './gacha'
+import type { Evo } from './evolve'
 
 export { escrowCard, restoreCard, mailLine, applyMail, unreadMail, markMailSeen } from './inbox'
 export type { MailItem } from './inbox'
@@ -104,6 +105,8 @@ export interface Listing {
   id: string
   cardId: string
   level: number
+  /** the 进修 on a trained +5, which goes to whoever wins it */
+  evo?: Evo
   /** the starting price */
   ask: number
   seller: string
@@ -304,6 +307,8 @@ export interface SwapRow {
   who: string
   give: string
   giveLevel: number
+  /** the 进修 on the card offered, when it has one — it goes with the card */
+  giveEvo?: Evo
   want: string
   madeAt: number
 }

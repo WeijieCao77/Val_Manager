@@ -38,6 +38,7 @@ import type { MiniGame } from './minigame'
 import type { GachaState, QuestKey, Series } from './gacha'
 import { playArenaMatch, playCupMatch, playRivalMatch } from './arena'
 import { evolve } from './evolve'
+import { washEvo } from './evoWash'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, challengeDay, challengeSig, guessChallenge, setChallengeHour } from './challenge'
 import { hashStr } from './rng'
@@ -90,7 +91,7 @@ export type ActResult =
 export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
-  'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
+  'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'evo_wash', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
   'bangkok_start', 'bangkok_play', 'bangkok_quit',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
@@ -246,6 +247,12 @@ function dispatch(
       const r = evolve(g, str(a.cardId), str(a.attr, 16), feed)
       if (!r.ok) return r
       return { ok: true, result: { gain: r.gain, attr: r.attr, evo: r.evo } }
+    }
+    case 'evo_wash': {
+      // 洗掉进修: the 进修 comes off, the cards it ate stay eaten (engine/evoWash.ts)
+      const r = washEvo(g, str(a.cardId), a.spare == null ? null : Number(a.spare))
+      if (!r.ok) return r
+      return { ok: true, result: {} }
     }
     case 'dismantle': {
       const r = dismantle(g, str(a.cardId), Number(a.level))

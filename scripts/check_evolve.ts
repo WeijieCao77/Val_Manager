@@ -107,7 +107,8 @@ check('没进修的卡：playLevel 就是等级', [0, 1, 2, 3, 4, 5].every((lv) 
 const reg = registerCupSquad({ slots: [target.id, null, null, null, null], coach: null }, (id) => playLevelOf(g, id))
 check('杯赛报名记下带进修的等级', Math.abs(reg.levels[target.id] - playLevelOf(g, target.id)) < 1e-12)
 
-// ---- the market: an evolved card itself never leaves; its duplicates do
+// ---- the market: duplicates leave first; the evolved card itself leaves last, its 进修 with it
+// (since 2026-10-06 — the whole trade path is scripts/check_evo_trade.ts)
 const m = newGacha('VM-TEST-EVO-0004', 'm', '2026-09-20')
 m.cards = {}
 own(m, target.id, MAX_LEVEL, 1)
@@ -115,7 +116,7 @@ m.cards[target.id].evo = { n: 1, add: { aim: 2 } }
 const e1st = escrowCard(m, target.id)
 check('进修过的卡：先挂出去的是重复卡', e1st.ok && e1st.level === 0 && !!m.cards[target.id]?.evo)
 const e2nd = escrowCard(m, target.id)
-check('进修过的卡本身：挂不出去', !e2nd.ok && !!m.cards[target.id]?.evo)
+check('进修过的卡本身：挂得出去，进修跟着走', e2nd.ok && e2nd.evo?.add.aim === 2 && !m.cards[target.id])
 
 // ---- what it is worth: a five at +5, against itself after five 进修 each, every one spent greedily on the attribute
 // that adds most with room left under 99 (a top card's best attributes are near 99 already, so it spreads)

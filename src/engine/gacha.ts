@@ -384,6 +384,11 @@ export interface OwnedCard {
   spares?: number[]
   /** 进修 past +5, one attribute at a time (engine/evolve.ts) */
   evo?: Evo
+  /**
+   * Extra +5 copies that carry a 进修 of their own, weakest first: a trained card bought or
+   * swapped in while this one was already +5. The stronger copy is always the card.
+   */
+  evoSpares?: Evo[]
   /** total copies ever pulled, for the collection stats */
   seen: number
   /** ISO date of the first copy */
@@ -415,6 +420,10 @@ function cleanOwnedCards(raw: unknown): Record<string, OwnedCard> {
     const evo = cleanEvo(row.evo)
     if (evo) owned.evo = evo
     else delete owned.evo
+    const evoSpares = (Array.isArray(row.evoSpares) ? row.evoSpares : [])
+      .map(x => cleanEvo(x)).filter((x): x is Evo => !!x).slice(0, 99)
+    if (evoSpares.length) owned.evoSpares = evoSpares
+    else delete owned.evoSpares
     out[id] = owned
   }
   return out

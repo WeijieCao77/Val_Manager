@@ -833,6 +833,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_evo_trade.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_breakthrough.ts",
     "estimatedSeconds": 12
   }

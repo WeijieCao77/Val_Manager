@@ -19,7 +19,7 @@ import { EVO_TARGET } from './ctx'
 import SalvageConfirm from './SalvageConfirm'
 import type { SalvageAsk } from './SalvageConfirm'
 import { dismantleFee, dismantleYield } from '../../engine/dismantle'
-import { sparesOf } from '../../engine/inbox'
+import { evoSparesOf, sparesOf } from '../../engine/inbox'
 import { MAX_LEVEL, POWER_PER_LEVEL, SALVAGE, cardById, cardPower, isPlayerCard } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
 import { LEGEND_KIND_CN } from '../../engine/legends'
@@ -144,14 +144,15 @@ export default function CardDetail({ cardId, onClose, actions }: {
                 <div className="tiny faint">
                   重复卡 {owned.dupes} 张
                   {sparesOf(owned).length > 0 && ` · 备用卡 ${sparesOf(owned).map((l) => `+${l}`).join('、')}`}
+                  {evoSparesOf(sel.id, owned).length > 0 && ` · 进修过的备用卡 ${evoSparesOf(sel.id, owned).length} 张`}
                   {' '}· 累计抽到 {owned.seen} 次
                 </div>
               </div>
             </div>
             <Upgrade cardId={sel.id} />
-            {isPlayerCard(sel) && owned.level >= MAX_LEVEL && (evo?.n ?? 0) < EVO_STEPS && (
+            {isPlayerCard(sel) && owned.level >= MAX_LEVEL && (
               <button
-                className="primary sm"
+                className={(evo?.n ?? 0) < EVO_STEPS ? 'primary sm' : 'sm'}
                 style={{ marginLeft: 8 }}
                 onClick={() => {
                   try { sessionStorage.setItem(EVO_TARGET, sel.id) } catch { /* the page opens on its own list */ }
@@ -159,7 +160,7 @@ export default function CardDetail({ cardId, onClose, actions }: {
                   go('evolve')
                 }}
               >
-                去进修
+                {(evo?.n ?? 0) < EVO_STEPS ? '去进修' : '进修已满 · 可洗掉'}
               </button>
             )}
             {owned.dupes > 0 && (
@@ -233,14 +234,48 @@ function Upgrade({ cardId }: { cardId: string }) {
  */
 function Spares({ cardId }: { cardId: string }) {
   const { g, act, toast } = useCards()
+  const [washAsk, setWashAsk] = useState<number | null>(null)
   const owned = g.cards[cardId]
   const spares = owned ? sparesOf(owned) : []
-  if (!spares.length) return null
+  const trained = owned ? evoSparesOf(cardId, owned) : []
+  if (!spares.length && !trained.length) return null
   return (
     <div style={{ marginTop: 12 }}>
-      <div className="tiny faint" style={{ marginBottom: 6 }}>
+      {trained.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <div className="tiny faint" style={{ marginBottom: 6 }}>
+            进修过的备用卡：比上场那张弱，进修原样留着。挂市场、交换时先出它。洗掉进修后变成普通 +{MAX_LEVEL} 备用卡，可以拆解。
+          </div>
+          {trained.map((e, i) => (
+            <div key={i} className="row wrap" style={{ gap: 6, alignItems: 'center', marginBottom: 4 }}>
+              <span className="small mono">
+                +{MAX_LEVEL} · 进修 {e.n} 次（{ATTR_KEYS.filter((k) => e.add[k]).map((k) => `${ATTR_CN[k]} +${e.add[k]}`).join('，')}）
+              </span>
+              {washAsk === i ? (
+                <>
+                  <span className="tiny" style={{ color: 'var(--loss)' }}>洗掉后进修清空，吃掉的卡不退</span>
+                  <button
+                    className="sm primary"
+                    onClick={async () => {
+                      const r = await act('evo_wash', { cardId, spare: i })
+                      setWashAsk(null)
+                      toast(r.ok ? `已洗掉，多了一张 +${MAX_LEVEL} 备用卡。` : r.why)
+                    }}
+                  >
+                    确认洗掉
+                  </button>
+                  <button className="sm ghost" onClick={() => setWashAsk(null)}>取消</button>
+                </>
+              ) : (
+                <button className="sm" onClick={() => setWashAsk(i)}>洗掉进修</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {spares.length > 0 && <div className="tiny faint" style={{ marginBottom: 6 }}>
         备用卡是同一张卡多出来的升级版。拆解后变成重复卡，可以拿去升级。
-      </div>
+      </div>}
       <div className="row wrap" style={{ gap: 6 }}>
         {spares.map((lv, i) => (
           <button

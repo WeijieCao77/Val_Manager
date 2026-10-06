@@ -22,7 +22,10 @@ import { useCards } from './ctx'
 import { Panel } from '../common'
 import CardFace from '../Card'
 import { cardById, isPlayerCard } from '../../engine/cards'
-import { collection, levelOf } from '../../engine/gacha'
+import { collection, levelOf, playLevelOf } from '../../engine/gacha'
+import { playLevel } from '../../engine/evolve'
+import { copyLabel, leavingCopy } from '../../engine/inbox'
+import { ATTR_CN, ATTR_KEYS } from '../../engine/types'
 import {
   AUCTION_HOURS, AUCTION_HOURS_CHOICES, BID_MAX, BID_STEP, MAX_ASK, bidCeilingOf, BUYOUT_MIN, MAX_LISTINGS, SHELF_PAGE, SNIPE_MINUTES,
   answerOffer, askFloorOf, bidOn, browseShelf, failText, gateText, listCardOnMarket, minBidOf, myOffersEx, peekListings, participatingAuctions, unlistCard,
@@ -575,7 +578,10 @@ export default function Market() {
     // can be taken apart. Say which on the shelf rather than in
     // the mailbox afterwards.
     const mine = g.cards[l.cardId]
+    const theirs = playLevel(l.cardId, l)
     const lands = !mine ? ''
+      : l.evo
+        ? theirs > playLevelOf(g, l.cardId) ? '买来上场，你那张留作备用' : '你的更强，买来留作备用'
       : l.level > (mine.level ?? 0)
         ? `你有 +${mine.level}，买来升到 +${l.level}`
         : l.level > 0
@@ -584,7 +590,12 @@ export default function Market() {
     const dear = false
     return (
       <div key={l.id} className="market-box">
-        <CardFace card={card} level={l.level} />
+        <CardFace card={card} level={theirs} />
+        {l.evo && (
+          <div className="tiny" style={{ color: 'var(--win)', ...nowrap }} title={ATTR_KEYS.filter((k) => l.evo?.add[k]).map((k) => `${ATTR_CN[k]} +${l.evo?.add[k]}`).join('，')}>
+            进修 {l.evo.n} 次 · 跟卡走
+          </div>
+        )}
         {participated && !l.bid && <div className="tiny warn">已被超价 · 可再次出价</div>}
         {/* one fact a line, none of them allowed to wrap:
             「起拍 10,000 金币」 once broke mid-word */}
@@ -710,7 +721,10 @@ export default function Market() {
         <CardPicker
           rows={sellable.map(({ card, owned }) => ({
             card,
-            note: owned.dupes > 0 ? `多 ${owned.dupes} 张` : owned.level > 0 ? `+${owned.level}` : '仅此一张',
+            note: owned.dupes > 0 ? `多 ${owned.dupes} 张` : (() => {
+              const out = leavingCopy(card.id, owned)
+              return out.level > 0 ? copyLabel(out.level, out.evo) : '仅此一张'
+            })(),
           }))}
           value={sellCard}
           onChange={setSellCard}
@@ -747,8 +761,17 @@ export default function Market() {
           </button>
         </div>
         {sellCard && (() => {
-          const o = g.cards[sellCard]
-          return <PriceHistory cardId={sellCard} level={o && o.dupes > 0 ? 0 : o?.level ?? 0} wide />
+          const out = leavingCopy(sellCard, g.cards[sellCard])
+          return (
+            <>
+              {out.evo && (
+                <p className="tiny" style={{ color: 'var(--win)', margin: '6px 0 0' }}>
+                  挂出去的是进修过的 +{out.level}（{ATTR_KEYS.filter((k) => out.evo?.add[k]).map((k) => `${ATTR_CN[k]} +${out.evo?.add[k]}`).join('，')}），进修跟着卡一起卖。
+                </p>
+              )}
+              <PriceHistory cardId={sellCard} level={out.level} wide />
+            </>
+          )
         })()}
         {mineOnShelf.length >= MAX_LISTINGS && (
           <p className="tiny" style={{ color: 'var(--warn)', margin: '6px 0 0' }}>

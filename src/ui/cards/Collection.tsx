@@ -295,7 +295,7 @@ export default function Collection() {
                 key={card.id}
                 card={card}
                 level={o ? playLevel(card.id, o) : 0}
-                dupes={(o?.dupes ?? 0) + (o ? sparesOf(o).length : 0)}
+                dupes={(o?.dupes ?? 0) + (o ? sparesOf(o).length + (o.evoSpares?.length ?? 0) : 0)}
                 dimmed={missing}
                 selected={bulk && picked.has(card.id)}
                 onClick={missing ? undefined : bulk ? () => togglePick(card.id) : () => setOpen(card.id)}

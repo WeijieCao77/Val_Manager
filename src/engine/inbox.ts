@@ -8,8 +8,10 @@
  * one copy that cannot drift.
  */
 import { cardById, isPlayerCard, MAX_LEVEL } from './cards'
+import { cleanEvo, evoRating } from './evolve'
+import type { Evo } from './evolve'
 import { MAIL_MAX, PACKS } from './gacha'
-import type { GachaState, PackKind } from './gacha'
+import type { GachaState, OwnedCard, PackKind } from './gacha'
 
 export interface MailItem {
   kind: string
@@ -35,6 +37,27 @@ export function setSpares(owned: { spares?: number[] }, spares: number[]): void 
   else delete owned.spares
 }
 
+/** What one copy's 进修 is worth on this card — how two trained copies are told apart. */
+const evoWorthOn = (cardId: string, evo: Evo | undefined): number => {
+  const c = cardById(cardId)
+  return evo && isPlayerCard(c) ? evoRating(c, evo) : 0
+}
+
+/**
+ * The extra +5 copies kept with their own 进修, weakest first. A trained card sold
+ * to somebody who already has one at +5 used to have nowhere to keep its 进修.
+ */
+export const evoSparesOf = (cardId: string, owned: { evoSpares?: unknown }): Evo[] =>
+  (Array.isArray(owned.evoSpares) ? owned.evoSpares : [])
+    .map((x) => cleanEvo(x))
+    .filter((x): x is Evo => !!x)
+    .sort((a, b) => evoWorthOn(cardId, a) - evoWorthOn(cardId, b))
+
+export function setEvoSpares(cardId: string, owned: { evoSpares?: Evo[] }, list: Evo[]): void {
+  if (list.length) owned.evoSpares = [...list].sort((a, b) => evoWorthOn(cardId, a) - evoWorthOn(cardId, b))
+  else delete owned.evoSpares
+}
+
 /**
  * Take a card off this side, ready to be listed.
  *
@@ -44,7 +67,7 @@ export function setSpares(owned: { spares?: number[] }, spares: number[]): void 
  * the card itself last, carrying whatever it was raised to. When the card
  * itself leaves with spares behind it, the best spare steps up into its place.
  */
-export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: boolean; level: number } {
+export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: boolean; level: number; evo?: Evo } {
   const owned = g.cards[cardId]
   if (!owned) return { ok: false, level: 0 }
   const dupes = owned.dupes ?? 0
@@ -60,12 +83,21 @@ export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: 
     setSpares(owned, spares)
     return { ok: true, level: pick }
   }
-  // a card through 进修 is the one copy that stays: its duplicates and spares went above, it does not
-  if (owned.evo) return { ok: false, level }
+  // an extra +5 kept with its own 进修 goes before the card itself, the weakest first
+  const evoSpares = evoSparesOf(cardId, owned)
+  if (evoSpares.length) {
+    const evo = evoSpares.shift()!
+    setEvoSpares(cardId, owned, evoSpares)
+    return { ok: true, level: MAX_LEVEL, evo }
+  }
+  // the card itself, and its 进修 goes with it: the buyer gets the card as it was trained
+  const evo = level >= MAX_LEVEL ? cleanEvo(owned.evo) : undefined
+  const out = evo ? { ok: true, level, evo } : { ok: true, level }
   if (spares.length) {
     owned.level = spares.pop()!
     setSpares(owned, spares)
-    return { ok: true, level }
+    delete owned.evo
+    return out
   }
   delete g.cards[cardId]
   // and it cannot still be in the five it was just taken out of
@@ -80,8 +112,23 @@ export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: 
       coach: p.squad.coach === cardId ? null : p.squad.coach,
     }
   }
-  return { ok: true, level }
+  return out
 }
+
+/**
+ * The copy escrowCard would send out, without sending it — what the market and the swap
+ * page tell the player is about to leave. Runs the real thing on a throwaway copy.
+ */
+export function leavingCopy(cardId: string, owned: OwnedCard | undefined): { level: number; evo?: Evo } {
+  if (!owned) return { level: 0 }
+  const scratch = { cards: { [cardId]: JSON.parse(JSON.stringify(owned)) as OwnedCard }, squad: { slots: [], coach: null }, presets: [] }
+  const out = escrowCard(scratch as unknown as GachaState, cardId)
+  return out.evo ? { level: out.level, evo: out.evo } : { level: out.level }
+}
+
+/** 「+5（进修过）」: a copy's level as the trade pages say it. */
+export const copyLabel = (level: number, evo?: unknown): string =>
+  `+${level}${level >= MAX_LEVEL && cleanEvo(evo) ? '（进修过）' : ''}`
 
 /**
  * Put a card in, at the level it arrives with.
@@ -99,15 +146,32 @@ export function escrowCard(g: GachaState, cardId: string, want?: number): { ok: 
  * only +3, pull a plain copy while it sits on the shelf, and the +3 came back
  * as a duplicate.
  */
-export function restoreCard(g: GachaState, cardId: string, level: number): void {
+export function restoreCard(g: GachaState, cardId: string, level: number, evoRaw?: unknown): void {
   // never a card the game does not have — a row with a bad id (a grant typed
   // wrong, an old card retired from the set) must not become an owned card
   if (!cardById(cardId)) return
   const lv = Math.min(MAX_LEVEL, Math.max(0, Math.trunc(Number(level) || 0)))
+  // 进修 only ever sits on a +5
+  const evo = lv >= MAX_LEVEL ? cleanEvo(evoRaw) : undefined
   const had = g.cards[cardId]
   if (had) {
     had.seen++
     const main = Math.max(0, Math.trunc(Number(had.level) || 0))
+    const mainEvo = main >= MAX_LEVEL ? cleanEvo(had.evo) : undefined
+    if (evo) {
+      // A trained copy coming in. Both copies are kept whole: the stronger one is the card,
+      // the other waits — a trained +5 as a trained spare, anything else the usual way.
+      if (mainEvo && evoWorthOn(cardId, mainEvo) >= evoWorthOn(cardId, evo)) {
+        setEvoSpares(cardId, had, [...evoSparesOf(cardId, had), evo])
+        return
+      }
+      if (mainEvo) setEvoSpares(cardId, had, [...evoSparesOf(cardId, had), mainEvo])
+      else if (main > 0) setSpares(had, [...sparesOf(had), main])
+      else had.dupes++
+      had.level = MAX_LEVEL
+      had.evo = evo
+      return
+    }
     const low = Math.min(lv, main)
     had.level = Math.max(lv, main)
     if (low > 0) setSpares(had, [...sparesOf(had), low])
@@ -117,6 +181,7 @@ export function restoreCard(g: GachaState, cardId: string, level: number): void 
   g.cards[cardId] = {
     id: cardId, level: lv, dupes: 0, seen: 1,
     got: new Date().toISOString().slice(0, 10),
+    ...(evo ? { evo } : {}),
   }
 }
 
@@ -127,31 +192,31 @@ const nameOf = (cardId: string): string => {
 }
 
 /** A card's name with what it was raised to — silent when it is a plain one. */
-const nameAt = (cardId: string, level: number): string =>
-  `${nameOf(cardId)}${level > 0 ? ` +${level}` : ''}`
+const nameAt = (cardId: string, level: number, evo?: unknown): string =>
+  `${nameOf(cardId)}${level > 0 ? ` +${level}` : ''}${level >= MAX_LEVEL && cleanEvo(evo) ? '（进修过）' : ''}`
 
 /** What one piece of mail says, in the player's words. */
 export function mailLine(m: MailItem): string {
   const who = String(m.body?.who ?? '')
   switch (m.kind) {
     case 'sold': return `${nameOf(String(m.body?.cardId ?? ''))} 卖给了 ${who}，到账 ${m.coins} 金币`
-    case 'bought': return `${m.body?.draw ? '抽签抽中，' : ''}买到 ${nameAt(m.cardId ?? '', m.level)}，花了 ${m.body?.price} 金币`
+    case 'bought': return `${m.body?.draw ? '抽签抽中，' : ''}买到 ${nameAt(m.cardId ?? '', m.level, m.body?.evo)}，花了 ${m.body?.price} 金币`
     case 'outbid': return m.body?.draw
       ? `${nameOf(String(m.body?.cardId ?? ''))} 的抽签没中（${m.body.draw} 人报名），你的 ${m.coins} 金币退回`
       : `${nameOf(String(m.body?.cardId ?? ''))} 被别人买走了，你的 ${m.coins} 金币退回`
     case 'overbid': return `你对 ${nameOf(String(m.body?.cardId ?? ''))} 的出价被超过了（现在 ${m.body?.by}），${m.coins} 金币退回`
-    case 'unsold': return `${nameAt(m.cardId ?? '', m.level)} 到时没人出价，已退回`
-    case 'listing_retired': return `交易区改成竞拍了，改版前挂的 ${nameAt(m.cardId ?? '', m.level)} 已退回，可以重新挂`
+    case 'unsold': return `${nameAt(m.cardId ?? '', m.level, m.body?.evo)} 到时没人出价，已退回`
+    case 'listing_retired': return `交易区改成竞拍了，改版前挂的 ${nameAt(m.cardId ?? '', m.level, m.body?.evo)} 已退回，可以重新挂`
     case 'offer_declined': return `对方拒绝了你的报价，${m.coins} 金币退回`
     case 'offer_expired': return `报价过期或挂牌撤回，${m.coins} 金币退回`
     case 'offer_withdrawn': return `你撤回了对 ${nameOf(String(m.body?.cardId ?? ''))} 的报价，${m.coins} 金币退回`
     case 'offer_made': return `${who} 对你的 ${nameOf(String(m.body?.cardId ?? ''))} 出价 ${m.body?.price}（起拍 ${m.body?.ask}）`
-    case 'listing_pulled': return `${nameAt(m.cardId ?? '', m.level)} 已撤回`
-    case 'listing_expired': return `${nameAt(m.cardId ?? '', m.level)} 连续三次没回复报价，已自动下架并退回`
-    case 'gift': return `收到 ${who} 送的 ${nameAt(m.cardId ?? '', m.level)}`
+    case 'listing_pulled': return `${nameAt(m.cardId ?? '', m.level, m.body?.evo)} 已撤回`
+    case 'listing_expired': return `${nameAt(m.cardId ?? '', m.level, m.body?.evo)} 连续三次没回复报价，已自动下架并退回`
+    case 'gift': return `收到 ${who} 送的 ${nameAt(m.cardId ?? '', m.level, m.body?.evo)}`
     case 'swap_offer': return `${who} 想用 ${nameOf(String(m.body?.give ?? ''))} 换你的 ${nameOf(String(m.body?.want ?? ''))}，去好友页答复`
-    case 'swap_in': return `换到了 ${nameAt(m.cardId ?? '', m.level)}（和 ${who} 的交换成交）`
-    case 'swap_back': return `${nameAt(m.cardId ?? '', m.level)} 退回来了（${String(m.body?.reason ?? '交换没成')}）`
+    case 'swap_in': return `换到了 ${nameAt(m.cardId ?? '', m.level, m.body?.evo)}（和 ${who} 的交换成交）`
+    case 'swap_back': return `${nameAt(m.cardId ?? '', m.level, m.body?.evo)} 退回来了（${String(m.body?.reason ?? '交换没成')}）`
     case 'open_cup': {
       const place = Number(m.body?.place) || 0
       const head = place === 1 ? '全服杯冠军' : place === 2 ? '全服杯亚军' : place === 4 ? '全服杯四强' : `全服杯赢了 ${Number(m.body?.wins) || 0} 场`
@@ -191,7 +256,7 @@ export function applyMail(g: GachaState, mail: MailItem[]): void {
   const now = Date.now()
   for (const m of mail) {
     if (m.coins) g.coins += m.coins
-    if (m.cardId) restoreCard(g, m.cardId, m.level)
+    if (m.cardId) restoreCard(g, m.cardId, m.level, m.body?.evo)
     if (m.pack && m.pack in PACKS) {
       const k = m.pack as PackKind
       g.packs[k] = (g.packs[k] ?? 0) + Math.max(1, m.count)

@@ -262,6 +262,10 @@ create index if not exists listing_shelf_card_idx on card_listings (card_id) whe
 -- entry in a draw, not a purchase. draw_at is set by the first entry (created
 -- plus the minute) and is when the settler picks one of them. Null: no entries.
 alter table card_listings add column if not exists draw_at timestamptz;
+-- 进修 travels with the card (2026-10-06): a trained +5 listed or offered in a swap
+-- carries its 进修 to whoever gets it, in the mail body as evo. Null for every other card.
+alter table card_listings add column if not exists evo jsonb;
+alter table card_swaps add column if not exists give_evo jsonb;
 -- 成交记录 reads a card's sales and walks a copy back through its buyers
 create index if not exists listing_sold_card_idx on card_listings (card_id, closed desc) where status = 'sold';
 create index if not exists offer_accepted_buyer_idx on card_offers (buyer_h) where status = 'accepted';

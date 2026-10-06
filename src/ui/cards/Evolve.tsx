@@ -14,7 +14,7 @@ import { collection, playLevelOf } from '../../engine/gacha'
 import {
   EVO_FEED, EVO_GAIN, EVO_HIGH, EVO_STEPS, cleanEvo, evoAttrs, evoPreview, evoWorth, feedReason,
 } from '../../engine/evolve'
-import type { AttrKey } from '../../engine/evolve'
+import type { AttrKey, Evo } from '../../engine/evolve'
 import { MAX_LEVEL, POWER_PER_POINT, RARITY_CN, cardById, cardName, cardPower, isPlayerCard } from '../../engine/cards'
 import type { PlayerCard } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS } from '../../engine/types'
@@ -35,6 +35,7 @@ export default function Evolve() {
   const [only, setOnly] = useState<'all' | 'role' | 'attr'>('all')
   const [shown, setShown] = useState(60)
   const [asking, setAsking] = useState(false)
+  const [washing, setWashing] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const mine = useMemo(() => collection(g), [g, version])
@@ -99,6 +100,19 @@ export default function Evolve() {
     setFeed([])
   }
 
+  // 洗掉进修: back to a plain +5 with all five 进修 free again; the cards it ate stay eaten
+  const wash = async () => {
+    if (!sel) return
+    setBusy(true)
+    const r = await act('evo_wash', { cardId: sel.id })
+    setBusy(false)
+    setWashing(false)
+    if (!r.ok) { toast(r.why); return }
+    toast(`${sel.ign} 的进修已洗掉，可以重新进修。`)
+    setAttr(null)
+    setFeed([])
+  }
+
   if (!sel) {
     return (
       <Panel title="选一张满级卡">
@@ -138,7 +152,12 @@ export default function Evolve() {
     <>
       <Panel
         title={`进修 · ${sel.ign}`}
-        actions={<button className="sm" onClick={() => pick(null)}>换一张</button>}
+        actions={
+          <>
+            {evo && <button className="sm" onClick={() => setWashing(true)} disabled={busy}>洗掉进修</button>}
+            <button className="sm" onClick={() => pick(null)}>换一张</button>
+          </>
+        }
       >
         <div className="row evo-head" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <CardFace card={sel} level={playLevelOf(g, sel.id)} size="lg" />
@@ -272,7 +291,47 @@ export default function Evolve() {
           onClose={() => { if (!busy) setAsking(false) }}
         />
       )}
+
+      {washing && evo && (
+        <WashConfirm
+          sel={sel}
+          evo={evo}
+          busy={busy}
+          onConfirm={() => void wash()}
+          onClose={() => { if (!busy) setWashing(false) }}
+        />
+      )}
     </>
+  )
+}
+
+/** What washing takes off, said before anything happens: the cards fed in do not come back. */
+function WashConfirm({ sel, evo, busy, onConfirm, onClose }: {
+  sel: PlayerCard; evo: Evo; busy: boolean; onConfirm: () => void; onClose: () => void
+}) {
+  const dialogRef = useDialogFocus(() => { if (!busy) onClose() })
+  const adds = ATTR_KEYS.filter((k) => evo.add[k]).map((k) => `${ATTR_CN[k]} +${evo.add[k]}`)
+  return (
+    <div className="modal-bg" style={{ zIndex: 70 }} onClick={onClose}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="确认洗掉进修" tabIndex={-1} className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>洗掉进修</h2>
+          <div className="spacer" />
+          <button className="ghost sm" onClick={onClose}>关闭</button>
+        </div>
+        <div className="modal-body">
+          <p className="small" style={{ marginTop: 0, lineHeight: 1.7 }}>
+            <b>{sel.ign}</b> 的 {evo.n} 次进修（{adds.join('，')}）全部清掉，回到普通 +{MAX_LEVEL}，可以重新进修 {EVO_STEPS} 次。
+          </p>
+          <p className="tiny" style={{ color: 'var(--loss)' }}>进修吃掉的卡不会退回。</p>
+          <div className="row" style={{ gap: 8, marginTop: 12 }}>
+            <div className="spacer" />
+            <button className="sm" onClick={onClose} disabled={busy}>取消</button>
+            <button className="primary sm" onClick={onConfirm} disabled={busy}>{busy ? '洗掉中…' : '确认洗掉'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
