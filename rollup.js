@@ -85,10 +85,17 @@ create table if not exists rollup_day_counts (
 `
 
 const KEY = 'events'
-/** Events folded per transaction: bounds how long one fold holds its connection. */
-const FOLD_BATCH = 10_000
+/**
+ * Events folded per transaction: bounds how long one fold holds its connection — and the SHARE lock on events, which
+ * every telemetry insert waits behind. 2026-10-06: an hour's fold (~27k events) wrote ~33 MB of WAL in three 10k
+ * batches, and on Railway's disk that burst made every commit on the site wait ~10 s at :36. Smaller batches with a
+ * pause between them do the same work as a trickle.
+ */
+const FOLD_BATCH = 2_000
 /** Bounded work per call; backlog is resumed at the durable watermark next time. */
-const FOLD_PASSES = 40
+const FOLD_PASSES = 200
+/** Rest between batches, so other commits are not queued behind one long burst of writes. */
+const FOLD_PAUSE_MS = Number(process.env.ANALYTICS_FOLD_PAUSE_MS ?? 1000)
 /** How long the per-day working sets are kept. */
 // Working sets are retained until an explicit archival policy seals old days.
 
@@ -133,6 +140,7 @@ export async function foldedUpTo(sql) {
  */
 export async function rollup(sql, opts = {}) {
   const lagSec = typeof opts === 'object' && Number.isFinite(opts.lagSec) ? Math.max(0, opts.lagSec) : 30
+  const pauseMs = typeof opts === 'object' && Number.isFinite(opts.pauseMs) ? Math.max(0, opts.pauseMs) : FOLD_PAUSE_MS
   const batch = typeof opts === 'object' && opts.batch > 0 ? Math.trunc(opts.batch) : FOLD_BATCH
   const run = (fn) => (sql.begin ? sql.begin(fn) : fn(sql))
   let folded = 0, people = 0, passes = 0
@@ -261,6 +269,7 @@ export async function rollup(sql, opts = {}) {
     people += step.people
     for (const d of step.days) days.add(d)
     if (!step.full) break
+    if (pauseMs) await new Promise((resolve) => setTimeout(resolve, pauseMs))
   }
   // Retain membership sets: late events may revisit old days. Pruning these
   // without an immutable day-close policy would silently erase distinct counts.

@@ -52,3 +52,26 @@
 - 日志：`analytics: history maintenance … ms` 每小时一行；`cards: request sweep took` 只有超过 1 秒才出现。
 - 和 REPORT 同法采 HTTP ≥1 秒慢样本：:36 与 :x7 的簇应消失。
 - 停顿时取 `/api/admin/db` 的 `activity`。
+
+## 上线后（76725a1，2026-10-06 08:30 UTC 起）
+
+- 十分钟一次的回复压缩：追平历史后每次约 2,200–2,500 行、1.1–1.4 秒，单连接；线上慢样本里 :x7 的簇消失。
+- 小时维护仍在：23 s（开机全量）→ 14.3 s → 10.7 s；13:33:45 一簇 105 条慢请求，最长 12.2 s，各池一起慢。
+- 生产库：PostgreSQL 18.6，`shared_buffers` 128 MB，`data_checksums` on，`checkpoint_timeout` 5 min，缓存命中 93.3%。
+
+## 小时维护的写入量（实测）与节流
+
+本机生产规模（visitors 6.3 万、rollup_day_visitors 11.3 万、rollup_day_sessions 51.5 万），一小时 2.7 万条事件，检查点后跑真实 `rollup()` + `prune()`，逐条量 WAL：
+
+| 语句 | WAL |
+| --- | ---: |
+| visitors upsert | 16.3 MB |
+| rollup_day_visitors insert | 5.9 MB |
+| 读新事件设 hint bits（校验和开着，检查点后首写整页） | 5.7 MB |
+| rollup_day_sessions upsert | 5.6 MB |
+| prune 删 2.7 万行 | 8.7 MB |
+| 合计 | ≈ 41 MB，本机 1 秒内写完 |
+
+每个玩家的提交都要等 WAL 落盘；线上盘比本机慢约 70 倍（同样 5 万行游标走一遍：本机 40 ms、线上 2.7 s），41 MB 一次性写出就是全站一起等。改为同样的活慢慢做：折叠每批 2,000 条（原 10,000）、批间歇 1 秒；删除每句 5,000 行（原 50,000）、间歇 0.5 秒。本机实测总 WAL 不变（≈39 MB），分成 14 批、每批约 2 MB；每批持 events 的 SHARE 锁时间也缩到约五分之一。小时日志现在分开写 fold / prune 耗时。
+
+仍建议（需重启数据库，由所有者决定）：把 `shared_buffers` 从 128 MB 调到数据库容器内存的约四分之一。

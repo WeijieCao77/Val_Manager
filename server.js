@@ -141,9 +141,15 @@ let sqlStats = null
 // what the last exact ceiling walk established, so the hourly prune counts an hour's rows instead of walking three
 // million (stats.js prune, 2026-10-06)
 const pruneMemo = {}
+// and how long each half took, for the hourly line
+const maintenanceMs = { fold: 0, prune: 0 }
+const timed = (key, fn) => async (...args) => {
+  const t = Date.now()
+  try { return await fn(...args) } finally { maintenanceMs[key] += Date.now() - t }
+}
 const keepHistory = createHistoryMaintenance({
-  getSql: () => sqlStats, rollup, pruneFolded, days: PRUNE_DAYS,
-  prune: (db, days, maxRows, foldedUpTo) => prune(db, days, maxRows, foldedUpTo, pruneMemo),
+  getSql: () => sqlStats, rollup: timed('fold', rollup), pruneFolded, days: PRUNE_DAYS,
+  prune: timed('prune', (db, days, maxRows, foldedUpTo) => prune(db, days, maxRows, foldedUpTo, pruneMemo)),
 })
 /** set when the schema step has finished (or, with no database, at once) — see /readyz */
 let schemaReady = false
@@ -229,9 +235,10 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
      */
     const keep = () => {
       const t = Date.now()
+      maintenanceMs.fold = 0; maintenanceMs.prune = 0
       void keepHistory(MAX_ROWS)
         // one line an hour: how long it held the stats connection, to lay against any 「卡了」 at :36
-        .then((r) => { if (!r?.skipped) console.log(`analytics: history maintenance ${Date.now() - t} ms — folded ${r?.folded?.events ?? 0}, pruned ${r?.pruned ?? 0}`) })
+        .then((r) => { if (!r?.skipped) console.log(`analytics: history maintenance ${Date.now() - t} ms (fold ${maintenanceMs.fold}, prune ${maintenanceMs.prune}, pauses included) — folded ${r?.folded?.events ?? 0}, pruned ${r?.pruned ?? 0}`) })
         .catch(e => console.warn('analytics: history maintenance failed', e.message))
     }
     // three minutes after boot, not at boot: a redeploy under traffic used

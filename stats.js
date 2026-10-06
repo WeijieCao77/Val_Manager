@@ -543,6 +543,9 @@ export async function overview(sql, days = 30) {
   }
 }
 
+/** Rest between prune deletes (ANALYTICS_PRUNE_PAUSE_MS; 0 in checks that delete a lot). */
+const PRUNE_PAUSE_MS = Number(process.env.ANALYTICS_PRUNE_PAUSE_MS ?? 500)
+
 /** How long an exact ceiling walk is trusted before prune() walks again (see `memo` there). */
 export const PRUNE_ANCHOR_MS = 24 * 3600_000
 
@@ -564,8 +567,11 @@ export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = n
   // timeout on the pool it is also a delete that never finishes and so never
   // happens. Fifty thousand at a time, up to PRUNE_PASSES a run; whatever is
   // left waits for the next hour, which is what a ceiling that converges means.
-  const CHUNK = 50_000
-  const PRUNE_PASSES = 60
+  // (2026-10-06: 5,000 a statement with a short rest between, not 50,000 at once — an hour's delete was one burst
+  // of WAL that every commit on the site queued behind; pressure prunes still reach two million a run)
+  const CHUNK = 5_000
+  const PRUNE_PASSES = 400
+  const rest = () => (PRUNE_PAUSE_MS ? new Promise((resolve) => setTimeout(resolve, PRUNE_PAUSE_MS)) : null)
   const byAge = { count: 0 }
   for (let pass = 0; pass < PRUNE_PASSES; pass++) {
     const r = await sql`
@@ -573,6 +579,7 @@ export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = n
         select id from events where ts < now() - ${`${days} days`}::interval and id <= ${limit} order by id limit ${CHUNK})`
     byAge.count += r.count ?? 0
     if ((r.count ?? 0) < CHUNK) break
+    await rest()
   }
 
   // Oldest-first down to a row ceiling, addressed by POSITION rather than by
@@ -632,6 +639,7 @@ export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = n
         select id from events where id > ${floor} and id <= ${target} order by id limit ${CHUNK})`
     byCount.count += r.count ?? 0
     if ((r.count ?? 0) < CHUNK) { finished = true; break }
+    await rest()
   }
   if (memo) {
     // Trusted only when the whole cut went and it was under the watermark: a fold that is behind (target short of the
