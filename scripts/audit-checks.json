@@ -838,6 +838,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_prune_memo.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_breakthrough.ts",
     "estimatedSeconds": 12
   }

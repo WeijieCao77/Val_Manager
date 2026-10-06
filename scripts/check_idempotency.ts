@@ -160,6 +160,9 @@ try {
   await db.exec('alter table unavailable_requests rename to card_requests')
   // A compacted old receipt still owns its request ID permanently.
   await sql`update card_requests set at = now() - interval '7 hours' where id_hash = ${hash(A)} and request_id = ${RID(1)}`
+  // the trim walks forward from its mark (2026-10-06), and an earlier sweep here already moved it past the row just
+  // aged by hand — a row's time never moves backwards outside a test, so the mark goes back with it
+  await sql`delete from card_request_marks`
   await cold.route({ method: 'POST', body: JSON.stringify({ id: A, action: 'mail_take', args: {}, client, requestId: RID(32) }) } as never,
     unavailable as never, '/api/card/act', 'idem')
   // Compaction is asynchronous maintenance. A real connection pool does not

@@ -100,6 +100,16 @@ export function makeTeamCupApi(sql, {
     return false
   }
   const tx = (fn) => (bg.begin ? bg.begin(fn) : fn(bg))
+  /**
+   * A player's sign-up or withdrawal (2026-10-06): on the interactive pool, not the clock's single background
+   * connection. On bg it queued behind settling auctions and playing cup rounds, and one join waited 30 s for the
+   * connection and answered 500. Same row lock, same checks; if a start holds the lock longer than a few seconds the
+   * player is told the cup is starting instead of holding an interactive connection while it runs.
+   */
+  const seatTx = (fn) => (sql.begin
+    ? sql.begin(async (db) => { await db`set local lock_timeout = '3s'`; return fn(db) })
+    : fn(sql))
+  const lockBusy = (err) => err?.code === '55P03'
   const computer = compute ? null : createCupComputer()
   const simulate = compute ?? ((args) => computer.compute(args, null))
   const slotOf = (now) => (fast ? engine.teamCupSlotFast(now, fast.everySec * 1000) : engine.teamCupSlot(now))
@@ -148,10 +158,17 @@ export function makeTeamCupApi(sql, {
 
   // ------------------------------------------------------------ the clock
 
-  async function ensureOpen(now) {
+  /**
+   * The next cup's row, made by whoever needs it first. From a sign-up (`interactive`) it runs in seatTx, under the
+   * same few-second lock limit as the seat itself: a start holding that row's lock used to keep a cold instance's first
+   * sign-up waiting outside the limit (Codex's review, 5.8 s). The slot is remembered only once the row is committed.
+   */
+  async function ensureOpen(now, interactive = false) {
     const slot = slotOf(now)
     if (ensureOpen.known === slot) return
-    await bg`insert into team_cups (starts, seed) values (${new Date(slot)}, ${freshSeed()}) on conflict (starts) do nothing`
+    const make = (db) => db`insert into team_cups (starts, seed) values (${new Date(slot)}, ${freshSeed()}) on conflict (starts) do nothing`
+    if (interactive) await seatTx(make)
+    else await make(bg)
     ensureOpen.known = slot
   }
 
@@ -461,7 +478,13 @@ export function makeTeamCupApi(sql, {
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const now = clock()
-    await ensureOpen(now)
+    try {
+      await ensureOpen(now, true)
+    } catch (err) {
+      if (!lockBusy(err)) throw err
+      json(res, 200, { ok: false, why: '这一场正在开赛，稍等几秒再看。' })
+      return
+    }
     const blocked = await gate(me)
     if (blocked?.missing) { json(res, 200, { ok: false, missing: true }); return }
     if (blocked?.why) { json(res, 200, { ok: false, why: blocked.why }); return }
@@ -483,7 +506,7 @@ export function makeTeamCupApi(sql, {
     const pick = { slots: five.five.slots, coach: five.five.coach }
     const open = await sql`select id::text as id, starts from team_cups where status = 'open' and starts > ${new Date(now)} order by starts limit 1`
     if (!open.length) { json(res, 200, { ok: false, why: '现在没有可以报名的组队杯，稍后再试。' }); return }
-    const seat = await tx(async (db) => {
+    const seat = await seatTx(async (db) => {
       const cup = await db`select status, starts from team_cups where id = ${open[0].id} for update`
       if (cup[0]?.status !== 'open' || ms(cup[0].starts) <= clock()) return { why: '这一场已经开赛了，下一场再来。' }
       const had = await db`select 1 as ok from team_cup_entries where cup_id = ${open[0].id} and id_hash = ${me}`
@@ -496,7 +519,7 @@ export function makeTeamCupApi(sql, {
       if ((full[0]?.n ?? 0) >= engine.TEAM_CUP_MAX) return { why: '这一场报满了，下一场再来。' }
       await db`insert into team_cup_entries (cup_id, id_hash, name, pick) values (${open[0].id}, ${me}, ${mine[0].name ?? null}, ${db.json(pick)}::jsonb)`
       return { ok: true }
-    })
+    }).catch((err) => { if (lockBusy(err)) return { why: '这一场正在开赛，稍等几秒再看。' }; throw err })
     if (!seat.ok) { json(res, 200, { ok: false, why: seat.why }); return }
     publicCache.at = 0; mineCache.delete(me)
     json(res, 200, { ok: true, cup: open[0].id, starts: ms(open[0].starts), score: five.score, pick, already: seat.already === true ? true : undefined })
@@ -506,10 +529,12 @@ export function makeTeamCupApi(sql, {
     if (guard(req, res, `tcj:${bucket}`, 30)) return
     const { me } = await readMe(req)
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
-    await tx(async (db) => {
+    const left = await seatTx(async (db) => {
       const cups = await db`select id from team_cups where status = 'open' and starts > ${new Date(clock())} order by starts limit 1 for update`
       if (cups.length) await db`delete from team_cup_entries where cup_id = ${cups[0].id} and id_hash = ${me}`
-    })
+      return true
+    }).catch((err) => { if (lockBusy(err)) return false; throw err })
+    if (!left) { json(res, 200, { ok: false, why: '这一场正在开赛，稍等几秒再看。' }); return }
     publicCache.at = 0; mineCache.delete(me)
     json(res, 200, { ok: true })
   }

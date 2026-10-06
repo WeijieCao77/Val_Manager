@@ -88,3 +88,20 @@ PG_WITH_PROJECTION=1 PG_TEST_URL=... node scripts/pg/check_concurrency_pg.mjs ch
 ```
 
 `check_cards_api` 不能走这个改写器：它按相对路径读 `public/faces/*.webp`，复制到临时目录后找不到文件（与投影无关，不加投影也一样）。
+
+
+## 杯赛报名不排后台连接（2026-10-06）
+
+```sh
+PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres npx tsx scripts/pg/check_cup_join_pools.ts
+```
+
+按生产的池形状（交互 4、后台 1）建独立库：后台连接被 `pg_sleep(4)` 占住时，全服杯和组队杯的报名、退出仍在几十毫秒内完成；杯赛行锁被“开赛”占住时，报名约 3 秒后回答「正在开赛」，不在交互连接上一直等。改回旧代码时第一项失败（报名等了约 3.8 秒）。
+
+## 小时清理的增量计数（2026-10-06）
+
+```sh
+PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres npx tsx scripts/pg/check_prune_memo_pg.ts
+```
+
+`stats.js` 的 `prune` 用 memo 只数新进来的行，不再每小时从顶上走三百万行。计数只到汇总水位（rollup 的 SHARE 锁等完了所有在途插入，水位以下不会再有迟提交）。脚本模拟 60 小时：有的插入跨清理保持未提交、晚于更大编号提交，有的回滚留洞，水位偶尔落后，锚点过期、按天龄删除。每小时核对 memo 计数等于实数、表正好在上限。把 memo 改回“信最大可见编号”时失败（最后 512 行，上限 500）。PGlite 版 `scripts/check_prune_memo.ts` 在常规审计里跑同样的算术（不含迟提交）。

@@ -138,7 +138,13 @@ let sql = null
  */
 let sqlBg = null
 let sqlStats = null
-const keepHistory = createHistoryMaintenance({ getSql: () => sqlStats, rollup, pruneFolded, prune, days: PRUNE_DAYS })
+// what the last exact ceiling walk established, so the hourly prune counts an hour's rows instead of walking three
+// million (stats.js prune, 2026-10-06)
+const pruneMemo = {}
+const keepHistory = createHistoryMaintenance({
+  getSql: () => sqlStats, rollup, pruneFolded, days: PRUNE_DAYS,
+  prune: (db, days, maxRows, foldedUpTo) => prune(db, days, maxRows, foldedUpTo, pruneMemo),
+})
 /** set when the schema step has finished (or, with no database, at once) — see /readyz */
 let schemaReady = false
 let schemaError = null
@@ -221,7 +227,13 @@ if (process.env.DATABASE_URL?.startsWith('pglite')) {
      * but not dependable, and the gap between two of them is exactly where the
      * ceiling does its work.
      */
-    const keep = () => { void keepHistory(MAX_ROWS).catch(e => console.warn('analytics: history maintenance failed', e.message)) }
+    const keep = () => {
+      const t = Date.now()
+      void keepHistory(MAX_ROWS)
+        // one line an hour: how long it held the stats connection, to lay against any 「卡了」 at :36
+        .then((r) => { if (!r?.skipped) console.log(`analytics: history maintenance ${Date.now() - t} ms — folded ${r?.folded?.events ?? 0}, pruned ${r?.pruned ?? 0}`) })
+        .catch(e => console.warn('analytics: history maintenance failed', e.message))
+    }
     // three minutes after boot, not at boot: a redeploy under traffic used
     // to spend its first seconds rolling up and pruning on the same four
     // connections the players were waiting on
@@ -738,8 +750,25 @@ function handle(req, res) {
         where at > now() - interval '10 days' group by 1 order by 1`.catch(() => [])
       let wal = null
       try { const [w] = await sqlStats`select coalesce(sum(size), 0)::bigint as b, count(*)::int as n from pg_ls_waldir()`; wal = { mb: mb(w.b), files: w.n } } catch (err) { wal = { error: err.message } }
+      // What the server has to work with, and what is waiting on what right now (2026-10-06: the slowness came in
+      // site-wide stalls, and there was no way to see the database's memory or a stall's waits from here).
+      const settings = await sqlStats`
+        select name, setting, unit from pg_settings
+        where name in ('server_version', 'shared_buffers', 'effective_cache_size', 'work_mem', 'max_connections',
+                       'checkpoint_timeout', 'max_wal_size', 'data_checksums', 'autovacuum_vacuum_scale_factor')`.catch(() => [])
+      const activity = await sqlStats`
+        select coalesce(state, '?') as state, coalesce(wait_event_type, '') as wait_type, coalesce(wait_event, '') as wait,
+               count(*)::int as n, round(extract(epoch from max(now() - query_start)) * 1000)::bigint as longest_ms
+        from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()
+        group by 1, 2, 3 order by n desc`.catch(() => [])
+      const [io] = await sqlStats`
+        select blks_hit::bigint as hit, blks_read::bigint as read, temp_bytes::bigint as temp, stats_reset
+        from pg_stat_database where datname = current_database()`.catch(() => [null])
       json(res, 200, {
         ok: true, dbMb: mb(db.b), wal,
+        settings: Object.fromEntries(settings.map((x) => [x.name, x.unit ? `${x.setting} ${x.unit}` : x.setting])),
+        activity: activity.map((a) => ({ state: a.state, waitType: a.wait_type, wait: a.wait, n: a.n, longestMs: Number(a.longest_ms) })),
+        cache: io ? { hitPct: Math.round(1000 * Number(io.hit) / Math.max(1, Number(io.hit) + Number(io.read))) / 10, readMb: mb(Number(io.read) * 8192), tempMb: mb(io.temp), since: io.stats_reset } : null,
         requests: requests.map((r) => ({ day: r.day, n: r.n })),
         tables: tables.map((t) => ({
           name: t.name, totalMb: mb(t.total), heapMb: mb(t.heap), idxMb: mb(t.idx),

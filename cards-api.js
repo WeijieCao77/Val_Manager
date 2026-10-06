@@ -239,6 +239,11 @@ create table if not exists card_requests (
   primary key (id_hash, request_id)
 );
 create index if not exists card_requests_at_idx on card_requests (at);
+-- How far the reply trim has walked (sweepRequests): every row older than this has been looked at.
+create table if not exists card_request_marks (
+  key  text primary key,
+  at   timestamptz not null
+);
 
 -- The shelf's numbers, kept ON the listing (2026-09-18). The shelf used to
 -- work them out per listing per read — a lateral aggregate over every offer
@@ -296,7 +301,12 @@ export const MAIL_TAKE_LIMIT = 100
 const REQUEST_REPLY_MAX = 48 * 1024
 /** How long a full answer is kept. */
 const REQUEST_KEEP_MS = 6 * 60 * 60 * 1000
-const REQUEST_SWEEP = 2000
+/**
+ * Rows the reply trim looks at in one pass, oldest first from where the last pass stopped. About 2,000 come in
+ * every ten minutes; the rest is room to catch up after a backlog (or, once, from the forget line on the first boot
+ * with no mark).
+ */
+const REQUEST_TRIM_WALK = 50_000
 /**
  * How long a request id is kept at all. It was forever — 「deduplication keys
  * must never be discarded」 — and by 2026-09-23 the table held 1.5 million
@@ -711,6 +721,13 @@ export function makeCardApi(sql, {
   /**
    * Old answer bodies, compacted a bounded batch at a time and never on the request's
    * own clock: fired after a reply is sent, at most once every ten minutes.
+   *
+   * 2026-10-06, 「服务器老是没有回应」 every ten minutes: the trim used to ask for "any 2,000 untrimmed rows between
+   * three days and six hours old" — a question no index answers, so every pass read the whole table (800k rows,
+   * filtered one by one), on both stats connections at once with the forget below. Now it walks forward in `at`
+   * order from a stored mark: each pass reads only the rows that crossed the six-hour line since the last one, which
+   * sit together on disk because they were written together. One statement, so it never holds a connection between
+   * steps.
    */
   let sweptAt = 0
   function sweepRequests() {
@@ -720,16 +737,47 @@ export function makeCardApi(sql, {
     // two statements on rows that cannot overlap (older than the forget line,
     // and between it and the keep line), so neither waits on the other's locks
     const forget = new Date(t - REQUEST_FORGET_MS)
+    const keepLine = new Date(t - REQUEST_KEEP_MS)
     // on the rival budget, not the interactive pool: a batch delete is
     // housekeeping, and nobody's tap should queue behind it
     const db = slow ?? sql
-    db`delete from card_requests where ctid in (
+    const started = performance.now()
+    const forgot = db`delete from card_requests where ctid in (
           select ctid from card_requests where at < ${forget} limit ${REQUEST_FORGET_BATCH})`
-      .catch((err) => console.warn('cards: request forget failed', err.message))
-    db`update card_requests set reply = jsonb_build_object('ok', coalesce((reply->>'ok')::boolean, false), 'trimmed', true, 'why', reply->>'why') where ctid in (
-          select ctid from card_requests where at < ${new Date(t - REQUEST_KEEP_MS)} and at >= ${forget}
-          and reply is not null and not (reply ? 'trimmed') limit ${REQUEST_SWEEP})`
-      .catch((err) => console.warn('cards: request sweep failed', err.message))
+    const trimmed = db`
+      with mark as (
+        select greatest(coalesce((select at from card_request_marks where key = 'trim'), ${forget}::timestamptz), ${forget}::timestamptz) as at
+      ), walk as (
+        select r.ctid, r.at from card_requests r
+         where r.at >= (select at from mark) and r.at < ${keepLine}
+         order by r.at limit ${REQUEST_TRIM_WALK}
+      ), done as (
+        update card_requests c
+           set reply = jsonb_build_object('ok', coalesce((c.reply->>'ok')::boolean, false), 'trimmed', true, 'why', c.reply->>'why')
+          from walk w
+         where c.ctid = w.ctid and c.reply is not null and not (c.reply ? 'trimmed')
+        returning 1
+      ), moved as (
+        -- a full walk stopped short of the keep line; anything less reached it
+        insert into card_request_marks (key, at)
+        -- (and a full walk that ended where it began — that many rows on one microsecond — steps past it)
+        select 'trim', case when (select count(*) from walk) >= ${REQUEST_TRIM_WALK}
+                            then greatest((select max(at) from walk), (select at from mark) + interval '1 microsecond')
+                            else ${keepLine}::timestamptz end
+        on conflict (key) do update set at = excluded.at
+        returning at
+      )
+      select (select count(*) from walk)::int as seen, (select count(*) from done)::int as trimmed`
+    Promise.allSettled([forgot, trimmed]).then(([f, r]) => {
+      if (f.status === 'rejected') console.warn('cards: request forget failed', f.reason?.message)
+      if (r.status === 'rejected') console.warn('cards: request sweep failed', r.reason?.message)
+      const ms = Math.round(performance.now() - started)
+      // a line when it is slow, so the next 「卡了」 can be laid against it
+      if (ms >= 1000) {
+        console.warn(`cards: request sweep took ${ms} ms — forgot ${f.value?.count ?? '?'}, `
+          + `looked at ${r.value?.[0]?.seen ?? '?'}, trimmed ${r.value?.[0]?.trimmed ?? '?'}`)
+      }
+    })
   }
 
   /** One account's actions, one after another (in this process; across processes the revision decides). */
@@ -1199,7 +1247,12 @@ export function makeCardApi(sql, {
    * 赛季前 (season 0) had no season record of its own — it is everything before S1 — so its 战绩 is the career
    * count, less what this season has added.
    */
-  const LAST_TTL = 10 * 60_000
+  /**
+   * Six hours, and a stale board is served while the next one is read (2026-10-06): each read is every account's
+   * save, and at ten minutes it ran six times an hour per league, a full pass over card_accounts each time, with the
+   * first player after the expiry waiting seconds for it. A finished season does not move; only a 封号 can change it.
+   */
+  const LAST_TTL = 6 * 3600_000
   const lastCaches = new Map()
   const lastBuilding = new Map()
   const whole = (v, max = 1e7) => {
@@ -1215,13 +1268,14 @@ export function makeCardApi(sql, {
     let job = lastBuilding.get(key)
     if (!job) {
       job = (async () => {
+        // `state #> '{}'` reads the save once per row; five `state->…` read it five times
         const found = await (slow ?? sql)`
-          select id_hash, name, coalesce(state->>'season', '0') as season,
-            case when ${league} = 'open' then state->'ladder' else state->'leagues'->${league} end as live,
-            state->'lastSeason'->'ranks'->${league} as rec
-          from card_accounts
-          where not suspect and (coalesce(state->>'season', '0') = ${String(prev)}
-            or state->'lastSeason'->>'season' = ${String(prev)})`
+          select id_hash, name, coalesce(s->>'season', '0') as season,
+            case when ${league} = 'open' then s->'ladder' else s->'leagues'->${league} end as live,
+            s->'lastSeason'->'ranks'->${league} as rec
+          from (select id_hash, name, state #> '{}' as s from card_accounts where not suspect offset 0) a
+          where coalesce(s->>'season', '0') = ${String(prev)}
+            or s->'lastSeason'->>'season' = ${String(prev)}`
         const rows = []
         for (const r of found) {
           const rolled = r.season !== String(prev)
@@ -1252,6 +1306,8 @@ export function makeCardApi(sql, {
       })().finally(() => lastBuilding.delete(key))
       lastBuilding.set(key, job)
     }
+    // the old board while the new one is read; only the very first read waits
+    if (hit) { job.catch(() => {}); return hit.value }
     return job
   }
   /**
@@ -1260,7 +1316,8 @@ export function makeCardApi(sql, {
    * release; five minutes of cache is fresher than that. Grading is the
    * engine's (predict.ts predictBoard), the same code the claim pays from.
    */
-  const PREDICT_TTL = 5 * 60_000
+  // and served stale while the next is read: a read is every account's save (2026-10-06)
+  const PREDICT_TTL = 30 * 60_000
   const predictCaches = new Map()
   const predictBuilding = new Map()
   async function predictRows(eventId) {
@@ -1270,9 +1327,9 @@ export function makeCardApi(sql, {
     if (!job) {
       job = (async () => {
         const found = await (slow ?? sql)`
-          select id_hash, name, state->'predict'->${eventId} as saved
-          from card_accounts
-          where not suspect and jsonb_typeof(state->'predict'->${eventId}) = 'object'`
+          select id_hash, name, saved
+          from (select id_hash, name, state->'predict'->${eventId} as saved from card_accounts where not suspect offset 0) a
+          where jsonb_typeof(saved) = 'object'`
         const rows = engine.predictBoard(eventId,
           found.map((r) => ({ id: r.id_hash, name: r.name, saved: r.saved })), Date.now())
         predictCaches.set(eventId, { at: Date.now(), rows })
@@ -1280,6 +1337,7 @@ export function makeCardApi(sql, {
       })().finally(() => predictBuilding.delete(eventId))
       predictBuilding.set(eventId, job)
     }
+    if (hit) { job.catch(() => {}); return hit.rows }
     return job
   }
   async function predictTop(req, res, bucket) {

@@ -543,6 +543,9 @@ export async function overview(sql, days = 30) {
   }
 }
 
+/** How long an exact ceiling walk is trusted before prune() walks again (see `memo` there). */
+export const PRUNE_ANCHOR_MS = 24 * 3600_000
+
 /**
  * Keep the table from growing forever.
  *
@@ -550,7 +553,7 @@ export async function overview(sql, days = 30) {
  * this year" is not a retention policy. Raw events older than half a year go;
  * nothing on the dashboard looks further back than that.
  */
-export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = null) {
+export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = null, memo = null) {
   // `foldedUpTo`: the rollup's watermark (rollup.js). A row above it has not
   // been counted into the permanent tables yet and is not this function's to
   // delete, whatever the ceiling says — the ceiling waits for the fold.
@@ -577,14 +580,73 @@ export async function prune(sql, days = 180, maxRows = 4_000_000, foldedUpTo = n
   // they are not: the dedupe index rejects a re-delivered batch after the
   // sequence has already handed out its numbers, so the gaps grow with every
   // flaky phone and the threshold drifts further into live data.
+  //
+  // Finding that position exactly means walking maxRows index entries from the top, and every delete leaves dead
+  // ones at the bottom that the next pass climbs over until autovacuum comes (on a three-million-row table, about
+  // every forty hours). Run hourly, that walk was a stall for the whole database (2026-10-06: 「服务器老是没有回应」
+  // at :36 past every hour). So `memo`, when given, carries what the last run established, and the next run counts
+  // only what has arrived since.
+  //
+  // Counted only up to the fold's watermark (`foldedUpTo`), never up to the largest id in sight: ids are handed out
+  // before their transactions commit, so a higher id can be visible while a lower one is still to come, and a count
+  // that steps past it never sees it (Codex's review the same day: cap 10, eleven rows kept, the memo saying ten).
+  // At or below the watermark nothing is still to come — rollup takes the table's SHARE lock, which waits out every
+  // insert in flight, before it moves the watermark. So the memo holds the rows in (floor, top] with top a watermark,
+  // and the rows above it (the last half minute or so) are counted afresh every run and never remembered.
+  //
+  // memo: { maxRows, floor, top, rows, at }. The full walk runs on the first run, once a day, whenever the age pass
+  // above deleted anything (it took rows the memo was counting), and whenever a run could not finish its cut.
   const byCount = { count: 0 }
-  const edge = await sql`select id from events order by id desc offset ${maxRows} limit 1`
-  const cutoff = edge.length ? Math.min(Number(edge[0].id), limit) : 0
-  for (let pass = 0; cutoff > 0 && pass < PRUNE_PASSES; pass++) {
+  const stable = Number.isFinite(limit) && limit < Number.MAX_SAFE_INTEGER
+  const usable = memo && stable && memo.maxRows === maxRows && Number.isFinite(memo.at)
+    && Date.now() - memo.at < PRUNE_ANCHOR_MS && (byAge.count ?? 0) === 0 && memo.top <= limit
+  let floor = 0, cutoff = 0, held = null, lost = false
+  if (usable) {
+    // what came in under the watermark since the last run, and the tail above it, in one look
+    const [n] = await sql`
+      select (select count(*) from events where id > ${memo.top} and id <= ${limit})::bigint as added,
+             (select count(*) from events where id > ${limit})::bigint as tail`
+    floor = memo.floor
+    held = memo.rows + Number(n?.added ?? 0)
+    const excess = held + Number(n?.tail ?? 0) - maxRows
+    if (excess > 0) {
+      const edge = await sql`select id from events where id > ${floor} order by id offset ${excess - 1} limit 1`
+      cutoff = edge.length ? Number(edge[0].id) : 0
+      // fewer rows above the floor than the memo says: it has lost count, so walk next time
+      lost = !edge.length
+    }
+  } else {
+    // one statement, so the edge and the tail above the watermark are the same moment
+    const [edge] = await sql`
+      select (select id from events order by id desc offset ${maxRows} limit 1)::bigint as edge,
+             (select count(*) from events where id > ${limit})::bigint as tail`
+    cutoff = edge?.edge == null ? 0 : Number(edge.edge)
+    // after the cut, maxRows rows are left above it; those not in the tail are under the watermark
+    held = cutoff ? maxRows - Number(edge?.tail ?? 0) : null
+  }
+  const target = Math.min(cutoff, limit)
+  let finished = target <= floor
+  for (let pass = 0; target > floor && pass < PRUNE_PASSES; pass++) {
     const r = await sql`
-      delete from events where id in (select id from events where id <= ${cutoff} order by id limit ${CHUNK})`
+      delete from events where id in (
+        select id from events where id > ${floor} and id <= ${target} order by id limit ${CHUNK})`
     byCount.count += r.count ?? 0
-    if ((r.count ?? 0) < CHUNK) break
+    if ((r.count ?? 0) < CHUNK) { finished = true; break }
+  }
+  if (memo) {
+    // Trusted only when the whole cut went and it was under the watermark: a fold that is behind (target short of the
+    // cut) or a cut too big for one run leaves rows the memo cannot count, and the next run walks again.
+    const exact = stable && !lost && finished && target === cutoff && held !== null && (usable || cutoff > 0)
+    if (exact) {
+      Object.assign(memo, {
+        maxRows, top: limit,
+        floor: Math.max(floor, cutoff),
+        rows: usable ? held - (byCount.count ?? 0) : held,
+        at: usable ? memo.at : Date.now(),
+      })
+    } else {
+      memo.at = NaN
+    }
   }
 
   const total = (byAge.count ?? 0) + (byCount.count ?? 0)

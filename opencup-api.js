@@ -162,6 +162,16 @@ export function makeOpenCupApi(sql, {
     return false
   }
   const tx = (fn) => (bg.begin ? bg.begin(fn) : fn(bg))
+  /**
+   * A player's sign-up or withdrawal (2026-10-06): on the interactive pool, not the clock's single background
+   * connection. On bg it queued behind settling auctions and playing cup rounds, and one join waited 30 s for the
+   * connection and answered 500. Same row lock, same checks; if a start holds the lock longer than a few seconds the
+   * player is told the cup is starting instead of holding an interactive connection while it runs.
+   */
+  const seatTx = (fn) => (sql.begin
+    ? sql.begin(async (db) => { await db`set local lock_timeout = '3s'`; return fn(db) })
+    : fn(sql))
+  const lockBusy = (err) => err?.code === '55P03'
   const computer = compute ? null : createCupComputer()
   const archive = createCupEngineArchive(bg, { source: engineBundle, hash: cardPoolVersion })
   const simulate = compute ?? (async (args, buildHash = null) => computer.compute(args, buildHash ? await archive.load(buildHash) : null))
@@ -222,11 +232,18 @@ export function makeOpenCupApi(sql, {
     return { name: d.name, tag: d.tag, slots: e.five.slots, coach: e.five.coach, levels: e.five.levels ?? {}, div: 0, points: 0 }
   }
 
-  async function ensureOpen(now) {
+  /**
+   * The next cup's row, made by whoever needs it first. From a sign-up (`interactive`) it runs in seatTx, under the
+   * same few-second lock limit as the seat itself: a start holding that row's lock used to keep a cold instance's first
+   * sign-up waiting outside the limit (Codex's review, 5.8 s). The slot is remembered only once the row is committed.
+   */
+  async function ensureOpen(now, interactive = false) {
     const slot = slotOf(now)
     if (ensureOpen.known === slot) return
-    await bg`insert into open_cups (starts, seed, format_version, phase) values (${new Date(slot)}, ${freshSeed()}, ${format === 2 ? 2 : 1}, ${format === 2 ? 'swiss' : 'knockout'})
+    const make = (db) => db`insert into open_cups (starts, seed, format_version, phase) values (${new Date(slot)}, ${freshSeed()}, ${format === 2 ? 2 : 1}, ${format === 2 ? 'swiss' : 'knockout'})
       on conflict (starts) do update set format_version = excluded.format_version, phase = excluded.phase where open_cups.status = 'open'`
+    if (interactive) await seatTx(make)
+    else await make(bg)
     ensureOpen.known = slot
   }
 
@@ -690,7 +707,13 @@ export function makeOpenCupApi(sql, {
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     if (!(await isVerified(sql, me))) { json(res, 200, { ok: false, why: '先绑手机号再玩。', unverified: true }); return }
     const now = clock()
-    await ensureOpen(now)
+    try {
+      await ensureOpen(now, true)
+    } catch (err) {
+      if (!lockBusy(err)) throw err
+      json(res, 200, { ok: false, why: '这一场正在开赛，稍等几秒再看。' })
+      return
+    }
     const blocked = await gate(me)
     if (blocked?.missing) { json(res, 200, { ok: false, missing: true }); return }
     if (blocked?.why) { json(res, 200, { ok: false, why: blocked.why }); return }
@@ -727,7 +750,7 @@ export function makeOpenCupApi(sql, {
     // again inside: the cup is still open, its hour has not come, there is
     // room. Two requests racing for the last seat are served one after the
     // other, and the second one sees the first one's row.
-    const seat = await tx(async (db) => {
+    const seat = await seatTx(async (db) => {
       const cup = await db`select status, starts from open_cups where id = ${open[0].id} for update`
       if (cup[0]?.status !== 'open' || ms(cup[0].starts) <= clock()) return { why: '这一场已经开赛了，下一场再来。' }
       const mine = await db`select 1 as ok from open_cup_entries where cup_id = ${open[0].id} and id_hash = ${me}`
@@ -740,7 +763,7 @@ export function makeOpenCupApi(sql, {
       if ((full[0]?.n ?? 0) >= engine.OPEN_CUP_MAX) return { why: '这一场报满了，下一场再来。' }
       await db`insert into open_cup_entries (cup_id, id_hash, name, pick) values (${open[0].id}, ${me}, ${name}, ${db.json(pick)}::jsonb)`
       return { ok: true }
-    })
+    }).catch((err) => { if (lockBusy(err)) return { why: '这一场正在开赛，稍等几秒再看。' }; throw err })
     if (!seat.ok) { json(res, 200, { ok: false, why: seat.why }); return }
     publicCache.at = 0
     mineCache.delete(me)
@@ -753,7 +776,7 @@ export function makeOpenCupApi(sql, {
     if (!me) { json(res, 400, { ok: false, bad: true }); return }
     // only out of a cup that has not started: once the fives are read, the bracket is the bracket.
     // Same lock, same order as join and start, so a withdrawal cannot land inside a start.
-    await tx(async (db) => {
+    const left = await seatTx(async (db) => {
       const cups = await db`
         select c.id from open_cups c join open_cup_entries e on e.cup_id = c.id
          where e.id_hash = ${me} and c.status = 'open' order by c.id for update of c`
@@ -762,7 +785,9 @@ export function makeOpenCupApi(sql, {
         if (still[0]?.status !== 'open' || ms(still[0].starts) <= clock()) continue
         await db`delete from open_cup_entries where cup_id = ${c.id} and id_hash = ${me}`
       }
-    })
+      return true
+    }).catch((err) => { if (lockBusy(err)) return false; throw err })
+    if (!left) { json(res, 200, { ok: false, why: '这一场正在开赛，稍等几秒再看。' }); return }
     publicCache.at = 0
     mineCache.delete(me)
     json(res, 200, { ok: true })
