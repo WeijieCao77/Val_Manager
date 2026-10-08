@@ -1,0 +1,392 @@
+{
+ "qualifier": "HTTP log samples >=1000 ms for /api, deployment 0d3a7966 (2026-10-08 05:45–14:07 UTC); Railway timestamps are request END; no IPs or user agents kept",
+ "slowSamples": 1193,
+ "distinctClients": 500,
+ "inClusters": 965,
+ "perPath": {
+  "/api/e": {
+   "n": 492,
+   "p50": 3735,
+   "maxMs": 34836
+  },
+  "/api/card/act": {
+   "n": 195,
+   "p50": 2014,
+   "maxMs": 44992
+  },
+  "/api/market/browse": {
+   "n": 96,
+   "p50": 2204,
+   "maxMs": 13553
+  },
+  "/api/card/save": {
+   "n": 83,
+   "p50": 3958,
+   "maxMs": 75165
+  },
+  "/api/market/offers": {
+   "n": 79,
+   "p50": 2671,
+   "maxMs": 13469
+  },
+  "/api/card/top": {
+   "n": 52,
+   "p50": 15177,
+   "maxMs": 40150
+  },
+  "/api/market/history": {
+   "n": 42,
+   "p50": 1452,
+   "maxMs": 13551
+  },
+  "/api/card/phone/send": {
+   "n": 38,
+   "p50": 1259,
+   "maxMs": 3077
+  },
+  "/api/card/load": {
+   "n": 36,
+   "p50": 2471,
+   "maxMs": 38771
+  },
+  "/api/market/participating": {
+   "n": 14,
+   "p50": 2109,
+   "maxMs": 12264
+  },
+  "/api/profile/load": {
+   "n": 11,
+   "p50": 1759,
+   "maxMs": 35578
+  },
+  "/api/site/champions": {
+   "n": 10,
+   "p50": 2753,
+   "maxMs": 29336
+  },
+  "/api/card/opencup": {
+   "n": 8,
+   "p50": 1692,
+   "maxMs": 6193
+  },
+  "/api/card/teamcup": {
+   "n": 7,
+   "p50": 1355,
+   "maxMs": 19378
+  },
+  "/api/card/puzzle": {
+   "n": 5,
+   "p50": 6846,
+   "maxMs": 12306
+  },
+  "/api/card/top_last": {
+   "n": 4,
+   "p50": 1105,
+   "maxMs": 1161
+  },
+  "/api/market/offer": {
+   "n": 4,
+   "p50": 1188,
+   "maxMs": 1699
+  },
+  "/api/card/phone/bind": {
+   "n": 3,
+   "p50": 1136,
+   "maxMs": 1140
+  },
+  "/api/site/wechat": {
+   "n": 3,
+   "p50": 2203,
+   "maxMs": 11394
+  },
+  "/api/market/peek": {
+   "n": 2,
+   "p50": 8372,
+   "maxMs": 8372
+  }
+ },
+ "clusters": [
+  {
+   "startUtc": "07:45:25",
+   "endUtc": "07:45:34",
+   "n": 10,
+   "maxMs": 1736,
+   "paths": {
+    "/api/card/act": 5,
+    "/api/e": 1,
+    "/api/market/browse": 1,
+    "/api/market/history": 1,
+    "/api/card/save": 1,
+    "/api/card/top": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "08:05:26",
+   "endUtc": "08:05:44",
+   "n": 8,
+   "maxMs": 3077,
+   "paths": {
+    "/api/e": 6,
+    "/api/card/phone/send": 1,
+    "/api/market/offer": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "08:35:26",
+   "endUtc": "08:35:29",
+   "n": 12,
+   "maxMs": 3145,
+   "paths": {
+    "/api/e": 7,
+    "/api/card/act": 2,
+    "/api/market/offers": 2,
+    "/api/market/browse": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "08:45:26",
+   "endUtc": "08:45:34",
+   "n": 39,
+   "maxMs": 2718,
+   "paths": {
+    "/api/e": 10,
+    "/api/card/act": 7,
+    "/api/market/history": 5,
+    "/api/market/offers": 4,
+    "/api/card/top": 3,
+    "/api/market/browse": 3
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "08:55:26",
+   "endUtc": "08:55:29",
+   "n": 11,
+   "maxMs": 2991,
+   "paths": {
+    "/api/e": 9,
+    "/api/market/history": 1,
+    "/api/card/load": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "09:05:26",
+   "endUtc": "09:05:29",
+   "n": 16,
+   "maxMs": 3124,
+   "paths": {
+    "/api/e": 9,
+    "/api/card/act": 6,
+    "/api/profile/load": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "10:15:29",
+   "endUtc": "10:15:31",
+   "n": 8,
+   "maxMs": 1882,
+   "paths": {
+    "/api/e": 6,
+    "/api/market/history": 1,
+    "/api/market/browse": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "10:35:29",
+   "endUtc": "10:35:32",
+   "n": 12,
+   "maxMs": 3029,
+   "paths": {
+    "/api/e": 10,
+    "/api/card/top": 1,
+    "/api/card/save": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "10:45:30",
+   "endUtc": "10:45:37",
+   "n": 31,
+   "maxMs": 6537,
+   "paths": {
+    "/api/e": 25,
+    "/api/profile/load": 2,
+    "/api/market/offers": 1,
+    "/api/market/browse": 1,
+    "/api/market/participating": 1,
+    "/api/card/act": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "10:51:43",
+   "endUtc": "10:52:34",
+   "n": 370,
+   "maxMs": 45696,
+   "paths": {
+    "/api/e": 105,
+    "/api/card/act": 66,
+    "/api/market/browse": 46,
+    "/api/market/offers": 43,
+    "/api/card/save": 39,
+    "/api/card/top": 30
+   },
+   "cause": "daily pgBackRest backup (immediate checkpoint + 3.5 GB diff read, 10:51:41–10:52:37)"
+  },
+  {
+   "startUtc": "11:15:30",
+   "endUtc": "11:15:33",
+   "n": 12,
+   "maxMs": 2860,
+   "paths": {
+    "/api/e": 8,
+    "/api/card/top": 1,
+    "/api/card/act": 1,
+    "/api/market/browse": 1,
+    "/api/market/participating": 1
+   },
+   "cause": ":x5 request sweep / hourly maintenance window"
+  },
+  {
+   "startUtc": "11:16:41",
+   "endUtc": "11:16:46",
+   "n": 36,
+   "maxMs": 4485,
+   "paths": {
+    "/api/e": 13,
+    "/api/card/act": 10,
+    "/api/card/save": 5,
+    "/api/market/browse": 3,
+    "/api/market/offers": 2,
+    "/api/card/load": 1
+   },
+   "cause": "card_requests autovacuum (last_autovacuum 11:16:38)"
+  },
+  {
+   "startUtc": "12:56:25",
+   "endUtc": "12:56:28",
+   "n": 15,
+   "maxMs": 2482,
+   "paths": {
+    "/api/card/act": 7,
+    "/api/market/history": 2,
+    "/api/market/participating": 2,
+    "/api/market/browse": 2,
+    "/api/card/load": 1,
+    "/api/card/save": 1
+   },
+   "cause": "small"
+  },
+  {
+   "startUtc": "13:29:04",
+   "endUtc": "13:29:28",
+   "n": 8,
+   "maxMs": 14352,
+   "paths": {
+    "/api/e": 7,
+    "/api/market/participating": 1
+   },
+   "cause": "not identified"
+  },
+  {
+   "startUtc": "13:30:12",
+   "endUtc": "13:31:53",
+   "n": 83,
+   "maxMs": 75165,
+   "paths": {
+    "/api/e": 37,
+    "/api/card/act": 15,
+    "/api/card/save": 9,
+    "/api/market/history": 5,
+    "/api/market/browse": 5,
+    "/api/card/top": 3
+   },
+   "cause": "not identified (no app, Postgres or admin activity logged)"
+  },
+  {
+   "startUtc": "13:31:47",
+   "endUtc": "13:32:21",
+   "n": 77,
+   "maxMs": 5254,
+   "paths": {
+    "/api/e": 26,
+    "/api/market/browse": 11,
+    "/api/market/offers": 9,
+    "/api/card/save": 7,
+    "/api/card/act": 7,
+    "/api/card/load": 6
+   },
+   "cause": "not identified"
+  },
+  {
+   "startUtc": "14:06:43",
+   "endUtc": "14:07:19",
+   "n": 217,
+   "maxMs": 36157,
+   "paths": {
+    "/api/e": 147,
+    "/api/card/act": 25,
+    "/api/card/save": 11,
+    "/api/market/browse": 8,
+    "/api/market/offers": 7,
+    "/api/card/top": 7
+   },
+   "cause": "owner dashboard /api/stats started 14:06:43, ran 36,157 ms"
+  }
+ ],
+ "backups": [
+  {
+   "dayUtc": "2026-10-02",
+   "startUtc": "10:42:28",
+   "ms": 68508
+  },
+  {
+   "dayUtc": "2026-10-03",
+   "startUtc": "10:44:30",
+   "ms": 38929
+  },
+  {
+   "dayUtc": "2026-10-04",
+   "startUtc": "10:45:55",
+   "ms": 44822
+  },
+  {
+   "dayUtc": "2026-10-05",
+   "startUtc": "10:47:10",
+   "ms": 49966
+  },
+  {
+   "dayUtc": "2026-10-06",
+   "startUtc": "10:48:41",
+   "ms": 47304
+  },
+  {
+   "dayUtc": "2026-10-07",
+   "startUtc": "10:50:13",
+   "ms": 58778
+  },
+  {
+   "dayUtc": "2026-10-08",
+   "startUtc": "10:51:41",
+   "ms": 56789
+  }
+ ],
+ "db": {
+  "shared_buffers": "128 MB",
+  "work_mem": "4 MB",
+  "tempMb": 4381,
+  "cacheHitPct": 93.2,
+  "events": {
+   "totalMb": 1807,
+   "heapMb": 774,
+   "live": 3018108
+  },
+  "checkpointWriteSec": "~240–270 of every 300 (spread, not a stall)"
+ }
+}

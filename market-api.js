@@ -1242,6 +1242,54 @@ export function makeMarketApi(sql, {
    */
   const HISTORY_RECENT = 8
   const HAND_MAX = 30
+
+  /**
+   * What a card has sold for, kept a minute per card and level.
+   *
+   * Every sale of the card, joined to its winning bid, with a median — a
+   * popular card has thousands, read at random off the disk each time a tile
+   * is opened. On a quiet database that is a second or so; in a stall
+   * (2026-10-08 18:52 Beijing, the daily backup) it was the first statement
+   * to hit the timeout, four of them at once holding every interactive
+   * connection while saves and cup matches waited 30 s behind them. A sale
+   * is public and a minute late is invisible here. Asked once however many
+   * are waiting for the same card.
+   */
+  const soldCache = new Map()
+  const SOLD_TTL = 60_000
+  function soldSummary(cardId, level) {
+    const key = `${cardId}|${level ?? ''}`
+    const hit = soldCache.get(key)
+    if (hit && (hit.job || Date.now() - hit.at <= SOLD_TTL)) return hit.job ?? hit.value
+    if (soldCache.size >= 2000) soldCache.clear()
+    const entry = { at: 0, value: null, job: null }
+    entry.job = (async () => {
+      const [all] = await sql`
+        select count(*)::int as n, round(avg(o.price))::int as avg,
+               percentile_cont(0.5) within group (order by o.price)::int as median,
+               count(*) filter (where l.closed > now() - interval '7 days')::int as n7,
+               round(avg(o.price) filter (where l.closed > now() - interval '7 days'))::int as avg7,
+               count(*) filter (where l.level = ${level ?? -1})::int as nl,
+               round(avg(o.price) filter (where l.level = ${level ?? -1}))::int as avgl,
+               count(distinct l.seller_h)::int as sellers
+        from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
+        where l.card_id = ${cardId} and l.status = 'sold'`
+      const recent = await sql`
+        select o.price, l.level, l.closed from card_listings l
+        join card_offers o on o.listing = l.id and o.status = 'accepted'
+        where l.card_id = ${cardId} and l.status = 'sold'
+        order by l.closed desc limit ${HISTORY_RECENT}`
+      return { all, recent }
+    })()
+    soldCache.set(key, entry)
+    // a failure is not kept: the next look asks again
+    entry.job.then(
+      (value) => { entry.value = value; entry.at = Date.now(); entry.job = null },
+      () => { if (soldCache.get(key) === entry) soldCache.delete(key) },
+    )
+    return entry.job
+  }
+
   async function history(req, res, bucket) {
     if (guard(req, res, `mh:${bucket}`, 60)) return
     let b
@@ -1250,21 +1298,7 @@ export function makeMarketApi(sql, {
     if (!engine.cardById(cardId)) { json(res, 200, { ok: false, bad: true }); return }
     const listing = rowId(b?.listing)
     const level = Number.isInteger(b?.level) ? b.level : null
-    const [all] = await sql`
-      select count(*)::int as n, round(avg(o.price))::int as avg,
-             percentile_cont(0.5) within group (order by o.price)::int as median,
-             count(*) filter (where l.closed > now() - interval '7 days')::int as n7,
-             round(avg(o.price) filter (where l.closed > now() - interval '7 days'))::int as avg7,
-             count(*) filter (where l.level = ${level ?? -1})::int as nl,
-             round(avg(o.price) filter (where l.level = ${level ?? -1}))::int as avgl,
-             count(distinct l.seller_h)::int as sellers
-      from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
-      where l.card_id = ${cardId} and l.status = 'sold'`
-    const recent = await sql`
-      select o.price, l.level, l.closed from card_listings l
-      join card_offers o on o.listing = l.id and o.status = 'accepted'
-      where l.card_id = ${cardId} and l.status = 'sold'
-      order by l.closed desc limit ${HISTORY_RECENT}`
+    const { all, recent } = await soldSummary(cardId, level)
     let hands = null
     if (listing) {
       // walk back: who sold to the seller before he listed it, and so on

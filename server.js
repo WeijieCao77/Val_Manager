@@ -466,6 +466,48 @@ async function ingest(req, res) {
   }
 }
 
+/**
+ * The dashboard's numbers, built on one connection and kept half an hour.
+ *
+ * overview() is two dozen aggregates over the raw events table — three
+ * million rows, 1.8 GB — and they ran two at a time, each with Postgres's
+ * parallel workers behind it. 2026-10-08 22:06 Beijing, one look at the
+ * dashboard: 36 s of reading, and Railway's disk was so busy that every pool
+ * on the site waited with it — 217 slow requests in that half-minute, players'
+ * saves and cup matches among them, the telemetry queued behind the dashboard
+ * on the two stats connections. So the build is one read-only transaction on
+ * ONE connection with no parallel workers: slower for the owner, a fraction
+ * of the burst for everybody else, and the other stats connection keeps
+ * taking telemetry. It is kept STATS_TTL; an older copy is answered at once
+ * and rebuilt behind it, and 「重新统计」 (?fresh=1) rebuilds now — not more
+ * than once a minute however often it is pressed.
+ */
+const STATS_TTL = 30 * 60_000
+const statsBuilt = new Map()
+function buildStats(days) {
+  let entry = statsBuilt.get(days)
+  if (!entry) {
+    if (statsBuilt.size >= 6) statsBuilt.clear()
+    entry = { at: 0, body: null, job: null }
+    statsBuilt.set(days, entry)
+  }
+  if (!entry.job) {
+    const t0 = Date.now()
+    entry.job = sqlStats.begin(async (db) => {
+      await db`set transaction read only`
+      await db`set local max_parallel_workers_per_gather = 0`
+      const [data, disk, hist] = await Promise.all([overview(db, days), storage(db, MAX_ROWS), history(db, 120)])
+      return { ...data, storage: disk, history: hist }
+    }).then((body) => {
+      entry.at = Date.now()
+      entry.body = body
+      console.log(`analytics: dashboard built in ${entry.at - t0} ms (${days} days)`)
+      return entry
+    }).finally(() => { entry.job = null })
+  }
+  return entry.job
+}
+
 async function stats(req, res, url) {
   if (!tokenOk(tokenFrom(req, url), TOKEN)) {
     json(res, 404, { ok: false })
@@ -473,14 +515,17 @@ async function stats(req, res, url) {
   }
   if (!sqlStats) { json(res, 503, { ok: false, why: 'no database' }); return }
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days')) || 30))
+  const fresh = url.searchParams.get('fresh') === '1'
   try {
-    const [data, disk, hist] = await Promise.all([
-      overview(sqlStats, days), storage(sqlStats, MAX_ROWS), history(sqlStats, 120),
-    ])
+    let entry = statsBuilt.get(days)
+    const age = entry?.body ? Date.now() - entry.at : Infinity
+    if (!entry?.body || (fresh && age > 60_000)) entry = await buildStats(days)
+    else if (age > STATS_TTL) buildStats(days).catch((err) => console.warn('analytics: dashboard rebuild failed', err.message))
+    const { storage: disk, ...data } = entry.body
     json(res, 200, {
       ...data,
       storage: { ...disk, maxBytes: MAX_TABLE_BYTES, refusing },
-      history: hist,
+      builtAt: entry.at,
     })
   } catch (err) {
     console.warn('analytics: query failed', err.message)

@@ -1157,10 +1157,24 @@ export function makeCardApi(sql, {
     try {
       return await projectedTopRows(mine, league)
     } catch (err) {
+      // A projection read that timed out or never got a connection says the
+      // DATABASE is stalled, not that the projection is wrong — and the old
+      // scan is the heaviest read on the site (every save, decompressed), on
+      // the players' pool. 2026-10-08 18:52 Beijing, the daily backup: the
+      // board's own-row count hit the statement timeout and each one started
+      // that scan into the stall. The last hundred built is the answer then;
+      // with none, the error, and the page asks again.
+      if (busyError(err)) {
+        const kept = boardCaches.get(`${league}:${engine.seasonOf(serverDay())}`)
+        if (kept) return kept.rows
+        throw err
+      }
       console.warn('cards: board from projection failed, scanning', err.message)
       return scannedTopRows(mine, league)
     }
   }
+  /** statement or lock timeout, or no connection within the pool's wait (db-transactions.js) */
+  const busyError = (err) => err?.code === '57014' || err?.code === '55P03' || /没拿到数据库连接/.test(err?.message ?? '')
   /**
    * The board off the projection. The caller's own row and place are read
    * fresh on every look — one indexed row and a count — so his own write no

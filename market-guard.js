@@ -64,8 +64,9 @@
  * so they put an account in front of the owner (「watch」, with the rule's letter) and suspend nobody.
  * MARKET_GUARD_AUTO lists the letters that do; the default is A,E.
  *
- * Suspensions (MARKET_GUARD=ban, the default): three days the first
- * time, five after that. MARKET_GUARD=watch bans nobody; =off does nothing.
+ * Suspensions (MARKET_GUARD=ban, the default): three days the first time and two more each time after —
+ * 3, 5, 7, … (owner, 2026-10-08: 「第二次会自动封5天，第三次7天，这样直接叠加上去」), the owner's own the
+ * same. A ban the owner lifted was a mistake and does not count. MARKET_GUARD=watch bans nobody; =off does nothing.
  *
  * Suspended means: no listing, no bidding, no buying, no swaps. Withdrawing,
  * answering and collecting still work, so nothing a suspended account already
@@ -93,8 +94,10 @@ export const GUARD = {
   SELLER_CAP: 3, QUICK_DAY: 40,
   SELLER_CAP_WEEK: 10, QUICK_WEEK: 120,
   FRESH_N: 100, FRESH_HOURS: 20,
-  FIRST_DAYS: 3, REPEAT_DAYS: 5,
+  FIRST_DAYS: 3, STEP_DAYS: 2, MAX_DAYS: 30,
 }
+/** how long the next suspension is, after `strikes` that stood (lifted ones are forgiven): 3, 5, 7, … */
+export const banDays = (strikes) => Math.min(GUARD.MAX_DAYS, GUARD.FIRST_DAYS + GUARD.STEP_DAYS * Math.max(0, strikes | 0))
 /** the rules that suspend by themselves; the rest only report */
 // F and G (倒卡) report first: on 2026-09-26 the ledger showed rings trading hundreds of times a day, and how many
 // accounts they would suspend is read off the owner's list before they suspend by themselves
@@ -397,7 +400,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       if (moved.verdict === 'ban' || !found.verdict) { found.verdict = moved.verdict; found.rule = moved.rule }
     }
     if (found.verdict === 'ban' && mode === 'ban' && !dry && !(await banOf(me))) {
-      const days = strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS
+      const days = banDays(strikes)
       const sample = buys.slice(0, 12).map((b) => ({
         card: b.card_id, price: b.price, made: b.made,
         age: Math.round((new Date(b.made) - new Date(b.created)) / 100) / 10, seller: String(b.seller).slice(0, 8),
@@ -412,7 +415,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
           if (await banOf(other)) continue
           const theirs = await slate(other)
           if (!(await tradesOf(other, theirs.since)).some((t) => t.other === me)) continue
-          await ban(other, { days: theirs.strikes ? GUARD.REPEAT_DAYS : GUARD.FIRST_DAYS, rule, evidence: { transfer: moved.evidence, with: [me.slice(0, 8)] } })
+          await ban(other, { days: banDays(theirs.strikes), rule, evidence: { transfer: moved.evidence, with: [me.slice(0, 8)] } })
         }
       }
     }
@@ -444,6 +447,84 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   }
 
   /**
+   * Where each account stands, for the owner (2026-10-08: 「显示一下这个号近期有没有被封禁过…现在有没有解封」):
+   * suspensions that stood (what the next one is sized by), ones the owner lifted, whether one is running and
+   * until when, when the last one ended, and how long the next would be. One grouped read for a whole list,
+   * on the interactive pool — it is the owner looking, not the clock's work.
+   */
+  const CLEAN = Object.freeze({ strikes: 0, forgiven: 0, running: null, lastUntil: null, next: banDays(0) })
+  async function standing(hashes) {
+    const want = [...new Set(hashes.filter(Boolean))]
+    const out = new Map()
+    if (off || !want.length) return out
+    const rows = await sql`
+      select id_hash,
+             (count(*) filter (where lifted is null))::int as strikes,
+             (count(*) filter (where lifted is not null))::int as forgiven,
+             max(until) filter (where lifted is null and until > now()) as running,
+             max(until) filter (where lifted is null) as last_until
+      from market_bans where id_hash = any(${want}) group by id_hash`
+    for (const r of rows) out.set(r.id_hash, { strikes: r.strikes, forgiven: r.forgiven, running: r.running, lastUntil: r.last_until, next: banDays(r.strikes) })
+    return out
+  }
+
+  /**
+   * 倒卡 as it happens (owner, 2026-10-08: 「我不要近7天…每次刷新能看到最近高价卖卡，或者最近哪些号两个号
+   * 买卖很多」). The newest overpriced sales of the last few days, newest first — RATIO × what the card at that
+   * level goes for and OVER coins above it, the band the week's report started from, with F's 20× marked —
+   * and the pairs that traded with each other in the last 24 h, the most recently active first: two trades
+   * either way round, or one overpriced, or three of anything.
+   */
+  const RECENT = { SALE_DAYS: 3, RATIO: 5, OVER: 3000, PAIR_RATIO: 3, ROWS: 60 }
+  async function recent() {
+    const [value, sales] = await Promise.all([valueFn(), sql`
+      select o.buyer_h as b, l.seller_h as s, l.card_id, l.level, o.price, l.buyout,
+             extract(epoch from l.closed)::float8 as closed
+      from card_offers o join card_listings l on l.id = o.listing
+      where o.status = 'accepted' and l.status = 'sold' and l.closed > now() - make_interval(days => ${RECENT.SALE_DAYS})
+        and l.seller_h <> o.buyer_h
+      order by l.closed desc limit 20000`])
+    const rows = sales.map((r) => {
+      const v = value(r.card_id, r.level)
+      return { ...r, ref: v.ref, refFrom: v.from, ratio: r.price / v.ref, over: r.price - v.ref, bo: r.buyout != null && r.price >= r.buyout }
+    })
+    const now = Date.now() / 1000
+    const pairs = new Map()
+    for (const r of rows) {
+      const [x, y] = r.b < r.s ? [r.b, r.s] : [r.s, r.b]
+      let p = pairs.get(x + y)
+      if (!p) pairs.set(x + y, p = { x, y, n: 0, day: 0, xBought: 0, yBought: 0, pricey: 0, paid: 0, maxRatio: 0, last: 0, cards: new Set() })
+      p.n++
+      if (now - r.closed > 86400) continue
+      p.day++
+      if (r.b === x) p.xBought++; else p.yBought++
+      if (r.ratio >= RECENT.PAIR_RATIO) p.pricey++
+      p.paid += r.price; p.maxRatio = Math.max(p.maxRatio, r.ratio); p.last = Math.max(p.last, r.closed); p.cards.add(r.card_id)
+    }
+    const hot = rows.filter((r) => r.ratio >= RECENT.RATIO && r.over >= RECENT.OVER).slice(0, RECENT.ROWS)
+    const busy = [...pairs.values()]
+      .filter((p) => p.day >= 3 || (p.day >= 2 && ((p.xBought && p.yBought) || p.pricey)))
+      .sort((a, b) => b.last - a.last).slice(0, RECENT.ROWS)
+    const ign = (id) => cardById?.(id)?.ign ?? cardById?.(id)?.name ?? id
+    const round = (x) => Math.round(x * 10) / 10
+    return {
+      hashes: [...hot.flatMap((r) => [r.b, r.s]), ...busy.flatMap((p) => [p.x, p.y])],
+      sales: hot.map((r) => {
+        const p = pairs.get(r.b < r.s ? r.b + r.s : r.s + r.b)
+        return {
+          buyer: r.b, seller: r.s, card: ign(r.card_id), level: r.level, price: r.price, bo: r.bo, ref: r.ref, refFrom: r.refFrom,
+          ratio: round(r.ratio), f: r.ratio >= TRANSFER.F_RATIO && r.over >= TRANSFER.F_GAP,
+          at: new Date(r.closed * 1000).toISOString(), pair: { n: p.n, day: p.day, both: !!(p.xBought && p.yBought) },
+        }
+      }),
+      pairs: busy.map((p) => ({
+        a: p.x, b: p.y, n: p.day, aBought: p.xBought, bBought: p.yBought, pricey: p.pricey, cards: p.cards.size,
+        paid: p.paid, maxRatio: round(p.maxRatio), last: new Date(p.last * 1000).toISOString(), days3: p.n,
+      })),
+    }
+  }
+
+  /**
    * Everybody who bought outright this week, judged — for the owner's list and the log line after boot.
    * It suspends nobody: a suspension only ever follows a purchase made while this code was running, so a
    * threshold that turns out wrong on live data is seen in the report before it has cost anybody anything.
@@ -464,25 +545,51 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return out
   }
 
-  /** For the owner: who is suspended, who was, and who is worth a look. */
+  /**
+   * The week's buyers judged (scan) is a few queries per buyer, hundreds of buyers: kept three minutes, so the
+   * owner refreshing the list for the live 倒卡 below does not re-run it every time.
+   */
+  const scanned = { at: 0, rows: [], job: null }
+  function scanKept() {
+    if (Date.now() - scanned.at < 180_000) return Promise.resolve(scanned.rows)
+    scanned.job ??= scan()
+      .then((rows) => { scanned.rows = rows; scanned.at = Date.now(); return rows })
+      .finally(() => { scanned.job = null })
+    return scanned.job
+  }
+
+  /**
+   * For the owner: who is suspended, who was, and who is worth a look. Read on the interactive pool: it used to
+   * run on the ONE background connection, two and a half seconds a refresh, with every cup round and auction
+   * settlement queued behind it.
+   */
   async function report() {
-    const flagged = await scan()
-    await loadActive(true)
-    const bans = await work`select id, id_hash, until, rule, evidence, by, made, lifted from market_bans order by made desc limit 200`
-    const names = new Map()
-    const want = [...new Set([...bans.map((b) => b.id_hash), ...flagged.map((f) => f.id_hash)])]
+    const [flagged, bans, moving] = await Promise.all([
+      scanKept(),
+      sql`select id, id_hash, until, rule, evidence, by, made, lifted from market_bans order by made desc limit 200`,
+      recent(),
+    ])
+    const want = [...new Set([...bans.map((b) => b.id_hash), ...flagged.map((f) => f.id_hash), ...moving.hashes])]
+    const acc = new Map()
     if (want.length) {
-      for (const r of await work`select id_hash, name from card_accounts where id_hash = any(${want})`) names.set(r.id_hash, r.name)
+      for (const r of await sql`
+        select id_hash, name, created, (state->>'pulls')::int as pulls, (state->>'coins')::int as coins
+        from card_accounts where id_hash = any(${want})`) acc.set(r.id_hash, r)
     }
-    const who = (h) => ({ code: h.slice(0, 8).toUpperCase(), name: displayName ? displayName(names.get(h), h).name : names.get(h) ?? null })
-    // 倒卡 over the week: every sale over F and every pair over G, whoever bought — the dry version of what now suspends
-    const t = await transfers({ days: 7 })
-    const moving = {
-      sales: t.topSales.filter((x) => x.f).slice(0, 60),
-      pairs: t.topPairs.filter((x) => x.g).slice(0, 60),
+    const stand = await standing(want)
+    const who = (h) => {
+      const a = acc.get(h)
+      return {
+        code: h.slice(0, 8).toUpperCase(), name: displayName ? displayName(a?.name, h).name : a?.name ?? null,
+        created: a?.created ?? null, pulls: a?.pulls ?? null, coins: a?.coins ?? null, ban: stand.get(h) ?? CLEAN,
+      }
     }
     return {
-      mode, rules: GUARD, transfer: TRANSFER, moving,
+      mode, rules: GUARD, transfer: TRANSFER, recent: RECENT,
+      moving: {
+        sales: moving.sales.map(({ buyer, seller, ...x }) => ({ ...x, buyer: who(buyer), seller: who(seller) })),
+        pairs: moving.pairs.map(({ a, b, ...x }) => ({ ...x, a: who(a), b: who(b) })),
+      },
       bans: bans.map((b) => ({ id: String(b.id), ...who(b.id_hash), until: b.until, rule: b.rule, by: b.by, made: b.made, lifted: b.lifted, running: !b.lifted && new Date(b.until) > new Date(), evidence: b.evidence })),
       flagged: flagged.map((f) => ({ ...who(f.id_hash), verdict: f.verdict, rule: f.rule, counts: f.counts })),
     }
@@ -669,7 +776,11 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const rows = await work`select id_hash from card_accounts where id_hash like ${c + '%'} limit 2`
     return rows.length === 1 ? rows[0].id_hash : null
   }
-  /** The owner's hand: suspend by 对战码, or lift (which forgives what came before). */
+  /**
+   * The owner's hand: suspend by 对战码, or lift (which forgives what came before, and does not count toward
+   * the next). With no `days` a suspension is as long as the account's record says — 3, 5, 7, … — and one
+   * already running is not stacked on by a second click.
+   */
   async function manual({ code, action, days, note }) {
     const me = await byCode(code)
     if (!me) return { ok: false, why: '没有这个对战码' }
@@ -678,14 +789,21 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       active.delete(me)
       return { ok: true, lifted: rows.length }
     }
+    if (action === 'status') {
+      const [a] = await sql`select name from card_accounts where id_hash = ${me}`
+      return { ok: true, code: me.slice(0, 8).toUpperCase(), name: displayName ? displayName(a?.name, me).name : a?.name ?? null, ban: (await standing([me])).get(me) ?? CLEAN }
+    }
     if (action === 'ban') {
-      const d = Math.max(1, Math.min(30, Math.round(Number(days)) || GUARD.FIRST_DAYS))
+      const st = (await standing([me])).get(me) ?? CLEAN
+      if (st.running) return { ok: false, running: st.running, why: `已经在封禁中，到 ${stamp(new Date(st.running).getTime())}` }
+      const asked = Math.round(Number(days))
+      const d = days != null && days !== '' && asked >= 1 ? Math.min(GUARD.MAX_DAYS, asked) : st.next
       const until = await ban(me, { days: d, rule: 'manual', evidence: { note: String(note ?? '').slice(0, 200) }, by: 'owner' })
-      return { ok: true, until }
+      return { ok: true, until, days: d, nth: st.strikes + 1 }
     }
     if (action === 'check') return { ok: true, ...(await check(me, { dry: true })) }
     return { ok: false, why: 'action' }
   }
 
-  return { mode, banOf, check, checkSoon, scan, report, manual, weekly, transfers, invalidate() { active = new Map(); activeAt = 0 } }
+  return { mode, banOf, check, checkSoon, scan, report, manual, standing, weekly, transfers, invalidate() { active = new Map(); activeAt = 0; scanned.at = 0 } }
 }

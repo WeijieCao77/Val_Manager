@@ -97,6 +97,13 @@ export const dashboardHtml = () => `<!doctype html>
   button { background:var(--panel-2); color:var(--text); border:1px solid var(--line);
            border-radius:3px; padding:5px 11px; font:inherit; font-size:12px; cursor:pointer; }
   button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650; }
+  /* one account in the 封禁 lists: who, where he stands, the button */
+  .mg-item { padding:8px 0; border-bottom:1px solid var(--line); }
+  .mg-acct { margin-top:3px; }
+  .mg-acct button, .mg-item > .row button { padding:1px 9px; margin-left:4px; }
+  .mg-ban { border-color:var(--accent); color:var(--accent); }
+  #mgToast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--panel-2);
+    border:1px solid var(--accent); border-radius:3px; padding:8px 14px; font-size:13px; z-index:9; display:none; max-width:90vw; }
 </style>
 </head>
 <body>
@@ -112,6 +119,7 @@ export const dashboardHtml = () => `<!doctype html>
   <button data-d="30" class="on">30 天</button>
   <button data-d="90">90 天</button>
   <span id="status" class="muted" style="font-size:12px;margin-left:auto"></span>
+  <button id="statsFresh" type="button" title="数字缓存半小时；重新统计要读整张事件表，高峰时少按">重新统计</button>
 </div>
 <div class="panel" id="wechat" style="margin-bottom:14px">
   <h2>微信群二维码 · 首页那个浮窗</h2>
@@ -200,6 +208,31 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
+<div class="panel" id="guard" style="margin-bottom:14px">
+  <h2>封禁 · 倒卡和脚本抢拍</h2>
+  <div class="row" style="gap:8px">
+    <button id="mgLoad" type="button" class="on">刷新名单</button>
+    <input type="text" id="mgWho" placeholder="对战码" maxlength="8" style="width:110px">
+    <input type="text" id="mgDays" placeholder="天数，空着按次数" maxlength="2" style="width:130px">
+    <button id="mgBan" type="button">封禁</button>
+    <button id="mgLift" type="button">解封</button>
+    <span id="mgMsg" class="muted" style="font-size:12px"></span>
+  </div>
+  <p class="why" style="margin:6px 0 10px">
+    <b>天数按次数叠加</b>：第 1 次 3 天，第 2 次 5 天，第 3 次 7 天……每次多 2 天，最多 30 天。自动封、手动封一起算；你点「解封」的那次算误封，不计次数。
+    每个号后面的「封 N 天」已经按他的次数算好了：点一下变成「确认」，再点一下才封。上面「查账号」里也能直接封、解封。点名字看这个号的详情。
+  </p>
+  <div id="mgOut" class="acct"></div>
+  <details style="margin-top:10px">
+    <summary class="muted" style="cursor:pointer;font-size:12px">自动封禁规则（脚本抢拍 A–E、倒卡 F/G）</summary>
+    <p class="why">
+      <b>自动封</b>（天数同上叠加）：A <b>连续 10 次</b>在挂出（或保护期结束）后 2 秒内一口价买下/报名；D 24 小时里<b>超过 16 个小时</b>都在一口价买卡；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）。
+      <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G 打开后买卖双方一起停，<b>现在先只上报</b>。
+      B 多家快买一天满 40、C 一周满 120：<b>只上报不封</b>，在「脚本抢拍嫌疑」里标着「过线 B/C」。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
+      只有上线之后的新购买才会触发自动封；解封后，之前的记录不再重算。
+    </p>
+  </details>
+</div>
 <div class="panel" id="review" style="margin-bottom:14px">
   <h2>人工审核账号 · 海外玩家的门</h2>
   <div class="wx-row">
@@ -224,26 +257,9 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
-<div class="panel" id="guard" style="margin-bottom:14px">
-  <h2>交易市场 · 脚本抢拍</h2>
-  <div class="row" style="gap:8px">
-    <button id="mgLoad" type="button">刷新名单</button>
-    <input type="text" id="mgWho" placeholder="对战码" maxlength="8" style="width:110px">
-    <input type="text" id="mgDays" placeholder="天数" maxlength="2" style="width:60px" value="3">
-    <button id="mgBan" type="button">手动暂停交易</button>
-    <button id="mgLift" type="button">解除暂停</button>
-    <span id="mgMsg" class="muted" style="font-size:12px"></span>
-  </div>
-  <p class="why" style="margin:6px 0 10px">
-    <b>自动暂停（3 天，再犯 5 天）：</b>A <b>连续 10 次</b>在挂出（或保护期结束）后 2 秒内一口价买下/报名；D 24 小时里<b>超过 16 个小时</b>都在一口价买卡；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）；
-    <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G 打开后买卖双方一起停，<b>现在先只上报</b>（下面两个名单）。
-    B 多家快买一天满 40、C 一周满 120：<b>只上报不封</b>，下面名单里标着「过线 B/C」，你核实后用上面的按钮手动暂停。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
-    接近阈值的只列在「值得看一眼」里，由你定。只有上线之后的新购买才会触发暂停；解除暂停后，之前的记录不再重算。
-  </p>
-  <div id="mgOut" class="acct"></div>
-</div>
 ${championsAdminHtml}
 <div id="app"></div>
+<div id="mgToast"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
                color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
   作者：<b style="color:var(--muted)">猪之家</b>出品 ·
@@ -584,14 +600,17 @@ function render(d) {
   '</div>'
 }
 
-async function load(days) {
-  $('#status').textContent = '加载中…'
+let statsDays = 30
+async function load(days, fresh) {
+  statsDays = days
+  $('#status').textContent = fresh ? '重新统计中…（约半分钟）' : '加载中…'
   try {
-    const r = await fetch('/api/stats?days=' + days, { headers: auth() })
+    const r = await fetch('/api/stats?days=' + days + (fresh ? '&fresh=1' : ''), { headers: auth() })
     if (!r.ok) throw new Error('HTTP ' + r.status)
     const d = await r.json()
     render(d)
-    $('#status').textContent = '最近 ' + d.days + ' 天 · ' + new Date().toLocaleTimeString('zh-CN')
+    // the numbers are kept half an hour on the server (server.js buildStats); say how old these are
+    $('#status').textContent = '最近 ' + d.days + ' 天 · 统计于 ' + new Date(d.builtAt || Date.now()).toLocaleTimeString('zh-CN')
   } catch (e) {
     $('#app').innerHTML = '<div class="panel"><div class="empty">读不到数据：' + esc(e.message) + '</div></div>'
     $('#status').textContent = ''
@@ -811,12 +830,16 @@ function gPartner(p) {
       + (a.suspect ? ' · <b>已标可疑</b>' : '') + '</span>' : '')
 }
 
+let gOpenCode = null
 async function gOpen(who) {
   const box = $('#gAcct')
   box.style.display = ''
   if (!/^[0-9a-fA-F]{8}$/.test(who)) { box.textContent = '查账号要用 8 位对战码'; return }
+  gOpenCode = who
   box.textContent = '查询中…'
   try {
+    // where he stands with the market guard, read alongside; a failure there does not cost the rest
+    const standing = mgCall({ code: who, action: 'status' }).catch(() => null)
     const r = await fetch('/api/admin/account?code=' + who, { headers: auth() })
     const j = await r.json()
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
@@ -832,6 +855,8 @@ async function gOpen(who) {
       + (j.untaken ? ' · 信箱里还有 ' + j.untaken + ' 件没收' : '')
       + (gCard ? '<br>' + (owns ? '他已经有 ' : '他还没有 ') + '<b>' + esc(gCard.name) + '</b>' : '')
       + '<br>建号 ' + gWhen(j.created) + ' · 最后保存 ' + gWhen(j.saved)
+    const st = await standing
+    html += '<div class="acct-h">交易封禁</div>' + (st && st.ok ? mgBadge(st.ban) + ' ' + mgButton(String(who).toUpperCase(), st.ban) : '<span class="dim">没读到</span>')
     if (mythics.length) {
       html += '<div class="acct-h">彩卡 ' + mythics.length + ' 张</div>'
         + mythics.map((o) => '<b>' + esc(o.card) + '</b> · ' + gSource(o.from, j.tradesCapped ? trades.length : 0)).join('<br>')
@@ -915,7 +940,9 @@ const rvStand = (a) => {
 // without ever showing it, and the button just looks dead
 let rvArmed = null
 function rvSure(btn, ask) {
-  if (rvArmed === btn) { rvArmed = null; return true }
+  // confirmed: the label goes back too, or the button keeps saying 「再点一次确认」 and the NEXT
+  // action takes a click to arm it again plus the confirm (2026-10-08: 封完一个号，后面每个都要点三下)
+  if (rvArmed === btn) { rvArmed = null; if (btn.dataset.label) btn.textContent = btn.dataset.label; return true }
   if (rvArmed) rvArmed.textContent = rvArmed.dataset.label
   if (!btn.dataset.label) btn.dataset.label = btn.textContent
   btn.textContent = ask
@@ -1022,57 +1049,127 @@ $('#rPass').onclick = () => rvAct(false, rv.code, $('#rPass'))
 $('#rUndo').onclick = () => rvAct(true, rv.code, $('#rUndo'))
 rvList()
 
-// ---- 交易市场 · 脚本抢拍 ------------------------------------------------
+// ---- 封禁 · 倒卡和脚本抢拍 ----------------------------------------------
 //
-// One route, POST only: an empty body is the report, { code, action } acts.
+// One route, POST only: an empty body is the report; { code, action: ban|lift|status, days? } acts.
+// Every account the report names carries ban: { strikes, forgiven, running, lastUntil, next } —
+// the suspensions that stood, the ones lifted, the one running (until), and how long the next is.
 const mgCall = async (body) => {
   const r = await fetch('/api/market/guard', { method: 'POST', headers: { ...auth(), 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   if (!r.ok) throw new Error('HTTP ' + r.status)
   return r.json()
 }
+let mgToastTimer = null
+function mgToast(text) {
+  const t = $('#mgToast')
+  t.textContent = text
+  t.style.display = 'block'
+  clearTimeout(mgToastTimer)
+  mgToastTimer = setTimeout(() => { t.style.display = 'none' }, 5000)
+}
+/** where an account stands: banned now (until when, which time), banned before, or never */
+function mgBadge(b) {
+  if (!b) return ''
+  if (b.running) return '<b class="hot">封禁中</b>，到 ' + gShort(b.running) + '（第 ' + b.strikes + ' 次）'
+  const said = []
+  if (b.strikes) said.push('<b>封过 ' + b.strikes + ' 次</b>，已解封' + (b.lastUntil ? '（上次到 ' + gShort(b.lastUntil) + '）' : ''))
+  if (b.forgiven) said.push(b.forgiven + ' 次被你手动解封、不计')
+  return said.length ? said.join(' · ') : '<span class="dim">没封过</span>'
+}
+/** the one button an account needs: lift a running ban, or the next ban at the length his record says */
+function mgButton(code, b) {
+  if (b && b.running) return '<button type="button" class="mg-lift" data-code="' + esc(code) + '">解封</button>'
+  const n = b ? b.next : 3
+  return '<button type="button" class="mg-ban" data-code="' + esc(code) + '">封 ' + n + ' 天</button>'
+}
+const mgName = (x) => '<a href="#" class="mg-open" data-code="' + esc(x.code) + '"><b>' + esc(x.name || '无名') + '</b></a> <span class="dim">' + esc(x.code) + '</span>'
+const mgAcct = (x, role) => '<div class="mg-acct">' + (role ? '<span class="dim">' + role + '</span> ' : '') + mgName(x) + ' · ' + mgBadge(x.ban) + ' ' + mgButton(x.code, x.ban)
+  + '<div class="dim" style="font-size:12px">建号 ' + gShort(x.created) + ' · 抽 ' + (x.pulls ?? '?') + ' 次 · ' + gFmt(x.coins) + ' 金币</div></div>'
+/** 「两个都封」, when neither is suspended already */
+const mgBoth = (x, y) => (x.ban && x.ban.running) || (y.ban && y.ban.running) ? ''
+  : ' <button type="button" class="mg-ban" data-codes="' + esc(x.code) + ',' + esc(y.code) + '">两个都封</button>'
 const mgCounts = (c) => c ? ('今天一口价 ' + c.day + ' 张，7天里算倒卖的 ' + (c.trading ?? '?') + '/' + c.week + ' · 2秒内 ' + c.ultra + '（最多连续 ' + (c.ultraRun ?? '?') + '）· 24小时里 ' + (c.awake ?? '?') + ' 个小时在买 · 45秒内 ' + c.quick + ' 张/' + c.quickSellers + ' 家（按卖家封顶后 ' + c.quickCapped + '，7天 ' + c.quickWeekCapped + '）· 同一卖家最多 ' + c.loop + ' · 5分钟内(7天) ' + c.fresh + ' 张，跨 ' + c.freshHours + ' 个钟点 · 最快 ' + c.fastest + ' 秒，中位 ' + c.median + ' 秒') : ''
 const mgMoved = (e) => e && e.transfer ? ('和 ' + (e.with || []).join('、') + ' 倒卡：'
   + (e.transfer.dumps || []).map((d) => (d.bought ? '买入 ' : '卖出 ') + d.price + '（一般 ' + d.ref + '，' + d.ratio + ' 倍）').join('，')
   + (e.transfer.loops || []).map((l) => ' 24 小时内成交 ' + l.n + ' 次' + (l.both ? '，互相买' : '') + (l.pricey ? '，其中 ' + l.pricey + ' 次高价' : '')).join('')) : ''
+const mgH = (t, sub) => '<h3 style="margin:14px 0 2px;font-size:13px">' + t + '</h3>' + (sub ? '<div class="dim" style="font-size:12px">' + sub + '</div>' : '')
 async function mgLoad() {
   const box = $('#mgOut')
   box.textContent = '读取中…'
   try {
     const r = await mgCall({})
-    const who = (x) => '<b>' + esc(x.name || '无名') + '</b> <a href="#" data-mg="' + esc(x.code) + '">' + esc(x.code) + '</a>'
-    const bans = (r.bans || []).map((b) => '<div>' + (b.running ? '<b class="hot">暂停中</b> ' : b.lifted ? '已解除 ' : '已到期 ') + who(b)
-      + ' · 规则 ' + esc(b.rule) + ' · ' + (b.by === 'owner' ? '手动' : '自动') + ' · 到 ' + gWhen(b.until)
-      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => !(r.bans || []).some((b) => b.running && b.code === f.code)).map((f) => '<div>' + who(f) + ' · ' + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动暂停</b> 规则 ' + esc(f.rule) : /^[BC]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
-      + '<div class="muted" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
+    const R = r.recent || { SALE_DAYS: 3, RATIO: 5 }
     const mv = r.moving || { sales: [], pairs: [] }
-    const acct = (x) => who(x) + ' <span class="muted" style="font-size:12px">（建号 ' + (x.created ? gWhen(x.created) : '?') + '，抽 ' + (x.pulls ?? '?') + '，金币 ' + (x.coins ?? '?') + '）</span>'
-    const mvSales = mv.sales.map((x) => '<div>' + acct(x.seller) + ' 卖给 ' + acct(x.buyer) + '<div class="muted" style="font-size:12px">'
-      + esc(x.card) + (x.level ? ' +' + x.level : '') + ' 成交 ' + x.price + '（' + (x.bo ? '一口价' : '竞拍') + '），这张卡一般 ' + x.ref + (x.refFrom === 'card' ? '' : '（同稀有度估）') + '，' + x.ratio + ' 倍 · ' + gWhen(x.at)
-      + ' · 这两个号 14 天成交 ' + x.pair.n + ' 次' + (x.pair.both ? '，互相买过' : '') + '</div></div>').join('')
-    const mvPairs = mv.pairs.map((p) => '<div>' + acct(p.a) + ' ⇄ ' + acct(p.b) + '<div class="muted" style="font-size:12px">'
-      + p.n + ' 次成交（前者买 ' + p.aBought + '、后者买 ' + p.bBought + '），24 小时内最多 ' + p.day + ' 次 · ' + p.cards + ' 张不同的卡 · 共 ' + p.paid + ' 金币，最高 ' + p.maxRatio + ' 倍</div></div>').join('')
-    box.innerHTML = '<div class="muted" style="font-size:12px">模式：' + esc(r.mode) + '</div>'
-      + '<h3 style="margin:10px 0 4px;font-size:13px">倒卡 · 离谱高价成交 F（近 7 天）</h3>' + (mvSales || '<div class="muted">没有</div>')
-      + '<h3 style="margin:10px 0 4px;font-size:13px">倒卡 · 两个号频繁互相成交 G（近 7 天）</h3>' + (mvPairs || '<div class="muted">没有</div>')
-      + '<h3 style="margin:10px 0 4px;font-size:13px">暂停记录</h3>' + (bans || '<div class="muted">还没有</div>')
-      + '<h3 style="margin:10px 0 4px;font-size:13px">值得看一眼（近 7 天）</h3>' + (flagged || '<div class="muted">没有</div>')
-    box.querySelectorAll('a[data-mg]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); $('#mgWho').value = a.dataset.mg; $('#gWho') && ($('#gWho').value = a.dataset.mg) } })
+    const sales = mv.sales.map((x) => '<div class="mg-item"><div class="row">'
+      + '<span>' + gShort(x.at) + ' · <b>' + esc(x.card) + '</b>' + (x.level ? ' +' + x.level : '')
+      + ' 成交 <b class="' + (x.f ? 'hot' : '') + '">' + gFmt(x.price) + '</b>（' + (x.bo ? '一口价' : '竞拍') + '），这张卡一般 ' + gFmt(x.ref)
+      + (x.refFrom === 'card' ? '' : '（同稀有度估）') + '，<b class="' + (x.f ? 'hot' : '') + '">' + x.ratio + ' 倍</b>' + (x.f ? ' · 离谱' : '')
+      + ' · 这两个号 ' + R.SALE_DAYS + ' 天成交 ' + x.pair.n + ' 次' + (x.pair.both ? '，互相买过' : '') + '</span>'
+      + mgBoth(x.seller, x.buyer) + '</div>'
+      + mgAcct(x.seller, '卖家') + mgAcct(x.buyer, '买家') + '</div>').join('')
+    const pairs = mv.pairs.map((p) => '<div class="mg-item"><div class="row">'
+      + '<span>最后一次 ' + gShort(p.last) + ' · 24 小时成交 <b>' + p.n + '</b> 次（前者买 ' + p.aBought + '、后者买 ' + p.bBought + '）'
+      + ' · ' + p.cards + ' 张不同的卡 · 共 ' + gFmt(p.paid) + ' 金币 · 最高 ' + p.maxRatio + ' 倍' + (p.pricey ? '（' + p.pricey + ' 次 3 倍以上）' : '') + '</span>'
+      + mgBoth(p.a, p.b) + '</div>' + mgAcct(p.a) + mgAcct(p.b) + '</div>').join('')
+    const running = (r.bans || []).filter((b) => b.running)
+    const runningHtml = running.map((b) => '<div class="mg-item">' + mgAcct(b)
+      + '<div class="dim" style="font-size:12px">这次：' + gShort(b.made) + ' ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + ' · '
+      + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
+    const flagged = (r.flagged || []).filter((f) => !(f.ban && f.ban.running)).map((f) => '<div class="mg-item">'
+      + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动封</b> 规则 ' + esc(f.rule) : /^[BC]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
+      + mgAcct(f) + '<div class="dim" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
+    const past = (r.bans || []).filter((b) => !b.running).map((b) => '<div>' + (b.lifted ? '手动解封 ' : '已到期 ') + mgName(b)
+      + ' · ' + gShort(b.made) + ' → ' + gShort(b.lifted || b.until) + ' · ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + '</div>').join('')
+    box.innerHTML = '<div class="dim" style="font-size:12px">刷新于 ' + new Date().toLocaleTimeString('zh-CN') + ' · 模式 ' + esc(r.mode) + '</div>'
+      + mgH('最近的高价成交', '最近 ' + R.SALE_DAYS + ' 天，比这张卡一般价格高 ' + R.RATIO + ' 倍以上的，最新的在前；标黄的是 20 倍以上的离谱价') + (sales || '<div class="muted">没有</div>')
+      + mgH('最近两个号频繁互相成交', '最近 24 小时：成交 3 次以上，或 2 次但互相买过、有高价；最近还在交易的在前') + (pairs || '<div class="muted">没有</div>')
+      + mgH('正在封禁 ' + running.length + ' 个') + (runningHtml || '<div class="muted">没有</div>')
+      + mgH('脚本抢拍嫌疑', '按一周的买卡速度判断，3 分钟更新一次') + (flagged || '<div class="muted">没有</div>')
+      + '<details style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-size:12px">以前的封禁记录（已到期、已解封）</summary>' + (past || '<div class="muted">没有</div>') + '</details>'
   } catch (e) { box.textContent = '没拿到：' + e.message }
 }
-async function mgAct(action, btn) {
+/** ban or lift each code in turn; the account panel above and the lists here are redrawn after */
+async function mgDo(codes, lift, days) {
+  const said = []
+  for (const code of codes) {
+    try {
+      const r = await mgCall({ code, action: lift ? 'lift' : 'ban', note: '站长手动', ...(days ? { days } : {}) })
+      said.push(code + (r.ok ? (lift ? (r.lifted ? ' 已解封' : ' 本来就没在封禁') : ' 已封 ' + r.days + ' 天（第 ' + r.nth + ' 次），到 ' + gShort(r.until)) : '：' + (r.why || '没成功')))
+    } catch (e) { said.push(code + '：' + e.message) }
+  }
+  mgToast(said.join('；'))
+  $('#mgMsg').textContent = said.join('；')
+  mgLoad()
+  if (gOpenCode && codes.some((c) => c.toLowerCase() === gOpenCode.toLowerCase())) gOpen(gOpenCode)
+}
+// the buttons in the lists and in the account panel, wherever they are drawn
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('.mg-ban, .mg-lift, .mg-open')
+  if (!t) return
+  e.preventDefault()
+  if (t.classList.contains('mg-open')) {
+    gTrail.length = 0
+    $('#gWho').value = t.dataset.code
+    gOpen(t.dataset.code)
+    $('#grant').scrollIntoView({ behavior: 'smooth' })
+    return
+  }
+  const lift = t.classList.contains('mg-lift')
+  if (!rvSure(t, lift ? '确认解封' : '确认' + t.textContent)) return
+  t.disabled = true
+  mgDo(t.dataset.codes ? t.dataset.codes.split(',') : [t.dataset.code], lift)
+})
+function mgAct(action, btn) {
   const code = $('#mgWho').value.trim()
   if (!/^[0-9a-fA-F]{8}$/.test(code)) { $('#mgMsg').textContent = '要 8 位对战码'; return }
-  if (!rvSure(btn, action === 'ban' ? '再点一次确认暂停' : '再点一次确认解除')) return
-  try {
-    const r = await mgCall({ code, action, days: Number($('#mgDays').value) || 3, note: '站长手动' })
-    $('#mgMsg').textContent = r.ok ? (action === 'ban' ? '已暂停' : '已解除 ' + r.lifted + ' 条') : (r.why || '没成功')
-    mgLoad()
-  } catch (e) { $('#mgMsg').textContent = '没成功：' + e.message }
+  const days = Number($('#mgDays').value) || null
+  if (!rvSure(btn, action === 'ban' ? (days ? '确认封 ' + days + ' 天' : '确认封（按次数）') : '确认解封')) return
+  mgDo([code], action === 'lift', days)
 }
 $('#mgLoad').onclick = mgLoad
 $('#mgBan').onclick = () => mgAct('ban', $('#mgBan'))
 $('#mgLift').onclick = () => mgAct('lift', $('#mgLift'))
+mgLoad()
 
 // ---- 微信群二维码 -------------------------------------------------------
 //
@@ -1143,6 +1240,7 @@ document.querySelectorAll('button[data-d]').forEach((b) => {
     load(b.dataset.d)
   }
 })
+$('#statsFresh').onclick = () => load(statsDays, true)
 load(30)
 ${championsAdminScript}
 </script>
