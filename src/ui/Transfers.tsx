@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { careerDayOf } from '../engine/clock'
 import { useGame } from './ctx'
+import { TxRow } from './TransferNews'
+import { involves } from '../engine/transferNews'
 import { logActivity } from '../engine/agenda'
 import { useAction } from './useAction'
 import ContractTerms, { OfferVerdict } from './ContractTerms'
@@ -17,7 +19,7 @@ import { REGIONS } from '../engine/types'
 import type { Contract, Player, Role, Region } from '../engine/types'
 
 export default function Transfers() {
-  const { game, toast, openPlayer } = useGame()
+  const { game, toast, openPlayer, go } = useGame()
   const act = useAction()
   // enquiries indexed by player, so each row knows what we have already asked
   const enq = new Map((game.enquiries ?? []).map((e) => [e.playerId, e]))
@@ -45,6 +47,11 @@ export default function Transfers() {
     .filter((n) => n.kind === 'transfer' &&
       !n.text.includes('我们') && (!myName || !n.text.includes(myName)))
     .slice(-8)
+    .reverse()
+  // the same, from the 转会新闻 ledger once there is one: crests, both clubs, the fee, the rumours
+  const feedNews = (game.transferFeed ?? [])
+    .filter((e) => !involves(e, game.myTeam) && (e.k === 'done' || e.k === 'free' || (e.k === 'rumor' && e.c === 3)))
+    .slice(-6)
     .reverse()
 
   // 78 clubs as buttons filled the page before the enquiry itself; a region
@@ -310,7 +317,18 @@ export default function Transfers() {
       )}
 
 
-      {marketNews.length > 0 && (
+      {feedNews.length > 0 ? (
+        <Panel
+          title="市场动态 · 其他俱乐部的转会"
+          actions={<button className="sm" onClick={() => go('transferNews')}>全部转会新闻 →</button>}
+          flush
+        >
+          {feedNews.map((e) => <TxRow key={`${e.y}:${e.d}:${e.p}:${e.k}:${e.t ?? ''}:${e.c ?? ''}`} e={e} game={game} onPlayer={openPlayer} />)}
+          <p className="tiny faint" style={{ padding: '8px 13px', margin: 0 }}>
+            盯上了谁别等太久，别的俱乐部也在买人。传闻、挂牌、谁想走，都在「转会新闻」里。
+          </p>
+        </Panel>
+      ) : marketNews.length > 0 && (
         <Panel title="市场动态 · 其他俱乐部的转会" flush>
           {marketNews.map((n, i) => (
             <div key={i} className={`news-item${n.important ? ' important' : ''}`}>

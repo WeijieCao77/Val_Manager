@@ -10,7 +10,7 @@ import type { StyleMix } from './comp'
 import type { CompStyle } from './comp'
 import { callerOf, coachOr } from './roster'
 import { NEUTRAL, squadHarmony } from './bonds'
-import { isCoolingOff } from './clock'
+import { careerDayOf, isCoolingOff } from './clock'
 import { analystEdge } from './staff'
 import { skillMod } from './manager'
 import { flattenTop } from './difficulty'
@@ -1254,6 +1254,14 @@ export function stripToTheBone(state: GameState): void {
     }
   }
   if (state.news.length > 100) state.news.splice(0, state.news.length - 100)
+  // 转会新闻 in a full browser: the talk older than a month goes (as trimFeed does), the moves
+  // stay, newest 300 of what is left
+  if (state.transferFeed && state.transferFeed.length > 300) {
+    const month = careerDayOf(state) - 30
+    const keep = state.transferFeed.filter((e) => e.k === 'done' || e.k === 'free' || e.k === 'release'
+      || careerDayOf({ year: e.y, day: e.d }) >= month)
+    state.transferFeed = keep.slice(-300)
+  }
   if (state.finances.log.length > 100) {
     state.finances.log.splice(0, state.finances.log.length - 100)
   }

@@ -853,6 +853,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_transfer_news.ts",
+    "estimatedSeconds": 10
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_breakthrough.ts",
     "estimatedSeconds": 12
   }

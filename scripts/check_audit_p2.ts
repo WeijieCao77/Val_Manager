@@ -41,7 +41,10 @@ const mk = (tag = 'TYL'): GameState => {
     for (const t of Object.values(g0.teams)) if (t.id !== g0.myTeam) t.budget = 30_000_000
     for (const p of Object.values(g0.players)) if (p.teamId && p.teamId !== g0.myTeam) p.listed = true
     const before = new Map(Object.values(g0.players).map((p) => [p.id, p.teamId]))
+    // since 2026-10-08 a paid move is an approach one week (a rumour) and the deal the next
     aiTransferTick(g0, new Rng(seed * 13 + 3))
+    g0.day += 7
+    aiTransferTick(g0, new Rng(seed * 13 + 4))
     for (const p of Object.values(g0.players)) {
       if (p.teamId && before.get(p.id) && p.teamId !== before.get(p.id)) {
         roleOf[p.role] = (roleOf[p.role] ?? 0) + 1

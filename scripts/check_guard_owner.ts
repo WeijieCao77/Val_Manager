@@ -104,5 +104,32 @@ assert([pairs[0].a.code, pairs[0].b.code].sort().join() === [code(ALT), code(MAI
 assert(rep.bans.every((b: any) => b.ban && typeof b.ban.strikes === 'number'), '封禁记录里每个号也带状态')
 console.log('ok  名单：最近 3 天的高价成交按时间倒序、离谱的标出来；24 小时互相成交的一对；每个号都带封没封过、封禁中到几点')
 
+// ---- the owner looking costs the clock nothing: report and scan stay off the ONE background connection
+{
+  let bgQueries = 0
+  const bg = Object.assign((strings: TemplateStringsArray, ...vals: unknown[]) => { bgQueries++; return (sql as any)(strings, ...vals) }, sql)
+  const api2 = makeMarketApi(sql, {
+    engine, normalizeId, displayName, rateLimited: () => false, timer: false, bg,
+    token: TOKEN, tokenFrom: (req: { token?: string }) => req.token ?? null, tokenOk: (a: string, b: string) => a === b,
+    readBody: async (req: { body: unknown }) => JSON.stringify(req.body),
+    json: (res: { body?: any }, _status: number, body: any) => { res.body = body },
+  } as never)
+  // a buyer with enough buy-nows to be scanned
+  for (let i = 0; i < 12; i++) await sale(PASSER, HONEST, 900, 60 + i)
+  await sql`update card_listings set buyout = ask where status = 'sold'`
+  await sql`update card_offers set price = 900 where status = 'accepted' and price < 900`
+  bgQueries = 0
+  const res: { body?: any } = {}
+  await api2.route({ body: {}, token: TOKEN, url: '/api/market/guard' } as never, res as never, '/api/market/guard', 'test')
+  assert(res.body?.ok, '报告读得出来')
+  assert(res.body.flagged !== undefined)
+  assert.equal(bgQueries, 0, `站长看名单、扫描买家，不占后台连接 — 后台跑了 ${bgQueries} 条`)
+  const check = { body: undefined as any }
+  await api2.route({ body: { code: code(HONEST), action: 'check' }, token: TOKEN, url: '/api/market/guard' } as never, check as never, '/api/market/guard', 'test')
+  assert(check.body?.ok)
+  assert.equal(bgQueries, 0, '手动「check」也不占')
+  console.log('ok  站长看名单、扫描、手动检查都不占后台那一条连接（杯赛推进和拍卖结算用的）')
+}
+
 await db.close()
 console.log('\n全部通过')

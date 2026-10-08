@@ -1,3 +1,4 @@
+import { txNews } from './transferNews'
 import { Rng, clamp } from './rng'
 import { expectedSalary } from './player'
 import { squadOf } from './roster'
@@ -145,6 +146,7 @@ function transferRumours(state: GameState, rng: Rng, notes: string[]): void {
 
     const club = suitors[rng.int(0, suitors.length - 1)]
     p.rumourOn = state.day
+    txNews(state, 'rumor', p, { f: state.myTeam, t: club.id, c: 2 })
     // being wanted is flattering, and unsettling
     p.morale = clamp(p.morale + 2, 0, 100)
     if ((p.ambition ?? 60) > 70) p.grievance = clamp((p.grievance ?? 0) + 4, 0, 100)

@@ -9,7 +9,8 @@ import {
   resetFixtureSeq, scheduleRegularSeason, sortStandings, startBracket, respaceRounds, groupTable, scheduleGroupSeason
 } from './league'
 import { awardPrize, weeklyFinance } from './finance'
-import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries } from './transfer'
+import { aiTransferTick, refreshListings, resolveDueOffers, resolveEnquiries, transferTalk } from './transfer'
+import { joinedClub, txNews } from './transferNews'
 import { offerGigs, resolveSponsorTalks, runGigsToday, streamWeek, settleSponsorDemands, sponsorWorth } from './commercial'
 import { offerBundle, settleLeagueSeason, tickLeagueOffer } from './leagueShare'
 import { MAP_META, agentCn, mapCn } from './content'
@@ -1674,6 +1675,19 @@ export function moveToClub(state: GameState, teamId: string): string {
     }
   }
   state.enquiries = []
+  // An AI club's approach is the AI's. Taking over the club that opened one would have the
+  // engine complete it a week later with the manager's money and into his squad — nobody
+  // asked him (review, 2026-10-08); one for a player of the new club would buy from us
+  // without a bid. Both end here, the way the old club's offers do.
+  if (state.pursuits?.length) {
+    state.pursuits = state.pursuits.filter((x) => {
+      const p = state.players[x.p]
+      if (x.tm !== to.id && p?.teamId !== to.id) return true
+      // the rumour gets its ending, as every other one does
+      if (p) txNews(state, 'off', p, { f: x.f, t: x.tm, w: x.tm === to.id ? '俱乐部换帅，不再推进' : '他所在的俱乐部换帅' })
+      return false
+    })
+  }
   // Hiring and commercial negotiations were made on the former club's
   // behalf. Their delayed resolvers use myTeam, so leaving them live hires
   // coaches or awards event income to the new employer. Close those tasks;
@@ -2139,6 +2153,7 @@ export function advanceDay(state: GameState, opts: AdvanceOpts = {}): DayReport 
     weeklyFinance(state)
     aiTransferTick(state, rng, notes)
     refreshListings(state, rng, notes)   // runs all year so stale listings expire
+    transferTalk(state, rng, notes)      // players asking out, and the window's gossip
   }
 
   if (state.news.length > 400) state.news.splice(0, state.news.length - 400)
@@ -2474,7 +2489,10 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
           team.roster = team.roster.filter((id) => id !== p.id)
           team.starters = team.starters.filter((id) => id !== p.id)
           recordLeave(state, p)
+          txNews(state, 'release', p, { f: team.id, t: null, w: '合同到期未续约' })
           p.teamId = null
+          p.listed = false
+          p.listedOn = undefined
           p.expiredYear = undefined
           state.news.push({
             day: state.day, kind: 'club', important: true,
@@ -2494,7 +2512,10 @@ function endSeason(state: GameState, rng: Rng, notes: string[] = []): void {
         team.roster = team.roster.filter((id) => id !== p.id)
         team.starters = team.starters.filter((id) => id !== p.id)
         recordLeave(state, p)
+        txNews(state, 'release', p, { f: team.id, t: null, w: '合同到期' })
         p.teamId = null
+        p.listed = false
+        p.listedOn = undefined
         // one batched line, not one per man: a winter shakes dozens loose
         released.push(`${p.ign}（${team.tag}）`)
       }
@@ -2757,6 +2778,8 @@ export function ensureMinimumRosters(state: GameState, rng: Rng): void {
       target.expiredYear = undefined
       team.roster.push(target.id)
       recordJoin(state, target, team.id)
+      joinedClub(state, target)
+      txNews(state, 'free', target, { f: null, t: team.id, w: '补满阵容' })
       // offseason emergency signings go on the record like any other move
       state.news.push({
         day: state.day, kind: 'transfer',

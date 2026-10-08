@@ -12,6 +12,8 @@ import type { Contract, GameState, Player, SquadRole, Team, TransferOffer } from
 import { rivalryOf } from './difficulty'
 import { isNemesis } from './scouting'
 import { aiMayApproach } from './fun'
+import { joinedClub, seasonRecord, txNews } from './transferNews'
+import { careerDayOf } from './clock'
 
 /**
  * The active-roster ceiling, matching how real circuits register players.
@@ -312,6 +314,8 @@ export function renewContract(state: GameState, playerId: string, terms: Contrac
   p.contractYears = terms.years
   p.expiredYear = undefined
   p.grievance = 0
+  // signing on again is the answer to having asked to leave
+  p.wantsOut = undefined
   if (terms.signingBonus > 0) {
     state.finances.balance -= terms.signingBonus
     team.budget -= terms.signingBonus
@@ -363,6 +367,8 @@ export function squadFloorBlock(state: GameState, teamId: string): string | null
  */
 export function doTransfer(
   state: GameState, p: Player, toTeamId: string, fee: number, terms: Contract,
+  /** a few words for the 转会新闻 line — 解约金, 传闻成真 … */
+  newsWhy?: string,
 ): boolean {
   const from = p.teamId ? state.teams[p.teamId] : null
   const to = state.teams[toTeamId]
@@ -381,6 +387,7 @@ export function doTransfer(
   // and one that would take any club past the seven-man roster ceiling
   if (rosterBlock(state, toTeamId)) return false
 
+  let coverFor: Player | null = null
   // the dressing room notices who you sold — now that he is actually sold
   if (from?.id === state.myTeam) {
     const notes: string[] = []
@@ -415,6 +422,9 @@ export function doTransfer(
         cover.expiredYear = undefined
         from.roster.push(cover.id)
         recordJoin(state, cover, from.id)
+        joinedClub(state, cover)
+        // written after the sale that caused it, so the ledger reads in order
+        coverFor = cover
         state.news.push({
           day: state.day, kind: 'transfer',
           text: `${from.name} 紧急签下自由人 ${cover.ign}（${cover.overall}）填补空缺。`,
@@ -459,6 +469,7 @@ export function doTransfer(
   p.grievance = 0
   p.listed = false
   p.listedOn = undefined
+  p.wantsOut = undefined
   // signing again where he already is IS the commitment; a first contract at a
   // new club is not, and loyaltyOnJoin has just set that one
   if (from?.id === toTeamId) shiftLoyalty(p, RENEWAL_GAIN)
@@ -493,6 +504,17 @@ export function doTransfer(
     ((state.enquiries ?? []).some((e) => e.playerId === p.id && !e.answer) ||
       state.offers.some((o) => o.playerId === p.id && o.status === 'pending' &&
         o.toTeam === state.myTeam))
+  if (from?.id !== toTeamId) {
+    // when he arrived, and when a club last paid: the AI market reads these (shoppingFor,
+    // aiTransferTick) rather than the ledger, which is trimmed
+    joinedClub(state, p)
+    if (fee > 0 && to.id !== state.myTeam) to.lastBuyOn = careerDayOf(state)
+    txNews(state, from ? 'done' : 'free', p, {
+      f: from?.id ?? null, t: toTeamId, fee,
+      w: [...(newsWhy ? [newsWhy] : []), ...(watched ? ['你之前在接触他'] : [])].join('，') || undefined,
+    })
+    if (coverFor && from) txNews(state, 'free', coverFor, { f: null, t: from.id, w: '紧急补位' })
+  }
   state.news.push({
     day: state.day,
     kind: 'transfer',
@@ -539,6 +561,8 @@ export function releasePlayer(state: GameState, p: Player): string {
   p.listed = false
   p.listedOn = undefined
   p.morale = clamp(p.morale - 6, 0, 100)
+  txNews(state, 'release', p, { f: from?.id ?? null, t: null, w: '解约' })
+  p.wantsOut = undefined
   state.news.push({
     day: state.day, kind: 'transfer',
     text: `${from?.name ?? '某队'} 与 ${p.ign} 解除合同，该选手成为自由人。`,
@@ -565,27 +589,181 @@ function weakestRole(state: GameState, team: Team): { role: Player['role']; stre
 }
 
 /**
- * AI clubs work the market: fill holes from free agency, occasionally bid for
- * a player who is unhappy or transfer-listed.
+ * His transfer request still stands: asked this season, or late last season and the winter
+ * window is still open. A request is about the next chance to move, and the off-season window
+ * runs across New Year — one made in the last weeks used to expire at the rollover, the day
+ * its club took him off the list, in the middle of the window that mattered most (review).
+ */
+export const asksOut = (state: GameState, p: Player): boolean =>
+  !!p.wantsOut && (!p.wantsOut.f || p.wantsOut.f === p.teamId)
+  && (p.wantsOut.y === state.year || (p.wantsOut.y === state.year - 1 && state.day <= TRANSFER_WINDOWS[0][1]))
+
+/** A player who would go: listed, has asked out, or plainly unhappy. */
+export const wantsAway = (state: GameState, p: Player): boolean =>
+  !!p.listed || asksOut(state, p) || p.morale < 45 || (p.grievance ?? 0) > 40
+
+const POSITIONS: Player['role'][] = ['决斗者', '先锋', '控场', '哨卫']
+/** at most this many AI approaches open league-wide in one week */
+const OPEN_PER_TICK = 6
+/** an approach is tried this many times, a week apart, before it is called off */
+const PURSUIT_TRIES = 2
+
+/**
+ * Who a club would go and buy, if anyone, and what it would bid.
+ *
+ * The 2026-10-08 complaint: after a title the news said the league would 「引援更激进」, and
+ * what the champions' rivals actually signed were 70-rated free agents. Measured over two
+ * headless seasons: 16 paid moves against 85 free signings, NRG / PRX / 100T bought nobody,
+ * and DetonatioN FocusMe paid $850k for a 94. The old rule shopped only for the club's
+ * thinnest POSITION, by its best man there, so a strong club never had a hole and a weak one
+ * had a hole every star fit into.
+ *
+ * Now a club looks at its five: an upgrade beats the weakest starter at that position by
+ * four, so a 87-rated side shops for 88s and better and a 70-rated one for 74s. Ambition has a
+ * ceiling — the club's rating + 8 — so nobody pays a fortune for a man who would not come (a
+ * 79-rated side with one 92 in it used to read that 92 as licence to buy a 91). Nobody bought
+ * in the last eight months is shopped again unless he wants away: the first run had trent go
+ * G2 → KC → LEV inside one window. A player is not prised from a stronger club unless he wants away, and
+ * one who wants away (listed, asked out, unhappy) is cheaper and comes first; one who named
+ * this club comes first of all. An unwilling player costs a premium over the asking price.
+ */
+function shoppingFor(
+  state: GameState, team: Team, room: number, rivalry: number, rng: Rng,
+): { p: Player; fee: number } | null {
+  const five = team.starters.map((id) => state.players[id]).filter(Boolean)
+  const floor = new Map(POSITIONS.map((r) => {
+    const at = five.filter((x) => x.role === r)
+    return [r, at.length ? Math.min(...at.map((x) => x.overall)) : 0] as const
+  }))
+  const ceiling = team.rating + 8
+  const now = careerDayOf(state)
+  const busy = new Set((state.pursuits ?? []).map((x) => x.p))
+  let pick: { p: Player; fee: number; score: number } | null = null
+  for (const p of Object.values(state.players)) {
+    if (!p.teamId || p.teamId === team.id || p.teamId === state.myTeam || p.retiring || busy.has(p.id)) continue
+    const bar = floor.get(p.role)
+    if (bar == null || p.overall < bar + 4 || p.overall > ceiling) continue
+    const seller = state.teams[p.teamId]
+    if (!seller) continue
+    const willing = wantsAway(state, p)
+    // a man who has just arrived is not sold on unless he has been listed or asked out — on
+    // the record, so the 转会新闻 shows why he moved twice
+    if (now - (p.movedOn ?? -1e9) < 240 && !p.listed && !asksOut(state, p)) continue
+    // a better side keeps its players unless they want to go
+    if (!willing && seller.rating > team.rating + 1) continue
+    if (importBlock(state, team.id, p)) continue
+    const ask = askingPrice(p)
+    const fee = Math.round(ask * (willing ? rng.range(0.95, 1.1) : rng.range(1.2, 1.4) * (1 + 0.1 * rivalry)) / 1000) * 1000
+    if (fee > room) continue
+    const score = (p.overall - bar) + Math.max(0, p.potential - p.overall) * 0.3
+      + (willing ? 3 : 0) + (asksOut(state, p) && p.wantsOut!.t === team.id ? 6 : 0) + rng.range(0, 2)
+    if (!pick || score > pick.score) pick = { p, fee, score }
+  }
+  return pick
+}
+
+/** one of the seller's two best — a club does not part with those for the asking price */
+const isCore = (state: GameState, p: Player): boolean =>
+  !!p.teamId && squadOf(state, p.teamId).filter((x) => x.overall > p.overall).length < 2
+
+/**
+ * The approaches opened in earlier weeks, a week on: done, tried again, or 告吹.
+ *
+ * Every rumour gets its ending — the deal, or a 告吹 that says why: refused, the player said
+ * no, somebody else (us included) signed him first, he left or retired, the window shut. A
+ * retry needs another weekly tick inside the same window, or it is the last try (review,
+ * 2026-10-08: an approach opened in a window's final week could only ever end 「窗口关闭」).
+ * One the manager's club now holds is not the AI's to finish — moveToClub ends those; this is
+ * the second lock on that door.
+ */
+function workPursuits(state: GameState, rng: Rng, notes: string[] | undefined, open: boolean): void {
+  const list = state.pursuits ?? []
+  if (!list.length) return
+  const now = careerDayOf(state)
+  const end = windowEnd(state.day)
+  const another = end != null && state.day + 7 <= end
+  const keep: NonNullable<GameState['pursuits']> = []
+  for (const x of list) {
+    const team = state.teams[x.tm]
+    const p = state.players[x.p]
+    if (!team || !p) continue
+    const off = (w: string) => txNews(state, 'off', p, { f: x.f, t: team.id, w })
+    if (team.id === state.myTeam) { off('俱乐部换帅，不再推进'); continue }
+    // he signed for them some other way; that move has its own line
+    if (p.teamId === team.id) continue
+    if (p.retiring) { off(`${p.ign} 宣布将退役`); continue }
+    if (!p.teamId) { off(`${p.ign} 已离队`); continue }
+    if (p.teamId !== x.f) { off(`被 ${state.teams[p.teamId]?.tag ?? '别队'} 抢先签下`); continue }
+    if (!open) { off('转会窗口关闭'); continue }
+    if (now - x.at < 7) { keep.push(x); continue }
+    x.n += 1
+    const seller = state.teams[p.teamId]
+    const room = team.budget - wageBill(state, team.id) * 0.6
+    let why: string
+    if (x.fee > room) why = '买方预算不够'
+    else if (rosterBlock(state, team.id)) why = '买方名单已满'
+    else if (!clubAcceptsFee(p, x.fee, rng) || (!wantsAway(state, p) && isCore(state, p) && !rng.chance(0.5))) why = `${seller?.tag ?? '原俱乐部'} 不放人`
+    else {
+      const salary = Math.round(expectedSalary(p, team.tier) * rng.range(1.0, 1.2))
+      const above = squadOf(state, team.id).filter((y) => y.overall > p.overall).length
+      const terms: Contract = {
+        ...defaultContract(salary, Math.max(2, contractLength(p, rng, squadOf(state, team.id)))),
+        promisedRole: above === 0 ? 'star' : 'starter',
+      }
+      if (!playerAcceptsTerms(state, p, team, terms, rng).ok) why = `${p.ign} 不愿加盟`
+      else if (doTransfer(state, p, team.id, x.fee, terms, '传闻成真')) {
+        if (isNemesis(state, team.id)) {
+          const text = `⚔️ 宿敌 ${team.tag} 从 ${seller?.tag ?? '自由市场'} 买来 ${p.ign}（${p.overall}）。`
+          notes?.push(text)
+          state.news.push({ day: state.day, kind: 'league', important: true, text })
+        }
+        continue
+      } else why = '阵容规则不允许'
+    }
+    if (x.n >= PURSUIT_TRIES || !another) { off(why); continue }
+    // a fee the club turned down comes back once, raised
+    if (why.endsWith('不放人')) x.fee = Math.round(x.fee * 1.15 / 1000) * 1000
+    keep.push(x)
+  }
+  state.pursuits = keep
+}
+
+/**
+ * AI clubs work the market: fill holes from free agency, and go after better players at
+ * other clubs — openly: the approach is a rumour the week it starts, and a deal or 告吹 later.
  */
 export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): void {
-  if (!windowOpen(state.day)) return
+  const open = windowOpen(state.day)
+  workPursuits(state, rng, notes, open)
+  if (!open) return
 
   const teams = Object.values(state.teams).filter((t) => t.id !== state.myTeam)
+  // a new order every week: walked as listed, the first clubs (roughly the top tier, Americas
+  // first) used the six openings and the best targets before the rest were asked (review)
+  for (let i = teams.length - 1; i > 0; i--) {
+    const j = rng.int(0, i)
+    ;[teams[i], teams[j]] = [teams[j], teams[i]]
+  }
   // a free agent on his farewell season is done job-hunting
   // 娱乐模式: the retired and the streamers come back for the manager's club, not the AI's
   const agents = Object.values(state.players).filter((p) => p.teamId === null && !p.retiring && aiMayApproach(p, state))
+  const rivalry = rivalryOf(state)
+  const offseason = state.day >= TRANSFER_WINDOWS[3][0] || state.day <= TRANSFER_WINDOWS[0][1]
+  const now = careerDayOf(state)
+  // an approach is worked a week later, so one opened in a window's last week could only end 告吹
+  const end = windowEnd(state.day)
+  const canOpen = end != null && state.day + 7 <= end
+  let opened = 0
 
   for (const team of teams) {
     // a nemesis is at the market every other week the window is open
     const nemesis = isNemesis(state, team.id)
-    if (!rng.chance(nemesis ? 0.5 : 0.1)) continue
     const squad = squadOf(state, team.id)
     const wages = wageBill(state, team.id)
     const room = team.budget - wages * 0.6
 
     // too thin: sign a free agent
-    if (squad.length < 5 || (squad.length < 7 && rng.chance(0.35))) {
+    if (rng.chance(nemesis ? 0.5 : 0.1) && (squad.length < 5 || (squad.length < 7 && rng.chance(0.35)))) {
       const need = weakestRole(state, team)
       const target = agents
         .filter((p) => !need || p.role === need.role || rng.chance(0.3))
@@ -608,50 +786,90 @@ export function aiTransferTick(state: GameState, rng: Rng, notes?: string[]): vo
       continue
     }
 
-    // shopping for an upgrade — hungrier and less patient once the player's
-    // club has a world title to answer for
-    const rivalry = rivalryOf(state)
-    if (rng.chance(nemesis ? 1 : 0.35 + 0.1 * rivalry) && room > 500000 - 120000 * rivalry) {
-      const need = weakestRole(state, team)
-      if (!need) continue
-      const candidates = Object.values(state.players).filter(
-        (p) =>
-          // never our players: an AI club that wants one of ours has to bid
-          // for him through bidForOurPlayers and wait for an answer. Without
-          // this line doTransfer ran straight through — a listed or unhappy
-          // star simply vanished on the weekly tick, 5 careers in 20.
-          p.teamId && p.teamId !== team.id && p.teamId !== state.myTeam &&
-          p.role === need.role &&
-          p.overall > need.strength + 3 &&
-          // nobody pays a transfer fee for a man who has said this season is
-          // his last — his announcement is public
-          !p.retiring &&
-          !importBlock(state, team.id, p) &&
-          (p.listed || p.morale < 45 || rng.chance(nemesis ? 0.4 : 0.05)),
-      )
-      // half credit for room to grow: a 84-rated 19-year-old with 92 potential
-      // outranks an 86-rated 28-year-old, which is how real rosters get rebuilt
-      const value = (p: { overall: number; potential: number }) =>
-        p.overall + Math.max(0, p.potential - p.overall) * 0.5
-      const target = candidates.sort((a, b) => value(b) - value(a))[0]
-      if (!target) continue
-      const fee = Math.round(askingPrice(target) * rng.range(0.9, 1.25))
-      if (fee > room) continue
-      if (!clubAcceptsFee(target, fee, rng)) continue
-      const salary = Math.round(expectedSalary(target, team.tier) * rng.range(1.0, 1.2))
-      const terms = defaultContract(salary, Math.max(2, contractLength(target, rng, squad)))
-      if (playerAcceptsTerms(state, target, team, terms, rng).ok) {
-        const from = target.teamId ? state.teams[target.teamId] : undefined
-        if (doTransfer(state, target, team.id, fee, terms) && nemesis) {
-          const text = `⚔️ 宿敌 ${team.tag} 从 ${from?.tag ?? '自由市场'} 买来 ${target.ign}（${target.overall}）。`
-          notes?.push(text)
-          state.news.push({ day: state.day, kind: 'league', important: true, text })
+    // shopping for an upgrade at another club — the strong more than the rest, everyone
+    // more once the player's club has a world title to answer for, and most in the winter
+    if (!canOpen || opened >= OPEN_PER_TICK || rosterBlock(state, team.id)) continue
+    if ((state.pursuits ?? []).some((x) => x.tm === team.id)) continue
+    // a club that has just paid for someone digests him before it shops again
+    if (now - (team.lastBuyOn ?? -1e9) < 28) continue
+    const chance = nemesis ? 0.6 : 0.05 + (team.rating >= 80 ? 0.07 : 0) + 0.04 * rivalry + (offseason ? 0.04 : 0)
+    if (!rng.chance(chance) || room < 150_000) continue
+    const pick = shoppingFor(state, team, room, rivalry, rng)
+    if (!pick || !pick.p.teamId) continue
+    ;(state.pursuits ??= []).push({ tm: team.id, p: pick.p.id, f: pick.p.teamId, at: now, fee: pick.fee, n: 0 })
+    opened++
+    const p = pick.p
+    txNews(state, 'rumor', p, {
+      f: p.teamId, t: team.id, c: 3,
+      w: p.listed ? '他已挂牌' : asksOut(state, p) ? '他想离队' : `报价约 $${Math.round(pick.fee / 1000)}K`,
+    })
+  }
+
+  bidForOurPlayers(state, rng, notes)
+}
+
+/**
+ * The talk around the market, weekly all season (season.ts):
+ *
+ *   意向  a good player at a club that keeps losing asks to leave (owner, 2026-10-08:
+ *         「选手因为队伍成绩太久不好主动挂牌或对别的队伍有意向」) — at an AI club he is then put up
+ *         for sale; at ours it is news and a grievance, and rivals bid more readily, but only the
+ *         manager lists his own players
+ *   绯闻  while a window is open, a star linked with a big club now and then — talk only
+ */
+export function transferTalk(state: GameState, rng: Rng, notes?: string[]): void {
+  // a player asks once a season, and not in his first one at the club
+  for (const team of Object.values(state.teams)) {
+    const rec = seasonRecord(state, team.id)
+    if (rec.w + rec.l < 8 || rec.w / (rec.w + rec.l) >= 0.4) continue
+    const squad = squadOf(state, team.id)
+    const top = squad.map((x) => x.overall).sort((a, b) => b - a)
+    const good = top[Math.min(1, top.length - 1)] ?? 99
+    for (const p of squad) {
+      if (p.retiring || asksOut(state, p) || p.joinedYear === state.year || p.age > 30) continue
+      if (p.overall < Math.max(good, team.rating + 3)) continue
+      if (!rng.chance(0.03 + Math.max(0, (p.ambition ?? 55) - 50) * 0.002)) continue
+      // somewhere better, in his region if there is one, that could use his position
+      const better = Object.values(state.teams).filter((t) =>
+        t.id !== team.id && t.rating >= team.rating + 4 && t.tier <= team.tier
+        && squadOf(state, t.id).filter((x) => x.role === p.role).every((x) => x.overall < p.overall + 2))
+      const near = better.filter((t) => t.region === team.region)
+      const pool = near.length ? near : better
+      const to = pool.length && rng.chance(0.6) ? pool[rng.int(0, pool.length - 1)] : null
+      p.wantsOut = { y: state.year, f: team.id, ...(to ? { t: to.id } : {}) }
+      const why = `战绩 ${rec.w}胜${rec.l}负`
+      // an AI club lists him on the spot — one line for both, not two
+      const listing = team.id !== state.myTeam && !p.listed
+      txNews(state, 'wants', p, { f: team.id, t: to?.id ?? null, w: listing ? `${why} · 已挂牌` : team.id !== state.myTeam ? `${why} · 此前已挂牌` : why })
+      if (team.id === state.myTeam) {
+        p.grievance = clamp((p.grievance ?? 0) + 10, 0, 100)
+        const text = `😠 ${p.ign} 对球队战绩不满（${rec.w} 胜 ${rec.l} 负），希望离队${to ? `，被曝有意加盟 ${to.name}` : ''}。`
+        notes?.push(text)
+        state.news.push({ day: state.day, kind: 'transfer', important: true, text })
+      } else if (!p.listed) {
+        p.listed = true
+        p.listedOn = state.day
+        loyaltyOnListed(state, p)
+        // as refreshListings does: anyone at our level coming onto the market is told
+        if (p.overall >= (state.teams[state.myTeam]?.rating ?? 60)) {
+          notes?.push(`📋 ${p.ign}（${team.tag} · ${p.overall}）因战绩申请转会，已被挂牌${to ? `，他想去 ${to.tag}` : ''}。`)
         }
       }
     }
   }
 
-  bidForOurPlayers(state, rng, notes)
+  if (!windowOpen(state.day)) return
+  // the manager's own club is never the gossip's buyer: he would be reading about an interest he never had
+  const big = Object.values(state.teams).filter((t) => t.tier === 1 && t.rating >= 80 && t.id !== state.myTeam)
+  const stars = Object.values(state.players).filter((p) => p.teamId && p.overall >= 84 && !p.retiring)
+  for (let i = rng.int(0, 1); i > 0 && stars.length && big.length; i--) {
+    const p = stars[rng.int(0, stars.length - 1)]
+    const from = state.teams[p.teamId!]
+    const suitors = big.filter((t) => t.id !== p.teamId && t.rating >= (from?.rating ?? 0) - 2)
+    if (!suitors.length) continue
+    const t = suitors[rng.int(0, suitors.length - 1)]
+    txNews(state, 'rumor', p, { f: p.teamId, t: t.id, c: 1 })
+  }
 }
 
 /**
@@ -705,10 +923,19 @@ export function refreshListings(state: GameState, rng: Rng, notes?: string[]): v
         p.listed = true
         loyaltyOnListed(state, p)
         p.listedOn = state.day
+        // a club shopping a squad filler is not news: listings of 75 and up, or of anybody at our
+        // level, keep the feed to the market that matters — and the save inside its budget
+        if (p.overall >= Math.min(75, bar)) txNews(state, 'listed', p, {
+          f: team.id,
+          w: unhappy ? '与俱乐部有矛盾' : surplus ? '阵容过剩' : expiring && benched ? '合同将到期' : aging ? '老将，不在首发' : undefined,
+        })
         if (p.overall >= bar) fresh.push(`${p.ign}（${team.tag} · ${p.overall}）`)
         continue
       }
       if (!p.listed) continue
+      // he has asked out (transferTalk): his club keeps him on the list, window or not —
+      // withdrawing it the next week made 「已挂牌」 untrue by the time anyone could buy (review)
+      if (asksOut(state, p)) continue
 
       // A listing that nobody bids on does not sit there forever. After a
       // couple of weeks the club gives up on selling and folds the player back
@@ -772,14 +999,18 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
     // a club with no room cannot complete the deal, so it must not open one:
     // the bid arrived, 接受 failed, and the toast never said why
     if (rosterBlock(state, team.id)) continue
-    if (!rng.chance(0.12 + 0.05 * rivalry)) continue
+    // the club one of ours has named comes calling far more readily
+    const named = mine.some((p) => asksOut(state, p) && p.wantsOut!.t === team.id)
+    if (!rng.chance((named ? 0.5 : 0.12) + 0.05 * rivalry)) continue
 
     const need = weakestRole(state, team)
     const targets = mine.filter(
       (p) =>
         p.overall > (need?.strength ?? 0) + 2 &&
         !p.retiring &&
-        (p.listed || (p.grievance ?? 0) > 30 || !!p.contract?.releaseClause || rng.chance(0.25)),
+        (p.listed || (p.grievance ?? 0) > 30 || !!p.contract?.releaseClause || rng.chance(0.25)
+          // he asked to leave this season, and named this club or none
+          || (asksOut(state, p) && (!p.wantsOut!.t || p.wantsOut!.t === team.id))),
     )
     const target = targets.sort((a, b) => b.overall - a.overall)[0]
     if (!target) continue
@@ -823,7 +1054,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
       // is down to five, the buyer's roster is full, the import rule bites).
       // Announcing the departure regardless printed "他已经离队" for a player
       // still sitting in the squad list.
-      const left = doTransfer(state, target, team.id, fee, terms)
+      const left = doTransfer(state, target, team.id, fee, terms, '触发解约金')
       state.offers[state.offers.length - 1].status = left ? 'accepted' : 'rejected'
       if (!left) {
         notes?.push(
@@ -840,6 +1071,7 @@ export function bidForOurPlayers(state: GameState, rng: Rng, notes?: string[]): 
         + '我们无权拒绝，他已经离队。',
       )
     } else {
+      txNews(state, 'bid', target, { f: state.myTeam, t: team.id, fee, w: '等待我们答复' })
       state.news.push({
         day: state.day, kind: 'transfer', important: true,
         text: `${team.name} 报价 $${fee.toLocaleString()} 求购 ${target.ign}，等待我们答复。`,

@@ -58,7 +58,16 @@ const store = new Map<string, string>()
 // (measured on a fresh save: agentPro 30 → 101 KB across 659 players, the
 // peak 1,540 → 1,608 KB). Same reasoning as above: the state is bounded and
 // explained, so the budget moves by what it costs.
-const BUDGET_KB = 1_700
+// 1,700 until 2026-10-08. That day the career got a 转会新闻 ledger (engine/transferNews.ts):
+// every move, rumour, request and listing as a short record, kept across seasons so the history
+// can be read back, plus three small fields (movedOn, wantsOut, a club's lastBuyOn). Compacted
+// before it was measured — listings under 75 unrecorded, a request and its listing one line, the
+// gossip halved — and bounded: FEED_MAX 600 records of ~95 characters, at most ~57 KB.
+// Measured over six seeds, two seasons, before → after: 1,674→1,756 (this seed), 1,651→1,709,
+// 1,668→1,731, 1,668→1,726, 1,660→1,715, 1,672→1,731 — the feature costs ~55–60 KB; this
+// seed's extra ~25 KB is fixtures (880→911), a different simulated path playing more maps, the
+// variance the old headroom covered. Same reasoning as the two above, with that headroom kept.
+const BUDGET_KB = 1_780
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {

@@ -654,6 +654,40 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 }
 .news-item.important { box-shadow: inset 2px 0 0 var(--accent); background: var(--accent-wash); }
 
+/* 转会新闻 (ui/TransferNews.tsx): one story a row, 「(队标)队伍.选手 → (队标)队伍.选手」 */
+.tx-row {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 7px 13px; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.tx-row:last-child { border-bottom: none; }
+.tx-row.important { box-shadow: inset 2px 0 0 var(--accent); background: var(--accent-wash); }
+.tx-date { color: var(--faint); font-size: 12px; min-width: 38px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tx-kind {
+  flex: none; font-size: 11px; font-weight: 650; padding: 1px 6px; border-radius: 3px;
+  background: var(--panel-2); color: var(--muted); min-width: 52px; text-align: center;
+}
+.tx-kind-done, .tx-kind-free { background: var(--accent); color: #fff; }
+.tx-kind-rumor, .tx-kind-bid { color: var(--accent); }
+.tx-kind-wants, .tx-kind-listed { color: var(--text); }
+.tx-kind-off { text-decoration: line-through; }
+.tx-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.tx-side { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.tx-side .crest { flex: none; }
+.tx-mine { color: var(--accent); font-weight: 650; }
+.tx-arrow { color: var(--faint); }
+.tx-fee { font-variant-numeric: tabular-nums; font-weight: 650; }
+.tx-why { color: var(--faint); font-size: 12px; }
+.tx-name { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.tx-name:hover b { color: var(--accent); text-decoration: underline; }
+.tx-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 13px; border-bottom: 1px solid var(--line); }
+.tx-filters select, .tx-filters input[type=search] { width: auto; flex: 0 1 auto; min-width: 0; }
+.tx-filters label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.tx-filters label input { width: auto; margin: 0; }
+@media (max-width: 720px) {
+  .tx-row { flex-wrap: wrap; gap: 6px; }
+  .tx-body { flex-basis: 100%; }
+}
+
 /* ---------------------------------------------------------------- modal */
 /* A turn being simulated (Dashboard runTurn): nothing behind takes a tap until it is done.
    Clear, so a one-day turn does not flash; the date only fades in on a turn long enough to read it. */

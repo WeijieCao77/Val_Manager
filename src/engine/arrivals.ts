@@ -23,6 +23,7 @@
  * by historical careers only and registered here (registerArrivals); a day
  * whose year has not been processed yet processes it.
  */
+import { joinedClub, txNews } from './transferNews'
 import { playerFromRaw, autoStarters } from './world'
 import type { RawPlayer } from './world'
 import { agentAvailable } from './eras'
@@ -102,9 +103,12 @@ function arrive(state: GameState, year: number, rows: ArrivalRow[], notes: strin
         if (out) {
           club.roster = club.roster.filter((id) => id !== out.id)
           club.starters = club.starters.filter((id) => id !== out.id)
+          txNews(state, 'release', out, { f: club.id, t: null, w: '为新人腾位置' })
           out.teamId = null
           out.contractYears = 0
           out.listed = false
+          out.listedOn = undefined
+          out.wantsOut = undefined
           released.push(`${out.ign}（${club.tag}）`)
         }
       }
@@ -117,6 +121,8 @@ function arrive(state: GameState, year: number, rows: ArrivalRow[], notes: strin
       p.contract = defaultContract(p.salary, p.contractYears)
       club.roster.push(p.id)
       recordJoin(state, p, club.id)
+      joinedClub(state, p)
+      txNews(state, 'free', p, { f: null, t: club.id, w: `${year} 年真实新人，${how}` })
       club.starters = autoStarters(state, club.id)
       signed.push(`${club.tag} ${how} ${p.ign}`)
       continue

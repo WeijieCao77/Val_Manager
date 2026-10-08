@@ -312,7 +312,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日 ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
   }
 
-  const buysOf = (me, since) => work`
+  const buysOf = (me, since, db = work) => db`
     select o.made, l.created, l.seller_h as seller, l.card_id, o.price, (o.status = 'accepted') as won,
            -- bought and put back on the shelf: trading, not collecting
            exists (select 1 from card_listings r where r.seller_h = o.buyer_h and r.card_id = l.card_id and r.created > o.made) as flipped
@@ -325,8 +325,8 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     order by o.made desc limit 3000`
 
   /** When this account's slate was last wiped: its newest ban (or the lift of it). */
-  async function slate(me) {
-    const last = await work`
+  async function slate(me, db = work) {
+    const last = await db`
       select made, lifted, (select count(*)::int from market_bans where id_hash = ${me} and lifted is null) as strikes
       from market_bans where id_hash = ${me} order by made desc limit 1`
     const from = last.length ? new Date(last[0].lifted ?? last[0].made).getTime() : 0
@@ -354,9 +354,9 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   let values = null
   let valuesAt = 0
   let valuesLoading = null
-  async function valueFn() {
+  async function valueFn(db = work) {
     if (values && Date.now() - valuesAt < 30 * 60_000) return values
-    valuesLoading ??= work`
+    valuesLoading ??= db`
       select l.card_id, l.level, count(*)::int as n,
              percentile_cont(0.5) within group (order by o.price)::int as med
       from card_offers o join card_listings l on l.id = o.listing
@@ -368,33 +368,39 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     return values
   }
   /** Every sale this account stood on either side of since `since` (a day at most is judged), priced. */
-  async function tradesOf(me, since) {
+  async function tradesOf(me, since, db = work) {
     const day = new Date(Math.max(new Date(since).getTime(), Date.now() - DAY))
     const [bought, sold, value] = await Promise.all([
-      work`
+      db`
         select l.seller_h as other, o.price, l.card_id, l.level, l.closed as at
         from card_offers o join card_listings l on l.id = o.listing
         where o.buyer_h = ${me} and o.status = 'accepted' and l.status = 'sold' and l.closed > ${day}
         limit 2000`,
-      work`
+      db`
         select o.buyer_h as other, o.price, l.card_id, l.level, l.closed as at
         from card_listings l join card_offers o on o.listing = l.id and o.status = 'accepted'
         where l.seller_h = ${me} and l.status = 'sold' and l.closed > ${day}
         limit 2000`,
-      valueFn(),
+      valueFn(db),
     ])
     const priced = (t, b) => ({ other: t.other, bought: b, price: t.price, ref: value(t.card_id, t.level).ref, at: t.at, card: t.card_id })
     return [...bought.map((t) => priced(t, true)), ...sold.map((t) => priced(t, false))].filter((t) => t.other !== me)
   }
 
-  /** Look at one account — called after each purchase, off the request's clock. */
-  async function check(me, { dry = false } = {}) {
+  /**
+   * Look at one account — called after each purchase, off the request's clock, on the background
+   * connection. The owner's dry runs (scan, 「check」) pass the interactive pool instead: a scan is
+   * a few queries for each of hundreds of buyers, one after another, and on the ONE background
+   * connection it held every cup round and auction settlement for ~10 s (2026-10-08, after the
+   * report itself had been moved off it).
+   */
+  async function check(me, { dry = false, db = work } = {}) {
     if (off) return null
-    const { since, strikes } = await slate(me)
-    const buys = await buysOf(me, since)
+    const { since, strikes } = await slate(me, db)
+    const buys = await buysOf(me, since, db)
     const found = judge(buys)
     // coins moved between accounts: this one and whoever was on the other side of it
-    const moved = judgeTransfers(await tradesOf(me, since))
+    const moved = judgeTransfers(await tradesOf(me, since, db))
     found.transfer = moved
     if (found.verdict !== 'ban' && moved.verdict) {
       if (moved.verdict === 'ban' || !found.verdict) { found.verdict = moved.verdict; found.rule = moved.rule }
@@ -477,7 +483,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
    */
   const RECENT = { SALE_DAYS: 3, RATIO: 5, OVER: 3000, PAIR_RATIO: 3, ROWS: 60 }
   async function recent() {
-    const [value, sales] = await Promise.all([valueFn(), sql`
+    const [value, sales] = await Promise.all([valueFn(sql), sql`
       select o.buyer_h as b, l.seller_h as s, l.card_id, l.level, o.price, l.buyout,
              extract(epoch from l.closed)::float8 as closed
       from card_offers o join card_listings l on l.id = o.listing
@@ -531,7 +537,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
    */
   async function scan() {
     if (off) return []
-    const buyers = await work`
+    const buyers = await sql`
       select o.buyer_h, count(*)::int as n
       from card_offers o join card_listings l on l.id = o.listing
       where o.status = 'accepted' and l.buyout is not null and o.price >= l.buyout
@@ -539,7 +545,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       group by o.buyer_h having count(*) >= 10 order by n desc limit 400`
     const out = []
     for (const b of buyers) {
-      const found = await check(b.buyer_h, { dry: true })
+      const found = await check(b.buyer_h, { dry: true, db: sql })
       if (found?.verdict) out.push({ id_hash: b.buyer_h, ...found })
     }
     return out
@@ -773,7 +779,8 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
   async function byCode(code) {
     const c = String(code ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(c)) return null
-    const rows = await work`select id_hash from card_accounts where id_hash like ${c + '%'} limit 2`
+    // the owner asking: the interactive pool, not the clock's one connection
+    const rows = await sql`select id_hash from card_accounts where id_hash like ${c + '%'} limit 2`
     return rows.length === 1 ? rows[0].id_hash : null
   }
   /**
@@ -801,7 +808,7 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
       const until = await ban(me, { days: d, rule: 'manual', evidence: { note: String(note ?? '').slice(0, 200) }, by: 'owner' })
       return { ok: true, until, days: d, nth: st.strikes + 1 }
     }
-    if (action === 'check') return { ok: true, ...(await check(me, { dry: true })) }
+    if (action === 'check') return { ok: true, ...(await check(me, { dry: true, db: sql })) }
     return { ok: false, why: 'action' }
   }
 

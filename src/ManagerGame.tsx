@@ -11,6 +11,7 @@ import Career from './ui/Career'
 import Schedule from './ui/Schedule'
 import Standings from './ui/Standings'
 import Transfers from './ui/Transfers'
+import TransferNews from './ui/TransferNews'
 import Finances from './ui/Finances'
 import Saves from './ui/Saves'
 import PlayerModal from './ui/PlayerModal'
@@ -55,6 +56,7 @@ const SCREENS: { key: string; label: string; group?: string }[] = [
   { key: 'tactics', label: '战术' },
   { key: 'training', label: '训练' },
   { key: 'transfers', label: '转会', group: '经营' },
+  { key: 'transferNews', label: '转会新闻' },
   { key: 'commercial', label: '商务' },
   { key: 'finance', label: '财务' },
   { key: 'schedule', label: '赛程', group: '赛事' },
@@ -351,6 +353,7 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
     schedule: Schedule,
     standings: Standings,
     transfers: Transfers,
+    transferNews: TransferNews,
     commercial: Commercial,
     finance: Finances,
     career: Career,

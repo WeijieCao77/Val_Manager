@@ -1,3 +1,4 @@
+import type { TxNews } from './transferNews'
 import type { Patch } from './comp'
 import type { Manager } from './manager'
 
@@ -348,6 +349,13 @@ export interface Player {
   payAskedOn?: number
   /** day a rival was last reported to be watching him */
   rumourOn?: number
+  /**
+   * He has asked to leave (transferNews / unrest): the season he asked in, the club he asked at
+   * (`f`) and the club he named (`t`), if any. Read through asksOut (transfer.ts); a move clears it.
+   */
+  wantsOut?: { y: number; f?: string; t?: string }
+  /** career day (careerDayOf) he last changed clubs — the AI does not sell on a new arrival */
+  movedOn?: number
   /** whether his form was last reported as hot or cold, so it is said once */
   formFlag?: 'hot' | 'cold'
   /** announced: this season is his last. A year's notice, not a vanishing. */
@@ -619,6 +627,8 @@ export interface Team {
   league: string
   rating: number
   budget: number
+  /** career day this (AI) club last paid a fee for someone — it digests him before shopping again */
+  lastBuyOn?: number
   reputation: number
   roster: string[]
   starters: string[]
@@ -1086,6 +1096,14 @@ export interface GameState {
   leagueOffer?: { year: number; expires: number }
   /** farewell records for retired players, newest last — the send-off cards read these */
   retireFeed?: RetireNote[]
+  /** 转会新闻: every move, listing, rumour and request, newest last (engine/transferNews.ts) */
+  transferFeed?: TxNews[]
+  /**
+   * AI clubs' approaches still being negotiated: the club, the player, the career day it began
+   * (careerDayOf, so New Year needs no shifting), the fee on the table and how many times it
+   * has been tried. A rumour is published when one opens; the deal, or 告吹, closes it.
+   */
+  pursuits?: { tm: string; p: string; f: string; at: number; fee: number; n: number }[]
   /** commercial appearances completed this season, for sponsorship clauses */
   seasonGigs?: number
   /** best regional stage finish this season, for sponsorship clauses */
