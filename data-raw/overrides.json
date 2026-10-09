@@ -322,6 +322,13 @@
  "flags": {
   "3993": "kh"
  },
+ "_names_note": [
+  "A real name the owner has decided, keyed by vlr id. It beats vlr's profile name in scripts/build_dossier.py.",
+  "47101 5CM: owner, 2026-10-09 — vlr prints 丁宣鹏; he is 丁宜鹏 (号角 agrees)."
+ ],
+ "names": {
+  "47101": "Ding Yipeng (丁宜鹏)"
+ },
  "_samePerson_note": [
   "One man, two vlr.gg player pages. Keyed by the page to fold away -> {vlr: the page that is him now, ign: the handle on it}.",
   "build_world_year.py rewrites the rows before anything reads them, so his lines pool and he is on a roster once.",

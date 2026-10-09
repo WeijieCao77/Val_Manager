@@ -104,7 +104,6 @@
     "runtime": "tsx",
     "file": "scripts/check_arrivals.ts",
     "estimatedSeconds": 40
-
   },
   {
     "runtime": "tsx",
@@ -860,5 +859,9 @@
     "runtime": "tsx",
     "file": "scripts/check_breakthrough.ts",
     "estimatedSeconds": 12
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_series_full.ts"
   }
 ]

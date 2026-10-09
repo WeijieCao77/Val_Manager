@@ -62,6 +62,8 @@ COACH_FIX: dict[str, dict] = {
     "potter": {"real": "Christine Chi", "nat": "us", "vlrId": "3104"},
     # VLG's head coach: no staff listing carries a flag for him; Chinese per the owner (2026-09-27)
     "heav1n": {"nat": "cn"},
+    # AQ's head coach 黄进杰 (号角 xVRDs8En6ssW79hP); Liquipedia's "Sunshine" is Matt Speidel, another man (owner, 2026-10-09)
+    "Sunshine": {"real": "Huang Jinjie (黄进杰)", "nat": "cn"},
 }
 
 
@@ -69,6 +71,8 @@ COACH_FIX: dict[str, dict] = {
 # profile under the handle counts only when it is the vlr id named there, and
 # Liquipedia's page — photo, club history — is the other man's.
 HOMONYMS = {k.lower(): v for k, v in (json.loads((ROOT / "data-raw" / "overrides.json").read_text("utf-8")).get("homonyms") or {}).items()}
+# Real names the owner corrected where vlr.gg has them wrong (overrides.json `names`, by vlr id).
+NAMES = json.loads((ROOT / "data-raw" / "overrides.json").read_text("utf-8")).get("names") or {}
 
 
 def load(p: Path, default):
@@ -119,7 +123,7 @@ def main() -> int:
                     rec["src"] = "spike"
             if who.get("nat") or p.get("nat"):
                 rec["nat"] = who.get("nat") or p.get("nat")
-            real = (vlr_people.get(vid) or {}).get("real") or who.get("real") or p.get("realName")
+            real = NAMES.get(vid) or (vlr_people.get(vid) or {}).get("real") or who.get("real") or p.get("realName")
             if real:
                 rec["real"] = real
             if (vlr_people.get(vid) or {}).get("winnings"):
@@ -167,7 +171,7 @@ def main() -> int:
         if nat:
             rec["nat"] = nat
             nats += 1
-        real = prof.get("real") or p.get("realName")
+        real = NAMES.get(str(prof.get("vlrId") or "")) or prof.get("real") or p.get("realName")
         if real:
             rec["real"] = real
         if prof.get("winnings"):

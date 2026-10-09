@@ -27,6 +27,14 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-09',
+    title: '资料修正：5CM 真名、Sunshine 头像',
+    changes: [
+      { kind: '修复', text: 'AQ 选手 <b>5CM</b> 的真名改为丁宜鹏（vlr 上写成了丁宣鹏）。' },
+      { kind: '修复', text: 'AQ 主教练 <b>Sunshine</b> 的头像换成他本人，之前用的是另一位同名的人；补上了国籍和真名黄进杰。' },
+    ],
+  },
+  {
     date: '2026-10-08',
     title: '电竞经理：转会新闻，强队会从别队买人了',
     changes: [
