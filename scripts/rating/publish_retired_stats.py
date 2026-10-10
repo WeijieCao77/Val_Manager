@@ -128,34 +128,27 @@ def coach_rows() -> list[dict]:
 
 
 def main() -> int:
+    """The public page is the retired players' only (owner, 2026-10-11: 「跟 /stats 一样做成给用户看的数据透明展示…把任何教练相关的也去掉」).
+    Coach scores stay in analysis/rating/history_v16 for our own use."""
     DST.mkdir(parents=True, exist_ok=True)
-    keep = {"coach-photos", "cards"}  # card previews (render_retired_v16_cards.mjs) and verified photos of coaches the game has no face for (coach_photo_sources.json)
+    keep = {"cards"}  # the card images (render_retired_cards.mjs)
     for f in DST.iterdir():
         if f.name not in keep:
             shutil.rmtree(f) if f.is_dir() else f.unlink()
-    players, coaches = retired_rows(), coach_rows()
+    players = retired_rows()
     lines = json.loads((SRC / "lines.json").read_text())
-    clines = json.loads((SRC / "coaches.json").read_text()).get("lines", {})
     mythics = [{k: m[k] for k in ("ign", "vlrId", "event", "why", "percentile", "field", "rounds", "byPercentile", "normal", "rating", "role", "attrs")}
                | {"event": event_name(m["eid"])} for m in json.loads((SRC / "mythics.json").read_text())]
-    meta = {"date": date.today().isoformat(), "players": len(players), "coaches": len(coaches),
-            "lines": {"retired": lines["retired"], "coachActive": clines.get("active"), "coachInactive": clines.get("inactive")}}
+    meta = {"date": date.today().isoformat(), "players": len(players), "lines": {"retired": lines["retired"]}}
     (DST / "retired.json").write_text(json.dumps({"meta": meta, "players": players, "mythics": mythics}, ensure_ascii=False, separators=(",", ":")))
-    (DST / "coaches.json").write_text(json.dumps({"meta": meta, "coaches": coaches}, ensure_ascii=False, separators=(",", ":")))
     with (DST / "retired.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["选手", "真名", "评分", "稀有度", "个人分", "巅峰赛季", "履历O", "冠军H", "赛区G", "最后一场"])
+        w.writerow(["选手", "真名", "评分", "稀有度", "个人分", "履历加分", "冠军加分", "赛区强弱", "最后一场"])
         for p in players:
-            w.writerow([p["ign"], p["real"], p["rating"], p["rarity"], p["personal"], p["peakYear"], p["parts"]["O"],
+            w.writerow([p["ign"], p["real"], p["rating"], p["rarity"], p["personal"], p["parts"]["O"],
                         p["parts"]["H"], p["parts"]["G"], p["last"]])
-    with (DST / "coaches.csv").open("w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["教练", "真名", "状态", "评分", "稀有度", "战术", "培养", "激励", "履历加分", "计分赛事", "系列赛", "带过的选手"])
-        for c in coaches:
-            w.writerow([c["name"], c["real"], c["status"], c["rating"], c["rarity"], c["tactics"], c["development"],
-                        c["motivation"], c["bonus"], len(c["events"]), len(c["series"]), len(c["players"])])
     (DST / "index.html").write_text((SRC / "page.html").read_text())
-    print(f"{len(players)} retired players, {len(coaches)} coaches -> {DST}")
+    print(f"{len(players)} retired players -> {DST}")
     return 0
 
 
