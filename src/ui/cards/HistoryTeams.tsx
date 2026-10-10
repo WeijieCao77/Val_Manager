@@ -38,8 +38,7 @@ export default function HistoryTeams() {
     <>
       <Panel title="历代强队" actions={<span className="tiny muted">不花体力 · 输了免费重打</span>}>
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
-          带五名退役选手，挑战 12 支拿过世界赛冠军的队伍。对手是那一届上场最多的五个人，
-          分数用现役同一套算法、按当时为止的数据算。按顺序打，<b>每打通一章送退役选手包 ×1，全部打通再送 1 个</b>。
+          带五名退役选手，挑战 12 支拿过世界赛冠军的队伍。对手是那一届上场最多的五个人，分数用现役同一套算法、按当时为止的数据算。按顺序打，<b>每打通一章送退役选手包 ×1，全部打通再送 1 个</b>。
         </p>
         {!entry.ok && <p className="small neg" style={{ marginBottom: 0 }}>{entry.why} 去「卡组」换上五名退役选手。</p>}
       </Panel>
