@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import json
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -603,7 +603,6 @@ def main() -> int:
                          "level": r["level"], "stage": r.get("stage"), "rounds": r["n"], "club": r["club"],
                          "agents": r["sh"], "q": round(r["q"], 4), "coverage": round(r["coverage"], 3)} for r in rr],
         })
-    (OUT / ("players_region_bridge.json" if REGION_BRIDGE else "players.json")).write_text(json.dumps(out, ensure_ascii=False, indent=1))
     (OUT / "baselines.json").write_text(json.dumps(
         {str(e): {CFG["labels"][j]: {"heroes": h, "roles": rm} for j, (h, rm) in v.items()} for e, v in bases.items()},
         ensure_ascii=False, indent=1))
@@ -613,9 +612,12 @@ def main() -> int:
     for p in out:
         if p["rated"]:
             p["rarity"] = "gold" if p["rating"] >= gold else "silver" if p["rating"] >= silver else "bronze"
+    # the file is written only after the metal is set (a write before this kept the old fixed 79/70 metal)
+    share = Counter(p["rarity"] for p in pool)
+    assert share["gold"] >= .20 * len(pool) and share["gold"] + share["silver"] >= .55 * len(pool), share
+    (OUT / ("players_region_bridge.json" if REGION_BRIDGE else "players.json")).write_text(json.dumps(out, ensure_ascii=False, indent=1))
     (OUT / "lines.json").write_text(json.dumps({"retired": {"gold": gold, "silver": silver, "pool": len(pool)}}, indent=1))
     rated = pool
-    from collections import Counter
     print("retired lines: gold", gold, "silver", silver)
     print(len(out), "candidates,", len(rated), "rated;", Counter(p["rarity"] for p in rated))
     return 0
