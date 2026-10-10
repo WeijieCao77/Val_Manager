@@ -122,7 +122,7 @@ def coach_rows() -> list[dict]:
 
 def main() -> int:
     DST.mkdir(parents=True, exist_ok=True)
-    keep = {"coach-photos"}  # verified photos of coaches the game has no face for (coach_photo_sources.json)
+    keep = {"coach-photos", "cards"}  # card previews (render_retired_v16_cards.mjs) and verified photos of coaches the game has no face for (coach_photo_sources.json)
     for f in DST.iterdir():
         if f.name not in keep:
             shutil.rmtree(f) if f.is_dir() else f.unlink()
