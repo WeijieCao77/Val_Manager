@@ -41,3 +41,20 @@
 .ag-footer{position:absolute;left:6%;right:6%;bottom:1.4%;z-index:8;text-align:center;font:600 22px/1.4 Arial,'PingFang SC',sans-serif;color:#fff2da;background:#210d18e0;border-radius:8px;padding:4px 8px}
 /* the pack drawn flat when the 3D pouch cannot be (as .pack-pouch-bangkok) */
 .pack-pouch-retired .pack-pouch-fallback{padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;justify-content:center}.pack-pouch-retired .pack-pouch-fallback .ag-pack{width:74%}
+
+/* the 退役选手包 on the 抽卡 page, laid out as the 曼谷 shelf (.bk25-shelf) */
+.ag-shelf{display:flex;gap:28px;align-items:center;padding:28px 32px;margin:0 0 20px;background:radial-gradient(ellipse at 15% 0,#7a3b4a55,transparent 70%),#1a0b13;border:1px solid #b39264;color:#fff2da;border-radius:8px;overflow:hidden}
+.ag-shelf-art{position:relative;min-width:180px;width:180px;height:216px;flex-shrink:0}
+.ag-shelf-art .pack-pouch-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
+.ag-shelf-art .ag-shelf-back{position:absolute;width:108px;right:-6px;bottom:2px;transform:rotate(10deg)}
+.ag-shelf-art .ag-shelf-back .card-img{width:100%}
+.ag-shelf-copy{flex:1}
+.ag-shelf h3{font-size:27px;margin:8px 0 12px;color:#fff2da}
+.ag-shelf p{font-size:12px;color:#c9b39a;line-height:1.8;margin:8px 0}
+.ag-shelf .row{margin-top:17px;gap:8px;flex-wrap:wrap}
+.ag-shelf button{background:#d8b77e;color:#210d18;border-color:#d8b77e}
+.ag-shelf button:disabled{opacity:.4}
+.ag-shelf .ag-shelf-secondary{background:transparent;color:#ead2a8;border-color:#7d5f45}
+.ag-eyebrow{font-size:10px;letter-spacing:.2em;color:#c9a874}
+@media(max-width:620px){.ag-shelf{padding:22px 18px;gap:12px;flex-wrap:wrap}.ag-shelf-art{min-width:140px;width:140px;height:190px;margin:auto}.ag-shelf-art .pack-pouch-object{width:120px;left:0}}
+.ag-shelf h3 span{white-space:nowrap}

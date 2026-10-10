@@ -18,6 +18,7 @@ import { MAX_LEVEL, RARITY_CN, cardById, isPlayerCard } from '../../engine/cards
 import type { Card, CoachCard, PlayerCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
 import { qrMatrix } from '../../engine/qr'
+import { ATTR_CN } from '../../engine/types'
 
 export const SHARE_URL = 'https://vctgames.com'
 export const SHARE_W = 1080
@@ -185,10 +186,11 @@ function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, b: Box): vo
 function paintSeat(
   ctx: CanvasRenderingContext2D, b: Box, card: Card | null, role: string,
   level: number, face: HTMLImageElement | null, crest: HTMLImageElement | null,
-  mark: HTMLImageElement | null = null, lotus: HTMLImageElement | null = null,
+  mark: HTMLImageElement | null = null, lotus: HTMLImageElement | null = null, ember: HTMLImageElement | null = null,
 ): void {
   if (card && isSeoul(card)) { paintSeoulSeat(ctx, b, card, level, face, mark); return }
   if (card && isBangkok(card)) { paintBangkokSeat(ctx, b, card, level, face, lotus); return }
+  if (card && isRetired(card)) { paintRetiredSeat(ctx, b, card, level, face, ember); return }
   if (!card) {
     ctx.save()
     round(ctx, b, 10)
@@ -792,6 +794,233 @@ function paintBangkokSeat(
   ctx.stroke()
 }
 
+const isRetired = (card: Card): card is PlayerCard & { afterglow: NonNullable<PlayerCard['afterglow']> } =>
+  isPlayerCard(card) && card.event === 'retired' && !!card.afterglow
+
+/** the ember the 余晖 cards carry in their corner (RetiredDesign.tsx) */
+const AFTERGLOW_EMBER = '/events/afterglow/ember-art.webp'
+const AG_FINISH: Record<'gold' | 'silver' | 'bronze', { foil: string; paper: string; base: string; cn: string }> = {
+  gold: { foil: '#d8b77e', paper: '#fff2da', base: '#240e19', cn: '金卡' },
+  silver: { foil: '#c7d1dd', paper: '#f4f3f7', base: '#211d29', cn: '银卡' },
+  bronze: { foil: '#c38d70', paper: '#f4ddd0', base: '#2c181b', cn: '铜卡' },
+}
+const SERIF = (weight: number, size: number) => `${weight} ${size}px Georgia, "Times New Roman", serif`
+
+/** an image faded out toward its rim, drawn with `screen` — the ember mark */
+function paintEmber(ctx: CanvasRenderingContext2D, ember: HTMLImageElement, b: Box): void {
+  const off = document.createElement('canvas')
+  off.width = Math.ceil(b.w); off.height = Math.ceil(b.h)
+  const o = off.getContext('2d')!
+  o.drawImage(ember, 0, 0, b.w, b.h)
+  o.globalCompositeOperation = 'destination-in'
+  const rim = o.createRadialGradient(b.w / 2, b.h / 2, 0, b.w / 2, b.h / 2, b.w / 2)
+  rim.addColorStop(0.45, '#000'); rim.addColorStop(1, 'rgba(0,0,0,0)')
+  o.fillStyle = rim; o.fillRect(0, 0, b.w, b.h)
+  ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.drawImage(off, b.x, b.y); ctx.restore()
+}
+
+/** the photo inside `pb`, faded out below `fadeFrom` of its height — the faces' mask-image */
+function paintFaded(
+  ctx: CanvasRenderingContext2D, face: HTMLImageElement, pb: Box, mode: 'contain' | 'cover', posX: number, posY: number,
+  fadeFrom: number, filter: string,
+): void {
+  const off = document.createElement('canvas')
+  off.width = Math.ceil(pb.w); off.height = Math.ceil(pb.h)
+  const o = off.getContext('2d')!
+  o.filter = filter
+  const scale = mode === 'cover' ? Math.max(pb.w / face.width, pb.h / face.height) : Math.min(pb.w / face.width, pb.h / face.height)
+  const fw = face.width * scale, fh = face.height * scale
+  o.drawImage(face, (pb.w - fw) * posX, (pb.h - fh) * posY, fw, fh)
+  o.filter = 'none'
+  o.globalCompositeOperation = 'destination-in'
+  const fade = o.createLinearGradient(0, 0, 0, pb.h)
+  fade.addColorStop(fadeFrom, '#000'); fade.addColorStop(1, 'rgba(0,0,0,0)')
+  o.fillStyle = fade; o.fillRect(0, 0, pb.w, pb.h)
+  ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
+}
+
+/**
+ * A 余晖 (退役) card, drawn the way RetiredDesign.tsx draws it: every block at
+ * afterglow.css's (or afterglowMythic.css's) place, as a percentage of the card
+ * — x and type sizes of its width (the faces' cqw), y of its height.
+ */
+function paintRetiredSeat(
+  ctx: CanvasRenderingContext2D, b: Box, card: PlayerCard & { afterglow: NonNullable<PlayerCard['afterglow']> },
+  level: number, face: HTMLImageElement | null, ember: HTMLImageElement | null,
+): void {
+  const X = (n: number) => b.x + (n / 100) * b.w
+  const Y = (n: number) => b.y + (n / 100) * b.h
+  const W = (n: number) => (n / 100) * b.w
+  const H = (n: number) => (n / 100) * b.h
+  const hair = Math.max(1, b.w / 480)
+  const g = card.afterglow
+  const label = `${card.role}${card.isIgl ? ' · 指挥' : ''}${level > 0 ? ` ${levelMark(level)}` : ''}`
+  ctx.save()
+  round(ctx, b, W(3))
+  ctx.clip()
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+
+  if (card.rarity === 'mythic') {
+    const accent = g.accent ?? '#f2b6ad'
+    const tint = g.tint ?? '#501c2b'
+    const bg = ctx.createRadialGradient(X(70), Y(33), 0, X(70), Y(33), b.w * 0.95)
+    bg.addColorStop(0, tint); bg.addColorStop(0.73, '#210d18')
+    ctx.fillStyle = bg; ctx.fillRect(b.x, b.y, b.w, b.h)
+    if (face) {
+      const [px, py] = (g.crop ?? '50% 50%').split(' ').map((v) => parseFloat(v) / 100)
+      paintFaded(ctx, face, { x: X(3), y: Y(12), w: W(94), h: H(65) }, 'cover', px, py, 0.69, 'saturate(1.08) contrast(1.04)')
+    }
+    // the info block's ground (::before)
+    const foot = ctx.createLinearGradient(0, Y(52), 0, b.y + b.h)
+    foot.addColorStop(0, 'rgba(33,13,24,0)'); foot.addColorStop(0.23, 'rgba(33,13,24,.7)'); foot.addColorStop(0.55, '#210d18')
+    ctx.fillStyle = foot; ctx.fillRect(b.x, Y(52), b.w, b.h)
+    // header
+    ctx.fillStyle = '#e7cfaa'
+    ctx.font = font(700, W(4)); ctx.letterSpacing = `${W(4) * 0.075}px`
+    ctx.fillText('AFTERGLOW', X(7), Y(4.8))
+    ctx.letterSpacing = '0px'
+    ctx.fillStyle = accent; ctx.font = font(400, W(2.3))
+    ctx.fillText('余晖 · 退役生涯彩卡', X(7), Y(4.8) + W(4) * 1.1 + W(1.7))
+    if (ember) paintEmber(ctx, ember, { x: X(81), y: Y(3.2), w: W(14), h: W(14) })
+    // year
+    ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = font(500, W(3))
+    ctx.letterSpacing = `${W(3) * 0.15}px`
+    ctx.fillText(String(card.legend?.year ?? ''), X(93), Y(13.5))
+    ctx.letterSpacing = '0px'; ctx.textAlign = 'left'
+    // the rating plate
+    const pw = W(26), ph = W(16) * 0.95 + W(3) * 1.3 + W(2.15) * 1.3 + W(7)
+    const plate = ctx.createLinearGradient(X(7), Y(17), X(7) + pw, Y(17) + ph)
+    plate.addColorStop(0, 'rgba(17,19,36,.7)'); plate.addColorStop(1, 'rgba(17,19,36,.12)')
+    ctx.fillStyle = plate; ctx.fillRect(X(7), Y(17), pw, ph)
+    ctx.fillStyle = accent; ctx.fillRect(X(7), Y(17), Math.max(1, W(0.42)), ph)
+    ctx.fillStyle = '#fff8ed'; ctx.font = IMPACT(W(16))
+    ctx.fillText(String(card.rating), X(7) + W(2.5), Y(17) + W(2))
+    ctx.fillStyle = accent; ctx.font = font(400, W(3))
+    ctx.fillText(label, X(7) + W(2.5), Y(17) + W(2) + W(16) * 0.95 + W(2))
+    ctx.fillStyle = '#e4d8ce'; ctx.font = font(400, W(2.15))
+    ctx.fillText('已退役', X(7) + W(2.5), Y(17) + W(2) + W(16) * 0.95 + W(2) + W(3) * 1.3 + W(1))
+    // the side tag (result / club), bottom 39% right 7%
+    const tag = `${g.result ?? ''} / ${card.clubTag ?? ''}`
+    ctx.font = font(400, W(2.5))
+    const tw = ctx.measureText(tag).width + W(4)
+    const th = W(2.5) * 1.3 + W(2.6)
+    ctx.fillStyle = 'rgba(17,19,36,.67)'; ctx.fillRect(X(93) - tw, Y(61) - th, tw, th)
+    ctx.fillStyle = '#fff2d8'; ctx.fillText(tag, X(93) - tw + W(2), Y(61) - th + W(1.3))
+    // the info block, built up from the foot (bottom 5.3%)
+    let y = Y(94.7)
+    ctx.font = font(400, W(1.9)); ctx.fillStyle = '#b39b7e'
+    y -= W(1.9) * 1.2
+    ctx.fillText('生涯珍藏 / 彩卡', X(8), y)
+    ctx.textAlign = 'right'; ctx.fillText(g.number, X(92), y); ctx.textAlign = 'left'
+    y -= W(2.3)
+    ctx.fillStyle = 'rgba(197,169,123,.2)'; ctx.fillRect(X(8), y, W(84), hair)
+    // six attributes
+    const ATTRS = (['aim', 'reaction', 'awareness', 'utility', 'clutch', 'teamwork'] as const).map((k) => [k, ATTR_CN[k]] as const)
+    y -= W(2.6) + W(2) + W(1.2) + W(5.1)
+    const col = W(84) / 6
+    ATTRS.forEach(([k, cn], i) => {
+      const cx = i === 0 ? X(8) : X(8) + col * i + col / 2
+      ctx.textAlign = i === 0 ? 'left' : 'center'
+      ctx.fillStyle = '#f5dfbc'; ctx.font = SERIF(400, W(5.1))
+      ctx.fillText(String(card.attrs[k]), cx, y)
+      ctx.fillStyle = '#b9a28e'; ctx.font = font(400, W(2))
+      ctx.fillText(cn, cx, y + W(5.1) + W(1.2))
+    })
+    ctx.textAlign = 'left'
+    y -= W(3)
+    ctx.fillStyle = 'rgba(211,189,131,.33)'; ctx.fillRect(X(8), y, W(84), hair)
+    // the night
+    y -= W(3) + W(2.45) * 1.6
+    ctx.fillStyle = '#cfbca5'; ctx.font = font(400, W(2.45))
+    ctx.fillText(card.legend?.title ?? '', X(8), y)
+    // the name
+    let ign = W(16)
+    ctx.font = IMPACT(ign)
+    while (ign > 6 && ctx.measureText(card.ign).width > W(84)) { ign -= 0.5; ctx.font = IMPACT(ign) }
+    y -= W(2) + ign * 1.06
+    ctx.fillStyle = '#fff7e8'; ctx.fillText(card.ign, X(8), y)
+    // city and club
+    y -= W(1.7) + W(3.1) * 1.2
+    ctx.fillStyle = accent; ctx.font = font(600, W(3.1))
+    ctx.letterSpacing = `${W(3.1) * 0.1}px`
+    ctx.fillText(g.city ?? '', X(8), y)
+    ctx.letterSpacing = '0px'; ctx.textAlign = 'right'
+    ctx.fillText(card.clubTag ?? '', X(92), y)
+    ctx.textAlign = 'left'
+    ctx.restore()
+    ctx.textBaseline = 'alphabetic'
+    // the rainbow foil edge
+    round(ctx, { x: X(1.5), y: Y(1.5), w: W(97), h: H(97) }, W(2.4))
+    const edge = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h)
+    for (const [at, c] of [[0, '#ddc397'], [0.25, '#f3b8c0'], [0.5, '#c4bbfa'], [0.75, '#b5e6d3'], [1, '#d5ad7d']] as const) edge.addColorStop(at, c)
+    ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.5, W(0.42)); ctx.stroke()
+    round(ctx, b, W(3)); ctx.strokeStyle = '#d6c092'; ctx.lineWidth = hair; ctx.stroke()
+    return
+  }
+
+  const fin = AG_FINISH[card.rarity === 'gold' || card.rarity === 'silver' ? card.rarity : 'bronze']
+  ctx.fillStyle = fin.base; ctx.fillRect(b.x, b.y, b.w, b.h)
+  // the halo behind the portrait (.ag-portrait-halo), inset 18% 10% 20%
+  const halo = ctx.createRadialGradient(X(50), Y(18) + H(62) * 0.35, 0, X(50), Y(18) + H(62) * 0.35, W(48))
+  halo.addColorStop(0, fin.foil + '38'); halo.addColorStop(1, fin.foil + '00')
+  ctx.fillStyle = halo; ctx.fillRect(X(10), Y(18), W(80), H(62))
+  ctx.beginPath()
+  ctx.moveTo(X(10), Y(80)); ctx.lineTo(X(10), Y(18) + W(38))
+  ctx.arcTo(X(10), Y(18), X(50), Y(18), W(38)); ctx.arcTo(X(90), Y(18), X(90), Y(18) + W(38), W(38))
+  ctx.lineTo(X(90), Y(80))
+  ctx.strokeStyle = fin.foil + '52'; ctx.lineWidth = hair; ctx.stroke()
+  // portrait, inset 17% 5% 19%, contained and standing on its foot
+  if (face) paintFaded(ctx, face, { x: X(5), y: Y(17), w: W(90), h: H(64) }, 'contain', 0.5, 1, 0.6, 'saturate(.7) contrast(1.06)')
+  else {
+    ctx.fillStyle = fin.foil; ctx.font = font(400, W(20)); ctx.textAlign = 'center'
+    ctx.fillText('◇', X(50), Y(38)); ctx.textAlign = 'left'
+  }
+  // header
+  ctx.fillStyle = fin.foil; ctx.font = SERIF(600, W(4.8)); ctx.letterSpacing = `${W(4.8) * 0.05}px`
+  ctx.fillText('AFTERGLOW', X(7), Y(5.2))
+  ctx.letterSpacing = `${W(2.7) * 0.12}px`; ctx.fillStyle = fin.paper; ctx.font = font(400, W(2.7))
+  ctx.fillText('余晖 · 生涯典藏', X(7), Y(5.2) + W(4.8) * 1.2 + W(1.8))
+  ctx.letterSpacing = '0px'
+  if (ember) paintEmber(ctx, ember, { x: X(76), y: Y(3), w: W(18), h: W(18) })
+  // rating and role, left 7.5% top 23%
+  ctx.fillStyle = fin.paper; ctx.font = SERIF(400, W(17)); ctx.letterSpacing = `${-W(17) * 0.08}px`
+  ctx.fillText(String(card.rating), X(7.5), Y(23))
+  ctx.letterSpacing = '0px'; ctx.fillStyle = fin.foil; ctx.font = font(400, W(3))
+  ctx.fillText(label, X(7.5), Y(23) + W(17) * 0.95 + W(2))
+  // the side line
+  ctx.save()
+  ctx.translate(X(94) - W(1), Y(25)); ctx.rotate(Math.PI / 2)
+  ctx.globalAlpha = 0.7; ctx.fillStyle = fin.foil; ctx.font = font(400, W(2)); ctx.letterSpacing = `${W(2) * 0.18}px`
+  ctx.fillText('THE LIGHT STAYS WITH US', 0, 0)
+  ctx.restore()
+  // the nameplate, built up from the foot (bottom 5.8%)
+  let y = Y(94.2) - W(2.7) * 1.2
+  ctx.font = font(400, W(2.7)); ctx.fillStyle = fin.foil
+  ctx.fillText(`生涯珍藏  ${fin.cn}`, X(8), y)
+  ctx.textAlign = 'right'; ctx.font = font(400, W(2.5)); ctx.fillText(g.number, X(92), y); ctx.textAlign = 'left'
+  y -= W(3)
+  const rule = ctx.createLinearGradient(X(8), 0, X(92), 0)
+  rule.addColorStop(0, fin.foil); rule.addColorStop(1, fin.foil + '33')
+  ctx.fillStyle = rule; ctx.fillRect(X(8), y, W(84), hair)
+  let name = W(17)
+  ctx.font = SERIF(400, name)
+  while (name > 6 && ctx.measureText(card.ign).width > W(84)) { name -= 0.5; ctx.font = SERIF(400, name) }
+  y -= W(3.2) + name * 1.12
+  ctx.fillStyle = fin.paper; ctx.letterSpacing = `${-name * 0.045}px`
+  ctx.fillText(card.ign, X(8), y)
+  ctx.letterSpacing = '0px'
+  y -= W(1) + W(4) * 1.2
+  ctx.fillStyle = fin.foil; ctx.font = font(600, W(4)); ctx.fillText(card.clubTag ?? '', X(8), y)
+  ctx.textAlign = 'right'; ctx.font = font(400, W(3)); ctx.fillText(g.span, X(92), y + W(0.8)); ctx.textAlign = 'left'
+  ctx.restore()
+  ctx.textBaseline = 'alphabetic'
+  // the inner frame (inset 2.2%) and the foil edge
+  round(ctx, { x: X(2.2), y: Y(2.2), w: W(95.6), h: H(95.6) }, W(1.8))
+  ctx.strokeStyle = fin.foil + '73'; ctx.lineWidth = hair; ctx.stroke()
+  round(ctx, b, W(3)); ctx.strokeStyle = fin.foil; ctx.lineWidth = hair; ctx.stroke()
+}
+
 function paintQr(ctx: CanvasRenderingContext2D, b: Box, url: string): void {
   ctx.fillStyle = '#fff'
   round(ctx, b, 14)
@@ -828,9 +1057,10 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   const all = [...seatCards, coachCard]
   const faces = await Promise.all(all.map((c) => load(c?.face ?? null)))
   // a Seoul card shows the Champions mark and a 曼谷 card its lotus, not the club's crest
-  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) ? crestUrl(c.clubId) : null)))
+  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) && !isRetired(c) ? crestUrl(c.clubId) : null)))
   const mark = await load(all.some((c) => c && isSeoul(c)) ? SEOUL_MARK : null)
   const lotus = await load(all.some((c) => c && isBangkok(c)) ? BANGKOK_LOTUS : null)
+  const ember = await load(all.some((c) => c && isRetired(c)) ? AFTERGLOW_EMBER : null)
 
   // ---- the plate
   const bg = ctx.createLinearGradient(0, 0, L.width, L.height)
@@ -885,7 +1115,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   // ---- the five
   const ROLES = ['决斗者', '先锋', '控场', '哨卫', '自由人']
   L.seats.forEach((b, i) => {
-    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark, lotus)
+    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark, lotus, ember)
   })
 
   // ---- the coach

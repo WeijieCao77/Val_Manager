@@ -23,7 +23,7 @@ import { evoSparesOf, sparesOf } from '../../engine/inbox'
 import { MAX_LEVEL, POWER_PER_LEVEL, SALVAGE, cardById, cardPower, isPlayerCard } from '../../engine/cards'
 import { ATTR_CN, ATTR_KEYS, REGION_CN } from '../../engine/types'
 import { LEGEND_KIND_CN } from '../../engine/legends'
-import { legendPhoto } from '../../engine/dossier'
+import { DOSSIER, legendPhoto } from '../../engine/dossier'
 import PriceHistory from './PriceHistory'
 
 const coin = (n: number) => n.toLocaleString('en-US')
@@ -91,7 +91,7 @@ export default function CardDetail({ cardId, onClose, actions }: {
               {isPlayerCard(sel) ? (
                 <>
                   <div className="small muted" style={{ marginBottom: 8, lineHeight: 1.8 }}>
-                    {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)}{!sel.seoul && !sel.bangkok && ` · ${sel.age} 岁`}
+                    {sel.realName ?? '真名未公开'} · <Flag nat={sel.nat} /> {natName(sel.nat)}{!sel.seoul && !sel.bangkok && !sel.retired && ` · ${sel.age} 岁`}
                     <br />
                     {REGION_CN[sel.region]} · {sel.clubTag ?? '自由人'} · {sel.roles.join(' / ')}
                     {sel.isIgl && ' · 指挥'}
@@ -117,6 +117,13 @@ export default function CardDetail({ cardId, onClose, actions }: {
                     <span className="tiny">能力值由赛事数据换算；头像摄于曼谷大师赛。</span><br />
                     <a href={sel.bangkok.profile} target="_blank" rel="noreferrer">查看选手主页 ↗</a>
                     {' · '}<a href="/bangkok-2025">浏览赛事图鉴 ↗</a>
+                  </div> : sel.afterglow ? <div className="small muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
+                    <b>余晖 · {sel.afterglow.number.replace('余晖 / ', '')}</b>{sel.legend ? ` · ${sel.legend.title}` : ''}<br />
+                    生涯 {sel.afterglow.span} · 最后效力 {sel.clubTag}<br />
+                    <span className="tiny">{sel.legend
+                      ? '彩卡分数按那一届的表现排位算；头像是 Riot 官方赛事照片。'
+                      : '分数用现役同一套算法，按整个职业生涯平均。'}</span>
+                    {!!(DOSSIER as { hist?: Record<string, unknown> }).hist?.[sel.playerId] && <><br /><button className="sm" style={{ marginTop: 8 }} onClick={() => openDossier(sel.playerId)}>查看选手资料 →</button></>}
                   </div> : <button className="sm" style={{ marginTop: 12 }} onClick={() => openDossier(sel.playerId)}>
                     查看选手资料 →
                   </button>}

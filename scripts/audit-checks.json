@@ -898,6 +898,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_retired_card_life.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_retirement_cap.ts"
   }
 ]

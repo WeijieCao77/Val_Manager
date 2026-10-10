@@ -6,7 +6,7 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
-  fullSetProgress, FULL_SET_REWARD, collectProgress, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
+  fullSetProgress, FULL_SET_REWARD, collectProgress, RETIRED_FLOOR, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
 } from '../../engine/gacha'
 import type { CheckIn, CollectSeries, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card, Rarity } from '../../engine/cards'
@@ -20,7 +20,11 @@ import { SeoulCardBack } from './SeoulDesign'
 import SalvageConfirm from './SalvageConfirm'
 import type { SalvageAsk } from './SalvageConfirm'
 import SeoulPackDisplay from './SeoulPackDisplay'
-import { SEOUL_CARDS, BANGKOK_CARDS } from '../../engine/cards'
+import { SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS } from '../../engine/cards'
+import RetiredShelfPack from './RetiredShelfPack'
+
+const RETIRED_NORMALS = RETIRED_CARDS.filter((c) => c.rarity !== 'mythic').length
+const RETIRED_LEGENDS = RETIRED_CARDS.length - RETIRED_NORMALS
 import BangkokShelfPack from './BangkokShelfPack'
 import MultiOpenSheet from './MultiOpenSheet'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
@@ -200,6 +204,18 @@ export default function Packs() {
         </Panel>
       </div>
 
+      <section className="ag-shelf" aria-label="退役选手系列">
+        <div className="ag-shelf-art"><RetiredShelfPack /><div className="ag-shelf-back"><CardBack retired /></div></div>
+        <div className="ag-shelf-copy"><span className="ag-eyebrow">AFTERGLOW / 退役选手系列</span>
+          <h3><span>余晖 ·</span> <span>退役选手</span></h3>
+          <p>{RETIRED_NORMALS} 位退役选手 · {RETIRED_LEGENDS} 张退役彩卡 · 余晖卡背<br />每包 3 张退役卡，至少一张银卡，可能出退役彩卡。<br />退役彩卡单独保底：连续 {RETIRED_FLOOR} 抽必出。</p>
+          <p>已收藏 {RETIRED_CARDS.filter(c => c.rarity !== 'mythic' && g.cards[c.id]).length} / {RETIRED_NORMALS} · 彩卡 {RETIRED_CARDS.filter(c => c.rarity === 'mythic' && g.cards[c.id]).length} / {RETIRED_LEGENDS}</p>
+          <div className="row"><button disabled={busy || g.coins < PACKS.retired.cost} onClick={() => void open('retired', 'coins')}>{PACKS.retired.cost} 金币 · 开启退役选手包</button>
+            {(g.packs.retired ?? 0) > 0 && <button className="ag-shelf-secondary" disabled={busy} onClick={() => void open('retired', 'pack')}>打开库存（{g.packs.retired}）</button>}
+            {multiButton('retired', 'ag-shelf-secondary')}</div>
+        </div>
+      </section>
+
       <section className="bk25-shelf" aria-label="曼谷 2025 大师赛系列">
         <div className="bk25-shelf-art"><BangkokShelfPack /><div className="bk25-shelf-back"><CardBack bangkok /></div></div>
         <div className="bk25-shelf-copy"><span className="bk25-eyebrow">MASTERS BANGKOK / 2025 COLLECTION</span>
@@ -209,18 +225,6 @@ export default function Packs() {
           <div className="row"><button disabled={busy || g.coins < bangkokPrice} onClick={() => void open('bangkok2025', 'coins')}>{bangkokPrice} 金币{bangkokSale && <s>{PACKS.bangkok2025.cost}</s>} · 开启曼谷包</button>
             {(g.packs.bangkok2025 ?? 0) > 0 && <button className="bk25-shelf-secondary" disabled={busy} onClick={() => void open('bangkok2025', 'pack')}>打开库存（{g.packs.bangkok2025}）</button>}
             {multiButton('bangkok2025', 'bk25-shelf-secondary')}</div>
-        </div>
-      </section>
-
-      <section className="seoul-shelf" aria-label="首尔 2024 冠军赛系列">
-        <div className="seoul-shelf-art"><SeoulPackDisplay /><SeoulCardBack /></div>
-        <div className="seoul-shelf-copy"><span className="seoul-eyebrow">CHAMPIONS SEOUL / 2024 COLLECTION</span>
-          <h3>首尔 2024 冠军赛</h3>
-          <p>16 支战队 · 80 位登场选手 · 专属黑金卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。<br />{seoulGone ? '首尔包已下线，库存里的仍可打开。' : `首尔包 ${md(SEOUL_LAST_DAY)}后下线，库存里的仍可打开。`}</p>
-          <a href="/seoul-2024">浏览完整系列 ↗</a><p>已收藏 {SEOUL_CARDS.filter(c => g.cards[c.id]).length} / 80</p>
-          <div className="row">{!seoulGone && <button disabled={busy || g.coins < PACKS.seoul2024.cost} onClick={() => void open('seoul2024', 'coins')}>{PACKS.seoul2024.cost} 金币 · 开启首尔包</button>}
-            {(g.packs.seoul2024 ?? 0) > 0 && <button className="seoul-shelf-secondary" disabled={busy} onClick={() => void open('seoul2024', 'pack')}>打开库存（{g.packs.seoul2024}）</button>}
-            {multiButton('seoul2024', 'seoul-shelf-secondary')}</div>
         </div>
       </section>
 
@@ -255,7 +259,7 @@ export default function Packs() {
               </div>
             </div>
           )}
-          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024' && k !== 'bangkok2025').map((kind) => {
+          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024' && k !== 'bangkok2025' && k !== 'retired').map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
             return (
@@ -481,6 +485,18 @@ export default function Packs() {
           )
         })}
       </Panel>
+
+      <section className="seoul-shelf seoul-shelf-last" aria-label="首尔 2024 冠军赛系列">
+        <div className="seoul-shelf-art"><SeoulPackDisplay /><SeoulCardBack /></div>
+        <div className="seoul-shelf-copy"><span className="seoul-eyebrow">CHAMPIONS SEOUL / 2024 COLLECTION</span>
+          <h3>首尔 2024 冠军赛</h3>
+          <p>16 支战队 · 80 位登场选手 · 专属黑金卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。<br />{seoulGone ? '首尔包已下线，库存里的仍可打开。' : `首尔包 ${md(SEOUL_LAST_DAY)}后下线，库存里的仍可打开。`}</p>
+          <a href="/seoul-2024">浏览完整系列 ↗</a><p>已收藏 {SEOUL_CARDS.filter(c => g.cards[c.id]).length} / 80</p>
+          <div className="row">{!seoulGone && <button disabled={busy || g.coins < PACKS.seoul2024.cost} onClick={() => void open('seoul2024', 'coins')}>{PACKS.seoul2024.cost} 金币 · 开启首尔包</button>}
+            {(g.packs.seoul2024 ?? 0) > 0 && <button className="seoul-shelf-secondary" disabled={busy} onClick={() => void open('seoul2024', 'pack')}>打开库存（{g.packs.seoul2024}）</button>}
+            {multiButton('seoul2024', 'seoul-shelf-secondary')}</div>
+        </div>
+      </section>
 
       {opening && (
         <PackStage
