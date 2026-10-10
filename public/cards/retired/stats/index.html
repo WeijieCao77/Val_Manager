@@ -49,7 +49,7 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 <div class="tabs"><button id="t-p" class="on">退役选手</button><button id="t-c">教练</button></div>
 <div class="bar"><input id="q" placeholder="搜名字、真名、队伍"><select id="sort"></select><select id="rar"><option value="">全部稀有度</option><option>金卡</option><option>银卡</option><option>铜卡</option></select><select id="st" style="display:none"><option value="">在任和不在任</option><option>在任</option><option>不在任</option></select></div>
 <div id="myth"></div><div id="list"></div><div class="more" id="more" style="display:none"><button>再显示 50 个</button></div>
-<p class="muted">下载：<a href="retired.csv">退役选手 CSV</a> · <a href="coaches.csv">教练 CSV</a> · <a href="retired.json">退役选手完整数据</a> · <a href="coaches.json">教练完整数据</a></p>
+<p class="muted">下载：<a href="/cards/retired/stats/retired.csv">退役选手 CSV</a> · <a href="/cards/retired/stats/coaches.csv">教练 CSV</a> · <a href="/cards/retired/stats/retired.json">退役选手完整数据</a> · <a href="/cards/retired/stats/coaches.json">教练完整数据</a></p>
 </main><script>
 (function(){
 var P=[],C=[],tab='p',shown=50;
@@ -95,7 +95,7 @@ el('t-p').onclick=function(){setTab('p')};el('t-c').onclick=function(){setTab('c
 ['q','rar','st','sort'].forEach(function(i){el(i).addEventListener(i==='q'?'input':'change',function(){shown=50;render()})});
 el('more').querySelector('button').onclick=function(){shown+=50;render()};
 function get(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json()})}
-Promise.all([get('retired.json'),get('coaches.json')]).then(function(a){P=a[0].players;C=a[1].coaches;window.__M=a[0].mythics;var L=a[0].meta.lines||{};
+Promise.all([get('/cards/retired/stats/retired.json'),get('/cards/retired/stats/coaches.json')]).then(function(a){P=a[0].players;C=a[1].coaches;window.__M=a[0].mythics;var L=a[0].meta.lines||{};
  el('meta').innerHTML='退役选手 <b>'+P.length+'</b> 人，教练 <b>'+C.length+'</b> 人（其中有可计分赛事的 '+C.filter(function(c){return c.measured}).length+' 人）。数据截至 '+esc(a[0].meta.date)+'。这里的分数只是说明，不改变游戏里的任何卡。'+(L.retired?'<br>本次分数线：退役选手 金 '+L.retired.gold+' / 银 '+L.retired.silver+(L.coachActive?'，现役教练 金 '+L.coachActive.gold+' / 银 '+L.coachActive.silver:'')+(L.coachInactive?'，非现役教练 金 '+L.coachInactive.gold+' / 银 '+L.coachInactive.silver:'')+'。':'');setTab('p')
 }).catch(function(){el('meta').textContent='数据加载失败，请刷新。'});
 })();

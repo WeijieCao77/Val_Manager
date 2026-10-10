@@ -91,7 +91,7 @@ def coach_img(name: str, d: dict) -> str | None:
     if d.get("img"):
         return f"/faces/{d['img']}?v={d.get('v', '')}"
     f = DST / "coach-photos" / f"{photo_key(name)}.webp"
-    return f"coach-photos/{f.name}" if f.exists() else None
+    return f"/cards/retired/stats/coach-photos/{f.name}" if f.exists() else None
 
 
 def coach_rows() -> list[dict]:
