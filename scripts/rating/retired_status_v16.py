@@ -30,7 +30,8 @@ NOT_A_CLUB = re.compile(r"national|nations|team (?:usa|brazil|korea|japan|china)
 
 # matches that are not a club competing: show matches, streamer events, Riot's
 # fan events, and national sides (a team named after a country)
-NOT_COMPETING = re.compile(r"showmatch|show match|twitch rivals|all-?star|throwback|dream team|riot one|"
+# DCC Hi is a community cup: the owner ruled Laz/crow/takej retired on it (2026-10-10)
+NOT_COMPETING = re.compile(r"showmatch|show match|twitch rivals|all-?star|throwback|dream team|riot one|\bdcc\b|"
                            r"\benc\b|nations cup|esports nations", re.I)
 COUNTRY_TEAM = re.compile(r"^(argentina|brazil|chile|china|japan|korea|south korea|turkey|türkiye|united states|usa|canada|"
                           r"france|spain|germany|united kingdom|russia|philippines|indonesia|thailand|vietnam|singapore|"
@@ -63,9 +64,14 @@ OWNER = {"Laz": "retired", "crow": "retired", "takej": "retired"}
 def main() -> int:
     plan = json.loads((OUT / "retired_fetch_list.json").read_text())
     out = {}
-    for c in plan["classification"]:
-        if c["class"] != "unclear":
-            continue
+    # the unclear ones of the 2023-25 list, and the early retirees the owner added
+    # 2026-10-10 (2020-22 tier-one, played an international, never in a save)
+    todo = [c for c in plan["classification"] if c["class"] == "unclear"]
+    early = OUT / "early_retired_candidates.json"
+    if early.exists():
+        todo += [{"vlrId": e["vlrId"], "ign": e["ign"], "class": "unclear", "early": True}
+                 for e in json.loads(early.read_text())["players"]]
+    for c in todo:
         f = OUT / "raw" / f"player_{c['vlrId']}.html"
         if not f.exists():
             out[c["vlrId"]] = {"ign": c["ign"], "class": "unclear", "why": "player page not fetched"}
@@ -85,9 +91,20 @@ def main() -> int:
             why.append("only " + "; ".join(sorted({g["event"] for g in games})) + " in the last 12 months")
         else:
             why.append(f"no match since {p.get('lastMatch')}")
-        out[c["vlrId"]] = {"ign": c["ign"], "class": cls, "lastMatch": p.get("lastMatch"),
+        out[c["vlrId"]] = {"ign": c["ign"], "class": cls, "early": bool(c.get("early")), "lastMatch": p.get("lastMatch"),
+                           "img": p.get("img"), "real": p.get("real"), "nat": p.get("nat"),
                            "current": [t["name"] for t in p["current"]], "why": "; ".join(why), "recent": games,
                            "source": f"https://www.vlr.gg/player/{c['vlrId']}/?timespan=all"}
+    # a man coaching now is not a retired-player card (owner, 2026-10-09)
+    tenures = OUT / "coach_tenures.json"
+    if tenures.exists():
+        people = json.loads(tenures.read_text())["people"]
+        coaching = {p["vlrId"] for p in people if p["status"] == "active" and p.get("vlrId")} | \
+            {(p.get("handle") or p["name"]).lower() for p in people if p["status"] == "active"}
+        for k, v in out.items():
+            if v["class"] == "retired" and (k in coaching or v["ign"].lower() in coaching):
+                v["class"] = "coach-now"
+                v["why"] += " — coaching now (coach_tenures.json)"
     (OUT / "status_verified.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
     from collections import Counter
     print(Counter(v["class"] for v in out.values()))

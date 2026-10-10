@@ -532,6 +532,12 @@ def main() -> int:
     plan = json.loads((OUT / "retired_fetch_list.json").read_text())
     status = {c["vlrId"]: c for c in plan["classification"]}
     verdict = json.loads((OUT / "status_verified.json").read_text()) if (OUT / "status_verified.json").exists() else {}
+    # the 2020-22 retirees the owner added (2026-10-10): never in a saved world
+    for vid, v in verdict.items():
+        if v.get("early") and vid not in status:
+            status[vid] = {"vlrId": vid, "ign": v["ign"], "class": v["class"], "early": True}
+    # men with no world shape get the world builder's formulas on their own era
+    derived = json.loads((OUT / "attr_shapes.json").read_text()) if (OUT / "attr_shapes.json").exists() else {}
 
     # first-season breakout needs everyone's seasons: same region, same role, top quarter
     seasons = defaultdict(list)
@@ -592,7 +598,8 @@ def main() -> int:
         out.append({
             "vlrId": vid, "ign": st["ign"], "class": cls, "rated": True, "last": last, "cutoff": cut,
             "rating": new, "rarity": "gold" if new >= 79 else "silver" if new >= 70 else "bronze",
-            "card": shaped(shapes.get(vid, {}), peak_y, new),
+            "card": shaped(shapes.get(vid) or ({0: derived[vid]} if vid in derived else {}), peak_y, new),
+            "early": bool(st.get("early")),
             "S": S, "P": P, "L": L, "careerL": career["L"], "careerN": career["N"], "rounds": sum(r["n"] for r in rr),
             "peakYear": peak_y, "peakL": eligible[peak_y]["L"] if peak_y else None,
             "seasons": {y: {"N": round(v["N"], 1), "L": round(v["L"], 4), "P": round(v["P"], 2)} for y, v in per.items()},

@@ -56,13 +56,15 @@ def name_of(pid: str) -> str:
 
 def retired_rows() -> list[dict]:
     out = []
+    early = json.loads((SRC / "early_faces.json").read_text()) if (SRC / "early_faces.json").exists() else {}
     for p in json.loads((SRC / "players.json").read_text()):
         if not p.get("rated") or p.get("class") not in ("retired",):
             continue
         h = DOSSIER["hist"].get(f"Hv{p['vlrId']}") or {}
         out.append({
             "id": p["vlrId"], "ign": p["ign"], "real": h.get("real"), "nat": h.get("nat"),
-            "img": f"/faces/{h['img']}?v={h.get('v', '')}" if h.get("img") else None,
+            "img": f"/faces/{h['img']}?v={h.get('v', '')}" if h.get("img") else (f"/faces/{early[p['vlrId']]['file']}" if p["vlrId"] in early else None),
+            "early": bool(p.get("early")),
             "rating": p["rating"], "rarity": RARITY[p["rarity"]], "last": p["last"],
             "role": (p.get("card") or {}).get("role"), "attrs": (p.get("card") or {}).get("attrs"),
             "personal": r2(p["P"]), "career": r2(p["careerL"], 4), "peakYear": p["peakYear"], "peak": r2(p["peakL"], 4),

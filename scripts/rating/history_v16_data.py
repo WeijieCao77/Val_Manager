@@ -111,6 +111,10 @@ def parse_stats(html: str) -> list[dict]:
         }
         for c in ("rating2", "acs", "kast", "adr", "k", "d", "a", "fk", "fd"):
             row[c] = _num(cell.get(c))
+        # headshot rate and clutches won/faced: the world builder's aim and clutch inputs
+        row["hs"] = _num(cell.get("hsp"))
+        cl = re.match(r"(\d+)\s*/\s*(\d+)", cell.get("cl") or "")
+        row["clw"], row["clt"] = (int(cl.group(1)), int(cl.group(2))) if cl else (None, None)
         rows.append(row)
     return rows
 
@@ -191,6 +195,8 @@ def counts(r: dict) -> dict:
     for c in ("rating2", "acs", "kast", "adr"):
         out[c] = r.get(c)
     out["agents"] = [[a, p] for a, p in (r.get("agents") or []) if p]
+    for c in ("hs", "clw", "clt"):
+        out[c] = r.get(c)
     return out
 
 
