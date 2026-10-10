@@ -46,6 +46,22 @@ function legendArenaPlayer(card: PlayerCard): Player | undefined {
   }
 }
 
+/**
+ * A card whose man the 2026 world no longer holds — kept after he left the
+ * rosters (card_archive.json): the match gets him from the card itself, as a
+ * 彩卡 above. Without this the seat stayed empty and the five played four.
+ */
+function cardArenaPlayer(card: PlayerCard): Player {
+  return {
+    id: card.playerId, ign: card.ign, realName: card.realName ?? undefined, nat: card.nat ?? undefined,
+    teamId: card.clubId, region: card.region, role: card.role, roles: [...card.roles],
+    age: card.age, ageEstimated: true, isIgl: card.isIgl, attrs: { ...card.attrs }, overall: card.rating,
+    potential: card.rating, form: 76, morale: 84, fatigue: 0, salary: 0, value: 0, contractYears: 0,
+    loyalty: 70, ambition: 70, agentPool: [],
+    season: emptyStats(), career: emptyStats(), injuredUntil: 0, xp: {},
+  }
+}
+
 export { BALANCE_VERSION, GAP_CURVES, cardStrengths } from './balance'
 
 export const ARENA_TEAM = 'ARENA'
@@ -197,8 +213,8 @@ function seatSquad(
     if (!isPlayerCard(card)) return
     if (seated.has(personOf(card))) return
     seated.add(personOf(card))
-    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card) ?? state.players[card.playerId]
-    if (!src) return
+    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card)
+      ?? state.players[card.playerId] ?? cardArenaPlayer(card)
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
     const clone = levelled(src, card, misfit)
