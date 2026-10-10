@@ -622,7 +622,7 @@ export function PackStage({
     <div className="pack-stage" ref={dialogRef} role="dialog" aria-modal="true" aria-label="开启卡包" tabIndex={-1} onClick={advanceReveal}>
       <SoundToggle />
       {!finished && <button className="pack-skip" onClick={e => { e.stopPropagation(); setUnsealed(true); setRevealAll(true) }}>查看全部 · 跳过动画</button>}
-      {!unsealed && <PackTearGate seoul={seoul} bangkok={bangkok} packs={packs} position={kind === 'player' ? position : undefined} kind={kind} count={Math.max(1, Math.round(pulled.length / packs))} onOpen={() => setUnsealed(true)} />}
+      {!unsealed && <PackTearGate seoul={seoul} bangkok={bangkok} retired={retired} packs={packs} position={kind === 'player' ? position : undefined} kind={kind} count={Math.max(1, Math.round(pulled.length / packs))} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (
           <>
@@ -725,7 +725,7 @@ function stripLayout(n: number): React.CSSProperties {
 const REST_POSE = { x: 4, y: -20 }
 
 /** A real pointer-driven foil seal before the first card is revealed. */
-function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1 }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean; bangkok?: boolean; packs?: number }) {
+function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, retired, packs = 1 }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean; bangkok?: boolean; retired?: boolean; packs?: number }) {
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [torn, setTorn] = useState(false)
@@ -837,7 +837,7 @@ function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1
   return (
     <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${bangkok ? ' pack-tear-bangkok' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
       <div className="pack-tear-aura" aria-hidden="true" />
-      <div className="pack-tear-kicker">{bangkok ? 'MASTERS BANGKOK · 2025' : seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}{packs > 1 ? ` · 连开 ${packs} 包` : ''}</div>
+      <div className="pack-tear-kicker">{bangkok ? 'MASTERS BANGKOK · 2025' : seoul ? 'CHAMPIONS SEOUL · 2024' : retired ? 'AFTERGLOW · 余晖' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}{packs > 1 ? ` · 连开 ${packs} 包` : ''}</div>
       <div
         className={`pack-wrapper${dragging ? ' dragging' : ''}`}
         style={{
@@ -859,7 +859,7 @@ function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1
           }
         }}
       >
-        <PackPouch seoul={seoul} bangkok={bangkok} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
+        <PackPouch seoul={seoul} bangkok={bangkok} retired={retired} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
         <div className="pack-card-emerge" aria-hidden="true">
           {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
             <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />

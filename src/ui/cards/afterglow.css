@@ -39,3 +39,5 @@
 .ag-face.sel .ag-card,.ag-face.sel .ag-mythic{box-shadow:0 0 0 12px var(--accent,#ff4655),0 20px 35px #0005}
 .ag-dupes{position:absolute;top:3%;right:4%;z-index:8;background:#210d18e6;color:#fff2da;border:2px solid #d8b77e;border-radius:999px;font:700 26px/1 Arial,sans-serif;padding:8px 16px}
 .ag-footer{position:absolute;left:6%;right:6%;bottom:1.4%;z-index:8;text-align:center;font:600 22px/1.4 Arial,'PingFang SC',sans-serif;color:#fff2da;background:#210d18e0;border-radius:8px;padding:4px 8px}
+/* the pack drawn flat when the 3D pouch cannot be (as .pack-pouch-bangkok) */
+.pack-pouch-retired .pack-pouch-fallback{padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;justify-content:center}.pack-pouch-retired .pack-pouch-fallback .ag-pack{width:74%}

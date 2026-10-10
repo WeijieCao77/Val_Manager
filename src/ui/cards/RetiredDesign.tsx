@@ -79,3 +79,13 @@ export function RetiredCardBack() {
     <footer>开瓦包 <span>退役选手系列</span></footer>
   </article>
 }
+
+/** The 退役选手包 when the 3D pouch cannot draw (the renderer's fallback): Codex's Afterglow pack, this release's words. */
+export function RetiredPackArtwork({ count = 3 }: { count?: number }) {
+  return <article className="ag-pack" aria-label="退役选手包">
+    <div className="ag-pack-seal" /><div className="ag-pack-seal ag-bottom" /><div className="ag-pack-fold" aria-hidden="true" />
+    <header>开瓦包 <span>生涯典藏</span></header>
+    <div className="ag-pack-title"><strong>AFTERGLOW</strong><span>余 晖</span></div><Mark />
+    <div className="ag-pack-foot"><p>离场之后，光仍在。</p><div><span>退役选手收藏卡</span><b>{count}<small> 张 / 包</small></b></div></div>
+  </article>
+}
