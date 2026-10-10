@@ -1185,8 +1185,9 @@ export function openPack(
     const bestAt = metals.reduce(
       (b, m, i) => (rarityRank(m) > rarityRank(metals[b]) ? i : b), 0)
     if (rarityRank(metals[bestAt]) < rarityRank(def.floor)) {
+      // the guaranteed card is the pack's promise, not a pull: it does not
+      // reset the gold pity (owner, 2026-10-10 — 十连包必出的金卡不算金卡保底)
       metals[bestAt] = def.floor
-      if (def.floor === 'gold') g.pity = 0
     }
   }
   const out: Pulled[] = []

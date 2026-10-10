@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-10',
+    title: '十连包保底金卡不再清空金卡保底',
+    changes: [
+      { kind: '调整', text: '十连包「必出金卡」补出来的那张金卡，不再清空<b>金卡保底进度</b>。只有自然抽到的金卡才会清空。' },
+    ],
+  },
+  {
     date: '2026-10-09',
     title: '资料修正：5CM 真名、Sunshine 头像',
     changes: [

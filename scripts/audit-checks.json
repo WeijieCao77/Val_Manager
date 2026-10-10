@@ -867,5 +867,9 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_card_archive.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_ten_floor_pity.ts"
   }
 ]
