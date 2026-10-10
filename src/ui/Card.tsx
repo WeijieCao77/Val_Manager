@@ -1,5 +1,6 @@
 import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
 import { BangkokCardBack, BangkokFace } from './cards/BangkokDesign'
+import { RetiredCardBack, RetiredFace } from './cards/RetiredDesign'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ATTR_CN } from '../engine/types'
@@ -195,6 +196,9 @@ export default function CardFace({
   if (isPlayerCard(card) && card.event === 'seoul-2024') {
     return <CardScale size={size}><SeoulCard {...{ card, level, evolved, dupes, size: 'md', selected, dimmed, onClick, footer }} /></CardScale>
   }
+  if (isPlayerCard(card) && card.event === 'retired' && card.afterglow) {
+    return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><RetiredFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
+  }
   if (isPlayerCard(card) && card.event === 'bangkok-2025') {
     return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
   }
@@ -379,8 +383,9 @@ export function PositionCrest({ position }: { position: PackPosition }) {
   </svg>
 }
 
-export function CardBack({ kind = 'player', position, seoul, bangkok }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean }) {
+export function CardBack({ kind = 'player', position, seoul, bangkok, retired }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean; retired?: boolean }) {
   if (seoul) return <CardScale size="lg" w={BACK_W} h={BACK_H}><SeoulCardBack /></CardScale>
+  if (retired) return <CardScale size="lg" w={BANGKOK_W} h={BANGKOK_H}><RetiredCardBack /></CardScale>
   if (bangkok) return <CardScale size="lg" w={BANGKOK_W} h={BANGKOK_H}><BangkokCardBack /></CardScale>
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined

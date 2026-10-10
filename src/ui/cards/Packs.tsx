@@ -535,11 +535,11 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children, revealed, kind, position, seoul, bangkok }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean }) {
+function Flip({ children, revealed, kind, position, seoul, bangkok, retired }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean; retired?: boolean }) {
   return (
     <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
-        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} /><span className="card-specular" /></div>
+        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} retired={retired} /><span className="card-specular" /></div>
         <div className="flip-face flip-front" aria-hidden={!revealed}>{children}<span className="card-specular" /></div>
       </div>
     </div>
@@ -567,6 +567,7 @@ export function PackStage({
   const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
   const seoul = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'seoul-2024')
   const bangkok = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'bangkok-2025')
+  const retired = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'retired')
   // 连开's recap leads with the best cards; a single pack keeps the order it was dealt in
   const recap = packs > 1
     ? pulled.map((p, i) => ({ p, i })).sort((a, b) => rarityRank(b.p.card.rarity) - rarityRank(a.p.card.rarity) || Number(a.p.dupe) - Number(b.p.dupe) || a.i - b.i).map(x => x.p)
@@ -645,7 +646,7 @@ export function PackStage({
                 {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
               <CardTilt>
-                <Flip seoul={seoul} bangkok={bangkok} position={position} kind={current.card.kind} revealed={faceUp}>
+                <Flip seoul={seoul} bangkok={bangkok} retired={retired} position={position} kind={current.card.kind} revealed={faceUp}>
                   <CardFace card={current.card} size="lg" />
                 </Flip>
               </CardTilt>

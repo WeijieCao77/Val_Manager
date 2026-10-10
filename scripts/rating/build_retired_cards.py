@@ -35,7 +35,7 @@ OUT = ROOT / "src" / "data" / "retired_cards.json"
 FOUR = {"Americas": "Americas", "NA": "Americas", "BR": "Americas", "LATAM": "Americas",
         "EMEA": "EMEA", "EU": "EMEA", "CIS": "EMEA", "TR": "EMEA",
         "Pacific": "Pacific", "APAC": "Pacific", "KR": "Pacific", "JP": "Pacific", "China": "China"}
-# the eight nights (city, result, short line); the rest comes from mythics.json
+# the eight nights (title, short, club, note); the rest comes from mythics.json
 NIGHT = {
     "TenZ": ("2021 雷克雅未克大师赛冠军", "21 雷克雅未克", "SEN", "Sentinels 首夺世界冠军，VALORANT 第一个国际赛冠军。"),
     "Sacy": ("2022 伊斯坦布尔冠军赛冠军", "22 伊斯坦布尔", "LOUD", "LOUD 夺冠，巴西赛区第一座世界冠军。"),
@@ -45,6 +45,20 @@ NIGHT = {
     "FNS": ("2022 雷克雅未克大师赛冠军", "22 雷克雅未克", "OPTC", "OpTic 的指挥，带队夺冠。"),
     "Zest": ("2022 伊斯坦布尔冠军赛季军", "22 伊斯坦布尔", "DRX", "DRX 打进冠军赛前三。"),
     "BONECOLD": ("2021 柏林冠军赛冠军", "21 柏林", "ACE", "Acend 3–2 Gambit，VALORANT 史上第一座世界冠军。"),
+}
+
+
+# what the 余晖 彩卡 face prints: city, result, its two colours, the photo crop
+# (the designs previewed on /cards/retired/stats — build_retired_preview.py)
+FACE = {
+    "TenZ": ("雷克雅未克", "冠军", "#f2a9ae", "#54182d", "60% 40%"),
+    "Sacy": ("伊斯坦布尔", "冠军", "#bee3b1", "#243e32", "40% 30%"),
+    "Leo": ("圣保罗", "冠军", "#ffc58a", "#61311d", "50% 20%"),
+    "yay": ("雷克雅未克", "冠军", "#d6e88f", "#2f3a14", "55% 30%"),
+    "ScreaM": ("柏林", "四强", "#9cc7f0", "#1d2f4a", "78% 35%"),
+    "FNS": ("雷克雅未克", "冠军", "#d6e88f", "#2f3a14", "45% 35%"),
+    "Zest": ("伊斯坦布尔", "季军", "#a8c4f5", "#1e2a4d", "50% 30%"),
+    "BONECOLD": ("柏林", "冠军", "#e7c3f2", "#3a2147", "50% 20%"),
 }
 
 
@@ -107,18 +121,22 @@ def main() -> int:
             "age": age, "attrs": card.get("attrs"), "rating": p["rating"], "rarity": p["rarity"],
             "span": [max(2020, years[0]), years[-1]], "last": p["last"], "early": bool(p.get("early")),
             "agents": top_agents(p["records"]),
+            "number": f"余晖 / {len(normals) + 1:03d}",
         })
     by_ign = {n["ign"]: n for n in normals}
     legends = []
     for m in json.loads((B / "mythics.json").read_text()):
         base = by_ign[m["ign"]]
         title, short, club, note = NIGHT[m["ign"]]
+        city, result, accent, tint, crop = FACE[m["ign"]]
         photo = ROOT / "public" / "events" / "afterglow" / "portraits" / f"{m['ign'].lower()}-action.webp"
         legends.append({
             "id": f"R:{m['ign'].lower()}-{m['eid']}", "playerId": base["playerId"], "vlrId": base["vlrId"], "ign": m["ign"],
             "title": title, "short": short, "year": int(events[m["eid"]]["end"][:4]), "clubTag": club, "note": note,
             "rating": m["rating"], "attrs": m["attrs"], "role": base["role"],
             "photo": f"events/afterglow/portraits/{photo.name}", "photoV": stamp(photo),
+            "city": city, "result": result, "accent": accent, "tint": tint, "crop": crop,
+            "number": f"余晖 / 彩 {len(legends) + 1:02d}",
             "evidence": {"event": m["eid"], "percentile": m["percentile"], "field": m["field"], "byPercentile": m["byPercentile"]},
         })
     gold = sum(n["rarity"] == "gold" for n in normals)

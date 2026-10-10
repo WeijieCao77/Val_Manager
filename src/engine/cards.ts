@@ -118,6 +118,14 @@ export interface PlayerCard {
   rarity: Rarity
   /** a man with no world record (退役, 历代强队): the agents he played most, for the match to seat him on */
   agents?: string[]
+  /** what the 余晖 (退役) face prints beyond the card itself */
+  afterglow?: {
+    number: string
+    /** 「2020–24」 */
+    span: string
+    /** 彩卡 only: the night's city and result, its colours and the photo crop */
+    city?: string; result?: string; accent?: string; tint?: string; crop?: string
+  }
 }
 
 export interface CoachCard {
@@ -416,11 +424,12 @@ type RetiredNormal = {
   id: string; playerId: string; ign: string; realName: string | null; nat: string | null
   faceFile: string | null; faceV: string | null; region: Region; clubTag: string
   role: Role; roles: Role[]; isIgl: boolean; age: number; attrs: Attrs; rating: number
-  rarity: Rarity; span: [number, number]; agents?: string[]
+  rarity: Rarity; span: [number, number]; agents?: string[]; number: string
 }
 type RetiredLegend = {
   id: string; playerId: string; ign: string; title: string; short: string; year: number
   clubTag: string; note: string; rating: number; attrs: Attrs; role: Role; photo: string; photoV: string
+  city: string; result: string; accent: string; tint: string; crop: string; number: string
 }
 const assetUrl = (path: string, v?: string): string => {
   const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
@@ -437,6 +446,7 @@ function buildRetiredCards(): PlayerCard[] {
     region: r.region, clubId: histClub(r.clubTag), clubTag: r.clubTag,
     role: r.role, roles: r.roles, isIgl: r.isIgl, age: r.age, attrs: r.attrs,
     rating: r.rating, rarity: r.rarity, agents: r.agents,
+    afterglow: { number: r.number, span: r.span[0] === r.span[1] ? String(r.span[0]) : `${r.span[0]}–${String(r.span[1]).slice(2)}` },
   }))
   const byPlayer = new Map(normals.map((c) => [c.playerId, c]))
   const legends: PlayerCard[] = RETIRED_DATA.legends.map((l) => {
@@ -444,6 +454,7 @@ function buildRetiredCards(): PlayerCard[] {
     return {
       ...base, id: l.id, rarity: 'mythic' as Rarity, rating: l.rating, attrs: l.attrs,
       face: assetUrl(l.photo, l.photoV), clubId: histClub(l.clubTag), clubTag: l.clubTag,
+      afterglow: { number: l.number, span: String(l.year), city: l.city, result: l.result, accent: l.accent, tint: l.tint, crop: l.crop },
       legend: {
         id: l.id, ign: l.ign, title: l.title, short: l.short, year: l.year, kind: 'icon',
         clubId: histClub(l.clubTag), clubTag: l.clubTag, rating: l.rating, note: l.note,

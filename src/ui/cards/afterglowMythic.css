@@ -1,0 +1,35 @@
+.ag-mythic{--mythic-accent:#f2b6ad;--mythic-tint:#501c2b;box-sizing:border-box;position:relative;isolation:isolate;container-type:inline-size;aspect-ratio:5/7;width:100%;overflow:hidden;border-radius:3%;color:#fff0dc;background:radial-gradient(ellipse at 70% 33%,var(--mythic-tint),#210d18 73%);border:1px solid #d6c092;box-shadow:0 20px 38px #0006;font-family:Arial,'PingFang SC',sans-serif}
+.ag-mythic-border{position:absolute;inset:1.5%;border:2px solid transparent;border-radius:2.4%;background:linear-gradient(#210d18,#210d18) padding-box,conic-gradient(from 20deg,#ddc397,#f3b8c0,#c4bbfa,#b5e6d3,#faecc3,#d5ad7d,#c6cfff,#fac7ae,#ddc397) border-box;z-index:-1}
+.ag-mythic-border::after{content:'';position:absolute;inset:1.5%;border:1px solid #ebd6a54a;border-radius:1.8%;background:radial-gradient(ellipse at 65% 37%,var(--mythic-tint),transparent 67%)}
+.ag-mythic::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:6;background:linear-gradient(122deg,transparent 15%,#a0e9ff0c 27%,transparent 37%,#ffc5d308 62%,transparent 75%);mix-blend-mode:screen}
+.ag-mythic-header{position:absolute;top:5.5%;left:7%;right:5.5%;display:flex;justify-content:space-between;align-items:center;z-index:5;color:#e7cfaa;font:400 4.1cqw/1.1 Georgia,serif;letter-spacing:.045em}.ag-mythic-header small{display:block;font:400 2.3cqw/1.5 Arial,'PingFang SC',sans-serif;letter-spacing:.08em;margin-top:1.7cqw;color:var(--mythic-accent)}.ag-mythic-header .ag-mark{width:17%;mask-image:radial-gradient(ellipse,#000 30%,transparent 70%);margin:-3% 0}
+.ag-mythic-orbit{position:absolute;inset:19% 8% 29%;border:1px solid color-mix(in srgb,var(--mythic-accent),transparent 40%);border-radius:50% 50% 8% 8%;transform:rotate(-13deg);box-shadow:inset 0 0 35px color-mix(in srgb,var(--mythic-accent),transparent 94%)}.ag-mythic-orbit::after{content:'';position:absolute;inset:4%;border:1px solid color-mix(in srgb,var(--mythic-accent),transparent 77%);border-radius:inherit;transform:rotate(24deg)}
+.ag-mythic-year{position:absolute;right:10%;top:13%;font:italic 22cqw/1 Georgia,serif;color:var(--mythic-accent);opacity:.1;letter-spacing:-.075em}
+.ag-mythic-portrait{position:absolute;inset:17% 7% 27%;display:flex;align-items:end;justify-content:center;mask-image:linear-gradient(#000 48%,transparent 99%);z-index:2}.ag-mythic-portrait img{display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:saturate(1.08) contrast(1.04)}.ag-mythic-portrait>span{font:12cqw Georgia;color:var(--mythic-accent);align-self:center}
+.ag-mythic-rating{position:absolute;top:22%;left:8%;z-index:4;display:flex;flex-direction:column;align-items:start;text-shadow:0 2px 12px #140a13}.ag-mythic-rating b{font:400 18cqw/.95 Georgia,serif;letter-spacing:-.06em;color:#fff0d6}.ag-mythic-rating>span{color:var(--mythic-accent);font-size:3cqw;margin-top:2cqw}.ag-mythic-rating>i{font-style:normal;font-size:2.15cqw;border-top:1px solid #d4be934d;padding-top:1.8cqw;margin-top:2cqw;color:#c2b09c}
+.ag-mythic-side{position:absolute;right:6%;top:28%;writing-mode:vertical-rl;font-size:2.2cqw;letter-spacing:.13em;color:var(--mythic-accent);z-index:3}
+.ag-mythic-info{position:absolute;left:8%;right:8%;bottom:5.3%;z-index:5}.ag-mythic-theme{display:flex;justify-content:space-between;align-items:center;color:var(--mythic-accent);font-size:3.1cqw;letter-spacing:.1em}.ag-mythic-theme>b{font:600 3.1cqw Arial;letter-spacing:.025em}.ag-mythic-ign{display:block;font:400 16.5cqw/1.06 Georgia,serif;letter-spacing:-.055em;margin:1.3cqw 0 1.8cqw;white-space:nowrap}.ag-mythic-event{font-size:2.45cqw;color:#cfbca5;margin:0 0 3cqw;line-height:1.6}.ag-mythic-stats{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid #d3bd8355;padding:3cqw 0 2.6cqw}.ag-mythic-stats>span{display:flex;flex-direction:column;gap:1.2cqw;align-items:center;border-right:1px solid #d6c39220}.ag-mythic-stats>span:first-child{align-items:start}.ag-mythic-stats>span:last-child{border:0}.ag-mythic-stats b{font:400 5.1cqw/1 Georgia,serif;color:#f5dfbc}.ag-mythic-stats small{font-size:2cqw;color:#b9a28e}.ag-mythic-info footer,.ag-mythic-foot{display:flex;justify-content:space-between;font-size:1.9cqw;color:#b39b7e;border-top:1px solid #c5a97b33;padding-top:2.3cqw;letter-spacing:.03em}
+.ag-mythic-reverse .ag-mythic-orbit{inset:17% 15% 34%;transform:rotate(0deg);opacity:.5}.ag-mythic-back-mark{position:absolute;top:14%;width:58%;left:21%;mask-image:radial-gradient(ellipse,#000 36%,transparent 72%)}.ag-mythic-memory{position:absolute;left:8%;right:8%;bottom:13%;text-align:center}.ag-mythic-memory>span{font-size:2.6cqw;color:var(--mythic-accent);letter-spacing:.13em}.ag-mythic-memory h3{font:400 7.5cqw/1.2 'Songti SC',serif;margin:3cqw 0}.ag-mythic-memory p{font-size:2.8cqw;line-height:1.8;color:#cbb69c;margin:0}.ag-mythic-memory>strong{display:block;font:400 9cqw Georgia,serif;margin-top:3cqw}.ag-mythic-foot{position:absolute;bottom:5.5%;left:8%;right:8%}
+
+.ag-mythic-info::before{content:"";position:absolute;inset:-12% -4% -3%;z-index:-1;pointer-events:none;background:linear-gradient(transparent,#210d18b3 42%,#210d18 75%)}
+.ag-mythic-orbit{mask-image:linear-gradient(#000 65%,transparent 100%)}
+
+/* Color arena photography: preserve the real venue, kit and trophy in the print. */
+.ag-mythic:not(.ag-mythic-reverse) .ag-mythic-portrait{inset:12% 3% 23%;mask-image:linear-gradient(#000 69%,transparent 100%)}
+.ag-mythic-portrait img{object-fit:cover}
+.ag-mythic:not(.ag-mythic-reverse) .ag-mythic-orbit{display:none}
+.ag-mythic:not(.ag-mythic-reverse) .ag-mythic-year{z-index:4;top:13.5%;right:7%;font:500 3cqw/1 Arial,sans-serif;letter-spacing:.15em;opacity:1;text-shadow:0 1px 5px #000}
+.ag-mythic-header{top:4.8%;font:700 4cqw/1.1 Arial,sans-serif;letter-spacing:.075em}
+.ag-mythic-header .ag-mark{width:14%}
+.ag-mythic-rating{top:17%;left:7%;padding:2cqw 2.5cqw;background:linear-gradient(115deg,#111324b3,#11132420);border-left:2px solid var(--mythic-accent)}
+.ag-mythic-rating b{font:400 16cqw/.95 Impact,'Arial Narrow',sans-serif;letter-spacing:0;color:#fff8ed}
+.ag-mythic-rating>i{border:0;margin-top:1cqw;padding-top:0;color:#e4d8ce}
+.ag-mythic-side{top:auto;bottom:39%;right:7%;writing-mode:horizontal-tb;font-size:2.5cqw;padding:1.3cqw 2cqw;background:#111324aa;color:#fff2d8;letter-spacing:.05em}
+.ag-mythic-info{bottom:5.3%}
+.ag-mythic-ign{font-family:Impact,'Arial Narrow',sans-serif;letter-spacing:.015em;font-size:16cqw;margin:1.7cqw 0 2cqw;color:#fff7e8}
+.ag-mythic-info::before{inset:-20% -6% -5%;background:linear-gradient(transparent,#210d18b3 23%,#210d18 55%)}
+.ag-mythic-theme{color:var(--mythic-accent);font-weight:600;text-shadow:0 2px 6px #0008}
+.ag-rating-right:not(.ag-mythic-reverse) .ag-mythic-rating{left:auto;right:7%;border-left:0;border-right:2px solid var(--mythic-accent);align-items:end}
+.ag-rating-right:not(.ag-mythic-reverse) .ag-mythic-year{right:auto;left:7%}
+
+.ag-mythic-stats.ag-coach-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
