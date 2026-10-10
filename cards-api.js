@@ -453,7 +453,7 @@ const stored = (state) => {
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
 /** The actions that simulate a match: the ones worth a worker thread. */
-const HEAVY = new Set(['ladder', 'cup_play', 'enc_play', 'seoul_play', 'bangkok_play'])
+const HEAVY = new Set(['ladder', 'cup_play', 'enc_play', 'seoul_play', 'bangkok_play', 'history_play'])
 
 export function makeCardApi(sql, {
   rateLimited, readBody, json, staticRoot,
@@ -1857,8 +1857,8 @@ export function makeCardApi(sql, {
         json(res, 200, { ok: false, empty: true })
         return
       }
-      const cap = engine.retiredLimit?.(slots)
-      if (cap && !cap.ok) { json(res, 200, { ok: false, why: `对方的阵容不能上场：${cap.why}` }); return }
+      // 好友房 pays nothing and is played on the asker's device: a five of retired men (传奇联赛,
+      // 历代强队) is a fine friendly, and refusing it read as 「连不上服务器」 on the old client
       json(res, 200, { ok: true, friend: { ...squadOf(r), code } })
     } catch (err) {
       console.warn('cards: friend failed', err.message)

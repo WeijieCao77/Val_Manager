@@ -601,7 +601,7 @@ export function leagueEntry(squad: Squad, league: LeagueKind): { ok: true } | { 
   const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
   if (rule.needs === 'retired') {
     const not = cards.filter((c) => !c.retired)
-    if (not.length) return { ok: false, why: `${rule.name}五名首发都要是退役选手：${not.map((c) => cardName(c)).join('、')}还在役。` }
+    if (not.length) return { ok: false, why: `${rule.name}五名首发都要是退役卡：${not.map((c) => cardName(c)).join('、')}不是退役卡。` }
   } else {
     // every ladder but 传奇联赛 is ordinary play: two retired players at most
     const cap = retiredLimit(squad.slots)

@@ -119,7 +119,8 @@ export function makeTeamCupApi(sql, {
   const cupId = (v) => (/^\d{1,18}$/.test(String(v ?? '')) ? String(v) : null)
 
   /** The five an account is fielding — the solo cup's reading of it, rule for rule. */
-  function fiveOf(row) {
+  /** `why`, when given, receives the engine's reason a five was refused (the retired cap, a coach who also starts…) */
+  function fiveOf(row, why) {
     const slots = Array.isArray(row.squad?.slots) ? row.squad.slots.slice(0, 5).map((x) => (typeof x === 'string' ? x : null)) : []
     const coach = typeof row.squad?.coach === 'string' ? row.squad.coach : null
     const held = row.levels && typeof row.levels === 'object' ? row.levels : {}
@@ -132,7 +133,7 @@ export function makeTeamCupApi(sql, {
     }
     let five
     try { five = engine.squadForPlay({ squad: { slots, coach }, cards }) } catch { return null }
-    if (!five?.ok) return null
+    if (!five?.ok) { if (why && five?.why) why.text = five.why; return null }
     const levels = {}
     for (const id of [...five.squad.slots, five.squad.coach]) {
       const lv = id && cards[id] ? engine.playLevel(id, cards[id]) : 0
@@ -501,8 +502,14 @@ export function makeTeamCupApi(sql, {
                  select jsonb_array_elements_text(${sql.json([...(asked?.slots ?? []), asked?.coach ?? null])}::jsonb) as k) ks
           where k is not null) as levels
       from card_accounts a where a.id_hash = ${me}`
-    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0]) : null
-    if (!five) { json(res, 200, { ok: false, why: asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。' }); return }
+    const refused = {}
+    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0], refused) : null
+    if (!five) {
+      // the engine's own reason when it gave one (the retired cap is not a missing card)
+      const told = refused.text && refused.text !== '先凑齐五个人。' ? refused.text : null
+      json(res, 200, { ok: false, why: told ?? (asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。') })
+      return
+    }
     const pick = { slots: five.five.slots, coach: five.five.coach }
     const open = await sql`select id::text as id, starts from team_cups where status = 'open' and starts > ${new Date(now)} order by starts limit 1`
     if (!open.length) { json(res, 200, { ok: false, why: '现在没有可以报名的组队杯，稍后再试。' }); return }

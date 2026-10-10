@@ -57,7 +57,7 @@ const threeRet = sq(five([ret[0], ret[1], ret[2], ev[0], ...live]))
 
 check(leagueEntry(allRetired, 'retired').ok, '传奇联赛：五名退役选手放行')
 const w4 = leagueEntry(fourRetired, 'retired')
-check(!w4.ok && w4.why.includes('还在役'), '传奇联赛：少一个都不行，说出是谁', w4.ok ? '' : w4.why)
+check(!w4.ok && w4.why.includes('不是退役卡'), '传奇联赛：少一个都不行，说出是谁', w4.ok ? '' : w4.why)
 check(!leagueEntry(allRetired, 'open').ok && !leagueEntry(allRetired, 'mixed').ok, '五名退役选手进不了其他天梯')
 check(leagueEntry(mixed, 'mixed').ok, '全系列赛：三类各一放行')
 const wn = leagueEntry(noEvent, 'mixed')

@@ -50,5 +50,14 @@ check(!lad.ok && /退役/.test(lad.why ?? ''), '天梯实际开打时同样拒�
 check(ladderScore(five) !== null, '天梯阵容分对五名退役选手照常计算（传奇联赛用）')
 check((runAction(two, 'ladder', { league: 'open' }, env) as { ok: boolean }).ok, '两名退役选手能实际打一场天梯')
 
+// the same man on two series cards is one man: 首尔 TenZ (historic:vlr:9) and 退役 TenZ (Hv9)
+{
+  const { personOf: who, cardById: byId, SEOUL_CARDS } = await import('../src/engine/cards')
+  const seoulTenz = SEOUL_CARDS.find((c) => c.ign === 'TenZ')!
+  check(who(seoulTenz) === who(byId('r:9')!), '首尔 TenZ 和退役 TenZ 是同一个人', `${who(seoulTenz)} / ${who(byId('r:9')!)}`)
+  const g = account([seoulTenz.id, 'r:9', live[0], live[1], live[2]])
+  g.cards[seoulTenz.id] = { id: seoulTenz.id, level: 0, dupes: 0, seen: 1 }
+  check(!squadForPlay(g).ok, '同一个人不能在一套首发里出现两次')
+}
 if (bad) { console.log(`${bad} failed`); process.exit(1) }
 console.log('全部通过')

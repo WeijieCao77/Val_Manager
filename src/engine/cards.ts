@@ -522,7 +522,9 @@ export const cardName = (c: Card): string => (c.kind === 'player' ? c.ign : c.na
  * five of four people. Anything picking a squad compares this, not the id.
  */
 export const personOf = (c: Card): string =>
-  c.kind === 'player' ? c.playerId : `c:${c.name}`
+  // a 首尔/曼谷 card of a man with no live card is `historic:vlr:N`, his 退役 card `HvN`:
+  // the same vlr id, so the same man (TenZ, Sacy, ban hold both)
+  c.kind === 'player' ? c.playerId.replace(/^historic:vlr:/, 'Hv') : `c:${c.name}`
 
 /**
  * Coaches who are also a player card — the same man, matched by vlr id, never
