@@ -24,7 +24,7 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 <details class="method"><summary>退役选手：怎么算</summary><div>
 <p><b>和现役一样的部分</b>：八项比赛数据（Rating、KPR、ADR、ACS、助攻、KAST、首杀率、首死率）、按实际英雄职责的权重、800 回合收缩、次级赛事折算 0.35、国际赛资格／成绩／冠军／经历、赛季成绩、赛区强弱、指挥、跨位、首季突破，各项的上限和半衰期、85 分以上减半、封顶 92，全部照搬现役评分。</p>
 <p><b>按年代重新拟合的部分</b>：英雄基准。现役基准是用 2025–26 年的比赛拟合的，拿它去看 2022 年，Viper 选手平均被压低、Sage 选手被抬高，这是版本差异而不是选手差异。所以每个赛季用当年一线赛事的数据单独拟合基准，选手和同年代、同英雄的人比。分数尺子（71.64 + 84.13 × 指数）不变，退役卡和现役卡是同一把尺子。</p>
-<p><b>退役卡读整个生涯</b>：个人分 = 80% × 生涯平均 + 20% × 最好的那个赛季（有效回合至少 400 的赛季里挑）。一般选手有 4 个赛季，最好那季的分量因此从四分之一提到 40%。生涯平均不打时间折扣；履历各项按他最后一场比赛那天计算，就像现役评分在那天给他打分一样。</p>
+<p><b>退役卡读整个生涯</b>：个人分是整个职业生涯的平均（按有效回合加权），不单独突出最好的赛季，也不打时间折扣；履历各项按他最后一场比赛那天计算，就像现役评分在那天给他打分一样。</p>
 <p><b>数据</b>：vlr.gg 的赛事统计（2020 First Strike 到 2026），2021 年及以前只有整届汇总，没有逐图数据，按现役规则计为证据系数 0.65、没有对手修正。带公开预选赛的赛事，正赛和预选赛分开算，预选赛按次级赛事计。指挥身份来自 Liquipedia，按页面上的 vlr 编号核对是本人。</p>
 <p><b>金银铜</b>：和现役一样按比例划线：卡池里前 20% 是金卡，接下来 35% 是银卡，其余 45% 是铜卡，同分同档。线随卡池变化重新算，不固定分数。退役选手、现役教练、非现役教练各算各的。</p>
 <p><b>彩卡</b>：一位选手的一个高光夜晚。分数 = 90 + 5 × 他在那一届所有选手（至少 100 回合）里的表现排位，不低于他普卡 +2，不超过 95。冠军不再额外加分——赢下来已经体现在他的数据里。属性沿用他自己的普卡形状。</p>
@@ -63,7 +63,7 @@ function face(img){return img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'
 var PART={Q:'国际赛资格',Sd:'种子',T:'国际赛成绩',D:'赛季成绩',E:'国际经历',I:'指挥',F:'跨位',breakout:'首季突破',O:'普通履历合计（上限10）',H:'冠军（上限4）',G:'赛区强弱',S:'压缩前总分'};
 var ATTR={aim:'枪法',reaction:'反应',awareness:'意识',utility:'道具',clutch:'残局',teamwork:'配合',communication:'沟通',igl:'指挥'};
 function playerBody(p){
- var h='<div class="one"><img loading="lazy" src="/cards/retired/stats/cards/normal-'+esc(p.id)+'.webp" alt="'+esc(p.ign)+' 普卡"><div>'+'<div class="kv"><div>个人分 <b>'+n(p.personal)+'</b></div><div>生涯指数 <b>'+n(p.career,4)+'</b></div><div>巅峰赛季 <b>'+(p.peakYear||'—')+'</b>（'+n(p.peak,4)+'）</div><div>有效回合 <b>'+n(p.N,0)+'</b></div><div>原始回合 <b>'+n(p.rounds,0)+'</b></div><div>最后一场 <b>'+esc(p.last)+'</b></div></div><p class="muted">左边是普卡卡面预览：队伍和年份是他个人数据最好的那个赛季，头像是现有的最新一张，正式上线前还会调整。</p></div></div>';
+ var h='<div class="one"><img loading="lazy" src="/cards/retired/stats/cards/normal-'+esc(p.id)+'.webp" alt="'+esc(p.ign)+' 普卡"><div>'+'<div class="kv"><div>个人分 <b>'+n(p.personal)+'</b></div><div>生涯指数 <b>'+n(p.career,4)+'</b></div><div>巅峰赛季 <b>'+(p.peakYear||'—')+'</b>（'+n(p.peak,4)+'）</div><div>有效回合 <b>'+n(p.N,0)+'</b></div><div>原始回合 <b>'+n(p.rounds,0)+'</b></div><div>最后一场 <b>'+esc(p.last)+'</b></div></div><p class="muted">左边是普卡卡面预览：年份是他的生涯起止，队伍是他打得最多的那支，头像是现有的最新一张，正式上线前还会调整。</p></div></div>';
  h+='<h3>总分构成</h3><div class="kv">'+Object.keys(PART).map(function(k){return '<div>'+PART[k]+' <b>'+n(p.parts[k],3)+'</b></div>'}).join('')+'</div>';
  h+='<p class="muted">总分 = 个人分 + min(10, 普通履历) + min(4, 冠军) + 赛区强弱；85 以上每 2 分算 1 分，封顶 92，四舍五入。</p>';
  if(p.attrs)h+='<h3>卡面属性（'+esc(p.role||'')+'）</h3><div class="kv">'+Object.keys(ATTR).map(function(k){return '<div>'+ATTR[k]+' <b>'+p.attrs[k]+'</b></div>'}).join('')+'</div><p class="muted">沿用他本人在历史存档里的属性形状，整体平移到新评分，和现役卡的做法一样。</p>';

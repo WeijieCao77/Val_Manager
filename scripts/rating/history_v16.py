@@ -57,7 +57,7 @@ QUALITY_EVENT = 0.65
 AGENT_PRIOR = 500
 ROLES = ["决斗者", "先锋", "控场", "哨卫"]
 # owner's balance, set here and published with the scores
-PEAK = 0.20
+PEAK = 0.0  # owner 2026-10-10: plain career average, the best season not singled out
 # off by default: the live cards do not have it (owner's call, see 方案.md)
 REGION_BRIDGE = bool(int(__import__("os").environ.get("V16_REGION_BRIDGE", "0")))
 MIN_PEAK = 400
