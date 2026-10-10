@@ -189,7 +189,8 @@ export function makeOpenCupApi(sql, {
    * collection made of exactly the cards named — a card the account does not
    * hold reads as null and is simply not in it.
    */
-  function fiveOf(row) {
+  // `why`, when given, receives the engine's reason a five was refused (the retired cap, a missing card…)
+  function fiveOf(row, why) {
     const slots = Array.isArray(row.squad?.slots) ? row.squad.slots.slice(0, 5).map((x) => (typeof x === 'string' ? x : null)) : []
     const coach = typeof row.squad?.coach === 'string' ? row.squad.coach : null
     const held = row.levels && typeof row.levels === 'object' ? row.levels : {}
@@ -203,7 +204,7 @@ export function makeOpenCupApi(sql, {
     }
     let five
     try { five = engine.squadForPlay({ squad: { slots, coach }, cards }) } catch { return null }
-    if (!five?.ok) return null
+    if (!five?.ok) { if (why && five?.why) why.text = five.why; return null }
     const levels = {}
     for (const id of [...five.squad.slots, five.squad.coach]) {
       const lv = id && cards[id] ? engine.playLevel(id, cards[id]) : 0
@@ -737,8 +738,14 @@ export function makeOpenCupApi(sql, {
                  select jsonb_array_elements_text(${sql.json([...(asked?.slots ?? []), asked?.coach ?? null])}::jsonb) as k) ks
           where k is not null) as levels
       from card_accounts a where a.id_hash = ${me}`
-    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0]) : null
-    if (!five) { json(res, 200, { ok: false, why: asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。' }); return }
+    const refused = {}
+    const five = mine.length ? fiveOf(asked ? { squad: asked, levels: mine[0].levels } : mine[0], refused) : null
+    if (!five) {
+      // the engine's own reason when it gave one (the retired cap is not a missing card)
+      const told = refused.text && refused.text !== '先凑齐五个人。' ? refused.text : null
+      json(res, 200, { ok: false, why: told ?? (asked && body.squad.slots.filter(Boolean).length >= 5 ? '这套阵容里有卡不在收藏里了，刷新后再试。' : '先凑齐五个人。') })
+      return
+    }
     const pick = { slots: five.five.slots, coach: five.five.coach }
     const name = mine[0].name ?? null
     const open = await sql`

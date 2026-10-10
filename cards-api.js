@@ -1579,7 +1579,8 @@ export function makeCardApi(sql, {
       const rows = found.map((x) => {
         const five = squadOf(x)
         let score = null
-        if (five.slots.filter(Boolean).length === 5) {
+        // a saved five past the retired cap (the client writes the squad) is never anybody's opponent
+        if (five.slots.filter(Boolean).length === 5 && !(engine.retiredStarters?.(five.slots) > engine.RETIRED_STARTER_LIMIT)) {
           try { score = engine.squadRating({ slots: five.slots, coach: five.coach }, (id) => five.levels[id] ?? 0) } catch { score = null }
         }
         return { id_hash: x.id_hash, div: x.div, five, score: Number.isFinite(score) ? score : null }
@@ -1856,6 +1857,8 @@ export function makeCardApi(sql, {
         json(res, 200, { ok: false, empty: true })
         return
       }
+      const cap = engine.retiredLimit?.(slots)
+      if (cap && !cap.ok) { json(res, 200, { ok: false, why: `对方的阵容不能上场：${cap.why}` }); return }
       json(res, 200, { ok: true, friend: { ...squadOf(r), code } })
     } catch (err) {
       console.warn('cards: friend failed', err.message)

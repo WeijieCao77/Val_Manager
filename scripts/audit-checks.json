@@ -871,5 +871,13 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_ten_floor_pity.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_retired_pack.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_retirement_cap.ts"
   }
 ]

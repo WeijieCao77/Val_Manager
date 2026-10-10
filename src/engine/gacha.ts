@@ -12,6 +12,7 @@ import { WORLD_TEAMS } from './teams'
 import { CUP_TEAMS } from './cupTeams'
 import { natCountry, natName } from './nat'
 import { REGION_CN } from './types'
+import { retiredLimit } from './retirementRules'
 import type { Role } from './types'
 import { cleanPredictions } from './predict'
 import type { SavedPicks } from './predict'
@@ -587,6 +588,9 @@ export function ladderSlot(g: GachaState, league: LeagueKind = 'open'): LadderSt
 export function leagueEntry(squad: Squad, league: LeagueKind): { ok: true } | { ok: false; why: string } {
   const rule = LEAGUE_RULES[league]
   const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
+  // every ladder but 传奇联赛 is ordinary play: two retired players at most
+  const cap = retiredLimit(squad.slots)
+  if (!cap.ok) return cap
   if (rule.ceiling) {
     const cap = rarityRank(rule.ceiling)
     // the coach walks in with them, so he is held to the same line

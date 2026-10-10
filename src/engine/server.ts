@@ -7,6 +7,7 @@
  * the server can run them instead. See engine/cardActions.ts for why.
  */
 export { runAction, wantsRival, squadForPlay, ladderScore, ACTIONS, encRegistration } from './cardActions'
+export { retiredStarters, retiredLimit, RETIRED_STARTER_LIMIT } from './retirementRules'
 export type { ActEnv, ActResult } from './cardActions'
 export {
   newGacha, migrateGacha, mergeClientFields, takeServerFields, clampState, refreshDaily,

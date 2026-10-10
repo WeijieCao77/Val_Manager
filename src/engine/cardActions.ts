@@ -43,6 +43,7 @@ import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, challengeDay, challengeSig, guessChallenge, setChallengeHour } from './challenge'
 import { hashStr } from './rng'
 import { cardById, isPlayerCard, personOf, squadRating } from './cards'
+import { retiredLimit } from './retirementRules'
 import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { markMailSeen } from './inbox'
@@ -102,7 +103,7 @@ export const wantsRival = (g: GachaState, action: string): boolean =>
 
 /** What the five this account would field is worth on paper, for finding it a fair rival. */
 export function ladderScore(g: GachaState): number | null {
-  const five = squadForPlay(g)
+  const five = squadForPlay(g, { anyRetired: true })
   return five.ok ? squadRating(five.squad, (id) => playLevelOf(g, id)) : null
 }
 
@@ -114,8 +115,12 @@ export function ladderScore(g: GachaState): number | null {
  * name a card the account does not hold, or seat the same man twice — both are
  * checked here, against the collection the server holds, at the moment the
  * five walks out.
+ *
+ * Ordinary play takes at most two retired players (retirementRules.ts). The
+ * ladder alone passes `anyRetired`, because 传奇联赛 wants five of them —
+ * leagueEntry then holds every ladder to its own terms.
  */
-export function squadForPlay(g: GachaState): { ok: true; squad: Squad } | { ok: false; why: string } {
+export function squadForPlay(g: GachaState, opts: { anyRetired?: boolean } = {}): { ok: true; squad: Squad } | { ok: false; why: string } {
   const seen = new Set<string>()
   const slots = g.squad.slots.slice(0, 5).map((id) => {
     if (!id || !g.cards[id]) return null
@@ -130,6 +135,10 @@ export function squadForPlay(g: GachaState): { ok: true; squad: Squad } | { ok: 
   const coach = g.squad.coach && g.cards[g.squad.coach] && cardById(g.squad.coach)?.kind === 'coach'
     ? g.squad.coach : null
   if (slots.filter(Boolean).length < 5) return { ok: false, why: '先凑齐五个人。' }
+  if (!opts.anyRetired) {
+    const cap = retiredLimit(slots)
+    if (!cap.ok) return cap
+  }
   return { ok: true, squad: { slots, coach } }
 }
 
@@ -280,7 +289,7 @@ function dispatch(
     }
     case 'ladder': {
       const league = isLeague(a.league) ? a.league : 'open'
-      const five = squadForPlay(g)
+      const five = squadForPlay(g, { anyRetired: true })
       if (!five.ok) return five
       // the terms of entry, checked here — the client picks the ladder, the
       // server decides whether this five may walk into it
