@@ -11,7 +11,7 @@ const out = 'output/retired_v16_cards'
 mkdirSync(out, { recursive: true })
 const errors = []
 try {
-  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1.5 })
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 0.75 })
   page.on('pageerror', e => errors.push(e.message))
   page.on('response', r => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`) })
   await page.goto(`${base}/preview/retired-v16.html`, { waitUntil: 'networkidle' })
@@ -19,7 +19,9 @@ try {
   const nodes = await page.locator('[data-export]').all()
   for (const n of nodes) {
     const name = await n.getAttribute('data-export')
-    await n.screenshot({ path: `${out}/${name}.png`, omitBackground: true })
+    const box = await n.locator(':scope > article').boundingBox()
+    if (!box || Math.abs(box.height / box.width - 7 / 5) > 0.004) errors.push(`${name} is ${box && (box.width + 'x' + box.height)}, not 5:7`)
+    await n.locator(":scope > article").screenshot({ path: `${out}/${name}.png`, omitBackground: true })
   }
   console.log(`${nodes.length} cards rendered`, errors.length ? errors : 'no errors')
 } finally { await browser.close() }
