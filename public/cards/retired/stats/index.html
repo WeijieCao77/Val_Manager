@@ -21,10 +21,12 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 <div class="notice" id="meta">加载中…</div>
 
 <details class="method"><summary>退役选手：怎么算</summary><div>
-<p><b>和现役一样的部分</b>：八项比赛数据（Rating、KPR、ADR、ACS、助攻、KAST、首杀率、首死率）、按实际英雄职责的权重、800 回合收缩、次级赛事折算 0.35、国际赛资格／成绩／冠军／经历、赛季成绩、赛区强弱、指挥、跨位、首季突破，各项的上限和半衰期、85 分以上减半、封顶 92、金 79 / 银 70，全部照搬现役评分。</p>
+<p><b>和现役一样的部分</b>：八项比赛数据（Rating、KPR、ADR、ACS、助攻、KAST、首杀率、首死率）、按实际英雄职责的权重、800 回合收缩、次级赛事折算 0.35、国际赛资格／成绩／冠军／经历、赛季成绩、赛区强弱、指挥、跨位、首季突破，各项的上限和半衰期、85 分以上减半、封顶 92，全部照搬现役评分。</p>
 <p><b>按年代重新拟合的部分</b>：英雄基准。现役基准是用 2025–26 年的比赛拟合的，拿它去看 2022 年，Viper 选手平均被压低、Sage 选手被抬高，这是版本差异而不是选手差异。所以每个赛季用当年一线赛事的数据单独拟合基准，选手和同年代、同英雄的人比。分数尺子（71.64 + 84.13 × 指数）不变，退役卡和现役卡是同一把尺子。</p>
 <p><b>退役卡读整个生涯</b>：个人分 = 80% × 生涯平均 + 20% × 最好的那个赛季（有效回合至少 400 的赛季里挑）。一般选手有 4 个赛季，最好那季的分量因此从四分之一提到 40%。生涯平均不打时间折扣；履历各项按他最后一场比赛那天计算，就像现役评分在那天给他打分一样。</p>
 <p><b>数据</b>：vlr.gg 的赛事统计（2020 First Strike 到 2026），2021 年及以前只有整届汇总，没有逐图数据，按现役规则计为证据系数 0.65、没有对手修正。带公开预选赛的赛事，正赛和预选赛分开算，预选赛按次级赛事计。指挥身份来自 Liquipedia，按页面上的 vlr 编号核对是本人。</p>
+<p><b>金银铜</b>：和现役一样按比例划线：卡池里前 20% 是金卡，接下来 35% 是银卡，其余 45% 是铜卡，同分同档。线随卡池变化重新算，不固定分数。退役选手、现役教练、非现役教练各算各的。</p>
+<p><b>彩卡</b>：一位选手的一个高光夜晚。分数 = 90 + 5 × 他在那一届所有选手（至少 100 回合）里的表现排位，不低于他普卡 +2，不超过 95。冠军不再额外加分——赢下来已经体现在他的数据里。属性沿用他自己的普卡形状。</p>
 <p><b>谁算退役</b>：12 个月没有俱乐部比赛，也不在任何队伍名单里。表演赛、国家队比赛不算俱乐部比赛。转去当教练的人不在这份名单里。</p>
 </div></details>
 <details class="method"><summary>教练：怎么算</summary><div>
@@ -33,7 +35,7 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 <p><b>培养</b>：他带过的每名选手（至少带满 120 天、带之前有 300 回合以上数据），选手自己的分数变化，减去同年龄选手一年里的正常变化。</p>
 <p><b>激励</b>：每场季后赛系列赛，赢记 1、输记 0，减去两边阵容实力算出的胜率。</p>
 <p><b>收缩</b>：三项都向 0 收缩，没有数据就是 0（正好平均），不用别人的平均数顶替。收缩力度是测出来的：把每位教练的比赛按时间单双数分成两半，两半成绩的协方差就是教练之间的真实差异，单场的波动是噪声，两者之比就是要多少证据才算一半可信——战术约 7 届赛事，培养约 27 名选手，激励约 23 场季后赛。</p>
-<p><b>换算</b>：每一项按「教练之间的真实差异」换算到和现役选手个人分一样宽的分布（证据充足的教练分得和选手一样开，证据少的收在中间），加上履历（国际赛资格、成绩、冠军、经历、赛季成绩，和选手同一套公式，乘职位权重），85 以上减半、封顶 92。卡面评分 = 0.45 × 战术 + 0.30 × 培养 + 0.25 × 激励，和游戏里一样。金 78 / 银 68。</p>
+<p><b>换算</b>：每一项按「教练之间的真实差异」换算到和现役选手个人分一样宽的分布（证据充足的教练分得和选手一样开，证据少的收在中间），加上履历（国际赛资格、成绩、冠军、经历、赛季成绩，和选手同一套公式，乘职位权重），85 以上减半、封顶 92。卡面评分 = 0.45 × 战术 + 0.30 × 培养 + 0.25 × 激励，和游戏里一样。金银铜按 20/35/45 划线。</p>
 </div></details>
 <details class="method"><summary>已知局限</summary><div id="limits"><ul>
 <li>2021 年及以前没有逐图数据，也没有对手强弱修正。</li>
@@ -41,12 +43,12 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 <li>早期赛事赛前的阵容实力数据少，教练的预期名次误差更大。</li>
 <li>培养和激励要的证据多得多，大部分教练这两项都收在平均附近。</li>
 <li>同一位教练前后成绩相关，一部分可能是阵容实力一直估偏，不全是教练本人。</li>
-<li>赛区强弱：同一批选手在本赛区比世界赛平均高出的幅度各赛区不同（2024–26 中国约 +0.23、美洲约 −0.03，2021–22 日韩拉美约 +0.3）。现役算法的赛区修正只有约 ±2 分，盖不住这个差距，退役卡沿用现役规则，所以同样有这个偏差。</li>
+<li>赛区强弱：同一批选手在本赛区比世界赛平均高出的幅度各赛区不同（2024–26 中国约 +0.23、美洲约 −0.03，2021–22 日韩拉美约 +0.3）。现役算法的赛区修正只有约 ±2 分，盖不住这个差距，退役卡沿用现役规则，所以同样有这个偏差。暂时不按这个差距大幅修正：那会让某个赛区的卡整体变强、某几支队的五人组在杯赛里难以被打败，游戏平衡比单张卡的精确更重要。</li>
 </ul></div></details>
 
 <div class="tabs"><button id="t-p" class="on">退役选手</button><button id="t-c">教练</button></div>
 <div class="bar"><input id="q" placeholder="搜名字、真名、队伍"><select id="sort"></select><select id="rar"><option value="">全部稀有度</option><option>金卡</option><option>银卡</option><option>铜卡</option></select><select id="st" style="display:none"><option value="">在任和不在任</option><option>在任</option><option>不在任</option></select></div>
-<div id="list"></div><div class="more" id="more" style="display:none"><button>再显示 50 个</button></div>
+<div id="myth"></div><div id="list"></div><div class="more" id="more" style="display:none"><button>再显示 50 个</button></div>
 <p class="muted">下载：<a href="retired.csv">退役选手 CSV</a> · <a href="coaches.csv">教练 CSV</a> · <a href="retired.json">退役选手完整数据</a> · <a href="coaches.json">教练完整数据</a></p>
 </main><script>
 (function(){
@@ -80,7 +82,8 @@ function coachBody(c){
  return h}
 function row(x,isP){var sub=isP?[x.real,(x.nat||'').toUpperCase(),'最后一场 '+x.last].filter(Boolean).join(' · '):[x.real,(x.nat||'').toUpperCase(),x.status,x.measured?'':'证据不足'].filter(Boolean).join(' · ');
  return '<details class="row" data-k="'+esc(isP?x.id:x.key)+'"><summary>'+face(x.img)+'<div class="who"><b>'+esc(isP?x.ign:x.name)+'</b><span class="muted">'+esc(sub)+'</span></div><span class="tag '+x.rarity+'">'+x.rarity+'</span><span class="score">'+x.rating+'</span></summary><div class="body"></div></details>'}
-function render(){var q=el('q').value.trim().toLowerCase(),rar=el('rar').value,st=el('st').value,sort=el('sort').value,src=tab==='p'?P:C;
+function mythHtml(M){if(!M||!M.length)return '';return '<div class="panel"><h2>退役彩卡</h2>'+table(['选手','那一晚','同届排位','按排位','普卡','彩卡'],M.map(function(m){return [esc(m.ign),esc(m.why)+'<br><span class="muted">'+esc(m.event)+'</span>',(m.percentile>=1?'第 1':'前 '+Math.max(1,Math.round((1-m.percentile)*100))+'%')+'（'+m.field+' 人）',n(m.byPercentile,1),m.normal,'<b>'+m.rating+'</b>']}))+'</div>'}
+function render(){el('myth').innerHTML=tab==='p'?mythHtml(window.__M):'';var q=el('q').value.trim().toLowerCase(),rar=el('rar').value,st=el('st').value,sort=el('sort').value,src=tab==='p'?P:C;
  var rows=src.filter(function(x){var hay=((tab==='p'?x.ign:x.name)+' '+(x.real||'')+' '+(tab==='p'?x.records.map(function(r){return r.club}).join(' '):x.events.map(function(e){return e.team}).join(' '))).toLowerCase();return (!q||hay.indexOf(q)>=0)&&(!rar||x.rarity===rar)&&(!st||x.status===st)});
  rows.sort(function(a,b){if(sort==='name')return (tab==='p'?a.ign:a.name).localeCompare(tab==='p'?b.ign:b.name);if(sort==='last')return (b.last||'').localeCompare(a.last||'');if(sort==='tactics')return b.tactics-a.tactics;return b.rating-a.rating});
  el('list').innerHTML=rows.slice(0,shown).map(function(x){return row(x,tab==='p')}).join('')||'<p class="muted">没有符合条件的人。</p>';
@@ -92,8 +95,8 @@ el('t-p').onclick=function(){setTab('p')};el('t-c').onclick=function(){setTab('c
 ['q','rar','st','sort'].forEach(function(i){el(i).addEventListener(i==='q'?'input':'change',function(){shown=50;render()})});
 el('more').querySelector('button').onclick=function(){shown+=50;render()};
 function get(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json()})}
-Promise.all([get('retired.json'),get('coaches.json')]).then(function(a){P=a[0].players;C=a[1].coaches;
- el('meta').innerHTML='退役选手 <b>'+P.length+'</b> 人，教练 <b>'+C.length+'</b> 人（其中有可计分赛事的 '+C.filter(function(c){return c.measured}).length+' 人）。数据截至 '+esc(a[0].meta.date)+'。这里的分数只是说明，不改变游戏里的任何卡。';setTab('p')
+Promise.all([get('retired.json'),get('coaches.json')]).then(function(a){P=a[0].players;C=a[1].coaches;window.__M=a[0].mythics;var L=a[0].meta.lines||{};
+ el('meta').innerHTML='退役选手 <b>'+P.length+'</b> 人，教练 <b>'+C.length+'</b> 人（其中有可计分赛事的 '+C.filter(function(c){return c.measured}).length+' 人）。数据截至 '+esc(a[0].meta.date)+'。这里的分数只是说明，不改变游戏里的任何卡。'+(L.retired?'<br>本次分数线：退役选手 金 '+L.retired.gold+' / 银 '+L.retired.silver+(L.coachActive?'，现役教练 金 '+L.coachActive.gold+' / 银 '+L.coachActive.silver:'')+(L.coachInactive?'，非现役教练 金 '+L.coachInactive.gold+' / 银 '+L.coachInactive.silver:'')+'。':'');setTab('p')
 }).catch(function(){el('meta').textContent='数据加载失败，请刷新。'});
 })();
 </script></body></html>

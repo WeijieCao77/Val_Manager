@@ -55,6 +55,11 @@ def recent(html: str) -> list[dict]:
     return out
 
 
+# owner's calls on people the rule leaves open (2026-10-10: community cups and
+# Riot's fan events only, so retired)
+OWNER = {"Laz": "retired", "crow": "retired", "takej": "retired"}
+
+
 def main() -> int:
     plan = json.loads((OUT / "retired_fetch_list.json").read_text())
     out = {}
@@ -69,7 +74,7 @@ def main() -> int:
         clubs = [t for t in p["current"] if not NOT_A_CLUB.search(t["name"] or "") and not (t.get("role") or "").lower().startswith(("coach", "head", "assistant", "analyst"))]
         games = recent(f.read_text("utf-8", "ignore"))
         real = [g for g in games if g["competing"]]
-        cls = "still-playing" if clubs or real else "retired"
+        cls = OWNER.get(c["ign"]) or ("still-playing" if clubs or real else "retired")
         why = []
         if clubs:
             why.append("current club: " + ", ".join(t["name"] for t in clubs))

@@ -494,6 +494,14 @@ def era_bucket(year: int) -> str:
     return "2020-22" if year <= 2022 else "2023" if year == 2023 else "2024-26"
 
 
+def quantile_lines(ratings: list[int]) -> tuple[int, int]:
+    """the live rule (v15): gold from the 80th percentile, silver from the 45th, ties
+    take the higher metal — 20/35/45 of the pool, recomputed every time the pool moves"""
+    r = sorted(ratings)
+    q = lambda p: r[max(0, math.ceil(p * len(r)) - 1)]  # noqa: E731
+    return q(.80), q(.45)
+
+
 def compress(S: float) -> float:
     return max(40, min(92, S if S <= 85 else 85 + .5 * (S - 85)))
 
@@ -599,8 +607,16 @@ def main() -> int:
     (OUT / "baselines.json").write_text(json.dumps(
         {str(e): {CFG["labels"][j]: {"heroes": h, "roles": rm} for j, (h, rm) in v.items()} for e, v in bases.items()},
         ensure_ascii=False, indent=1))
-    rated = [p for p in out if p["rated"]]
+    # metal by the retired pool's own 20/35/45 lines (owner, 2026-10-10)
+    pool = [p for p in out if p["rated"] and p["class"] == "retired"]
+    gold, silver = quantile_lines([p["rating"] for p in pool])
+    for p in out:
+        if p["rated"]:
+            p["rarity"] = "gold" if p["rating"] >= gold else "silver" if p["rating"] >= silver else "bronze"
+    (OUT / "lines.json").write_text(json.dumps({"retired": {"gold": gold, "silver": silver, "pool": len(pool)}}, indent=1))
+    rated = pool
     from collections import Counter
+    print("retired lines: gold", gold, "silver", silver)
     print(len(out), "candidates,", len(rated), "rated;", Counter(p["rarity"] for p in rated))
     return 0
 

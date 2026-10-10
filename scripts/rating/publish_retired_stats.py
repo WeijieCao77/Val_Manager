@@ -127,8 +127,13 @@ def main() -> int:
         if f.name not in keep:
             shutil.rmtree(f) if f.is_dir() else f.unlink()
     players, coaches = retired_rows(), coach_rows()
-    meta = {"date": date.today().isoformat(), "players": len(players), "coaches": len(coaches)}
-    (DST / "retired.json").write_text(json.dumps({"meta": meta, "players": players}, ensure_ascii=False, separators=(",", ":")))
+    lines = json.loads((SRC / "lines.json").read_text())
+    clines = json.loads((SRC / "coaches.json").read_text()).get("lines", {})
+    mythics = [{k: m[k] for k in ("ign", "vlrId", "event", "why", "percentile", "field", "rounds", "byPercentile", "normal", "rating", "role", "attrs")}
+               | {"event": event_name(m["eid"])} for m in json.loads((SRC / "mythics.json").read_text())]
+    meta = {"date": date.today().isoformat(), "players": len(players), "coaches": len(coaches),
+            "lines": {"retired": lines["retired"], "coachActive": clines.get("active"), "coachInactive": clines.get("inactive")}}
+    (DST / "retired.json").write_text(json.dumps({"meta": meta, "players": players, "mythics": mythics}, ensure_ascii=False, separators=(",", ":")))
     (DST / "coaches.json").write_text(json.dumps({"meta": meta, "coaches": coaches}, ensure_ascii=False, separators=(",", ":")))
     with (DST / "retired.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)

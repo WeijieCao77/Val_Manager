@@ -11,7 +11,7 @@ One published conversion, no per-person terms:
 - the career record (O capped 10, titles H capped 4) is added to all three;
 - the players' compression above 85 and the cap at 92 apply to each;
 - rating = round(0.45 战术 + 0.30 培养 + 0.25 激励), the game's coachRating;
-  metal by the game's coach lines (gold 78, silver 68).
+  metal by each pool's own 20/35/45 quantile lines (active / not active).
 A coach with no measured events sits at BASE on that part and is marked 证据不足.
 """
 import json
@@ -19,7 +19,7 @@ import statistics
 from collections import Counter
 from pathlib import Path
 
-from scripts.rating.history_v16 import BASE, compress
+from scripts.rating.history_v16 import BASE, compress, quantile_lines
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "analysis" / "rating" / "history_v16"
@@ -49,11 +49,21 @@ def main() -> int:
                            "evidence": r["evidence"][ev], "enough": r["evidence"][ev] >= lo}
         rating = round(.45 * parts["tactics"]["value"] + .30 * parts["development"]["value"] + .25 * parts["motivation"]["value"])
         out.append({**{k: r[k] for k in ("key", "name", "vlrId", "real", "nat", "status", "lastEvent")},
-                    "rating": rating, "rarity": "gold" if rating >= 78 else "silver" if rating >= 68 else "bronze",
+                    "rating": rating,
                     "tactics": parts["tactics"]["value"], "development": parts["development"]["value"],
                     "motivation": parts["motivation"]["value"], "parts": parts, "record": rec, "bonus": round(bonus, 3),
                     "measured": any(p["evidence"] > 0 for p in parts.values())})
-    (OUT / "coaches.json").write_text(json.dumps({"targetSd": target, "scale": scale, "coaches": out}, ensure_ascii=False, indent=1))
+    # metal by each pool's own 20/35/45 lines (owner, 2026-10-10): the coaches in
+    # the game today, and the ones who are not (the future retired-coach pack)
+    lines = {}
+    for pool in ("active", "inactive"):
+        members = [c for c in out if c["status"] == pool]
+        gold, silver = quantile_lines([c["rating"] for c in members])
+        lines[pool] = {"gold": gold, "silver": silver, "pool": len(members)}
+        for c in members:
+            c["rarity"] = "gold" if c["rating"] >= gold else "silver" if c["rating"] >= silver else "bronze"
+    print("coach lines", lines)
+    (OUT / "coaches.json").write_text(json.dumps({"targetSd": target, "scale": scale, "lines": lines, "coaches": out}, ensure_ascii=False, indent=1))
     m = [c for c in out if c["measured"]]
     print(f"target sd {target:.2f}; scale {({k: round(v, 1) for k, v in scale.items()})}")
     print(len(out), "coaches;", len(m), "measured; ratings mean", round(statistics.mean(c["rating"] for c in m), 1),
