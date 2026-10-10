@@ -517,7 +517,7 @@ export const tierStars = (div: number): number =>
  * The open ladder is unchanged and is still where the leaderboard is ranked;
  * an account that never opens the new ones sees exactly what it saw before.
  */
-export const LEAGUES = ['open', 'gold', 'silver', 'bronze', 'hof'] as const
+export const LEAGUES = ['open', 'gold', 'silver', 'bronze', 'hof', 'retired', 'mixed'] as const
 export type LeagueKind = (typeof LEAGUES)[number]
 
 export interface LeagueRule {
@@ -536,6 +536,11 @@ export interface LeagueRule {
    * pointed the other way (see playArenaMatch).
    */
   oppBump: number
+  /**
+   * 传奇联赛 ('retired'): all five starters retired. 全系列赛 ('mixed'): at
+   * least one of each kind — a live 普卡, a 首尔/曼谷 card, a retired card.
+   */
+  needs?: 'retired' | 'mixed'
 }
 
 /**
@@ -551,6 +556,11 @@ export const LEAGUE_RULES: Record<LeagueKind, LeagueRule> = {
   silver: { name: '银卡赛', blurb: '只能上银卡和铜卡。', ceiling: 'silver', needMythic: 0, oppBump: -7 },
   bronze: { name: '铜卡赛', blurb: '只能上铜卡。', ceiling: 'bronze', needMythic: 0, oppBump: -13 },
   hof:    { name: '名人堂', blurb: '至少两张彩卡才能入场，对手也更强。', ceiling: null, needMythic: 2, oppBump: 2 },
+  // 2026-10-10: a middling gold retired five plays the clubs exactly as the
+  // open ladder's middling gold five does (paper 80.5 vs 81.0, both win 59% at
+  // 钻石), so both take the open ladder's shape unchanged
+  retired: { name: '传奇联赛', blurb: '五名首发都要是退役选手。升段送退役选手包。', ceiling: null, needMythic: 0, oppBump: 0, needs: 'retired' },
+  mixed:  { name: '全系列赛', blurb: '首发里现役普卡、首尔或曼谷卡、退役卡各至少一张。', ceiling: null, needMythic: 0, oppBump: 0, needs: 'mixed' },
 }
 
 export const isLeague = (k: unknown): k is LeagueKind =>
@@ -588,9 +598,22 @@ export function ladderSlot(g: GachaState, league: LeagueKind = 'open'): LadderSt
 export function leagueEntry(squad: Squad, league: LeagueKind): { ok: true } | { ok: false; why: string } {
   const rule = LEAGUE_RULES[league]
   const cards = squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard)
-  // every ladder but 传奇联赛 is ordinary play: two retired players at most
-  const cap = retiredLimit(squad.slots)
-  if (!cap.ok) return cap
+  if (rule.needs === 'retired') {
+    const not = cards.filter((c) => !c.retired)
+    if (not.length) return { ok: false, why: `${rule.name}五名首发都要是退役选手：${not.map((c) => cardName(c)).join('、')}还在役。` }
+  } else {
+    // every ladder but 传奇联赛 is ordinary play: two retired players at most
+    const cap = retiredLimit(squad.slots)
+    if (!cap.ok) return cap
+  }
+  if (rule.needs === 'mixed') {
+    const miss = [
+      cards.some((c) => !c.event && !c.retired && c.rarity !== 'mythic') ? '' : '现役普卡',
+      cards.some((c) => c.event === 'seoul-2024' || c.event === 'bangkok-2025') ? '' : '首尔或曼谷卡',
+      cards.some((c) => c.retired) ? '' : '退役卡',
+    ].filter(Boolean)
+    if (miss.length) return { ok: false, why: `${rule.name}首发还缺：${miss.join('、')}。` }
+  }
   if (rule.ceiling) {
     const cap = rarityRank(rule.ceiling)
     // the coach walks in with them, so he is held to the same line
@@ -1974,7 +1997,8 @@ export function recordLadder(
     if (L.div > L.best) {
       L.best = L.div
       // a promotion is the moment to hand over something worth opening
-      out.pack = L.div >= 4 ? 'ten' : L.div >= 2 ? 'elite' : 'scout'
+      out.pack = league === 'retired' ? (L.div >= 2 ? 'retired' : 'scout')
+        : L.div >= 4 ? 'ten' : L.div >= 2 ? 'elite' : 'scout'
       g.packs[out.pack] = (g.packs[out.pack] ?? 0) + 1
     }
     // every fifth win a 试训包, every twentieth a 选拔包 instead — the ladder

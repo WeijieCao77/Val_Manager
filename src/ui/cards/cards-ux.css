@@ -192,7 +192,7 @@
 .cardmode details > summary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .cm-rules { border-top: 1px solid var(--line-soft); margin-top: 12px; font-size: 13px; line-height: 1.75; }
 .cm-rules[open] { padding-bottom: 12px; }
-.cardmode .cm-leagues { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.cardmode .cm-leagues { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 8px; }
 .cm-leagues .league-tab { min-width: 0; padding: 12px; text-align: left; border-radius: 8px; }
 .cm-leagues .league-tab.on { box-shadow: inset 0 -3px var(--accent); }
 .cm-checkin-week { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; margin: 16px 0; }
@@ -221,7 +221,7 @@
   .cm-page-tools { justify-content: flex-start; }
   .cm-page-tools .support-fab { flex: none; padding: 8px 10px; min-height: 44px !important; }
   .cm-page-tools .support-fab:first-child { margin-left: -10px; }
-  .cardmode .cm-leagues { gap: 5px; }
+  .cardmode .cm-leagues { gap: 5px; grid-template-columns: repeat(4,minmax(0,1fr)); }
   .cm-leagues .league-tab { padding: 10px 4px; text-align: center; }
   .cm-leagues .league-tab b { font-size: 12px; }
   .cm-leagues .league-tab span { font-size: 10px; }

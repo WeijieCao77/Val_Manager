@@ -127,7 +127,7 @@ export default function Ladder() {
 
   return (
     <>
-      {/* Five ladders, one record each. The metal ones are what makes a bronze
+      {/* Seven ladders, one record each. The metal ones are what makes a bronze
           worth owning: it can only be played where nothing better is allowed. */}
       <div className="league-bar cm-leagues" role="group" aria-label="选择天梯赛事">
         {LEAGUES.map((k) => {
