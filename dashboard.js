@@ -184,6 +184,7 @@ export const dashboardHtml = () => `<!doctype html>
           <option value="emea">EMEA 包</option>
           <option value="seoul2024">首尔 2024 冠军赛包</option>
           <option value="bangkok2025">曼谷 2025 大师赛包</option>
+          <option value="retired">退役选手包</option>
           <option value="legend">彩卡包（只出彩卡）</option>
         </select>
         <input type="number" id="gCount" value="1" min="1" max="50" style="width:80px" title="几个">
@@ -365,7 +366,7 @@ function render(d) {
   // ---- 开瓦包. Four names, not sixty-five: the pull event sends the pack it
   // was, and a four-row lookup is cheaper than making the client send a label
   // with every pull. Anything unrecognised prints its own key.
-  const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', legend: '彩卡包' }
+  const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', retired: '退役选手包', legend: '彩卡包' }
   const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途' }
   const cm = d.cards || {}
   const cf = cm.funnel || {}
