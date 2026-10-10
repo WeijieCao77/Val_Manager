@@ -1637,15 +1637,28 @@ export const SEOUL_LAST_DAY = '2026-10-07'
 export const bangkokOnSale = (today?: string): boolean =>
   !!today && today >= BANGKOK_LAUNCH && today <= BANGKOK_SALE_LAST
 
+/**
+ * The 退役选手包's launch price (owner, 2026-10-10): China-time 10-11 is day one;
+ * days 1–3 at 85折, days 4–7 at 9折, full price from day 8.
+ */
+export const RETIRED_LAUNCH = '2026-10-11'
+export const RETIRED_SALE: readonly { last: string; off: number }[] = [
+  { last: '2026-10-13', off: 0.15 },
+  { last: '2026-10-17', off: 0.1 },
+]
+export const retiredSale = (today?: string): { last: string; off: number } | null =>
+  !today || today < RETIRED_LAUNCH ? null : RETIRED_SALE.find((s) => today <= s.last) ?? null
+
 /** A pack the shop no longer sells. */
 export const packRetired = (kind: PackKind, today?: string): boolean =>
   kind === 'seoul2024' && !!today && today > SEOUL_LAST_DAY
 
-/** What a pack costs today — the featured series is off by a fifth, the new 曼谷包 by 15% for three days. */
+/** What a pack costs today — the featured series is off by a fifth, the new 曼谷包 by 15% for three days, the 退役选手包 by its launch week. */
 export function packCost(kind: PackKind, today?: string): number {
   const base = PACKS[kind].cost
   if (!today) return base
   if (kind === 'bangkok2025') return bangkokOnSale(today) ? Math.round(base * (1 - BANGKOK_SALE_OFF)) : base
+  if (kind === 'retired') { const sale = retiredSale(today); return sale ? Math.round(base * (1 - sale.off)) : base }
   const region = seriesOfPack(kind)
   if (!region || region !== featuredSeries(today)) return base
   return Math.round(base * (1 - FEATURE_OFF))

@@ -12,7 +12,7 @@
  *   bottlenecks of similar size with 169 cards, so the gold rate barely moves it).
  */
 import {
-  FULL_SET_CARDS, MYTHIC_FLOOR, PACKS, PACK_ORDER, RETIRED_FLOOR, newGacha, openPack,
+  FULL_SET_CARDS, MYTHIC_FLOOR, PACKS, PACK_ORDER, RETIRED_FLOOR, newGacha, openPack, packCost,
 } from '../src/engine/gacha'
 import type { PackKind } from '../src/engine/gacha'
 import { ALL_CARDS, RETIRED_CARDS, personOf } from '../src/engine/cards'
@@ -72,6 +72,15 @@ check(leaked === 0, '其他卡包抽不到退役卡', `${leaked}`)
 check(h.retiredDry === 123, '其他卡包不动退役彩卡保底', `${h.retiredDry}`)
 check(PACKS.retired.cost === 3000 && PACKS.retired.gold === 0.16 && PACKS.retired.mythic === 0.0004 && MYTHIC_FLOOR === 1200,
   '出率按站长定的：3000 金币、金 16%、彩卡每抽 0.04%，现役保底仍 1200')
+
+// the launch week (owner, 2026-10-10): China-time 10-11 is day one, days 1–3 85折, 4–7 9折
+const prices = ['2026-10-10', '2026-10-11', '2026-10-13', '2026-10-14', '2026-10-17', '2026-10-18'].map((d) => packCost('retired', d))
+check(prices.join() === '3000,2550,2550,2700,2700,3000', '上线 3 天 85 折、第 4–7 天 9 折、第 8 天恢复原价', prices.join(' / '))
+const s = newGacha('SALE', '审计', '2026-10-11')
+s.coins = 2550
+let paid = true
+try { openPack(s, 'retired', 'coins', '2026-10-11') } catch { paid = false }
+check(paid && s.coins === 0, '实际扣的是折后价', String(s.coins))
 
 // how long a full set takes (普卡 only, like the region bars)
 const normals = new Set(RETIRED_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id))

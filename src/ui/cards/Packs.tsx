@@ -6,7 +6,7 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
-  fullSetProgress, FULL_SET_REWARD, collectProgress, RETIRED_FLOOR, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
+  fullSetProgress, FULL_SET_REWARD, collectProgress, RETIRED_FLOOR, retiredSale, RETIRED_SALE, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
 } from '../../engine/gacha'
 import type { CheckIn, CollectSeries, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card, Rarity } from '../../engine/cards'
@@ -106,6 +106,9 @@ export default function Packs() {
   const bangkokSale = bangkokOnSale(today)
   const seoulGone = packRetired('seoul2024', today)
   const md = (d: string) => `${Number(d.slice(5, 7))} 月 ${Number(d.slice(8, 10))} 日`
+  const retiredPrice = packCost('retired', today)
+  const rSale = retiredSale(today)
+  const zhe = (off: number) => `${Math.round((1 - off) * 100) % 10 === 0 ? (1 - off) * 10 : Math.round((1 - off) * 100)} 折`
 
   const done = () => {
     setOpening(null)
@@ -207,10 +210,10 @@ export default function Packs() {
       <section className="ag-shelf" aria-label="退役选手系列">
         <div className="ag-shelf-art"><RetiredShelfPack /><div className="ag-shelf-back"><CardBack retired /></div></div>
         <div className="ag-shelf-copy"><span className="ag-eyebrow">AFTERGLOW / 退役选手系列</span>
-          <h3><span>余晖 ·</span> <span>退役选手</span></h3>
-          <p>{RETIRED_NORMALS} 位退役选手 · {RETIRED_LEGENDS} 张退役彩卡 · 余晖卡背<br />每包 3 张退役卡，至少一张银卡，可能出退役彩卡。<br />退役彩卡单独保底：连续 {RETIRED_FLOOR} 抽必出。</p>
+          <h3><span>余晖 ·</span> <span>退役选手</span>{rSale && <span className="ag-sale">上线 {zhe(rSale.off)}</span>}</h3>
+          <p>{RETIRED_NORMALS} 位退役选手 · {RETIRED_LEGENDS} 张退役彩卡 · 余晖卡背<br />每包 3 张退役卡，至少一张银卡，可能出退役彩卡。<br />退役彩卡单独保底：连续 {RETIRED_FLOOR} 抽必出。{rSale && <><br />{RETIRED_SALE.filter((s) => s.last >= rSale.last).map((s) => `${zhe(s.off)}到 ${md(s.last)}`).join('，')}。</>}</p>
           <p>已收藏 {RETIRED_CARDS.filter(c => c.rarity !== 'mythic' && g.cards[c.id]).length} / {RETIRED_NORMALS} · 彩卡 {RETIRED_CARDS.filter(c => c.rarity === 'mythic' && g.cards[c.id]).length} / {RETIRED_LEGENDS}</p>
-          <div className="row"><button disabled={busy || g.coins < PACKS.retired.cost} onClick={() => void open('retired', 'coins')}>{PACKS.retired.cost} 金币 · 开启退役选手包</button>
+          <div className="row"><button disabled={busy || g.coins < retiredPrice} onClick={() => void open('retired', 'coins')}>{retiredPrice} 金币{rSale && <s>{PACKS.retired.cost}</s>} · 开启退役选手包</button>
             {(g.packs.retired ?? 0) > 0 && <button className="ag-shelf-secondary" disabled={busy} onClick={() => void open('retired', 'pack')}>打开库存（{g.packs.retired}）</button>}
             {multiButton('retired', 'ag-shelf-secondary')}</div>
         </div>

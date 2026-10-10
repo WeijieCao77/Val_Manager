@@ -42,9 +42,10 @@ function Normal({ card, label }: { card: PlayerCard; label: string }) {
 function Mythic({ card, label }: { card: PlayerCard; label: string }) {
   const [failed, setFailed] = useState(false)
   const g = card.afterglow!
-  return <article className="ag-mythic" style={{ '--mythic-accent': g.accent, '--mythic-tint': g.tint } as CSSProperties} aria-label={`${card.ign} 余晖彩卡 ${card.rating}`}>
+  return <article className="ag-mythic ag-holo" style={{ '--mythic-accent': g.accent, '--mythic-tint': g.tint } as CSSProperties} aria-label={`${card.ign} 余晖彩卡 ${card.rating}`}>
     <div className="ag-mythic-border" aria-hidden="true" /><div className="ag-mythic-orbit" aria-hidden="true" />
-    <header className="ag-mythic-header"><span>AFTERGLOW<small>余晖 · 退役生涯彩卡</small></span><Mark /></header>
+    <div className="ag-mythic-holo" aria-hidden="true" />
+    <header className="ag-mythic-header"><span>AFTERGLOW<em className="ag-mythic-tier">退役彩卡</em></span><Mark /></header>
     <span className="ag-mythic-year">{card.legend?.year}</span>
     <div className="ag-mythic-portrait">{card.face && !failed ? <img src={card.face} alt={card.ign} style={{ objectPosition: g.crop }} onError={() => setFailed(true)} /> : <span>{card.ign}</span>}</div>
     <div className="ag-mythic-rating"><b>{card.rating}</b><span>{label}</span><i>已退役</i></div>

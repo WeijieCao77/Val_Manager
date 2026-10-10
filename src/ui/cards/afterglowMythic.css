@@ -33,3 +33,24 @@
 .ag-rating-right:not(.ag-mythic-reverse) .ag-mythic-year{right:auto;left:7%}
 
 .ag-mythic-stats.ag-coach-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/*
+ * In the game (RetiredDesign.tsx, .ag-holo): a 彩卡 has to read as one across a
+ * grid of 普卡 (owner, 2026-10-10: 「退役彩卡和退役普卡长得有点太像了」). It takes
+ * the live 彩卡's language (styles.css .cardface.r-mythic): the same iridescent
+ * gradient drifting on the holo keyframes, here as a thick frame and a cast over
+ * the info block, the purple glow, and a rainbow tag where the 普卡 says 生涯典藏.
+ */
+.ag-holo{background:radial-gradient(ellipse at 70% 33%,var(--mythic-tint),#1b1233 73%);border-color:rgba(255,255,255,.6);box-shadow:0 2px 14px rgba(0,0,0,.55),0 0 26px rgba(180,120,255,.35)}
+.ag-holo .ag-mythic-holo{position:absolute;inset:0;z-index:7;pointer-events:none;border-radius:3%;padding:2.8cqw;
+  background:linear-gradient(150deg,#2b1b53 0%,#6d2a86 18%,#b0316f 34%,#d9553f 50%,#b8912a 64%,#2f8f74 78%,#2b4fa8 92%,#35206b 100%);
+  background-size:260% 260%;animation:holo 9s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.ag-holo .ag-mythic-holo::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(118deg,transparent 30%,rgba(255,255,255,.45) 47%,transparent 64%)}
+@media (prefers-reduced-motion: reduce){.ag-holo .ag-mythic-holo{animation:none}}
+.ag-holo .ag-mythic-info::before{background:linear-gradient(transparent,rgba(22,14,44,.78) 23%,rgba(22,14,44,.9) 55%),linear-gradient(150deg,#6d2a86,#b0316f 30%,#d9553f 50%,#2f8f74 75%,#2b4fa8)}
+.ag-holo .ag-mythic-info footer{border-top-color:rgba(255,255,255,.3);color:#d8cbe9}
+.ag-holo .ag-mythic-stats{border-top-color:rgba(255,255,255,.35)}
+.ag-mythic-tier{display:block;width:max-content;margin-top:1.5cqw;padding:.5cqw 2cqw;border-radius:99px;font:700 2.5cqw/1.35 Arial,'PingFang SC',sans-serif;font-style:normal;letter-spacing:.12em;color:#1b1030;background:linear-gradient(90deg,#ffd9a0,#ff9ec4,#c8a6ff,#8fd3ff,#9ff0c8)}
+.ag-holo .ag-mythic-info::before{-webkit-mask-image:linear-gradient(transparent,#000 26%);mask-image:linear-gradient(transparent,#000 26%)}

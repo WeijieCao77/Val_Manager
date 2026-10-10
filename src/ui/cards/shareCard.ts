@@ -804,6 +804,12 @@ const AG_FINISH: Record<'gold' | 'silver' | 'bronze', { foil: string; paper: str
   silver: { foil: '#c7d1dd', paper: '#f4f3f7', base: '#211d29', cn: '银卡' },
   bronze: { foil: '#c38d70', paper: '#f4ddd0', base: '#2c181b', cn: '铜卡' },
 }
+/** the live 彩卡's iridescent gradient (styles.css .cardface.r-mythic), across a box at 150° */
+function holoGradient(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): CanvasGradient {
+  const gr = ctx.createLinearGradient(x, y, x + w * 0.7, y + h)
+  for (const [at, c] of [[0, '#2b1b53'], [0.18, '#6d2a86'], [0.34, '#b0316f'], [0.5, '#d9553f'], [0.64, '#b8912a'], [0.78, '#2f8f74'], [0.92, '#2b4fa8'], [1, '#35206b']] as const) gr.addColorStop(at, c)
+  return gr
+}
 const SERIF = (weight: number, size: number) => `${weight} ${size}px Georgia, "Times New Roman", serif`
 
 /** an image faded out toward its rim, drawn with `screen` — the ember mark */
@@ -865,23 +871,44 @@ function paintRetiredSeat(
     const accent = g.accent ?? '#f2b6ad'
     const tint = g.tint ?? '#501c2b'
     const bg = ctx.createRadialGradient(X(70), Y(33), 0, X(70), Y(33), b.w * 0.95)
-    bg.addColorStop(0, tint); bg.addColorStop(0.73, '#210d18')
+    bg.addColorStop(0, tint); bg.addColorStop(0.73, '#1b1233')
     ctx.fillStyle = bg; ctx.fillRect(b.x, b.y, b.w, b.h)
     if (face) {
       const [px, py] = (g.crop ?? '50% 50%').split(' ').map((v) => parseFloat(v) / 100)
       paintFaded(ctx, face, { x: X(3), y: Y(12), w: W(94), h: H(65) }, 'cover', px, py, 0.69, 'saturate(1.08) contrast(1.04)')
     }
-    // the info block's ground (::before)
-    const foot = ctx.createLinearGradient(0, Y(52), 0, b.y + b.h)
-    foot.addColorStop(0, 'rgba(33,13,24,0)'); foot.addColorStop(0.23, 'rgba(33,13,24,.7)'); foot.addColorStop(0.55, '#210d18')
-    ctx.fillStyle = foot; ctx.fillRect(b.x, Y(52), b.w, b.h)
+    // the info block's ground (::before): the 彩卡 gradient under a dark veil, faded in from the top
+    {
+      const fb = { x: b.x, y: Y(52), w: b.w, h: b.y + b.h - Y(52) }
+      const off = document.createElement('canvas')
+      off.width = Math.ceil(fb.w); off.height = Math.ceil(fb.h)
+      const o = off.getContext('2d')!
+      o.fillStyle = holoGradient(o, 0, 0, fb.w, fb.h); o.fillRect(0, 0, fb.w, fb.h)
+      const veil = o.createLinearGradient(0, 0, 0, fb.h)
+      veil.addColorStop(0, 'rgba(22,14,44,0)'); veil.addColorStop(0.23, 'rgba(22,14,44,.78)'); veil.addColorStop(0.55, 'rgba(22,14,44,.9)'); veil.addColorStop(1, 'rgba(22,14,44,.9)')
+      o.fillStyle = veil; o.fillRect(0, 0, fb.w, fb.h)
+      o.globalCompositeOperation = 'destination-in'
+      const fade = o.createLinearGradient(0, 0, 0, fb.h)
+      fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(0.26, '#000')
+      o.fillStyle = fade; o.fillRect(0, 0, fb.w, fb.h)
+      ctx.drawImage(off, fb.x, fb.y)
+    }
     // header
     ctx.fillStyle = '#e7cfaa'
     ctx.font = font(700, W(4)); ctx.letterSpacing = `${W(4) * 0.075}px`
     ctx.fillText('AFTERGLOW', X(7), Y(4.8))
     ctx.letterSpacing = '0px'
-    ctx.fillStyle = accent; ctx.font = font(400, W(2.3))
-    ctx.fillText('余晖 · 退役生涯彩卡', X(7), Y(4.8) + W(4) * 1.1 + W(1.7))
+    // the rainbow tag (.ag-mythic-tier)
+    {
+      ctx.font = font(700, W(2.5)); ctx.letterSpacing = `${W(2.5) * 0.12}px`
+      const tw = ctx.measureText('退役彩卡').width + W(4), th = W(2.5) * 1.35 + W(1)
+      const ty = Y(4.8) + W(4) * 1.1 + W(1.5)
+      const pill = ctx.createLinearGradient(X(7), 0, X(7) + tw, 0)
+      ;['#ffd9a0', '#ff9ec4', '#c8a6ff', '#8fd3ff', '#9ff0c8'].forEach((c, i) => pill.addColorStop(i / 4, c))
+      round(ctx, { x: X(7), y: ty, w: tw, h: th }, th / 2); ctx.fillStyle = pill; ctx.fill()
+      ctx.fillStyle = '#1b1030'; ctx.fillText('退役彩卡', X(7) + W(2), ty + W(0.5) + W(0.1))
+      ctx.letterSpacing = '0px'
+    }
     if (ember) paintEmber(ctx, ember, { x: X(81), y: Y(3.2), w: W(14), h: W(14) })
     // year
     ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = font(500, W(3))
@@ -909,12 +936,12 @@ function paintRetiredSeat(
     ctx.fillStyle = '#fff2d8'; ctx.fillText(tag, X(93) - tw + W(2), Y(61) - th + W(1.3))
     // the info block, built up from the foot (bottom 5.3%)
     let y = Y(94.7)
-    ctx.font = font(400, W(1.9)); ctx.fillStyle = '#b39b7e'
+    ctx.font = font(400, W(1.9)); ctx.fillStyle = '#d8cbe9'
     y -= W(1.9) * 1.2
     ctx.fillText('生涯珍藏 / 彩卡', X(8), y)
     ctx.textAlign = 'right'; ctx.fillText(g.number, X(92), y); ctx.textAlign = 'left'
     y -= W(2.3)
-    ctx.fillStyle = 'rgba(197,169,123,.2)'; ctx.fillRect(X(8), y, W(84), hair)
+    ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(X(8), y, W(84), hair)
     // six attributes
     const ATTRS = (['aim', 'reaction', 'awareness', 'utility', 'clutch', 'teamwork'] as const).map((k) => [k, ATTR_CN[k]] as const)
     y -= W(2.6) + W(2) + W(1.2) + W(5.1)
@@ -929,7 +956,7 @@ function paintRetiredSeat(
     })
     ctx.textAlign = 'left'
     y -= W(3)
-    ctx.fillStyle = 'rgba(211,189,131,.33)'; ctx.fillRect(X(8), y, W(84), hair)
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(X(8), y, W(84), hair)
     // the night
     y -= W(3) + W(2.45) * 1.6
     ctx.fillStyle = '#cfbca5'; ctx.font = font(400, W(2.45))
@@ -950,12 +977,10 @@ function paintRetiredSeat(
     ctx.textAlign = 'left'
     ctx.restore()
     ctx.textBaseline = 'alphabetic'
-    // the rainbow foil edge
-    round(ctx, { x: X(1.5), y: Y(1.5), w: W(97), h: H(97) }, W(2.4))
-    const edge = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h)
-    for (const [at, c] of [[0, '#ddc397'], [0.25, '#f3b8c0'], [0.5, '#c4bbfa'], [0.75, '#b5e6d3'], [1, '#d5ad7d']] as const) edge.addColorStop(at, c)
-    ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.5, W(0.42)); ctx.stroke()
-    round(ctx, b, W(3)); ctx.strokeStyle = '#d6c092'; ctx.lineWidth = hair; ctx.stroke()
+    // the thick iridescent frame (.ag-mythic-holo) and its white edge
+    round(ctx, { x: b.x + W(1.4), y: b.y + W(1.4), w: b.w - W(2.8), h: b.h - W(2.8) }, W(2.2))
+    ctx.strokeStyle = holoGradient(ctx, b.x, b.y, b.w, b.h); ctx.lineWidth = W(2.8); ctx.stroke()
+    round(ctx, b, W(3)); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = hair; ctx.stroke()
     return
   }
 
