@@ -444,19 +444,29 @@ def world_shapes() -> dict[str, dict[int, dict]]:
     for y in (2023, 2024, 2025):
         for p in read(f"src/data/world_{y}.json")["players"]:
             if p.get("vlrId"):
-                out[str(p["vlrId"])][y] = {"attrs": p["attrs"], "overall": p["overall"], "role": p["role"]}
+                out[str(p["vlrId"])][y] = {"attrs": p["attrs"], "overall": p["overall"], "role": p["role"], "isIgl": bool(p.get("isIgl"))}
     return out
 
 
-def shaped(shapes: dict[int, dict], year: int | None, rating: int) -> dict | None:
+def shaped(shapes: dict[int, dict], year: int | None, rating: int, igl: bool | None = None) -> dict | None:
     """the live rule (cards.ts shiftAttrs): his own attribute shape, every one
-    moved by the same gap so they sum to the new rating as they did before"""
+    moved by the same gap so they sum to the new rating as they did before.
+
+    The caller bump the world builder gives (指挥 +12, 沟通 +4, build_world.py)
+    follows the verified caller identity (Liquipedia, by vlr id), not the
+    world's isIgl: the 2023-24 worlds made Leo FNATIC's caller, not Boaster."""
     if not shapes:
         return None
     y = min(shapes, key=lambda k: (abs(k - (year or k)), -k))
     w = shapes[y]
+    attrs = dict(w["attrs"])
+    if igl is not None and bool(w.get("isIgl")) != igl:
+        sign = 1 if igl else -1
+        attrs["igl"] = int(max(35, min(99, attrs["igl"] + 12 * sign)))
+        attrs["communication"] = int(max(25, min(99, attrs["communication"] + 4 * sign)))
     by = rating - w["overall"]
-    return {"year": y, "role": w["role"], "attrs": {k: max(1, min(99, v + by)) for k, v in w["attrs"].items()}}
+    return {"year": y, "role": w["role"], "igl": bool(igl) if igl is not None else bool(w.get("isIgl")),
+            "attrs": {k: max(1, min(99, v + by)) for k, v in attrs.items()}}
 
 
 def region_offsets(scored: list[dict], events: dict) -> dict:
@@ -598,7 +608,7 @@ def main() -> int:
         out.append({
             "vlrId": vid, "ign": st["ign"], "class": cls, "rated": True, "last": last, "cutoff": cut,
             "rating": new, "rarity": "gold" if new >= 79 else "silver" if new >= 70 else "bronze",
-            "card": shaped(shapes.get(vid) or ({0: derived[vid]} if vid in derived else {}), peak_y, new),
+            "card": shaped(shapes.get(vid) or ({0: derived[vid]} if vid in derived else {}), peak_y, new, bool(igl.get(vid))),
             "early": bool(st.get("early")),
             "S": S, "P": P, "L": L, "careerL": career["L"], "careerN": career["N"], "rounds": sum(r["n"] for r in rr),
             "peakYear": peak_y, "peakL": eligible[peak_y]["L"] if peak_y else None,
