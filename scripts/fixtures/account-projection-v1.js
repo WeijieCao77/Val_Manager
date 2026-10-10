@@ -22,28 +22,22 @@
  * could be trusted afterwards.
  *
  * Accounts that existed before the trigger are filled in by backfill(). It and
- * the repair share account_reproject_v2, which LOCKS the account row and reads
+ * the repair share account_reproject_v1, which LOCKS the account row and reads
  * the state as it stands under that lock: a write in flight is waited for and
  * then read, and no write can land between the read and the projection — so
  * an old copy can neither overwrite a newer row nor bring back one a newer
  * state removed. Readers use the tables only once the trigger exists, the
  * backfill has finished and nothing is dirty; until then the old scans serve.
  *
- * Changing what the functions write means a new version suffix (_v3 next): the
+ * Changing what the functions write means a new version suffix (_v2): the
  * boot migration notices missing objects by name, not changed bodies.
  */
 
-/**
- * v2 (2026-10): the function projects every ladder a state holds rather than
- * a list baked into its body. `leagues` still names what the board may serve
- * and is checked here; it no longer reaches the SQL. The v1 trigger is left
- * in place on purpose — dropping it takes an exclusive lock on card_accounts
- * at boot; it writes the same values for the five ladders it knows, so it is
- * only redundant, and can be dropped by hand at a quiet moment.
- */
+/** The ladders the trigger projects, in a closed list so nothing in a save can add one. */
 export function projectionSchema(leagues) {
   const names = [...new Set(['open', ...leagues])]
   if (!names.every((n) => /^[a-z]{1,20}$/.test(n))) throw new Error('account projection: bad league name')
+  const list = names.map((n) => `'${n}'`).join(', ')
   return `
 create table if not exists account_ladder (
   id_hash  text not null references card_accounts (id_hash) on delete cascade,
@@ -83,7 +77,7 @@ create table if not exists account_projection_dirty (
 -- state no longer has them. Raises on any error; the callers decide what an
 -- error means. Every cast is behind a pattern test, the same ones the old
 -- scans used.
-create or replace function account_project_v2(p_id text, p_state jsonb, p_suspect boolean)
+create or replace function account_project_v1(p_id text, p_state jsonb, p_suspect boolean)
 returns void language plpgsql as $fn$
 declare
   s jsonb := p_state;
@@ -94,20 +88,9 @@ declare
   v_slots jsonb;
   v_cards jsonb;
   v_full boolean := false;
-  v_keys text[];
 begin
   v_season := coalesce(s->>'season', '0');
-  -- v2: every ladder the account holds — the open one and whatever is under
-  -- leagues — instead of a list baked in at install time, so a new ladder
-  -- (传奇联赛 / 全系列赛, 2026-10) needs no new function. leagues is
-  -- server-held and cleaned by migrateGacha; the pattern and the cap keep a
-  -- malformed save from writing anything odd. Rows for a ladder the state no
-  -- longer has are removed first.
-  v_keys := array['open'] || coalesce(array(
-    select x from jsonb_object_keys(case when jsonb_typeof(s->'leagues') = 'object' then s->'leagues' else '{}'::jsonb end) x
-    where x ~ '^[a-z]{1,20}$' and x <> 'open' order by x limit 16), array[]::text[]);
-  delete from account_ladder where id_hash = p_id and league <> all(v_keys);
-  foreach k in array v_keys loop
+  foreach k in array array[${list}]::text[] loop
     l := case when k = 'open' then s->'ladder' else s->'leagues'->k end;
     if l is null or jsonb_typeof(l) is distinct from 'object' then
       delete from account_ladder where id_hash = p_id and league = k;
@@ -164,10 +147,10 @@ $fn$;
 -- The trigger: project the row being written. A failure is rolled back to
 -- this block, noted as dirty in the writer's own transaction, and the write
 -- goes on; if the note itself cannot be written, the write fails with it.
-create or replace function account_projection_trigger_v2() returns trigger language plpgsql as $fn$
+create or replace function account_projection_trigger_v1() returns trigger language plpgsql as $fn$
 begin
   begin
-    perform account_project_v2(new.id_hash, new.state, new.suspect);
+    perform account_project_v1(new.id_hash, new.state, new.suspect);
   exception when others then
     raise warning 'account projection failed for %, marked dirty: %', left(new.id_hash, 8), sqlerrm;
     insert into account_projection_dirty (id_hash, why) values (new.id_hash, left(sqlerrm, 300))
@@ -184,7 +167,7 @@ $fn$;
 -- first (FOR SHARE: a writer in flight is waited for, no new one lands until
 -- this statement ends), then read, then projected, then its dirty note, if
 -- any, is cleared. Raises on error. Shared by the backfill and the repair.
-create or replace function account_reproject_v2(p_id text) returns boolean language plpgsql as $fn$
+create or replace function account_reproject_v1(p_id text) returns boolean language plpgsql as $fn$
 declare
   v_state jsonb;
   v_suspect boolean;
@@ -194,7 +177,7 @@ begin
     delete from account_projection_dirty where id_hash = p_id;
     return false;
   end if;
-  perform account_project_v2(p_id, v_state, v_suspect);
+  perform account_project_v1(p_id, v_state, v_suspect);
   delete from account_projection_dirty where id_hash = p_id;
   return true;
 end
@@ -206,17 +189,17 @@ $fn$;
 do $do$
 begin
   if not exists (select 1 from pg_trigger
-                  where tgname = 'card_accounts_projection_v2' and tgrelid = 'card_accounts'::regclass) then
-    create trigger card_accounts_projection_v2
+                  where tgname = 'card_accounts_projection_v1' and tgrelid = 'card_accounts'::regclass) then
+    create trigger card_accounts_projection_v1
       after insert or update of state, suspect on card_accounts
-      for each row execute function account_projection_trigger_v2();
+      for each row execute function account_projection_trigger_v1();
   end if;
 end
 $do$;
 `
 }
 
-export const PROJECTION_MARK = 'v2'
+export const PROJECTION_MARK = 'v1'
 const BATCH = 200
 
 /**
@@ -242,7 +225,7 @@ export async function backfill(db, { batch = BATCH, pause = 50 } = {}) {
         and not exists (select 1 from account_rivals r where r.id_hash = a.id_hash)
       order by a.id_hash limit ${batch}`).map((r) => r.id_hash)
     if (!ids.length) break
-    for (const id of ids) await db`select account_reproject_v2(${id})`
+    for (const id of ids) await db`select account_reproject_v1(${id})`
     walked += ids.length
     after = ids[ids.length - 1]
     if (pause) await new Promise((r) => setTimeout(r, pause))
@@ -258,7 +241,7 @@ export async function repairDirty(db, { batch = BATCH } = {}) {
     const ids = (await db`select id_hash from account_projection_dirty order by at limit ${batch}`).map((r) => r.id_hash)
     if (!ids.length) return cleared
     for (const id of ids) {
-      await db`select account_reproject_v2(${id})`
+      await db`select account_reproject_v1(${id})`
       cleared++
     }
   }
@@ -268,7 +251,7 @@ export async function repairDirty(db, { batch = BATCH } = {}) {
 export async function projectionComplete(db) {
   const [r] = await db`
     select exists (select 1 from pg_trigger
-                    where tgname = 'card_accounts_projection_v2' and tgrelid = 'card_accounts'::regclass) as trig,
+                    where tgname = 'card_accounts_projection_v1' and tgrelid = 'card_accounts'::regclass) as trig,
            to_regclass('public.account_projection_marks') is not null as marks`
   if (!r?.trig || !r?.marks) return { trigger: !!r?.trig, done: false }
   const [m] = await db`select 1 as ok from account_projection_marks where name = ${PROJECTION_MARK}`

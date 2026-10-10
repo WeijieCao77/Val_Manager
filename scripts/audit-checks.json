@@ -596,6 +596,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_projection_upgrade.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_manager_turn_abort.ts"
   },
   {

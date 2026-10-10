@@ -264,7 +264,7 @@ const [{ n: orphans }] = await sql`
 check('删号连带删投影，没有孤儿行', Number(orphans) === 0, `${orphans}`)
 
 // ---- 3. the re-projection reads the state under its lock, not a copy ---------
-// (the backfill and the repair both go through account_reproject_v1; Codex's
+// (the backfill and the repair both go through account_reproject_v2; Codex's
 // review found the old insert-only backfill could revive rows a newer state had
 // removed, when handed an older copy)
 {
@@ -277,12 +277,12 @@ check('删号连带删投影，没有孤儿行', Number(orphans) === 0, `${orpha
   // stale rows planted as an older writer would have left them
   await sql`insert into account_ladder (id_hash, league, season, div, points, stars, wins, losses, suspect) values (${h}, 'open', ${String(SEASON)}, 3, 70, 0, 1, 0, false)`
   await sql`insert into account_rivals (id_hash, div, points, squad, cards, suspect) values (${h}, 3, 70, ${sql.json(five.squad)}, '{}', false)`
-  await sql`select account_reproject_v1(${h})`
+  await sql`select account_reproject_v2(${h})`
   check('重新投影读当前存档：旧行被删，不会复活', Number(await gone()) === 0)
   // and it overwrites a row that is wrong rather than keeping it
   await sql`update card_accounts set state = ${sql.json({ ...five, ladder: { ...five.ladder, points: 4321 } })} where id_hash = ${h}`
   await sql`update account_ladder set points = 1 where id_hash = ${h} and league = 'open'`
-  await sql`select account_reproject_v1(${h})`
+  await sql`select account_reproject_v2(${h})`
   const [row] = await sql`select points from account_ladder where id_hash = ${h} and league = 'open'`
   check('重新投影改正与存档不符的行', row?.points === 4321, JSON.stringify(row))
   const src = (await import('node:fs')).readFileSync('account-projection.js', 'utf8')
@@ -355,14 +355,14 @@ check('删号连带删投影，没有孤儿行', Number(orphans) === 0, `${orpha
   const sql2 = makeSql(db2)
   for (const s of SCHEMAS) await db2.exec(s)
   // accounts the trigger has not seen: a projection with no backfill yet
-  await db2.exec(`alter table card_accounts disable trigger card_accounts_projection_v1`)
+  await db2.exec(`alter table card_accounts disable trigger card_accounts_projection_v2`)
   const people: string[] = []
   for (let i = 0; i < 250; i++) {
     const id = newId(); people.push(id)
     const s = { season: SEASON, ladder: { div: 5, points: 1000 + i * 3, stars: 0, wins: i, losses: 1 }, squad: { slots: ['p1', 'p2', 'p3', 'p4', 'p5'], coach: 'c1' }, cards: { p1: { level: 2 } } }
     await sql2`insert into card_accounts (id_hash, name, state, ladder_at) values (${hash(id)}, ${'玩家' + i}, ${sql2.json(s)}, now() - interval '1 hour')`
   }
-  await db2.exec(`alter table card_accounts enable trigger card_accounts_projection_v1`)
+  await db2.exec(`alter table card_accounts enable trigger card_accounts_projection_v2`)
   await sql2`delete from account_projection_marks`
 
   interface Res { code: number; body: Record<string, unknown> }
@@ -454,14 +454,14 @@ check('删号连带删投影，没有孤儿行', Number(orphans) === 0, `${orpha
   check('超过五分钟：seen 更新', Date.now() - (await seenOf()) < 60_000)
 
   // ---- 7. the boot migration puts back a missing trigger, and sends only that schema
-  await db2.exec('drop trigger card_accounts_projection_v1 on card_accounts')
+  await db2.exec('drop trigger card_accounts_projection_v2 on card_accounts')
   await sql2`drop table if exists schema_marks`
   const logs: string[] = []
   const log = console.log
   console.log = (...a: unknown[]) => { logs.push(a.join(' ')) }
   let applied
   try { applied = await applySchema(sql2) } finally { console.log = log }
-  const [t] = await sql2`select count(*)::int as n from pg_trigger where tgname = 'card_accounts_projection_v1'`
+  const [t] = await sql2`select count(*)::int as n from pg_trigger where tgname = 'card_accounts_projection_v2'`
   check('启动迁移发现缺触发器，只补这一份', applied?.ready === true && t.n === 1 && logs.some((l) => l.includes('1 of 10')), logs.join(' | '))
   await db2.close()
 }

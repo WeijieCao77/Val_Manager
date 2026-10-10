@@ -72,7 +72,7 @@ try {
     check('1. 第二次启动什么都不锁', second?.ready === true && logs.some((l) => l.includes('already at this version')), logs.at(-1))
     const st = await P.projectionComplete(sql)
     check('1. 触发器已装上', st.trigger)
-    await sql`drop trigger card_accounts_projection_v1 on card_accounts`
+    await sql`drop trigger card_accounts_projection_v2 on card_accounts`
     await sql`delete from schema_marks`
     logs.length = 0
     console.log = (...a: unknown[]) => { logs.push(a.join(' ')) }
@@ -93,14 +93,14 @@ try {
   const N = Number(process.env.PG_PROJ_N) || 400
   const ids = Array.from({ length: N }, (_, i) => hash(`acct${i}`))
   const seed = async () => {
-    await sql`alter table card_accounts disable trigger card_accounts_projection_v1`
+    await sql`alter table card_accounts disable trigger card_accounts_projection_v2`
     await sql`delete from card_accounts`
     await sql`delete from account_projection_marks`
     for (let i = 0; i < N; i += 100) {
       const rows = ids.slice(i, i + 100).map((id, k) => ({ id_hash: id, name: `p${i + k}`, state: stateOf(i + k), suspect: (i + k) % 17 === 0 }))
       await sql`insert into card_accounts ${sql(rows.map((r) => ({ ...r, state: sql.json(r.state) })), 'id_hash', 'name', 'state', 'suspect')}`
     }
-    await sql`alter table card_accounts enable trigger card_accounts_projection_v1`
+    await sql`alter table card_accounts enable trigger card_accounts_projection_v2`
   }
 
   /** every projected row that differs from what the saves say, both ways */
@@ -162,7 +162,7 @@ try {
     const [old] = await plain`select state ? 'squad' as has from card_accounts where id_hash = ${X}`
     check('2. 写入未提交时，普通读仍看到旧存档（旧的插入式回填就是读到这个）', old.has === true)
     let settled = false
-    const b = reader`select account_reproject_v1(${X})`.then(() => { settled = true })
+    const b = reader`select account_reproject_v2(${X})`.then(() => { settled = true })
     await sleep(400)
     const [wait] = await plain`select count(*)::int as n from pg_locks where not granted`
     check('2. 重新投影在等 W 的行锁，没有先读旧存档', !settled && wait.n >= 1, `等待锁 ${wait.n}`)
@@ -175,7 +175,7 @@ try {
     const hold = latch()
     const inB = latch()
     const b2 = reader.begin(async (tx) => {
-      await tx`select account_reproject_v1(${Y})`
+      await tx`select account_reproject_v2(${Y})`
       inB.open()
       await hold.p
     })
