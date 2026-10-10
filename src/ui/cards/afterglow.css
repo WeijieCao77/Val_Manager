@@ -61,3 +61,7 @@
 .ag-sale{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:4px;background:#f2c46d;color:#210d18;font-size:11px;font-weight:700;vertical-align:middle;white-space:nowrap}
 .ag-shelf s{opacity:.55;margin-left:4px;font-weight:400}
 @media(max-width:620px){.ag-shelf{gap:20px}.ag-shelf-art .ag-shelf-back{width:92px;right:0}}
+/* the faces are 192 px squares: at 90% of the card they were blown up 2.2× and soft
+   (owner, 2026-10-11 「像素很低感觉很糊，稍微小一点点」) — 70%, still standing on the name plate */
+.ag-portrait{inset:24% 15% 19%}
+.ag-portrait-halo{inset:22% 12% 20%}

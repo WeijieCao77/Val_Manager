@@ -883,7 +883,7 @@ function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, retired, 
           {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
             <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />
           ))}
-          <CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} />
+          <CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} retired={retired} />
         </div>
         <div className="pack-tear-track" aria-hidden="true">
           <span className="pack-tear-cut" />

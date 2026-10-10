@@ -986,17 +986,17 @@ function paintRetiredSeat(
 
   const fin = AG_FINISH[card.rarity === 'gold' || card.rarity === 'silver' ? card.rarity : 'bronze']
   ctx.fillStyle = fin.base; ctx.fillRect(b.x, b.y, b.w, b.h)
-  // the halo behind the portrait (.ag-portrait-halo), inset 18% 10% 20%
-  const halo = ctx.createRadialGradient(X(50), Y(18) + H(62) * 0.35, 0, X(50), Y(18) + H(62) * 0.35, W(48))
+  // the halo behind the portrait (.ag-portrait-halo), inset 22% 12% 20%
+  const halo = ctx.createRadialGradient(X(50), Y(22) + H(58) * 0.35, 0, X(50), Y(22) + H(58) * 0.35, W(46))
   halo.addColorStop(0, fin.foil + '38'); halo.addColorStop(1, fin.foil + '00')
-  ctx.fillStyle = halo; ctx.fillRect(X(10), Y(18), W(80), H(62))
+  ctx.fillStyle = halo; ctx.fillRect(X(12), Y(22), W(76), H(58))
   ctx.beginPath()
-  ctx.moveTo(X(10), Y(80)); ctx.lineTo(X(10), Y(18) + W(38))
-  ctx.arcTo(X(10), Y(18), X(50), Y(18), W(38)); ctx.arcTo(X(90), Y(18), X(90), Y(18) + W(38), W(38))
-  ctx.lineTo(X(90), Y(80))
+  ctx.moveTo(X(12), Y(80)); ctx.lineTo(X(12), Y(22) + W(36))
+  ctx.arcTo(X(12), Y(22), X(50), Y(22), W(36)); ctx.arcTo(X(88), Y(22), X(88), Y(22) + W(36), W(36))
+  ctx.lineTo(X(88), Y(80))
   ctx.strokeStyle = fin.foil + '52'; ctx.lineWidth = hair; ctx.stroke()
-  // portrait, inset 17% 5% 19%, contained and standing on its foot
-  if (face) paintFaded(ctx, face, { x: X(5), y: Y(17), w: W(90), h: H(64) }, 'contain', 0.5, 1, 0.6, 'saturate(.7) contrast(1.06)')
+  // portrait, inset 24% 15% 19% (the faces are 192 px squares), contained and standing on its foot
+  if (face) paintFaded(ctx, face, { x: X(15), y: Y(24), w: W(70), h: H(57) }, 'contain', 0.5, 1, 0.6, 'saturate(.7) contrast(1.06)')
   else {
     ctx.fillStyle = fin.foil; ctx.font = font(400, W(20)); ctx.textAlign = 'center'
     ctx.fillText('◇', X(50), Y(38)); ctx.textAlign = 'left'
