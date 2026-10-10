@@ -57,12 +57,17 @@ def name_of(pid: str) -> str:
 def retired_rows() -> list[dict]:
     out = []
     early = json.loads((SRC / "early_faces.json").read_text()) if (SRC / "early_faces.json").exists() else {}
+    # the game's card data merges every identity source (dossier, retired.json, the
+    # status check, people.json); the dossier alone left 35 men without a name (Codex, 2026-10-11)
+    card = {n["vlrId"]: n for n in json.loads((ROOT / "src" / "data" / "retired_cards.json").read_text())["normals"]}
     for p in json.loads((SRC / "players.json").read_text()):
         if not p.get("rated") or p.get("class") not in ("retired",):
             continue
         h = DOSSIER["hist"].get(f"Hv{p['vlrId']}") or {}
         out.append({
-            "id": p["vlrId"], "ign": p["ign"], "real": h.get("real"), "nat": h.get("nat"),
+            "id": p["vlrId"], "ign": p["ign"],
+            "real": h.get("real") or (card.get(p["vlrId"]) or {}).get("realName"),
+            "nat": h.get("nat") or (card.get(p["vlrId"]) or {}).get("nat"),
             "img": f"/faces/{h['img']}?v={h.get('v', '')}" if h.get("img") else (f"/faces/{early[p['vlrId']]['file']}" if p["vlrId"] in early else None),
             "early": bool(p.get("early")),
             "rating": p["rating"], "rarity": RARITY[p["rarity"]], "last": p["last"],

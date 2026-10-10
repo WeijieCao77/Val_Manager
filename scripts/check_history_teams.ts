@@ -20,7 +20,7 @@ import {
 import type { PlayerCard, Squad } from '../src/engine/cards'
 import { SERVER_KEYS, migrateGacha, newGacha, receiveCard, staminaNow } from '../src/engine/gacha'
 import { restoreCard } from '../src/engine/inbox'
-import { HISTORY_CHAPTERS, HISTORY_STAGES, historyState, recordHistory } from '../src/engine/historyTeams'
+import { HISTORY_CHAPTERS, HISTORY_STAGES, historyEntry, historyState, recordHistory } from '../src/engine/historyTeams'
 
 const store = new Map<string, string>()
 ;(globalThis as never as { localStorage: unknown }) = {
@@ -96,7 +96,8 @@ assert(won, 'the best retired five beats the first stage within 400 tries')
 assert.equal(staminaNow(g, env().now), stamina, 'no 体力')
 assert(historyState(g).cleared.includes(first.id))
 assert(runAction(g, 'history_play', { stage: second.id }, env()).ok, 'the next stage opens')
-console.log('ok   按顺序开关、只收五名退役首发、不扣体力')
+assert.equal(historyEntry({ slots: [null, null, null, null, null], coach: null }).ok, false, 'an empty five cannot start')
+console.log('ok   按顺序开关、只收五名退役首发、不扣体力、空阵容不能点')
 
 // the rewards
 const h = newGacha('HISTPAY', '审计', DAY)

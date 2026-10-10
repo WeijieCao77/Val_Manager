@@ -211,7 +211,7 @@ export default function Packs() {
         <div className="ag-shelf-art"><RetiredShelfPack /><div className="ag-shelf-back"><CardBack retired /></div></div>
         <div className="ag-shelf-copy"><span className="ag-eyebrow">AFTERGLOW / 退役选手系列</span>
           <h3><span>余晖 ·</span> <span>退役选手</span>{rSale && <span className="ag-sale">上线 {zhe(rSale.off)}</span>}</h3>
-          <p>{RETIRED_NORMALS} 位退役选手 · {RETIRED_LEGENDS} 张退役彩卡 · 余晖卡背<br />每包 3 张退役卡，至少一张银卡，可能出退役彩卡。<br />退役彩卡单独保底：连续 {RETIRED_FLOOR} 抽必出。{rSale && <><br />{RETIRED_SALE.filter((s) => s.last >= rSale.last).map((s) => `${zhe(s.off)}到 ${md(s.last)}`).join('，')}。</>}</p>
+          <p>{RETIRED_NORMALS} 位退役选手 · {RETIRED_LEGENDS} 张退役彩卡 · 余晖卡背<br />每包 3 张退役卡，至少一张银卡，可能出退役彩卡。<br />退役彩卡单独保底：连续 {RETIRED_FLOOR} 抽没出，下一抽必出。{rSale && <><br />{RETIRED_SALE.filter((s) => s.last >= rSale.last).map((s) => `${zhe(s.off)}到 ${md(s.last)}`).join('，')}。</>}</p>
           <p>已收藏 {RETIRED_CARDS.filter(c => c.rarity !== 'mythic' && g.cards[c.id]).length} / {RETIRED_NORMALS} · 彩卡 {RETIRED_CARDS.filter(c => c.rarity === 'mythic' && g.cards[c.id]).length} / {RETIRED_LEGENDS}</p>
           <div className="row"><button disabled={busy || g.coins < retiredPrice} onClick={() => void open('retired', 'coins')}>{retiredPrice} 金币{rSale && <s>{PACKS.retired.cost}</s>} · 开启退役选手包</button>
             {(g.packs.retired ?? 0) > 0 && <button className="ag-shelf-secondary" disabled={busy} onClick={() => void open('retired', 'pack')}>打开库存（{g.packs.retired}）</button>}

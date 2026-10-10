@@ -18,6 +18,15 @@ const head: CSSProperties = { display: 'flex', justifyContent: 'space-between', 
 const track: CSSProperties = { position: 'relative', height: 8, minWidth: 0, flex: 'none', width: '100%' }
 const tick: CSSProperties = { position: 'absolute', top: -3, width: 2, height: 14, background: 'var(--text)', opacity: .35, borderRadius: 1 }
 
+/**
+ * A 彩卡 floor pays on the draw AFTER the count is full (gacha.ts: owed once
+ * dry >= FLOOR; check_mythic_floor.ts), so 「599/600 · 还差 1 抽必出」 promised a
+ * draw that could still miss (Codex, 2026-10-11). Say what the rule is.
+ */
+const floorLine = (left: number) => (left > 0
+  ? <>再 <b>{left.toLocaleString()}</b> 抽没出，下一抽必出</>
+  : <b>下一抽必出</b>)
+
 export default function Pity() {
   const { g } = useCards()
   const gold = Math.min(HARD_PITY, g.pity ?? 0)
@@ -48,7 +57,7 @@ export default function Pity() {
           <div style={head}>
             <b>彩卡</b>
             <span className="tiny muted">
-              {dry.toLocaleString()}/{MYTHIC_FLOOR.toLocaleString()} · 还差 <b>{(MYTHIC_FLOOR - dry).toLocaleString()}</b> 抽必出
+              {dry.toLocaleString()}/{MYTHIC_FLOOR.toLocaleString()} · {floorLine(MYTHIC_FLOOR - dry)}
             </span>
           </div>
           <div className="bar" role="progressbar" aria-label="彩卡保底进度" aria-valuemin={0} aria-valuemax={MYTHIC_FLOOR} aria-valuenow={dry} style={track} title={`连续 ${MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡就必出一张`}>
@@ -59,7 +68,7 @@ export default function Pity() {
           <div style={head}>
             <b>退役彩卡</b>
             <span className="tiny muted">
-              {rdry}/{RETIRED_FLOOR} · 还差 <b>{RETIRED_FLOOR - rdry}</b> 抽必出 · 只算退役选手包
+              {rdry}/{RETIRED_FLOOR} · {floorLine(RETIRED_FLOOR - rdry)} · 只算退役选手包
             </span>
           </div>
           <div className="bar" role="progressbar" aria-label="退役彩卡保底进度" aria-valuemin={0} aria-valuemax={RETIRED_FLOOR} aria-valuenow={rdry} style={track} title={`退役选手包连续 ${RETIRED_FLOOR} 抽没出退役彩卡就必出一张`}>

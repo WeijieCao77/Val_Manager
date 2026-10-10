@@ -14,7 +14,9 @@
  * pays one 退役选手包, the whole board one more — each once per account.
  */
 import HT from '../data/history_teams.json'
+import { SQUAD_SLOTS } from './cards'
 import type { Squad } from './cards'
+import type { Role } from './types'
 import { leagueEntry, note } from './gacha'
 import type { GachaState, PackKind } from './gacha'
 
@@ -31,11 +33,32 @@ export interface HistoryStage {
   rating: number
   five: Squad
 }
-type Row = { id: string; chapter: number; event: string; short: string; year: number; team: string; tag: string; result: string; rating: number; players: { vlrId: string }[] }
+type Row = { id: string; chapter: number; event: string; short: string; year: number; team: string; tag: string; result: string; rating: number; players: { vlrId: string; role: Role }[] }
+
+/**
+ * The five in their seats: each man in the slot of the role he played that
+ * week, the spare ones in 自由人 first. In data order (as first shipped) most
+ * of them stood out of position and paid the misfit cost — PRX's five read
+ * 77.3 instead of 82.1 (Codex, 2026-10-11).
+ */
+function seated(stage: string, players: Row['players']): (string | null)[] {
+  const slots: (string | null)[] = SQUAD_SLOTS.map(() => null)
+  const left = [...players]
+  SQUAD_SLOTS.forEach((role, i) => {
+    if (role === '自由人') return
+    const k = left.findIndex((p) => p.role === role)
+    if (k >= 0) slots[i] = `ht:${stage}:${left.splice(k, 1)[0].vlrId}`
+  })
+  const free = SQUAD_SLOTS.indexOf('自由人')
+  for (const i of [free, ...SQUAD_SLOTS.map((_, j) => j).filter((j) => j !== free)]) {
+    if (!slots[i] && left.length) slots[i] = `ht:${stage}:${left.shift()!.vlrId}`
+  }
+  return slots
+}
 export const HISTORY_STAGES: HistoryStage[] = (HT as unknown as { stages: Row[] }).stages.map((s) => ({
   id: s.id, chapter: s.chapter, event: s.event, short: s.short, year: s.year, team: s.team, tag: s.tag,
   result: s.result, rating: s.rating,
-  five: { slots: s.players.map((p) => `ht:${s.id}:${p.vlrId}`), coach: null },
+  five: { slots: seated(s.id, s.players), coach: null },
 }))
 export const HISTORY_CHAPTERS = [...new Set(HISTORY_STAGES.map((s) => s.chapter))]
 export const HISTORY_BO = 3
@@ -76,6 +99,7 @@ export function stageOpen(h: HistoryState, id: string): boolean {
 
 /** Five retired starters, as in 传奇联赛. */
 export const historyEntry = (squad: Squad): { ok: true } | { ok: false; why: string } => {
+  if (squad.slots.slice(0, 5).filter(Boolean).length < 5) return { ok: false, why: '先凑齐五个人。' }
   const e = leagueEntry(squad, 'retired')
   return e.ok ? e : { ok: false, why: e.why.replace('传奇联赛', '历代强队') }
 }

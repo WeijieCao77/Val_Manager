@@ -38,10 +38,11 @@ B = ROOT / "analysis" / "rating" / "history_v16"
 OUT = ROOT / "src" / "data" / "history_teams.json"
 
 # chapter, event id, team name on the vlr event page, result, short label, region.
-# Chapters run by measured difficulty, not by year (scripts/tmp/measure_history.ts,
-# 300 BO3 each, a middling silver retired five at +0: 38/31/31% · 28/14/12% ·
-# 10/10/8% · 8/7/7%), so the first chapter is the one a starting collection can
-# clear and 2021 Sentinels — TenZ's Reykjavík — is the last.
+# Chapters run by measured difficulty, not by year (scripts/measure_history_teams.ts,
+# 300 BO3 each, a middling silver retired five at +0, each opponent in the slot of his
+# role — historyTeams.ts seated(): 39/27/23% · 16/8/8% · 7/6/8% · 8/6/6%), so the first
+# chapter is the one a starting collection can clear and 2021 Sentinels — TenZ's
+# Reykjavík — is the last.
 STAGES = [
     (1, "449", "Acend", "冠军", "21 冠军赛", "EMEA"),
     (1, "466", "Gambit Esports", "冠军", "21 柏林", "EMEA"),

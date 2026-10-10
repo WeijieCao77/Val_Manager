@@ -296,6 +296,15 @@ def main() -> int:
             events[eid]["end"] = events[eid]["end"] or meta["end"]
 
     BASE.mkdir(parents=True, exist_ok=True)
+    # A world event's show match is not a match: its sides carry no club tag on the
+    # stats page (「Team」), e.g. Team tarik vs Team Toast at Masters Toronto 2025,
+    # where TenZ's 20 rounds moved his last match day to 2025-06-22 (Codex, 2026-10-11).
+    # Challengers pages also print 「Team」 for untagged open-qualifier fives, which
+    # are real matches, so the rule is held to masters and champions.
+    show = [r for r in records if events.get(r["eid"], {}).get("tier") in ("masters", "champions") and r["club"] in ("Team", "TBD", "")]
+    if show:
+        print(f"dropped {len(show)} show-match records: {sorted({(r['eid'], r['ign']) for r in show})}")
+    records = [r for r in records if r not in show]
     (BASE / "events.json").write_text(json.dumps(events, ensure_ascii=False, indent=1))
     (BASE / "records.json").write_text(json.dumps(records, ensure_ascii=False))
     from collections import Counter
