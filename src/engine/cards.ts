@@ -22,6 +22,7 @@ import { LEGENDS } from './legends'
 import COACHED_JSON from '../data/coached.json'
 import RATED from '../data/card_ratings.json'
 import ARCHIVE from '../data/card_archive.json'
+import RETIRED_JSON from '../data/retired_cards.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -83,7 +84,8 @@ export interface PlayerCard {
   former?: boolean
   /** Set only by the reviewed catalogue; counts toward the normal two-retiree cap. */
   retired?: boolean
-  event?: 'seoul-2024' | 'bangkok-2025'
+  /** a series card: its own pack, outside the 全图鉴 and the club sets */
+  event?: 'seoul-2024' | 'bangkok-2025' | 'retired'
   seoul?: SeoulEntry
   bangkok?: BangkokEntry
   id: string
@@ -394,6 +396,62 @@ export const FORMER_COACH_CARDS: CoachCard[] = Object.values(ARCHIVED.coaches)
 /** cards nobody can pull any more, but somebody may own */
 export const FORMER_CARDS: Card[] = [...FORMER_PLAYER_CARDS, ...FORMER_COACH_CARDS]
 
+// ---------------------------------------------------------------- 退役 (余晖)
+
+/**
+ * The retired series: men who have left the professional game, rated with the
+ * live algorithm over their whole career (scripts/rating/history_v16.py, the
+ * page at /cards/retired/stats), plus eight nights as 彩卡.
+ *
+ * A series of its own, like 首尔 and 曼谷: dealt only by the 退役选手包 (with
+ * its own 彩卡 floor), outside the 全图鉴 and the club sets. Every card counts
+ * toward the two-retiree cap in ordinary play (retirementRules.ts). The club
+ * is an `H:` id for the last club he played for — chemistry compares ids, so
+ * old teammates still know each other and no live club is confused with it.
+ */
+type RetiredNormal = {
+  id: string; playerId: string; ign: string; realName: string | null; nat: string | null
+  faceFile: string | null; faceV: string | null; region: Region; clubTag: string
+  role: Role; roles: Role[]; isIgl: boolean; age: number; attrs: Attrs; rating: number
+  rarity: Rarity; span: [number, number]
+}
+type RetiredLegend = {
+  id: string; playerId: string; ign: string; title: string; short: string; year: number
+  clubTag: string; note: string; rating: number; attrs: Attrs; role: Role; photo: string; photoV: string
+}
+const assetUrl = (path: string, v?: string): string => {
+  const base = typeof import.meta.env !== 'undefined' ? import.meta.env.BASE_URL : './'
+  return `${base}${path}${v ? `?v=${v}` : ''}`
+}
+const RETIRED_DATA = RETIRED_JSON as unknown as { normals: RetiredNormal[]; legends: RetiredLegend[] }
+const histClub = (tag: string) => `H:${tag.toLowerCase()}`
+
+function buildRetiredCards(): PlayerCard[] {
+  const normals: PlayerCard[] = RETIRED_DATA.normals.map((r) => ({
+    kind: 'player', id: r.id, playerId: r.playerId, event: 'retired', retired: true,
+    ign: r.ign, realName: r.realName, nat: r.nat,
+    face: r.faceFile ? faceUrl(r.faceFile, r.faceV ?? undefined) : null,
+    region: r.region, clubId: histClub(r.clubTag), clubTag: r.clubTag,
+    role: r.role, roles: r.roles, isIgl: r.isIgl, age: r.age, attrs: r.attrs,
+    rating: r.rating, rarity: r.rarity,
+  }))
+  const byPlayer = new Map(normals.map((c) => [c.playerId, c]))
+  const legends: PlayerCard[] = RETIRED_DATA.legends.map((l) => {
+    const base = byPlayer.get(l.playerId)!
+    return {
+      ...base, id: l.id, rarity: 'mythic' as Rarity, rating: l.rating, attrs: l.attrs,
+      face: assetUrl(l.photo, l.photoV), clubId: histClub(l.clubTag), clubTag: l.clubTag,
+      legend: {
+        id: l.id, ign: l.ign, title: l.title, short: l.short, year: l.year, kind: 'icon',
+        clubId: histClub(l.clubTag), clubTag: l.clubTag, rating: l.rating, note: l.note,
+      },
+    }
+  })
+  return [...normals, ...legends]
+}
+/** the 退役 series, 普卡 and 彩卡; dealt only by the 退役选手包 */
+export const RETIRED_CARDS: PlayerCard[] = buildRetiredCards()
+
 export const BASE_PLAYER_CARDS: PlayerCard[] = LIVE_PLAYER_CARDS
 // a legend or an event card of a man who has since left is still built on his record
 const ANY_BASE: PlayerCard[] = [...LIVE_PLAYER_CARDS, ...FORMER_PLAYER_CARDS]
@@ -404,7 +462,7 @@ export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(ANY_BASE)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
-export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...COACH_CARDS]
+export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
 
 const byId = new Map([...ALL_CARDS, ...FORMER_CARDS].map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(

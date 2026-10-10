@@ -38,8 +38,8 @@ export interface CardFilter {
 }
 
 /** 'base' is every card that is not in a named series (彩卡 and coaches included). */
-export type CardSeries = 'base' | 'seoul-2024' | 'bangkok-2025'
-export const SERIES_CN: Record<CardSeries, string> = { base: '常规卡', 'seoul-2024': '24 首尔冠军赛', 'bangkok-2025': '25 曼谷大师赛' }
+export type CardSeries = 'base' | 'seoul-2024' | 'bangkok-2025' | 'retired'
+export const SERIES_CN: Record<CardSeries, string> = { base: '常规卡', 'seoul-2024': '24 首尔冠军赛', 'bangkok-2025': '25 曼谷大师赛', retired: '退役选手' }
 const SERIES_KEYS = Object.keys(SERIES_CN) as CardSeries[]
 
 export const seriesOf = (card: Card): CardSeries =>

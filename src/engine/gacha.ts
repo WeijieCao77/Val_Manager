@@ -18,7 +18,7 @@ import type { SavedPicks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
 import type { EventRouteState } from './eventRoute'
 import {
-  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating, squadPower, EVO_LEVEL_ROOM,
 } from './cards'
@@ -51,6 +51,8 @@ export type Series = (typeof SERIES)[number]
 
 export type PackKind =
   | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024' | 'bangkok2025'
+  // the 退役 series: its own pool, its own 彩卡 floor (RETIRED_FLOOR)
+  | 'retired'
   // one 彩卡, nothing else — the reward for a full 图鉴; never sold
   | 'legend'
   // one per series — same three cards, drawn only from that region
@@ -90,7 +92,7 @@ export interface PackDef {
    */
   shop?: boolean
   /** coach packs deal from a different deck; a series deals from one region; a position from its players; 'legend' is every 彩卡 */
-  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'legend' | Series | PackPosition
+  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'retired' | 'legend' | Series | PackPosition
 }
 
 /**
@@ -108,6 +110,15 @@ export const PACKS: Record<PackKind, PackDef> = {
     kind: 'bangkok2025', name: '曼谷 2025 大师赛包', pool: 'bangkok2025',
     blurb: '8 支战队 · 41 位登场选手。三张曼谷赛事卡，至少一张银卡，不出彩卡。',
     cost: 3000, draws: 3, mythic: 0, gold: .12, silver: .38, floor: 'silver', shop: true,
+  },
+  // The 退役 series (owner, 2026-10-10): same three-card shape as the event
+  // packs, gold 16% so the set takes about as long as 首尔 (~250 packs for
+  // 169 cards, 35 of them gold), and 彩卡 at the 选拔包's rate — but on a
+  // floor of its own, RETIRED_FLOOR, that no other pack moves or spends.
+  retired: {
+    kind: 'retired', name: '退役选手包', pool: 'retired',
+    blurb: '三张退役选手卡，至少一张银卡，可能出退役彩卡（单独保底）。',
+    cost: 3000, draws: 3, mythic: 0.0004, gold: 0.16, silver: 0.38, floor: 'silver', shop: true,
   },
   seoul2024: {
     kind: 'seoul2024', name: '首尔 2024 冠军赛包', pool: 'seoul2024',
@@ -224,7 +235,7 @@ export const seriesOfPack = (kind: PackKind): Series | null =>
         : kind === 'emea' ? 'EMEA' : null
 
 export const PACK_ORDER: PackKind[] = [
-  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025',
+  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'retired', 'seoul2024', 'bangkok2025',
 ]
 
 /**
@@ -250,6 +261,14 @@ export const HARD_PITY = 45
  * without moving this would have changed almost nothing.
  */
 export const MYTHIC_FLOOR = 1200
+
+/**
+ * The 退役选手包's own 彩卡 floor (owner, 2026-10-10): 600 of its draws, about
+ * 200 packs. Counted only by that pack and paid only by it — a drought run up
+ * on cheap 试训包 draws cannot be cashed in on the retired eight, and the
+ * retired pack never touches the 1200 above.
+ */
+export const RETIRED_FLOOR = 600
 
 // ---------------------------------------------------------------- the day
 
@@ -794,6 +813,8 @@ export interface GachaState {
   pity: number
   /** pulls since the last彩卡 — see MYTHIC_FLOOR */
   mythicDry: number
+  /** 退役选手包 draws since its last 彩卡 — see RETIRED_FLOOR */
+  retiredDry?: number
   pulls: number
   ladder: LadderState
   /** the metal ladders and 名人堂; `ladder` above is the open one */
@@ -993,6 +1014,7 @@ export function newGacha(id: string, name: string, today: string): GachaState {
     squad: emptySquad(),
     pity: 0,
     mythicDry: 0,
+    retiredDry: 0,
     pulls: 0,
     ladder: { div: 0, stars: 0, best: 0, wins: 0, losses: 0, streak: 0 },
     challenge: newChallenge(),
@@ -1060,6 +1082,12 @@ const rolePool = (role: PackPosition) => ({
 })
 
 const POOLS = {
+  retired: {
+    mythic: RETIRED_CARDS.filter(c => c.rarity === 'mythic'),
+    gold: RETIRED_CARDS.filter(c => c.rarity === 'gold'),
+    silver: RETIRED_CARDS.filter(c => c.rarity === 'silver'),
+    bronze: RETIRED_CARDS.filter(c => c.rarity === 'bronze'),
+  },
   bangkok2025: {
     mythic: [] as PlayerCard[],
     gold: BANGKOK_CARDS.filter(c => c.rarity === 'gold'),
@@ -1157,7 +1185,8 @@ export function openPack(
     let metal: Rarity
     // the彩卡 roll happens first and on its own budget, so raising the gold
     // rate never quietly changes how rare a legend is
-    const owed = def.mythic > 0 && g.mythicDry >= MYTHIC_FLOOR
+    const own = def.pool === 'retired'
+    const owed = def.mythic > 0 && (own ? (g.retiredDry ?? 0) >= RETIRED_FLOOR : g.mythicDry >= MYTHIC_FLOOR)
     if (certain) {
       metal = 'mythic'
     } else if (owed || r < def.mythic) {
@@ -1170,11 +1199,17 @@ export function openPack(
       else if (rest < gc + def.silver) metal = 'silver'
       else metal = 'bronze'
     }
-    if (certain) { /* outside the pity system */ } else if (metal === 'mythic') { g.mythicDry = 0; g.pity = 0 } else {
+    if (certain) { /* outside the pity system */ } else if (metal === 'mythic') {
+      // a pack pays its own floor: the retired pack never spends the shared one
+      if (own) g.retiredDry = 0
+      else g.mythicDry = 0
+      g.pity = 0
+    } else {
       // a pack with no彩卡 in it must not count toward the floor either —
       // otherwise the guarantee could be spent on a deck it can never be paid
       // out of. The coach pack has one now, so it does count.
-      if (def.mythic > 0) g.mythicDry = (g.mythicDry ?? 0) + 1
+      if (def.mythic > 0 && own) g.retiredDry = (g.retiredDry ?? 0) + 1
+      else if (def.mythic > 0) g.mythicDry = (g.mythicDry ?? 0) + 1
       if (metal === 'gold') g.pity = 0
       else g.pity++
     }
@@ -2744,6 +2779,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.packs = g.packs && typeof g.packs === 'object' ? g.packs : {}
   g.pity = typeof g.pity === 'number' ? g.pity : 0
   g.mythicDry ??= 0
+  g.retiredDry = typeof g.retiredDry === 'number' && Number.isFinite(g.retiredDry) ? Math.max(0, Math.trunc(g.retiredDry)) : 0
   // the metal ladders arrived after 大师; an account from before them simply
   // has none, and each one is created the first time it is played
   if (g.leagues && typeof g.leagues === 'object') {
@@ -2839,7 +2875,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  * is simply not read.
  */
 export const SERVER_KEYS = [
-  'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
+  'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'retiredDry', 'pulls', 'ladder',
   'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute',
   'season', 'lastSeason', 'enc', 'nameAt',
 ] as const
