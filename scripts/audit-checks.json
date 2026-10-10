@@ -890,6 +890,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_coach_is_player.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_retirement_cap.ts"
   }
 ]

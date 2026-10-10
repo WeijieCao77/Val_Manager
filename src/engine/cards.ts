@@ -524,6 +524,23 @@ export const cardName = (c: Card): string => (c.kind === 'player' ? c.ign : c.na
 export const personOf = (c: Card): string =>
   c.kind === 'player' ? c.playerId : `c:${c.name}`
 
+/**
+ * Coaches who are also a player card — the same man, matched by vlr id, never
+ * by handle (potter the EG coach is not potter the Thai player; Autumn at EDG
+ * is not the Australian Autumn). ColdFish (向鹏志, vlr 3020) took over KBG on
+ * 2026-09-01; Biank (钟剑飞, vlr 3021) is UR's head coach (overrides.json).
+ */
+const COACH_VLR: Record<string, string> = { ColdFish: '3020', Biank: '3021' }
+const PLAYER_OF_VLR = new Map(
+  Object.entries(DOSSIER.players as Record<string, { vlr?: string | number }>)
+    .filter(([, d]) => d.vlr).map(([pid, d]) => [String(d.vlr), pid]),
+)
+/** The playerId a coach card also is as a player, or null. One man cannot start and coach the same five. */
+export const coachAsPlayer = (c: CoachCard): string | null => {
+  const v = COACH_VLR[c.name]
+  return v ? PLAYER_OF_VLR.get(v) ?? `Hv${v}` : null
+}
+
 // ---------------------------------------------------------------- levels
 
 /**

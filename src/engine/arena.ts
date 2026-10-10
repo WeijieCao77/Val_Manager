@@ -19,7 +19,7 @@ import { canonAgents } from './content'
 import { Rng, clamp } from './rng'
 import { BALANCE_VERSION, cardStrengths } from './balance'
 import {
-  cardById, chemistry, coachLiftAt, growthOf, isCoachCard, isPlayerCard, LEVEL_GAIN, personOf, SQUAD_SLOTS, squadPaper,
+  cardById, chemistry, coachAsPlayer, coachLiftAt, growthOf, isCoachCard, isPlayerCard, LEVEL_GAIN, personOf, SQUAD_SLOTS, squadPaper,
 } from './cards'
 import type { Squad } from './cards'
 import type { PlayerCard } from './cards'
@@ -196,6 +196,10 @@ function seatSquad(
   state: GameState, squad: ArenaSquad, level: (cardId: string) => number,
   teamId: string, prefix: string, cardOf: Record<string, string>,
 ): void {
+  // one man cannot start and coach the same five; a five saved before that rule plays without the coach
+  const starters = new Set(squad.slots.map((id) => (id ? cardById(id) : undefined)).filter(isPlayerCard).map(personOf))
+  const named = squad.coach ? cardById(squad.coach) : undefined
+  if (isCoachCard(named) && starters.has(coachAsPlayer(named) ?? '')) squad = { ...squad, coach: null }
   const chem = chemistry(squad)
   const roster: string[] = []
   // The squad builder will not let you seat a man twice, but a save written

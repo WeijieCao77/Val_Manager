@@ -43,7 +43,7 @@ import { washEvo } from './evoWash'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, challengeDay, challengeSig, guessChallenge, setChallengeHour } from './challenge'
 import { hashStr } from './rng'
-import { cardById, isPlayerCard, personOf, squadRating } from './cards'
+import { cardById, cardName, coachAsPlayer, isPlayerCard, personOf, squadRating } from './cards'
 import { retiredLimit } from './retirementRules'
 import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
@@ -136,6 +136,9 @@ export function squadForPlay(g: GachaState, opts: { anyRetired?: boolean } = {})
   const coach = g.squad.coach && g.cards[g.squad.coach] && cardById(g.squad.coach)?.kind === 'coach'
     ? g.squad.coach : null
   if (slots.filter(Boolean).length < 5) return { ok: false, why: '先凑齐五个人。' }
+  const cc = coach ? cardById(coach) : undefined
+  const man = cc && cc.kind === 'coach' ? coachAsPlayer(cc) : null
+  if (man && seen.has(man)) return { ok: false, why: `${cardName(cc!)} 不能既首发又当教练。` }
   if (!opts.anyRetired) {
     const cap = retiredLimit(slots)
     if (!cap.ok) return cap
