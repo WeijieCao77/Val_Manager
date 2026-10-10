@@ -85,6 +85,8 @@ try {
     g.squad = { slots: [id, ...five], coach: null }
     const r = runAction(g, 'ladder', { league: 'open' }, { now: Date.now(), today: '2026-10-10', seed: 7 })
     out.ladder = r.ok ? 'played' : r.why
+    // played, not just admitted: with no world record his seat used to stay empty and the five played four
+    out.seated = r.ok && r.result.res.lines.some(l => l.cardId === id)
     let dealt = false
     for (let i = 0; i < 3000 && !dealt; i++) for (const x of G.openPack(g, 'elite', 'coins')) if (x.card.id === id) dealt = true
     out.dealt = dealt
@@ -95,6 +97,7 @@ try {
   check(res.former, 'his card is marked former')
   check(res.inCollection, "it is in the owner's collection")
   check(res.ladder === 'played', 'it fields in a five and plays a ladder match', String(res.ladder))
+  check(res.seated, 'he takes his seat in that match (built from the card, not the world he left)')
   check(!res.inAll, 'it is out of the dealt pool and the 图鉴 total')
   check(!res.dealt, 'no pack deals it (3000 选拔包)')
 } finally {
