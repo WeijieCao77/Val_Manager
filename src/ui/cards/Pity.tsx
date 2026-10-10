@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
-import { HARD_PITY, MYTHIC_FLOOR, SOFT_PITY } from '../../engine/gacha'
+import { HARD_PITY, MYTHIC_FLOOR, RETIRED_FLOOR, SOFT_PITY } from '../../engine/gacha'
 
 /**
  * The two guarantees, as two bars.
@@ -22,6 +22,8 @@ export default function Pity() {
   const { g } = useCards()
   const gold = Math.min(HARD_PITY, g.pity ?? 0)
   const dry = Math.min(MYTHIC_FLOOR, g.mythicDry ?? 0)
+  // the 退役选手包 keeps its own 彩卡 floor (owner, 2026-10-10): its own bar
+  const rdry = Math.min(RETIRED_FLOOR, g.retiredDry ?? 0)
   const soft = gold >= SOFT_PITY
   return (
     <Panel
@@ -51,6 +53,17 @@ export default function Pity() {
           </div>
           <div className="bar" role="progressbar" aria-label="彩卡保底进度" aria-valuemin={0} aria-valuemax={MYTHIC_FLOOR} aria-valuenow={dry} style={track} title={`连续 ${MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡就必出一张`}>
             <i style={{ width: `${(dry / MYTHIC_FLOOR) * 100}%`, background: '#c26bff' }} />
+          </div>
+        </div>
+        <div style={row}>
+          <div style={head}>
+            <b>退役彩卡</b>
+            <span className="tiny muted">
+              {rdry}/{RETIRED_FLOOR} · 还差 <b>{RETIRED_FLOOR - rdry}</b> 抽必出 · 只算退役选手包
+            </span>
+          </div>
+          <div className="bar" role="progressbar" aria-label="退役彩卡保底进度" aria-valuemin={0} aria-valuemax={RETIRED_FLOOR} aria-valuenow={rdry} style={track} title={`退役选手包连续 ${RETIRED_FLOOR} 抽没出退役彩卡就必出一张`}>
+            <i style={{ width: `${(rdry / RETIRED_FLOOR) * 100}%`, background: '#d8b77e' }} />
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@
  */
 import { useEffect, useState } from 'react'
 import { measureOdds, type PackOdds } from '../../engine/odds'
-import { HARD_PITY, MYTHIC_FLOOR, SOFT_PITY } from '../../engine/gacha'
+import { HARD_PITY, MYTHIC_FLOOR, RETIRED_FLOOR, SOFT_PITY } from '../../engine/gacha'
 
 const METALS = [
   { key: 'mythic', label: '彩卡', cls: 'r-mythic' },
@@ -111,6 +111,9 @@ export function OddsWhy() {
         </li>
         <li>
           <b>彩卡保底</b>：连续 {MYTHIC_FLOOR.toLocaleString()} 抽没出彩卡必出一张。位置包不出彩卡，也不计入。
+        </li>
+        <li>
+          <b>退役彩卡保底</b>：退役选手包单独计数，连续 {RETIRED_FLOOR} 抽没出退役彩卡必出一张；它和上面的彩卡保底互不影响。
         </li>
         <li>
           <b>保底进度挂在账号上</b>，换一种包开不重置。
