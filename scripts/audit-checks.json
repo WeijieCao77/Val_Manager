@@ -878,6 +878,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_collect_rewards.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_retirement_cap.ts"
   }
 ]

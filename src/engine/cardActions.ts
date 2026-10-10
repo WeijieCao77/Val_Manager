@@ -24,7 +24,7 @@
  * lets scripts/check_authority.ts drive every action without a database.
  */
 import {
-  awardMinigame, canPlay, checkIn, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
+  awardMinigame, canPlay, checkIn, claimCollect, isCollectSeries, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, playLevelOf, oppBumpFor, openPack, openPacks, pendingOpponent, primeStamina, recordCup, recordLadder,
   refreshDaily, salvage, salvageBulk, spendPlay, upgrade, isLeague, ladderSlot, leagueEntry,
   LADDER_BO, LEAGUE_RULES, MASTER_DIV, RIVAL_MERCY_GAP, SERIES, STAMINA_COST, SWEEPABLE, isPackKind, registerCupSquad,
@@ -90,7 +90,7 @@ export type ActResult =
   | { ok: false; why: string }
 
 export const ACTIONS = [
-  'open', 'checkin', 'quest', 'series', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
+  'open', 'checkin', 'quest', 'series', 'collect', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'evo_wash', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
   'bangkok_start', 'bangkok_play', 'bangkok_quit',
@@ -210,6 +210,12 @@ function dispatch(
       if (!(SERIES as readonly string[]).includes(region)) return { ok: false, why: '没有这个赛区' }
       const got = claimSeries(g, region)
       if (!got) return { ok: false, why: '这个赛区没有可领的奖励' }
+      return { ok: true, result: { got } }
+    }
+    case 'collect': {
+      if (!isCollectSeries(a.series)) return { ok: false, why: '没有这个系列' }
+      const got = claimCollect(g, a.series)
+      if (!got) return { ok: false, why: '这个系列没有可领的奖励' }
       return { ok: true, result: { got } }
     }
     case 'fullset': {

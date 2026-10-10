@@ -6,9 +6,9 @@ import { Panel } from '../common'
 import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
-  fullSetProgress, FULL_SET_REWARD, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
+  fullSetProgress, FULL_SET_REWARD, collectProgress, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
 } from '../../engine/gacha'
-import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
+import type { CheckIn, CollectSeries, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card, Rarity } from '../../engine/cards'
 import { RARITY_CN, cardById, isPlayerCard, rarityRank } from '../../engine/cards'
 import { REGION_CN } from '../../engine/types'
@@ -48,6 +48,7 @@ export default function Packs() {
   const series = seriesProgress(g)
   const featured = featuredSeries(today)
   const fullSet = fullSetProgress(g)
+  const collect = collectProgress(g)
 
   // The pack is rolled on the server and comes back already in the
   // collection; what happens here is the reveal.
@@ -129,6 +130,12 @@ export default function Packs() {
     const r = await act('series', { region })
     if (!r.ok) { toast(r.why); return }
     toast(`系列奖励已领取：${(r.result as { got: string }).got}`)
+  }
+
+  const takeCollect = async (series: CollectSeries) => {
+    const r = await act('collect', { series })
+    if (!r.ok) { toast(r.why); return }
+    toast(`收集奖励已领取：${(r.result as { got: string }).got}`)
   }
 
   const takeFullSet = async () => {
@@ -431,6 +438,48 @@ export default function Packs() {
             </button>
           )}
         </div>
+        {/* 退役 / 首尔 / 曼谷: each set pays its own ladder (彩卡 not counted) */}
+        {collect.map((c) => {
+          const pct = Math.floor((c.owned / Math.max(1, c.total)) * 100)
+          return (
+            <div
+              key={c.series}
+              className="row wrap"
+              style={{
+                gap: 10, alignItems: 'center', marginTop: 8, padding: '8px 10px',
+                border: '1px solid var(--line)', borderRadius: 8,
+                borderColor: c.ready.length ? 'var(--warn)' : undefined,
+              }}
+            >
+              <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                  <b style={{ fontSize: 13 }}>{c.name}</b>
+                  <span className="tiny mono faint">{c.owned}/{c.total}（{pct}%）</span>
+                </div>
+                <div
+                  style={{
+                    height: 5, borderRadius: 3, background: 'var(--panel-2)',
+                    border: '1px solid var(--line)', overflow: 'hidden', margin: '5px 0',
+                  }}
+                >
+                  <div style={{ width: `${pct}%`, height: '100%', background: c.owned >= c.total ? 'var(--good)' : 'var(--accent)' }} />
+                </div>
+                <span className="tiny faint" style={{ lineHeight: 1.6 }}>
+                  {c.ready.length
+                    ? `有 ${c.ready.length} 档奖励可以领`
+                    : c.next
+                      ? `再收 ${c.next.need} 张到 ${Math.round(c.next.at * 100)}%：${c.next.label}`
+                      : '全部收齐了'}
+                </span>
+              </div>
+              {c.ready.length > 0 && (
+                <button className="sm warn" style={{ whiteSpace: 'nowrap' }} onClick={() => void takeCollect(c.series)}>
+                  领奖
+                </button>
+              )}
+            </div>
+          )
+        })}
       </Panel>
 
       {opening && (

@@ -833,6 +833,8 @@ export interface GachaState {
   series?: Partial<Record<Series, number>>
   /** 1 once the 全图鉴 reward has been collected — see FULL_SET */
   fullSet?: number
+  /** marks taken on the 退役 / 首尔 / 曼谷 collection ladders — see COLLECT_REWARDS */
+  collect?: Partial<Record<CollectSeries, number>>
   /** 好友对战房 — see FriendRec */
   friends?: FriendRec[]
   /** saved squad presets — see SQUAD_PRESETS */
@@ -1673,6 +1675,102 @@ export function claimSeries(g: GachaState, region: Series): string | null {
   const parts = [packs.join('、'), coins ? `+${coins} 金币` : '']
     .filter(Boolean)
   note(g, `${REGION_CN[region]}系列进度奖励：${parts.join('，')}`)
+  return parts.join('，')
+}
+
+// ---------------------------------------------------------------- series collections
+
+/**
+ * The 退役, 首尔 and 曼谷 sets pay their own ladders, like the four regions
+ * (owner, 2026-10-10). Sized by what each costs to finish — measured, about
+ * 320 退役选手包 for the 169 retired 普卡, 243 首尔包 for 80, 65 曼谷包 for 41 —
+ * and returning about 5% of it, as the regions do. 首尔's 90% mark pays in
+ * 首尔包 because the shop stopped selling them; 首尔 and 曼谷 end in 退役选手包.
+ * 彩卡 are not part of the bar (the retired eight are the trophy on top).
+ */
+export type CollectSeries = 'retired' | 'seoul2024' | 'bangkok2025'
+export const COLLECT_SERIES: readonly CollectSeries[] = ['retired', 'seoul2024', 'bangkok2025']
+export const COLLECT_NAME: Record<CollectSeries, string> = { retired: '退役选手', seoul2024: '首尔 2024', bangkok2025: '曼谷 2025' }
+export const COLLECT_REWARDS: Record<CollectSeries, SeriesReward[]> = {
+  retired: [
+    { at: 0.25, coins: 1500, label: '+1500 金币' },
+    { at: 0.5, coins: 1500, pack: 'elite', label: '选拔包 ×1，+1500 金币' },
+    { at: 0.75, coins: 5000, label: '+5000 金币' },
+    { at: 0.9, coins: 0, pack: 'retired', count: 2, label: '退役选手包 ×2' },
+    { at: 1, coins: 25000, pack: 'ten', label: '十连包 ×1，+25000 金币' },
+  ],
+  seoul2024: [
+    { at: 0.25, coins: 1500, label: '+1500 金币' },
+    { at: 0.5, coins: 1500, pack: 'elite', label: '选拔包 ×1，+1500 金币' },
+    { at: 0.75, coins: 5000, label: '+5000 金币' },
+    { at: 0.9, coins: 0, pack: 'seoul2024', count: 2, label: '首尔包 ×2' },
+    { at: 1, coins: 10000, pack: 'retired', count: 3, label: '退役选手包 ×3，+10000 金币' },
+  ],
+  bangkok2025: [
+    { at: 0.5, coins: 1500, label: '+1500 金币' },
+    { at: 0.9, coins: 0, pack: 'bangkok2025', count: 1, label: '曼谷包 ×1' },
+    { at: 1, coins: 3000, pack: 'retired', count: 1, label: '退役选手包 ×1，+3000 金币' },
+  ],
+}
+const COLLECT_CARDS: Record<CollectSeries, ReadonlySet<string>> = {
+  retired: new Set(RETIRED_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id)),
+  seoul2024: new Set(SEOUL_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id)),
+  bangkok2025: new Set(BANGKOK_CARDS.filter((c) => c.rarity !== 'mythic').map((c) => c.id)),
+}
+export const isCollectSeries = (x: unknown): x is CollectSeries =>
+  typeof x === 'string' && (COLLECT_SERIES as readonly string[]).includes(x)
+
+function cleanCollect(raw: unknown): Partial<Record<CollectSeries, number>> {
+  const out: Partial<Record<CollectSeries, number>> = {}
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    for (const k of COLLECT_SERIES) {
+      const n = Math.trunc(Number((raw as Record<string, unknown>)[k]) || 0)
+      if (n > 0) out[k] = Math.min(n, COLLECT_REWARDS[k].length)
+    }
+  }
+  return out
+}
+
+export interface CollectProgress {
+  series: CollectSeries; name: string; owned: number; total: number
+  ready: SeriesReward[]; next: (SeriesReward & { need: number }) | null; claimed: number
+}
+
+export function collectProgress(g: GachaState): CollectProgress[] {
+  return COLLECT_SERIES.map((series) => {
+    const set = COLLECT_CARDS[series]
+    const total = set.size
+    let owned = 0
+    for (const id of Object.keys(g.cards)) if (set.has(id)) owned++
+    const rewards = COLLECT_REWARDS[series]
+    const claimed = g.collect?.[series] ?? 0
+    const ready = rewards.filter((r, i) => i >= claimed && owned >= milestoneAt(r, total))
+    const nextIdx = rewards.findIndex((r) => owned < milestoneAt(r, total))
+    return {
+      series, name: COLLECT_NAME[series], owned, total, ready, claimed,
+      next: nextIdx < 0 ? null : { ...rewards[nextIdx], need: milestoneAt(rewards[nextIdx], total) - owned },
+    }
+  })
+}
+
+/** Every unclaimed mark a series has reached, paid at once, each once. */
+export function claimCollect(g: GachaState, series: CollectSeries): string | null {
+  const prog = collectProgress(g).find((p) => p.series === series)
+  if (!prog || !prog.ready.length) return null
+  let coins = 0
+  const packs: string[] = []
+  for (const r of prog.ready) {
+    coins += r.coins
+    if (r.pack && r.pack !== 'self') {
+      const n = r.count ?? 1
+      g.packs[r.pack] = (g.packs[r.pack] ?? 0) + n
+      packs.push(`${PACKS[r.pack].name} ×${n}`)
+    }
+  }
+  g.coins += coins
+  g.collect = { ...(g.collect ?? {}), [series]: (g.collect?.[series] ?? 0) + prog.ready.length }
+  const parts = [packs.join('、'), coins ? `+${coins} 金币` : ''].filter(Boolean)
+  note(g, `${COLLECT_NAME[series]}收集奖励：${parts.join('，')}`)
   return parts.join('，')
 }
 
@@ -2842,6 +2940,8 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   // an existing collection already sits somewhere on the series ladder; nothing
   // is marked claimed, so whatever it has already earned is waiting on the shelf
   g.series ??= {}
+  // the series ladders arrived with the 退役 series: nothing claimed, whatever is earned waits
+  g.collect = cleanCollect(g.collect)
   // the 全图鉴 flag is 1 or absent; anything else a row carries is dropped
   if (g.fullSet !== undefined) {
     const raw: unknown = g.fullSet
@@ -2880,7 +2980,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'retiredDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'collect', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute',
   'season', 'lastSeason', 'enc', 'nameAt',
 ] as const
 /** a name may change once in this many days */
