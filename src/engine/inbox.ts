@@ -7,7 +7,7 @@
  * still reads the shapes to draw the mailbox, and one copy of the rules is
  * one copy that cannot drift.
  */
-import { cardById, isPlayerCard, MAX_LEVEL } from './cards'
+import { cardById, isPlayerCard, MAX_LEVEL, ownableCard } from './cards'
 import { cleanEvo, evoRating } from './evolve'
 import type { Evo } from './evolve'
 import { MAIL_MAX, PACKS } from './gacha'
@@ -149,7 +149,7 @@ export const copyLabel = (level: number, evo?: unknown): string =>
 export function restoreCard(g: GachaState, cardId: string, level: number, evoRaw?: unknown): void {
   // never a card the game does not have — a row with a bad id (a grant typed
   // wrong, an old card retired from the set) must not become an owned card
-  if (!cardById(cardId)) return
+  if (!ownableCard(cardId)) return
   const lv = Math.min(MAX_LEVEL, Math.max(0, Math.trunc(Number(level) || 0)))
   // 进修 only ever sits on a +5
   const evo = lv >= MAX_LEVEL ? cleanEvo(evoRaw) : undefined

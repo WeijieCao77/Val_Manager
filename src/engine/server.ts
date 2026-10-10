@@ -19,7 +19,7 @@ export { rankName, LEAGUES, LEAGUE_RULES, rollSeason, seasonOf, encNation } from
 export type { LeagueKind } from './gacha'
 export { applyMail, escrowCard, restoreCard, mailLine } from './inbox'
 export type { MailItem } from './inbox'
-export { cardById, isPlayerCard, squadRating, SALVAGE, ALL_CARDS, PLAYER_CARDS, COACH_CARDS, RARITY_CN } from './cards'
+export { cardById, ownableCard, isPlayerCard, squadRating, SALVAGE, ALL_CARDS, PLAYER_CARDS, COACH_CARDS, RARITY_CN } from './cards'
 // the shelf is filtered and sorted before it is paged, so the server needs the
 // same predicate the filter bar runs — see engine/cardFilter.ts
 export { matchesFilter, matchesQuery, readFilter, filterActive } from './cardFilter'

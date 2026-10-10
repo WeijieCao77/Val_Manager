@@ -1295,7 +1295,7 @@ export function makeMarketApi(sql, {
     let b
     try { b = JSON.parse(await readBody(req, 1024)) } catch { json(res, 400, { ok: false }); return }
     const cardId = String(b?.cardId ?? '').slice(0, 40)
-    if (!engine.cardById(cardId)) { json(res, 200, { ok: false, bad: true }); return }
+    if (!engine.ownableCard(cardId)) { json(res, 200, { ok: false, bad: true }); return }
     const listing = rowId(b?.listing)
     const level = Number.isInteger(b?.level) ? b.level : null
     const { all, recent } = await soldSummary(cardId, level)
@@ -1388,7 +1388,7 @@ export function makeMarketApi(sql, {
     // The card table is the server's now, so neither the metal nor the level
     // is read off the request: the floor comes from what the card is, and the
     // level from what the account actually holds.
-    const card = engine.cardById(cardId)
+    const card = engine.ownableCard(cardId)
     if (!card) { json(res, 200, { ok: false, notOwned: true }); return }
     const floor = askFloor(card.rarity)
     if (!cardId || !Number.isFinite(ask) || ask < floor || ask > MAX_ASK) {
@@ -1966,8 +1966,8 @@ export function makeMarketApi(sql, {
     if (done) { json(res, 200, done); return }
     const giveId = String(b?.giveId ?? '').slice(0, 40)
     const wantId = String(b?.wantId ?? '').slice(0, 40)
-    const give = engine.cardById(giveId)
-    const want = engine.cardById(wantId)
+    const give = engine.ownableCard(giveId)
+    const want = engine.ownableCard(wantId)
     if (!give || !want) { json(res, 200, { ok: false, notOwned: true }); return }
     if (give.rarity !== want.rarity) { json(res, 200, { ok: false, rarity: true }); return }
     const them = await byCode(b?.code)

@@ -20,7 +20,7 @@ import type { SeoulRouteState } from './seoulRoute'
 import type { HistoryState } from './historyTeams'
 import type { EventRouteState } from './eventRoute'
 import {
-  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, ownableCard, SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating, squadPower, EVO_LEVEL_ROOM,
 } from './cards'
@@ -1017,7 +1017,7 @@ export function clearPreset(g: GachaState, slot: number): void {
 
 /** Take a card somebody sent. A card you already have arrives as a spare. */
 export function receiveCard(g: GachaState, cardId: string, from: string): boolean {
-  const card = cardById(cardId)
+  const card = ownableCard(cardId)
   if (!card) return false
   const had = g.cards[cardId]
   if (had) { had.dupes++; had.seen++ } else {

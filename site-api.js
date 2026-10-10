@@ -19,7 +19,7 @@ import { battleCode, STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
  * written — a row holding a pack kind that does not exist would sit in
  * somebody's inbox forever, collected and then silently dropped.
  */
-export const PACK_KINDS = ['scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025', 'legend']
+export const PACK_KINDS = ['scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025', 'legend', 'retired']
 
 export const SITE_SCHEMA = `
 create table if not exists site_config (
@@ -250,7 +250,7 @@ export function makeSiteApi(sql, { readBody, json, token, normalizeId, displayNa
     }
     // a card id that is not in the set would sit in the account as a card
     // nothing can draw; refused here, and refused again when mail is applied
-    if (cardId && engine && !engine.cardById(cardId)) {
+    if (cardId && engine && !(engine.ownableCard ?? engine.cardById)(cardId)) {
       json(res, 200, { ok: false, why: `没有这张卡（${cardId}）——卡的 ID 是 p:P123 这种` })
       return
     }

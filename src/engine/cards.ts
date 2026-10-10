@@ -491,6 +491,9 @@ const COACHED: Map<string, Set<string>> = new Map(
   Object.entries(COACHED_JSON as Record<string, string[][]>).map(([coach, rows]) => [coach, new Set(rows.map((r) => r[0]))]),
 )
 export const cardById = (id: string): Card | undefined => byId.get(id)
+const OPPONENT_IDS = new Set(HISTORY_OPP_CARDS.map((c) => c.id))
+/** A card an account may hold: everything cardById finds except the 历代强队 opponents, who are only ever seated. */
+export const ownableCard = (id: string): Card | undefined => (OPPONENT_IDS.has(id) ? undefined : byId.get(id))
 
 export const isPlayerCard = (c: Card | undefined): c is PlayerCard => c?.kind === 'player'
 /** The night a card is, whichever kind of card it is. */

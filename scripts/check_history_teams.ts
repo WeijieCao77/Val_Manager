@@ -15,10 +15,11 @@ import assert from 'node:assert/strict'
 import { playRivalMatch } from '../src/engine/arena'
 import { runAction } from '../src/engine/cardActions'
 import {
-  ALL_CARDS, HISTORY_OPP_CARDS, PLAYER_CARDS, RETIRED_CARDS, SQUAD_SLOTS, cardById, isPlayerCard, personOf,
+  ALL_CARDS, HISTORY_OPP_CARDS, PLAYER_CARDS, ownableCard, RETIRED_CARDS, SQUAD_SLOTS, cardById, isPlayerCard, personOf,
 } from '../src/engine/cards'
 import type { PlayerCard, Squad } from '../src/engine/cards'
-import { SERVER_KEYS, migrateGacha, newGacha, staminaNow } from '../src/engine/gacha'
+import { SERVER_KEYS, migrateGacha, newGacha, receiveCard, staminaNow } from '../src/engine/gacha'
+import { restoreCard } from '../src/engine/inbox'
 import { HISTORY_CHAPTERS, HISTORY_STAGES, historyState, recordHistory } from '../src/engine/historyTeams'
 
 const store = new Map<string, string>()
@@ -63,7 +64,15 @@ assert(HISTORY_OPP_CARDS.every((c) => cardById(c.id) === c && !listed.has(c.id))
 for (const st of HISTORY_STAGES) {
   assert.equal(seated({ slots: five(retired), coach: null }, st.five).theirs, 5, `${st.team} plays short`)
 }
-console.log('ok   12 关 4 章，对手 60 人都能上场，不进卡池')
+// never owned: every path that hands a card over refuses them
+const opp = HISTORY_OPP_CARDS[0].id
+const k = newGacha('HISTOWN', '审计', DAY)
+assert.equal(ownableCard(opp), undefined)
+assert.equal(receiveCard(k, opp, '审计'), false)
+restoreCard(k, opp, 0)
+assert(!k.cards[opp], 'mail never delivers an opponent')
+assert(ownableCard(retired[0].id), 'ordinary cards are still ownable')
+console.log('ok   12 关 4 章，对手 60 人都能上场，不进卡池，送不进、寄不进、挂不上')
 
 // the door
 const g = newGacha('HIST', '审计', DAY)
