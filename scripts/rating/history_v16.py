@@ -520,15 +520,18 @@ def compress(S: float) -> float:
 # the retired pool is top-heavy — 4% of it at 90+ against 1.5% of the live one,
 # because the famous men are the ones who stopped — and three SEN 92s on one
 # five was the result. Above RETIRED_PIVOT every point counts RETIRED_SLOPE,
-# taken on the uncapped score so the top men keep their order (Leo 89, TenZ
-# and Sacy 88, SicK and ScreaM 87); below it nothing moves, nor do the metal lines.
-RETIRED_PIVOT, RETIRED_SLOPE = 80, 0.6
+# taken on the uncapped score so the top men keep their order, and no retired
+# 普卡 above RETIRED_CAP. The owner's target (2026-10-11: 「leo、tenz 90 分是压缩后
+# 的目标值」): Leo and TenZ 90 — no single slope gives both (Leo's uncapped 95.8,
+# TenZ's 93.3), so the slope reaches TenZ and the cap holds Leo; Sacy (93.6) is 90
+# too, ScreaM 89, SicK 88. Below 80 nothing moves, nor do the metal lines.
+RETIRED_PIVOT, RETIRED_SLOPE, RETIRED_CAP = 80, 0.72, 90
 
 
 def retired_squeeze(S: float) -> float:
     c = max(40, S if S <= 85 else 85 + .5 * (S - 85))
     c = c if c <= RETIRED_PIVOT else RETIRED_PIVOT + (c - RETIRED_PIVOT) * RETIRED_SLOPE
-    return min(92, c)
+    return min(RETIRED_CAP, c)
 
 
 def main() -> int:

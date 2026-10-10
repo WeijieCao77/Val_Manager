@@ -19,16 +19,16 @@
    "isIgl": false,
    "age": 20,
    "attrs": {
-    "aim": 88,
-    "reaction": 88,
-    "awareness": 92,
-    "utility": 91,
-    "clutch": 79,
-    "teamwork": 92,
-    "communication": 89,
-    "igl": 77
+    "aim": 89,
+    "reaction": 89,
+    "awareness": 93,
+    "utility": 92,
+    "clutch": 80,
+    "teamwork": 93,
+    "communication": 90,
+    "igl": 78
    },
-   "rating": 89,
+   "rating": 90,
    "rarity": "gold",
    "span": [
     2020,
@@ -61,16 +61,16 @@
    "isIgl": false,
    "age": 26,
    "attrs": {
-    "aim": 86,
-    "reaction": 85,
-    "awareness": 91,
-    "utility": 90,
-    "clutch": 84,
-    "teamwork": 91,
-    "communication": 89,
-    "igl": 76
+    "aim": 88,
+    "reaction": 87,
+    "awareness": 93,
+    "utility": 92,
+    "clutch": 86,
+    "teamwork": 93,
+    "communication": 91,
+    "igl": 78
    },
-   "rating": 88,
+   "rating": 90,
    "rarity": "gold",
    "span": [
     2020,
@@ -103,16 +103,16 @@
    "isIgl": false,
    "age": 24,
    "attrs": {
-    "aim": 91,
-    "reaction": 93,
-    "awareness": 83,
-    "utility": 74,
-    "clutch": 92,
-    "teamwork": 84,
-    "communication": 86,
-    "igl": 69
+    "aim": 93,
+    "reaction": 95,
+    "awareness": 85,
+    "utility": 76,
+    "clutch": 94,
+    "teamwork": 86,
+    "communication": 88,
+    "igl": 71
    },
-   "rating": 88,
+   "rating": 90,
    "rarity": "gold",
    "span": [
     2020,
@@ -126,48 +126,6 @@
     "reyna"
    ],
    "number": "余晖 / 005"
-  },
-  {
-   "id": "r:3070",
-   "playerId": "Hv3070",
-   "vlrId": "3070",
-   "ign": "nukkye",
-   "realName": "Žygimantas Chmieliauskas",
-   "nat": "lt",
-   "faceFile": "Hv3070.webp",
-   "faceV": "7a762ada",
-   "region": "EMEA",
-   "clubTag": "GX",
-   "role": "先锋",
-   "roles": [
-    "先锋"
-   ],
-   "isIgl": false,
-   "age": 26,
-   "attrs": {
-    "aim": 87,
-    "reaction": 89,
-    "awareness": 81,
-    "utility": 90,
-    "clutch": 86,
-    "teamwork": 90,
-    "communication": 88,
-    "igl": 75
-   },
-   "rating": 87,
-   "rarity": "gold",
-   "span": [
-    2020,
-    2024
-   ],
-   "last": "2024-03-01",
-   "early": false,
-   "agents": [
-    "raze",
-    "sova",
-    "sage"
-   ],
-   "number": "余晖 / 006"
   },
   {
    "id": "r:92",
@@ -187,16 +145,16 @@
    "isIgl": false,
    "age": 29,
    "attrs": {
-    "aim": 89,
-    "reaction": 91,
-    "awareness": 81,
-    "utility": 78,
-    "clutch": 80,
-    "teamwork": 86,
-    "communication": 83,
-    "igl": 70
+    "aim": 91,
+    "reaction": 93,
+    "awareness": 83,
+    "utility": 80,
+    "clutch": 82,
+    "teamwork": 88,
+    "communication": 85,
+    "igl": 72
    },
-   "rating": 87,
+   "rating": 89,
    "rarity": "gold",
    "span": [
     2020,
@@ -210,6 +168,48 @@
     "phoenix"
    ],
    "number": "余晖 / 003"
+  },
+  {
+   "id": "r:3070",
+   "playerId": "Hv3070",
+   "vlrId": "3070",
+   "ign": "nukkye",
+   "realName": "Žygimantas Chmieliauskas",
+   "nat": "lt",
+   "faceFile": "Hv3070.webp",
+   "faceV": "7a762ada",
+   "region": "EMEA",
+   "clubTag": "GX",
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "isIgl": false,
+   "age": 26,
+   "attrs": {
+    "aim": 88,
+    "reaction": 90,
+    "awareness": 82,
+    "utility": 91,
+    "clutch": 87,
+    "teamwork": 91,
+    "communication": 89,
+    "igl": 76
+   },
+   "rating": 88,
+   "rarity": "gold",
+   "span": [
+    2020,
+    2024
+   ],
+   "last": "2024-03-01",
+   "early": false,
+   "agents": [
+    "raze",
+    "sova",
+    "sage"
+   ],
+   "number": "余晖 / 006"
   },
   {
    "id": "r:45",
@@ -229,16 +229,16 @@
    "isIgl": false,
    "age": 0,
    "attrs": {
-    "aim": 87,
-    "reaction": 87,
-    "awareness": 86,
-    "utility": 79,
-    "clutch": 91,
-    "teamwork": 88,
-    "communication": 85,
-    "igl": 72
+    "aim": 88,
+    "reaction": 88,
+    "awareness": 87,
+    "utility": 80,
+    "clutch": 92,
+    "teamwork": 89,
+    "communication": 86,
+    "igl": 73
    },
-   "rating": 87,
+   "rating": 88,
    "rarity": "gold",
    "span": [
     2020,
@@ -271,16 +271,16 @@
    "isIgl": false,
    "age": 26,
    "attrs": {
-    "aim": 93,
-    "reaction": 96,
-    "awareness": 86,
-    "utility": 77,
-    "clutch": 86,
-    "teamwork": 82,
-    "communication": 90,
-    "igl": 71
+    "aim": 94,
+    "reaction": 97,
+    "awareness": 87,
+    "utility": 78,
+    "clutch": 87,
+    "teamwork": 83,
+    "communication": 91,
+    "igl": 72
    },
-   "rating": 87,
+   "rating": 88,
    "rarity": "gold",
    "span": [
     2020,
@@ -313,16 +313,16 @@
    "isIgl": false,
    "age": 0,
    "attrs": {
-    "aim": 92,
-    "reaction": 95,
-    "awareness": 85,
-    "utility": 77,
-    "clutch": 89,
-    "teamwork": 81,
-    "communication": 90,
-    "igl": 69
+    "aim": 93,
+    "reaction": 96,
+    "awareness": 86,
+    "utility": 78,
+    "clutch": 90,
+    "teamwork": 82,
+    "communication": 91,
+    "igl": 70
    },
-   "rating": 86,
+   "rating": 87,
    "rarity": "gold",
    "span": [
     2020,
@@ -355,16 +355,16 @@
    "isIgl": false,
    "age": 22,
    "attrs": {
-    "aim": 89,
-    "reaction": 91,
-    "awareness": 85,
-    "utility": 80,
-    "clutch": 91,
-    "teamwork": 84,
-    "communication": 89,
-    "igl": 71
+    "aim": 90,
+    "reaction": 92,
+    "awareness": 86,
+    "utility": 81,
+    "clutch": 92,
+    "teamwork": 85,
+    "communication": 90,
+    "igl": 72
    },
-   "rating": 86,
+   "rating": 87,
    "rarity": "gold",
    "span": [
     2020,
@@ -397,16 +397,16 @@
    "isIgl": false,
    "age": 26,
    "attrs": {
-    "aim": 87,
-    "reaction": 90,
-    "awareness": 81,
-    "utility": 83,
-    "clutch": 79,
-    "teamwork": 86,
-    "communication": 85,
-    "igl": 72
+    "aim": 88,
+    "reaction": 91,
+    "awareness": 82,
+    "utility": 84,
+    "clutch": 80,
+    "teamwork": 87,
+    "communication": 86,
+    "igl": 73
    },
-   "rating": 85,
+   "rating": 86,
    "rarity": "gold",
    "span": [
     2020,
@@ -439,16 +439,16 @@
    "isIgl": false,
    "age": 28,
    "attrs": {
-    "aim": 89,
-    "reaction": 92,
-    "awareness": 81,
-    "utility": 81,
-    "clutch": 84,
-    "teamwork": 84,
-    "communication": 86,
-    "igl": 70
+    "aim": 90,
+    "reaction": 93,
+    "awareness": 82,
+    "utility": 82,
+    "clutch": 85,
+    "teamwork": 85,
+    "communication": 87,
+    "igl": 71
    },
-   "rating": 85,
+   "rating": 86,
    "rarity": "gold",
    "span": [
     2020,
@@ -481,16 +481,16 @@
    "isIgl": false,
    "age": 23,
    "attrs": {
-    "aim": 88,
-    "reaction": 90,
-    "awareness": 80,
-    "utility": 71,
-    "clutch": 88,
-    "teamwork": 81,
-    "communication": 82,
-    "igl": 66
+    "aim": 89,
+    "reaction": 91,
+    "awareness": 81,
+    "utility": 72,
+    "clutch": 89,
+    "teamwork": 82,
+    "communication": 83,
+    "igl": 67
    },
-   "rating": 85,
+   "rating": 86,
    "rarity": "gold",
    "span": [
     2020,
@@ -523,16 +523,16 @@
    "isIgl": false,
    "age": 22,
    "attrs": {
-    "aim": 84,
-    "reaction": 86,
-    "awareness": 78,
-    "utility": 85,
-    "clutch": 84,
-    "teamwork": 84,
-    "communication": 84,
-    "igl": 70
+    "aim": 85,
+    "reaction": 87,
+    "awareness": 79,
+    "utility": 86,
+    "clutch": 85,
+    "teamwork": 85,
+    "communication": 85,
+    "igl": 71
    },
-   "rating": 84,
+   "rating": 85,
    "rarity": "gold",
    "span": [
     2020,
@@ -565,16 +565,16 @@
    "isIgl": false,
    "age": 0,
    "attrs": {
-    "aim": 77,
-    "reaction": 74,
-    "awareness": 89,
-    "utility": 89,
-    "clutch": 82,
-    "teamwork": 88,
-    "communication": 89,
-    "igl": 74
+    "aim": 78,
+    "reaction": 75,
+    "awareness": 90,
+    "utility": 90,
+    "clutch": 83,
+    "teamwork": 89,
+    "communication": 90,
+    "igl": 75
    },
-   "rating": 84,
+   "rating": 85,
    "rarity": "gold",
    "span": [
     2020,
@@ -588,6 +588,90 @@
     "viper"
    ],
    "number": "余晖 / 014"
+  },
+  {
+   "id": "r:474",
+   "playerId": "Hv474",
+   "vlrId": "474",
+   "ign": "xeta",
+   "realName": "Son Seon-ho (손선호)",
+   "nat": "kr",
+   "faceFile": "Hv474.webp",
+   "faceV": "0fbd1360",
+   "region": "Pacific",
+   "clubTag": "T1",
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "isIgl": false,
+   "age": 26,
+   "attrs": {
+    "aim": 82,
+    "reaction": 72,
+    "awareness": 88,
+    "utility": 86,
+    "clutch": 87,
+    "teamwork": 86,
+    "communication": 86,
+    "igl": 72
+   },
+   "rating": 84,
+   "rarity": "gold",
+   "span": [
+    2020,
+    2023
+   ],
+   "last": "2023-08-26",
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "harbor"
+   ],
+   "number": "余晖 / 016"
+  },
+  {
+   "id": "r:482",
+   "playerId": "Hv482",
+   "vlrId": "482",
+   "ign": "iNTRO",
+   "realName": "Kang Seung-gyun (강승균)",
+   "nat": "kr",
+   "faceFile": "Hv482.webp",
+   "faceV": "8b91fc2e",
+   "region": "Pacific",
+   "clubTag": "DK",
+   "role": "控场",
+   "roles": [
+    "控场"
+   ],
+   "isIgl": false,
+   "age": 22,
+   "attrs": {
+    "aim": 82,
+    "reaction": 75,
+    "awareness": 82,
+    "utility": 87,
+    "clutch": 79,
+    "teamwork": 86,
+    "communication": 87,
+    "igl": 74
+   },
+   "rating": 83,
+   "rarity": "gold",
+   "span": [
+    2020,
+    2024
+   ],
+   "last": "2024-07-27",
+   "early": false,
+   "agents": [
+    "viper",
+    "omen",
+    "sova"
+   ],
+   "number": "余晖 / 017"
   },
   {
    "id": "r:2452",
@@ -632,31 +716,31 @@
    "number": "余晖 / 015"
   },
   {
-   "id": "r:474",
-   "playerId": "Hv474",
-   "vlrId": "474",
-   "ign": "xeta",
-   "realName": "Son Seon-ho (손선호)",
+   "id": "r:983",
+   "playerId": "Hv983",
+   "vlrId": "983",
+   "ign": "TS",
+   "realName": "Yu Tae-seok (유태석)",
    "nat": "kr",
-   "faceFile": "Hv474.webp",
-   "faceV": "0fbd1360",
+   "faceFile": "Hv983.webp",
+   "faceV": "8a925abe",
    "region": "Pacific",
-   "clubTag": "T1",
+   "clubTag": "ODG",
    "role": "先锋",
    "roles": [
     "先锋"
    ],
-   "isIgl": false,
-   "age": 26,
+   "isIgl": true,
+   "age": 28,
    "attrs": {
-    "aim": 81,
-    "reaction": 71,
-    "awareness": 87,
-    "utility": 85,
-    "clutch": 86,
-    "teamwork": 85,
-    "communication": 85,
-    "igl": 71
+    "aim": 80,
+    "reaction": 82,
+    "awareness": 80,
+    "utility": 87,
+    "clutch": 80,
+    "teamwork": 87,
+    "communication": 90,
+    "igl": 85
    },
    "rating": 83,
    "rarity": "gold",
@@ -664,14 +748,14 @@
     2020,
     2023
    ],
-   "last": "2023-08-26",
+   "last": "2023-11-26",
    "early": false,
    "agents": [
     "sova",
-    "breach",
-    "harbor"
+    "omen",
+    "jett"
    ],
-   "number": "余晖 / 016"
+   "number": "余晖 / 018"
   },
   {
    "id": "r:805",
@@ -716,16 +800,16 @@
    "number": "余晖 / 019"
   },
   {
-   "id": "r:482",
-   "playerId": "Hv482",
-   "vlrId": "482",
-   "ign": "iNTRO",
-   "realName": "Kang Seung-gyun (강승균)",
-   "nat": "kr",
-   "faceFile": "Hv482.webp",
-   "faceV": "8b91fc2e",
-   "region": "Pacific",
-   "clubTag": "DK",
+   "id": "r:14669",
+   "playerId": "Hv14669",
+   "vlrId": "14669",
+   "ign": "Nivera",
+   "realName": "Nabil Benrlitom",
+   "nat": "be",
+   "faceFile": "Hv14669.webp",
+   "faceV": "49551dd3",
+   "region": "EMEA",
+   "clubTag": "KC",
    "role": "控场",
    "roles": [
     "控场"
@@ -733,14 +817,56 @@
    "isIgl": false,
    "age": 22,
    "attrs": {
-    "aim": 81,
-    "reaction": 74,
-    "awareness": 81,
+    "aim": 82,
+    "reaction": 86,
+    "awareness": 79,
+    "utility": 80,
+    "clutch": 85,
+    "teamwork": 79,
+    "communication": 85,
+    "igl": 68
+   },
+   "rating": 82,
+   "rarity": "gold",
+   "span": [
+    2021,
+    2023
+   ],
+   "last": "2023-07-23",
+   "early": false,
+   "agents": [
+    "viper",
+    "chamber",
+    "cypher"
+   ],
+   "number": "余晖 / 020"
+  },
+  {
+   "id": "r:871",
+   "playerId": "Hv871",
+   "vlrId": "871",
+   "ign": "pl1xx",
+   "realName": "Christopher Li",
+   "nat": "au",
+   "faceFile": "Hv871.webp",
+   "faceV": "bf802327",
+   "region": "China",
+   "clubTag": "WOL",
+   "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
+   "isIgl": true,
+   "age": 26,
+   "attrs": {
+    "aim": 83,
+    "reaction": 86,
+    "awareness": 77,
     "utility": 86,
-    "clutch": 78,
-    "teamwork": 85,
-    "communication": 86,
-    "igl": 73
+    "clutch": 75,
+    "teamwork": 84,
+    "communication": 88,
+    "igl": 85
    },
    "rating": 82,
    "rarity": "gold",
@@ -748,56 +874,14 @@
     2020,
     2024
    ],
-   "last": "2024-07-27",
+   "last": "2024-07-21",
    "early": false,
    "agents": [
-    "viper",
-    "omen",
-    "sova"
+    "kayo",
+    "raze",
+    "yoru"
    ],
-   "number": "余晖 / 017"
-  },
-  {
-   "id": "r:983",
-   "playerId": "Hv983",
-   "vlrId": "983",
-   "ign": "TS",
-   "realName": "Yu Tae-seok (유태석)",
-   "nat": "kr",
-   "faceFile": "Hv983.webp",
-   "faceV": "8a925abe",
-   "region": "Pacific",
-   "clubTag": "ODG",
-   "role": "先锋",
-   "roles": [
-    "先锋"
-   ],
-   "isIgl": true,
-   "age": 28,
-   "attrs": {
-    "aim": 79,
-    "reaction": 81,
-    "awareness": 79,
-    "utility": 86,
-    "clutch": 79,
-    "teamwork": 86,
-    "communication": 89,
-    "igl": 84
-   },
-   "rating": 82,
-   "rarity": "gold",
-   "span": [
-    2020,
-    2023
-   ],
-   "last": "2023-11-26",
-   "early": false,
-   "agents": [
-    "sova",
-    "omen",
-    "jett"
-   ],
-   "number": "余晖 / 018"
+   "number": "余晖 / 021"
   },
   {
    "id": "r:34032",
@@ -840,90 +924,6 @@
     "killjoy"
    ],
    "number": "余晖 / 023"
-  },
-  {
-   "id": "r:14669",
-   "playerId": "Hv14669",
-   "vlrId": "14669",
-   "ign": "Nivera",
-   "realName": "Nabil Benrlitom",
-   "nat": "be",
-   "faceFile": "Hv14669.webp",
-   "faceV": "49551dd3",
-   "region": "EMEA",
-   "clubTag": "KC",
-   "role": "控场",
-   "roles": [
-    "控场"
-   ],
-   "isIgl": false,
-   "age": 22,
-   "attrs": {
-    "aim": 81,
-    "reaction": 85,
-    "awareness": 78,
-    "utility": 79,
-    "clutch": 84,
-    "teamwork": 78,
-    "communication": 84,
-    "igl": 67
-   },
-   "rating": 81,
-   "rarity": "gold",
-   "span": [
-    2021,
-    2023
-   ],
-   "last": "2023-07-23",
-   "early": false,
-   "agents": [
-    "viper",
-    "chamber",
-    "cypher"
-   ],
-   "number": "余晖 / 020"
-  },
-  {
-   "id": "r:871",
-   "playerId": "Hv871",
-   "vlrId": "871",
-   "ign": "pl1xx",
-   "realName": "Christopher Li",
-   "nat": "au",
-   "faceFile": "Hv871.webp",
-   "faceV": "bf802327",
-   "region": "China",
-   "clubTag": "WOL",
-   "role": "先锋",
-   "roles": [
-    "先锋"
-   ],
-   "isIgl": true,
-   "age": 26,
-   "attrs": {
-    "aim": 82,
-    "reaction": 85,
-    "awareness": 76,
-    "utility": 85,
-    "clutch": 74,
-    "teamwork": 83,
-    "communication": 87,
-    "igl": 84
-   },
-   "rating": 81,
-   "rarity": "gold",
-   "span": [
-    2020,
-    2024
-   ],
-   "last": "2024-07-21",
-   "early": false,
-   "agents": [
-    "kayo",
-    "raze",
-    "yoru"
-   ],
-   "number": "余晖 / 021"
   },
   {
    "id": "r:16003",

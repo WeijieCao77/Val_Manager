@@ -29,7 +29,7 @@ details.method{background:var(--paper);border:1px solid var(--line);border-radiu
 </div></details>
 <details class="method"><summary>退役卡的压缩</summary><div>
 <p>（只对退役普卡）退役选手里顶尖的人特别多：按现役尺子，90 分以上的占 4%，现役只有 1.5%。名气大的选手往往打得久、退得也多，全按现役尺子，几位退役老将同队上场就会压过所有现役阵容。</p>
-<p>所以退役普卡在现役尺子算出的分数上，<b>80 分以上的部分只算 0.6</b>（在 92 分封顶之前算，原来并列 92 的几位仍然分得出高低），80 分及以下不变，金银铜的划线也不变。比如按现役尺子 92 分的选手，卡面是 87–89 分。退役彩卡不压缩。每位选手的详情里都写着压缩前的分数。</p>
+<p>所以退役普卡在现役尺子算出的分数上，<b>80 分以上的部分只算 0.72，退役普卡最高 90 分</b>（在封顶之前算，原来并列 92 的几位仍然分得出高低），80 分及以下不变，金银铜的划线也不变。比如按现役尺子 92 分的选手，卡面是 88–90 分。退役彩卡不压缩。每位选手的详情里都写着压缩前的分数。</p>
 </div></details>
 <details class="method"><summary>数据从哪里来</summary><div>
 <p>比赛数据来自 vlr.gg 的赛事统计（2020 年 First Strike 到 2026 年）。2021 年及以前只有整届汇总，没有逐图数据，和现役规则一样按证据系数 0.65 计，没有对手强弱修正。带公开预选赛的赛事，正赛和预选赛分开算，预选赛按次级赛事计。世界赛上的表演赛不算比赛。指挥身份来自 Liquipedia。</p>
@@ -66,7 +66,7 @@ var ATTR={aim:'枪法',reaction:'反应',awareness:'意识',utility:'道具',clu
 function playerBody(p){
  var h='<div class="one"><img loading="lazy" src="/cards/retired/stats/cards/normal-'+esc(p.id)+'.webp" alt="'+esc(p.ign)+' 普卡"><div>'+'<div class="kv"><div>个人分 <b>'+n(p.personal)+'</b></div><div>生涯指数 <b>'+n(p.career,4)+'</b></div><div>有效回合 <b>'+n(p.N,0)+'</b></div><div>原始回合 <b>'+n(p.rounds,0)+'</b></div><div>最后一场 <b>'+esc(p.last)+'</b></div>'+(p.liveScale!=null&&p.liveScale!==p.rating?'<div>压缩前（现役尺子） <b>'+p.liveScale+'</b></div>':'')+'</div><p class="muted">左边是游戏里的卡面：年份是他的生涯起止，队伍是他最后效力的那支（单届满 100 回合）。</p></div></div>';
  h+='<h3>总分构成</h3><div class="kv">'+Object.keys(PART).map(function(k){return '<div>'+PART[k]+' <b>'+n(p.parts[k],3)+'</b></div>'}).join('')+'</div>';
- h+='<p class="muted">总分 = 个人分 + 履历（最多 10）+ 冠军（最多 4）+ 赛区强弱；85 分以上的部分只算一半；退役卡再把 80 分以上的部分乘 0.6；最高 92 分，四舍五入。</p>';
+ h+='<p class="muted">总分 = 个人分 + 履历（最多 10）+ 冠军（最多 4）+ 赛区强弱；85 分以上的部分只算一半；退役卡再把 80 分以上的部分乘 0.72，最高 90 分，四舍五入。</p>';
  if(p.attrs)h+='<h3>卡面属性（'+esc(p.role||'')+'）</h3><div class="kv">'+Object.keys(ATTR).map(function(k){return '<div>'+ATTR[k]+' <b>'+p.attrs[k]+'</b></div>'}).join('')+'</div>';
  var ys=Object.keys(p.seasons).sort();h+='<h3>逐赛季</h3>'+table(['赛季','有效回合','指数','个人分'],ys.map(function(y){var s=p.seasons[y];return [y,n(s.N,0),n(s.L,4),n(s.P)]}));
  if(p.international.length)h+='<h3>国际赛</h3>'+table(['赛事','队伍','名次','出场比例','资格','成绩','冠军'],p.international.map(function(x){return [esc(x.event),esc(x.team),esc(x.place),n(x.part),n(x.Q,3),n(x.T,3),n(x.H,3)]}));

@@ -17,6 +17,7 @@ import {
   LEAGUE_RULES, STAMINA_MAX, ladderOf, ladderPool, leagueEntry, newGacha, recordLadder, staminaNow,
 } from '../src/engine/gacha'
 import { playArenaMatch } from '../src/engine/arena'
+import { Rng } from '../src/engine/rng'
 import {
   BANGKOK_CARDS, PLAYER_CARDS, RETIRED_CARDS, SEOUL_CARDS, SQUAD_SLOTS, isPlayerCard, personOf, squadPaper,
 } from '../src/engine/cards'
@@ -87,20 +88,28 @@ const open: string[] = []
 for (let i = 0; i < 40; i++) { const o = recordLadder(k, true, 80, 'open'); if (o.pack) open.push(o.pack) }
 check(!open.includes('retired'), '公开赛升段奖励不变', open.join(','))
 
-// the handicap
-const N = Number(process.argv[2] ?? 120)
+// the handicap: 30 random gold fives of each pool against 钻石's clubs, each at
+// its own ladder's handicap — a retired five in 传奇联赛 should do about what a
+// live five does on the open ladder (one five is too noisy to judge by)
+const N = Number(process.argv[2] ?? 30)
 const pool = ladderPool(4)
-const mid = (l: PlayerCard[]) => l.slice(Math.floor(l.length * 0.45))
-const rate = (s: Squad, bump: number) => {
-  let w = 0
-  for (let i = 0; i < N; i++) if (playArenaMatch(s, () => 0, pool[i % pool.length], 3, 6100 + i, bump).win) w++
-  return w / N
+const rng = new Rng(4242)
+const fiveFrom = (cards: PlayerCard[]): Squad => {
+  const used = new Set<string>()
+  const sh = rng.shuffle(cards.slice())
+  return { slots: SQUAD_SLOTS.map((slot) => { const p = sh.find((c) => !used.has(personOf(c)) && (slot === '自由人' || c.roles.includes(slot)))!; used.add(personOf(p)); return p.id }), coach: null }
 }
-const openGold = sq(five(mid(live.filter((c) => c.rarity === 'gold'))))
-const retGold = sq(five(mid(ret.filter((c) => c.rarity === 'gold'))))
-const a = rate(openGold, LEAGUE_RULES.open.oppBump), b = rate(retGold, LEAGUE_RULES.retired.oppBump)
-check(Math.abs(a - b) < 0.12, '传奇联赛的金卡五人和公开赛的金卡五人在钻石胜率相当',
-  `纸面 ${squadPaper(retGold).score.toFixed(1)} / ${squadPaper(openGold).score.toFixed(1)}，胜率 ${(b * 100).toFixed(0)}% / ${(a * 100).toFixed(0)}%`)
+const rate = (fives: Squad[], bump: number) => {
+  let w = 0, n = 0
+  fives.forEach((s, k) => { for (let i = 0; i < 40; i++) { n++; if (playArenaMatch(s, () => 0, pool[(i + k) % pool.length], 3, 7000 + k * 97 + i, bump).win) w++ } })
+  return w / n
+}
+const liveFives = Array.from({ length: N }, () => fiveFrom(live.filter((c) => c.rarity === 'gold')))
+const retFives = Array.from({ length: N }, () => fiveFrom(ret.filter((c) => c.rarity === 'gold')))
+const a = rate(liveFives, LEAGUE_RULES.open.oppBump), b = rate(retFives, LEAGUE_RULES.retired.oppBump)
+const paper = (fs: Squad[]) => (fs.reduce((x, s) => x + squadPaper(s).score, 0) / fs.length).toFixed(1)
+check(Math.abs(a - b) < 0.06, '传奇联赛的退役金卡五人和公开赛的现役金卡五人在钻石胜率相当',
+  `纸面 ${paper(retFives)} / ${paper(liveFives)}，胜率 ${(b * 100).toFixed(1)}% / ${(a * 100).toFixed(1)}%（传奇联赛对手 ${LEAGUE_RULES.retired.oppBump}）`)
 
 if (bad) { console.log(`${bad} failed`); process.exit(1) }
 console.log('全部通过')
