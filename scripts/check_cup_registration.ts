@@ -37,7 +37,8 @@ async function fixture(id: string, state: GachaState) {
   await sql`update card_accounts set state = ${sql.json(state)}, created = now() - interval '4 days' where id_hash = ${hash(id)}`
 }
 function five(high: boolean) {
-  const pool = ALL_CARDS.filter(isPlayerCard).filter(c => c.rarity === (high ? 'mythic' : 'bronze'))
+  // ordinary fives: the 退役 series' cards would trip the two-retiree cap, which check_retirement_cap.ts owns
+  const pool = ALL_CARDS.filter(isPlayerCard).filter(c => !c.retired && c.rarity === (high ? 'mythic' : 'bronze'))
     .sort((a, b) => high ? b.rating - a.rating : a.rating - b.rating)
   const used = new Set<string>()
   return SQUAD_SLOTS.map(role => {
