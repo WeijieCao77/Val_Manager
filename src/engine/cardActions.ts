@@ -23,6 +23,7 @@
  * opponent pool are the server's business and arrive in `env`, which is what
  * lets scripts/check_authority.ts drive every action without a database.
  */
+import { HISTORY_BO, HISTORY_STAGES, historyEntry, historyState, recordHistory, stageOpen } from './historyTeams'
 import {
   awardMinigame, canPlay, checkIn, claimCollect, isCollectSeries, claimFullSet, claimQuest, claimSeries, clampState, cupBo, cupOpponent, drawOpponent, enterCup,
   levelOf, playLevelOf, oppBumpFor, openPack, openPacks, pendingOpponent, primeStamina, recordCup, recordLadder,
@@ -93,7 +94,7 @@ export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'collect', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'evo_wash', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
-  'bangkok_start', 'bangkok_play', 'bangkok_quit',
+  'bangkok_start', 'bangkok_play', 'bangkok_quit', 'history_play',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -509,6 +510,25 @@ function dispatch(
     case 'bangkok_quit': {
       quitBangkokRoute(g)
       return { ok: true }
+    }
+    // ---- 历代强队: a retired five against the twelve — engine/historyTeams.ts
+    case 'history_play': {
+      const st = HISTORY_STAGES.find((s) => s.id === a.stage)
+      if (!st) return { ok: false, why: '没有这一关' }
+      const h = historyState(g)
+      if (!stageOpen(h, st.id)) return { ok: false, why: '先打赢前面的关' }
+      const five = squadForPlay(g, { anyRetired: true })
+      if (!five.ok) return five
+      const entry = historyEntry(five.squad)
+      if (!entry.ok) return entry
+      // no 体力: the price of a stage is the losses, and a loss is played again for free
+      const res = playRivalMatch(
+        five.squad, (id) => playLevelOf(g, id),
+        { ...st.five, name: st.team, tag: st.tag, levels: {}, div: 0, points: 0 },
+        HISTORY_BO, env.seed,
+      )
+      const out = recordHistory(g, st.id, res.win)
+      return { ok: true, result: { stage: st.id, res, out } }
     }
     default:
       return { ok: false, why: '没有这个操作' }

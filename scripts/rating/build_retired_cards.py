@@ -52,6 +52,15 @@ def stamp(p: Path) -> str:
     return hashlib.sha1(p.read_bytes()).hexdigest()[:8]
 
 
+def top_agents(records: list[dict], k: int = 3) -> list[str]:
+    """the agents he played most over his career, by rounds — what a match seats him on"""
+    use: dict[str, float] = {}
+    for r in records:
+        for a, share in r.get("agents") or []:
+            use[a] = use.get(a, 0) + share * r["rounds"]
+    return [a for a, _ in sorted(use.items(), key=lambda x: -x[1])[:k]]
+
+
 def main() -> int:
     players = [p for p in json.loads((B / "players.json").read_text()) if p.get("rated") and p["class"] == "retired"]
     status = json.loads((B / "status_verified.json").read_text())
@@ -97,6 +106,7 @@ def main() -> int:
             "role": card.get("role"), "roles": [card.get("role")], "isIgl": bool((roles_lp.get(vid) or {}).get("igl")),
             "age": age, "attrs": card.get("attrs"), "rating": p["rating"], "rarity": p["rarity"],
             "span": [max(2020, years[0]), years[-1]], "last": p["last"], "early": bool(p.get("early")),
+            "agents": top_agents(p["records"]),
         })
     by_ign = {n["ign"]: n for n in normals}
     legends = []

@@ -35,7 +35,12 @@
     2024
    ],
    "last": "2024-06-09",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "sage",
+    "breach"
+   ]
   },
   {
    "id": "r:659",
@@ -71,7 +76,12 @@
     2024
    ],
    "last": "2024-08-25",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "skye",
+    "fade"
+   ]
   },
   {
    "id": "r:92",
@@ -107,7 +117,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "phoenix"
+   ]
   },
   {
    "id": "r:45",
@@ -143,7 +158,12 @@
     2022
    ],
    "last": "2022-06-26",
-   "early": true
+   "early": true,
+   "agents": [
+    "phoenix",
+    "sage",
+    "omen"
+   ]
   },
   {
    "id": "r:9",
@@ -179,7 +199,12 @@
     2025
    ],
    "last": "2025-06-22",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "omen",
+    "reyna"
+   ]
   },
   {
    "id": "r:3070",
@@ -215,7 +240,12 @@
     2024
    ],
    "last": "2024-03-01",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "sova",
+    "sage"
+   ]
   },
   {
    "id": "r:881",
@@ -251,7 +281,12 @@
     2025
    ],
    "last": "2025-08-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "chamber",
+    "sage"
+   ]
   },
   {
    "id": "r:2764",
@@ -287,7 +322,12 @@
     2023
    ],
    "last": "2023-08-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "chamber",
+    "reyna"
+   ]
   },
   {
    "id": "r:771",
@@ -323,7 +363,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "viper"
+   ]
   },
   {
    "id": "r:98",
@@ -359,7 +404,12 @@
     2024
    ],
    "last": "2024-07-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "sova",
+    "chamber"
+   ]
   },
   {
    "id": "r:999",
@@ -395,7 +445,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "chamber",
+    "killjoy",
+    "cypher"
+   ]
   },
   {
    "id": "r:4164",
@@ -431,7 +486,12 @@
     2025
    ],
    "last": "2025-10-05",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "jett",
+    "astra"
+   ]
   },
   {
    "id": "r:4559",
@@ -467,7 +527,12 @@
     2025
    ],
    "last": "2025-05-11",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "breach",
+    "skye"
+   ]
   },
   {
    "id": "r:473",
@@ -503,7 +568,12 @@
     2022
    ],
    "last": "2022-06-26",
-   "early": true
+   "early": true,
+   "agents": [
+    "astra",
+    "raze",
+    "viper"
+   ]
   },
   {
    "id": "r:2452",
@@ -539,7 +609,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "harbor",
+    "breach"
+   ]
   },
   {
    "id": "r:474",
@@ -575,7 +650,12 @@
     2023
    ],
    "last": "2023-08-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "harbor"
+   ]
   },
   {
    "id": "r:482",
@@ -611,7 +691,12 @@
     2024
    ],
    "last": "2024-07-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "omen",
+    "sova"
+   ]
   },
   {
    "id": "r:983",
@@ -647,7 +732,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "omen",
+    "jett"
+   ]
   },
   {
    "id": "r:805",
@@ -683,7 +773,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "skye"
+   ]
   },
   {
    "id": "r:14669",
@@ -719,7 +814,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "chamber",
+    "cypher"
+   ]
   },
   {
    "id": "r:871",
@@ -755,7 +855,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "raze",
+    "yoru"
+   ]
   },
   {
    "id": "r:16003",
@@ -791,7 +896,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "viper"
+   ]
   },
   {
    "id": "r:34032",
@@ -827,7 +937,12 @@
     2024
    ],
    "last": "2024-09-29",
-   "early": false
+   "early": false,
+   "agents": [
+    "cypher",
+    "viper",
+    "killjoy"
+   ]
   },
   {
    "id": "r:25258",
@@ -863,7 +978,12 @@
     2024
    ],
    "last": "2024-07-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "skye",
+    "breach",
+    "kayo"
+   ]
   },
   {
    "id": "r:2442",
@@ -899,7 +1019,12 @@
     2024
    ],
    "last": "2024-07-31",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "sage",
+    "jett"
+   ]
   },
   {
    "id": "r:1137",
@@ -935,7 +1060,12 @@
     2023
    ],
    "last": "2023-05-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "jett",
+    "kayo"
+   ]
   },
   {
    "id": "r:4710",
@@ -971,7 +1101,12 @@
     2025
    ],
    "last": "2025-05-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "fade",
+    "skye",
+    "sova"
+   ]
   },
   {
    "id": "r:882",
@@ -1007,7 +1142,12 @@
     2023
    ],
    "last": "2023-05-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "astra",
+    "killjoy",
+    "breach"
+   ]
   },
   {
    "id": "r:1711",
@@ -1043,7 +1183,12 @@
     2025
    ],
    "last": "2025-05-03",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "killjoy",
+    "brimstone"
+   ]
   },
   {
    "id": "r:25025",
@@ -1079,7 +1224,12 @@
     2025
    ],
    "last": "2025-08-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "kayo",
+    "viper"
+   ]
   },
   {
    "id": "r:3604",
@@ -1115,7 +1265,12 @@
     2024
    ],
    "last": "2024-07-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "viper"
+   ]
   },
   {
    "id": "r:992",
@@ -1151,7 +1306,12 @@
     2022
    ],
    "last": "2022-08-14",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "viper",
+    "astra"
+   ]
   },
   {
    "id": "r:4545",
@@ -1187,7 +1347,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "omen"
+   ]
   },
   {
    "id": "r:1002",
@@ -1223,7 +1388,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "reyna",
+    "viper",
+    "sage"
+   ]
   },
   {
    "id": "r:6654",
@@ -1259,7 +1429,12 @@
     2023
    ],
    "last": "2023-05-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "chamber",
+    "reyna"
+   ]
   },
   {
    "id": "r:57",
@@ -1295,7 +1470,12 @@
     2022
    ],
    "last": "2022-03-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "viper",
+    "breach"
+   ]
   },
   {
    "id": "r:4771",
@@ -1331,7 +1511,12 @@
     2024
    ],
    "last": "2024-05-12",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "skye",
+    "astra"
+   ]
   },
   {
    "id": "r:5600",
@@ -1367,7 +1552,12 @@
     2025
    ],
    "last": "2025-09-09",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "killjoy"
+   ]
   },
   {
    "id": "r:5244",
@@ -1403,7 +1593,12 @@
     2024
    ],
    "last": "2024-12-09",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "astra",
+    "viper"
+   ]
   },
   {
    "id": "r:4320",
@@ -1439,7 +1634,12 @@
     2024
    ],
    "last": "2024-05-12",
-   "early": false
+   "early": false,
+   "agents": [
+    "astra",
+    "omen",
+    "brimstone"
+   ]
   },
   {
    "id": "r:3124",
@@ -1475,7 +1675,12 @@
     2023
    ],
    "last": "2023-07-16",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "skye",
+    "killjoy"
+   ]
   },
   {
    "id": "r:2362",
@@ -1511,7 +1716,12 @@
     2024
    ],
    "last": "2024-02-25",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "sage"
+   ]
   },
   {
    "id": "r:1221",
@@ -1547,7 +1757,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": true
+   "early": true,
+   "agents": [
+    "sova",
+    "omen",
+    "breach"
+   ]
   },
   {
    "id": "r:93",
@@ -1583,7 +1798,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "viper",
+    "chamber"
+   ]
   },
   {
    "id": "r:1607",
@@ -1619,7 +1839,12 @@
     2024
    ],
    "last": "2024-12-09",
-   "early": true
+   "early": true,
+   "agents": [
+    "sova",
+    "skye",
+    "breach"
+   ]
   },
   {
    "id": "r:10",
@@ -1655,7 +1880,12 @@
     2023
    ],
    "last": "2023-08-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "sova",
+    "jett"
+   ]
   },
   {
    "id": "r:31390",
@@ -1691,7 +1921,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "sova",
+    "sage"
+   ]
   },
   {
    "id": "r:604",
@@ -1727,7 +1962,12 @@
     2025
    ],
    "last": "2025-07-13",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "jett",
+    "chamber"
+   ]
   },
   {
    "id": "r:4778",
@@ -1763,7 +2003,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "killjoy",
+    "brimstone"
+   ]
   },
   {
    "id": "r:772",
@@ -1799,7 +2044,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "fade",
+    "sage"
+   ]
   },
   {
    "id": "r:4558",
@@ -1835,7 +2085,12 @@
     2024
    ],
    "last": "2024-07-28",
-   "early": true
+   "early": true,
+   "agents": [
+    "jett",
+    "raze",
+    "neon"
+   ]
   },
   {
    "id": "r:14928",
@@ -1871,7 +2126,12 @@
     2023
    ],
    "last": "2023-07-09",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "jett",
+    "skye"
+   ]
   },
   {
    "id": "r:1219",
@@ -1907,7 +2167,12 @@
     2022
    ],
    "last": "2022-08-14",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "viper",
+    "astra"
+   ]
   },
   {
    "id": "r:30526",
@@ -1943,7 +2208,12 @@
     2025
    ],
    "last": "2025-01-25",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "breach",
+    "kayo"
+   ]
   },
   {
    "id": "r:24428",
@@ -1979,7 +2249,12 @@
     2024
    ],
    "last": "2024-11-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "jett",
+    "cypher"
+   ]
   },
   {
    "id": "r:24304",
@@ -2015,7 +2290,12 @@
     2024
    ],
    "last": "2024-11-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "viper",
+    "astra"
+   ]
   },
   {
    "id": "r:4378",
@@ -2051,7 +2331,12 @@
     2022
    ],
    "last": "2022-05-29",
-   "early": true
+   "early": true,
+   "agents": [
+    "sova",
+    "skye",
+    "raze"
+   ]
   },
   {
    "id": "r:4416",
@@ -2087,7 +2372,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "killjoy",
+    "cypher"
+   ]
   },
   {
    "id": "r:7870",
@@ -2123,7 +2413,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "viper"
+   ]
   },
   {
    "id": "r:14435",
@@ -2159,7 +2454,11 @@
     2023
    ],
    "last": "2023-07-16",
-   "early": false
+   "early": false,
+   "agents": [
+    "skye",
+    "breach"
+   ]
   },
   {
    "id": "r:25329",
@@ -2195,7 +2494,12 @@
     2024
    ],
    "last": "2024-05-12",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "omen",
+    "brimstone"
+   ]
   },
   {
    "id": "r:5129",
@@ -2231,7 +2535,12 @@
     2025
    ],
    "last": "2025-08-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "skye",
+    "viper"
+   ]
   },
   {
    "id": "r:1743",
@@ -2267,7 +2576,12 @@
     2024
    ],
    "last": "2024-09-29",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "viper",
+    "astra"
+   ]
   },
   {
    "id": "r:2035",
@@ -2303,7 +2617,12 @@
     2022
    ],
    "last": "2022-06-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "fade",
+    "omen"
+   ]
   },
   {
    "id": "r:1830",
@@ -2339,7 +2658,12 @@
     2022
    ],
    "last": "2022-01-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "sage",
+    "skye"
+   ]
   },
   {
    "id": "r:1565",
@@ -2375,7 +2699,12 @@
     2021
    ],
    "last": "2021-08-22",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "killjoy",
+    "viper"
+   ]
   },
   {
    "id": "r:46",
@@ -2411,7 +2740,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": true
+   "early": true,
+   "agents": [
+    "sova",
+    "jett",
+    "skye"
+   ]
   },
   {
    "id": "r:101",
@@ -2447,7 +2781,12 @@
     2025
    ],
    "last": "2025-05-18",
-   "early": false
+   "early": false,
+   "agents": [
+    "skye",
+    "sova",
+    "fade"
+   ]
   },
   {
    "id": "r:24003",
@@ -2483,7 +2822,12 @@
     2022
    ],
    "last": "2022-03-13",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "raze",
+    "breach"
+   ]
   },
   {
    "id": "r:38363",
@@ -2519,7 +2863,11 @@
     2024
    ],
    "last": "2024-12-01",
-   "early": false
+   "early": false,
+   "agents": [
+    "gekko",
+    "breach"
+   ]
   },
   {
    "id": "r:7106",
@@ -2555,7 +2903,12 @@
     2025
    ],
    "last": "2025-04-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "skye",
+    "astra"
+   ]
   },
   {
    "id": "r:938",
@@ -2591,7 +2944,12 @@
     2022
    ],
    "last": "2022-08-14",
-   "early": true
+   "early": true,
+   "agents": [
+    "reyna",
+    "jett",
+    "neon"
+   ]
   },
   {
    "id": "r:3517",
@@ -2627,7 +2985,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "skye",
+    "fade"
+   ]
   },
   {
    "id": "r:10125",
@@ -2663,7 +3026,12 @@
     2025
    ],
    "last": "2025-08-17",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "neon",
+    "raze"
+   ]
   },
   {
    "id": "r:12947",
@@ -2699,7 +3067,12 @@
     2025
    ],
    "last": "2025-07-10",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "sova",
+    "cypher"
+   ]
   },
   {
    "id": "r:4880",
@@ -2735,7 +3108,12 @@
     2025
    ],
    "last": "2025-01-25",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "omen",
+    "astra"
+   ]
   },
   {
    "id": "r:36596",
@@ -2771,7 +3149,12 @@
     2023
    ],
    "last": "2023-12-30",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "brimstone"
+   ]
   },
   {
    "id": "r:10550",
@@ -2807,7 +3190,10 @@
     2021
    ],
    "last": "2021-02-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett"
+   ]
   },
   {
    "id": "r:1378",
@@ -2843,7 +3229,12 @@
     2024
    ],
    "last": "2024-09-15",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "gekko"
+   ]
   },
   {
    "id": "r:3027",
@@ -2879,7 +3270,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "astra",
+    "omen",
+    "viper"
+   ]
   },
   {
    "id": "r:1585",
@@ -2915,7 +3311,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "kayo",
+    "sage"
+   ]
   },
   {
    "id": "r:97",
@@ -2951,7 +3352,12 @@
     2023
    ],
    "last": "2023-11-03",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "viper",
+    "cypher"
+   ]
   },
   {
    "id": "r:8551",
@@ -2987,7 +3393,12 @@
     2023
    ],
    "last": "2023-05-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "skye",
+    "raze"
+   ]
   },
   {
    "id": "r:10782",
@@ -3023,7 +3434,12 @@
     2024
    ],
    "last": "2024-07-31",
-   "early": true
+   "early": true,
+   "agents": [
+    "skye",
+    "jett",
+    "kayo"
+   ]
   },
   {
    "id": "r:824",
@@ -3059,7 +3475,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "killjoy",
+    "raze"
+   ]
   },
   {
    "id": "r:2335",
@@ -3095,7 +3516,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "sage"
+   ]
   },
   {
    "id": "r:23983",
@@ -3131,7 +3557,10 @@
     2022
    ],
    "last": "2022-03-13",
-   "early": false
+   "early": false,
+   "agents": [
+    "astra"
+   ]
   },
   {
    "id": "r:1046",
@@ -3167,7 +3596,12 @@
     2024
    ],
    "last": "2024-07-28",
-   "early": true
+   "early": true,
+   "agents": [
+    "jett",
+    "raze",
+    "reyna"
+   ]
   },
   {
    "id": "r:50080",
@@ -3203,7 +3637,12 @@
     2025
    ],
    "last": "2025-05-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "tejo",
+    "sova",
+    "kayo"
+   ]
   },
   {
    "id": "r:10816",
@@ -3239,7 +3678,12 @@
     2024
    ],
    "last": "2024-09-29",
-   "early": false
+   "early": false,
+   "agents": [
+    "chamber",
+    "jett",
+    "harbor"
+   ]
   },
   {
    "id": "r:1374",
@@ -3275,7 +3719,11 @@
     2024
    ],
    "last": "2024-07-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze"
+   ]
   },
   {
    "id": "r:7866",
@@ -3311,7 +3759,12 @@
     2025
    ],
    "last": "2025-05-18",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "reyna"
+   ]
   },
   {
    "id": "r:7403",
@@ -3347,7 +3800,12 @@
     2025
    ],
    "last": "2025-09-07",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "chamber"
+   ]
   },
   {
    "id": "r:4052",
@@ -3383,7 +3841,12 @@
     2025
    ],
    "last": "2025-08-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "omen",
+    "raze"
+   ]
   },
   {
    "id": "r:4040",
@@ -3419,7 +3882,12 @@
     2024
    ],
    "last": "2024-12-06",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "sova",
+    "viper"
+   ]
   },
   {
    "id": "r:4727",
@@ -3455,7 +3923,12 @@
     2024
    ],
    "last": "2024-05-12",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "sage",
+    "omen"
+   ]
   },
   {
    "id": "r:4311",
@@ -3491,7 +3964,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "viper",
+    "brimstone"
+   ]
   },
   {
    "id": "r:568",
@@ -3527,7 +4005,12 @@
     2025
    ],
    "last": "2025-08-17",
-   "early": false
+   "early": false,
+   "agents": [
+    "sage",
+    "omen",
+    "killjoy"
+   ]
   },
   {
    "id": "r:1411",
@@ -3563,7 +4046,12 @@
     2024
    ],
    "last": "2024-07-31",
-   "early": true
+   "early": true,
+   "agents": [
+    "raze",
+    "jett",
+    "reyna"
+   ]
   },
   {
    "id": "r:4773",
@@ -3599,7 +4087,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "jett",
+    "killjoy"
+   ]
   },
   {
    "id": "r:26808",
@@ -3635,7 +4128,12 @@
     2024
    ],
    "last": "2024-09-15",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "neon",
+    "raze"
+   ]
   },
   {
    "id": "r:19",
@@ -3671,7 +4169,12 @@
     2022
    ],
    "last": "2022-03-27",
-   "early": true
+   "early": true,
+   "agents": [
+    "jett",
+    "viper",
+    "chamber"
+   ]
   },
   {
    "id": "r:99",
@@ -3707,7 +4210,12 @@
     2025
    ],
    "last": "2025-04-27",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "brimstone",
+    "astra"
+   ]
   },
   {
    "id": "r:2534",
@@ -3743,7 +4251,12 @@
     2025
    ],
    "last": "2025-07-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "sage",
+    "omen",
+    "sova"
+   ]
   },
   {
    "id": "r:5716",
@@ -3779,7 +4292,12 @@
     2024
    ],
    "last": "2024-06-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "brimstone",
+    "sova"
+   ]
   },
   {
    "id": "r:4410",
@@ -3815,7 +4333,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "viper",
+    "cypher"
+   ]
   },
   {
    "id": "r:2670",
@@ -3851,7 +4374,12 @@
     2023
    ],
    "last": "2023-06-10",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "sova"
+   ]
   },
   {
    "id": "r:3025",
@@ -3887,7 +4415,12 @@
     2023
    ],
    "last": "2023-12-30",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "skye",
+    "brimstone"
+   ]
   },
   {
    "id": "r:47",
@@ -3923,7 +4456,12 @@
     2023
    ],
    "last": "2023-01-23",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "astra",
+    "viper"
+   ]
   },
   {
    "id": "r:1924",
@@ -3959,7 +4497,12 @@
     2023
    ],
    "last": "2023-12-30",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "jett"
+   ]
   },
   {
    "id": "r:3024",
@@ -3995,7 +4538,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "killjoy",
+    "brimstone"
+   ]
   },
   {
    "id": "r:471",
@@ -4031,7 +4579,12 @@
     2022
    ],
    "last": "2022-06-26",
-   "early": true
+   "early": true,
+   "agents": [
+    "reyna",
+    "skye",
+    "viper"
+   ]
   },
   {
    "id": "r:36512",
@@ -4067,7 +4620,12 @@
     2023
    ],
    "last": "2023-10-29",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "brimstone",
+    "harbor"
+   ]
   },
   {
    "id": "r:4603",
@@ -4103,7 +4661,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "killjoy"
+   ]
   },
   {
    "id": "r:24236",
@@ -4139,7 +4702,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "raze",
+    "skye"
+   ]
   },
   {
    "id": "r:1567",
@@ -4175,7 +4743,12 @@
     2024
    ],
    "last": "2024-12-09",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "viper"
+   ]
   },
   {
    "id": "r:5013",
@@ -4211,7 +4784,12 @@
     2023
    ],
    "last": "2023-12-30",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "sova"
+   ]
   },
   {
    "id": "r:2679",
@@ -4247,7 +4825,12 @@
     2024
    ],
    "last": "2024-07-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "omen",
+    "raze"
+   ]
   },
   {
    "id": "r:18704",
@@ -4283,7 +4866,12 @@
     2024
    ],
    "last": "2024-10-13",
-   "early": false
+   "early": false,
+   "agents": [
+    "viper",
+    "omen",
+    "skye"
+   ]
   },
   {
    "id": "r:4556",
@@ -4319,7 +4907,12 @@
     2025
    ],
    "last": "2025-08-14",
-   "early": false
+   "early": false,
+   "agents": [
+    "cypher",
+    "killjoy",
+    "viper"
+   ]
   },
   {
    "id": "r:22266",
@@ -4355,7 +4948,10 @@
     2022
    ],
    "last": "2022-01-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova"
+   ]
   },
   {
    "id": "r:37928",
@@ -4391,7 +4987,12 @@
     2023
    ],
    "last": "2023-11-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "viper",
+    "phoenix"
+   ]
   },
   {
    "id": "r:3672",
@@ -4427,7 +5028,12 @@
     2023
    ],
    "last": "2023-05-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "brimstone",
+    "sova"
+   ]
   },
   {
    "id": "r:1000",
@@ -4463,7 +5069,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "sova",
+    "skye"
+   ]
   },
   {
    "id": "r:1952",
@@ -4499,7 +5110,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": true
+   "early": true,
+   "agents": [
+    "sova",
+    "killjoy",
+    "sage"
+   ]
   },
   {
    "id": "r:129",
@@ -4535,7 +5151,12 @@
     2025
    ],
    "last": "2025-02-10",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "viper"
+   ]
   },
   {
    "id": "r:2021",
@@ -4571,7 +5192,12 @@
     2024
    ],
    "last": "2024-12-09",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "raze",
+    "phoenix"
+   ]
   },
   {
    "id": "r:2134",
@@ -4607,7 +5233,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "sova",
+    "sage"
+   ]
   },
   {
    "id": "r:950",
@@ -4643,7 +5274,12 @@
     2022
    ],
    "last": "2022-06-26",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "sage",
+    "cypher"
+   ]
   },
   {
    "id": "r:4650",
@@ -4679,7 +5315,12 @@
     2024
    ],
    "last": "2024-12-06",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "sova",
+    "jett"
+   ]
   },
   {
    "id": "r:7883",
@@ -4715,7 +5356,12 @@
     2024
    ],
    "last": "2024-09-15",
-   "early": false
+   "early": false,
+   "agents": [
+    "cypher",
+    "killjoy",
+    "sova"
+   ]
   },
   {
    "id": "r:941",
@@ -4751,7 +5397,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "killjoy"
+   ]
   },
   {
    "id": "r:1944",
@@ -4787,7 +5438,12 @@
     2025
    ],
    "last": "2025-04-29",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "viper",
+    "sage"
+   ]
   },
   {
    "id": "r:817",
@@ -4823,7 +5479,12 @@
     2025
    ],
    "last": "2025-05-03",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "viper",
+    "cypher"
+   ]
   },
   {
    "id": "r:11106",
@@ -4859,7 +5520,12 @@
     2025
    ],
    "last": "2025-08-12",
-   "early": false
+   "early": false,
+   "agents": [
+    "cypher",
+    "killjoy",
+    "viper"
+   ]
   },
   {
    "id": "r:10661",
@@ -4895,7 +5561,12 @@
     2024
    ],
    "last": "2024-12-22",
-   "early": false
+   "early": false,
+   "agents": [
+    "cypher",
+    "killjoy",
+    "viper"
+   ]
   },
   {
    "id": "r:4376",
@@ -4931,7 +5602,12 @@
     2024
    ],
    "last": "2024-07-19",
-   "early": true
+   "early": true,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "astra"
+   ]
   },
   {
    "id": "r:7718",
@@ -4967,7 +5643,12 @@
     2024
    ],
    "last": "2024-07-28",
-   "early": true
+   "early": true,
+   "agents": [
+    "raze",
+    "skye",
+    "chamber"
+   ]
   },
   {
    "id": "r:402",
@@ -5003,7 +5684,12 @@
     2025
    ],
    "last": "2025-08-26",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "viper"
+   ]
   },
   {
    "id": "r:17089",
@@ -5039,7 +5725,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "viper"
+   ]
   },
   {
    "id": "r:2911",
@@ -5075,7 +5766,12 @@
     2023
    ],
    "last": "2023-03-31",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "breach",
+    "sova"
+   ]
   },
   {
    "id": "r:3271",
@@ -5111,7 +5807,12 @@
     2024
    ],
    "last": "2024-10-13",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "kayo",
+    "skye"
+   ]
   },
   {
    "id": "r:2483",
@@ -5147,7 +5848,12 @@
     2023
    ],
    "last": "2023-07-16",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "killjoy",
+    "breach"
+   ]
   },
   {
    "id": "r:1001",
@@ -5183,7 +5889,12 @@
     2024
    ],
    "last": "2024-07-28",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "brimstone",
+    "raze"
+   ]
   },
   {
    "id": "r:25339",
@@ -5219,7 +5930,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "viper",
+    "killjoy"
+   ]
   },
   {
    "id": "r:6674",
@@ -5255,7 +5971,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "omen",
+    "astra"
+   ]
   },
   {
    "id": "r:2571",
@@ -5291,7 +6012,12 @@
     2025
    ],
    "last": "2025-08-17",
-   "early": false
+   "early": false,
+   "agents": [
+    "raze",
+    "cypher",
+    "killjoy"
+   ]
   },
   {
    "id": "r:1595",
@@ -5327,7 +6053,12 @@
     2025
    ],
    "last": "2025-08-14",
-   "early": true
+   "early": true,
+   "agents": [
+    "cypher",
+    "breach",
+    "sova"
+   ]
   },
   {
    "id": "r:4402",
@@ -5363,7 +6094,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "breach",
+    "viper",
+    "raze"
+   ]
   },
   {
    "id": "r:1576",
@@ -5399,7 +6135,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": true
+   "early": true,
+   "agents": [
+    "astra",
+    "brimstone",
+    "omen"
+   ]
   },
   {
    "id": "r:339",
@@ -5435,7 +6176,12 @@
     2023
    ],
    "last": "2023-07-23",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "astra",
+    "viper"
+   ]
   },
   {
    "id": "r:29638",
@@ -5471,7 +6217,12 @@
     2024
    ],
    "last": "2024-10-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "omen",
+    "viper"
+   ]
   },
   {
    "id": "r:4375",
@@ -5507,7 +6258,12 @@
     2024
    ],
    "last": "2024-07-19",
-   "early": true
+   "early": true,
+   "agents": [
+    "astra",
+    "reyna",
+    "viper"
+   ]
   },
   {
    "id": "r:687",
@@ -5543,7 +6299,12 @@
     2025
    ],
    "last": "2025-05-18",
-   "early": true
+   "early": true,
+   "agents": [
+    "jett",
+    "chamber",
+    "cypher"
+   ]
   },
   {
    "id": "r:4089",
@@ -5579,7 +6340,12 @@
     2025
    ],
    "last": "2025-07-03",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "viper",
+    "tejo"
+   ]
   },
   {
    "id": "r:5255",
@@ -5615,7 +6381,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "neon",
+    "yoru"
+   ]
   },
   {
    "id": "r:1999",
@@ -5651,7 +6422,12 @@
     2025
    ],
    "last": "2025-08-14",
-   "early": false
+   "early": false,
+   "agents": [
+    "chamber",
+    "jett",
+    "raze"
+   ]
   },
   {
    "id": "r:3270",
@@ -5687,7 +6463,12 @@
     2024
    ],
    "last": "2024-06-28",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "viper",
+    "killjoy"
+   ]
   },
   {
    "id": "r:26789",
@@ -5723,7 +6504,12 @@
     2024
    ],
    "last": "2024-10-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "omen",
+    "breach"
+   ]
   },
   {
    "id": "r:8573",
@@ -5759,7 +6545,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "omen"
+   ]
   },
   {
    "id": "r:220",
@@ -5795,7 +6586,12 @@
     2024
    ],
    "last": "2024-07-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "skye",
+    "kayo"
+   ]
   },
   {
    "id": "r:1353",
@@ -5831,7 +6627,12 @@
     2024
    ],
    "last": "2024-07-21",
-   "early": false
+   "early": false,
+   "agents": [
+    "killjoy",
+    "cypher",
+    "omen"
+   ]
   },
   {
    "id": "r:37674",
@@ -5867,7 +6668,12 @@
     2025
    ],
    "last": "2025-05-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "breach",
+    "fade"
+   ]
   },
   {
    "id": "r:7841",
@@ -5903,7 +6709,12 @@
     2025
    ],
    "last": "2025-08-24",
-   "early": false
+   "early": false,
+   "agents": [
+    "jett",
+    "raze",
+    "neon"
+   ]
   },
   {
    "id": "r:19522",
@@ -5939,7 +6750,12 @@
     2024
    ],
    "last": "2024-07-19",
-   "early": false
+   "early": false,
+   "agents": [
+    "omen",
+    "astra",
+    "cypher"
+   ]
   },
   {
    "id": "r:937",
@@ -5975,7 +6791,12 @@
     2022
    ],
    "last": "2022-03-27",
-   "early": true
+   "early": true,
+   "agents": [
+    "omen",
+    "cypher",
+    "killjoy"
+   ]
   },
   {
    "id": "r:556",
@@ -6011,7 +6832,12 @@
     2024
    ],
    "last": "2024-07-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "cypher",
+    "killjoy"
+   ]
   },
   {
    "id": "r:7726",
@@ -6047,7 +6873,12 @@
     2023
    ],
    "last": "2023-06-04",
-   "early": false
+   "early": false,
+   "agents": [
+    "kayo",
+    "breach",
+    "sage"
+   ]
   },
   {
    "id": "r:2662",
@@ -6083,7 +6914,12 @@
     2025
    ],
    "last": "2025-04-27",
-   "early": false
+   "early": false,
+   "agents": [
+    "sova",
+    "breach",
+    "sage"
+   ]
   }
  ],
  "legends": [

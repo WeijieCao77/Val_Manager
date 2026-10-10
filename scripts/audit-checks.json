@@ -886,6 +886,10 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_history_teams.ts"
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_retirement_cap.ts"
   }
 ]

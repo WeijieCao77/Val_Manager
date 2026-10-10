@@ -15,6 +15,7 @@ import { WORLD_TEAMS } from './teams'
 import { cupTeam } from './cupTeams'
 import { runVeto, simulateMatch } from './match'
 import { NEUTRAL } from './bonds'
+import { canonAgents } from './content'
 import { Rng, clamp } from './rng'
 import { BALANCE_VERSION, cardStrengths } from './balance'
 import {
@@ -42,6 +43,23 @@ function legendArenaPlayer(card: PlayerCard): Player | undefined {
     age: own.age, ageEstimated: false, isIgl: card.isIgl, attrs: { ...card.attrs }, overall: card.rating,
     potential: card.rating, form: 76, morale: 84, fatigue: 0, salary: 0, value: 0, contractYears: 0,
     loyalty: 70, ambition: 70, agentPool: [...own.agents],
+    season: emptyStats(), career: emptyStats(), injuredUntil: 0, xp: {},
+  }
+}
+
+/**
+ * A card whose man the 2026 world does not hold — a retired player, a card
+ * kept after its man left the rosters (card_archive.json), a 历代强队
+ * opponent: the match gets him from the card itself, as a 彩卡 above. Without
+ * this the seat stayed empty and the five played four.
+ */
+function cardArenaPlayer(card: PlayerCard): Player {
+  return {
+    id: card.playerId, ign: card.ign, realName: card.realName ?? undefined, nat: card.nat ?? undefined,
+    teamId: card.clubId, region: card.region, role: card.role, roles: [...card.roles],
+    age: card.age, ageEstimated: true, isIgl: card.isIgl, attrs: { ...card.attrs }, overall: card.rating,
+    potential: card.rating, form: 76, morale: 84, fatigue: 0, salary: 0, value: 0, contractYears: 0,
+    loyalty: 70, ambition: 70, agentPool: canonAgents(card.agents ?? []),
     season: emptyStats(), career: emptyStats(), injuredUntil: 0, xp: {},
   }
 }
@@ -197,8 +215,10 @@ function seatSquad(
     if (!isPlayerCard(card)) return
     if (seated.has(personOf(card))) return
     seated.add(personOf(card))
-    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card) ?? state.players[card.playerId]
-    if (!src) return
+    // a card that carries its own agents (退役, 历代强队) is its own record: the
+    // world may hold the same man from another year, on another role
+    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card)
+      ?? (card.agents ? cardArenaPlayer(card) : undefined) ?? state.players[card.playerId] ?? cardArenaPlayer(card)
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'
     const clone = levelled(src, card, misfit)

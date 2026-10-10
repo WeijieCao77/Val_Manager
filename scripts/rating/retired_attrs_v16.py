@@ -51,8 +51,10 @@ def pctiles(rows: dict, key: str, invert=False) -> dict:
     return out
 
 
-def main() -> int:
-    events, recs = H.load()
+def formula_shapes(want: set[str], events: dict | None = None, recs: list | None = None) -> tuple[dict, int]:
+    """the world builder's formulas on 2020-22 tier-one career totals, for any of `want` with 800+ rounds"""
+    if events is None or recs is None:
+        events, recs = H.load()
     agg = defaultdict(lambda: defaultdict(float))
     roles = defaultdict(lambda: defaultdict(float))
     for r in recs:
@@ -94,9 +96,6 @@ def main() -> int:
         peers = {k: v for k, v in rows.items() if v["role"] == role}
         P["R"].update(pctiles(peers if len(peers) >= 12 else rows, "R"))
 
-    want = set()
-    status = json.loads((OUT / "status_verified.json").read_text())
-    want |= {k for k, v in status.items() if v.get("early") or v["ign"] == "Hiko"}
     shapes = {}
     for pid in want:
         if pid not in rows:
@@ -118,8 +117,15 @@ def main() -> int:
         w = ROLE_WEIGHT[r["role"]]
         shapes[pid] = {"role": r["role"], "attrs": attrs, "overall": round(sum(attrs[k] * w[k] for k in attrs)),
                        "pool": len(rows), "source": "build_world.py formulas on 2020-22 tier-one career totals"}
+    return shapes, len(rows)
+
+
+def main() -> int:
+    status = json.loads((OUT / "status_verified.json").read_text())
+    want = {k for k, v in status.items() if v.get("early") or v["ign"] == "Hiko"}
+    shapes, pool = formula_shapes(want)
     (OUT / "attr_shapes.json").write_text(json.dumps(shapes, ensure_ascii=False, indent=1))
-    print(f"{len(shapes)} shapes from a pool of {len(rows)} players; missing: {sorted(want - set(shapes))}")
+    print(f"{len(shapes)} shapes from a pool of {pool} players; missing: {sorted(want - set(shapes))}")
     return 0
 
 

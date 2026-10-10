@@ -23,6 +23,7 @@ import COACHED_JSON from '../data/coached.json'
 import RATED from '../data/card_ratings.json'
 import ARCHIVE from '../data/card_archive.json'
 import RETIRED_JSON from '../data/retired_cards.json'
+import HISTORY_JSON from '../data/history_teams.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -115,6 +116,8 @@ export interface PlayerCard {
   attrs: Attrs
   rating: number
   rarity: Rarity
+  /** a man with no world record (退役, 历代强队): the agents he played most, for the match to seat him on */
+  agents?: string[]
 }
 
 export interface CoachCard {
@@ -413,7 +416,7 @@ type RetiredNormal = {
   id: string; playerId: string; ign: string; realName: string | null; nat: string | null
   faceFile: string | null; faceV: string | null; region: Region; clubTag: string
   role: Role; roles: Role[]; isIgl: boolean; age: number; attrs: Attrs; rating: number
-  rarity: Rarity; span: [number, number]
+  rarity: Rarity; span: [number, number]; agents?: string[]
 }
 type RetiredLegend = {
   id: string; playerId: string; ign: string; title: string; short: string; year: number
@@ -433,7 +436,7 @@ function buildRetiredCards(): PlayerCard[] {
     face: r.faceFile ? faceUrl(r.faceFile, r.faceV ?? undefined) : null,
     region: r.region, clubId: histClub(r.clubTag), clubTag: r.clubTag,
     role: r.role, roles: r.roles, isIgl: r.isIgl, age: r.age, attrs: r.attrs,
-    rating: r.rating, rarity: r.rarity,
+    rating: r.rating, rarity: r.rarity, agents: r.agents,
   }))
   const byPlayer = new Map(normals.map((c) => [c.playerId, c]))
   const legends: PlayerCard[] = RETIRED_DATA.legends.map((l) => {
@@ -452,6 +455,25 @@ function buildRetiredCards(): PlayerCard[] {
 /** the 退役 series, 普卡 and 彩卡; dealt only by the 退役选手包 */
 export const RETIRED_CARDS: PlayerCard[] = buildRetiredCards()
 
+/**
+ * 历代强队: the twelve opponents' fives as they were that week
+ * (scripts/rating/build_history_teams.py — era ratings, own attribute shapes).
+ * Cards only so a match can seat them: never dealt, never counted, never owned —
+ * cardById finds them, ALL_CARDS does not list them.
+ */
+type HistoryRow = {
+  id: string; tag: string; region: Region
+  players: { vlrId: string; ign: string; role: Role; isIgl: boolean; rating: number; attrs: Attrs; face: string | null; faceV: string | null; agents: string[] }[]
+}
+export const HISTORY_OPP_CARDS: PlayerCard[] = (HISTORY_JSON as unknown as { stages: HistoryRow[] }).stages.flatMap((st) =>
+  st.players.map((p) => ({
+    kind: 'player' as const, id: `ht:${st.id}:${p.vlrId}`, playerId: `Hv${p.vlrId}`,
+    ign: p.ign, realName: null, nat: null, face: p.face ? faceUrl(p.face, p.faceV ?? undefined) : null,
+    region: st.region, clubId: histClub(st.tag), clubTag: st.tag,
+    role: p.role, roles: [p.role], isIgl: p.isIgl, age: 0, attrs: p.attrs,
+    rating: p.rating, rarity: rarityOf(p.rating), agents: p.agents,
+  })))
+
 export const BASE_PLAYER_CARDS: PlayerCard[] = LIVE_PLAYER_CARDS
 // a legend or an event card of a man who has since left is still built on his record
 const ANY_BASE: PlayerCard[] = [...LIVE_PLAYER_CARDS, ...FORMER_PLAYER_CARDS]
@@ -464,7 +486,7 @@ export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CA
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
 
-const byId = new Map([...ALL_CARDS, ...FORMER_CARDS].map((c) => [c.id, c]))
+const byId = new Map([...ALL_CARDS, ...FORMER_CARDS, ...HISTORY_OPP_CARDS].map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(
   Object.entries(COACHED_JSON as Record<string, string[][]>).map(([coach, rows]) => [coach, new Set(rows.map((r) => r[0]))]),
 )

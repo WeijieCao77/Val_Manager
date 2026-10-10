@@ -11,6 +11,7 @@ export const CARD_PAGES = [
   { key: 'ladder', label: '天梯', group: '赛事', description: '检验你的阵容，向更高段位进发。', icon: 'rank' },
   { key: 'cup', label: '杯赛', group: '赛事', description: '报名赛事，带领你的卡组争夺冠军。', icon: 'cup' },
   { key: 'bangkok', label: '曼谷征途', group: '赛事', description: '重走曼谷 2025 大师赛的晋级之路。', icon: 'route' },
+  { key: 'history', label: '历代强队', group: '赛事', description: '带五名退役选手，挑战拿过世界冠军的队伍。', icon: 'cup' },
   { key: 'minigames', label: '小游戏', group: '发现', description: '来一场小挑战，赢取位置奖励包。', icon: 'game', beta: true },
   { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'predict', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
