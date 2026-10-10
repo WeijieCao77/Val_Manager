@@ -21,6 +21,7 @@ import { LEGENDS } from './legends'
 // player was on it — scripts/build_coached.py, off vlr.gg careers and Liquipedia tenure
 import COACHED_JSON from '../data/coached.json'
 import RATED from '../data/card_ratings.json'
+import ARCHIVE from '../data/card_archive.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
 import type { Attrs, Coach, Region, Role } from './types'
@@ -78,6 +79,10 @@ export const coachRarityOf = (rating: number): Rarity =>
 
 export interface PlayerCard {
   kind: 'player'
+  /** He left the game's rosters: still owned, still playable, never dealt (card_archive.json). */
+  former?: boolean
+  /** Set only by the reviewed catalogue; counts toward the normal two-retiree cap. */
+  retired?: boolean
   event?: 'seoul-2024' | 'bangkok-2025'
   seoul?: SeoulEntry
   bangkok?: BangkokEntry
@@ -112,6 +117,10 @@ export interface PlayerCard {
 
 export interface CoachCard {
   kind: 'coach'
+  /** No longer on a staff the game has: still owned, still playable, never dealt. */
+  former?: boolean
+  /** Retirement is separate from the five player seats. */
+  retired?: boolean
   id: string
   /** set on a彩卡: the night this version of him is — see PlayerCard.legend */
   legend?: Legend
@@ -344,16 +353,60 @@ function buildLegendCoachCards(): CoachCard[] {
   return out
 }
 
-export const BASE_PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
-export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(BASE_PLAYER_CARDS)
+/**
+ * A card, as it stood the last time the game's rosters had him: what
+ * scripts/archive_cards.ts keeps for every card ever dealt.
+ *
+ * Cards are built from today's world.json, so a man who retires, moves to a
+ * league the game doesn't have, or leaves a staff would take every copy of his
+ * card with him — cardById would find nothing and the owner's card would
+ * vanish. A card never leaves: his last snapshot becomes a 'former' card,
+ * still owned, still playable and tradable, never dealt by a pack, not part of
+ * the 图鉴 total. A comeback drops him from the archive and the live card,
+ * same id, takes over again.
+ */
+export type CardSnapshot = (Omit<PlayerCard, 'face' | 'former'> | Omit<CoachCard, 'face' | 'former'>) & {
+  faceFile: string | null
+  faceV: string | null
+}
+
+const FACE_RE = /faces\/([^?]+)(?:\?v=(.*))?$/
+export function snapshotOf(card: PlayerCard | CoachCard): CardSnapshot {
+  const { face, former: _former, ...rest } = card
+  void _former
+  const m = face ? FACE_RE.exec(face) : null
+  return { ...rest, faceFile: m ? m[1] : null, faceV: m && m[2] ? m[2] : null } as CardSnapshot
+}
+
+export function cardFromSnapshot(s: CardSnapshot): PlayerCard | CoachCard {
+  const { faceFile, faceV, ...rest } = s
+  return { ...rest, face: faceFile ? faceUrl(faceFile, faceV ?? undefined) : null, former: true } as PlayerCard | CoachCard
+}
+
+const LIVE_PLAYER_CARDS: PlayerCard[] = buildPlayerCards()
+const LIVE_COACH_CARDS: CoachCard[] = buildCoachCards()
+const liveIds = new Set<string>([...LIVE_PLAYER_CARDS, ...LIVE_COACH_CARDS].map((c) => c.id))
+const ARCHIVED = ARCHIVE as unknown as { players: Record<string, CardSnapshot>; coaches: Record<string, CardSnapshot> }
+export const FORMER_PLAYER_CARDS: PlayerCard[] = Object.values(ARCHIVED.players)
+  .filter((s) => !liveIds.has(s.id)).map((s) => cardFromSnapshot(s) as PlayerCard)
+export const FORMER_COACH_CARDS: CoachCard[] = Object.values(ARCHIVED.coaches)
+  .filter((s) => !liveIds.has(s.id)).map((s) => cardFromSnapshot(s) as CoachCard)
+/** cards nobody can pull any more, but somebody may own */
+export const FORMER_CARDS: Card[] = [...FORMER_PLAYER_CARDS, ...FORMER_COACH_CARDS]
+
+export const BASE_PLAYER_CARDS: PlayerCard[] = LIVE_PLAYER_CARDS
+// a legend or an event card of a man who has since left is still built on his record
+const ANY_BASE: PlayerCard[] = [...LIVE_PLAYER_CARDS, ...FORMER_PLAYER_CARDS]
+export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(ANY_BASE)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
-export const SEOUL_CARDS: PlayerCard[] = buildSeoulCards(BASE_PLAYER_CARDS)
-export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(BASE_PLAYER_CARDS)
+export const SEOUL_CARDS: PlayerCard[] = buildSeoulCards(ANY_BASE)
+export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(ANY_BASE)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
-export const COACH_CARDS: CoachCard[] = [...buildCoachCards(), ...LEGEND_COACH_CARDS]
+export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
+/** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...COACH_CARDS]
 
-const byId = new Map(ALL_CARDS.map((c) => [c.id, c]))
+const byId = new Map([...ALL_CARDS, ...FORMER_CARDS].map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(
   Object.entries(COACHED_JSON as Record<string, string[][]>).map(([coach, rows]) => [coach, new Set(rows.map((r) => r[0]))]),
 )
