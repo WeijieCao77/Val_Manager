@@ -59,5 +59,15 @@ check((runAction(two, 'ladder', { league: 'open' }, env) as { ok: boolean }).ok,
   g.cards[seoulTenz.id] = { id: seoulTenz.id, level: 0, dupes: 0, seen: 1 }
   check(!squadForPlay(g).ok, '同一个人不能在一套首发里出现两次')
 }
+// a retired man and his last club still know each other, a little less than two men on it now
+{
+  const { chemistry, cardById: byId, RETIRED_CARDS: RC, PLAYER_CARDS: PC, isPlayerCard: isP } = await import('../src/engine/cards')
+  const s0m = RC.find((c) => isP(c) && c.ign === 's0m' && c.rarity !== 'mythic')!
+  const brawk = PC.find((c) => c.ign === 'brawk' && !c.event && c.rarity !== 'mythic')!
+  const l = chemistry({ slots: [s0m.id, brawk.id, null, null, null], coach: null }).links[0]
+  check(l?.why === 'former' && l.value === 2, '退役 s0m 和现役 brawk（都是 NRG）有默契，比现役同队少一点', JSON.stringify(l))
+  const sen = chemistry({ slots: ['r:9', 'r:659', null, null, null], coach: null }).links[0]
+  check(byId('r:9')?.clubTag === 'SEN' && sen?.why === 'club' && sen.value === 3, '两名退役 SEN 选手仍是同队', JSON.stringify(sen))
+}
 if (bad) { console.log(`${bad} failed`); process.exit(1) }
 console.log('全部通过')

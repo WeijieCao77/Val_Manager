@@ -647,7 +647,7 @@ export interface ChemLink {
   a: number
   b: number
   /** why these two get on: same club beats same country beats same region */
-  why: 'club' | 'nat' | 'region'
+  why: 'club' | 'former' | 'nat' | 'region'
   value: number
 }
 
@@ -678,7 +678,15 @@ export interface CoachLink {
   value: number
 }
 
-const LINK_VALUE = { club: 3, nat: 2, region: 1 } as const
+/**
+ * `former`: a retired card and a card of the club he last played for (owner,
+ * 2026-10-11: 「虽然退役了，但是同队伍也应该有默契，比现役少一点也可以」) — s0m
+ * and brawk of NRG. A retired card's club is its own `H:` id, so it is matched
+ * by club tag, and is worth a little less than two men on the club now.
+ */
+const LINK_VALUE = { club: 3, former: 2, nat: 2, region: 1 } as const
+const sameTag = (a: PlayerCard, b: PlayerCard): boolean =>
+  !!a.clubTag && !!b.clubTag && a.clubTag.toUpperCase() === b.clubTag.toUpperCase()
 
 /**
  * How well a five would actually get along.
@@ -702,6 +710,7 @@ export function chemistry(squad: Squad): ChemReport {
       if (!isPlayerCard(a) || !isPlayerCard(b)) continue
       let why: ChemLink['why'] | null = null
       if (a.clubId && a.clubId === b.clubId) why = 'club'
+      else if ((a.retired || b.retired) && sameTag(a, b)) why = 'former'
       // by country, not by code: 中国台湾 / 中国香港 / 中国澳门 and the mainland
       // are one nationality here, as they are everywhere else in the game —
       // the group noticed a CN–TW pair was scored as strangers

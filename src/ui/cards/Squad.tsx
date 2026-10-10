@@ -16,7 +16,7 @@ import CardDetail from './CardDetail'
 import { GapOdds } from './GapOdds'
 import type { CardFilter } from './Filters'
 
-const WHY_CN = { club: '同队', nat: '同国籍', region: '同赛区' } as const
+const WHY_CN = { club: '同队', former: '同队（退役）', nat: '同国籍', region: '同赛区' } as const
 const COACH_WHY_CN = { club: '同队', coached: '带过', region: '同赛区' } as const
 const fmt = (n: number) => n.toLocaleString('en-US')
 /** cards drawn in the picker at a time: a collection of several hundred, each a scaled card face, froze the sheet on a phone */
@@ -221,7 +221,7 @@ export default function SquadScreen() {
             <p className="small muted" style={{ marginTop: 0, lineHeight: 1.75 }}>
               战力综合反映当前培养与阵容搭配，实际比赛还受对手、战术和临场表现影响。
               教练的战术、培养、激励和等级都计入战力，教练带来的默契另算。
-              默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>。默契高的阵容能打赢评分更高的对手。
+              默契来自真实关系：<b>同一支俱乐部</b>最高，其次<b>同国籍</b>，再次<b>同赛区</b>；退役选手和他最后效力的队伍也算同队，比现役略低。默契高的阵容能打赢评分更高的对手。
             </p>
             <GapOdds />
 
