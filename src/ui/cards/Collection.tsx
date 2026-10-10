@@ -230,6 +230,7 @@ export default function Collection() {
               <a className="tiny" href="/seoul-2024">首尔系列图鉴 ↗</a>
               <a className="tiny" href="/bangkok-2025">曼谷系列图鉴 ↗</a>
               <a className="tiny" href="/cards/stats" title="对哪位选手的评分有疑问，这里能查到每位选手的分是怎么算的">评分是怎么算的 ↗</a>
+              <a className="tiny" href="/cards/retired/stats" title="退役选手的分是怎么算的，每个人用了哪些比赛">退役评分 ↗</a>
               {!missing && (
                 <button className={`sm${dupesOnly ? ' primary' : ''}`} aria-pressed={dupesOnly} onClick={() => { setDupesOnly((v) => !v); setPage(1) }}>
                   有重复

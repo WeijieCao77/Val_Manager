@@ -70,7 +70,7 @@ def retired_rows() -> list[dict]:
             "nat": h.get("nat") or (card.get(p["vlrId"]) or {}).get("nat"),
             "img": f"/faces/{h['img']}?v={h.get('v', '')}" if h.get("img") else (f"/faces/{early[p['vlrId']]['file']}" if p["vlrId"] in early else None),
             "early": bool(p.get("early")),
-            "rating": p["rating"], "rarity": RARITY[p["rarity"]], "last": p["last"],
+            "rating": p["rating"], "liveScale": p.get("liveScale"), "rarity": RARITY[p["rarity"]], "last": p["last"],
             "role": (p.get("card") or {}).get("role"), "attrs": (p.get("card") or {}).get("attrs"),
             "personal": r2(p["P"]), "career": r2(p["careerL"], 4), "peakYear": p["peakYear"], "peak": r2(p["peakL"], 4),
             "N": r2(p["careerN"], 0), "rounds": r2(p["rounds"], 0),

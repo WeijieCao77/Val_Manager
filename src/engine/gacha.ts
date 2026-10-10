@@ -557,9 +557,10 @@ export const LEAGUE_RULES: Record<LeagueKind, LeagueRule> = {
   silver: { name: '银卡赛', blurb: '只能上银卡和铜卡。', ceiling: 'silver', needMythic: 0, oppBump: -7 },
   bronze: { name: '铜卡赛', blurb: '只能上铜卡。', ceiling: 'bronze', needMythic: 0, oppBump: -13 },
   hof:    { name: '名人堂', blurb: '至少两张彩卡才能入场，对手也更强。', ceiling: null, needMythic: 2, oppBump: 2 },
-  // 2026-10-10: a middling gold retired five plays the clubs exactly as the
-  // open ladder's middling gold five does (paper 80.5 vs 81.0, both win 59% at
-  // 钻石), so both take the open ladder's shape unchanged
+  // 2026-10-10: a middling gold retired five plays the clubs as the open
+  // ladder's middling gold five does (paper 80.5 vs 81.0, both win 59% at 钻石;
+  // after the 10-11 retired squeeze 79.1 vs 81.0, 54% vs 58%), so both take the
+  // open ladder's shape unchanged
   retired: { name: '传奇联赛', blurb: '五名首发都要是退役选手。升段送退役选手包。', ceiling: null, needMythic: 0, oppBump: 0, needs: 'retired' },
   mixed:  { name: '全系列赛', blurb: '首发里现役普卡、首尔或曼谷卡、退役卡各至少一张。', ceiling: null, needMythic: 0, oppBump: 0, needs: 'mixed' },
 }

@@ -516,6 +516,21 @@ def compress(S: float) -> float:
     return max(40, min(92, S if S <= 85 else 85 + .5 * (S - 85)))
 
 
+# The retired squeeze (owner, 2026-10-11, players' feedback 「退役卡数值太高」):
+# the retired pool is top-heavy — 4% of it at 90+ against 1.5% of the live one,
+# because the famous men are the ones who stopped — and three SEN 92s on one
+# five was the result. Above RETIRED_PIVOT every point counts RETIRED_SLOPE,
+# taken on the uncapped score so the top men keep their order (Leo 89, TenZ
+# and Sacy 88, SicK and ScreaM 87); below it nothing moves, nor do the metal lines.
+RETIRED_PIVOT, RETIRED_SLOPE = 80, 0.6
+
+
+def retired_squeeze(S: float) -> float:
+    c = max(40, S if S <= 85 else 85 + .5 * (S - 85))
+    c = c if c <= RETIRED_PIVOT else RETIRED_PIVOT + (c - RETIRED_PIVOT) * RETIRED_SLOPE
+    return min(92, c)
+
+
 def main() -> int:
     events, recs = load()
     bases = fit_baselines(recs)
@@ -604,10 +619,11 @@ def main() -> int:
         H = intl["H"]
         S = P + min(10, O) + min(4, H) + G
         C = compress(S)
-        new = math.floor(C + .5)
+        live_scale = math.floor(C + .5)
+        new = math.floor(retired_squeeze(S) + .5) if cls == "retired" else live_scale
         out.append({
             "vlrId": vid, "ign": st["ign"], "class": cls, "rated": True, "last": last, "cutoff": cut,
-            "rating": new, "rarity": "gold" if new >= 79 else "silver" if new >= 70 else "bronze",
+            "rating": new, "liveScale": live_scale, "rarity": "gold" if new >= 79 else "silver" if new >= 70 else "bronze",
             "card": shaped(shapes.get(vid) or ({0: derived[vid]} if vid in derived else {}), peak_y, new, bool(igl.get(vid))),
             "early": bool(st.get("early")),
             "S": S, "P": P, "L": L, "careerL": career["L"], "careerN": career["N"], "rounds": sum(r["n"] for r in rr),

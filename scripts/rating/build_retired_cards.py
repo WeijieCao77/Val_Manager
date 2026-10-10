@@ -121,8 +121,20 @@ def main() -> int:
             "age": age, "attrs": card.get("attrs"), "rating": p["rating"], "rarity": p["rarity"],
             "span": [max(2020, years[0]), years[-1]], "last": p["last"], "early": bool(p.get("early")),
             "agents": top_agents(p["records"]),
-            "number": f"余晖 / {len(normals) + 1:03d}",
+            "number": None,  # set below: a card keeps its number once it has one
         })
+    # numbers are printed on the card: once given they stay, whatever the ratings do
+    # later (the 2026-10-11 squeeze reordered the top); a new card takes the next one
+    had = {}
+    if OUT.exists():
+        had = {n["id"]: n["number"] for n in json.loads(OUT.read_text())["normals"] if n.get("number")}
+    nxt = max([int(v.split("/")[-1]) for v in had.values()] or [0])
+    for n in normals:
+        if n["id"] in had:
+            n["number"] = had[n["id"]]
+        else:
+            nxt += 1
+            n["number"] = f"余晖 / {nxt:03d}"
     by_ign = {n["ign"]: n for n in normals}
     legends = []
     for m in json.loads((B / "mythics.json").read_text()):
