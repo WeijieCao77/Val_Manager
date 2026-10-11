@@ -1,14 +1,21 @@
 import { cardById, isCoachCard, isPlayerCard } from './cards'
-import type { Squad } from './cards'
+import type { PlayerCard, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { crestUrl } from './dossier'
 
-/** Cosmetic identity only: all five distinct players and their coach must share a club. */
+/**
+ * Cosmetic identity only: all five distinct players and their coach must share a club.
+ * A retired card's club is its own `H:` id, so it counts by club tag: s0m with four
+ * of today's NRG and their coach is an NRG five (2026-10-11).
+ */
 export function squadTeamIdentity(squad: Squad) {
   if (squad.slots.length !== 5 || !squad.coach || squad.slots.some(id => !id)) return null
   const players = squad.slots.map(id => cardById(id!))
   const coach = cardById(squad.coach)
-  if (!coach || !isCoachCard(coach) || !coach.clubId || players.some(p => !p || !isPlayerCard(p) || p.clubId !== coach.clubId)) return null
+  if (!coach || !isCoachCard(coach) || !coach.clubId) return null
+  const clubTag = coach.clubTag?.toUpperCase()
+  const ofClub = (p: PlayerCard) => p.clubId === coach.clubId || (!!p.retired && !!clubTag && p.clubTag?.toUpperCase() === clubTag)
+  if (players.some(p => !p || !isPlayerCard(p) || !ofClub(p))) return null
   if (new Set(players.map(p => p && isPlayerCard(p) ? p.playerId : '')).size !== 5) return null
   const team = WORLD_TEAMS.find(t => t.id === coach.clubId)
   const tag = team?.tag ?? coach.clubTag ?? 'TEAM'

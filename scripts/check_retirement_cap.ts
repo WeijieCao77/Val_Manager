@@ -83,6 +83,18 @@ check((runAction(two, 'ladder', { league: 'open' }, env) as { ok: boolean }).ok,
   const s0mCoach = chemistry({ slots: [s0m.id, null, null, null, null], coach: CC.find((c) => c.clubTag === 'NRG' && !c.legend)?.id ?? null })
   check(s0mCoach.coachLinks[0]?.why !== 'club', '退役普卡和老东家教练不变（不算同队）')
 }
+// a retired NRG man with four of today's NRG and their coach still wears the NRG board
+{
+  const { RETIRED_CARDS: RC, PLAYER_CARDS: PC, COACH_CARDS: CC } = await import('../src/engine/cards')
+  const { squadTeamIdentity } = await import('../src/engine/teamIdentity')
+  const s0m = RC.find((c) => c.ign === 's0m' && c.rarity !== 'mythic')!
+  const coach = CC.find((c) => c.clubTag === 'NRG' && !c.legend)!
+  const four = PC.filter((c) => c.clubId === coach.clubId && !c.event && c.rarity !== 'mythic').slice(0, 4)
+  const team = squadTeamIdentity({ slots: [s0m.id, ...four.map((c) => c.id)], coach: coach.id })
+  check(four.length === 4 && team?.tag === 'NRG', '退役 s0m 加四名现役 NRG 和 NRG 教练有 NRG 队标背景', JSON.stringify(team && { tag: team.tag, id: team.id }))
+  const sen = RC.find((c) => c.ign === 'TenZ' && c.rarity !== 'mythic')!
+  check(!squadTeamIdentity({ slots: [sen.id, ...four.map((c) => c.id)], coach: coach.id }), '别队的退役选手不算（TenZ 是 SEN）')
+}
 // positions come from the agents he played over his career, like a live card's (2026-10-11)
 {
   const { RETIRED_CARDS: RC } = await import('../src/engine/cards')
