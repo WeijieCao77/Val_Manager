@@ -71,7 +71,7 @@ def retired_rows() -> list[dict]:
             "img": f"/faces/{h['img']}?v={h.get('v', '')}" if h.get("img") else (f"/faces/{early[p['vlrId']]['file']}" if p["vlrId"] in early else None),
             "early": bool(p.get("early")),
             "rating": p["rating"], "liveScale": p.get("liveScale"), "rarity": RARITY[p["rarity"]], "last": p["last"],
-            "role": (p.get("card") or {}).get("role"), "attrs": (p.get("card") or {}).get("attrs"),
+            "role": " / ".join((card.get(p["vlrId"]) or {}).get("roles") or [(p.get("card") or {}).get("role")]), "attrs": (p.get("card") or {}).get("attrs"),
             "personal": r2(p["P"]), "career": r2(p["careerL"], 4), "peakYear": p["peakYear"], "peak": r2(p["peakL"], 4),
             "N": r2(p["careerN"], 0), "rounds": r2(p["rounds"], 0),
             "parts": {k: r2(p[k], 3) for k in ("Q", "Sd", "T", "D", "E", "I", "F", "breakout", "O", "H", "G", "S")},
@@ -137,8 +137,11 @@ def main() -> int:
             shutil.rmtree(f) if f.is_dir() else f.unlink()
     players = retired_rows()
     lines = json.loads((SRC / "lines.json").read_text())
+    # the positions the game's 彩卡 carry (that night's agents), not the study's one role
+    night = {l["ign"]: l["roles"] for l in json.loads((ROOT / "src" / "data" / "retired_cards.json").read_text())["legends"]}
     mythics = [{k: m[k] for k in ("ign", "vlrId", "event", "why", "percentile", "field", "rounds", "byPercentile", "normal", "rating", "role", "attrs")}
-               | {"event": event_name(m["eid"])} for m in json.loads((SRC / "mythics.json").read_text())]
+               | {"event": event_name(m["eid"]), "role": " / ".join(night.get(m["ign"], [m["role"]]))}
+               for m in json.loads((SRC / "mythics.json").read_text())]
     meta = {"date": date.today().isoformat(), "players": len(players), "lines": {"retired": lines["retired"]}}
     (DST / "retired.json").write_text(json.dumps({"meta": meta, "players": players, "mythics": mythics}, ensure_ascii=False, separators=(",", ":")))
     with (DST / "retired.csv").open("w", encoding="utf-8-sig", newline="") as f:

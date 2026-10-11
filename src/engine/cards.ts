@@ -428,7 +428,7 @@ type RetiredNormal = {
 }
 type RetiredLegend = {
   id: string; playerId: string; ign: string; title: string; short: string; year: number
-  clubTag: string; note: string; rating: number; attrs: Attrs; role: Role; photo: string; photoV: string
+  clubTag: string; note: string; rating: number; attrs: Attrs; role: Role; roles: Role[]; photo: string; photoV: string
   city: string; result: string; accent: string; tint: string; crop: string; number: string
 }
 const assetUrl = (path: string, v?: string): string => {
@@ -452,7 +452,7 @@ function buildRetiredCards(): PlayerCard[] {
   const legends: PlayerCard[] = RETIRED_DATA.legends.map((l) => {
     const base = byPlayer.get(l.playerId)!
     return {
-      ...base, id: l.id, rarity: 'mythic' as Rarity, rating: l.rating, attrs: l.attrs,
+      ...base, id: l.id, rarity: 'mythic' as Rarity, rating: l.rating, attrs: l.attrs, role: l.role, roles: l.roles,
       face: assetUrl(l.photo, l.photoV), clubId: histClub(l.clubTag), clubTag: l.clubTag,
       afterglow: { number: l.number, span: String(l.year), city: l.city, result: l.result, accent: l.accent, tint: l.tint, crop: l.crop },
       legend: {
@@ -685,8 +685,15 @@ export interface CoachLink {
  * by club tag, and is worth a little less than two men on the club now.
  */
 const LINK_VALUE = { club: 3, former: 2, nat: 2, region: 1 } as const
-const sameTag = (a: PlayerCard, b: PlayerCard): boolean =>
+const sameTag = (a: { clubTag: string | null }, b: { clubTag: string | null }): boolean =>
   !!a.clubTag && !!b.clubTag && a.clubTag.toUpperCase() === b.clubTag.toUpperCase()
+/**
+ * A retired 彩卡 is a night at a club, as every 彩卡 is, so where that club
+ * still plays it is simply 同队 — with the club's players and its coach —
+ * exactly as aspas' LOUD 2022 is (owner, 2026-10-11: 「退役彩卡自带的默契值…
+ * 做成一样的」). Only a retired 普卡 gets the lesser `former`.
+ */
+const retiredLegend = (c: PlayerCard): boolean => !!c.retired && c.rarity === 'mythic'
 
 /**
  * How well a five would actually get along.
@@ -710,7 +717,9 @@ export function chemistry(squad: Squad): ChemReport {
       if (!isPlayerCard(a) || !isPlayerCard(b)) continue
       let why: ChemLink['why'] | null = null
       if (a.clubId && a.clubId === b.clubId) why = 'club'
-      else if ((a.retired || b.retired) && sameTag(a, b)) why = 'former'
+      else if ((a.retired || b.retired) && sameTag(a, b)) {
+        why = (a.retired && !retiredLegend(a)) || (b.retired && !retiredLegend(b)) ? 'former' : 'club'
+      }
       // by country, not by code: 中国台湾 / 中国香港 / 中国澳门 and the mainland
       // are one nationality here, as they are everywhere else in the game —
       // the group noticed a CN–TW pair was scored as strangers
@@ -755,19 +764,21 @@ export function chemistry(squad: Squad): ChemReport {
   const coachLinks: CoachLink[] = []
   if (isCoachCard(coach)) {
     const players = cards.filter(isPlayerCard)
-    const sameClub = players.filter((p) => p.clubId && p.clubId === coach.clubId).length
+    const atClub = (p: PlayerCard): boolean => !!(p.clubId && p.clubId === coach.clubId)
+      || (retiredLegend(p) && sameTag(p, coach))
+    const sameClub = players.filter(atClub).length
     // Men this coach has actually coached before, somewhere: a staff role at a
     // club in months the player was on it. Not everyone who has ever passed
     // through a club he coaches — 「只有真的和那位教练同时期呆过的人才有默契
     // 值，而不是在同一个俱乐部过就有」. Worth less than the men he coaches now,
     // and a man he coaches now is never counted a second time here.
-    const coachedBefore = players.filter((p) => !(p.clubId && p.clubId === coach.clubId)
+    const coachedBefore = players.filter((p) => !atClub(p)
       && !!COACHED.get(coach.name)?.has(p.playerId)).length
     const sameRegion = players.filter((p) => p.region === coach.region).length
     coachBonus = sameClub * 2 + coachedBefore + sameRegion
     cards.forEach((p, slot) => {
       if (!isPlayerCard(p)) return
-      const club = !!(p.clubId && p.clubId === coach.clubId)
+      const club = atClub(p)
       const before = !club && !!COACHED.get(coach.name)?.has(p.playerId)
       const region = p.region === coach.region
       const value = (club ? 2 : 0) + (before ? 1 : 0) + (region ? 1 : 0)

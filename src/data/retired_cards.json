@@ -14,7 +14,8 @@
    "clubTag": "FNC",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 20,
@@ -98,7 +99,8 @@
    "clubTag": "SEN",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "控场"
    ],
    "isIgl": false,
    "age": 24,
@@ -180,9 +182,11 @@
    "faceV": "7a762ada",
    "region": "EMEA",
    "clubTag": "GX",
-   "role": "先锋",
+   "role": "决斗者",
    "roles": [
-    "先锋"
+    "决斗者",
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 26,
@@ -224,7 +228,9 @@
    "clubTag": "SEN",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -264,8 +270,9 @@
    "faceV": "46610833",
    "region": "Americas",
    "clubTag": "EG",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "哨卫"
    ],
    "isIgl": false,
@@ -306,8 +313,9 @@
    "faceV": "4a8f7326",
    "region": "Americas",
    "clubTag": "KRÜ",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "哨卫"
    ],
    "isIgl": false,
@@ -350,7 +358,8 @@
    "clubTag": "GEN",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 22,
@@ -390,8 +399,10 @@
    "faceV": "a47b78c2",
    "region": "Americas",
    "clubTag": "NAVI",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
+    "先锋",
     "哨卫"
    ],
    "isIgl": false,
@@ -474,8 +485,9 @@
    "faceV": "9dc732a6",
    "region": "Americas",
    "clubTag": "NRG",
-   "role": "决斗者",
+   "role": "控场",
    "roles": [
+    "控场",
     "决斗者"
    ],
    "isIgl": false,
@@ -518,7 +530,8 @@
    "clubTag": "GEN",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 22,
@@ -560,7 +573,8 @@
    "clubTag": "ONS",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -602,7 +616,8 @@
    "clubTag": "T1",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 26,
@@ -642,8 +657,9 @@
    "faceV": "8b91fc2e",
    "region": "Pacific",
    "clubTag": "DK",
-   "role": "控场",
+   "role": "先锋",
    "roles": [
+    "先锋",
     "控场"
    ],
    "isIgl": false,
@@ -684,9 +700,11 @@
    "faceV": "6af25ce9",
    "region": "Pacific",
    "clubTag": "TLN",
-   "role": "控场",
+   "role": "决斗者",
    "roles": [
-    "控场"
+    "决斗者",
+    "控场",
+    "先锋"
    ],
    "isIgl": false,
    "age": 19,
@@ -728,7 +746,9 @@
    "clubTag": "ODG",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场",
+    "决斗者"
    ],
    "isIgl": true,
    "age": 28,
@@ -770,7 +790,8 @@
    "clubTag": "GE",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋"
    ],
    "isIgl": false,
    "age": 24,
@@ -810,8 +831,9 @@
    "faceV": "49551dd3",
    "region": "EMEA",
    "clubTag": "KC",
-   "role": "控场",
+   "role": "哨卫",
    "roles": [
+    "哨卫",
     "控场"
    ],
    "isIgl": false,
@@ -854,7 +876,8 @@
    "clubTag": "WOL",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": true,
    "age": 26,
@@ -894,9 +917,10 @@
    "faceV": "51a012c7",
    "region": "Pacific",
    "clubTag": "DSG",
-   "role": "先锋",
+   "role": "哨卫",
    "roles": [
-    "先锋"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -938,7 +962,8 @@
    "clubTag": "C9",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": true,
    "age": 25,
@@ -1022,7 +1047,9 @@
    "clubTag": "100T",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -1064,7 +1091,8 @@
    "clubTag": "VIT",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋"
    ],
    "isIgl": false,
    "age": 19,
@@ -1148,7 +1176,9 @@
    "clubTag": "SEN",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 31,
@@ -1190,7 +1220,8 @@
    "clubTag": "FUR",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 20,
@@ -1230,9 +1261,10 @@
    "faceV": "c7c805b7",
    "region": "Pacific",
    "clubTag": "KRX",
-   "role": "决斗者",
+   "role": "先锋",
    "roles": [
-    "决斗者"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 26,
@@ -1274,7 +1306,8 @@
    "clubTag": "EF",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 27,
@@ -1358,7 +1391,8 @@
    "clubTag": "RC",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "控场"
    ],
    "isIgl": false,
    "age": 27,
@@ -1400,7 +1434,9 @@
    "clubTag": "DFM",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 24,
@@ -1442,7 +1478,8 @@
    "clubTag": "GE",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -1484,7 +1521,8 @@
    "clubTag": "100T",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -1526,7 +1564,8 @@
    "clubTag": "TYL",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": true,
    "age": 23,
@@ -1568,7 +1607,8 @@
    "clubTag": "TU",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 24,
@@ -1694,7 +1734,8 @@
    "clubTag": "TYL",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -1778,7 +1819,8 @@
    "clubTag": "VKS",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -1818,8 +1860,10 @@
    "faceV": "5331c223",
    "region": "EMEA",
    "clubTag": "TH",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
+    "控场",
     "哨卫"
    ],
    "isIgl": false,
@@ -1904,7 +1948,8 @@
    "clubTag": "GIA",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋"
    ],
    "isIgl": false,
    "age": 24,
@@ -1946,7 +1991,8 @@
    "clubTag": "GLAB",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 18,
@@ -1988,7 +2034,8 @@
    "clubTag": "100T",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "决斗者"
    ],
    "isIgl": true,
    "age": 24,
@@ -2030,7 +2077,8 @@
    "clubTag": "TEC",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -2072,7 +2120,8 @@
    "clubTag": "BLD",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 23,
@@ -2156,7 +2205,8 @@
    "clubTag": "ONE",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 26,
@@ -2240,7 +2290,8 @@
    "clubTag": "TEC",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 22,
@@ -2282,7 +2333,8 @@
    "clubTag": "RUD",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -2366,7 +2418,8 @@
    "clubTag": "FS",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -2406,8 +2459,9 @@
    "faceV": "dd0f21a4",
    "region": "China",
    "clubTag": "ME",
-   "role": "哨卫",
+   "role": "控场",
    "roles": [
+    "控场",
     "哨卫"
    ],
    "isIgl": false,
@@ -2531,8 +2585,9 @@
    "faceV": "8d483dce",
    "region": "China",
    "clubTag": "BLG",
-   "role": "先锋",
+   "role": "控场",
    "roles": [
+    "控场",
     "先锋"
    ],
    "isIgl": false,
@@ -2575,7 +2630,9 @@
    "clubTag": "GE",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 25,
@@ -2617,7 +2674,8 @@
    "clubTag": "GE",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 28,
@@ -2659,7 +2717,8 @@
    "clubTag": "LOS",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -2701,7 +2760,9 @@
    "clubTag": "IVY",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 24,
@@ -2743,7 +2804,8 @@
    "clubTag": "SHK",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -2785,7 +2847,8 @@
    "clubTag": "G2",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -2869,7 +2932,8 @@
    "clubTag": "Mad",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -2952,7 +3016,8 @@
    "clubTag": "SNS",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -3120,7 +3185,9 @@
    "clubTag": "RNTX",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 24,
@@ -3368,9 +3435,11 @@
    "faceV": "cf64baee",
    "region": "Americas",
    "clubTag": "RED",
-   "role": "先锋",
+   "role": "决斗者",
    "roles": [
-    "先锋"
+    "决斗者",
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -3412,7 +3481,8 @@
    "clubTag": "RTZN",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -3454,7 +3524,8 @@
    "clubTag": "BBL",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 21,
@@ -3496,7 +3567,8 @@
    "clubTag": "OAS",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -3538,7 +3610,9 @@
    "clubTag": "GE",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫",
+    "决斗者"
    ],
    "isIgl": true,
    "age": 27,
@@ -3746,7 +3820,9 @@
    "clubTag": "T1",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "决斗者",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -3871,7 +3947,8 @@
    "clubTag": "TDK",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -3913,7 +3990,9 @@
    "clubTag": "DFM",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 22,
@@ -3953,8 +4032,9 @@
    "faceV": "f7abd60c",
    "region": "Americas",
    "clubTag": "NC",
-   "role": "先锋",
+   "role": "控场",
    "roles": [
+    "控场",
     "先锋"
    ],
    "isIgl": false,
@@ -3997,7 +4077,8 @@
    "clubTag": "NOVA",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 24,
@@ -4081,7 +4162,8 @@
    "clubTag": "S2G",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 26,
@@ -4165,7 +4247,8 @@
    "clubTag": "TYL",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 22,
@@ -4249,7 +4332,9 @@
    "clubTag": "DZ",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -4331,9 +4416,11 @@
    "faceV": "5e473bf4",
    "region": "EMEA",
    "clubTag": "BAR",
-   "role": "控场",
+   "role": "哨卫",
    "roles": [
-    "控场"
+    "哨卫",
+    "控场",
+    "先锋"
    ],
    "isIgl": false,
    "age": 28,
@@ -4375,7 +4462,8 @@
    "clubTag": "SGZ",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -4417,7 +4505,8 @@
    "clubTag": "WBG",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -4459,7 +4548,8 @@
    "clubTag": "DSG",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -4499,8 +4589,9 @@
    "faceV": "fa9854c4",
    "region": "China",
    "clubTag": "ASE",
-   "role": "先锋",
+   "role": "控场",
    "roles": [
+    "控场",
     "先锋"
    ],
    "isIgl": false,
@@ -4585,7 +4676,8 @@
    "clubTag": "4AM",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -4627,7 +4719,8 @@
    "clubTag": "BLG",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 25,
@@ -4669,7 +4762,9 @@
    "clubTag": "F4Q",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -4753,7 +4848,8 @@
    "clubTag": "KC",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 27,
@@ -4795,7 +4891,8 @@
    "clubTag": "WBG",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -4837,7 +4934,8 @@
    "clubTag": "STE",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 27,
@@ -4879,7 +4977,8 @@
    "clubTag": "NWG",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "先锋"
    ],
    "isIgl": false,
    "age": 22,
@@ -4921,7 +5020,8 @@
    "clubTag": "OAS",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "控场"
    ],
    "isIgl": false,
    "age": 31,
@@ -4961,8 +5061,9 @@
    "faceV": "599db6d4",
    "region": "Pacific",
    "clubTag": "MOGO",
-   "role": "先锋",
+   "role": "控场",
    "roles": [
+    "控场",
     "先锋"
    ],
    "isIgl": false,
@@ -5005,7 +5106,8 @@
    "clubTag": "MIBR.AC",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -5087,7 +5189,9 @@
    "clubTag": "4AM",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -5127,8 +5231,9 @@
    "faceV": "b3171b9d",
    "region": "EMEA",
    "clubTag": "VIT",
-   "role": "先锋",
+   "role": "控场",
    "roles": [
+    "控场",
     "先锋"
    ],
    "isIgl": false,
@@ -5213,7 +5318,8 @@
    "clubTag": "NFX",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -5253,8 +5359,9 @@
    "faceV": "7afa1927",
    "region": "EMEA",
    "clubTag": "APK",
-   "role": "控场",
+   "role": "哨卫",
    "roles": [
+    "哨卫",
     "控场"
    ],
    "isIgl": false,
@@ -5295,8 +5402,9 @@
    "faceV": "395caa61",
    "region": "Americas",
    "clubTag": "IMP",
-   "role": "先锋",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "先锋"
    ],
    "isIgl": false,
@@ -5339,7 +5447,8 @@
    "clubTag": "NTH",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -5421,9 +5530,10 @@
    "faceV": "c11546ec",
    "region": "Pacific",
    "clubTag": "MARU",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
-    "哨卫"
+    "决斗者",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -5465,7 +5575,8 @@
    "clubTag": "PPP",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 22,
@@ -5507,7 +5618,8 @@
    "clubTag": "Rise",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -5549,7 +5661,8 @@
    "clubTag": "DSY",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": true,
    "age": 25,
@@ -5589,9 +5702,10 @@
    "faceV": "23e6aacd",
    "region": "Americas",
    "clubTag": "NRG",
-   "role": "先锋",
+   "role": "哨卫",
    "roles": [
-    "先锋"
+    "哨卫",
+    "控场"
    ],
    "isIgl": true,
    "age": 33,
@@ -5633,7 +5747,8 @@
    "clubTag": "BOBO",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -5675,7 +5790,8 @@
    "clubTag": "FAV",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 24,
@@ -5717,7 +5833,8 @@
    "clubTag": "SG",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -5759,7 +5876,9 @@
    "clubTag": "VL",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -5801,7 +5920,8 @@
    "clubTag": "KPI",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 24,
@@ -5927,7 +6047,8 @@
    "clubTag": "MDL",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "先锋"
    ],
    "isIgl": false,
    "age": 27,
@@ -5969,7 +6090,9 @@
    "clubTag": "TQ",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 25,
@@ -6011,7 +6134,8 @@
    "clubTag": "NFX",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -6051,9 +6175,11 @@
    "faceV": "7496e2b8",
    "region": "China",
    "clubTag": "TEC",
-   "role": "控场",
+   "role": "先锋",
    "roles": [
-    "控场"
+    "先锋",
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 21,
@@ -6095,7 +6221,8 @@
    "clubTag": "CR",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 20,
@@ -6135,8 +6262,9 @@
    "faceV": "801bd738",
    "region": "EMEA",
    "clubTag": "HAVU",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "哨卫"
    ],
    "isIgl": false,
@@ -6179,7 +6307,8 @@
    "clubTag": "TBK",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "先锋"
    ],
    "isIgl": false,
    "age": 0,
@@ -6221,7 +6350,9 @@
    "clubTag": "NOVA",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场",
+    "决斗者"
    ],
    "isIgl": true,
    "age": 28,
@@ -6303,8 +6434,9 @@
    "faceV": "ce4e1ccb",
    "region": "EMEA",
    "clubTag": "MKOI",
-   "role": "控场",
+   "role": "先锋",
    "roles": [
+    "先锋",
     "控场"
    ],
    "isIgl": true,
@@ -6347,7 +6479,8 @@
    "clubTag": "IMP",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -6389,7 +6522,8 @@
    "clubTag": "Z11",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "决斗者"
    ],
    "isIgl": false,
    "age": 0,
@@ -6431,7 +6565,8 @@
    "clubTag": "SZ",
    "role": "决斗者",
    "roles": [
-    "决斗者"
+    "决斗者",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -6473,7 +6608,8 @@
    "clubTag": "AST",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 25,
@@ -6555,8 +6691,9 @@
    "faceV": "5d7aaf01",
    "region": "Americas",
    "clubTag": "JARE",
-   "role": "哨卫",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "哨卫"
    ],
    "isIgl": false,
@@ -6599,7 +6736,9 @@
    "clubTag": "T69",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场",
+    "哨卫"
    ],
    "isIgl": true,
    "age": 0,
@@ -6639,8 +6778,9 @@
    "faceV": "a46c3ac4",
    "region": "EMEA",
    "clubTag": "MT",
-   "role": "控场",
+   "role": "先锋",
    "roles": [
+    "先锋",
     "控场"
    ],
    "isIgl": false,
@@ -6683,7 +6823,8 @@
    "clubTag": "RNT",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -6767,7 +6908,8 @@
    "clubTag": "EX0",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 20,
@@ -6807,8 +6949,9 @@
    "faceV": "f93ff5c5",
    "region": "China",
    "clubTag": "JDG",
-   "role": "先锋",
+   "role": "决斗者",
    "roles": [
+    "决斗者",
     "先锋"
    ],
    "isIgl": false,
@@ -6893,7 +7036,8 @@
    "clubTag": "M8",
    "role": "控场",
    "roles": [
-    "控场"
+    "控场",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 26,
@@ -6935,7 +7079,8 @@
    "clubTag": "VKS",
    "role": "哨卫",
    "roles": [
-    "哨卫"
+    "哨卫",
+    "控场"
    ],
    "isIgl": false,
    "age": 0,
@@ -6975,8 +7120,9 @@
    "faceV": "e3c5e637",
    "region": "EMEA",
    "clubTag": "SUP",
-   "role": "哨卫",
+   "role": "先锋",
    "roles": [
+    "先锋",
     "哨卫"
    ],
    "isIgl": true,
@@ -7017,8 +7163,9 @@
    "faceV": "ae72bf3d",
    "region": "Pacific",
    "clubTag": "NCG",
-   "role": "哨卫",
+   "role": "先锋",
    "roles": [
+    "先锋",
     "哨卫"
    ],
    "isIgl": false,
@@ -7061,7 +7208,8 @@
    "clubTag": "ESC",
    "role": "先锋",
    "roles": [
-    "先锋"
+    "先锋",
+    "哨卫"
    ],
    "isIgl": false,
    "age": 0,
@@ -7114,6 +7262,9 @@
     "igl": 76
    },
    "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
    "photo": "events/afterglow/portraits/tenz-action.webp",
    "photoV": "c5dc4576",
    "city": "雷克雅未克",
@@ -7151,6 +7302,9 @@
     "igl": 82
    },
    "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
    "photo": "events/afterglow/portraits/sacy-action.webp",
    "photoV": "9a92d4dd",
    "city": "伊斯坦布尔",
@@ -7188,6 +7342,10 @@
     "igl": 82
    },
    "role": "先锋",
+   "roles": [
+    "先锋",
+    "哨卫"
+   ],
    "photo": "events/afterglow/portraits/leo-action.webp",
    "photoV": "64389487",
    "city": "圣保罗",
@@ -7225,6 +7383,10 @@
     "igl": 78
    },
    "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "决斗者"
+   ],
    "photo": "events/afterglow/portraits/yay-action.webp",
    "photoV": "6666dd35",
    "city": "雷克雅未克",
@@ -7262,6 +7424,9 @@
     "igl": 77
    },
    "role": "决斗者",
+   "roles": [
+    "决斗者"
+   ],
    "photo": "events/afterglow/portraits/scream-action.webp",
    "photoV": "c800a943",
    "city": "柏林",
@@ -7298,7 +7463,11 @@
     "communication": 99,
     "igl": 96
    },
-   "role": "先锋",
+   "role": "哨卫",
+   "roles": [
+    "哨卫",
+    "先锋"
+   ],
    "photo": "events/afterglow/portraits/fns-action.webp",
    "photoV": "793108cb",
    "city": "雷克雅未克",
@@ -7336,6 +7505,9 @@
     "igl": 80
    },
    "role": "先锋",
+   "roles": [
+    "先锋"
+   ],
    "photo": "events/afterglow/portraits/zest-action.webp",
    "photoV": "8baf5bf2",
    "city": "伊斯坦布尔",
@@ -7373,6 +7545,10 @@
     "igl": 87
    },
    "role": "先锋",
+   "roles": [
+    "先锋",
+    "控场"
+   ],
    "photo": "events/afterglow/portraits/bonecold-action.webp",
    "photoV": "920f262c",
    "city": "柏林",

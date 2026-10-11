@@ -903,5 +903,9 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_retirement_cap.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_presets.ts"
   }
 ]

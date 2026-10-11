@@ -62,7 +62,9 @@ function Mythic({ card, label }: { card: PlayerCard; label: string }) {
 
 /** A retired card in the game: the face plus what every card face does (select, dim, tap, spares). */
 export function RetiredFace({ card, level = 0, evolved = false, dupes = 0, selected, dimmed, onClick, footer }: CardFaceProps & { card: PlayerCard; evolved?: boolean }) {
-  const label = `${card.role}${card.isIgl ? ' · 指挥' : ''}${level > 0 ? ` +${level}` : ''}${evolved ? ' 进修' : ''}`
+  // up to two positions, as an ordinary card face shows them (控场/决斗, a third is a +)
+  const roles = card.roles.length > 1 ? `${card.roles.slice(0, 2).map((r) => r.slice(0, 2)).join('/')}${card.roles.length > 2 ? '+' : ''}` : card.role
+  const label = `${roles}${card.isIgl ? ' · 指挥' : ''}${level > 0 ? ` +${level}` : ''}${evolved ? ' 进修' : ''}`
   return <div className={`ag-face${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
     onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}
     onKeyDown={(ev) => { if (onClick && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); onClick() } }}

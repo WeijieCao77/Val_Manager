@@ -938,10 +938,11 @@ export function recordFriend(
 /**
  * A squad you can come back to.
  *
- * Three slots, because the reason people asked for this is that they keep two
- * or three fives on the go — an all-EMEA one, an all-Pacific one, and the one
- * with their favourites in it — and rebuilding a five card by card to try the
- * other one is the kind of chore that stops people trying it at all.
+ * Eight slots since 2026-10-11 (five before, three at first), because the
+ * reason people asked for this is that they keep several fives on the go —
+ * an all-EMEA one, an all-Pacific one, and the one with their favourites in
+ * it — and rebuilding a five card by card to try the other one is the kind
+ * of chore that stops people trying it at all.
  *
  * A preset stores card ids, not cards. Sell or salvage a card and the slot it
  * was in simply comes back empty when the preset is loaded, which is the
@@ -952,7 +953,7 @@ export interface SquadPreset {
   squad: Squad
 }
 
-export const SQUAD_PRESETS = 5
+export const SQUAD_PRESETS = 8
 
 /** Read the presets as a fixed-length list, whatever the save holds. */
 export const presetsOf = (g: GachaState): (SquadPreset | null)[] =>
@@ -1014,7 +1015,9 @@ export function renamePreset(g: GachaState, slot: number, name: string): void {
 export function clearPreset(g: GachaState, slot: number): void {
   const list = presetsOf(g)
   list[slot] = null
-  g.presets = list.some(Boolean) ? list : undefined
+  // an empty list, not undefined: a save leaves out an undefined field, and the
+  // server would keep the last preset it had (the server folds it to undefined)
+  g.presets = list
 }
 
 /** Take a card somebody sent. A card you already have arrives as a spare. */
@@ -3068,7 +3071,13 @@ export function mergeClientFields(server: GachaState, client: Partial<GachaState
     server.squad = { slots, coach }
   }
   if (Array.isArray(client.presets)) {
-    server.presets = client.presets.slice(0, SQUAD_PRESETS).map((p) => {
+    // A phone still on a five-slot bundle sends five; the slots it cannot see
+    // are kept as the server has them rather than cleared.
+    const kept = server.presets ?? []
+    const sent = client.presets.slice(0, SQUAD_PRESETS)
+    server.presets = Array.from({ length: Math.max(sent.length, Math.min(kept.length, SQUAD_PRESETS)) }, (_, i) => {
+      if (i >= sent.length) return kept[i] ?? null
+      const p = sent[i]
       if (!p || typeof p !== 'object' || !p.squad) return null
       const slots = (Array.isArray(p.squad.slots) ? p.squad.slots.slice(0, 5) : [])
         .map((x) => (typeof x === 'string' ? x.slice(0, 40) : null))

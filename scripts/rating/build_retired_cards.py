@@ -29,6 +29,8 @@ import re
 from datetime import date
 from pathlib import Path
 
+from scripts.rating.common import AGENT_ROLE
+
 ROOT = Path(__file__).resolve().parents[2]
 B = ROOT / "analysis" / "rating" / "history_v16"
 OUT = ROOT / "src" / "data" / "retired_cards.json"
@@ -66,13 +68,38 @@ def stamp(p: Path) -> str:
     return hashlib.sha1(p.read_bytes()).hexdigest()[:8]
 
 
-def top_agents(records: list[dict], k: int = 3) -> list[str]:
-    """the agents he played most over his career, by rounds — what a match seats him on"""
+def agent_use(records: list[dict]) -> dict[str, float]:
+    """rounds on each agent over these records"""
     use: dict[str, float] = {}
     for r in records:
         for a, share in r.get("agents") or []:
             use[a] = use.get(a, 0) + share * r["rounds"]
-    return [a for a, _ in sorted(use.items(), key=lambda x: -x[1])[:k]]
+    return use
+
+
+def top_agents(records: list[dict], k: int = 3) -> list[str]:
+    """the agents he played most over his career, by rounds — what a match seats him on"""
+    return [a for a, _ in sorted(agent_use(records).items(), key=lambda x: -x[1])[:k]]
+
+
+def roles_of(records: list[dict]) -> list[str]:
+    """the live cards' rule (build_world.roles_from_agents): the roles of his three
+    most-played agents, the role he played the most rounds on first. It was the one
+    role of the nearest 2023-25 world record, which put s0m (63% controller over his
+    career) at 决斗者 and gave every retired card a single position."""
+    use = agent_use(records)
+    by_role: dict[str, float] = {}
+    for a, n in use.items():
+        if a in AGENT_ROLE:
+            by_role[AGENT_ROLE[a]] = by_role.get(AGENT_ROLE[a], 0) + n
+    out: list[str] = []
+    for a in top_agents(records):
+        if a in AGENT_ROLE and AGENT_ROLE[a] not in out:
+            out.append(AGENT_ROLE[a])
+    if by_role:
+        main = max(by_role, key=by_role.get)
+        out = [main] + [r for r in out if r != main]
+    return out
 
 
 def main() -> int:
@@ -117,7 +144,7 @@ def main() -> int:
             "id": f"r:{vid}", "playerId": f"Hv{vid}", "vlrId": vid, "ign": p["ign"],
             "realName": h.get("real") or r0.get("real") or st.get("real"), "nat": h.get("nat") or r0.get("nat") or st.get("nat"),
             "faceFile": face_file, "faceV": face_v, "region": region or "EMEA", "clubTag": last["club"],
-            "role": card.get("role"), "roles": [card.get("role")], "isIgl": bool((roles_lp.get(vid) or {}).get("igl")),
+            "role": (roles_of(p["records"]) or [card.get("role")])[0], "roles": roles_of(p["records"]) or [card.get("role")], "isIgl": bool((roles_lp.get(vid) or {}).get("igl")),
             "age": age, "attrs": card.get("attrs"), "rating": p["rating"], "rarity": p["rarity"],
             "span": [max(2020, years[0]), years[-1]], "last": p["last"], "early": bool(p.get("early")),
             "agents": top_agents(p["records"]),
@@ -136,16 +163,18 @@ def main() -> int:
             nxt += 1
             n["number"] = f"余晖 / {nxt:03d}"
     by_ign = {n["ign"]: n for n in normals}
+    players_by_ign = {p["ign"]: p for p in players}
     legends = []
     for m in json.loads((B / "mythics.json").read_text()):
         base = by_ign[m["ign"]]
+        night = roles_of([r for r in players_by_ign[m["ign"]]["records"] if r["eid"] == m["eid"]]) or base["roles"]
         title, short, club, note = NIGHT[m["ign"]]
         city, result, accent, tint, crop = FACE[m["ign"]]
         photo = ROOT / "public" / "events" / "afterglow" / "portraits" / f"{m['ign'].lower()}-action.webp"
         legends.append({
             "id": f"R:{m['ign'].lower()}-{m['eid']}", "playerId": base["playerId"], "vlrId": base["vlrId"], "ign": m["ign"],
             "title": title, "short": short, "year": int(events[m["eid"]]["end"][:4]), "clubTag": club, "note": note,
-            "rating": m["rating"], "attrs": m["attrs"], "role": base["role"],
+            "rating": m["rating"], "attrs": m["attrs"], "role": night[0], "roles": night,
             "photo": f"events/afterglow/portraits/{photo.name}", "photoV": stamp(photo),
             "city": city, "result": result, "accent": accent, "tint": tint, "crop": crop,
             "number": f"余晖 / 彩 {len(legends) + 1:02d}",

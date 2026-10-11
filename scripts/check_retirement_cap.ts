@@ -68,6 +68,30 @@ check((runAction(two, 'ladder', { league: 'open' }, env) as { ok: boolean }).ok,
   check(l?.why === 'former' && l.value === 2, '退役 s0m 和现役 brawk（都是 NRG）有默契，比现役同队少一点', JSON.stringify(l))
   const sen = chemistry({ slots: ['r:9', 'r:659', null, null, null], coach: null }).links[0]
   check(byId('r:9')?.clubTag === 'SEN' && sen?.why === 'club' && sen.value === 3, '两名退役 SEN 选手仍是同队', JSON.stringify(sen))
+  // a retired 彩卡 gets what a live 彩卡 gets: Sacy's LOUD 2022 is 同队 with today's LOUD, like aspas' LOUD 2022
+  const sacy = RC.find((c) => c.ign === 'Sacy' && c.rarity === 'mythic')!
+  const aspas = PC.find((c) => c.ign === 'aspas' && c.rarity === 'mythic')!
+  const loud = PC.filter((c) => c.clubTag === 'LOUD' && !c.event && c.rarity !== 'mythic' && c.ign !== 'Sacy').slice(0, 4)
+  const five = (m: string) => chemistry({ slots: [m, ...loud.map((c) => c.id)], coach: null })
+  check(loud.length === 4 && five(sacy.id).score === five(aspas.id).score, '退役彩卡和普通彩卡跟现役同队默契一样', `${five(sacy.id).score} / ${five(aspas.id).score}`)
+  check(five(sacy.id).links.filter((l) => l.a === 0).every((l) => l.why === 'club' && l.value === 3), '退役彩卡和现役同队算「同队」，不是「同队（退役）」')
+  const { COACH_CARDS: CC } = await import('../src/engine/cards')
+  const coach = CC.find((c) => c.clubTag === 'LOUD' && !c.legend)
+  const withCoach = (m: string) => chemistry({ slots: [m, null, null, null, null], coach: coach?.id ?? null })
+  check(!!coach && withCoach(sacy.id).coachBonus === withCoach(aspas.id).coachBonus && withCoach(sacy.id).coachLinks[0]?.why === 'club',
+    '退役彩卡和老东家现任教练也算同队', `${coach?.name} ${withCoach(sacy.id).coachBonus} / ${withCoach(aspas.id).coachBonus}`)
+  const s0mCoach = chemistry({ slots: [s0m.id, null, null, null, null], coach: CC.find((c) => c.clubTag === 'NRG' && !c.legend)?.id ?? null })
+  check(s0mCoach.coachLinks[0]?.why !== 'club', '退役普卡和老东家教练不变（不算同队）')
+}
+// positions come from the agents he played over his career, like a live card's (2026-10-11)
+{
+  const { RETIRED_CARDS: RC } = await import('../src/engine/cards')
+  const n = (ign: string) => RC.find((c) => c.ign === ign && c.rarity !== 'mythic')!
+  const m = (ign: string) => RC.find((c) => c.ign === ign && c.rarity === 'mythic')!
+  check(n('s0m').role === '控场' && n('s0m').roles.includes('决斗者'), 's0m 以控场为主，也能打决斗', n('s0m').roles.join('/'))
+  check(n('FNS').role === '哨卫' && m('BONECOLD').role === '先锋' && n('BONECOLD').role === '控场', 'FNS 哨卫，BONECOLD 生涯控场、那一届先锋')
+  const multi = RC.filter((c) => c.roles.length > 1).length
+  check(multi > RC.length / 2, '退役卡大多不止一个位置', `${multi}/${RC.length}`)
 }
 if (bad) { console.log(`${bad} failed`); process.exit(1) }
 console.log('全部通过')

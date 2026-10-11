@@ -77,7 +77,7 @@ export default function SquadPresets() {
         {(active || empty >= 0) && <button className="primary" onClick={() => { const next = switchTo; store(active && selected !== null ? selected : empty); load(next) }}>保存后切换</button>}
         <button onClick={() => load(switchTo)}>放弃修改并切换</button><button onClick={() => setSwitchTo(null)}>继续编辑</button>
       </div>
-      {!active && empty < 0 && <p className="small muted">五个配置都已占用。如需保留当前阵容，请继续编辑并使用“另存为”选择覆盖位置。</p>}
+      {!active && empty < 0 && <p className="small muted">配置都已占用。如需保留当前阵容，请继续编辑并使用“另存为”选择覆盖位置。</p>}
     </Modal>}
     {copying && <Modal title="保存阵容到配置" onClose={() => setCopying(false)}>
       <p className="small muted">选择保存位置。当前五人阵容和教练都会一起保存。</p>
