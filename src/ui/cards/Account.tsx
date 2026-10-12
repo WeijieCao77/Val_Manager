@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCards } from './ctx'
 import { Panel } from '../common'
-import { collectionProgress, RENAME_DAYS, renameFrom } from '../../engine/gacha'
+import { collectionProgress, RENAME_DAYS, renameFrom, SMS_LOGIN_STAMINA } from '../../engine/gacha'
 import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
 import { Thanks } from '../Credit'
 import PhoneGate from './PhoneGate'
@@ -58,7 +58,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
           {g.id}
         </div>
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          {phone ? <>已绑手机 尾号 <b>{phone}</b>。换设备可以在入口点「用手机号进入」，不用记 ID。</> : '还没绑手机。绑上以后换设备不用记 ID，用手机号就能进来。'}
+          {phone ? <>已绑手机 尾号 <b>{phone}</b>。换设备请用 ID 登录；用手机号进入每次扣 {SMS_LOGIN_STAMINA} 点体力。</> : `还没绑手机。绑上以后 ID 丢了也能用手机号进来（每次扣 ${SMS_LOGIN_STAMINA} 点体力）。`}
         </p>
         <div className="row" style={{ gap: 8, marginTop: 10 }}>
           <button className="sm" onClick={() => setReveal((v) => !v)}>

@@ -27,6 +27,15 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-12',
+    title: '用手机号进入扣 5 点体力',
+    changes: [
+      { kind: '调整', text: '<b>用手机号收验证码进入，每次扣 5 点体力</b>（不够 5 点就扣到 0，照样能进）。有账号的请用 ID 登录，不扣体力。ID 在「账号」页复制保存。' },
+      { kind: '调整', text: '<b>⚠️发短信验证码每条都要作者花钱的，请大家多用自己的账号登录，谢谢配合。</b>' },
+      { kind: '调整', text: '开瓦包入口把「已有账号」放在前面。' },
+    ],
+  },
+  {
     date: '2026-10-11',
     title: '卡组配置 8 个，退役卡位置',
     changes: [

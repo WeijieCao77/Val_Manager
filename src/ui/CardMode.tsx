@@ -38,6 +38,7 @@ import {
   staminaIn, staminaNow, staminaRate, starsOnTier, tierStars,
 } from '../engine/gacha'
 import type { GachaState } from '../engine/gacha'
+import { SMS_LOGIN_STAMINA } from '../engine/gacha'
 import { track } from '../engine/telemetry'
 import { mailLine } from '../engine/market'
 import type { MailItem } from '../engine/market'
@@ -550,6 +551,32 @@ function Gate({
 
       <div className="grid c2" style={{ maxWidth: 720, marginTop: 20, alignItems: 'start' }}>
         <div className="panel">
+          <div className="panel-head"><h2>已有账号</h2></div>
+          <div className="panel-body">
+            <p className="small muted" style={{ marginTop: 0 }}>
+              填入之前保存的 ID。
+            </p>
+            <label className="cm-field-label" htmlFor="card-login-id">账号 ID</label>
+            <input
+              id="card-login-id" name="card-id" autoComplete="username" spellCheck={false} aria-label="账号 ID" placeholder="VM-XXXX-XXXX-XXXX-XXXX-XXXX"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !busy && id.trim().length >= 8) void signIn() }}
+              style={{ fontFamily: 'var(--mono)' }}
+            />
+            <button style={{ marginTop: 10 }} onClick={signIn} disabled={busy || id.trim().length < 8}>
+              {busy ? '读取中…' : '登录'}
+            </button>
+            <p className="small muted" style={{ margin: '12px 0 0' }}>
+              ID 找不到了？绑过手机的账号可以
+              <button className="ghost sm" style={{ marginLeft: 6 }} onClick={() => setByPhone(true)}>用手机号进入</button>
+              <br />每次扣 {SMS_LOGIN_STAMINA} 点体力，有 ID 请用 ID 登录。
+              <br /><span style={{ color: 'var(--warn)' }}>⚠️发短信验证码每条都要作者花钱的，请大家多用自己的账号登录，谢谢配合。</span>
+            </p>
+            {err && errorFor === 'signin' && <p role="alert" className="small" style={{ color: 'var(--loss)' }}>{err}</p>}
+          </div>
+        </div>
+        <div className="panel">
           <div className="panel-head"><h2>第一次玩</h2></div>
           <div className="panel-body">
             <p className="small muted" style={{ marginTop: 0 }}>
@@ -570,30 +597,6 @@ function Gate({
           </div>
         </div>
 
-        <div className="panel">
-          <div className="panel-head"><h2>已经有 ID 了</h2></div>
-          <div className="panel-body">
-            <p className="small muted" style={{ marginTop: 0 }}>
-              填入之前保存的 ID。
-            </p>
-            <label className="cm-field-label" htmlFor="card-login-id">账号 ID</label>
-            <input
-              id="card-login-id" name="card-id" autoComplete="username" spellCheck={false} aria-label="账号 ID" placeholder="VM-XXXX-XXXX-XXXX-XXXX-XXXX"
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !busy && id.trim().length >= 8) void signIn() }}
-              style={{ fontFamily: 'var(--mono)' }}
-            />
-            <button style={{ marginTop: 10 }} onClick={signIn} disabled={busy || id.trim().length < 8}>
-              {busy ? '读取中…' : '登录'}
-            </button>
-            <p className="small muted" style={{ margin: '12px 0 0' }}>
-              ID 找不到了？绑过手机的账号可以
-              <button className="ghost sm" style={{ marginLeft: 6 }} onClick={() => setByPhone(true)}>用手机号进入</button>
-            </p>
-            {err && errorFor === 'signin' && <p role="alert" className="small" style={{ color: 'var(--loss)' }}>{err}</p>}
-          </div>
-        </div>
       </div>
 
       <div className="row" style={{ marginTop: 22 }}>

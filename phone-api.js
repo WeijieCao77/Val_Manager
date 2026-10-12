@@ -8,6 +8,7 @@
  * already holding another account cannot be bound again, and the same code
  * flow lets a player walk INTO the account a number holds (「用手机号进入」),
  * which is also the first real way to recover an id nobody wrote down.
+ * Since 2026-10-12 that way in costs 5 体力 each time (chargeLogin below).
  *
  * What is stored: never the number. sha256(salt + number) to match on, the
  * last four digits to show, and the account's own id encrypted with a server
@@ -285,11 +286,33 @@ export function makePhoneApi(sql, { readBody, json, rateLimited, normalizeId, ha
     const ph = phoneHash(phone)
     const held = await sql`select id_enc, last4 from card_phones where phone_h = ${ph}`
     if (!held.length) { json(res, 200, { ok: false, why: '这个手机号还没绑过账号。', none: true }); return }
-    const v = await verify(phone, ph, b.code, async () => {
-      try { return { ok: true, id: decryptId(held[0].id_enc), phone: held[0].last4 } }
-      catch { return { ok: false, why: '账号记录读不出来，请联系作者。' } }
+    const v = await verify(phone, ph, b.code, async (tx) => {
+      let id
+      try { id = decryptId(held[0].id_enc) } catch { return { ok: false, why: '账号记录读不出来，请联系作者。' } }
+      return { ok: true, id, phone: held[0].last4, charged: await chargeLogin(tx, id) }
     })
     json(res, 200, v)
+  }
+
+  /**
+   * 用手机号进入 takes SMS_LOGIN_STAMINA 体力 (2026-10-12): bound accounts kept
+   * coming in by code instead of by ID, and every code is an SMS paid for.
+   * Charged in the transaction that consumes the code, once per login, and
+   * the revision moves so any device holding the older copy reads again.
+   * The engine comes in late: cards-api.js imports this file.
+   */
+  async function chargeLogin(tx, id) {
+    const { engine } = await import('./cards-api.js')
+    const me = hash(id)
+    const row = await tx`select state from card_accounts where id_hash = ${me} for update`
+    if (!row.length) return 0
+    const g = engine.migrateGacha(row[0].state, id)
+    const taken = engine.chargeStamina(g, engine.SMS_LOGIN_STAMINA, Date.now())
+    if (!taken) return 0
+    const { id: _id, ...state } = g
+    void _id
+    await tx`update card_accounts set state = ${tx.json(state)}, rev = rev + 1, saved = now() where id_hash = ${me}`
+    return taken
   }
 
   const admin = (req, url, res) => {

@@ -2673,6 +2673,23 @@ export function spendPlay(g: GachaState, kind: PlayKind, now: number): boolean {
   return true
 }
 
+/**
+ * 用手机号进入 costs 体力: every login by SMS is an SMS the owner pays for,
+ * and an account that already has an ID should come in by the ID. Up to
+ * `n` points off, never below zero — a login is never refused for want of
+ * 体力, because for a player whose ID is truly gone it is the only way back.
+ * Returns what was actually taken.
+ */
+export const SMS_LOGIN_STAMINA = 5
+export function chargeStamina(g: GachaState, n: number, now: number): number {
+  settle(g, now)
+  const take = Math.max(0, Math.min(n, g.daily.stamina))
+  if (!take) return 0
+  if (g.daily.stamina >= STAMINA_MAX) g.daily.staminaAt = now
+  g.daily.stamina -= take
+  return take
+}
+
 
 
 function bumpQuest(g: GachaState, key: QuestKey, by: number): void {

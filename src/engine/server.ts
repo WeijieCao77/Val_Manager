@@ -12,7 +12,7 @@ export type { ActEnv, ActResult } from './cardActions'
 export {
   newGacha, migrateGacha, mergeClientFields, takeServerFields, clampState, refreshDaily,
   primeStamina, pendingOpponent, SERVER_KEYS, CLIENT_KEYS, STARTER_COINS, GACHA_VERSION,
-  masterPoints, oppBumpFor, canPlay, spendPlay, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS,
+  masterPoints, oppBumpFor, canPlay, spendPlay, chargeStamina, SMS_LOGIN_STAMINA, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS,
 } from './gacha'
 export type { GachaState } from './gacha'
 export { rankName, LEAGUES, LEAGUE_RULES, rollSeason, seasonOf, encNation } from './gacha'

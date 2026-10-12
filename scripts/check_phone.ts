@@ -106,6 +106,26 @@ check('绑过的号要登录：发', r.body.ok === true, String(r.body.why))
 const code4 = devCodes[0].code
 r = await call(phone, '/api/card/phone/login', { phone: '13800138000', code: code4 })
 check('用手机号进入拿回账号 id', r.body.ok === true && r.body.id === ID, JSON.stringify(r.body))
+// 2026-10-12: every way in by SMS costs 5 体力, once per login, written with the revision moved
+const meterOf = async () => (await sql`select state->'daily'->>'stamina' as s, rev from card_accounts where id_hash = ${hash(ID)}`)[0]
+let meter = await meterOf()
+check('验证码进入扣 5 体力', r.body.charged === 5 && Number(meter.s) === 25, JSON.stringify({ charged: r.body.charged, s: meter.s }))
+const revAfter = meter.rev
+r = await call(phone, '/api/card/phone/login', { phone: '13800138000', code: code4 })
+meter = await meterOf()
+check('同一个码再进一次：不进、不扣', r.body.ok === false && Number(meter.s) === 25 && meter.rev === revAfter, JSON.stringify({ ok: r.body.ok, s: meter.s }))
+r = await call(cards, '/api/card/load', { id: ID })
+check('load 读到扣过的体力', (r.body.state as { daily: { stamina: number } }).daily.stamina === 25)
+await sql`update card_accounts set state = jsonb_set(state, '{daily,stamina}', '3'::jsonb), rev = rev + 1 where id_hash = ${hash(ID)}`
+await sql`delete from card_sms`
+await call(phone, '/api/card/phone/send', { phone: '13800138000', for: 'login' }, 'login2')
+r = await call(phone, '/api/card/phone/login', { phone: '13800138000', code: devCodes[0].code }, 'login2')
+meter = await meterOf()
+check('体力不够 5 点也能进，扣到 0 为止', r.body.ok === true && r.body.charged === 3 && Number(meter.s) === 0, JSON.stringify({ charged: r.body.charged, s: meter.s }))
+await sql`delete from card_sms`
+await call(phone, '/api/card/phone/send', { phone: '13800138000', for: 'login' }, 'login3')
+r = await call(phone, '/api/card/phone/login', { phone: '13800138000', code: devCodes[0].code }, 'login3')
+check('0 体力照样能进，不扣成负数', r.body.ok === true && r.body.charged === 0 && Number((await meterOf()).s) === 0, JSON.stringify(r.body))
 r = await call(phone, '/api/card/phone/login', { phone: '13900139000', code: '123456' })
 check('没绑过的号说没绑过', r.body.ok === false && r.body.none === true)
 

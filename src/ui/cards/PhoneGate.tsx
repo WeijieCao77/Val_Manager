@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { bindPhone, loginByPhone, sendCode } from '../../engine/account'
 import { maskId, rememberId } from '../../engine/cardid'
+import { SMS_LOGIN_STAMINA } from '../../engine/gacha'
 
 /**
  * The door an unbound account stands at.
@@ -69,7 +70,8 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
       <p className="small muted" style={{ lineHeight: 1.7 }}>
         {mode === 'bind'
           ? <>一个手机号只能有一个账号，绑上就是你的了。当前账号 <span className="mono">{maskId(id ?? '')}</span>。</>
-          : <>收一条验证码，就回到这个手机号绑过的账号。</>}
+          : <>收一条验证码，就回到这个手机号绑过的账号。<b style={{ color: 'var(--warn)' }}>每次进入扣 {SMS_LOGIN_STAMINA} 点体力</b>，有 ID 请用 ID 登录。</>}
+        {mode === 'login' && <><br /><b style={{ color: 'var(--warn)' }}>⚠️发短信验证码每条都要作者花钱的，请大家多用自己的账号登录，谢谢配合。</b></>}
         <br />不存你的号码，只存能对上号的摘要和尾号四位。海外号码收不到大陆短信，请到抖音私信作者人工处理。
       </p>
       <div className="row" style={{ gap: 8, marginBottom: 8 }}>
@@ -87,7 +89,7 @@ export default function PhoneGate({ id, onBound, onSignOut, backLabel = '换一�
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} style={{ flex: 1 }}
         />
         <button className="primary sm" disabled={busy || code.length !== 6 || !okPhone} onClick={() => void submit()}>
-          {mode === 'bind' ? '绑定' : '进入'}
+          {mode === 'bind' ? '绑定' : `进入 −${SMS_LOGIN_STAMINA} 体力`}
         </button>
       </div>
       {msg && <p role="status" className={`small ${dev ? 'muted' : ''}`} style={{ color: msg.includes('已') ? 'var(--good)' : 'var(--warn)' }}>{msg}</p>}
