@@ -1,4 +1,4 @@
-import { cardById, isCoachCard, isPlayerCard } from './cards'
+import { cardById, clubKey, isCoachCard, isPlayerCard } from './cards'
 import type { PlayerCard, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { crestUrl } from './dossier'
@@ -13,8 +13,8 @@ export function squadTeamIdentity(squad: Squad) {
   const players = squad.slots.map(id => cardById(id!))
   const coach = cardById(squad.coach)
   if (!coach || !isCoachCard(coach) || !coach.clubId) return null
-  const clubTag = coach.clubTag?.toUpperCase()
-  const ofClub = (p: PlayerCard) => p.clubId === coach.clubId || (!!p.retired && !!clubTag && p.clubTag?.toUpperCase() === clubTag)
+  const clubTag = clubKey(coach.clubTag)
+  const ofClub = (p: PlayerCard) => p.clubId === coach.clubId || (!!p.retired && !!clubTag && clubKey(p.clubTag) === clubTag)
   if (players.some(p => !p || !isPlayerCard(p) || !ofClub(p))) return null
   if (new Set(players.map(p => p && isPlayerCard(p) ? p.playerId : '')).size !== 5) return null
   const team = WORLD_TEAMS.find(t => t.id === coach.clubId)

@@ -27,6 +27,14 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-13',
+    title: '十连包金卡保底、KRX 和 DRX 算同队',
+    changes: [
+      { kind: '修复', text: '<b>十连包的第一张金卡不再清空金卡保底</b>，不管是抽到的还是保底补的。原来只有补的那张不清空，可大多数十连包的金卡是直接抽到的，保底还是被清空了。第二张金卡、第 45 抽必出的金卡照常清空。' },
+      { kind: '调整', text: '<b>KRX 和 DRX 算同一支队</b>（KRX 就是改名后的 DRX）：首尔、曼谷的 DRX 卡，退役的 DRX、KRX 卡，和现在的 KRX 选手、教练互相有同队默契。' },
+    ],
+  },
+  {
     date: '2026-10-12',
     title: '用手机号进入扣 5 点体力',
     changes: [

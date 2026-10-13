@@ -1,12 +1,14 @@
 /**
- * The 十连包's guaranteed gold is the pack's promise, not a pull: it must not
- * reset the gold pity (owner, 2026-10-10).
+ * A 十连包's promised gold is the pack's, not the pity's (owner, 2026-10-10,
+ * 2026-10-13 「十连包不占金卡保底」): its first gold — rolled or put in by the
+ * floor — leaves the gold pity counting. A second gold, the 45th-draw gold and
+ * a彩卡 reset it as ever.
  *
  *   npx tsx scripts/check_ten_floor_pity.ts
  *
- * A natural gold resets the counter, so a ten pack whose only gold is the
- * floor's shows the counter moving on by all ten draws; under the old rule it
- * fell to 0. The hard pity must still fire, so the counter never reaches it.
+ * Under the 10-10 rule only the floor's gold was spared, and at 6% a draw the
+ * roll usually comes first: from 20 pity, three single-gold packs in four still
+ * fell to 0.
  */
 import { HARD_PITY, newGacha, openPack } from '../src/engine/gacha'
 
@@ -22,22 +24,46 @@ const check = (ok: boolean, what: string, detail = '') => {
   if (!ok) bad++
 }
 
-const g = newGacha('TENFLOOR', '审计', '2026-10-10')
-let floorOnly = 0, floorKept = 0, overflow = 0, maxPity = 0
+const g = newGacha('TENFLOOR', '审计', '2026-10-13')
+// from 20 the pack runs into soft pity but can never reach the 45th draw
+let single = 0, singleKept = 0, multi = 0, multiReset = 0
 for (let i = 0; i < 20000; i++) {
-  const before = g.pity
+  g.pity = 20
   g.packs.ten = 1
   const out = openPack(g, 'ten', 'pack')
+  if (out.some((p) => p.card.rarity === 'mythic')) continue
   const golds = out.filter((p) => p.card.rarity === 'gold').length
-  const mythics = out.filter((p) => p.card.rarity === 'mythic').length
-  if (g.pity > before + 10) overflow++
-  maxPity = Math.max(maxPity, g.pity)
-  // one gold and the counter still went up by ten: that gold was the floor's
-  if (golds === 1 && mythics === 0 && g.pity === before + 10) floorKept++
-  if (golds === 1 && mythics === 0) floorOnly++
+  if (golds === 1) { single++; if (g.pity === 30) singleKept++ }
+  if (golds >= 2) { multi++; if (g.pity < 30) multiReset++ }
 }
-check(floorKept > 0, '十连包补出来的金卡不清空金卡保底', `${floorKept} 包（单金卡的包共 ${floorOnly}）`)
-check(overflow === 0, '一包最多推进 10 抽保底')
-check(maxPity < HARD_PITY, `第 ${HARD_PITY} 抽必出金卡照常生效`, `最高 ${maxPity}`)
+check(single > 0 && singleKept === single, '十连包只出一张金卡时金卡保底不清空（抽到的、补的都一样）', `${singleKept}/${single}`)
+check(multi > 0 && multiReset === multi, '十连包第二张金卡照常清空金卡保底', `${multiReset}/${multi}`)
+
+// the 45th draw is the pity paying out, ten pack or not
+let hard = 0, hardReset = 0, maxPity = 0
+for (let i = 0; i < 5000; i++) {
+  g.pity = HARD_PITY - 3
+  g.packs.ten = 1
+  const out = openPack(g, 'ten', 'pack')
+  maxPity = Math.max(maxPity, g.pity)
+  if (out.some((p) => p.card.rarity === 'mythic')) continue
+  hard++
+  if (g.pity < 10) hardReset++
+}
+check(hardReset === hard, `第 ${HARD_PITY} 抽必出的金卡照常清空金卡保底`, `${hardReset}/${hard}`)
+check(maxPity < HARD_PITY, `金卡保底不会越过第 ${HARD_PITY} 抽`, `最高 ${maxPity}`)
+
+// other packs: every gold resets, as before
+let scoutGold = 0, scoutKept = 0
+for (let i = 0; i < 20000; i++) {
+  g.pity = 20
+  g.packs.scout = 1
+  const out = openPack(g, 'scout', 'pack')
+  if (out.some((p) => p.card.rarity === 'gold') && !out.some((p) => p.card.rarity === 'mythic')) {
+    scoutGold++
+    if (g.pity >= 21) scoutKept++
+  }
+}
+check(scoutGold > 0 && scoutKept === 0, '别的包抽到金卡照常清空金卡保底', `${scoutGold} 包`)
 if (bad) { console.log(`${bad} failed`); process.exit(1) }
 console.log('全部通过')

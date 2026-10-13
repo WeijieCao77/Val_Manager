@@ -1216,6 +1216,14 @@ export function openPack(
   // a pack that promises a 彩卡 every time is not a lottery, and the pity
   // counters belong to the lotteries: it neither resets them nor counts
   const certain = def.mythic >= 1
+  // A 十连包's promised gold is the pack's, not the pity's (owner, 2026-10-10 and
+  // 2026-10-13 「十连包不占金卡保底」): its first gold leaves the gold pity
+  // counting, however it came — rolled, or put in by the floor below. A player
+  // cannot tell which, and at 6% a draw the roll comes first in most packs, so
+  // sparing only the floor's gold still reset the pity three packs in four
+  // (scratch measurement, 2026-10-13). The 45th-draw gold is the pity paying out
+  // and resets as ever; a彩卡 meets the promise and resets as ever.
+  let promise = def.floor === 'gold' && !certain
   const metals: Rarity[] = []
   for (let i = 0; i < def.draws; i++) {
     const r = rng.next()
@@ -1247,9 +1255,11 @@ export function openPack(
       // out of. The coach pack has one now, so it does count.
       if (def.mythic > 0 && own) g.retiredDry = (g.retiredDry ?? 0) + 1
       else if (def.mythic > 0) g.mythicDry = (g.mythicDry ?? 0) + 1
-      if (metal === 'gold') g.pity = 0
+      if (metal === 'gold' && promise && g.pity < HARD_PITY - 1) g.pity++
+      else if (metal === 'gold') g.pity = 0
       else g.pity++
     }
+    if (rarityRank(metal) >= rarityRank('gold')) promise = false
     metals.push(metal)
   }
   // Honour the pack's guarantee before shuffling the reveal order.
@@ -1258,7 +1268,7 @@ export function openPack(
       (b, m, i) => (rarityRank(m) > rarityRank(metals[b]) ? i : b), 0)
     if (rarityRank(metals[bestAt]) < rarityRank(def.floor)) {
       // the guaranteed card is the pack's promise, not a pull: it does not
-      // reset the gold pity (owner, 2026-10-10 — 十连包必出的金卡不算金卡保底)
+      // reset the gold pity (see `promise` above)
       metals[bestAt] = def.floor
     }
   }

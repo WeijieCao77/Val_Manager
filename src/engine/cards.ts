@@ -685,8 +685,18 @@ export interface CoachLink {
  * by club tag, and is worth a little less than two men on the club now.
  */
 const LINK_VALUE = { club: 3, former: 2, nat: 2, region: 1 } as const
+/**
+ * One club under two tags: DRX became KIWOOM DRX (KRX) for 2026 (owner,
+ * 2026-10-13: 「KRX是改名后的DRX」), so a DRX card and a KRX card are 同队.
+ */
+const CLUB_RENAMED: Record<string, string> = { DRX: 'KRX' }
+export const clubKey = (tag: string | null | undefined): string | null => {
+  if (!tag) return null
+  const t = tag.toUpperCase()
+  return CLUB_RENAMED[t] ?? t
+}
 const sameTag = (a: { clubTag: string | null }, b: { clubTag: string | null }): boolean =>
-  !!a.clubTag && !!b.clubTag && a.clubTag.toUpperCase() === b.clubTag.toUpperCase()
+  !!clubKey(a.clubTag) && clubKey(a.clubTag) === clubKey(b.clubTag)
 /**
  * A retired 彩卡 is a night at a club, as every 彩卡 is, so where that club
  * still plays it is simply 同队 — with the club's players and its coach —
