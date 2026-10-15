@@ -15,6 +15,7 @@ import { cupTeam } from '../../engine/cupTeams'
 import { track } from '../../engine/telemetry'
 import OpenCup from './OpenCup'
 import TeamCup from './TeamCup'
+import Scrims from './Scrims'
 
 /**
  * The cup: one ticket, then play until you lose or lift it.
@@ -23,10 +24,10 @@ import TeamCup from './TeamCup'
  * seed of every map. What this screen does is show the draw and hand the
  * scoreboards back.
  */
-type CupMode = 'club' | 'enc' | 'open' | 'team'
+type CupMode = 'club' | 'enc' | 'open' | 'team' | 'scrim'
 export default function Cup() {
   const [mode, setMode] = useState<CupMode>(() => {
-    try { const m = localStorage.getItem('vm-cup-mode'); return m === 'open' || m === 'team' || m === 'enc' ? m : 'club' } catch { return 'club' }
+    try { const m = localStorage.getItem('vm-cup-mode'); return m === 'open' || m === 'team' || m === 'enc' || m === 'scrim' ? m : 'club' } catch { return 'club' }
   })
   const pick = (m: CupMode) => {
     setMode(m)
@@ -39,8 +40,9 @@ export default function Cup() {
         <button className={mode === 'enc' ? 'on' : ''} onClick={() => pick('enc')}>国家队杯</button>
         <button className={mode === 'open' ? 'on' : ''} onClick={() => pick('open')}>全服杯</button>
         <button className={mode === 'team' ? 'on' : ''} onClick={() => pick('team')}>组队杯</button>
+        <button className={mode === 'scrim' ? 'on' : ''} onClick={() => pick('scrim')}>内战</button>
       </div>
-      {mode === 'club' ? <ClubCup key="club" kind="club" /> : mode === 'enc' ? <ClubCup key="enc" kind="enc" /> : mode === 'open' ? <OpenCup /> : <TeamCup />}
+      {mode === 'club' ? <ClubCup key="club" kind="club" /> : mode === 'enc' ? <ClubCup key="enc" kind="enc" /> : mode === 'open' ? <OpenCup /> : mode === 'scrim' ? <Scrims /> : <TeamCup />}
     </>
   )
 }

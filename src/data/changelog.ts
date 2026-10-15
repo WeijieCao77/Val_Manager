@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-15',
+    title: '杯赛新增「内战」：猪之杯 S0 结果',
+    changes: [
+      { kind: '新增', text: '杯赛 → <b>内战</b> 记录群友十人内战。10/14 <b>猪之杯 S0</b> 的冠亚军阵容已上墙，之后还会继续办。' },
+    ],
+  },
+  {
     date: '2026-10-13',
     title: '十连包金卡保底、KRX 和 DRX 算同队',
     changes: [
