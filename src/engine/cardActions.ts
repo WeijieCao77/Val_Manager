@@ -43,11 +43,11 @@ import { washEvo } from './evoWash'
 import type { ArenaResult, RivalSquad } from './arena'
 import { challengeBlock, challengeDay, challengeSig, guessChallenge, setChallengeHour } from './challenge'
 import { hashStr } from './rng'
-import { cardById, cardName, coachAsPlayer, isPlayerCard, personOf, squadRating } from './cards'
+import { cardById, cardName, coachAsPlayer, isPlayerCard, ownableCard, personOf, squadRating } from './cards'
 import { retiredLimit } from './retirementRules'
 import type { Rarity, Squad } from './cards'
 import { WORLD_TEAMS } from './teams'
-import { markMailSeen } from './inbox'
+import { markMailSeen, restoreCard } from './inbox'
 import { dismantle } from './dismantle'
 import { setPicks, claimPrediction } from './predict'
 import { SEOUL_TEAMS } from './seoul2024'
@@ -67,6 +67,8 @@ export interface ActEnv {
   rival?: RivalSquad | null
   /** 国家队杯: other players' registered national fives (cards-api.js enc_entries), for enc_enter */
   encPool?: EncRival[]
+  /** 口令领卡: what the typed code proved (redeem-codes.js, checked by the server); null for a wrong one */
+  redeem?: { key: string; cardId: string } | null
 }
 
 /**
@@ -94,7 +96,7 @@ export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'collect', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'evo_wash', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
-  'bangkok_start', 'bangkok_play', 'bangkok_quit', 'history_play',
+  'bangkok_start', 'bangkok_play', 'bangkok_quit', 'history_play', 'redeem',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -272,6 +274,15 @@ function dispatch(
       const r = washEvo(g, str(a.cardId), a.spare == null ? null : Number(a.spare))
       if (!r.ok) return r
       return { ok: true, result: {} }
+    }
+    case 'redeem': {
+      const r = env.redeem
+      if (!r) return { ok: false, why: '口令不对。' }
+      if (g.redeemed?.includes(r.key)) return { ok: false, why: '这个口令已经领过了。' }
+      if (!ownableCard(r.cardId)) return { ok: false, why: '这张卡领不了了。' }
+      restoreCard(g, r.cardId, 0)
+      g.redeemed = [...(g.redeemed ?? []), r.key]
+      return { ok: true, result: { cardId: r.cardId } }
     }
     case 'dismantle': {
       const r = dismantle(g, str(a.cardId), Number(a.level))

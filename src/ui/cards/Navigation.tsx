@@ -43,7 +43,9 @@ export function NavIcon({ name }: { name: string }) {
 }
 const primary = ['packs', 'collection', 'squad', 'ladder']
 // 首尔征途 was replaced by 曼谷征途 (2026-10-01); a saved #seoul link lands on the road that took its place
-export const cardPageFromHash = () => CARD_PAGES.find(p => `#${p.key}` === (window.location.hash === '#seoul' ? '#bangkok' : window.location.hash))?.key ?? 'packs'
+// and the 口令领卡 link from the groups (#redeem) opens 账号, where it sits at the top
+const HASH_ALIAS: Record<string, string> = { '#seoul': '#bangkok', '#redeem': '#account' }
+export const cardPageFromHash = () => CARD_PAGES.find(p => `#${p.key}` === (HASH_ALIAS[window.location.hash] ?? window.location.hash))?.key ?? 'packs'
 
 export default function CardNavigation({ current, onNavigate, onExit }: { current: string; onNavigate: (key: string) => void; onExit: () => void }) {
   const [open, setOpen] = useState(false)

@@ -27,6 +27,15 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-16',
+    title: '彩蛋卡：lukxo「回溯大师」',
+    changes: [
+      { kind: '新增', text: '<b>彩蛋卡 · 回溯大师 lukxo</b>：冠军赛 LOUD 对 Vitality 第二张图，LOUD 丢了一回合，比分没到 3:0，回到了 2:0。总评 <b>32</b>，沟通、指挥 99，枪法 3、反应 2。' },
+      { kind: '新增', text: '<b>口令领卡</b>：账号页最上面输入站长群里的口令，就能领这张卡，每个账号一次。口令不对领不了；卡包里开不出来。' },
+      { kind: '新增', text: '收藏和交易区的系列筛选多了「彩蛋卡」。' },
+    ],
+  },
+  {
     date: '2026-10-15',
     title: '杯赛新增「内战」：猪之杯 S0 结果',
     changes: [

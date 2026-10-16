@@ -915,5 +915,9 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_presets.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_egg_cards.ts"
   }
 ]

@@ -867,6 +867,8 @@ export interface GachaState {
   presets?: (SquadPreset | null)[]
   /** what the inbox has delivered, newest first — see MailEntry */
   mail?: MailEntry[]
+  /** 口令领卡: the codes this account has already used (redeem-codes.js keys) */
+  redeemed?: string[]
   /** 赛事预测 — picks per event and group, see engine/predict.ts */
   predict?: Record<string, Record<string, { picks: SavedPicks; at: number; claimedAt?: number }>>
   log: LogEntry[]
@@ -3022,6 +3024,12 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   }
   g.friends ??= []
   g.presets ??= undefined
+  // 口令领卡: short keys, each once
+  if (Array.isArray(g.redeemed)) {
+    const keys = [...new Set(g.redeemed.filter((k): k is string => typeof k === 'string' && k.length <= 40))]
+    if (keys.length) g.redeemed = keys
+    else delete g.redeemed
+  } else delete g.redeemed
   // 赛事预测: only picks the rules allow, for events the game knows
   const predict = cleanPredictions(g.predict)
   if (predict) g.predict = predict
@@ -3053,7 +3061,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'retiredDry', 'pulls', 'ladder',
   'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'collect', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute', 'history',
-  'season', 'lastSeason', 'enc', 'nameAt',
+  'season', 'lastSeason', 'enc', 'nameAt', 'redeemed',
 ] as const
 /** a name may change once in this many days */
 export const RENAME_DAYS = 7

@@ -12,6 +12,8 @@ import { buildSeoulCards } from './seoul2024'
 import type { SeoulEntry } from './seoul2024'
 import { buildBangkokCards } from './bangkok2025'
 import type { BangkokEntry } from './bangkok2025'
+import { buildEggCards } from './eggCards'
+import type { EggInfo } from './eggCards'
 import { natCountry } from './nat'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
@@ -86,9 +88,11 @@ export interface PlayerCard {
   /** Set only by the reviewed catalogue; counts toward the normal two-retiree cap. */
   retired?: boolean
   /** a series card: its own pack, outside the 全图鉴 and the club sets */
-  event?: 'seoul-2024' | 'bangkok-2025' | 'retired'
+  event?: 'seoul-2024' | 'bangkok-2025' | 'retired' | 'egg'
   seoul?: SeoulEntry
   bangkok?: BangkokEntry
+  /** 彩蛋卡 (engine/eggCards.ts): its own art and the joke */
+  egg?: EggInfo
   id: string
   /** the world.json player id this card is a face of */
   playerId: string
@@ -496,8 +500,10 @@ export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
 export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
+/** 彩蛋卡: handed out by the owner, never dealt or counted — looked up like the former cards */
+export const EGG_CARDS: PlayerCard[] = buildEggCards(ANY_BASE)
 
-const byId = new Map([...ALL_CARDS, ...FORMER_CARDS, ...HISTORY_OPP_CARDS].map((c) => [c.id, c]))
+const byId = new Map([...ALL_CARDS, ...FORMER_CARDS, ...EGG_CARDS, ...HISTORY_OPP_CARDS].map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(
   Object.entries(COACHED_JSON as Record<string, string[][]>).map(([coach, rows]) => [coach, new Set(rows.map((r) => r[0]))]),
 )

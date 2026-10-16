@@ -1,0 +1,12 @@
+/* 彩蛋卡 (EggDesign.tsx), drawn on the 480×672 canvas */
+.egg-face{position:relative;width:100%}
+.egg-face.tap{cursor:pointer}
+.egg-face.dim{opacity:.42;filter:grayscale(.4)}
+.egg-card{position:relative;isolation:isolate;overflow:hidden;width:100%;aspect-ratio:5/7;border-radius:14px;background:#0d0a1f;box-shadow:0 22px 45px #0006;font-family:Arial,'PingFang SC',sans-serif}
+.egg-face.sel .egg-card{box-shadow:0 0 0 12px var(--accent,#ff4655),0 20px 35px #0005}
+.egg-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;pointer-events:none}
+.egg-rating{position:absolute;left:30px;top:44px;z-index:2;display:flex;flex-direction:column;align-items:center;padding:8px 14px 10px;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#0d0a24f0 40%,#0d0a2400 100%)}
+.egg-rating b{font:800 76px/1 Arial,sans-serif;letter-spacing:-.04em;color:#eafcff;text-shadow:0 0 18px #6fe6ff,0 0 4px #b98cff}
+.egg-rating span{margin-top:4px;font:600 19px/1.2 Arial,'PingFang SC',sans-serif;color:#c9b8ff;white-space:nowrap}
+.egg-dupes{position:absolute;top:3%;right:4%;z-index:8;background:#140d2ee6;color:#eafcff;border:2px solid #9f86ff;border-radius:999px;font:700 26px/1 Arial,sans-serif;padding:8px 16px}
+.egg-footer{position:absolute;left:6%;right:6%;bottom:1.4%;z-index:8;text-align:center;font:600 22px/1.4 Arial,'PingFang SC',sans-serif;color:#eafcff;background:#140d2ee0;border-radius:8px;padding:4px 8px}

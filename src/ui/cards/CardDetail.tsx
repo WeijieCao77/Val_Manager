@@ -117,6 +117,12 @@ export default function CardDetail({ cardId, onClose, actions }: {
                     <span className="tiny">能力值由赛事数据换算；头像摄于曼谷大师赛。</span><br />
                     <a href={sel.bangkok.profile} target="_blank" rel="noreferrer">查看选手主页 ↗</a>
                     {' · '}<a href="/bangkok-2025">浏览赛事图鉴 ↗</a>
+                  </div> : sel.egg ? <div className="small muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
+                    <b>彩蛋卡 · {sel.egg.title}</b><br />
+                    {sel.egg.note}<br />
+                    <span className="tiny">{Object.entries(sel.egg.captions).map(([k, v]) => `${ATTR_CN[k as keyof typeof ATTR_CN]} ${sel.attrs[k as keyof typeof sel.attrs]}：${v}`).join(' · ')}</span><br />
+                    <span className="tiny">不进卡包，站长发放。</span><br />
+                    <button className="sm" style={{ marginTop: 8 }} onClick={() => openDossier(sel.playerId)}>查看选手资料 →</button>
                   </div> : sel.afterglow ? <div className="small muted" style={{ marginTop: 12, lineHeight: 1.8 }}>
                     <b>余晖 · {sel.afterglow.number.replace('余晖 / ', '')}</b>{sel.legend ? ` · ${sel.legend.title}` : ''}<br />
                     生涯 {sel.afterglow.span} · 最后效力 {sel.clubTag}<br />

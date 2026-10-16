@@ -191,6 +191,7 @@ function paintSeat(
   if (card && isSeoul(card)) { paintSeoulSeat(ctx, b, card, level, face, mark); return }
   if (card && isBangkok(card)) { paintBangkokSeat(ctx, b, card, level, face, lotus); return }
   if (card && isRetired(card)) { paintRetiredSeat(ctx, b, card, level, face, ember); return }
+  if (card && isEgg(card)) { paintEggSeat(ctx, b, card, level, face); return }
   if (!card) {
     ctx.save()
     round(ctx, b, 10)
@@ -797,6 +798,36 @@ function paintBangkokSeat(
 const isRetired = (card: Card): card is PlayerCard & { afterglow: NonNullable<PlayerCard['afterglow']> } =>
   isPlayerCard(card) && card.event === 'retired' && !!card.afterglow
 
+const isEgg = (card: Card): card is PlayerCard & { egg: NonNullable<PlayerCard['egg']> } =>
+  isPlayerCard(card) && card.event === 'egg' && !!card.egg
+
+/** a 彩蛋卡 (EggDesign.tsx): its own art, `face` here, with the rating in the top-left corner */
+function paintEggSeat(ctx: CanvasRenderingContext2D, b: Box, card: PlayerCard, level: number, art: HTMLImageElement | null): void {
+  const k = b.w / 480
+  ctx.save()
+  round(ctx, b, 14 * k)
+  ctx.clip()
+  ctx.fillStyle = '#0d0a1f'
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  if (art) cover(ctx, art, b)
+  const cx = b.x + 70 * k
+  const glow = ctx.createRadialGradient(cx, b.y + 95 * k, 0, cx, b.y + 95 * k, 90 * k)
+  glow.addColorStop(0.4, 'rgba(13,10,36,.94)'); glow.addColorStop(1, 'rgba(13,10,36,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(b.x, b.y, 180 * k, 200 * k)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.shadowColor = '#6fe6ff'; ctx.shadowBlur = 18 * k
+  ctx.fillStyle = '#eafcff'
+  ctx.font = font(800, Math.round(76 * k))
+  ctx.fillText(String(card.rating), cx, b.y + 52 * k)
+  ctx.shadowBlur = 0
+  ctx.fillStyle = '#c9b8ff'
+  ctx.font = font(600, Math.round(19 * k))
+  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` ${levelMark(level)}` : ''}`, cx, b.y + 134 * k)
+  ctx.restore()
+}
+
 /** the ember the 余晖 cards carry in their corner (RetiredDesign.tsx) */
 const AFTERGLOW_EMBER = '/events/afterglow/ember-art.webp'
 const AG_FINISH: Record<'gold' | 'silver' | 'bronze', { foil: string; paper: string; base: string; cn: string }> = {
@@ -1080,9 +1111,10 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   const seatCards = model.squad.slots.map((id) => (id ? cardOf(id) : null))
   const coachCard = model.squad.coach ? cardOf(model.squad.coach) : null
   const all = [...seatCards, coachCard]
-  const faces = await Promise.all(all.map((c) => load(c?.face ?? null)))
+  // a 彩蛋卡 is its art
+  const faces = await Promise.all(all.map((c) => load((c && isEgg(c) ? c.egg.art : c?.face) ?? null)))
   // a Seoul card shows the Champions mark and a 曼谷 card its lotus, not the club's crest
-  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) && !isRetired(c) ? crestUrl(c.clubId) : null)))
+  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) && !isRetired(c) && !isEgg(c) ? crestUrl(c.clubId) : null)))
   const mark = await load(all.some((c) => c && isSeoul(c)) ? SEOUL_MARK : null)
   const lotus = await load(all.some((c) => c && isBangkok(c)) ? BANGKOK_LOTUS : null)
   const ember = await load(all.some((c) => c && isRetired(c)) ? AFTERGLOW_EMBER : null)

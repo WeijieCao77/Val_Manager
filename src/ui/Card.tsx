@@ -1,6 +1,7 @@
 import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
 import { BangkokCardBack, BangkokFace } from './cards/BangkokDesign'
 import { RetiredCardBack, RetiredFace } from './cards/RetiredDesign'
+import { EggFace } from './cards/EggDesign'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ATTR_CN } from '../engine/types'
@@ -198,6 +199,9 @@ export default function CardFace({
   }
   if (isPlayerCard(card) && card.event === 'retired' && card.afterglow) {
     return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><RetiredFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
+  }
+  if (isPlayerCard(card) && card.event === 'egg' && card.egg) {
+    return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><EggFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
   }
   if (isPlayerCard(card) && card.event === 'bangkok-2025') {
     return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>

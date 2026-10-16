@@ -5,6 +5,7 @@ import { collectionProgress, RENAME_DAYS, renameFrom, SMS_LOGIN_STAMINA } from '
 import { DIVISIONS, MASTER_DIV, masterTitle } from '../../engine/gacha'
 import { Thanks } from '../Credit'
 import PhoneGate from './PhoneGate'
+import Redeem from './Redeem'
 
 /** Copy that works on http:// and on the browsers without a clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
@@ -48,6 +49,7 @@ export default function Account({ onSignOut }: { onSignOut: () => void }) {
 
   return (
     <>
+      <Redeem />
       <Panel title="账号">
         <p className="small muted" style={{ marginTop: 0, lineHeight: 1.8 }}>
           这个 ID 就是你的账号，没有密码，丢了找不回来。

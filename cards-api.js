@@ -20,6 +20,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { displayName } from './names.js'
 import { progressOf } from './progress.js'
 import { GUARD_SCHEMA } from './market-guard.js'
+import { redeemFor } from './redeem-codes.js'
 import { backfill, boardOwn, boardTop, projectionClean, projectionComplete, repairDirty, rivalSample } from './account-projection.js'
 
 /**
@@ -837,6 +838,9 @@ export function makeCardApi(sql, {
     const client = vetClient(body?.client)
     if (!client) { json(res, 400, { ok: false, why: 'client' }); return }
     const args = body?.args && typeof body.args === 'object' && !Array.isArray(body.args) ? body.args : {}
+    // 口令领卡 (redeem-codes.js): a handful of tries a minute, and the engine hears only what the code proved
+    if (action === 'redeem' && guard(req, res, `rd:${bucket}`, 8)) return
+    const redeem = action === 'redeem' ? redeemFor(args.code) : undefined
     // optional, so a tab that has not reloaded since this shipped keeps working — unprotected, as it was
     const requestId = requestIdOf(body?.requestId)
     if (body?.requestId != null && !requestId) { json(res, 400, { ok: false, why: '请求号格式无效。' }); return }
@@ -943,7 +947,7 @@ export function makeCardApi(sql, {
         mark.read += performance.now() - t
         if (!held.length) return { missing: true }
         let g = engine.mergeClientFields(engine.migrateGacha(held[0].state, id), client)
-        const env = { now, today, seed }
+        const env = { now, today, seed, ...(action === 'redeem' ? { redeem } : {}) }
         t = performance.now()
         if (engine.wantsRival(g, action)) env.rival = await pickRival(g.ladder.div, me, engine.ladderScore(g))
         // 国家队杯: other players' national fives, and this one kept for them — whether or not it gets a bracket
