@@ -72,7 +72,8 @@ check('口令不对：没有结果', redeemFor('回溯-AAAA-BBBB-CCCC') === null
 const own = { REDEEM_LUKXO_REWIND: '回溯-TEST-2026' }
 check('后台变量换口令：新口令能领', redeemFor(' 回溯 test 2026 ', own)?.cardId === ID)
 check('换了口令，旧的不认', redeemFor('回溯-AAAA-BBBB-CCCC', own) === null && redeemFor('TEST2025', own) === null)
-check('口令只比字母数字、不分大小写', normCode('回溯-ab12-CD34') === 'AB12CD34')
+check('口令认中文、字母、数字，不管大小写、空格和标点', normCode('回溯-ab12 CD34！') === '回溯AB12CD34')
+check('中文口令能用', redeemFor('回溯 大师！', { REDEEM_LUKXO_REWIND: '回溯大师' })?.cardId === ID && redeemFor('回溯大神', { REDEEM_LUKXO_REWIND: '回溯大师' }) === null)
 const env = { now: Date.now(), today: '2026-10-16', seed: 1 }
 const r0 = newGacha('VM-TEST-EGG2-0000', 'egg', '2026-10-16')
 const wrong = runAction(r0, 'redeem', { code: 'nope' }, { ...env, redeem: null })
@@ -86,7 +87,7 @@ check('同一个账号只能领一次', !again.ok && r0.cards[ID].dupes === 0, !
 const walk = (d: string): string[] => readdirSync(d).flatMap((f) => statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)])
 const leak = walk('src').filter((f) => /\.(ts|tsx|js|json)$/.test(f)).filter((f) => {
   const t = readFileSync(f, 'utf8')
-  return /(import|from)[^\n]*redeem-codes/.test(t) || t.includes('0345359ccba03beb') || t.includes('826263363af8a977')
+  return /(import|from)[^\n]*redeem-codes/.test(t) || t.includes('0345359ccba03beb') || t.includes('c6d3eeb6088df122')
 })
 check('前端代码里没有口令', leak.length === 0, leak.join(', '))
 
