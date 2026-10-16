@@ -41,6 +41,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { safeTransactions } from './db-transactions.js'
 import { createHistoryMaintenance } from './history-maintenance.js'
 import { overview, prune, storage } from './stats.js'
+import { highlights } from './stats-highlights.js'
 import { history, pruneFolded, rollup } from './rollup.js'
 import { SCHEMAS, applySchema } from './db-schema.js'
 import { dashboardHtml } from './dashboard.js'
@@ -496,8 +497,9 @@ function buildStats(days) {
     entry.job = sqlStats.begin(async (db) => {
       await db`set transaction read only`
       await db`set local max_parallel_workers_per_gather = 0`
-      const [data, disk, hist] = await Promise.all([overview(db, days), storage(db, MAX_ROWS), history(db, 120)])
-      return { ...data, storage: disk, history: hist }
+      const cardName = (id) => engine?.cardById?.(id)?.ign ?? engine?.cardById?.(id)?.name ?? id
+      const [data, disk, hist, hi] = await Promise.all([overview(db, days), storage(db, MAX_ROWS), history(db, 120), highlights(db, { cardName })])
+      return { ...data, storage: disk, history: hist, highlights: hi }
     }).then((body) => {
       entry.at = Date.now()
       entry.body = body

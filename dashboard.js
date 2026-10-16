@@ -6,6 +6,13 @@ import { championsAdminHtml, championsAdminScript } from './dashboard-champions.
  * week, and a chart library would be more code than the whole server. Every
  * panel names the decision it supports, because a number nobody would act on
  * is a number that should not be on the screen.
+ *
+ * Since 2026-10-16 it is split in two halves the owner asked to keep apart:
+ * the numbers (总览 / 用户与增长 / 玩法与赛事 / 经济与交易 / 系统性能) and the
+ * things he does (风控 / 管理操作). Every tab is in the page from the start and
+ * only hidden, so switching never reloads a list or loses where it was scrolled.
+ * An account opens in a drawer on the right, over whatever list it was clicked
+ * in, so a long 风控 list keeps its place.
  */
 import { STAMINA_MAX, STAMINA_POINT_SEC } from './cards-api.js'
 
@@ -15,28 +22,58 @@ export const dashboardHtml = () => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>VAL MANAGER · 游玩数据</title>
+<title>VAL MANAGER · 站长后台</title>
 <style>
   :root {
     --bg:#0b1017; --panel:#16202c; --panel-2:#1b2735; --line:#26333f;
     --text:#e8eef5; --muted:#8ea2b8; --faint:#5d6f83;
-    --accent:#ff4655; --win:#3dd68c; --warn:#f6c445;
+    --accent:#ff4655; --win:#3dd68c; --warn:#f6c445; --info:#5aa9ff;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   * { box-sizing:border-box; }
   body {
-    margin:0; padding:18px; background:var(--bg); color:var(--text);
+    margin:0; padding:0 18px 18px; background:var(--bg); color:var(--text);
     font:14px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   h1 { font-size:15px; letter-spacing:.18em; text-transform:uppercase; margin:0 0 2px; }
   h1 span { color:var(--accent); }
-  .sub { color:var(--faint); font-size:12px; margin-bottom:16px; }
+  .sub { color:var(--faint); font-size:12px; }
+  header.top { display:flex; gap:12px 20px; align-items:flex-end; justify-content:space-between;
+    flex-wrap:wrap; padding:16px 0 10px; }
+  /* the tab bar stays on screen: the owner is always one click from the other half */
+  nav.tabs { position:sticky; top:0; z-index:20; background:var(--bg); display:flex; gap:6px 14px;
+    flex-wrap:wrap; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .tabs-group { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  .tabs-group + .tabs-group { border-left:1px solid var(--line); padding-left:14px; }
+  .tg { color:var(--faint); font-size:10px; letter-spacing:.14em; margin-right:4px; }
+  nav.tabs button { padding:6px 12px; font-size:13px; }
+  nav.tabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650; }
+  nav.tabs button .cnt { display:inline-block; min-width:18px; padding:0 5px; margin-left:5px; border-radius:9px;
+    background:var(--warn); color:#111; font-size:11px; font-weight:700; line-height:18px; text-align:center; }
+  nav.tabs button .cnt[hidden] { display:none; }
+  section.tab { display:none; }
+  section.tab.on { display:block; }
+  body.ops-tab .range { visibility:hidden; }
+  .tab-intro { color:var(--faint); font-size:12px; margin:-4px 0 12px; }
+  .sec-h { font-size:12px; letter-spacing:.14em; color:var(--muted); margin:18px 0 8px; font-weight:700; }
+  .sec-h:first-child { margin-top:0; }
   /* align-items:start, or every panel in a row is stretched to the tallest
      one in it — a ten-row referrer list made the four panels beside it a
      thousand pixels of empty. */
   .grid { display:grid; gap:12px; align-items:start;
-          grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:13px; }
+          grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .grid + .grid { margin-top:12px; }
+  .grid.wide { grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:13px; min-width:0; }
+  /* 亮点: a number, what it is, and the one fact that makes it worth saying */
+  .kpis { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:11px 12px; min-width:0; }
+  .kpi .kl { color:var(--muted); font-size:11px; letter-spacing:.06em; }
+  .kpi .kv { font-size:25px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.25; margin-top:2px; }
+  .kpi .kv small { font-size:12px; font-weight:400; color:var(--muted); margin-left:3px; }
+  .kpi .ks { color:var(--faint); font-size:11px; line-height:1.45; margin-top:3px; }
+  .kpi.hot { border-left:2px solid var(--accent); }
+  .kpi.good { border-left:2px solid var(--win); }
   .wx-row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
   .wx-side { flex:1 1 300px; min-width:260px; }
   .wx-preview { flex:0 0 200px; text-align:center; }
@@ -44,11 +81,13 @@ export const dashboardHtml = () => `<!doctype html>
                     background:#fff; border-radius:4px; }
   .wx-toggle { display:flex; align-items:center; gap:7px; cursor:pointer; }
   #grant input[type=text], #grant input[type=number], #grant select, #grant textarea,
-  #wechat input[type=text], #wechat input[type=file] {
+  #wechat input[type=text], #wechat input[type=file], .mg-filter input[type=text] {
     width:100%; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); border-radius:3px; padding:7px 9px; font:inherit;
   }
   #grant textarea { resize:vertical; min-height:38px; font-family:var(--mono); font-size:13px; }
+  input[type=text], select { background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    border-radius:3px; padding:5px 8px; font:inherit; font-size:13px; }
   /* the card picker's hits, and the account read-out under the code */
   .pick-list button { display:block; width:100%; text-align:left; background:var(--panel-2);
     color:var(--text); border:1px solid var(--line); border-radius:3px; padding:6px 9px;
@@ -74,7 +113,7 @@ export const dashboardHtml = () => `<!doctype html>
      screens, unlocks — ran to fifteen rows and made the whole row of panels
      as tall as the longest one in it. They scroll inside their own box now,
      so nothing is dropped and no panel is taller than a screenful. */
-  .tw { max-height:300px; overflow-y:auto; }
+  .tw { max-height:300px; overflow-y:auto; overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th { text-align:left; color:var(--faint); font-size:10px; letter-spacing:.1em;
        text-transform:uppercase; padding:5px 6px; border-bottom:1px solid var(--line);
@@ -84,12 +123,21 @@ export const dashboardHtml = () => `<!doctype html>
   .bar { height:7px; background:var(--accent); border-radius:2px; min-width:2px; }
   .bar.g { background:var(--win); }
   .spark { display:flex; align-items:flex-end; gap:2px; height:56px; margin-top:4px; }
+  .spark.tall { height:110px; }
   /* height:100% is load-bearing. align-items:flex-end stops the columns being
      stretched, and their only child is absolutely positioned — so they were
      zero pixels tall, the bar inside was a percentage OF zero, and the daily
      chart had been rendering as an empty box. */
-  .spark i { flex:1; height:100%; background:var(--panel-2); border-radius:1px 1px 0 0; position:relative; }
+  .spark i { flex:1; height:100%; background:var(--panel-2); border-radius:1px 1px 0 0; position:relative; min-width:2px; }
   .spark i b { position:absolute; inset:auto 0 0 0; background:var(--accent); border-radius:1px 1px 0 0; display:block; }
+  .spark i b.pt { background:var(--win); }
+  .spark i:hover b { filter:brightness(1.35); }
+  .chart { position:relative; }
+  .cmax { color:var(--faint); font-size:10px; font-family:var(--mono); }
+  .caxis { display:flex; justify-content:space-between; color:var(--faint); font-size:10px; font-family:var(--mono); margin-top:3px; }
+  .legend { font-size:11px; color:var(--muted); margin-top:4px; }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:1px; margin:0 4px 0 8px; vertical-align:-1px; }
+  .legend i:first-child { margin-left:0; }
   .muted { color:var(--muted); }
   .empty { color:var(--faint); padding:14px 0; text-align:center; }
   a { color:var(--accent); }
@@ -98,74 +146,139 @@ export const dashboardHtml = () => `<!doctype html>
            border-radius:3px; padding:5px 11px; font:inherit; font-size:12px; cursor:pointer; }
   button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650; }
   /* one account in the 封禁 lists: who, where he stands, the button */
-  .mg-item { padding:8px 0; border-bottom:1px solid var(--line); }
+  .mg-item { padding:8px 6px; border-bottom:1px solid var(--line); border-radius:2px; }
+  .mg-item.viewing { background:rgba(90,169,255,.09); box-shadow:inset 2px 0 0 var(--info); }
   .mg-acct { margin-top:3px; }
   .mg-acct button, .mg-item > .row button { padding:1px 9px; margin-left:4px; }
   .mg-ban { border-color:var(--accent); color:var(--accent); }
+  .mg-sec { margin-top:12px; border:1px solid var(--line); border-radius:3px; }
+  .mg-sec > summary { cursor:pointer; padding:8px 10px; font-size:13px; font-weight:650; color:var(--text);
+    background:var(--panel-2); list-style:none; }
+  .mg-sec > summary::-webkit-details-marker { display:none; }
+  .mg-sec > summary::before { content:'▸'; color:var(--faint); margin-right:6px; }
+  .mg-sec[open] > summary::before { content:'▾'; }
+  .mg-sec > summary .dim { font-weight:400; }
+  .mg-sec .mg-list { padding:0 10px 8px; }
+  .mg-more { margin:8px 0 2px; }
+  .mg-filter { display:grid; grid-template-columns:minmax(180px,1fr) auto auto; gap:8px; align-items:center; margin-top:10px; }
+  .mg-filter label { font-size:12px; color:var(--muted); display:flex; gap:5px; align-items:center; white-space:nowrap; }
   #mgToast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--panel-2);
-    border:1px solid var(--accent); border-radius:3px; padding:8px 14px; font-size:13px; z-index:9; display:none; max-width:90vw; }
+    border:1px solid var(--accent); border-radius:3px; padding:8px 14px; font-size:13px; z-index:60; display:none; max-width:90vw; }
+  /* the account drawer: over the page, never instead of it */
+  #drawer { position:fixed; top:0; right:0; bottom:0; width:min(560px, 100vw); z-index:50;
+    background:var(--panel); border-left:1px solid var(--line); box-shadow:-18px 0 40px rgba(0,0,0,.45);
+    transform:translateX(102%); transition:transform .18s ease; display:flex; flex-direction:column; }
+  #drawer.open { transform:none; }
+  .dr-head { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:12px 14px;
+    border-bottom:1px solid var(--line); background:var(--panel-2); }
+  .dr-head b { font-size:13px; letter-spacing:.06em; }
+  .dr-tools { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  #gAcct { flex:1; overflow-y:auto; margin:0; border-top:0; padding:12px 14px 30px; font-size:13px; }
+  @media (max-width:640px) {
+    body { padding:0 12px 12px; }
+    .mg-filter { grid-template-columns:1fr; }
+    /* one swipeable row, so the bar does not eat a third of a phone screen */
+    nav.tabs { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .tabs-group { flex-wrap:nowrap; flex:none; }
+    nav.tabs button { white-space:nowrap; }
+    .grid.wide { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
-<h1>VAL<span>MANAGER</span> · 游玩数据</h1>
-<a href="#champ-admin" style="display:inline-block;margin:10px 0;color:#e8b99f">上海冠军赛 · 审核留言与管理赛程 ↓</a>
-<div class="sub">
-  身份是浏览器首次访问时生成的匿名 ID，服务端不记录、不存储 IP 地址。
-  「时长」只累计确认活跃的分钟数——标签页挂着过夜不算。
-</div>
-<div class="row" style="margin-bottom:14px">
-  <span class="muted" style="font-size:12px">时间范围</span>
-  <button data-d="7">7 天</button>
-  <button data-d="30" class="on">30 天</button>
-  <button data-d="90">90 天</button>
-  <span id="status" class="muted" style="font-size:12px;margin-left:auto"></span>
-  <button id="statsFresh" type="button" title="数字缓存半小时；重新统计要读整张事件表，高峰时少按">重新统计</button>
-</div>
-<div class="panel" id="wechat" style="margin-bottom:14px">
-  <h2>微信群二维码 · 首页那个浮窗</h2>
-  <div class="wx-row">
-    <div class="wx-side">
-      <label class="wx-toggle">
-        <input type="checkbox" id="wxOn"> <span>在首页显示「微信群」按钮</span>
-      </label>
-      <p class="why" style="margin:6px 0 10px">
-        关掉之后首页就没有这个按钮了。没传二维码时也不会显示——
-        与其给一个打不开的空框，不如干脆没有。
-      </p>
-      <input type="file" id="wxFile" accept="image/png,image/jpeg,image/webp">
-      <p class="why" style="margin:6px 0 10px">
-        微信群二维码<b>七天过期</b>，过期了在这里换一张就行，不用重新部署。
-        PNG / JPG / WebP，不超过 600KB。
-      </p>
-      <input type="text" id="wxNote" maxlength="60" placeholder="二维码下面那行小字（可留空）">
-      <div class="row" style="margin-top:10px">
-        <button id="wxSave" class="on">保存</button>
-        <button id="wxDrop">删掉二维码</button>
-        <span id="wxMsg" class="muted" style="font-size:12px"></span>
-      </div>
-    </div>
-    <div class="wx-preview">
-      <div class="why" style="margin-bottom:6px">预览</div>
-      <img id="wxImg" alt="" style="display:none">
-      <div id="wxNone" class="empty" style="padding:30px 10px">还没有二维码</div>
+<header class="top">
+  <div>
+    <h1>VAL<span>MANAGER</span> · 站长后台</h1>
+    <div class="sub">
+      身份是浏览器首次访问时生成的匿名 ID，服务端不记录、不存储 IP 地址。
+      「时长」只累计确认活跃的分钟数——标签页挂着过夜不算。日期按服务器的 UTC 日。
     </div>
   </div>
+  <div class="row range">
+    <span class="muted" style="font-size:12px" title="只管「事件窗口」里的面板；标了「累计」的数字不受它影响">统计窗口</span>
+    <button data-d="7">7 天</button>
+    <button data-d="30" class="on">30 天</button>
+    <button data-d="90">90 天</button>
+    <span id="status" class="muted" style="font-size:12px"></span>
+    <button id="statsFresh" type="button" title="数字缓存半小时；重新统计要读整张事件表，高峰时少按">重新统计</button>
+  </div>
+</header>
+<nav class="tabs" id="tabs">
+  <div class="tabs-group"><span class="tg">数据</span>
+    <button type="button" data-tab="overview">数据总览</button>
+    <button type="button" data-tab="growth">用户与增长</button>
+    <button type="button" data-tab="play">玩法与赛事</button>
+    <button type="button" data-tab="economy">经济与交易</button>
+    <button type="button" data-tab="system">系统性能</button>
+  </div>
+  <div class="tabs-group"><span class="tg">操作</span>
+    <button type="button" data-tab="risk">风控<span class="cnt" id="riskCnt" hidden></span></button>
+    <button type="button" data-tab="ops">管理操作<span class="cnt" id="opsCnt" hidden></span></button>
+  </div>
+</nav>
+<main>
+<section class="tab" data-tab="overview" id="tab-overview"><div id="ovApp"><div class="empty">加载中…</div></div></section>
+<section class="tab" data-tab="growth" id="tab-growth"><div id="growthApp"></div></section>
+<section class="tab" data-tab="play" id="tab-play"><div id="playApp"></div></section>
+<section class="tab" data-tab="economy" id="tab-economy"><div id="econApp"></div></section>
+<section class="tab" data-tab="system" id="tab-system">
+  <div class="row" style="margin-bottom:10px">
+    <button id="sysLoad" type="button" class="on">刷新实时数据</button>
+    <span id="sysMsg" class="muted" style="font-size:12px"></span>
+  </div>
+  <div id="sysLive"></div>
+  <div id="sysApp" style="margin-top:12px"></div>
+</section>
+<section class="tab" data-tab="risk" id="tab-risk">
+<div class="tab-intro">倒卡、脚本抢拍和场次对不上账的号。点名字在右边打开账号详情，名单停在原地。</div>
+<div class="panel" id="guard" style="margin-bottom:14px">
+  <h2>封禁 · 倒卡和脚本抢拍</h2>
+  <div class="row" style="gap:8px">
+    <button id="mgLoad" type="button" class="on">刷新名单</button>
+    <input type="text" id="mgWho" placeholder="对战码" maxlength="8" style="width:110px">
+    <input type="text" id="mgDays" placeholder="天数，空着按次数" maxlength="2" style="width:130px">
+    <button id="mgBan" type="button">封禁</button>
+    <button id="mgLift" type="button">解封</button>
+    <span id="mgMsg" class="muted" style="font-size:12px"></span>
+  </div>
+  <p class="why" style="margin:6px 0 4px">
+    <b>天数按次数叠加</b>：第 1 次 3 天，第 2 次 5 天，第 3 次 7 天……每次多 2 天，最多 30 天。自动封、手动封一起算；你点「解封」的那次算误封，不计次数。
+    每个号后面的「封 N 天」已经按他的次数算好了：点一下变成「确认」，再点一下才封。点名字在右边看这个号的详情。
+  </p>
+  <div class="mg-filter">
+    <input type="text" id="mgQ" placeholder="在名单里找：昵称、对战码或卡名" autocomplete="off" spellcheck="false">
+    <label><input type="checkbox" id="mgOnlyF"> 只看 20 倍以上</label>
+    <label>每次显示 <select id="mgPage"><option>10</option><option selected>20</option><option>50</option><option value="9999">全部</option></select></label>
+  </div>
+  <div id="mgOut" class="acct"></div>
+  <details style="margin-top:10px">
+    <summary class="muted" style="cursor:pointer;font-size:12px">自动封禁规则（脚本抢拍 A–E、倒卡 F/G）</summary>
+    <p class="why">
+      <b>自动封</b>（天数同上叠加）：A <b>连续 10 次</b>在挂出（或保护期结束）后 2 秒内一口价买下/报名；D 24 小时里<b>超过 16 个小时</b>都在一口价买卡；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）。
+      <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G 打开后买卖双方一起停，<b>现在先只上报</b>。
+      B 多家快买一天满 40、C 一周满 120：<b>只上报不封</b>，在「脚本抢拍嫌疑」里标着「过线 B/C」。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
+      只有上线之后的新购买才会触发自动封；解封后，之前的记录不再重算。
+    </p>
+  </details>
 </div>
+<div id="riskApp"></div>
+</section>
+<section class="tab" data-tab="ops" id="tab-ops">
+<div class="tab-intro">会改动玩家账号或站点设置的操作都在这一页。</div>
 <div class="panel" id="grant" style="margin-bottom:14px">
-  <h2>给玩家发东西</h2>
+  <h2>查账号 · 给玩家发东西</h2>
   <div class="wx-row">
     <div class="wx-side">
       <div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
         <textarea id="gWho" rows="2" spellcheck="false" autocomplete="off"
           placeholder="8 位对战码、「昵称 #四位」或完整账号 ID。发给多个号：一行一个，逗号、空格隔开也行"></textarea>
-        <button id="gLook" type="button" style="flex:none" title="填对战码，或者「昵称 #四位」（举报里写的那种）">查账号</button>
+        <button id="gLook" type="button" style="flex:none" title="填对战码，或者「昵称 #四位」（举报里写的那种）。详情在右边打开">查账号</button>
       </div>
       <div class="row" style="gap:8px;margin-top:6px">
         <button id="gImport" type="button" title="txt 或 csv，里面的对战码和 ID 都会被挑出来">导入文件</button>
         <input type="file" id="gFile" accept=".txt,.csv,text/plain,text/csv" hidden>
         <span id="gWhoN" class="muted" style="font-size:12px"></span>
       </div>
-      <div id="gAcct" class="acct" style="display:none"></div>
       <p class="why" style="margin:6px 0 10px">
         <b>优先用对战码</b>（玩家在「好友」页能复制）。账号 ID 也认，但那串是他登录用的，
         能不经手就不经手。
@@ -209,31 +322,6 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
-<div class="panel" id="guard" style="margin-bottom:14px">
-  <h2>封禁 · 倒卡和脚本抢拍</h2>
-  <div class="row" style="gap:8px">
-    <button id="mgLoad" type="button" class="on">刷新名单</button>
-    <input type="text" id="mgWho" placeholder="对战码" maxlength="8" style="width:110px">
-    <input type="text" id="mgDays" placeholder="天数，空着按次数" maxlength="2" style="width:130px">
-    <button id="mgBan" type="button">封禁</button>
-    <button id="mgLift" type="button">解封</button>
-    <span id="mgMsg" class="muted" style="font-size:12px"></span>
-  </div>
-  <p class="why" style="margin:6px 0 10px">
-    <b>天数按次数叠加</b>：第 1 次 3 天，第 2 次 5 天，第 3 次 7 天……每次多 2 天，最多 30 天。自动封、手动封一起算；你点「解封」的那次算误封，不计次数。
-    每个号后面的「封 N 天」已经按他的次数算好了：点一下变成「确认」，再点一下才封。上面「查账号」里也能直接封、解封。点名字看这个号的详情。
-  </p>
-  <div id="mgOut" class="acct"></div>
-  <details style="margin-top:10px">
-    <summary class="muted" style="cursor:pointer;font-size:12px">自动封禁规则（脚本抢拍 A–E、倒卡 F/G）</summary>
-    <p class="why">
-      <b>自动封</b>（天数同上叠加）：A <b>连续 10 次</b>在挂出（或保护期结束）后 2 秒内一口价买下/报名；D 24 小时里<b>超过 16 个小时</b>都在一口价买卡；E 一天内从同一个卖家手里买了 30 张「重复买的」或「买来又挂出去的」卡（大小号转圈倒，不限挂出多久）。
-      <b>F 倒卡</b>：一笔成交价是这张卡（同等级）一般价格的 20 倍以上、且高出 3 万以上；<b>G 互倒</b>：两个号 24 小时内成交 3 次，而且互相买过、或其中 2 次在一般价格 3 倍以上。F、G 打开后买卖双方一起停，<b>现在先只上报</b>。
-      B 多家快买一天满 40、C 一周满 120：<b>只上报不封</b>，在「脚本抢拍嫌疑」里标着「过线 B/C」。集卡（每张只买一次、留着不卖）在 B、C、E 里不计。
-      只有上线之后的新购买才会触发自动封；解封后，之前的记录不再重算。
-    </p>
-  </details>
-</div>
 <div class="panel" id="review" style="margin-bottom:14px">
   <h2>人工审核账号 · 海外玩家的门</h2>
   <div class="wx-row">
@@ -258,8 +346,50 @@ export const dashboardHtml = () => `<!doctype html>
     </div>
   </div>
 </div>
+<div class="panel" id="wechat" style="margin-bottom:14px">
+  <h2>微信群二维码 · 首页那个浮窗</h2>
+  <div class="wx-row">
+    <div class="wx-side">
+      <label class="wx-toggle">
+        <input type="checkbox" id="wxOn"> <span>在首页显示「微信群」按钮</span>
+      </label>
+      <p class="why" style="margin:6px 0 10px">
+        关掉之后首页就没有这个按钮了。没传二维码时也不会显示——
+        与其给一个打不开的空框，不如干脆没有。
+      </p>
+      <input type="file" id="wxFile" accept="image/png,image/jpeg,image/webp">
+      <p class="why" style="margin:6px 0 10px">
+        微信群二维码<b>七天过期</b>，过期了在这里换一张就行，不用重新部署。
+        PNG / JPG / WebP，不超过 600KB。
+      </p>
+      <input type="text" id="wxNote" maxlength="60" placeholder="二维码下面那行小字（可留空）">
+      <div class="row" style="margin-top:10px">
+        <button id="wxSave" class="on">保存</button>
+        <button id="wxDrop">删掉二维码</button>
+        <span id="wxMsg" class="muted" style="font-size:12px"></span>
+      </div>
+    </div>
+    <div class="wx-preview">
+      <div class="why" style="margin-bottom:6px">预览</div>
+      <img id="wxImg" alt="" style="display:none">
+      <div id="wxNone" class="empty" style="padding:30px 10px">还没有二维码</div>
+    </div>
+  </div>
+</div>
 ${championsAdminHtml}
-<div id="app"></div>
+</section>
+</main>
+<aside id="drawer" aria-hidden="true" aria-label="账号详情">
+  <div class="dr-head">
+    <b>账号详情</b>
+    <span class="dr-tools">
+      <button type="button" id="drCopy" title="复制这个号的对战码">复制对战码</button>
+      <button type="button" id="drFill" title="把这个号填进「给玩家发东西」并切过去">发东西给他</button>
+      <button type="button" id="drClose" title="Esc 也能关">关闭 ✕</button>
+    </span>
+  </div>
+  <div id="gAcct" class="acct"></div>
+</aside>
 <div id="mgToast"></div>
 <footer style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
                color:var(--faint);font-size:11px;text-align:center;line-height:1.8">
@@ -282,7 +412,7 @@ const token = (() => {
   } catch { /* storage blocked: the token lives for this page load only */ }
   if (q.has('token')) {
     q.delete('token')
-    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''))
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash)
   }
   return t
 })()
@@ -295,9 +425,44 @@ const age = (cohort, needDays, value) => {
   const days = (Date.now() - new Date(cohort).getTime()) / 86400000
   return days < needDays ? '<span class="muted">—</span>' : value + '%'
 }
+const n0 = (x) => Math.round(Number(x || 0)).toLocaleString('zh-CN')
+// coins run to the billions: 万 and 亿, the way the owner would say them
+const wan = (x) => {
+  const v = Number(x || 0)
+  return v >= 1e8 ? (v / 1e8).toFixed(2) + ' 亿' : v >= 1e5 ? (v / 1e4).toFixed(1) + ' 万' : n0(v)
+}
+const day10 = (t) => String(t ?? '').slice(0, 10)
+const md = (t) => day10(t).slice(5)
 
-function panel(title, inner, why) {
-  return '<div class="panel"><h2>' + title + '</h2>' + inner +
+// ---- 分区 -----------------------------------------------------------------
+//
+// Every tab is in the page from the start and only hidden, so switching keeps
+// each one's lists, filters and scroll. The tab is in the address (#t=risk), so
+// a reload or a bookmark comes back to it.
+const TABS = ['overview', 'growth', 'play', 'economy', 'system', 'risk', 'ops']
+const tabScroll = {}
+let curTab = null
+function showTab(t, keepHash) {
+  if (!TABS.includes(t)) t = 'overview'
+  if (curTab === t) return
+  if (curTab) tabScroll[curTab] = window.scrollY
+  curTab = t
+  for (const s of document.querySelectorAll('section.tab')) s.classList.toggle('on', s.dataset.tab === t)
+  for (const b of document.querySelectorAll('nav.tabs button[data-tab]')) b.classList.toggle('on', b.dataset.tab === t)
+  // on a phone the bar is one row that scrolls sideways: bring the chosen tab into it
+  const nav = $('#tabs'), on = nav.querySelector('button.on')
+  if (on && nav.scrollWidth > nav.clientWidth) nav.scrollLeft += on.getBoundingClientRect().left - nav.getBoundingClientRect().left - 12
+  document.body.classList.toggle('ops-tab', t === 'risk' || t === 'ops' || t === 'system')
+  if (!keepHash) history.replaceState(null, '', location.pathname + location.search + '#t=' + t)
+  window.scrollTo(0, tabScroll[t] || 0)
+  if (t === 'system' && !sysLoaded) sysLoad()
+}
+document.querySelectorAll('nav.tabs button[data-tab]').forEach((b) => { b.onclick = () => showTab(b.dataset.tab) })
+const tabFromHash = () => (/^#t=(\\w+)/.exec(location.hash) || [])[1]
+window.addEventListener('hashchange', () => { const t = tabFromHash(); if (t) showTab(t, true) })
+
+function panel(title, inner, why, cls) {
+  return '<div class="panel' + (cls ? ' ' + cls : '') + '"><h2>' + title + '</h2>' + inner +
     (why ? '<div class="why">' + why + '</div>' : '') + '</div>'
 }
 
@@ -307,13 +472,62 @@ function table(head, rows) {
     '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>'
 }
 
+function kpi(label, value, sub, cls) {
+  return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><div class="kl">' + label + '</div><div class="kv">' + value + '</div>'
+    + (sub ? '<div class="ks">' + sub + '</div>' : '') + '</div>'
+}
+
+/** the last n UTC days, oldest first, with the row for each day or an empty one */
+function dense(rows, n) {
+  const m = new Map((rows || []).map((r) => [day10(r.day), r]))
+  const out = []
+  for (let i = n - 1; i >= 0; i--) {
+    const k = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+    out.push(Object.assign({}, m.get(k) || {}, { day: k }))
+  }
+  return out
+}
+
+/** a column chart: val is the bar, part (optional) a second bar drawn inside it */
+function bars(rows, val, tip, o) {
+  o = o || {}
+  if (!rows.length) return '<div class="empty">还没有数据</div>'
+  const max = Math.max(1, ...rows.map((r) => val(r) || 0))
+  const f = o.fmt || n0
+  const cols = rows.map((r) => '<i title="' + esc(tip(r)) + '"><b style="height:' + Math.round(100 * (val(r) || 0) / max) + '%"></b>'
+    + (o.part ? '<b class="pt" style="height:' + Math.round(100 * (o.part(r) || 0) / max) + '%"></b>' : '') + '</i>').join('')
+  return '<div class="chart"><div class="cmax">最高 ' + f(max) + '</div><div class="spark' + (o.tall ? ' tall' : '') + '">' + cols + '</div>'
+    + '<div class="caxis"><span>' + esc(o.from ?? md(rows[0].day)) + '</span><span>' + esc(o.to ?? md(rows[rows.length - 1].day)) + '</span></div>'
+    + (o.legend ? '<div class="legend">' + o.legend + '</div>' : '') + '</div>'
+}
+const swatch = (c, label) => '<i style="background:' + c + '"></i>' + label
+
+/**
+ * Day-N retention over the cohorts whose day N is over: the share of everyone
+ * in them who came back on exactly that day, weighted by cohort size.
+ */
+function matured(cohorts, n, key) {
+  let size = 0, back = 0
+  for (const c of cohorts || []) {
+    if ((Date.now() - Date.parse(c.cohort)) / 86400000 < n + 1) continue
+    size += c.size; back += c[key]
+  }
+  return size ? Math.round(1000 * back / size) / 10 : null
+}
+const pctOr = (v) => (v == null ? '<span class="muted">—</span>' : v + '<small>%</small>')
+
+const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', retired: '退役选手包', legend: '彩卡包' }
+const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途' }
+const LEAGUE_CN = { open: '公开赛', gold: '金卡赛', silver: '银卡赛', bronze: '铜卡赛', hof: '名人堂', retired: '传奇联赛', mixed: '全系列赛' }
+const DIV_CN = ['青铜', '白银', '黄金', '铂金', '钻石', '大师']
+const SWAP_CN = { done: '换成了', open: '等对方回', declined: '被拒绝', cancelled: '撤回', expired: '过期' }
+
 function render(d) {
   const h = d.headline || {}, s = d.sessions || {}, f = d.funnel || {}, dep = d.depth || {}
-  const max = Math.max(1, ...(d.daily || []).map((x) => x.visitors))
-
-  const spark = (d.daily || []).map((x) =>
-    '<i title="' + esc(String(x.day).slice(0, 10)) + '：' + x.visitors + ' 人（新 ' + x.new_visitors + '）">' +
-    '<b style="height:' + Math.round(100 * x.visitors / max) + '%"></b></i>').join('')
+  const hi = d.highlights || {}
+  const hist = d.history || {}
+  const ht = hist.totals || {}
+  const histDays = dense(hist.days || [], 60)
 
   const steps = [
     ['打开页面', f.arrived], ['开了职业生涯', f.started], ['推进过至少一回合', f.advanced],
@@ -366,8 +580,6 @@ function render(d) {
   // ---- 开瓦包. Four names, not sixty-five: the pull event sends the pack it
   // was, and a four-row lookup is cheaper than making the client send a label
   // with every pull. Anything unrecognised prints its own key.
-  const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', retired: '退役选手包', legend: '彩卡包' }
-  const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途' }
   const cm = d.cards || {}
   const cf = cm.funnel || {}
   const ca = cm.accounts || {}
@@ -410,6 +622,8 @@ function render(d) {
     ['人均收藏（张）', ca.avg_owned ?? 0],
     ['最大收藏（张）', ca.max_owned ?? 0],
     ['人均抽卡（次）', ca.avg_pulls ?? 0],
+    ['累计抽卡（次）', n0(ca.total_pulls)],
+    ['金币存量', wan(ca.total_coins)],
     ['最高天梯段位（0 青铜起）', ca.max_div ?? 0],
     ['最长连续签到（天）', ca.max_streak ?? 0],
   ].map(([label, n]) => '<tr><td>' + label + '</td><td class="n">' + n + '</td></tr>')
@@ -419,7 +633,7 @@ function render(d) {
   // point per interval, 2 a match. Reported so it can be looked at — the one honest
   // way to trip it is a long stretch played offline and only then connected.
   const overRows = (cm.overplayed || []).map((r) =>
-    '<tr><td>' + esc(r.name || '无名经理')
+    '<tr><td><a href="#" class="mg-open" data-code="' + esc(String(r.id_hash).slice(0, 8)) + '">' + esc(r.name || '无名经理') + '</a>'
     + ' <span class="muted">#' + esc(String(r.id_hash).slice(0, 4).toUpperCase()) + '</span></td>'
     + '<td class="n">' + r.played + '</td>'
     + '<td class="n muted">' + r.ceiling + '</td>'
@@ -433,121 +647,257 @@ function render(d) {
     .map((r) => '<tr><td>' + esc(r.name || r.key) + '</td>' +
       '<td class="n">' + r.visitors + '</td></tr>')
 
-  $('#app').innerHTML = '<div class="grid">' +
-    panel('回访率 · 最关键的一个数',
-      '<div class="big">' + (h.return_pct ?? 0) + '%<small>的人第二天还回来</small></div>' +
-      '<div class="muted" style="font-size:12px;margin-top:6px">' +
-      (h.visitors ?? 0) + ' 人来过 · ' + (h.returned ?? 0) + ' 人来过 2 天以上 · ' +
-      (h.regulars ?? 0) + ' 人来过 4 天以上</div>',
-      '一次访问只是点了个链接，第二天再来才是主动选择玩它。这个数掉了，说明留不住人，先看下面的漏斗断在哪一步。') +
+  // ---- 亮点 ------------------------------------------------------------------
+  const act = hi.active || {}
+  const ha = hi.accounts || {}
+  const mk = hi.market || {}
+  const oc = hi.openCup || {}
+  const tc = hi.teamCup || {}
+  const d1 = matured(hi.cohorts, 1, 'd1'), d7 = matured(hi.cohorts, 7, 'd7'), d30 = matured(hi.cohorts, 30, 'd30')
+  // 开瓦包's own retention: accounts made at least two weeks ago still seen a week or more after
+  let aSize = 0, aBack = 0
+  for (const w of hi.accountCohorts || []) {
+    if ((Date.now() - Date.parse(w.week)) / 86400000 < 14) continue
+    aSize += w.size; aBack += w.r7
+  }
+  const a7 = aSize ? Math.round(1000 * aBack / aSize) / 10 : null
+  const ladderMatches = (hi.ladder || []).reduce((a, r) => a + Number(r.matches || 0), 0)
+  const peak = hi.peak || {}
+  const yest = histDays[histDays.length - 2] || {}
 
-    panel('每日人数',
-      '<div class="spark">' + spark + '</div>' +
-      '<div class="muted" style="font-size:11px;margin-top:6px">柱高＝当日人数，鼠标悬停看新老拆分</div>',
-      '发帖后能看到尖峰，尖峰之后掉回多少，才是这次推广真正留下的人。') +
+  // ---- 数据总览 --------------------------------------------------------------
+  $('#ovApp').innerHTML =
+    '<div class="sec-h">规模 · 累计，不受统计窗口影响</div><div class="kpis">'
+    + kpi('累计玩家', n0(ht.players), (ht.since ? '从 ' + day10(ht.since) + ' 起，' : '') + '每个浏览器算一个人', 'hot')
+    + kpi('开瓦包账号', n0(ha.total), '绑了手机 ' + n0(ha.phones) + ' 个' + (ha.since ? ' · 第一个 ' + day10(ha.since) : ''))
+    + kpi('昨天日活', n0(act.dau_y), '今天到现在 ' + n0(act.dau_t) + ' 人')
+    + kpi('周活 / 月活', n0(act.wau) + '<small>/ ' + n0(act.mau) + '</small>', '近 7 天 / 近 30 天来过的不同的人')
+    + kpi('粘性 DAU/MAU', act.mau ? Math.round(100 * (act.dau_y || 0) / act.mau) + '<small>%</small>' : '—', '平均每天有多少月活会来；20% 以上算粘')
+    + kpi('最高日活', n0(peak.visitors), peak.day ? day10(peak.day) + ' · 那天新来 ' + n0(peak.new_visitors) + ' 人' : '')
+    + '</div>'
+    + '<div class="sec-h">留存 · 首访之后真的回来</div><div class="kpis">'
+    + kpi('次日留存', pctOr(d1), '首访第二天又来的比例（近 60 天的批次加权）', 'good')
+    + kpi('第 7 天留存', pctOr(d7), '正好第 7 天还来', 'good')
+    + kpi('第 30 天留存', pctOr(d30), d30 == null ? '按日名单还不够 30 天' : '正好第 30 天还来')
+    + kpi('开瓦包 7 天留存', pctOr(a7), '建号 7 天以后还登录过（两周前及更早建的号）')
+    + kpi('事件窗口回访率', (h.return_pct ?? 0) + '<small>%</small>', '最近 ' + (d.days || '') + ' 天里来过 2 天以上的人')
+    + kpi('单次时长中位', (s.median_min ?? 0) + '<small>分钟</small>', '平均 ' + (s.avg_min ?? 0) + ' 分 · 共 ' + n0(s.n) + ' 次')
+    + '</div>'
+    + '<div class="sec-h">玩法与经济</div><div class="kpis">'
+    + kpi('累计抽卡', n0(ca.total_pulls), '人均 ' + (ca.avg_pulls ?? 0) + ' 次，最多一个号 ' + n0(ca.max_pulls))
+    + kpi('天梯对局', n0(ladderMatches), '本赛季，各个联赛加起来（按人次）')
+    + kpi('全服杯', n0(oc.cups) + '<small>届</small>', n0(oc.players) + ' 个号参加过 · 最多一届 ' + n0(oc.max_entrants) + ' 人')
+    + kpi('全服组队杯', n0(tc.cups) + '<small>届</small>', n0(tc.players) + ' 个号参加过 · 共 ' + n0(tc.teams) + ' 支队')
+    + kpi('累计成交', n0(mk.sales) + '<small>笔</small>', '成交额 ' + wan(mk.coins) + ' 金币 · 买家 ' + n0(mk.buyers) + ' 人', 'hot')
+    + kpi('24 小时成交', n0(mk.sales24) + '<small>笔</small>', wan(mk.coins24) + ' 金币 · 现在挂着 ' + n0(mk.listings) + ' 张')
+    + kpi('金币存量', wan(ca.total_coins), '所有存档里的金币加起来')
+    + '</div>'
+    + '<div class="grid wide" style="margin-top:14px">'
+    + panel('每日人数 · 近 60 天',
+      bars(histDays, (x) => x.visitors, (x) => x.day + '：' + (x.visitors || 0) + ' 人，新来 ' + (x.new_visitors || 0), { tall: true, part: (x) => x.new_visitors, legend: swatch('var(--accent)', '当天人数') + swatch('var(--win)', '其中新来的') }),
+      '读的是每天封存的汇总，事件明细删了也还在。尖峰之后掉回多少，才是一次推广真正留下的人。')
+    + panel('每日抽卡 · 近 60 天',
+      bars(histDays, (x) => x.card_pulls, (x) => x.day + '：抽卡 ' + (x.card_pulls || 0) + ' 次，比赛 ' + (x.card_matches || 0) + ' 场', { tall: true }),
+      '开包是开瓦包最核心的动作；比赛场次在「玩法与赛事」里。')
+    + panel('每日成交额 · 近 30 天',
+      bars(dense(mk.daily, 30), (x) => x.coins, (x) => x.day + '：' + (x.n || 0) + ' 笔，' + n0(x.coins) + ' 金币，' + (x.buyers || 0) + ' 个买家', { tall: true, fmt: wan }),
+      '交易行的活跃度。一天突然很高，先去「风控」看是不是有人在倒卡。')
+    + '</div>'
 
-    panel('单次时长',
-      '<div class="big">' + (s.median_min ?? 0) + '<small>分钟（中位）</small></div>' +
-      '<div class="muted" style="font-size:12px;margin-top:6px">' +
-      (s.n ?? 0) + ' 次 · 平均 ' + (s.avg_min ?? 0) + ' 分 · ' +
-      // the </div> matters: without it this panel never closed, and the browser
-      // parked 「玩到多深」 inside 「单次时长」 as a box within a box
-      '不到 1 分钟就走 ' + (s.under_1min ?? 0) + ' 次 · 超过 15 分钟 ' + (s.over_15min ?? 0) + ' 次</div>',
-      '中位数比平均值可靠——少数几个挂着页面不动的人会把平均值拉飞。') +
+  // ---- 用户与增长 ------------------------------------------------------------
+  const cohortRows = (hi.cohorts || []).slice().reverse().slice(0, 30).map((c) => {
+    const cell = (n, k) => '<td class="n">' + ((Date.now() - Date.parse(c.cohort)) / 86400000 < n + 1 ? '<span class="muted">—</span>' : pct(c[k], c.size) + '%') + '</td>'
+    return '<tr><td>' + md(c.cohort) + '</td><td class="n">' + n0(c.size) + '</td>' + cell(1, 'd1') + cell(3, 'd3') + cell(7, 'd7') + cell(14, 'd14') + cell(30, 'd30') + '</tr>'
+  })
+  const accCohortRows = (hi.accountCohorts || []).slice().reverse().map((w) => {
+    const ageD = (Date.now() - Date.parse(w.week)) / 86400000
+    const cell = (n, k) => '<td class="n">' + (ageD < n + 7 ? '<span class="muted">—</span>' : pct(w[k], w.size) + '%') + '</td>'
+    return '<tr><td>' + md(w.week) + ' 那周</td><td class="n">' + n0(w.size) + '</td>' + cell(1, 'r1') + cell(7, 'r7') + cell(30, 'r30') + '</tr>'
+  })
+  const newAcc = dense(hi.newAccounts, 60)
+  const phoneBy = new Map((hi.phones || []).map((r) => [day10(r.day), r.n]))
+  const allTime = (rows, k) => (rows || []).map((r) => '<tr><td>' + esc(r[k]) + '</td><td class="n">' + n0(r.n) + '</td><td class="n muted">' + pct(r.n, ht.players || 1) + '%</td></tr>')
+  const histRows = (hist.days || []).slice(0, 30).map((r) =>
+    '<tr><td class="muted">' + String(r.day).slice(5, 10) + '</td>' +
+    '<td class="n">' + r.visitors + '</td>' +
+    '<td class="n">' + r.new_visitors + '</td>' +
+    '<td class="n muted">' + r.sessions + '</td>' +
+    '<td class="n muted">' + r.active_min + '</td>' +
+    '<td class="n muted">' + r.card_pulls + '</td></tr>')
+  $('#growthApp').innerHTML =
+    '<div class="kpis">'
+    + kpi('累计玩家', n0(ht.players), '近 7 天活跃 ' + n0(ht.active7) + ' 人')
+    + kpi('开瓦包账号', n0(ha.total), '今天新建 ' + n0(ha.new1) + ' · 近 7 天 ' + n0(ha.new7))
+    + kpi('开瓦包活跃', n0(ha.a1) + '<small>今天</small>', '7 天 ' + n0(ha.a7) + ' · 30 天 ' + n0(ha.a30))
+    + kpi('绑手机', n0(ha.phones), ha.total ? '占账号 ' + pct(ha.phones, ha.total) + '%' : '')
+    + kpi('昨天新来', n0(yest.new_visitors), '昨天一共 ' + n0(yest.visitors) + ' 人')
+    + '</div>'
+    + '<div class="grid wide" style="margin-top:14px">'
+    + panel('每日人数 · 新老拆分',
+      bars(histDays, (x) => x.visitors, (x) => x.day + '：' + (x.visitors || 0) + ' 人，新来 ' + (x.new_visitors || 0) + '，会话 ' + (x.sessions || 0), { tall: true, part: (x) => x.new_visitors, legend: swatch('var(--accent)', '当天人数') + swatch('var(--win)', '其中新来的') }),
+      '绿色占得越少，说明来的越多是老玩家。')
+    + panel('开瓦包 · 每日新建账号',
+      bars(newAcc, (x) => x.n, (x) => x.day + '：新建 ' + (x.n || 0) + ' 个号，绑手机 ' + (phoneBy.get(x.day) || 0), { tall: true, part: (x) => phoneBy.get(x.day) || 0, legend: swatch('var(--accent)', '新建账号') + swatch('var(--win)', '当天绑手机') }),
+      '绑手机从 9 月起是进游戏的门，所以两根柱子应该差不多高；差得多说明有人卡在门口（「管理操作」里那扇海外玩家的门）。')
+    + '</div>'
+    + '<div class="grid wide">'
+    + panel('首访留存 · 按首次到访那天', table(['首访', '人数', '次日', '第 3 天', '第 7 天', '第 14 天', '第 30 天'], cohortRows),
+      '「第 N 天」是正好在那一天又来了，不是之后哪天来过——所以数会比直觉低，但它是行业里通用的算法，能和别的游戏比。'
+      + '读的是每天封存的到访名单，和事件明细删没删无关。还没到那一天的格子是「—」。')
+    + panel('开瓦包 · 建号留存（按周）', table(['建号', '账号', '1 天后', '7 天后', '30 天后'], accCohortRows),
+      '账号只记了最后一次上线，所以这里是「建号 N 天以后还登录过」的滚动留存，会比上面那种高。')
+    + '</div>'
+    + '<div class="grid">'
+    + panel('流失漏斗 · 经理模式', table(['步骤', '人数', '', '占比'], funnelRows),
+      '哪一步掉得最狠，下一步就该修哪里。「开了职业生涯但一回合没推进」是最贵的一种流失——人已经进来了。')
+    + panel('开瓦包 · 从进门到开包', table(['步骤', '人数', '', '占比'], cardRows),
+      '隔天还回来开包的有 <b>' + (cf.came_back ?? 0) + '</b> 人——抽卡游戏的命就是这个数。')
+    + panel('首页去了哪', table(['去向', '人数', '', '占比'], homeRows),
+      '首页挡在两个游戏前面，所以这是每个人做的第一个选择。「两个都没点」是最贵的一格——人已经到门口了。')
+    + panel('留存 · 事件窗口内', table(['首日', '人数', '次日', '第 7 天'], ret),
+      '只看统计窗口里的事件明细，明细一天左右就滚掉，所以以上面的「首访留存」为准。')
+    + '</div>'
+    + '<div class="grid">'
+    + panel('设备 · 累计', table(['类型', '人数', '占比'], allTime(hi.devices, 'device')),
+      '手机占比决定值不值得继续花时间在小屏上。')
+    + panel('域名 · 累计', table(['打开的是哪个域名', '人数', '占比'], allTime(hi.hosts, 'host')),
+      '几个域名指向同一个服务、同一个数据库。8/31 之前没记，归到「(没记录)」。')
+    + panel('来源 · 统计窗口', table(['来自', '人数'], simple(d.referrers || [], 'ref', 'visitors')),
+      '哪个渠道真的带来了人。微信和小红书的内置浏览器会把来源抹掉，所以「直接打开」里也有它们。')
+    + panel('设备 · 统计窗口', table(['类型', '人数'], simple(d.devices || [], 'device', 'visitors')))
+    + '</div>'
+    + '<div class="grid">'
+    + panel('永久留存 · 每天的汇总',
+      '<div class="big">' + n0(ht.players) + '<small>个玩家，从开服到现在</small></div>'
+      + '<div class="muted" style="font-size:12px;margin:6px 0 10px">近 7 天活跃 ' + n0(ht.active7) + ' 人'
+      + (ht.since ? ' · 最早一条 ' + day10(ht.since) : '') + '</div>'
+      + table(['日期', '人数', '新增', '会话', '分钟', '开包'], histRows),
+      '事件明细是滚动窗口，四百万行到顶就从最老的开始删——按现在的量大约只装得下一天。'
+      + '<b>这一格的数字是在删之前算好、单独存起来的，删多少次都不会掉。</b>')
+    + '</div>'
 
-    panel('玩到多深',
+  // ---- 玩法与赛事 ------------------------------------------------------------
+  const byLeague = new Map()
+  for (const r of hi.ladder || []) {
+    const x = byLeague.get(r.league) || { n: 0, matches: 0, div: [0, 0, 0, 0, 0, 0] }
+    x.n += r.n; x.matches += Number(r.matches || 0)
+    if (r.div >= 0 && r.div < 6) x.div[r.div] += r.n
+    byLeague.set(r.league, x)
+  }
+  const ladderRows = [...byLeague].sort((a, b) => b[1].n - a[1].n).map(([lg, x]) =>
+    '<tr><td>' + esc(LEAGUE_CN[lg] || lg) + '</td><td class="n">' + n0(x.n) + '</td>'
+    + x.div.map((v) => '<td class="n muted">' + n0(v) + '</td>').join('') + '<td class="n">' + n0(x.matches) + '</td></tr>')
+  const cupDays = dense(oc.daily, 30)
+  const bigRows = (oc.biggest || []).map((c) => '<tr><td>' + esc(new Date(c.starts).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })) + '</td>'
+    + '<td class="n">' + n0(c.entrants) + '</td><td>' + esc(c.champion || '—') + '</td></tr>')
+  const encRows = (hi.enc || []).map((r) => '<tr><td>' + esc(r.nat) + '</td><td class="n">' + n0(r.n) + '</td></tr>')
+  $('#playApp').innerHTML =
+    '<div class="sec-h">开瓦包</div><div class="kpis">'
+    + kpi('累计抽卡', n0(ca.total_pulls), '人均 ' + (ca.avg_pulls ?? 0) + ' 次')
+    + kpi('人均收藏', n0(ca.avg_owned) + '<small>张</small>', '最多的一个号 ' + n0(ca.max_owned) + ' 张')
+    + kpi('天梯对局', n0(ladderMatches), '本赛季 · ' + byLeague.size + ' 个联赛')
+    + kpi('全服杯', n0(oc.entries) + '<small>人次</small>', n0(oc.cups) + ' 届 · 近 7 天平均每届 ' + n0(oc.avg7) + ' 人')
+    + kpi('全服组队杯', n0(tc.entries) + '<small>人次</small>', n0(tc.cups) + ' 届 · 最多一届 ' + n0(tc.max_entrants) + ' 人')
+    + kpi('最长连续签到', n0(ca.max_streak) + '<small>天</small>', '')
+    + '</div>'
+    + '<div class="grid wide" style="margin-top:14px">'
+    + panel('每日抽卡与比赛 · 近 60 天',
+      bars(histDays, (x) => x.card_pulls, (x) => x.day + '：抽卡 ' + (x.card_pulls || 0) + '，比赛 ' + (x.card_matches || 0), { tall: true, part: (x) => x.card_matches, legend: swatch('var(--accent)', '抽卡') + swatch('var(--win)', '比赛') }))
+    + panel('全服杯 · 每天参加人次（近 30 天）',
+      bars(cupDays, (x) => x.entries, (x) => x.day + '：' + (x.cups || 0) + ' 届，' + (x.entries || 0) + ' 人次', { tall: true })
+      + '<div class="acct-h" style="font-size:12px;margin-top:10px">人最多的三届</div>' + table(['开赛', '人数', '冠军'], bigRows),
+      '全服杯每两小时一届。一天人次掉得多，先看是不是那天服务器慢了（「系统性能」）。')
+    + '</div>'
+    + '<div class="grid wide">'
+    + panel('天梯 · 各联赛段位分布', table(['联赛', '人数'].concat(DIV_CN, ['对局']), ladderRows),
+      '读的是排行榜那张表，只算没标可疑的号。大师一格人太多说明段位太容易爬。')
+    + panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),
+      '这一格读的是服务器上真正的存档，不是事件——手机没报上来的也在里面。')
+    + '</div><div class="grid">'
+    + panel('开瓦包 · 卡包', table(['卡包', '开出', '人数', '金卡', '重复/包'], packRows),
+      '统计窗口内。金卡是概率公示的那一栏在真实样本上的样子；「重复/包」一路涨上去，说明卡池对这批人来说已经不够深了。')
+    + panel('开瓦包 · 天梯与杯赛（统计窗口）', table(['模式', '场次', '人数', '胜率'], matchRows),
+      '胜率长期该在五成上下，明显偏一边说明对手强度没配平。')
+    + panel('开瓦包 · 每日挑战', table(['题型', '人数', '解开率', '平均次数'], chRows),
+      '解开率太低说明题出难了，太高说明奖励白送。平均次数看的是有没有在「猜」。')
+    + panel('国家队杯 · 报名最多的国籍', table(['国籍', '队伍'], encRows),
+      '每个号最近一次报名的国家队。')
+    + '</div>'
+    + '<div class="sec-h">VCT电竞经理</div>'
+    + '<div class="grid">'
+    + panel('玩到多深',
       '<div class="big">' + (dep.avg_game_day ?? 0) + '<small>天（游戏内，平均）</small></div>' +
       '<div class="muted" style="font-size:12px;margin-top:6px">最深 ' +
       (dep.max_game_day ?? 0) + ' 天 · 人均推进 ' + (dep.avg_turns ?? 0) + ' 回合</div>',
-      '一个赛季 336 天。平均只到几十天，说明大多数人没撑到第一个赛段结束。') +
-  '</div>' +
-
-  '<div class="grid" style="margin-top:12px">' +
-    panel('流失漏斗', table(['步骤', '人数', '', '占比'], funnelRows),
-      '哪一步掉得最狠，下一步就该修哪里。「开了职业生涯但一回合没推进」是最贵的一种流失——人已经进来了。') +
-    panel('留存（按首次到访分组）', table(['首日', '人数', '次日', '第 7 天'], ret),
-      '同一批人隔天/隔周还回来的比例。比总回访率更能看出改动有没有效果。') +
-  '</div>' +
-
-  '<div class="grid" style="margin-top:12px">' +
-    panel('设备', table(['类型', '人数'], simple(d.devices || [], 'device', 'visitors')),
-      '手机占比决定值不值得继续花时间在小屏上。') +
-    panel('来源', table(['来自', '人数'], simple(d.referrers || [], 'ref', 'visitors')),
-      '哪个渠道真的带来了人。微信和小红书的内置浏览器会把来源抹掉，所以「直接打开」里也有它们。') +
-    panel('域名', table(['打开的是哪个域名', '人数'], simple(d.hosts || [], 'host', 'visitors')),
-      '几个域名指向的是同一个服务、同一个数据库，所以数据一直都在，只是以前分不出是从哪个域名进来的。'
-      + '这一列从这次更新才开始记，之前的行都归到「(这次改动之前)」。') +
-    panel('选了哪些队', table(['俱乐部', '次数'], (d.clubs || []).map((r) =>
+      '一个赛季 336 天。平均只到几十天，说明大多数人没撑到第一个赛段结束。')
+    + panel('单次时长',
+      '<div class="big">' + (s.median_min ?? 0) + '<small>分钟（中位）</small></div>' +
+      '<div class="muted" style="font-size:12px;margin-top:6px">' +
+      (s.n ?? 0) + ' 次 · 平均 ' + (s.avg_min ?? 0) + ' 分 · ' +
+      '不到 1 分钟就走 ' + (s.under_1min ?? 0) + ' 次 · 超过 15 分钟 ' + (s.over_15min ?? 0) + ' 次</div>',
+      '中位数比平均值可靠——少数几个挂着页面不动的人会把平均值拉飞。')
+    + panel('生涯怎么结束的', table(['结果', '数量'], careerRows),
+      '走完十年 vs 中途下课。')
+    + panel('选了哪些队', table(['俱乐部', '次数'], (d.clubs || []).map((r) =>
       '<tr><td>' + esc(r.club) + ' <span class="muted">' + esc(r.tier || '') + '</span></td>' +
       '<td class="n">' + r.n + '</td></tr>')),
-      '大家想执教谁。冷门队没人选，可以考虑给点理由。') +
-    panel('去过哪些页面', table(['页面', '次数'], simple(d.screens || [], 'screen', 'n')),
-      '没人打开的页面，要么没做好，要么不该做。') +
-  '</div>' +
+      '大家想执教谁。冷门队没人选，可以考虑给点理由。')
+    + panel('去过哪些页面', table(['页面', '次数'], simple(d.screens || [], 'screen', 'n')),
+      '没人打开的页面，要么没做好，要么不该做。')
+    + panel('解锁排行 · 结局', table(['结局', '人数'], unlockRows(d, 'end')),
+      '没出现在这里的结局，就是还没有人见过的内容。')
+    + panel('解锁排行 · 成就', table(['成就', '人数'], unlockRows(d, 'ach')),
+      '排在最上面的如果太容易，说明门槛低了；一直不出现的说明要么太难要么没人找得到。')
+    + '</div>'
 
-  '<div class="grid" style="margin-top:12px">' +
-    panel('首页去了哪', table(['去向', '人数', '', '占比'], homeRows),
-      '首页现在挡在两个游戏前面，所以这是每个人做的第一个选择。'
-      + '「两个都没点」是最贵的一格——人已经到门口了。') +
-    panel('生涯怎么结束的', table(['结果', '数量'], careerRows),
-      '走完十年 vs 中途下课。十年改版就是为了前者，而它之前根本没有被记录。') +
-  '</div>' +
+  // ---- 经济与交易 ------------------------------------------------------------
+  const hourBy = new Map((mk.hours || []).map((r) => [r.hour, r.n]))
+  const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, n: hourBy.get(i) || 0, day: '' }))
+  const topRows = (mk.top || []).map((t) => '<tr><td>' + esc(t.card) + (t.level ? ' +' + t.level : '') + '</td><td class="n">' + n0(t.price) + '</td><td class="muted">' + md(t.at) + '</td></tr>')
+  const hotRows = (mk.hot || []).map((t) => '<tr><td>' + esc(t.card) + '</td><td class="n">' + n0(t.n) + '</td><td class="n muted">' + n0(t.median) + '</td><td class="n">' + wan(t.coins) + '</td></tr>')
+  const swapRows = (mk.swaps || []).map((r) => '<tr><td>' + esc(SWAP_CN[r.status] || r.status) + '</td><td class="n">' + n0(r.n) + '</td></tr>')
+  const gr = mk.grants || {}
+  const mkDays = dense(mk.daily, 30)
+  $('#econApp').innerHTML =
+    '<div class="kpis">'
+    + kpi('累计成交', n0(mk.sales) + '<small>笔</small>', mk.since ? '交易行从 ' + day10(mk.since) + ' 起' : '', 'hot')
+    + kpi('累计成交额', wan(mk.coins), '金币 · 中位成交价 ' + n0(mk.median))
+    + kpi('买家 / 卖家', n0(mk.buyers) + '<small>/ ' + n0(mk.sellers) + '</small>', '买过、卖过卡的不同账号')
+    + kpi('24 小时', n0(mk.sales24) + '<small>笔</small>', wan(mk.coins24) + ' 金币 · 出价 ' + n0(mk.bids24) + ' 次')
+    + kpi('现在挂着', n0(mk.listings) + '<small>张</small>', '交易行上还没成交的')
+    + kpi('金币存量', wan(ca.total_coins), ca.accounts ? '人均 ' + n0(Math.round((ca.total_coins || 0) / ca.accounts)) : '')
+    + kpi('后台发放', n0(gr.mails) + '<small>封</small>', '发给 ' + n0(gr.people) + ' 个号 · ' + n0(gr.packs) + ' 个卡包 · ' + wan(gr.coins) + ' 金币')
+    + '</div>'
+    + '<div class="grid wide" style="margin-top:14px">'
+    + panel('每日成交 · 近 30 天',
+      bars(mkDays, (x) => x.n, (x) => x.day + '：' + (x.n || 0) + ' 笔，' + n0(x.coins) + ' 金币，' + (x.buyers || 0) + ' 个买家', { tall: true }),
+      '笔数看热不热，金额在「数据总览」。')
+    + panel('交易时段 · 北京时间（近 14 天）',
+      bars(hours, (x) => x.n, (x) => x.hour + ' 点：' + x.n + ' 笔', { tall: true, from: '0 点', to: '23 点' }),
+      '一天里什么时候最多人在买卖。凌晨还很高的那几个钟点，脚本嫌疑也最大。')
+    + '</div>'
+    + '<div class="grid">'
+    + panel('最贵的五笔', table(['卡', '成交价', '日期'], topRows),
+      '离谱的价格多半是两个号在转钱，去「风控」对一下。')
+    + panel('近 7 天最热的卡', table(['卡', '成交', '中位价', '成交额'], hotRows),
+      '卖得最多的卡，就是大家眼里现在最值钱的那批。')
+    + panel('好友交换', table(['结果', '次数'], swapRows),
+      '一换一，不经过交易行。')
+    + '</div>'
 
-  '<div class="grid" style="margin-top:12px">' +
-    panel('开瓦包 · 从进门到开包', table(['步骤', '人数', '', '占比'], cardRows),
-      '首页只说了有多少人点进去，点进去之后发生了什么一直是空白。'
-      + '隔天还回来开包的有 <b>' + (cf.came_back ?? 0) + '</b> 人——抽卡游戏的命就是这个数。') +
-    panel('开瓦包 · 卡包', table(['卡包', '开出', '人数', '金卡', '重复/包'], packRows),
-      '金卡是概率公示的那一栏在真实样本上的样子。「重复/包」是平均每包开出几张已有的卡——'
-      + '它一路涨上去，说明卡池对这批人来说已经不够深了。') +
-    panel('开瓦包 · 每日挑战', table(['题型', '人数', '解开率', '平均次数'], chRows),
-      '一天一道，每个账号的题不一样（以前是全服同题，被人拿一个答案去小号刷奖励），入场 300 金币。'
-      + '解开率太低说明题出难了——没人解得开的谜题，'
-      + '第二天就没人回来了；太高说明奖励白送。平均次数看的是有没有在「猜」。') +
-    panel('开瓦包 · 天梯与杯赛', table(['模式', '场次', '人数', '胜率'], matchRows),
-      '开了包不打比赛，卡就只是图片。胜率长期该在五成上下，明显偏一边说明对手强度没配平。') +
-    panel('开瓦包 · 收藏库', table(['指标', '数值'], collRows),
-      '这一格读的是服务器上真正的存档，不是事件——手机没报上来的也在里面。'
-      + '「建号之后又回来存过档」是瓦包自己的留存。') +
-    (function () {
-      const h = d.history || {}
-      const t = h.totals || {}
-      const rows = (h.days || []).slice(0, 30).map((r) =>
-        '<tr><td class="muted">' + String(r.day).slice(5, 10) + '</td>' +
-        '<td class="n">' + r.visitors + '</td>' +
-        '<td class="n">' + r.new_visitors + '</td>' +
-        '<td class="n muted">' + r.sessions + '</td>' +
-        '<td class="n muted">' + r.active_min + '</td>' +
-        '<td class="n muted">' + r.card_pulls + '</td></tr>')
-      return panel('永久留存 · 明细删了也还在',
-        '<div class="big">' + (t.players ?? 0).toLocaleString()
-        + '<small>个玩家，从开服到现在</small></div>'
-        + '<div class="muted" style="font-size:12px;margin:6px 0 10px">'
-        + '近 7 天活跃 ' + (t.active7 ?? 0).toLocaleString() + ' 人'
-        + (t.since ? ' · 最早一条 ' + String(t.since).slice(0, 10) : '') + '</div>'
-        + table(['日期', '人数', '新增', '会话', '分钟', '开包'], rows),
-        '事件明细是滚动窗口，四百万行到顶就从最老的开始删——按现在的量大约只装得下一天。'
-        + '<b>这一格的数字是在删之前算好、单独存起来的，删多少次都不会掉。</b>'
-        + '「累计玩家数」尤其只能这样来：人已经删了，就再也数不出有多少个不同的人了。'
-        + '8/31 丢掉的一个月就是这么没的，现在补上了。')
-    })() +
-    panel('开瓦包 · 场次对不上账',
+  // ---- 风控里的那张表 ----------------------------------------------------------
+  $('#riskApp').innerHTML = '<div class="grid">'
+    + panel('开瓦包 · 场次对不上账',
       table(['玩家', '声称场次', '最多可能', '超出', '建号至今'], overRows),
       '存档在浏览器里，是可以改的——这一格不是抓人，是算术：体力每 ${Math.round(STAMINA_POINT_SEC / 60)} 分钟回 1 点、'
       + '最多存 ${STAMINA_MAX} 点、天梯一场 2 点，所以一天最多打 ${Math.floor((STAMINA_MAX + 86400 / STAMINA_POINT_SEC) / 2)} 场左右。建号时间是服务器写的，'
       + '玩家改不了，拿它去对玩家能改的场次，超出多少一目了然。'
       + '空的就是没人对不上。有一种情况会误伤：一直在「仅本机」模式下玩了很久、'
-      + '最近才联网，那样建号时间是新的而场次是旧的——所以这里只报，不做任何处理。') +
-  '</div>' +
+      + '最近才联网，那样建号时间是新的而场次是旧的——所以这里只报，不做任何处理。')
+    + '</div>'
 
-  '<div class="grid" style="margin-top:12px">' +
-    panel('解锁排行 · 结局', table(['结局', '人数'], unlockRows(d, 'end')),
-      '没出现在这里的结局，就是还没有人见过的内容。') +
-    panel('解锁排行 · 成就', table(['成就', '人数'], unlockRows(d, 'ach')),
-      '排在最上面的如果太容易，说明门槛低了；一直不出现的说明要么太难要么没人找得到。') +
-  '</div>' +
-
-  '<div class="grid" style="margin-top:12px">' +
+  // ---- 系统性能里不实时的那部分 --------------------------------------------------
+  $('#sysApp').innerHTML = '<div class="grid">' +
     (() => {
       const st = d.storage || {}
       const gb = (n) => (n / 1e9).toFixed(2) + ' GB'
@@ -557,8 +907,8 @@ function render(d) {
       const rowPct = pct(st.rows || 0, st.maxRows || 1)
       const bytePct = pct(st.bytes || 0, st.maxBytes || 1)
       const nearly = rowPct >= 80 || bytePct >= 80
-      return panel('数据库 · 这里存着多少历史',
-        '<div class="big">' + days + '<small>天的历史</small></div>' +
+      return panel('事件表 · 这里存着多少明细',
+        '<div class="big">' + days + '<small>天的明细</small></div>' +
         '<div class="muted" style="font-size:12px;margin-top:6px">' +
         '最早一条 ' + (st.oldest ? esc(String(st.oldest).slice(0, 10)) : '—') +
         ' · ' + (st.rows || 0).toLocaleString() + ' 行（上限 ' +
@@ -575,9 +925,7 @@ function render(d) {
           ? '<div style="font-size:12px;margin-top:6px;color:var(--warn)">'
             + '⚠ 快到上限了，最旧的数据随时会被清掉。</div>'
           : ''),
-        '2026-08-31 之前的三十天在这里丢过一次：旧的清理逻辑按文件体积删行，而 DELETE 根本'
-        + '不会让文件变小，于是它每次重启都删四百万行，一天八次部署就把历史删光了。现在只按'
-        + '「过期」和「行数上限」删，两者都会停。这一格是为了让同样的事不会再没人看见——'
+        '只按「过期」和「行数上限」删，两者都会停；删之前每天的数字已经封存进汇总表。'
         + '「占盘」比行数大很多说明有膨胀，那是该手动跑一次 VACUUM FULL，不是该删数据。')
     })() +
     panel('存档体积 · 对着浏览器的上限看',
@@ -588,18 +936,63 @@ function render(d) {
       '<div class="muted" style="font-size:12px;margin-top:4px">' +
       '写不进去、被迫清掉旧比赛记录才存下的：<b>' + (sz.shrunk ?? 0) + '</b> 份' +
       '（这是兜底生效，不是丢档）</div>',
-      '存档写在 localStorage 里，iOS Safari 给每个站点 5MB，按 UTF-16 算就是 250 万个字符——'
-      + '自动存档、手动存档、教程存的那一份和开瓦包都挤在这里面，而四分之三的人在手机上。'
-      + '满了浏览器就拒绝写入，进度直接停在那一刻。这一列从这次更新才开始记。') +
-    ((d.errors || []).length
-      ? panel('前端报错', table(['信息', '人数', '次数'], (d.errors || []).map((r) =>
-        '<tr><td>' + esc(r.msg) + '</td><td class="n">' + r.visitors + '</td>' +
-        '<td class="n muted">' + r.n + '</td></tr>')),
-        '玩家不会来报的那些错。看「人数」而不是「次数」：存档写不进去这种错，'
-        + '一个人每点一下就报一次，一份倒霉的生涯能刷出上万条。')
-      : '') +
+      '存档写在 localStorage 里，iOS Safari 给每个站点 5MB——自动存档、手动存档、教程存的那一份和开瓦包都挤在这里面。') +
+    panel('前端报错', table(['信息', '人数', '次数'], (d.errors || []).map((r) =>
+      '<tr><td>' + esc(r.msg) + '</td><td class="n">' + r.visitors + '</td>' +
+      '<td class="n muted">' + r.n + '</td></tr>')),
+      '玩家不会来报的那些错。看「人数」而不是「次数」：存档写不进去这种错，'
+      + '一个人每点一下就报一次。') +
+    panel('每日报错 · 近 60 天',
+      bars(histDays, (x) => x.errors, (x) => x.day + '：' + (x.errors || 0) + ' 条报错，' + (x.events || 0) + ' 条事件', { tall: true }),
+      '一次发布之后突然冒高，就是那次发布带进来的。') +
   '</div>'
 }
+
+// ---- 系统性能 · 实时 --------------------------------------------------------
+//
+// Two owner routes the server already has: /api/admin/perf is numbers the
+// process keeps in memory (asks the database nothing), /api/admin/db reads the
+// catalogs. Fetched when the tab is opened, not with the page: the second one
+// walks every table's size.
+let sysLoaded = false
+async function sysLoad() {
+  sysLoaded = true
+  $('#sysMsg').textContent = '读取中…'
+  const get = (p) => fetch(p, { headers: auth() }).then((r) => r.json()).catch((e) => ({ ok: false, why: e.message }))
+  const [pf, db] = await Promise.all([get('/api/admin/perf'), get('/api/admin/db')])
+  const up = pf.upSec || 0
+  const upText = up >= 86400 ? Math.floor(up / 86400) + ' 天 ' + Math.floor(up % 86400 / 3600) + ' 小时' : up >= 3600 ? Math.floor(up / 3600) + ' 小时 ' + Math.floor(up % 3600 / 60) + ' 分' : Math.floor(up / 60) + ' 分钟'
+  const loop = pf.loop || {}
+  const act = ((pf.cards || {}).actions) || {}
+  const actRows = Object.entries(act).sort((a, b) => b[1].n - a[1].n).map(([k, v]) =>
+    '<tr><td>' + esc(k) + '</td><td class="n">' + n0(v.n) + '</td><td class="n">' + (v.total ? v.total.p50 : '—') + '</td><td class="n">' + (v.total ? v.total.p95 : '—') + '</td><td class="n muted">' + (v.total ? v.total.max : '—') + '</td><td class="n muted">' + n0(v.retried) + '</td></tr>')
+  const poolRows = Object.entries(pf.pools || {}).map(([k, v]) => '<tr><td>' + esc({ main: '主连接池', bg: '后台池', stats: '统计池' }[k] || k) + '</td>'
+    + (v ? '<td class="n">' + (v.wait && v.wait.p50 != null ? v.wait.p50 : '—') + '</td><td class="n">' + (v.wait && v.wait.p95 != null ? v.wait.p95 : '—') + '</td><td class="n">' + (v.held && v.held.p95 != null ? v.held.p95 : '—') + '</td><td class="n muted">' + n0(v.waiting) + '</td><td class="n muted">' + n0(v.gaveUp) + '</td>'
+      : '<td colspan="5" class="muted">本地数据库，没有连接池</td>') + '</tr>')
+  const tables = (db.tables || []).slice(0, 12).map((t) => '<tr><td>' + esc(t.name) + '</td><td class="n">' + n0(t.totalMb) + '</td><td class="n muted">' + n0(t.live) + '</td><td class="n muted">' + n0(t.dead) + '</td></tr>')
+  const actv = (db.activity || []).map((a) => '<tr><td>' + esc(a.state) + (a.wait ? ' <span class="muted">' + esc(a.waitType + ':' + a.wait) + '</span>' : '') + '</td><td class="n">' + a.n + '</td><td class="n muted">' + n0(a.longestMs) + '</td></tr>')
+  const m = (pf.cards || {}).matches
+  $('#sysLive').innerHTML = (pf.ok === false && db.ok === false ? '<div class="empty">读不到：' + esc(pf.why || db.why || '') + '</div>' : '')
+    + '<div class="kpis">'
+    + kpi('已运行', upText, '这次部署启动到现在')
+    + kpi('内存', n0(pf.rssMb) + '<small>MB</small>', '进程占用（RSS）')
+    + kpi('事件循环延迟', (loop.p50 ?? '—') + '<small>ms 中位</small>', 'p99 ' + (loop.p99 ?? '—') + ' ms · 最长 ' + (loop.max ?? '—') + ' ms', (loop.p99 || 0) > 200 ? 'hot' : 'good')
+    + kpi('数据库', n0(db.dbMb) + '<small>MB</small>', db.wal && db.wal.mb != null ? '其中预写日志（WAL）' + n0(db.wal.mb) + ' MB' : '')
+    + kpi('缓存命中', db.cache ? db.cache.hitPct + '<small>%</small>' : '—', '读块里直接从内存拿到的比例，95% 以上算健康', db.cache && db.cache.hitPct < 95 ? 'hot' : 'good')
+    + (m ? kpi('比赛计算线程', n0(m.done) + '<small>场</small>', m.workers + ' 个线程，忙 ' + m.busy + ' · 排队 ' + m.waiting + '（最多排过 ' + m.maxWaiting + '）· 失败 ' + m.failed + ' · 拒绝 ' + m.refused) : '')
+    + '</div>'
+    + '<div class="grid wide" style="margin-top:14px">'
+    + panel('开瓦包操作耗时（毫秒，最近若干次）', table(['操作', '次数', '中位', 'p95', '最长', '重试'], actRows),
+      '从收到请求到回复的总时间。p95 过了一秒，玩家就会觉得「卡」。')
+    + panel('数据库连接池等待（毫秒）', table(['池', '等待中位', '等待 p95', '占用 p95', '正在等', '放弃'], poolRows),
+      '「放弃」大于零说明有请求没等到连接——那就是全站卡顿的时候。')
+    + panel('最大的表', table(['表', 'MB', '活行', '死行'], tables),
+      '死行多说明清理没跟上；DELETE 不会把文件变小。')
+    + panel('数据库此刻在做什么', table(['状态', '连接', '最久（ms）'], actv))
+    + '</div>'
+  $('#sysMsg').textContent = '读取于 ' + new Date().toLocaleTimeString('zh-CN')
+}
+$('#sysLoad').onclick = sysLoad
 
 let statsDays = 30
 async function load(days, fresh) {
@@ -613,7 +1006,7 @@ async function load(days, fresh) {
     // the numbers are kept half an hour on the server (server.js buildStats); say how old these are
     $('#status').textContent = '最近 ' + d.days + ' 天 · 统计于 ' + new Date(d.builtAt || Date.now()).toLocaleTimeString('zh-CN')
   } catch (e) {
-    $('#app').innerHTML = '<div class="panel"><div class="empty">读不到数据：' + esc(e.message) + '</div></div>'
+    $('#ovApp').innerHTML = '<div class="panel"><div class="empty">读不到数据：' + esc(e.message) + '</div></div>'
     $('#status').textContent = ''
   }
 }
@@ -831,13 +1224,52 @@ function gPartner(p) {
       + (a.suspect ? ' · <b>已标可疑</b>' : '') + '</span>' : '')
 }
 
+// ---- 账号抽屉 ---------------------------------------------------------------
+//
+// Every account opens here, whichever tab it was clicked in. The drawer sits
+// over the page instead of the page scrolling to a panel: the 风控 list used to
+// jump to 「查账号」 on every click, and finding the next name meant scrolling
+// all the way back down. The list underneath never moves now, and the row whose
+// account is open is marked.
+let drFrom = null
+function drOpen(fromEl) {
+  $('#drawer').classList.add('open')
+  $('#drawer').setAttribute('aria-hidden', 'false')
+  if (fromEl !== undefined) {
+    if (drFrom) drFrom.classList.remove('viewing')
+    drFrom = fromEl ? fromEl.closest('.mg-item, tr') : null
+    if (drFrom) drFrom.classList.add('viewing')
+  }
+}
+function drClose() {
+  $('#drawer').classList.remove('open')
+  $('#drawer').setAttribute('aria-hidden', 'true')
+  if (drFrom) drFrom.classList.remove('viewing')
+  drFrom = null
+}
+$('#drClose').onclick = drClose
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#drawer').classList.contains('open')) drClose() })
+$('#drFill').onclick = () => {
+  if (!gOpenCode) return
+  $('#gWho').value = gOpenCode
+  gWhoDraw()
+  showTab('ops')
+  $('#grant').scrollIntoView({ block: 'start' })
+}
+$('#drCopy').onclick = async () => {
+  if (!gOpenCode) return
+  try { await navigator.clipboard.writeText(gOpenCode); mgToast('已复制 ' + gOpenCode) } catch { mgToast('对战码 ' + gOpenCode) }
+}
+
 let gOpenCode = null
 async function gOpen(who) {
   const box = $('#gAcct')
-  box.style.display = ''
+  drOpen()
   if (!/^[0-9a-fA-F]{8}$/.test(who)) { box.textContent = '查账号要用 8 位对战码'; return }
+  // the same account again (after a ban, say) is redrawn where the owner was reading it
+  const same = gOpenCode && gOpenCode.toLowerCase() === who.toLowerCase() && box.textContent
   gOpenCode = who
-  box.textContent = '查询中…'
+  if (!same) { box.scrollTop = 0; box.textContent = '查询中…' }
   try {
     // where he stands with the market guard, read alongside; a failure there does not cost the rest
     const standing = mgCall({ code: who, action: 'status' }).catch(() => null)
@@ -877,7 +1309,7 @@ async function gOpen(who) {
     box.innerHTML = html
     const wire = () => {
       for (const a of box.querySelectorAll('a.look')) {
-        a.onclick = (e) => { e.preventDefault(); gTrail.push(j.code); $('#gWho').value = a.dataset.code; gOpen(a.dataset.code) }
+        a.onclick = (e) => { e.preventDefault(); gTrail.push(j.code); gOpen(a.dataset.code) }
       }
     }
     const expand = (btn, list, rows, draw) => {
@@ -888,7 +1320,7 @@ async function gOpen(who) {
     expand('#gPartnersAll', '#gPartners', partners, gPartner)
     expand('#gTradesAll', '#gTrades', trades, gTrade)
     const back = $('#gBack')
-    if (back) back.onclick = (e) => { e.preventDefault(); const c = gTrail.pop(); $('#gWho').value = c; gOpen(c) }
+    if (back) back.onclick = (e) => { e.preventDefault(); gOpen(gTrail.pop()) }
   } catch (e) {
     box.textContent = '查不到：' + e.message
   }
@@ -896,30 +1328,31 @@ async function gOpen(who) {
 // 「昵称 #AB12」 (how the market and the ladder show an account, and how a report names it) → the 对战码
 async function gFind(q) {
   const box = $('#gAcct')
-  box.style.display = ''
+  drOpen()
   box.textContent = '查找中…'
   try {
     const r = await fetch('/api/admin/find?q=' + encodeURIComponent(q), { headers: auth() })
     const j = await r.json()
     if (!j.ok) throw new Error(j.why || ('HTTP ' + r.status))
-    if (j.hits.length === 1) { $('#gWho').value = j.hits[0].code; gOpen(j.hits[0].code); return }
+    if (j.hits.length === 1) { gOpen(j.hits[0].code); return }
     box.innerHTML = j.hits.length
       ? '<div class="muted" style="font-size:12px">「' + esc(q) + '」对上 ' + j.hits.length + ' 个账号，点一个：</div>'
         + j.hits.map((h) => '<div><a href="#" data-gcode="' + esc(h.code) + '">' + esc(h.name) + ' #' + esc(h.tag) + '</a> · 对战码 ' + esc(h.code)
           + ' · 建号 ' + gWhen(h.created) + ' · 最后上线 ' + gWhen(h.seen) + ' · 抽了 ' + (h.pulls ?? '?') + ' 次</div>').join('')
       : '没有对上的账号'
-    box.querySelectorAll('a[data-gcode]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); $('#gWho').value = a.dataset.gcode; gOpen(a.dataset.gcode) } })
+    box.querySelectorAll('a[data-gcode]').forEach((a) => { a.onclick = (e) => { e.preventDefault(); gTrail.length = 0; gOpen(a.dataset.gcode) } })
   } catch (e) {
     box.textContent = '查不到：' + e.message
   }
 }
 $('#gLook').onclick = () => {
   gTrail.length = 0
+  if (drFrom) { drFrom.classList.remove('viewing'); drFrom = null }
   const text = $('#gWho').value.trim()
   // an 8-character 对战码 opens at once; anything else — 「昵称 #AB12」, 「#AB12」, a name — is looked up first
   if (/^[0-9a-fA-F]{8}$/.test(text)) { gOpen(text); return }
   const p = gParse(text)
-  if (p.list.length > 1 && p.list.every((c) => /^[0-9a-fA-F]{8}$/.test(c))) { $('#gAcct').style.display = ''; $('#gAcct').textContent = '查账号一次查一个'; return }
+  if (p.list.length > 1 && p.list.every((c) => /^[0-9a-fA-F]{8}$/.test(c))) { drOpen(); $('#gAcct').textContent = '查账号一次查一个'; return }
   gFind(text)
 }
 
@@ -1020,6 +1453,9 @@ async function rvList() {
     $('#rTotals').textContent = '已验证 ' + gFmt(t.verified) + '（其中人工 ' + gFmt(t.manual) + '） · 没验证 ' + gFmt(t.unverified)
       + ' · 撤回过 ' + gFmt(t.revoked) + ' · 24 小时内在门口的 ' + gFmt(t.knocking24)
     let html = ''
+    $('#opsCnt').textContent = (j.pending || []).length
+    $('#opsCnt').hidden = !(j.pending || []).length
+    $('#opsCnt').title = '最近 3 天来过、还没绑手机的号'
     if ((j.pending || []).length) {
       html += '<div class="acct-h">最近 3 天来过、还没绑的 ' + j.pending.length + ' 个</div>'
         + j.pending.map((a) => rvRow(a, '建号 ' + gShort(a.created) + ' · 最后 ' + gShort(a.seen))).join('<br>')
@@ -1094,41 +1530,100 @@ const mgMoved = (e) => e && e.transfer ? ('和 ' + (e.with || []).join('、') + 
   + (e.transfer.dumps || []).map((d) => (d.bought ? '买入 ' : '卖出 ') + d.price + '（一般 ' + d.ref + '，' + d.ratio + ' 倍）').join('，')
   + (e.transfer.loops || []).map((l) => ' 24 小时内成交 ' + l.n + ' 次' + (l.both ? '，互相买' : '') + (l.pricey ? '，其中 ' + l.pricey + ' 次高价' : '')).join('')) : ''
 const mgH = (t, sub) => '<h3 style="margin:14px 0 2px;font-size:13px">' + t + '</h3>' + (sub ? '<div class="dim" style="font-size:12px">' + sub + '</div>' : '')
-async function mgLoad() {
+// The last report, kept: a filter, a collapsed section or 「再显示」 redraws from
+// it without asking the server again, and a refresh after a ban redraws in
+// place — same sections open, same number of rows shown, same scroll — instead
+// of emptying the box to 「读取中…」, which used to collapse the page and throw
+// the owner back to the top of a list he was halfway down.
+let mgData = null
+let mgAt = null
+const mgShown = {}
+const mgView = () => ({
+  q: ($('#mgQ').value || '').trim().toLowerCase(),
+  onlyF: $('#mgOnlyF').checked,
+  page: Number($('#mgPage').value) || 20,
+})
+const mgHay = (...xs) => xs.filter(Boolean).map((x) => (typeof x === 'string' ? x : (x.name || '') + ' ' + (x.code || ''))).join(' ').toLowerCase()
+function mgDraw() {
+  const r = mgData
+  if (!r) return
   const box = $('#mgOut')
-  box.textContent = '读取中…'
-  try {
-    const r = await mgCall({})
-    const R = r.recent || { SALE_DAYS: 3, RATIO: 5 }
-    const mv = r.moving || { sales: [], pairs: [] }
-    const sales = mv.sales.map((x) => '<div class="mg-item"><div class="row">'
-      + '<span>' + gShort(x.at) + ' · <b>' + esc(x.card) + '</b>' + (x.level ? ' +' + x.level : '')
-      + ' 成交 <b class="' + (x.f ? 'hot' : '') + '">' + gFmt(x.price) + '</b>（' + (x.bo ? '一口价' : '竞拍') + '），这张卡一般 ' + gFmt(x.ref)
-      + (x.refFrom === 'card' ? '' : '（同稀有度估）') + '，<b class="' + (x.f ? 'hot' : '') + '">' + x.ratio + ' 倍</b>' + (x.f ? ' · 离谱' : '')
-      + ' · 这两个号 ' + R.SALE_DAYS + ' 天成交 ' + x.pair.n + ' 次' + (x.pair.both ? '，互相买过' : '') + '</span>'
-      + mgBoth(x.seller, x.buyer) + '</div>'
-      + mgAcct(x.seller, '卖家') + mgAcct(x.buyer, '买家') + '</div>').join('')
-    const pairs = mv.pairs.map((p) => '<div class="mg-item"><div class="row">'
-      + '<span>最后一次 ' + gShort(p.last) + ' · 24 小时成交 <b>' + p.n + '</b> 次（前者买 ' + p.aBought + '、后者买 ' + p.bBought + '）'
-      + ' · ' + p.cards + ' 张不同的卡 · 共 ' + gFmt(p.paid) + ' 金币 · 最高 ' + p.maxRatio + ' 倍' + (p.pricey ? '（' + p.pricey + ' 次 3 倍以上）' : '') + '</span>'
-      + mgBoth(p.a, p.b) + '</div>' + mgAcct(p.a) + mgAcct(p.b) + '</div>').join('')
-    const running = (r.bans || []).filter((b) => b.running)
-    const runningHtml = running.map((b) => '<div class="mg-item">' + mgAcct(b)
-      + '<div class="dim" style="font-size:12px">这次：' + gShort(b.made) + ' ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + ' · '
-      + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>').join('')
-    const flagged = (r.flagged || []).filter((f) => !(f.ban && f.ban.running)).map((f) => '<div class="mg-item">'
-      + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动封</b> 规则 ' + esc(f.rule) : /^[BC]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
-      + mgAcct(f) + '<div class="dim" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>').join('')
-    const past = (r.bans || []).filter((b) => !b.running).map((b) => '<div>' + (b.lifted ? '手动解封 ' : '已到期 ') + mgName(b)
-      + ' · ' + gShort(b.made) + ' → ' + gShort(b.lifted || b.until) + ' · ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + '</div>').join('')
-    box.innerHTML = '<div class="dim" style="font-size:12px">刷新于 ' + new Date().toLocaleTimeString('zh-CN') + ' · 模式 ' + esc(r.mode) + '</div>'
-      + mgH('最近的高价成交', '最近 ' + R.SALE_DAYS + ' 天，比这张卡一般价格高 ' + R.RATIO + ' 倍以上的，最新的在前；标黄的是 20 倍以上的离谱价') + (sales || '<div class="muted">没有</div>')
-      + mgH('最近两个号频繁互相成交', '最近 24 小时：成交 3 次以上，或 2 次但互相买过、有高价；最近还在交易的在前') + (pairs || '<div class="muted">没有</div>')
-      + mgH('正在封禁 ' + running.length + ' 个') + (runningHtml || '<div class="muted">没有</div>')
-      + mgH('脚本抢拍嫌疑', '按一周的买卡速度判断，3 分钟更新一次') + (flagged || '<div class="muted">没有</div>')
-      + '<details style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-size:12px">以前的封禁记录（已到期、已解封）</summary>' + (past || '<div class="muted">没有</div>') + '</details>'
-  } catch (e) { box.textContent = '没拿到：' + e.message }
+  const y = window.scrollY
+  const open = {}
+  for (const el of box.querySelectorAll('details.mg-sec')) open[el.dataset.k] = el.open
+  const v = mgView()
+  const hit = (hay) => !v.q || hay.includes(v.q)
+  const R = r.recent || { SALE_DAYS: 3, RATIO: 5 }
+  const mv = r.moving || { sales: [], pairs: [] }
+  const saleHtml = (x) => '<div class="mg-item"><div class="row">'
+    + '<span>' + gShort(x.at) + ' · <b>' + esc(x.card) + '</b>' + (x.level ? ' +' + x.level : '')
+    + ' 成交 <b class="' + (x.f ? 'hot' : '') + '">' + gFmt(x.price) + '</b>（' + (x.bo ? '一口价' : '竞拍') + '），这张卡一般 ' + gFmt(x.ref)
+    + (x.refFrom === 'card' ? '' : '（同稀有度估）') + '，<b class="' + (x.f ? 'hot' : '') + '">' + x.ratio + ' 倍</b>' + (x.f ? ' · 离谱' : '')
+    + ' · 这两个号 ' + R.SALE_DAYS + ' 天成交 ' + x.pair.n + ' 次' + (x.pair.both ? '，互相买过' : '') + '</span>'
+    + mgBoth(x.seller, x.buyer) + '</div>'
+    + mgAcct(x.seller, '卖家') + mgAcct(x.buyer, '买家') + '</div>'
+  const pairHtml = (p) => '<div class="mg-item"><div class="row">'
+    + '<span>最后一次 ' + gShort(p.last) + ' · 24 小时成交 <b>' + p.n + '</b> 次（前者买 ' + p.aBought + '、后者买 ' + p.bBought + '）'
+    + ' · ' + p.cards + ' 张不同的卡 · 共 ' + gFmt(p.paid) + ' 金币 · 最高 ' + p.maxRatio + ' 倍' + (p.pricey ? '（' + p.pricey + ' 次 3 倍以上）' : '') + '</span>'
+    + mgBoth(p.a, p.b) + '</div>' + mgAcct(p.a) + mgAcct(p.b) + '</div>'
+  const runHtml = (b) => '<div class="mg-item">' + mgAcct(b)
+    + '<div class="dim" style="font-size:12px">这次：' + gShort(b.made) + ' ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + ' · '
+    + esc(mgCounts(b.evidence && b.evidence.counts) || mgMoved(b.evidence) || (b.evidence && b.evidence.note) || '') + '</div></div>'
+  const flagHtml = (f) => '<div class="mg-item">'
+    + (f.verdict === 'ban' ? '<b class="hot">已过线，下次一口价时自动封</b> 规则 ' + esc(f.rule) : /^[BC]$/.test(f.rule) ? '<b>过线 ' + esc(f.rule) + '</b>（只上报，要封请手动）' : f.rule === 'loop' ? '同一卖家反复买入' : '接近阈值')
+    + mgAcct(f) + '<div class="dim" style="font-size:12px">' + esc(mgCounts(f.counts)) + '</div></div>'
+  const pastHtml = (b) => '<div class="mg-item">' + (b.lifted ? '手动解封 ' : '已到期 ') + mgName(b)
+    + ' · ' + gShort(b.made) + ' → ' + gShort(b.lifted || b.until) + ' · ' + (b.by === 'owner' ? '手动' : '自动 ' + esc(b.rule)) + '</div>'
+  const bans = r.bans || []
+  const lists = [
+    ['sales', '最近的高价成交', '最近 ' + R.SALE_DAYS + ' 天，比这张卡一般价格高 ' + R.RATIO + ' 倍以上，最新的在前；标黄的是 20 倍以上',
+      mv.sales, (x) => (!v.onlyF || x.f) && hit(mgHay(x.card, x.seller, x.buyer)), saleHtml, true],
+    ['pairs', '两个号频繁互相成交', '最近 24 小时：3 次以上，或 2 次但互相买过、有高价',
+      mv.pairs, (p) => (!v.onlyF || p.maxRatio >= 20) && hit(mgHay(p.a, p.b)), pairHtml, true],
+    ['running', '正在封禁', '', bans.filter((b) => b.running), (b) => hit(mgHay(b)), runHtml, true],
+    ['flagged', '脚本抢拍嫌疑', '按一周的买卡速度判断，3 分钟更新一次',
+      (r.flagged || []).filter((f) => !(f.ban && f.ban.running)), (f) => hit(mgHay(f)), flagHtml, true],
+    ['past', '以前的封禁记录', '已到期、已解封', bans.filter((b) => !b.running), (b) => hit(mgHay(b)), pastHtml, false],
+  ]
+  const sec = ([k, title, sub, all, keep, draw, openByDefault]) => {
+    const items = all.filter(keep)
+    const n = mgShown[k] || v.page
+    const isOpen = k in open ? open[k] : openByDefault
+    return '<details class="mg-sec" data-k="' + k + '"' + (isOpen ? ' open' : '') + '><summary>' + title
+      + ' <span class="dim">' + items.length + (items.length !== all.length ? ' / ' + all.length : '') + ' 条' + (sub ? ' · ' + sub : '') + '</span></summary>'
+      + '<div class="mg-list">' + (items.slice(0, n).map(draw).join('') || '<div class="muted" style="padding:8px 0">' + (v.q || v.onlyF ? '没有对得上筛选的' : '没有') + '</div>')
+      + (items.length > n ? '<button type="button" class="mg-more" data-k="' + k + '">再显示 ' + Math.min(v.page, items.length - n) + ' 条（还剩 ' + (items.length - n) + ' 条）</button>' : '')
+      + '</div></details>'
+  }
+  box.innerHTML = '<div class="dim" id="mgWhen" style="font-size:12px">刷新于 ' + (mgAt ? mgAt.toLocaleTimeString('zh-CN') : '—') + ' · 模式 ' + esc(r.mode) + '</div>'
+    + lists.map(sec).join('')
+  // the account open in the drawer stays marked in the redrawn list
+  if (gOpenCode && $('#drawer').classList.contains('open')) {
+    const a = box.querySelector('.mg-open[data-code="' + esc(gOpenCode.toUpperCase()) + '"], .mg-open[data-code="' + esc(gOpenCode.toLowerCase()) + '"]')
+    drFrom = a ? a.closest('.mg-item') : drFrom
+    if (drFrom) drFrom.classList.add('viewing')
+  }
+  window.scrollTo(0, y)
+  const loud = mv.sales.filter((x) => x.f).length + mv.pairs.length
+  $('#riskCnt').textContent = loud
+  $('#riskCnt').hidden = !loud
+  $('#riskCnt').title = loud + ' 条：20 倍以上的离谱成交和频繁互相成交的两个号'
 }
+async function mgLoad() {
+  const when = $('#mgWhen')
+  if (when) when.textContent = '刷新中…'
+  else $('#mgOut').textContent = '读取中…'
+  try {
+    mgData = await mgCall({})
+    mgAt = new Date()
+    mgDraw()
+  } catch (e) {
+    if (mgData) { mgDraw(); mgToast('名单没刷新：' + e.message) } else $('#mgOut').textContent = '没拿到：' + e.message
+  }
+}
+let mgQTimer = null
+$('#mgQ').oninput = () => { clearTimeout(mgQTimer); mgQTimer = setTimeout(() => { for (const k in mgShown) delete mgShown[k]; mgDraw() }, 200) }
+$('#mgOnlyF').onchange = $('#mgPage').onchange = () => { for (const k in mgShown) delete mgShown[k]; mgDraw() }
 /** ban or lift each code in turn; the account panel above and the lists here are redrawn after */
 async function mgDo(codes, lift, days) {
   const said = []
@@ -1145,14 +1640,19 @@ async function mgDo(codes, lift, days) {
 }
 // the buttons in the lists and in the account panel, wherever they are drawn
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('.mg-ban, .mg-lift, .mg-open')
+  const t = e.target.closest('.mg-ban, .mg-lift, .mg-open, .mg-more')
   if (!t) return
   e.preventDefault()
+  if (t.classList.contains('mg-more')) {
+    mgShown[t.dataset.k] = (mgShown[t.dataset.k] || mgView().page) + mgView().page
+    mgDraw()
+    return
+  }
+  // opens over the list; the page under it does not move
   if (t.classList.contains('mg-open')) {
     gTrail.length = 0
-    $('#gWho').value = t.dataset.code
+    drOpen(t)
     gOpen(t.dataset.code)
-    $('#grant').scrollIntoView({ behavior: 'smooth' })
     return
   }
   const lift = t.classList.contains('mg-lift')
@@ -1242,6 +1742,7 @@ document.querySelectorAll('button[data-d]').forEach((b) => {
   }
 })
 $('#statsFresh').onclick = () => load(statsDays, true)
+showTab(tabFromHash() || 'overview', true)
 load(30)
 ${championsAdminScript}
 </script>

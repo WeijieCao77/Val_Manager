@@ -428,7 +428,9 @@ export async function overview(sql, days = 30) {
         coalesce(round(avg(v.pulls))::int, 0)                                as avg_pulls,
         coalesce(max(v.pulls), 0)                                            as max_pulls,
         coalesce(max(v.div), 0)                                              as max_div,
-        coalesce(max(v.streak), 0)                                           as max_streak
+        coalesce(max(v.streak), 0)                                           as max_streak,
+        coalesce(sum(v.pulls), 0)::float8                                    as total_pulls,
+        coalesce(sum(v.coins), 0)::float8                                    as total_coins
       from acc a,
         lateral (select count(*)::int as owned from jsonb_object_keys(a.state->'cards')) k,
         lateral (select
@@ -436,7 +438,8 @@ export async function overview(sql, days = 30) {
           case when a.state->'ladder'->>'div' ~ '^[0-9]{1,3}$'
                then (a.state->'ladder'->>'div')::int else 0 end as div,
           case when a.state->'daily'->>'streak' ~ '^[0-9]{1,5}$'
-               then (a.state->'daily'->>'streak')::int else 0 end as streak
+               then (a.state->'daily'->>'streak')::int else 0 end as streak,
+          case when a.state->>'coins' ~ '^[0-9]{1,12}$' then (a.state->>'coins')::float8 else 0 end as coins
         ) v`,
 
     /**
