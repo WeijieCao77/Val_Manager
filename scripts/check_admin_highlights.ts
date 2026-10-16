@@ -80,7 +80,10 @@ if (h) {
   check('WAU/MAU 按人数，不按行数', h.active.mau === 4 && h.active.wau === 2 && h.active.dau_t === 1 && h.active.dau_y === 1, JSON.stringify(h.active))
   const c10 = h.cohorts.find((c: any) => c.size === 2)
   check('留存按首访那天分组：两人里一人第 1 天、第 7 天回来', !!c10 && c10.d1 === 1 && c10.d7 === 1 && c10.d3 === 0, JSON.stringify(h.cohorts))
-  check('早于按日名单的那一批不算（它的回访看不见）', !h.cohorts.some((c: any) => c.size === 1 && c.d1 === 0 && String(c.cohort) < String(c10?.cohort)), JSON.stringify(h.cohorts))
+  // by the day, not String(): PGlite hands a date back as a Date on some machines and a string on others
+  const dayOf = (t: unknown) => new Date(t as string).toISOString().slice(0, 10)
+  const v0Day = new Date(Date.now() - 11 * 86400000).toISOString().slice(0, 10)
+  check('早于按日名单的那一批不算（它的回访看不见）', h.cohorts.length === 2 && !h.cohorts.some((c: any) => dayOf(c.cohort) === v0Day), JSON.stringify(h.cohorts))
   check('卡牌账号：总数、今天活跃、绑手机', h.accounts.total === 2 && h.accounts.a1 === 1 && h.accounts.phones === 1, JSON.stringify(h.accounts))
   const old = h.accountCohorts.find((c: any) => c.size === 1 && c.r30 === 1)
   check('开瓦包滚动留存：40 天前建号、今天还在的算第 30 天', !!old, JSON.stringify(h.accountCohorts))
