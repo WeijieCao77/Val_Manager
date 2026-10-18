@@ -439,10 +439,12 @@ export function makeOpenCupApi(sql, {
     await bg`
       update open_cup_matches set detail = null
        where detail is not null
-         and cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${new Date(now - 3 * 86_400_000)})`
+         and cup_id = any(array(select id from open_cups where status in ('done', 'void') and starts < ${new Date(now - 3 * 86_400_000)}))`
     const old = new Date(now - 14 * 86_400_000)
-    await bg`delete from open_cup_matches where cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${old})`
-    await bg`delete from open_cup_entries where cup_id in (select id from open_cups where status in ('done', 'void') and starts < ${old})`
+    // `= any(array(…))`, not `in (select …)`: the old cups are probed on the primary keys (a few hundred lookups
+    // that find nothing once a cup is gone) instead of hash-joined against a sequential scan of both tables
+    await bg`delete from open_cup_matches where cup_id = any(array(select id from open_cups where status in ('done', 'void') and starts < ${old}))`
+    await bg`delete from open_cup_entries where cup_id = any(array(select id from open_cups where status in ('done', 'void') and starts < ${old}))`
     await bg`delete from open_cup_engine_builds b where b.hash <> ${cardPoolVersion} and b.created < ${old}
       and not exists(select 1 from open_cups c where c.engine_hash = b.hash and (c.status in ('open', 'live') or c.starts >= ${old}))`
   }
@@ -540,9 +542,12 @@ export function makeOpenCupApi(sql, {
           if (c.length) champion = { ...who(c[0].name, c[0].id_hash), five: c[0].five, score: c[0].score }
         }
         const done = cups.filter((c) => c.status === 'done' && c.champion)
+        // each champion's row by its key (cup, champion). Asked as `place = 1 and cup_id in (…jsonb…)` it was a
+        // sequential scan of every entry of the fortnight, once per refresh of this cache (2026-10-18)
         const champs = done.length ? await sql`
-          select e.cup_id::text as cup, e.id_hash, e.name, e.five, e.score from open_cup_entries e
-           where e.place = 1 and e.cup_id in (select (jsonb_array_elements_text(${sql.json(done.map((c) => c.id))}::jsonb))::bigint)` : []
+          select e.cup_id::text as cup, e.id_hash, e.name, e.five, e.score
+            from open_cups c join open_cup_entries e on e.cup_id = c.id and e.id_hash = c.champion
+           where c.id = any(${done.map((c) => c.id)}::bigint[]) and e.place = 1` : []
         // every past champion's five as it stood that day (往届夺冠阵容): the cards and
         // their levels only — the score breakdown stays with the match reports
         const lineup = (f) => (f && Array.isArray(f.slots)

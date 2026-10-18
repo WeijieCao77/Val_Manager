@@ -780,7 +780,8 @@ export function makeMarketGuard(sql, { bg = null, mode = process.env.MARKET_GUAR
     const c = String(code ?? '').trim().toLowerCase()
     if (!/^[0-9a-f]{8}$/.test(c)) return null
     // the owner asking: the interactive pool, not the clock's one connection
-    const rows = await sql`select id_hash from card_accounts where id_hash like ${c + '%'} limit 2`
+    // card_code_idx: a bound `like` prefix cannot use an index (and the primary key's collation would not anyway)
+    const rows = await sql`select id_hash from card_accounts where left(id_hash, 8) = ${c} limit 2`
     return rows.length === 1 ? rows[0].id_hash : null
   }
   /**

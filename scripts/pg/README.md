@@ -105,3 +105,12 @@ PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres npx tsx scripts/pg/chec
 ```
 
 `stats.js` 的 `prune` 用 memo 只数新进来的行，不再每小时从顶上走三百万行。计数只到汇总水位（rollup 的 SHARE 锁等完了所有在途插入，水位以下不会再有迟提交）。脚本模拟 60 小时：有的插入跨清理保持未提交、晚于更大编号提交，有的回滚留洞，水位偶尔落后，锚点过期、按天龄删除。每小时核对 memo 计数等于实数、表正好在上限。把 memo 改回“信最大可见编号”时失败（最后 512 行，上限 500）。PGlite 版 `scripts/check_prune_memo.ts` 在常规审计里跑同样的算术（不含迟提交）。
+
+## 热表不再整表扫描（2026-10-18）
+
+```sh
+npx tsx scripts/check_scan_plans.ts                                                          # PGlite，常规审计里跑
+PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres npx tsx scripts/check_scan_plans.ts   # 真实 PG，独立 verify_* 库
+```
+
+`scan-fixture.ts` 按 10-18 生产的规模造数据：7.4 万账号（堆约 90 MB）、半个月 3.4 万条全服杯报名、5.5 万条对手投影。脚本跑真实代码（对手池、全服杯公开页、杯赛时钟和每小时清理、对战码查找），抓下发出的每条语句，各按自带参数和 `GENERIC_PLAN` 各 EXPLAIN 一次，card_accounts 和 open_cup_entries 不许出现 Seq Scan。旧写法作对照，必须在这份数据上仍然整表扫描；改回旧代码时三项失败。真实 PG 下用 postgres.js 的 `debug` 钩子抓语句，PGlite 下包一层 `query`。

@@ -326,15 +326,23 @@ export async function boardOwn(db, mine, league, season) {
   }
 }
 
-/** Up to `perDiv` fives from every division, at random — the shape the old scan returned. */
+/**
+ * Up to `perDiv` fives from every division, at random — the shape the old scan returned.
+ *
+ * The picked few hundred are looked up by key, each through an `offset 0` subquery the planner cannot fold
+ * into a join. As a plain join it guessed a third of the table would pass `n <= perDiv` and hash-joined: a
+ * sequential scan of card_accounts (every save's heap, 83 MB) and a second one of account_rivals, once a
+ * minute, for a few hundred names (2026-10-18; scripts/pg/check_scan_plans.ts).
+ */
 export async function rivalSample(db, perDiv) {
   return db`
     select r.id_hash, a.name, r.squad, r.div, r.points, r.cards
     from (
-      select id_hash, row_number() over (partition by div order by random()) as n
-      from account_rivals where not suspect
+      select id_hash from (
+        select id_hash, row_number() over (partition by div order by random()) as n
+        from account_rivals where not suspect
+      ) w where n <= ${perDiv}
     ) p
-    join account_rivals r on r.id_hash = p.id_hash
-    join card_accounts a on a.id_hash = p.id_hash
-    where p.n <= ${perDiv}`
+    cross join lateral (select id_hash, squad, div, points, cards from account_rivals where id_hash = p.id_hash offset 0) r
+    cross join lateral (select name from card_accounts where id_hash = p.id_hash offset 0) a`
 }

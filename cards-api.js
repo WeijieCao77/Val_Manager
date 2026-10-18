@@ -818,7 +818,13 @@ export function makeCardApi(sql, {
       }
       out[kind] = row
     }
-    return { actions: out, matches: matches?.stats() ?? null, rivals: { at: rivalAll?.at ?? null, rows: rivalAll?.rows.length ?? 0, ms: rivalMs } }
+    return {
+      actions: out, matches: matches?.stats() ?? null,
+      rivals: { at: rivalAll?.at ?? null, rows: rivalAll?.rows.length ?? 0, ms: rivalMs, source: rivalAll?.source ?? null },
+      // whether the board and the pool read the projection or still scan every save (a board every 20 s, the pool
+      // every minute), and how many of those scans this process has run: the first thing to ask of a slow volume
+      projection: { ready: projReady, clean: cleanNow, scans: { ...saveScans } },
+    }
   }
 
   async function act(req, res, bucket) {
@@ -1097,6 +1103,8 @@ export function makeCardApi(sql, {
    * every thirty seconds until the answer is yes, then never again.
    */
   let projReady = false
+  /** the reads of every save the projection stands in for, counted while they still run (/api/admin/perf) */
+  const saveScans = { board: 0, rivals: 0 }
   let projAskedAt = 0
   /** thirty seconds between looks; ten minutes after a backfill that failed, which should not be retried in a loop */
   let projWait = 30_000
@@ -1242,6 +1250,7 @@ export function makeCardApi(sql, {
       let job = topBuilding.get(league)
       if (!job) {
         const at = Date.now()
+        saveScans.board++
         job = rankedRows(league)
           .then((rows) => { topCaches.set(league, { at, rows }) })
           .finally(() => topBuilding.delete(league))
@@ -1575,6 +1584,7 @@ export function makeCardApi(sql, {
           console.warn('cards: rival pool from projection failed, scanning', err.message)
         }
       }
+      saveScans.rivals++
       return { found: await rivalRows(db), source: 'scan' }
     })().then(({ found, source }) => {
       // disowned while it ran (dropProjected): what it read is not to be kept
@@ -1849,7 +1859,9 @@ export function makeCardApi(sql, {
           case when state->'ladder'->>'points' ~ '^[0-9]{1,9}$'
                then (state->'ladder'->>'points')::int else 0 end as points
         from card_accounts
-        where left(id_hash, ${CODE_LEN}) = ${code}
+        -- a literal 8, not CODE_LEN: with the length bound as a parameter the expression is not the one
+        -- card_code_idx was built on, and a generic plan reads every account
+        where left(id_hash, 8) = ${code}
         limit 2`
       if (!rows.length) { json(res, 200, { ok: false, missing: true }); return }
       // eight characters of a hash could in principle be shared; refusing is
@@ -1890,7 +1902,7 @@ export function makeCardApi(sql, {
     try {
       const rows = await sql`
         select id_hash, name, state->'cards' as cards
-        from card_accounts where left(id_hash, ${CODE_LEN}) = ${code} limit 2`
+        from card_accounts where left(id_hash, 8) = ${code} limit 2`
       if (!rows.length) { json(res, 200, { ok: false, missing: true }); return }
       if (rows.length > 1) { json(res, 200, { ok: false, clash: true }); return }
       const r = rows[0]
