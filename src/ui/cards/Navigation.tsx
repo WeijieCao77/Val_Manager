@@ -16,7 +16,6 @@ export const CARD_PAGES = [
   { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'predict', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
   { key: 'dossier', label: '资料库', group: '发现', description: '查阅职业选手与战队资料。', icon: 'book' },
-  { key: 'champions', label: '上海应援', group: '发现', description: '查看今日赛程，为你支持的选手留言。', icon: 'cheer' },
   { key: 'account', label: '账号', group: '发现', description: '管理账号、保存 ID，查看你的游戏记录。', icon: 'user' },
 ] as const
 
@@ -34,7 +33,6 @@ const paths: Record<string, string> = {
   book: 'M12 5Q7 2 3 4v16q4-2 9 1 5-3 9-1V4q-4-2-9 1v16',
   user: 'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-2a8 8 0 0 1 16 0v2',
   evolve: 'M7 4h10v16H7z M12 16V9 M9 11.5 12 8.5l3 3',
-  cheer: 'M4 10v4h3l5 4V6l-5 4z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11',
   predict: 'M4 20h16 M6 16l4-5 3 3 5-7 M15 7h3v3',
   more: 'M4 4h5v5H4z M15 4h5v5h-5z M4 15h5v5H4z M15 15h5v5h-5z',
 }

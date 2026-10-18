@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-18',
+    title: '上海冠军赛结束，应援入口下线',
+    changes: [
+      { kind: '调整', text: '冠军赛已结束：打开网站不再弹今日赛程提醒，开瓦包的「上海应援」和首页的冠军赛入口已撤下。' },
+    ],
+  },
+  {
     date: '2026-10-16',
     title: '彩蛋卡：lukxo「回溯大师」',
     changes: [

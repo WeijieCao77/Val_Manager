@@ -18,7 +18,6 @@ import { setCurrentRuleset } from './engine/ruleset'
  * from exactly where they were rather than being told their game is gone.
  */
 const ChampionsPage = lazy(() => import('./ui/Champions'))
-const ChampionsNotice = lazy(() => import('./ui/Champions').then(m => ({default:m.ChampionsNotice})))
 const SeoulCollection = lazy(() => import('./ui/cards/SeoulCollection'))
 const BangkokCollection = lazy(() => import('./ui/cards/BangkokCollection'))
 const CardMode = lazy(() => import('./ui/CardMode'))
@@ -95,7 +94,6 @@ export default function App() {
       <ChunkBoundary key={mode}><Suspense fallback={loading}>{page}</Suspense></ChunkBoundary>
       {/* under every page, so it keeps playing across the three */}
       <MusicPlayer />
-      {(mode === 'home' || mode === 'cards') && <ChunkBoundary quiet><Suspense fallback={null}><ChampionsNotice enabled inCards={mode === 'cards'} /></Suspense></ChunkBoundary>}
     </>
   )
 }

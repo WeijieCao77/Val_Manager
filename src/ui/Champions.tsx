@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { rememberedId } from '../engine/cardid'
-import { useDialogFocus } from './cards/useDialogFocus'
 import './champions.css'
 
 type Match = { id:string; day:string; time:string; a:string; b:string; start:string }
@@ -27,23 +26,6 @@ function Schedule({feed,day}:{feed:Feed;day:string}) {
  return <div className="champ-schedule"><div className="champ-section-label"><b>{day === feed.today ? '今日赛程' : `${day.slice(5).replace('-','月')}日赛程`}</b><span>北京时间 UTC+8</span></div>
  {rows.length?rows.map(m=><div className="champ-match" key={m.id}><time dateTime={m.start}>{m.time}</time><b>{m.a==='TBD'?'对阵待定':m.a}</b><span>VS</span><b>{m.b==='TBD'?'对阵待定':m.b}</b></div>):<p className="champ-no-match">{day===feed.today?'今日':'当天'}暂无已公布比赛。休赛日也可以为选手留言。</p>}
  <p className="champ-source">赛程可能调整，以官方通知为准。{feed.stale?'同步暂不可用，当前为最近保存赛程。':''}<a href={feed.event.source} target="_blank" rel="noreferrer">官方赛事公告 ↗</a> · <a href="https://www.vlr.gg/event/matches/2766/valorant-champions-2026" target="_blank" rel="noreferrer">赛程来源 ↗</a><br/>更新于 {new Date(feed.syncedAt).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})}</p></div>
-}
-export function ChampionsNotice({enabled,inCards=false}:{enabled:boolean;inCards?:boolean}) {
- const {feed}=useFeed(false),[open,setOpen]=useState(false),shown=useRef(false)
- const ref=useDialogFocus(()=>setOpen(false),open)
- useEffect(()=>{
-  if(shown.current||!enabled||!feed||!feed.popup||feed.today<feed.event.start||feed.today>feed.event.end||!feed.matches.some(m=>m.day===feed.today))return
-  const key=`champions-notice:${feed.event.id}:${feed.today}`
-  try{if(localStorage.getItem(key))return}catch{/* Session still works without storage. */}
-  if(document.querySelector('[role="dialog"],dialog[open]'))return
-  // once per page as well: without storage the key never sticks, and the feed re-reads on every return to the tab
-  shown.current=true
-  setOpen(true)
-  try{localStorage.setItem(key,'1')}catch{/* Optional reminder preference. */}
- },[enabled,feed])
- if(!enabled||!open||!feed)return null
- return <div className="champ-overlay" onClick={()=>setOpen(false)}><section className="champ-notice" role="dialog" aria-modal="true" aria-labelledby="champ-notice-title" ref={ref} tabIndex={-1} onClick={e=>e.stopPropagation()}>
- <button className="champ-close" aria-label="关闭今日赛事提醒" onClick={()=>setOpen(false)}>✕</button><div className="champ-city" aria-hidden="true">上海</div><p className="champ-kicker">2026 无畏契约全球冠军赛</p><h2 id="champ-notice-title">{feed.today===feed.event.start?'上海，今日开战。':'今天，为他们呐喊。'}</h2><p>把想说的话，留给你支持的选手。</p><Schedule feed={feed} day={feed.today}/><a className="champ-cta" href="/champions" onClick={e=>{if(!inCards)return;e.preventDefault();setOpen(false);location.hash='#champions'}}>查看赛程 · 留下应援</a><button className="champ-later" onClick={()=>setOpen(false)}>先去玩，稍后再看</button></section></div>
 }
 /** `embedded` inside 开瓦包: its own nav already frames the page, and a hash link would change the tab. */
 export default function ChampionsPage({embedded=false}:{embedded?:boolean}) {

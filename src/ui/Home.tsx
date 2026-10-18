@@ -147,7 +147,6 @@ export default function Home({ onOpen }: { onOpen: (m: Mode) => void }) {
                 <div className="portal-compact-art"><img src={`${import.meta.env.BASE_URL}promo/player.webp`} alt="" loading="lazy" /></div>
                 <div className="portal-game-body"><div className="portal-game-meta"><span>选手生涯模拟</span><span>测试版</span></div><h3>无畏契约选手生涯</h3><p>从天梯路人，打到冠军赛的舞台。这一次，你就是主角。</p><a className="portal-text-link" href="/player/" onClick={() => track('home_go', { go: 'player' })}>开始生涯 <span aria-hidden="true">↗</span></a></div>
               </article>
-              <a className="portal-event" href="/champions"><span className="portal-event-icon" aria-hidden="true">✦</span><div><b>上海全球冠军赛</b><span>查看赛程，为你支持的选手留言</span></div><span aria-hidden="true">↗</span></a>
             </div>
           </section>
 
