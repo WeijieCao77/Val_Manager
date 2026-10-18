@@ -94,3 +94,9 @@
 .draft-awards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .draft-awards .pos { color: var(--win); }
 @media (max-width: 560px) { .draft-lot .card-img { width: 30vw; } }
+.draft-mini { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.draft-mini span.coach { color: var(--gold); }
+.draft-game { animation: swift-in .3s ease both; }
+.draft-final { display: flex; gap: 10px; align-items: baseline; font-size: 15px; margin: 0 0 6px; }
+.draft-final span { font-size: 22px; font-variant-numeric: tabular-nums; font-weight: 650; }
+@media (max-width: 560px) { .draft-mini { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

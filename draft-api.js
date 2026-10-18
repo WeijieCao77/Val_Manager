@@ -10,11 +10,16 @@
  * connection held, and written with `where status = 'playing'` so two
  * processes that both play it write once.
  *
- * Nothing is paid. The room is for playing with friends; cards drafted here
- * are not added to anybody's collection.
+ * The round robin and the final are computed at once and stored, then shown
+ * as a broadcast (status 'showing'): one match every DRAFT_GAME_SEC, the
+ * final map by map. When the broadcast has run, the room is finished under its
+ * lock — places, and coins by place by mail for a room of at least
+ * DRAFT_PAID_MIN, the first DRAFT_PAID_ROOMS a Shanghai day per player, on
+ * accounts that may trade. Cards drafted here never reach a collection.
  */
 import { createHash, randomInt } from 'node:crypto'
 import { isVerified } from './phone-api.js'
+import { TRADE_PULLS, TRADE_DAYS } from './market-api.js'
 import { createCupComputer } from './opencup-worker.js'
 
 const hash = (id) => createHash('sha256').update(id).digest('hex')
@@ -47,12 +52,23 @@ create table if not exists draft_members (
   primary key (code, id_hash)
 );
 create index if not exists draft_members_who_idx on draft_members (id_hash, joined desc);
+-- the BO5 final, when the broadcast began, and how many times the matches failed to play
+alter table draft_rooms add column if not exists final jsonb;
+alter table draft_rooms add column if not exists reveal_at timestamptz;
+alter table draft_rooms add column if not exists tries int not null default 0;
+alter table draft_rooms add column if not exists failed boolean not null default false;
+-- the place a member finished, and the coins it paid (on which Shanghai day)
+alter table draft_members add column if not exists place int;
+alter table draft_members add column if not exists paid int;
+alter table draft_members add column if not exists paid_day text;
+alter table draft_members add column if not exists unpaid text;
 `
 
 export function makeDraftApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine,
   clock = () => Date.now(),
   timer = true,
+  minDays = TRADE_DAYS,
   bg = sql,
   /** (args) => playOpenCupMatch result; the checks pass the engine's own, the server a worker */
   compute = null,
@@ -67,6 +83,7 @@ export function makeDraftApi(sql, {
   const computer = compute ? null : createCupComputer()
   const simulate = compute ?? ((args) => computer.compute(args, null))
   const rating = (id) => engine.cardById(id)?.rating ?? 0
+  const dayOf = (now) => new Date(now + 8 * 3600_000).toISOString().slice(0, 10)
 
   async function readMe(req) {
     let body
@@ -119,20 +136,77 @@ export function makeDraftApi(sql, {
     })
   }
 
-  /** The round robin, played with no connection held, written once. */
+  /** The round robin and the final, played with no connection held, written once; three failures end the room. */
   async function play(code) {
     const room = (await sql`select * from draft_rooms where code = ${code}`)[0]
     if (!room || room.status !== 'playing') return
     const members = await sql`select id_hash, name, seat, picks from draft_members where code = ${code} order by seat`
-    const squad = (m) => ({ ...who(m.name, m.id_hash), slots: m.picks.slice(0, 5), coach: null, levels: {}, div: 0, points: 0 })
-    const games = []
-    for (const [a, b] of engine.roundRobin(members.length)) {
-      const r = await simulate([squad(members[a]), squad(members[b]), false, engine.draftMatchSeed(Number(room.seed), a, b)])
-      if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft match')
-      games.push({ a, b, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] })
+    const squad = (m) => ({ ...who(m.name, m.id_hash), slots: m.picks.slice(0, 5), coach: m.picks[5] ?? null, levels: {}, div: 0, points: 0 })
+    const seed = Number(room.seed)
+    try {
+      const games = []
+      // two players: the final is the whole tournament
+      if (members.length > 2) {
+        for (const [a, b] of engine.roundRobin(members.length)) {
+          const r = await simulate([squad(members[a]), squad(members[b]), false, engine.draftMatchSeed(seed, a, b)])
+          if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft match')
+          games.push({ a, b, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] })
+        }
+      }
+      const top = members.length > 2 ? engine.draftTable(members.length, games).slice(0, 2).map((t) => t.seat) : [0, 1]
+      const [fa, fb] = top
+      const r = await simulate([squad(members[fa]), squad(members[fb]), true, engine.draftMatchSeed(seed, 100 + fa, 100 + fb)])
+      if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft final')
+      const final = { a: fa, b: fb, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] }
+      await sql`update draft_rooms set status = 'showing', games = ${sql.json(games)}::jsonb, final = ${sql.json(final)}::jsonb, reveal_at = ${new Date(clock())}
+        where code = ${code} and status = 'playing'`
+    } catch (err) {
+      const t = await sql`update draft_rooms set tries = tries + 1 where code = ${code} and status = 'playing' returning tries`
+      if ((t[0]?.tries ?? 0) >= 3) {
+        await sql`update draft_rooms set status = 'done', failed = true, finished = now() where code = ${code} and status = 'playing'`
+      }
+      throw err
     }
-    await sql`update draft_rooms set status = 'done', games = ${sql.json(games)}::jsonb, finished = now() where code = ${code} and status = 'playing'`
   }
+
+  /** Whether a member's account may be paid: not flagged, enough packs opened, old enough. */
+  async function mayEarn(db, h) {
+    const r = await db`
+      select state->>'pulls' as pulls, suspect,
+             ceil(extract(epoch from (created + make_interval(days => ${minDays}) - now())))::int as wait
+        from card_accounts where id_hash = ${h}`
+    if (!r.length || r[0].suspect) return false
+    return Math.max(0, Math.floor(Number(r[0].pulls ?? 0))) >= TRADE_PULLS && Math.max(0, Number(r[0].wait) || 0) <= 0
+  }
+
+  /** The broadcast has run: places, and the purse — once, under the room's lock. */
+  async function finish(code, now = clock()) {
+    await tx(async (db) => {
+      const room = (await db`select * from draft_rooms where code = ${code} for update`)[0]
+      if (!room || room.status !== 'showing') return
+      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0)
+      if (now - ms(room.reveal_at) < plan.end) return
+      const members = await db`select id_hash, seat from draft_members where code = ${code} order by seat`
+      const table = engine.draftTable(members.length, room.games)
+      const places = engine.draftPlaces(table, room.final)
+      const day = dayOf(now)
+      for (const m of members) {
+        const place = places.get(m.seat) ?? members.length
+        let paid = null, unpaid = null
+        if (members.length < engine.DRAFT_PAID_MIN) unpaid = 'small'
+        else if ((await db`select count(*)::int as n from draft_members where id_hash = ${m.id_hash} and paid_day = ${day}`)[0].n >= engine.DRAFT_PAID_ROOMS) unpaid = 'cap'
+        else if (!(await mayEarn(db, m.id_hash))) unpaid = 'gate'
+        else {
+          paid = engine.draftPrize(place)
+          await db`insert into card_mail (to_h, kind, coins, body) values (${m.id_hash}, 'draft', ${paid}, ${db.json({ room: code, place, players: members.length })}::jsonb)`
+        }
+        await db`update draft_members set place = ${place}, paid = ${paid}, paid_day = ${paid ? day : null}, unpaid = ${unpaid}
+          where code = ${code} and id_hash = ${m.id_hash}`
+      }
+      await db`update draft_rooms set status = 'done', finished = now() where code = ${code}`
+    })
+  }
+
   // one room's round robin at a time: the worker takes one match at a time
   const playing = new Set()
   let line = Promise.resolve()
@@ -144,25 +218,39 @@ export function makeDraftApi(sql, {
 
   async function view(code, me, now = clock()) {
     const status = await settle(code, now)
-    if (status === 'playing') { if (compute) await play(code); else playSoon(code) }
+    if (status === 'playing') { if (compute) await play(code).catch(() => {}); else playSoon(code) }
+    if (status === 'showing' || status === 'playing') await finish(code, now)
     const room = (await sql`select * from draft_rooms where code = ${code}`)[0]
     if (!room) return null
-    const members = await sql`select id_hash, name, seat, budget, picks, bid is not null as bid_in, bid from draft_members where code = ${code} order by seat`
+    const members = await sql`select id_hash, name, seat, budget, picks, bid is not null as bid_in, bid, place, paid, unpaid from draft_members where code = ${code} order by seat`
     const mine = members.find((m) => m.id_hash === me)
-    const seats = members.map((m) => ({ seat: m.seat, ...who(m.name, m.id_hash), budget: m.budget, picks: m.picks, bidIn: m.bid_in, me: m.id_hash === me, host: m.id_hash === room.host }))
+    const seats = members.map((m) => ({ seat: m.seat, ...who(m.name, m.id_hash), budget: m.budget, picks: m.picks, bidIn: m.bid_in, me: m.id_hash === me, host: m.id_hash === room.host, place: m.place ?? null }))
+    // the broadcast: only what has been on screen so far
+    let games = room.games, final = room.final, nextAt = null
+    if (room.status === 'showing') {
+      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0)
+      const t = now - ms(room.reveal_at)
+      games = room.games.filter((_, i) => plan.games[i] <= t)
+      const maps = plan.final.filter((at) => at <= t).length
+      final = games.length < room.games.length ? null : { a: room.final.a, b: room.final.b, maps: room.final.maps.slice(0, maps), done: false }
+      const upcoming = [...plan.games, ...plan.final, plan.end].find((at) => at > t)
+      nextAt = upcoming !== undefined ? ms(room.reveal_at) + upcoming : null
+    }
     return {
       code: room.code, status: room.status, round: room.round, rounds: engine.DRAFT_ROUNDS, position: engine.DRAFT_POSITIONS[room.round] ?? null,
       lot: room.lot, deadline: room.deadline ? ms(room.deadline) : null, host: room.host === me,
       seats, mySeat: mine?.seat ?? null, myBid: mine?.bid ?? null,
-      history: room.history, games: room.games,
-      table: room.games ? engine.draftTable(members.length, room.games) : null,
+      history: room.history, games, final, nextAt, failed: room.failed,
+      table: games ? engine.draftTable(members.length, games) : null,
+      reward: room.status === 'done' && mine ? { place: mine.place ?? null, coins: mine.paid ?? 0, unpaid: mine.unpaid ?? null } : null,
     }
   }
 
   async function state(req, res, bucket) {
-    if (guard(res, `dr:${bucket}`, 240)) return
+    if (guard(res, `dr:${bucket}`, 600)) return
     const { me } = await readMe(req)
-    const out = { ok: true, now: clock(), min: engine.DRAFT_MIN, max: engine.DRAFT_MAX, budget: engine.DRAFT_BUDGET, bidSec: engine.DRAFT_BID_SEC, positions: engine.DRAFT_POSITIONS }
+    const out = { ok: true, now: clock(), min: engine.DRAFT_MIN, max: engine.DRAFT_MAX, budget: engine.DRAFT_BUDGET, bidSec: engine.DRAFT_BID_SEC, positions: engine.DRAFT_POSITIONS,
+      prizes: [engine.draftPrize(1), engine.draftPrize(2), engine.draftPrize(3)], paidMin: engine.DRAFT_PAID_MIN, paidRooms: engine.DRAFT_PAID_ROOMS }
     if (me) {
       const code = await myRoom(me)
       if (code) out.room = await view(code, me)
@@ -281,9 +369,9 @@ export function makeDraftApi(sql, {
     const code = await myRoom(me)
     if (!code) { json(res, 200, { ok: false, why: '你不在房间里。' }); return }
     const out = await tx(async (db) => {
-      const room = (await db`select status, round, lot from draft_rooms where code = ${code} for update`)[0]
+      const room = (await db`select status, round, lot, deadline from draft_rooms where code = ${code} for update`)[0]
       if (!room || room.status !== 'bidding') return { why: '现在不能出价。' }
-      if (Number(body?.round) !== room.round) return { why: '这一轮已经结束了。' }
+      if (Number(body?.round) !== room.round || ms(room.deadline) + 1000 < clock()) return { why: '这一轮已经结束了。' }
       const m = (await db`select budget, bid from draft_members where code = ${code} and id_hash = ${me}`)[0]
       if (!m) return { why: '你不在房间里。' }
       if (m.bid) return { why: '这一轮已经出过价了。' }
@@ -300,10 +388,11 @@ export function makeDraftApi(sql, {
     if (sweeping) return
     sweeping = true
     try {
-      const due = await bg`select code, status from draft_rooms where (status = 'bidding' and deadline < ${new Date(now)}) or status = 'playing' limit 20`
+      const due = await bg`select code, status from draft_rooms where (status = 'bidding' and deadline < ${new Date(now)}) or status in ('playing', 'showing') limit 20`
       for (const r of due) {
-        const st = r.status === 'bidding' ? await settle(r.code, now) : 'playing'
-        if (st === 'playing') { if (compute) await play(r.code); else playSoon(r.code) }
+        const st = r.status === 'bidding' ? await settle(r.code, now) : r.status
+        if (st === 'playing') { if (compute) await play(r.code).catch(() => {}); else playSoon(r.code) }
+        if (st === 'showing') await finish(r.code, now)
       }
       // a lobby nobody started, and finished rooms after a week
       await bg`delete from draft_rooms where (status = 'lobby' and created < now() - interval '3 hours') or (status = 'done' and finished < now() - interval '7 days')`

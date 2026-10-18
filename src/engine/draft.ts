@@ -4,29 +4,41 @@
  *
  * Nobody brings their collection: every room is dealt from the whole card
  * pool, 彩卡 included, so it is knowing the players that wins, not owning
- * them. Five rounds, one position each (决斗者, 先锋, 控场, 哨卫, then anyone).
+ * them. Six rounds: one a position (决斗者, 先锋, 控场, 哨卫), then anyone,
+ * then a coach.
  * Each round lays out one card more than there are players, spread from a
  * star to a long shot, and everybody bids blind on one of them from a budget
  * of 100 for the whole draft. Highest bid first: you get the card you bid on
  * if it is still there and pay your bid; if a higher bid took it, you take the
- * best card left for nothing. Then a round robin of BO3s on the arena engine.
+ * best card left for nothing. Then a round robin of BO3s on the arena engine,
+ * shown one match at a time, and a BO5 final between the top two, map by map.
  *
  * Pure functions of the room's seed and the bids; draft-api.js holds the room.
  */
 import { Rng, hashStr } from './rng'
-import { PLAYER_CARDS, personOf } from './cards'
-import type { PlayerCard } from './cards'
+import { COACH_CARDS, PLAYER_CARDS, personOf } from './cards'
+import type { CoachCard, PlayerCard } from './cards'
 import type { Role } from './types'
 
 export const DRAFT_MIN = 2
 export const DRAFT_MAX = 6
 export const DRAFT_BUDGET = 100
-export const DRAFT_BID_SEC = 25
-export const DRAFT_POSITIONS: readonly Role[] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
+export const DRAFT_BID_SEC = 30
+export const DRAFT_POSITIONS: readonly (Role | '教练')[] = ['决斗者', '先锋', '控场', '哨卫', '自由人', '教练']
 export const DRAFT_ROUNDS = DRAFT_POSITIONS.length
+/** the broadcast: seconds a round-robin match is on screen before the next, and a final map */
+export const DRAFT_GAME_SEC = 10
+export const DRAFT_MAP_SEC = 8
+/** what a finished room pays by place, in rooms of at least DRAFT_PAID_MIN; the first DRAFT_PAID_ROOMS a day */
+export const DRAFT_PRIZE: Record<number, number> = { 1: 150, 2: 100 }
+export const DRAFT_PRIZE_REST = 50
+export const DRAFT_PAID_MIN = 3
+export const DRAFT_PAID_ROOMS = 2
+export const draftPrize = (place: number): number => DRAFT_PRIZE[place] ?? DRAFT_PRIZE_REST
 
 // today's cards and the 彩卡; not retired players (their own series) or a 彩蛋卡
 const POOL: readonly PlayerCard[] = PLAYER_CARDS.filter((c) => !c.former && !c.retired && c.event !== 'egg' && c.event !== 'retired')
+const COACH_POOL: readonly CoachCard[] = COACH_CARDS.filter((c) => !c.former)
 
 /**
  * One round's lot: `size` cards of the round's position, one from each band
@@ -36,8 +48,8 @@ export function dealLot(seed: number, round: number, size: number, taken: Readon
   const rng = new Rng(hashStr(`draft:lot:${seed >>> 0}:${round}`) >>> 0)
   const role = DRAFT_POSITIONS[round]
   const people = new Set(taken)
-  const xs = POOL.filter((c) => (role === '自由人' || c.role === role) && !people.has(personOf(c)))
-    .slice().sort((a, b) => b.rating - a.rating)
+  const xs = (role === '教练' ? COACH_POOL : POOL.filter((c) => role === '自由人' || c.role === role))
+    .filter((c) => !people.has(personOf(c))).slice().sort((a, b) => b.rating - a.rating) as (PlayerCard | CoachCard)[]
   const out: string[] = []
   // the top band is the stars (a 彩卡 more often than not); the rest share what is left evenly
   const top = Math.max(1, Math.round(xs.length * 0.06))
@@ -125,4 +137,23 @@ export function roomCode(rnd: () => number): string {
 export const cleanCode = (v: unknown): string | null => {
   const s = String(v ?? '').trim().toUpperCase()
   return /^[A-HJ-NP-Z2-9]{5}$/.test(s) ? s : null
+}
+
+/** the room's final places: the final decides first and second, the table the rest */
+export function draftPlaces(table: readonly DraftStanding[], final: DraftGame | null): Map<number, number> {
+  const out = new Map<number, number>()
+  if (final) {
+    out.set(final.aWon ? final.a : final.b, 1)
+    out.set(final.aWon ? final.b : final.a, 2)
+  }
+  for (const r of table) if (!out.has(r.seat)) out.set(r.seat, final ? Math.max(3, r.place) : r.place)
+  return out
+}
+
+/** When each part of the broadcast is on screen, from its start: one time per round-robin match, one per final map. */
+export function draftSchedule(games: number, finalMaps: number): { games: number[]; final: number[]; end: number } {
+  const g = Array.from({ length: games }, (_, i) => (i + 1) * DRAFT_GAME_SEC * 1000)
+  const base = games * DRAFT_GAME_SEC * 1000
+  const f = Array.from({ length: finalMaps }, (_, i) => base + (i + 1) * DRAFT_MAP_SEC * 1000)
+  return { games: g, final: f, end: (f.length ? f[f.length - 1] : base) + 2000 }
 }

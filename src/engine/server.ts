@@ -57,5 +57,6 @@ export { Rng, hashStr } from './rng'
 export {
   dealLot, cleanBid, settleRound, roundRobin, draftMatchSeed, draftTable, roomCode, cleanCode,
   DRAFT_MIN, DRAFT_MAX, DRAFT_BUDGET, DRAFT_BID_SEC, DRAFT_POSITIONS, DRAFT_ROUNDS,
+  draftSchedule, draftPlaces, draftPrize, DRAFT_PAID_MIN, DRAFT_PAID_ROOMS,
 } from './draft'
 export { personOf } from './cards'

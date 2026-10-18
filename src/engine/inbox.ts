@@ -234,7 +234,8 @@ export function mailLine(m: MailItem): string {
       const won = Number(m.body?.duelWins) || 0
       return `${head}：${bits.join('，')}${won ? `（单挑赢了 ${won} 场）` : ''}`
     }
-    case 'swift': return `抢五赢了：${m.coins} 金币`
+    case 'swift': return `抢五${m.body?.won === false ? '打完了' : '赢了'}：${m.coins} 金币`
+    case 'draft': return `选秀夜第 ${Number(m.body?.place) || '?'} 名：${m.coins} 金币`
     case 'grant': {
       const bits = []
       if (m.pack) bits.push(`${PACKS[m.pack as PackKind]?.name ?? m.pack} ×${m.count}`)

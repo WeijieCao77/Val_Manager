@@ -8,8 +8,9 @@ import { draftBid, draftCreate, draftJoin, draftLeave, draftStart, draftState } 
 import type { DraftRoom, DraftState } from '../../engine/draftClient'
 import './swift.css'
 
-const POS_CN: Record<string, string> = { 决斗者: '决斗者', 先锋: '先锋', 控场: '控场', 哨卫: '哨卫', 自由人: '任意位置' }
-const ign = (id: string) => { const c = cardById(id); return isPlayerCard(c) ? c.ign : id }
+const POS_CN: Record<string, string> = { 决斗者: '决斗者', 先锋: '先锋', 控场: '控场', 哨卫: '哨卫', 自由人: '任意位置', 教练: '教练' }
+const ign = (id: string) => { const c = cardById(id); return isPlayerCard(c) ? c.ign : c?.kind === 'coach' ? c.name : id }
+const UNPAID: Record<string, string> = { small: '3 人以上的房间才有奖励', cap: '今天的房间奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
 
 /**
  * 选秀夜: a room of friends drafts from one shared pool and plays a round robin.
@@ -34,6 +35,15 @@ export default function Draft() {
     const t = setInterval(() => { if (document.visibilityState !== 'hidden') void pull() }, fast ? 1500 : 30_000)
     return () => clearInterval(t)
   }, [room, pull])
+  // the broadcast: ask again the moment the next match or map is due
+  const nextAt = room?.nextAt ?? null
+  useEffect(() => {
+    if (!nextAt) return
+    const wait = nextAt - serverNow() + 150
+    if (wait <= 0 || wait > 60_000) return
+    const t = setTimeout(() => void pull(), wait)
+    return () => clearTimeout(t)
+  }, [nextAt, pull])
 
   const run = async (p: Promise<{ ok: boolean; why?: string }>) => {
     setBusy(true)
@@ -49,10 +59,12 @@ export default function Draft() {
       <Panel title="选秀夜">
         <p className="small">和朋友开一个房间（{st.min}–{st.max} 人），从同一个卡池里抢人组五人，选完自动打循环赛。</p>
         <ul className="swift-rules small muted">
-          <li>五轮，每轮一个位置：决斗者、先锋、控场、哨卫，最后一轮任意位置。</li>
+          <li>六轮：决斗者、先锋、控场、哨卫、任意位置，最后一轮选教练。</li>
           <li>每轮亮出 人数+1 张卡，从顶级到冷门。每人暗中选一张出价，整场预算 {st.budget}。</li>
           <li>出价高的先拿；被抢走的人免费拿剩下最好的一张。</li>
+          <li>选完打循环赛（每场 BO3，一场一场直播），前两名再打 BO5 决赛。</li>
           <li>卡池是全卡库（含彩卡），不用你的收藏，选到的卡也不会进收藏。</li>
+          <li>奖励：第一名 {st.prizes[0]}、第二名 {st.prizes[1]}、其他 {st.prizes[2]} 金币。{st.paidMin} 人以上的房间才有，每天前 {st.paidRooms} 个房间。</li>
         </ul>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="primary" disabled={busy} onClick={() => void run(draftCreate())}>开房间</button>
@@ -69,11 +81,11 @@ export default function Draft() {
         ? <button className="ghost sm" disabled={busy} onClick={() => void run(draftLeave())}>{room.status === 'done' ? '离开' : '退出房间'}</button> : undefined}>
         {room.status === 'lobby' && <Lobby room={room} st={st} busy={busy} onStart={() => void run(draftStart())} />}
         {room.status === 'bidding' && <Bidding room={room} busy={busy} onBid={(card, amount) => void run(draftBid(room.round, { card, amount }))} />}
-        {room.status === 'playing' && <p className="muted">五轮选完了，循环赛进行中…</p>}
-        {room.status === 'done' && <Done room={room} />}
+        {room.status === 'playing' && <p className="muted">选完了，正在打比赛…</p>}
+        {(room.status === 'showing' || room.status === 'done') && <Broadcast room={room} />}
       </Panel>
       {room.status !== 'lobby' && <Seats room={room} />}
-      {room.history.length > 0 && room.status !== 'done' && <LastRound room={room} />}
+      {room.history.length > 0 && room.status === 'bidding' && <LastRound room={room} />}
     </div>
   )
 }
@@ -138,7 +150,7 @@ function Seats({ room }: { room: DraftRoom }) {
         <div className="draft-seat-head"><b>{s.name}</b><span className="tiny muted">{s.tag}</span>
           <span className="tiny">{room.status === 'bidding' ? (s.bidIn ? '已出价' : '思考中') : ''}</span>
           <span className="tiny muted">预算 {s.budget}</span></div>
-        <div className="draft-mini">{[0, 1, 2, 3, 4].map((i) => <span key={i}>{s.picks[i] ? ign(s.picks[i]) : '—'}</span>)}</div>
+        <div className="draft-mini">{[0, 1, 2, 3, 4, 5].map((i) => <span key={i} className={i === 5 ? 'coach' : ''}>{s.picks[i] ? ign(s.picks[i]) : i === 5 ? '教练' : '—'}</span>)}</div>
       </div>)}
     </div>
   </Panel>
@@ -157,18 +169,34 @@ function LastRound({ room }: { room: DraftRoom }) {
   </Panel>
 }
 
-function Done({ room }: { room: DraftRoom }) {
+function Broadcast({ room }: { room: DraftRoom }) {
   const name = (seat: number) => room.seats[seat]?.name ?? '?'
+  if (room.failed) return <p className="muted">比赛没打成，房间结束了。</p>
+  const done = room.status === 'done'
+  const f = room.final
+  const won = (g: { maps: { a: number; b: number }[] }) => g.maps.reduce((n, m) => n + (m.a > m.b ? 1 : 0), 0)
   return <>
-    <ol className="swift-board">
-      {(room.table ?? []).map((t) => <li key={t.seat} className={room.seats[t.seat]?.me ? 'me' : ''}>
-        <span className="r">{t.place}</span><span className="n">{name(t.seat)}</span><span className="s">{t.wins} 胜</span><span className="w">图 {t.maps >= 0 ? '+' : ''}{t.maps}</span>
+    {!done && <p className="small muted">比赛直播中 {room.nextAt ? <Clock deadline={room.nextAt} /> : null}</p>}
+    {done && room.reward && <p className="small">你是第 <b>{room.reward.place}</b> 名{room.reward.coins ? `，奖励 ${room.reward.coins} 金币已进信箱` : room.reward.unpaid ? `（${UNPAID[room.reward.unpaid]}）` : ''}</p>}
+    {(room.table?.length ?? 0) > 0 && <ol className="swift-board">
+      {(done ? [...room.seats].sort((a, b) => (a.place ?? 9) - (b.place ?? 9)).map((x) => room.table!.find((t) => t.seat === x.seat)!) : room.table!).filter(Boolean).map((t) => <li key={t.seat} className={room.seats[t.seat]?.me ? 'me' : ''}>
+        <span className="r">{done ? room.seats[t.seat]?.place : t.place}</span><span className="n">{name(t.seat)}</span><span className="s">{t.wins} 胜</span><span className="w">图 {t.maps >= 0 ? '+' : ''}{t.maps}</span>
       </li>)}
-    </ol>
-    <h4 style={{ margin: '14px 0 6px' }}>比赛</h4>
-    <ul className="draft-awards small">
-      {(room.games ?? []).map((g, i) => <li key={i}><b className={g.aWon ? 'pos' : ''}>{name(g.a)}</b> {g.mapsA}:{g.mapsB} <b className={!g.aWon ? 'pos' : ''}>{name(g.b)}</b>
-        <span className="tiny muted"> {g.maps.map((m) => `${m.map} ${m.a}-${m.b}`).join(' · ')}</span></li>)}
-    </ul>
+    </ol>}
+    {(room.games?.length ?? 0) > 0 && <>
+      <h4 style={{ margin: '14px 0 6px' }}>循环赛</h4>
+      <ul className="draft-awards small">
+        {room.games!.map((g, i) => <li key={i} className="draft-game"><b className={g.aWon ? 'pos' : ''}>{name(g.a)}</b> {g.mapsA}:{g.mapsB} <b className={!g.aWon ? 'pos' : ''}>{name(g.b)}</b>
+          <span className="tiny muted"> {g.maps.map((m) => `${m.map} ${m.a}-${m.b}`).join(' · ')}</span></li>)}
+      </ul>
+    </>}
+    {f && <>
+      <h4 style={{ margin: '14px 0 6px' }}>决赛 BO5{done ? '' : ' · 直播中'}</h4>
+      <p className="draft-final"><b>{name(f.a)}</b> <span>{won(f)} : {f.maps.length - won(f)}</span> <b>{name(f.b)}</b></p>
+      <ul className="draft-awards small">
+        {f.maps.map((m, i) => <li key={i} className="draft-game">第 {i + 1} 图 {m.map}：<b className={m.a > m.b ? 'pos' : ''}>{m.a}</b> - <b className={m.b > m.a ? 'pos' : ''}>{m.b}</b></li>)}
+      </ul>
+      {done && <p className="small">冠军：<b>{name(f.aWon ? f.a : f.b)}</b></p>}
+    </>}
   </>
 }

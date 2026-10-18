@@ -4,16 +4,26 @@ import { rememberedId } from './cardid'
 import type { DraftAward, DraftBid, DraftStanding } from './draft'
 import type { Role } from './types'
 
-export interface DraftSeat { seat: number; name: string; tag: string; budget: number; picks: string[]; bidIn: boolean; me: boolean; host: boolean }
+export interface DraftSeat { seat: number; name: string; tag: string; budget: number; picks: string[]; bidIn: boolean; me: boolean; host: boolean; place: number | null }
 export interface DraftRound { round: number; lot: string[]; bids: (DraftBid & { auto?: boolean })[]; awards: DraftAward[] }
 export interface DraftGameRow { a: number; b: number; aWon: boolean; mapsA: number; mapsB: number; maps: { map: string; a: number; b: number }[] }
 export interface DraftRoom {
-  code: string; status: 'lobby' | 'bidding' | 'playing' | 'done'; round: number; rounds: number; position: Role | null
+  code: string; status: 'lobby' | 'bidding' | 'playing' | 'showing' | 'done'; round: number; rounds: number; position: Role | '教练' | null
   lot: string[] | null; deadline: number | null; host: boolean
   seats: DraftSeat[]; mySeat: number | null; myBid: DraftBid | null
   history: DraftRound[]; games: DraftGameRow[] | null; table: DraftStanding[] | null
+  /** the BO5 final: while it is on screen, only the maps shown so far */
+  final: (Partial<DraftGameRow> & { a: number; b: number; maps: { map: string; a: number; b: number }[]; done?: boolean }) | null
+  /** when the broadcast shows its next match or map */
+  nextAt: number | null
+  failed: boolean
+  /** a finished room: my place and what it paid; unpaid says why not (small, cap, gate) */
+  reward: { place: number | null; coins: number; unpaid: 'small' | 'cap' | 'gate' | null } | null
 }
-export interface DraftState { ok: true; now: number; min: number; max: number; budget: number; bidSec: number; positions: Role[]; room?: DraftRoom }
+export interface DraftState {
+  ok: true; now: number; min: number; max: number; budget: number; bidSec: number; positions: (Role | '教练')[]
+  prizes: number[]; paidMin: number; paidRooms: number; room?: DraftRoom
+}
 type Fail = { ok: false; why?: string }
 
 async function post<T>(path: string, body: Record<string, unknown> = {}): Promise<T | Fail> {
