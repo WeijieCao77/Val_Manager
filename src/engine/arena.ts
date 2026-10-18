@@ -10,6 +10,7 @@
  */
 import { seoulArenaPlayer } from './seoul2024'
 import { bangkokArenaPlayer } from './bangkok2025'
+import { losAngelesArenaPlayer } from './losangeles2023'
 import { createNewGame } from './world'
 import { WORLD_TEAMS } from './teams'
 import { cupTeam } from './cupTeams'
@@ -197,7 +198,7 @@ function seatSquad(
     if (!isPlayerCard(card)) return
     if (seated.has(personOf(card))) return
     seated.add(personOf(card))
-    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card) ?? state.players[card.playerId]
+    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? losAngelesArenaPlayer(card) ?? legendArenaPlayer(card) ?? state.players[card.playerId]
     if (!src) return
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'

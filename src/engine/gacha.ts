@@ -18,7 +18,7 @@ import type { SavedPicks } from './predict'
 import type { SeoulRouteState } from './seoulRoute'
 import type { EventRouteState } from './eventRoute'
 import {
-  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, SEOUL_CARDS, BANGKOK_CARDS, LOS_ANGELES_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating, squadPower, EVO_LEVEL_ROOM,
 } from './cards'
@@ -50,7 +50,7 @@ export const SERIES = ['China', 'Pacific', 'Americas', 'EMEA'] as const
 export type Series = (typeof SERIES)[number]
 
 export type PackKind =
-  | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024' | 'bangkok2025'
+  | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024' | 'bangkok2025' | 'losangeles2023'
   // one 彩卡, nothing else — the reward for a full 图鉴; never sold
   | 'legend'
   // one per series — same three cards, drawn only from that region
@@ -90,7 +90,7 @@ export interface PackDef {
    */
   shop?: boolean
   /** coach packs deal from a different deck; a series deals from one region; a position from its players; 'legend' is every 彩卡 */
-  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'legend' | Series | PackPosition
+  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'losangeles2023' | 'legend' | Series | PackPosition
 }
 
 /**
@@ -103,6 +103,12 @@ export interface PackDef {
  * decision the old two-a-day counter took away.
  */
 export const PACKS: Record<PackKind, PackDef> = {
+  // the 首尔包's and 曼谷包's price and odds; 20 golds of 80
+  losangeles2023: {
+    kind: 'losangeles2023', name: '洛杉矶 2023 冠军赛包', pool: 'losangeles2023',
+    blurb: '16 支战队 · 80 位登场选手。三张洛杉矶赛事卡，至少一张银卡，不出彩卡。',
+    cost: 3000, draws: 3, mythic: 0, gold: .12, silver: .38, floor: 'silver', shop: true,
+  },
   // the 首尔包's price and odds, as the owner asked (2026-09-30); 11 golds of 41
   bangkok2025: {
     kind: 'bangkok2025', name: '曼谷 2025 大师赛包', pool: 'bangkok2025',
@@ -224,7 +230,7 @@ export const seriesOfPack = (kind: PackKind): Series | null =>
         : kind === 'emea' ? 'EMEA' : null
 
 export const PACK_ORDER: PackKind[] = [
-  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025',
+  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'seoul2024', 'bangkok2025', 'losangeles2023',
 ]
 
 /**
@@ -823,6 +829,8 @@ export interface GachaState {
   seoulRoute?: SeoulRouteState
   /** 曼谷征途 — see engine/bangkokRoute.ts; the same rules on Masters Bangkok 2025 */
   bangkokRoute?: EventRouteState
+  /** 洛杉矶征途 — see engine/losAngelesRoute.ts; the same rules on Champions 2023 */
+  losAngelesRoute?: EventRouteState
   /** the ladder season this account was last rolled into (0: before the first) — see rollSeason */
   season?: number
   /** where each ladder stood when the last season ended */
@@ -1060,6 +1068,12 @@ const rolePool = (role: PackPosition) => ({
 })
 
 const POOLS = {
+  losangeles2023: {
+    mythic: [] as PlayerCard[],
+    gold: LOS_ANGELES_CARDS.filter(c => c.rarity === 'gold'),
+    silver: LOS_ANGELES_CARDS.filter(c => c.rarity === 'silver'),
+    bronze: LOS_ANGELES_CARDS.filter(c => c.rarity === 'bronze'),
+  },
   bangkok2025: {
     mythic: [] as PlayerCard[],
     gold: BANGKOK_CARDS.filter(c => c.rarity === 'gold'),
@@ -1570,15 +1584,26 @@ export const SEOUL_LAST_DAY = '2026-10-07'
 export const bangkokOnSale = (today?: string): boolean =>
   !!today && today >= BANGKOK_LAUNCH && today <= BANGKOK_SALE_LAST
 
+/**
+ * The 洛杉矶包's launch: the 曼谷包's 15% off for its first three days (Beijing dates).
+ * Nothing leaves the shop with it.
+ */
+export const LOS_ANGELES_LAUNCH = '2026-10-19'
+export const LOS_ANGELES_SALE_LAST = '2026-10-21'
+
+export const losAngelesOnSale = (today?: string): boolean =>
+  !!today && today >= LOS_ANGELES_LAUNCH && today <= LOS_ANGELES_SALE_LAST
+
 /** A pack the shop no longer sells. */
 export const packRetired = (kind: PackKind, today?: string): boolean =>
   kind === 'seoul2024' && !!today && today > SEOUL_LAST_DAY
 
-/** What a pack costs today — the featured series is off by a fifth, the new 曼谷包 by 15% for three days. */
+/** What a pack costs today — the featured series is off by a fifth, a new event pack by 15% for its first three days. */
 export function packCost(kind: PackKind, today?: string): number {
   const base = PACKS[kind].cost
   if (!today) return base
   if (kind === 'bangkok2025') return bangkokOnSale(today) ? Math.round(base * (1 - BANGKOK_SALE_OFF)) : base
+  if (kind === 'losangeles2023') return losAngelesOnSale(today) ? Math.round(base * (1 - BANGKOK_SALE_OFF)) : base
   const region = seriesOfPack(kind)
   if (!region || region !== featuredSeries(today)) return base
   return Math.round(base * (1 - FEATURE_OFF))
@@ -2840,7 +2865,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
  */
 export const SERVER_KEYS = [
   'version', 'createdAt', 'coins', 'cards', 'packs', 'pity', 'mythicDry', 'pulls', 'ladder',
-  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute',
+  'leagues', 'cup', 'daily', 'challenge', 'minigame', 'series', 'fullSet', 'mail', 'log', 'seed', 'predict', 'seoulRoute', 'bangkokRoute', 'losAngelesRoute',
   'season', 'lastSeason', 'enc', 'nameAt',
 ] as const
 /** a name may change once in this many days */

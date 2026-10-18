@@ -568,6 +568,16 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_losangeles2023.ts",
+    "estimatedSeconds": 10
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_losangeles_route.ts",
+    "estimatedSeconds": 8
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_card_integrity.ts"
   },
   {

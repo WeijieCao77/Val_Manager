@@ -12,6 +12,8 @@ import { buildSeoulCards } from './seoul2024'
 import type { SeoulEntry } from './seoul2024'
 import { buildBangkokCards } from './bangkok2025'
 import type { BangkokEntry } from './bangkok2025'
+import { buildLosAngelesCards } from './losangeles2023'
+import type { LosAngelesEntry } from './losangeles2023'
 import { natCountry } from './nat'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
@@ -83,9 +85,10 @@ export interface PlayerCard {
   former?: boolean
   /** Set only by the reviewed catalogue; counts toward the normal two-retiree cap. */
   retired?: boolean
-  event?: 'seoul-2024' | 'bangkok-2025'
+  event?: 'seoul-2024' | 'bangkok-2025' | 'los-angeles-2023'
   seoul?: SeoulEntry
   bangkok?: BangkokEntry
+  losAngeles?: LosAngelesEntry
   id: string
   /** the world.json player id this card is a face of */
   playerId: string
@@ -401,10 +404,11 @@ export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(ANY_BASE)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
 export const SEOUL_CARDS: PlayerCard[] = buildSeoulCards(ANY_BASE)
 export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(ANY_BASE)
+export const LOS_ANGELES_CARDS: PlayerCard[] = buildLosAngelesCards(ANY_BASE)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
-export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...COACH_CARDS]
+export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...LOS_ANGELES_CARDS, ...COACH_CARDS]
 
 const byId = new Map([...ALL_CARDS, ...FORMER_CARDS].map((c) => [c.id, c]))
 const COACHED: Map<string, Set<string>> = new Map(

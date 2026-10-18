@@ -1,0 +1,698 @@
+{
+ "source": "https://www.vlr.gg/event/matches/1657/valorant-champions-2023/?series_id=all",
+ "retrieved": "2026-10-18",
+ "series": [
+  {
+   "id": "247075",
+   "stage": "Group Stage: Opening (A)",
+   "a": "PRX",
+   "b": "KRÜ",
+   "maps": [
+    [
+     "Split",
+     13,
+     7
+    ],
+    [
+     "Pearl",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "247076",
+   "stage": "Group Stage: Opening (A)",
+   "a": "EDG",
+   "b": "GIA",
+   "maps": [
+    [
+     "Split",
+     13,
+     15
+    ],
+    [
+     "Bind",
+     13,
+     11
+    ],
+    [
+     "Ascent",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "247077",
+   "stage": "Group Stage: Winner's (A)",
+   "a": "PRX",
+   "b": "EDG",
+   "maps": [
+    [
+     "Fracture",
+     13,
+     7
+    ],
+    [
+     "Pearl",
+     16,
+     14
+    ]
+   ]
+  },
+  {
+   "id": "247078",
+   "stage": "Group Stage: Elimination (A)",
+   "a": "KRÜ",
+   "b": "GIA",
+   "maps": [
+    [
+     "Lotus",
+     10,
+     13
+    ],
+    [
+     "Pearl",
+     12,
+     14
+    ]
+   ]
+  },
+  {
+   "id": "247079",
+   "stage": "Group Stage: Decider (A)",
+   "a": "EDG",
+   "b": "GIA",
+   "maps": [
+    [
+     "Split",
+     13,
+     6
+    ],
+    [
+     "Fracture",
+     13,
+     7
+    ]
+   ]
+  },
+  {
+   "id": "247086",
+   "stage": "Group Stage: Opening (B)",
+   "a": "EG",
+   "b": "FPX",
+   "maps": [
+    [
+     "Ascent",
+     13,
+     8
+    ],
+    [
+     "Pearl",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "247087",
+   "stage": "Group Stage: Opening (B)",
+   "a": "FUT",
+   "b": "T1",
+   "maps": [
+    [
+     "Pearl",
+     13,
+     4
+    ],
+    [
+     "Haven",
+     13,
+     7
+    ]
+   ]
+  },
+  {
+   "id": "247088",
+   "stage": "Group Stage: Winner's (B)",
+   "a": "EG",
+   "b": "FUT",
+   "maps": [
+    [
+     "Pearl",
+     15,
+     13
+    ],
+    [
+     "Bind",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "247089",
+   "stage": "Group Stage: Elimination (B)",
+   "a": "FPX",
+   "b": "T1",
+   "maps": [
+    [
+     "Lotus",
+     10,
+     13
+    ],
+    [
+     "Bind",
+     7,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "247090",
+   "stage": "Group Stage: Decider (B)",
+   "a": "FUT",
+   "b": "T1",
+   "maps": [
+    [
+     "Bind",
+     13,
+     10
+    ],
+    [
+     "Pearl",
+     14,
+     12
+    ]
+   ]
+  },
+  {
+   "id": "247093",
+   "stage": "Group Stage: Opening (C)",
+   "a": "FNC",
+   "b": "ZETA",
+   "maps": [
+    [
+     "Fracture",
+     13,
+     5
+    ],
+    [
+     "Haven",
+     13,
+     6
+    ]
+   ]
+  },
+  {
+   "id": "247094",
+   "stage": "Group Stage: Opening (C)",
+   "a": "NRG",
+   "b": "BLG",
+   "maps": [
+    [
+     "Lotus",
+     12,
+     14
+    ],
+    [
+     "Split",
+     8,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "247095",
+   "stage": "Group Stage: Winner's (C)",
+   "a": "FNC",
+   "b": "BLG",
+   "maps": [
+    [
+     "Haven",
+     13,
+     2
+    ],
+    [
+     "Lotus",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "247096",
+   "stage": "Group Stage: Elimination (C)",
+   "a": "ZETA",
+   "b": "NRG",
+   "maps": [
+    [
+     "Bind",
+     13,
+     15
+    ],
+    [
+     "Haven",
+     1,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "247098",
+   "stage": "Group Stage: Decider (C)",
+   "a": "BLG",
+   "b": "NRG",
+   "maps": [
+    [
+     "Bind",
+     13,
+     10
+    ],
+    [
+     "Ascent",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "247100",
+   "stage": "Group Stage: Opening (D)",
+   "a": "TL",
+   "b": "NAVI",
+   "maps": [
+    [
+     "Fracture",
+     11,
+     13
+    ],
+    [
+     "Bind",
+     15,
+     17
+    ]
+   ]
+  },
+  {
+   "id": "247101",
+   "stage": "Group Stage: Opening (D)",
+   "a": "DRX",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     15
+    ],
+    [
+     "Split",
+     13,
+     6
+    ],
+    [
+     "Ascent",
+     13,
+     8
+    ]
+   ]
+  },
+  {
+   "id": "247102",
+   "stage": "Group Stage: Winner's (D)",
+   "a": "NAVI",
+   "b": "DRX",
+   "maps": [
+    [
+     "Bind",
+     13,
+     15
+    ],
+    [
+     "Split",
+     13,
+     9
+    ],
+    [
+     "Lotus",
+     12,
+     14
+    ]
+   ]
+  },
+  {
+   "id": "247103",
+   "stage": "Group Stage: Elimination (D)",
+   "a": "TL",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Haven",
+     2,
+     13
+    ],
+    [
+     "Split",
+     8,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "247104",
+   "stage": "Group Stage: Decider (D)",
+   "a": "NAVI",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Pearl",
+     13,
+     11
+    ],
+    [
+     "Ascent",
+     11,
+     13
+    ],
+    [
+     "Bind",
+     11,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248270",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "FNC",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Ascent",
+     11,
+     13
+    ],
+    [
+     "Lotus",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248271",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "PRX",
+   "b": "FUT",
+   "maps": [
+    [
+     "Ascent",
+     13,
+     10
+    ],
+    [
+     "Pearl",
+     13,
+     4
+    ]
+   ]
+  },
+  {
+   "id": "248272",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "DRX",
+   "b": "BLG",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     10
+    ],
+    [
+     "Haven",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "248273",
+   "stage": "Playoffs: Upper Quarterfinals",
+   "a": "EG",
+   "b": "EDG",
+   "maps": [
+    [
+     "Split",
+     12,
+     14
+    ],
+    [
+     "Ascent",
+     13,
+     5
+    ],
+    [
+     "Pearl",
+     13,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "248274",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "LOUD",
+   "b": "PRX",
+   "maps": [
+    [
+     "Lotus",
+     13,
+     15
+    ],
+    [
+     "Split",
+     13,
+     2
+    ],
+    [
+     "Pearl",
+     10,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248275",
+   "stage": "Playoffs: Upper Semifinals",
+   "a": "DRX",
+   "b": "EG",
+   "maps": [
+    [
+     "Fracture",
+     9,
+     13
+    ],
+    [
+     "Lotus",
+     4,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248276",
+   "stage": "Playoffs: Upper Final",
+   "a": "PRX",
+   "b": "EG",
+   "maps": [
+    [
+     "Ascent",
+     10,
+     13
+    ],
+    [
+     "Bind",
+     13,
+     9
+    ],
+    [
+     "Pearl",
+     15,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248277",
+   "stage": "Playoffs: Grand Final",
+   "a": "PRX",
+   "b": "EG",
+   "maps": [
+    [
+     "Split",
+     10,
+     13
+    ],
+    [
+     "Ascent",
+     13,
+     11
+    ],
+    [
+     "Bind",
+     5,
+     13
+    ],
+    [
+     "Lotus",
+     10,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248278",
+   "stage": "Playoffs: Lower Round 1",
+   "a": "FNC",
+   "b": "FUT",
+   "maps": [
+    [
+     "Split",
+     13,
+     5
+    ],
+    [
+     "Haven",
+     13,
+     9
+    ]
+   ]
+  },
+  {
+   "id": "248279",
+   "stage": "Playoffs: Lower Round 1",
+   "a": "BLG",
+   "b": "EDG",
+   "maps": [
+    [
+     "Bind",
+     4,
+     13
+    ],
+    [
+     "Split",
+     15,
+     13
+    ],
+    [
+     "Haven",
+     10,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248280",
+   "stage": "Playoffs: Lower Round 2",
+   "a": "DRX",
+   "b": "FNC",
+   "maps": [
+    [
+     "Bind",
+     13,
+     1
+    ],
+    [
+     "Haven",
+     9,
+     13
+    ],
+    [
+     "Split",
+     6,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248281",
+   "stage": "Playoffs: Lower Round 2",
+   "a": "LOUD",
+   "b": "EDG",
+   "maps": [
+    [
+     "Bind",
+     11,
+     13
+    ],
+    [
+     "Ascent",
+     13,
+     5
+    ],
+    [
+     "Haven",
+     13,
+     11
+    ]
+   ]
+  },
+  {
+   "id": "248282",
+   "stage": "Playoffs: Lower Round 3",
+   "a": "FNC",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Split",
+     4,
+     13
+    ],
+    [
+     "Ascent",
+     13,
+     9
+    ],
+    [
+     "Haven",
+     7,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "248283",
+   "stage": "Playoffs: Lower Final",
+   "a": "EG",
+   "b": "LOUD",
+   "maps": [
+    [
+     "Ascent",
+     14,
+     12
+    ],
+    [
+     "Lotus",
+     13,
+     4
+    ],
+    [
+     "Pearl",
+     8,
+     13
+    ],
+    [
+     "Split",
+     7,
+     13
+    ],
+    [
+     "Bind",
+     13,
+     8
+    ]
+   ]
+  }
+ ]
+}

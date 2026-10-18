@@ -1,7 +1,7 @@
 /**
  * 征途: one team's road through a past event, replayed in order — the rules
  * 首尔征途 was built with (engine/seoulRoute.ts), for any event that has its
- * series on file. 曼谷征途 (engine/bangkokRoute.ts) is the second.
+ * series on file. 曼谷征途 (engine/bangkokRoute.ts) is the second, 洛杉矶征途 (engine/losAngelesRoute.ts) the third.
  *
  * The road is history and stays history. The opponents and their order are
  * the ones the team met that year, and winning a match it lost does not
@@ -96,7 +96,7 @@ export interface EventRouteConfig {
   packLabel: string
   pack: PackKind
   /** where on the account the state lives */
-  key: 'seoulRoute' | 'bangkokRoute'
+  key: 'seoulRoute' | 'bangkokRoute' | 'losAngelesRoute'
   teams: readonly EventTeam[]
   /** the event's cards; a team fields its five most-played */
   cards: readonly PlayerCard[]

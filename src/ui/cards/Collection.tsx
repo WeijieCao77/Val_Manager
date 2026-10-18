@@ -229,6 +229,7 @@ export default function Collection() {
               <select aria-label="收藏排序" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}><option value="rating">能力从高到低</option><option value="name">按选手名字</option><option value="duplicates">重复卡优先</option></select>
               <a className="tiny" href="/seoul-2024">首尔系列图鉴 ↗</a>
               <a className="tiny" href="/bangkok-2025">曼谷系列图鉴 ↗</a>
+              <a className="tiny" href="/los-angeles-2023">洛杉矶系列图鉴 ↗</a>
               <a className="tiny" href="/cards/stats" title="对哪位选手的评分有疑问，这里能查到每位选手的分是怎么算的">评分是怎么算的 ↗</a>
               {!missing && (
                 <button className={`sm${dupesOnly ? ' primary' : ''}`} aria-pressed={dupesOnly} onClick={() => { setDupesOnly((v) => !v); setPage(1) }}>

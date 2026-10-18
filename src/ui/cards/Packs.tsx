@@ -7,6 +7,7 @@ import {
   PACKS, PACK_ORDER, POSITION_PACK_KINDS, QUESTS, CHECKIN_COINS, DAILY_CLEAR_PACKS, HARD_PITY, SOFT_PITY, packPosition,
   collectionProgress, refreshDaily, featuredSeries, packCost, seriesOfPack, seriesProgress,
   fullSetProgress, FULL_SET_REWARD, bangkokOnSale, packRetired, BANGKOK_SALE_LAST, SEOUL_LAST_DAY, MULTI_OPEN_MAX,
+  losAngelesOnSale, LOS_ANGELES_SALE_LAST,
 } from '../../engine/gacha'
 import type { CheckIn, PackKind, Pulled, QuestKey, Series } from '../../engine/gacha'
 import type { Card, Rarity } from '../../engine/cards'
@@ -20,8 +21,10 @@ import { SeoulCardBack } from './SeoulDesign'
 import SalvageConfirm from './SalvageConfirm'
 import type { SalvageAsk } from './SalvageConfirm'
 import SeoulPackDisplay from './SeoulPackDisplay'
-import { SEOUL_CARDS, BANGKOK_CARDS } from '../../engine/cards'
+import { SEOUL_CARDS, BANGKOK_CARDS, LOS_ANGELES_CARDS } from '../../engine/cards'
 import BangkokShelfPack from './BangkokShelfPack'
+import LosAngelesShelfPack from './LosAngelesShelfPack'
+import './losAngeles2023.css'
 import MultiOpenSheet from './MultiOpenSheet'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
 import type { PackPosition } from './positionPackDesign'
@@ -99,6 +102,8 @@ export default function Packs() {
   )
   const bangkokPrice = packCost('bangkok2025', today)
   const bangkokSale = bangkokOnSale(today)
+  const laPrice = packCost('losangeles2023', today)
+  const laSale = losAngelesOnSale(today)
   const seoulGone = packRetired('seoul2024', today)
   const md = (d: string) => `${Number(d.slice(5, 7))} 月 ${Number(d.slice(8, 10))} 日`
 
@@ -193,6 +198,18 @@ export default function Packs() {
         </Panel>
       </div>
 
+      <section className="la-shelf" aria-label="洛杉矶 2023 冠军赛系列">
+        <div className="la-shelf-art"><LosAngelesShelfPack /><div className="la-shelf-back"><CardBack losAngeles /></div></div>
+        <div className="la-shelf-copy"><span className="la-eyebrow">CHAMPIONS LOS ANGELES / 2023 COLLECTION</span>
+          <h3>洛杉矶 2023 冠军赛{laSale && <span className="la-sale">上线 85 折</span>}</h3>
+          <p>16 支战队 · 80 位登场选手 · 专属落日卡背<br />每包 3 张赛事卡，至少一张银卡，不出彩卡。{laSale && <><br />85 折到 {md(LOS_ANGELES_SALE_LAST)}。</>}</p>
+          <a href="/los-angeles-2023">浏览完整系列 ↗</a><p>已收藏 {LOS_ANGELES_CARDS.filter(c => g.cards[c.id]).length} / {LOS_ANGELES_CARDS.length}</p>
+          <div className="row"><button disabled={busy || g.coins < laPrice} onClick={() => void open('losangeles2023', 'coins')}>{laPrice} 金币{laSale && <s>{PACKS.losangeles2023.cost}</s>} · 开启洛杉矶包</button>
+            {(g.packs.losangeles2023 ?? 0) > 0 && <button className="la-shelf-secondary" disabled={busy} onClick={() => void open('losangeles2023', 'pack')}>打开库存（{g.packs.losangeles2023}）</button>}
+            {multiButton('losangeles2023', 'la-shelf-secondary')}</div>
+        </div>
+      </section>
+
       <section className="bk25-shelf" aria-label="曼谷 2025 大师赛系列">
         <div className="bk25-shelf-art"><BangkokShelfPack /><div className="bk25-shelf-back"><CardBack bangkok /></div></div>
         <div className="bk25-shelf-copy"><span className="bk25-eyebrow">MASTERS BANGKOK / 2025 COLLECTION</span>
@@ -248,7 +265,7 @@ export default function Packs() {
               </div>
             </div>
           )}
-          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024' && k !== 'bangkok2025').map((kind) => {
+          {PACK_ORDER.filter((k) => !seriesOfPack(k) && k !== 'seoul2024' && k !== 'bangkok2025' && k !== 'losangeles2023').map((kind) => {
             const def = PACKS[kind]
             const own = g.packs[kind] ?? 0
             return (
@@ -486,11 +503,11 @@ export default function Packs() {
  * a card that simply appears has no half-second. `key` on the caller restarts
  * the animation for each new card.
  */
-function Flip({ children, revealed, kind, position, seoul, bangkok }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean }) {
+function Flip({ children, revealed, kind, position, seoul, bangkok, losAngeles }: { children: React.ReactNode; revealed: boolean; kind: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean; losAngeles?: boolean }) {
   return (
     <div className={`flip${revealed ? ' revealed' : ''}`}>
       <div className="flip-inner">
-        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} /><span className="card-specular" /></div>
+        <div className="flip-face flip-back" aria-hidden={revealed}><CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} losAngeles={losAngeles} /><span className="card-specular" /></div>
         <div className="flip-face flip-front" aria-hidden={!revealed}>{children}<span className="card-specular" /></div>
       </div>
     </div>
@@ -518,6 +535,7 @@ export function PackStage({
   const kind = pulled.length && pulled.every(p => p.card.kind === 'coach') ? 'coach' : 'player'
   const seoul = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'seoul-2024')
   const bangkok = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'bangkok-2025')
+  const losAngeles = pulled.length > 0 && pulled.every(p => isPlayerCard(p.card) && p.card.event === 'los-angeles-2023')
   // 连开's recap leads with the best cards; a single pack keeps the order it was dealt in
   const recap = packs > 1
     ? pulled.map((p, i) => ({ p, i })).sort((a, b) => rarityRank(b.p.card.rarity) - rarityRank(a.p.card.rarity) || Number(a.p.dupe) - Number(b.p.dupe) || a.i - b.i).map(x => x.p)
@@ -572,7 +590,7 @@ export function PackStage({
     <div className="pack-stage" ref={dialogRef} role="dialog" aria-modal="true" aria-label="开启卡包" tabIndex={-1} onClick={advanceReveal}>
       <SoundToggle />
       {!finished && <button className="pack-skip" onClick={e => { e.stopPropagation(); setUnsealed(true); setRevealAll(true) }}>查看全部 · 跳过动画</button>}
-      {!unsealed && <PackTearGate seoul={seoul} bangkok={bangkok} packs={packs} position={kind === 'player' ? position : undefined} kind={kind} count={Math.max(1, Math.round(pulled.length / packs))} onOpen={() => setUnsealed(true)} />}
+      {!unsealed && <PackTearGate seoul={seoul} bangkok={bangkok} losAngeles={losAngeles} packs={packs} position={kind === 'player' ? position : undefined} kind={kind} count={Math.max(1, Math.round(pulled.length / packs))} onOpen={() => setUnsealed(true)} />}
       {unsealed && <div className="pack-reveal">
         {!finished && current && (
           <>
@@ -596,7 +614,7 @@ export function PackStage({
                 {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
               </span>
               <CardTilt>
-                <Flip seoul={seoul} bangkok={bangkok} position={position} kind={current.card.kind} revealed={faceUp}>
+                <Flip seoul={seoul} bangkok={bangkok} losAngeles={losAngeles} position={position} kind={current.card.kind} revealed={faceUp}>
                   <CardFace card={current.card} size="lg" />
                 </Flip>
               </CardTilt>
@@ -675,7 +693,7 @@ function stripLayout(n: number): React.CSSProperties {
 const REST_POSE = { x: 4, y: -20 }
 
 /** A real pointer-driven foil seal before the first card is revealed. */
-function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1 }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean; bangkok?: boolean; packs?: number }) {
+function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, losAngeles, packs = 1 }: { count: number; kind: Card['kind']; position?: PackPosition; onOpen: () => void; seoul?: boolean; bangkok?: boolean; losAngeles?: boolean; packs?: number }) {
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [torn, setTorn] = useState(false)
@@ -785,9 +803,9 @@ function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1
   }
 
   return (
-    <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${bangkok ? ' pack-tear-bangkok' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
+    <div className={`pack-tear-scene pack-tear-${kind}${seoul ? ' pack-tear-seoul' : ''}${bangkok ? ' pack-tear-bangkok' : ''}${losAngeles ? ' pack-tear-losangeles' : ''}${position ? ' pack-tear-position' : ''}${torn ? ' torn' : ''}`} style={positionPackStyle(position)}>
       <div className="pack-tear-aura" aria-hidden="true" />
-      <div className="pack-tear-kicker">{bangkok ? 'MASTERS BANGKOK · 2025' : seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}{packs > 1 ? ` · 连开 ${packs} 包` : ''}</div>
+      <div className="pack-tear-kicker">{losAngeles ? 'CHAMPIONS LOS ANGELES · 2023' : bangkok ? 'MASTERS BANGKOK · 2025' : seoul ? 'CHAMPIONS SEOUL · 2024' : position ? `${POSITION_PACKS[position].label}奖励已送达` : '新卡包已送达'}{packs > 1 ? ` · 连开 ${packs} 包` : ''}</div>
       <div
         className={`pack-wrapper${dragging ? ' dragging' : ''}`}
         style={{
@@ -809,12 +827,12 @@ function PackTearGate({ count, kind, position, onOpen, seoul, bangkok, packs = 1
           }
         }}
       >
-        <PackPouch seoul={seoul} bangkok={bangkok} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
+        <PackPouch seoul={seoul} bangkok={bangkok} losAngeles={losAngeles} position={position} kind={kind} count={count} progress={progress} torn={torn} pose={pose} />
         <div className="pack-card-emerge" aria-hidden="true">
           {Array.from({ length: Math.min(count - 1, 9) }, (_, i) => (
             <span className="pack-stack-card" key={i} style={{ '--stack-index': i + 1 } as React.CSSProperties} />
           ))}
-          <CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} />
+          <CardBack kind={kind} position={position} seoul={seoul} bangkok={bangkok} losAngeles={losAngeles} />
         </div>
         <div className="pack-tear-track" aria-hidden="true">
           <span className="pack-tear-cut" />

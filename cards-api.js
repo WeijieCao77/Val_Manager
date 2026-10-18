@@ -453,7 +453,7 @@ const stored = (state) => {
 const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
 /** The actions that simulate a match: the ones worth a worker thread. */
-const HEAVY = new Set(['ladder', 'cup_play', 'enc_play', 'seoul_play', 'bangkok_play'])
+const HEAVY = new Set(['ladder', 'cup_play', 'enc_play', 'seoul_play', 'bangkok_play', 'la_play'])
 
 export function makeCardApi(sql, {
   rateLimited, readBody, json, staticRoot,

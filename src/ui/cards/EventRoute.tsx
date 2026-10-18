@@ -9,7 +9,7 @@ import { ROUTE_LEGS_MAX, placementName } from '../../engine/eventRoute'
 import type { EventRoute, EventRouteState, EventTeam, RouteLeg, RouteOutcome, RouteStage } from '../../engine/eventRoute'
 import { track } from '../../engine/telemetry'
 
-/** What a 征途 screen needs to know about its event (首尔 2024, 曼谷 2025). */
+/** What a 征途 screen needs to know about its event (首尔 2024, 曼谷 2025, 洛杉矶 2023). */
 export interface EventRouteScreen {
   /** 「曼谷征途」 */
   title: string
@@ -23,7 +23,7 @@ export interface EventRouteScreen {
   /** the account's state for this road */
   state: (g: Record<string, unknown>) => unknown
   /** the server's actions: `${actions}_start` / `_play` / `_quit` */
-  actions: 'seoul' | 'bangkok'
+  actions: 'seoul' | 'bangkok' | 'la'
   pack: PackKind
 }
 

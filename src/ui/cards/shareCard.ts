@@ -17,6 +17,7 @@ import { squadTeamIdentity, teamBackdrop } from '../../engine/teamIdentity'
 import { MAX_LEVEL, RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import type { Card, CoachCard, PlayerCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
+import { LOS_ANGELES_TOTAL } from '../../engine/losangeles2023'
 import { qrMatrix } from '../../engine/qr'
 
 export const SHARE_URL = 'https://vctgames.com'
@@ -185,10 +186,11 @@ function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, b: Box): vo
 function paintSeat(
   ctx: CanvasRenderingContext2D, b: Box, card: Card | null, role: string,
   level: number, face: HTMLImageElement | null, crest: HTMLImageElement | null,
-  mark: HTMLImageElement | null = null, lotus: HTMLImageElement | null = null,
+  mark: HTMLImageElement | null = null, lotus: HTMLImageElement | null = null, sunset: HTMLImageElement | null = null,
 ): void {
   if (card && isSeoul(card)) { paintSeoulSeat(ctx, b, card, level, face, mark); return }
   if (card && isBangkok(card)) { paintBangkokSeat(ctx, b, card, level, face, lotus); return }
+  if (card && isLosAngeles(card)) { paintLosAngelesSeat(ctx, b, card, level, face, sunset); return }
   if (!card) {
     ctx.save()
     round(ctx, b, 10)
@@ -565,6 +567,180 @@ function paintSeoulSeat(
   ctx.stroke()
 }
 
+const isLosAngeles = (card: Card): card is PlayerCard & { losAngeles: NonNullable<PlayerCard['losAngeles']> } =>
+  isPlayerCard(card) && card.event === 'los-angeles-2023' && !!card.losAngeles
+
+/** the sunset every 洛杉矶 card is printed on, as losAngeles2023.css loads it */
+const LOS_ANGELES_SUNSET = '/events/los-angeles-2023/sunset-art.webp'
+const LOS_ANGELES_FOIL: Record<Rarity, string> = { mythic: '#f4ce95', gold: '#f4ce95', silver: '#cbd7eb', bronze: '#d79973' }
+
+/**
+ * A 洛杉矶 2023 card, drawn the way LosAngelesDesign.tsx draws it: losAngeles2023.css's positions as a share of
+ * the card (x and type of its width, y of its height), the player block stacked up from the foot as the face
+ * stacks it.
+ */
+function paintLosAngelesSeat(
+  ctx: CanvasRenderingContext2D, b: Box, card: PlayerCard & { losAngeles: NonNullable<PlayerCard['losAngeles']> },
+  level: number, face: HTMLImageElement | null, sunset: HTMLImageElement | null,
+): void {
+  const X = (n: number) => b.x + (n / 100) * b.w
+  const Y = (n: number) => b.y + (n / 100) * b.h
+  const W = (n: number) => (n / 100) * b.w
+  const H = (n: number) => (n / 100) * b.h
+  const foil = LOS_ANGELES_FOIL[card.rarity]
+  const entry = card.losAngeles
+
+  ctx.save()
+  round(ctx, b, W(2))
+  ctx.clip()
+  ctx.fillStyle = '#17131e'
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  if (sunset) {
+    ctx.globalAlpha = 0.75
+    const scale = Math.max(b.w / sunset.width, b.h / sunset.height)
+    const sw = sunset.width * scale, sh = sunset.height * scale
+    ctx.drawImage(sunset, b.x + (b.w - sw) / 2, b.y + (b.h - sh) / 2, sw, sh)
+    ctx.globalAlpha = 1
+  }
+  // the outlined 23 behind everything
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+  ctx.font = IMPACT(W(47))
+  ctx.strokeStyle = 'rgba(255,213,154,.38)'
+  ctx.lineWidth = Math.max(1, W(0.3))
+  ctx.strokeText('23', X(3), Y(11))
+
+  // the portrait window (.la-photo): toned, faded top, foot and sides
+  const pb = { x: X(9), y: Y(17), w: W(93), h: H(65) }
+  if (face) {
+    const off = document.createElement('canvas')
+    off.width = Math.ceil(pb.w)
+    off.height = Math.ceil(pb.h)
+    const o = off.getContext('2d')!
+    o.filter = 'saturate(.48) sepia(.2) contrast(1.08)'
+    const scale = Math.max(pb.w / face.width, pb.h / face.height)
+    const fw = face.width * scale, fh = face.height * scale
+    o.drawImage(face, (pb.w - fw) / 2, (pb.h - fh) * 0.3, fw, fh)
+    o.filter = 'none'
+    o.globalCompositeOperation = 'destination-in'
+    const vt = o.createLinearGradient(0, 0, 0, pb.h)
+    vt.addColorStop(0, 'rgba(0,0,0,0)'); vt.addColorStop(0.12, '#000'); vt.addColorStop(0.65, '#000'); vt.addColorStop(0.99, 'rgba(0,0,0,0)')
+    o.fillStyle = vt
+    o.fillRect(0, 0, pb.w, pb.h)
+    const hz = o.createLinearGradient(0, 0, pb.w, 0)
+    hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.17, '#000'); hz.addColorStop(0.85, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)')
+    o.fillStyle = hz
+    o.fillRect(0, 0, pb.w, pb.h)
+    ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
+  }
+  // the shade rising from the foot (.la-front-shade)
+  const shade = ctx.createLinearGradient(0, b.y + b.h, 0, b.y)
+  shade.addColorStop(0, '#17131e'); shade.addColorStop(0.14, 'rgba(23,19,30,.98)'); shade.addColorStop(0.33, 'rgba(23,19,30,.46)'); shade.addColorStop(0.58, 'rgba(23,19,30,0)')
+  ctx.fillStyle = shade
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+
+  // the head: CHAMPIONS / LOS ANGELES
+  ctx.fillStyle = '#fff0d5'
+  ctx.letterSpacing = `${W(2.7) * 0.12}px`
+  ctx.font = font(400, W(2.7))
+  ctx.fillText('CHAMPIONS', X(7), Y(5))
+  ctx.font = font(400, W(2.2))
+  ctx.fillText('LOS ANGELES', X(7), Y(5) + W(2.7) * 1.6)
+  ctx.letterSpacing = '0px'
+
+  // the side line, read bottom to top
+  ctx.save()
+  ctx.translate(X(4.5) + W(1.2), Y(32))
+  ctx.rotate(-Math.PI / 2)
+  ctx.textAlign = 'right'
+  ctx.textBaseline = 'middle'
+  ctx.font = font(400, W(2.1))
+  ctx.letterSpacing = `${W(2.1) * 0.24}px`
+  ctx.fillStyle = foil
+  ctx.fillText('ONE MORE / 再进一步', 0, 0)
+  ctx.restore()
+  ctx.letterSpacing = '0px'
+
+  // the rating, top right, and the role with its level under it
+  ctx.textAlign = 'right'
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = foil
+  ctx.font = IMPACT(W(11))
+  ctx.fillText(String(card.rating), X(93), Y(13))
+  ctx.font = font(400, W(2.6))
+  ctx.fillText(`${card.role.slice(0, 2)}${level > 0 ? ` ${levelMark(level)}` : ''}`, X(93), Y(13) + W(11.4))
+
+  // the player block, up from the foot: footer, stats band, the name, the team row
+  const footBottom = Y(95)
+  const footTop = footBottom - W(2.2 * 1.2)
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#c7b8b6'
+  ctx.font = font(400, W(2.2))
+  ctx.fillText('06—26 AUG / LOS ANGELES', X(7), footTop)
+  ctx.textAlign = 'right'
+  const pad3 = (n: number) => String(n).padStart(3, '0')
+  ctx.fillText(`${pad3(entry.number)} / ${pad3(LOS_ANGELES_TOTAL)}`, X(93), footTop)
+  const bandBottom = footTop - W(3)
+  const bandTop = bandBottom - W(8.8)
+  ctx.fillStyle = foil
+  ctx.fillRect(X(7), bandTop, W(86), bandBottom - bandTop)
+  ctx.fillStyle = '#211922'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  const cells = [['ACS', String(entry.acs)], ['K/D', entry.kd.toFixed(2)], ['MAPS', String(entry.maps)]]
+  cells.forEach(([k, v], i) => {
+    const x = X(7) + W(3) + i * (W(80) / 3)
+    ctx.font = font(400, W(2))
+    ctx.fillText(k, x, (bandTop + bandBottom) / 2)
+    const kw = ctx.measureText(k).width
+    ctx.font = font(700, W(3.5))
+    ctx.fillText(v, x + kw + W(2), (bandTop + bandBottom) / 2)
+  })
+  const nameBottom = bandTop - W(4)
+  const nameTop = nameBottom - W(17.6)
+  ctx.save()
+  ctx.translate(X(7), (nameTop + nameBottom) / 2)
+  ctx.rotate(-6 * Math.PI / 180)
+  ctx.fillStyle = '#fff0d5'
+  ctx.textBaseline = 'middle'
+  let size = 18
+  ctx.font = `italic ${IMPACT(W(size))}`
+  while (size > 9 && ctx.measureText(card.ign).width > W(86)) { size -= 1; ctx.font = `italic ${IMPACT(W(size))}` }
+  ctx.shadowColor = '#17131e'
+  ctx.shadowBlur = W(3)
+  ctx.fillText(card.ign, 0, 0)
+  ctx.restore()
+  const teamY = nameTop - W(2.5) - W(2.9)
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = foil
+  ctx.font = font(400, W(2.4))
+  ctx.letterSpacing = `${W(2.4) * 0.12}px`
+  ctx.textAlign = 'left'
+  ctx.fillText(card.clubTag ?? '', X(7), teamY)
+  const tw = ctx.measureText(card.clubTag ?? '').width
+  if (card.isIgl) {
+    ctx.letterSpacing = '0px'
+    ctx.font = font(800, W(2.4))
+    const iw = ctx.measureText('IGL').width + W(2.4)
+    ctx.fillRect(X(7) + tw + W(1.4), teamY - W(0.6), iw, W(3.6))
+    ctx.fillStyle = '#211922'
+    ctx.fillText('IGL', X(7) + tw + W(2.6), teamY)
+    ctx.fillStyle = foil
+  }
+  ctx.letterSpacing = '0px'
+  ctx.textAlign = 'right'
+  ctx.font = font(400, W(2))
+  ctx.fillText(`${(natCountry(card.nat) ?? '').toUpperCase()} / 2023`, X(93), teamY + W(0.3))
+  ctx.restore()
+
+  ctx.save()
+  round(ctx, b, W(2))
+  ctx.strokeStyle = foil
+  ctx.lineWidth = Math.max(1, W(0.4))
+  ctx.stroke()
+  ctx.restore()
+}
+
 const isBangkok = (card: Card): card is PlayerCard & { bangkok: NonNullable<PlayerCard['bangkok']> } =>
   isPlayerCard(card) && card.event === 'bangkok-2025' && !!card.bangkok
 
@@ -828,9 +1004,10 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   const all = [...seatCards, coachCard]
   const faces = await Promise.all(all.map((c) => load(c?.face ?? null)))
   // a Seoul card shows the Champions mark and a 曼谷 card its lotus, not the club's crest
-  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) ? crestUrl(c.clubId) : null)))
+  const crests = await Promise.all(all.map((c) => load(c?.clubId && !isSeoul(c) && !isBangkok(c) && !isLosAngeles(c) ? crestUrl(c.clubId) : null)))
   const mark = await load(all.some((c) => c && isSeoul(c)) ? SEOUL_MARK : null)
   const lotus = await load(all.some((c) => c && isBangkok(c)) ? BANGKOK_LOTUS : null)
+  const sunset = await load(all.some((c) => c && isLosAngeles(c)) ? LOS_ANGELES_SUNSET : null)
 
   // ---- the plate
   const bg = ctx.createLinearGradient(0, 0, L.width, L.height)
@@ -885,7 +1062,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
   // ---- the five
   const ROLES = ['决斗者', '先锋', '控场', '哨卫', '自由人']
   L.seats.forEach((b, i) => {
-    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark, lotus)
+    paintSeat(ctx, b, seatCards[i], ROLES[i], seatCards[i] ? model.level(seatCards[i]!.id) : 0, faces[i], crests[i], mark, lotus, sunset)
   })
 
   // ---- the coach
