@@ -6,7 +6,7 @@ bangkok2025_faces.py's Flickr route, for vlr event 1657.
     python3 scripts/losangeles2023_faces.py taken     # each candidate frame's date taken (photo page), 2 s apart
     python3 scripts/losangeles2023_faces.py download  # every candidate frame, 1024 px, 2 s apart
     python3 scripts/losangeles2023_faces.py sheet     # face boxes + analysis/losangeles_face_sheet.html
-    python3 scripts/losangeles2023_faces.py crop      # the picks → public/events/los-angeles-2023/event-<vlrId>.webp
+    python3 scripts/losangeles2023_faces.py crop      # the picks, cut out → public/events/los-angeles-2023/event-<vlrId>.webp
 
 Candidates (scripts/cache/losangeles2023_flickr_candidates.json, { vlrId: { ign, ids, pairs } }) are frames
 whose Riot caption names exactly that player; a player with fewer than two such frames also gets the frames
@@ -15,9 +15,15 @@ T1 had no Features Day session, so T1's frames are the posed 5 August Shrine Exp
 ("… of T1 at VALORANT Champions Los Angeles Group Stage …", no competes/arrives/reacts).
 
 Captions are not proof of who is pictured (seoul2024_flickr_picks.json). The pick is a frame with one clear
-face (two for a pair frame); the face detector only finds faces, it never says whose. The frame taken
-furthest from any other player's frame is preferred, and a pick within NEAR seconds of one — and nearer to
-it than to his own other frames — is marked unsure, as on 曼谷. A pair frame is always unsure.
+face (two for a pair frame); the face detector only finds faces, it never says whose. Riot captions a whole
+batch at once, so a frame is trusted by its company: the pick is the frame with the most of his own frames
+within NEAR seconds and the fewest of anyone else's (BLG's lone 16:35 「whz」 frame, far from everybody, was
+Biank — the owner caught it). A pick within NEAR seconds of someone else's frame, and nearer to it than to
+his own, is marked unsure, as on 曼谷. A pair frame is always unsure.
+
+Every pick is cut out of its background (scripts/person_cutout.swift: the person under the face, macOS
+Vision's person instance mask), so the card shows the player alone on its own sunset — a frame's wall,
+crowd or teammate never sits on the art (owner, 2026-10-18: 背景和卡面底板融合得不自然).
 Overrides by hand: scripts/cache/losangeles2023_face_picks.json
 ({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "note": ... } }).
 """
@@ -48,6 +54,7 @@ NEAR = 90
 SHEET = ROOT / "analysis" / "losangeles_face_sheet.html"
 OUT = ROOT / "public" / "events" / "los-angeles-2023"
 FACES = ROOT / "src" / "data" / "losangeles2023_faces.json"
+CUT = PHOTOS / "cutouts"
 UA = "ValManagerGameBuild/0.1 (hobby esports-manager project; contact: yankejing711@gmail.com)"
 INTERVAL = 2.0
 SIDE, FACE_H, FACE_TOP = 640, 0.25, 0.17
@@ -245,6 +252,39 @@ def sheet() -> int:
     return 0
 
 
+# A few frames were lit in a strong colour (aspas under LOUD's green, f0rsakeN magenta, Lysoar deep orange);
+# on the sunset they read as a different picture. The light is read off the face — the middle of the face
+# box, so a jersey's colour doesn't count — against the median skin of all 80 frames; how far it sits
+# decides how much of the player becomes a warm monochrome. Natural light (Jinggg) stays as shot.
+SKIN = (0.4385, 0.3075, 0.255)
+TINT = (1.08, 0.94, 0.80)
+
+
+def skin_share(photo: Image.Image, face: dict | None) -> tuple[float, float, float] | None:
+    import numpy as np
+    if not face:
+        return None
+    a = np.asarray(photo.convert("RGB")).astype(np.float32)
+    x0, y0 = int(face["x"] + face["w"] * .25), int(face["y"] + face["h"] * .35)
+    x1, y1 = int(face["x"] + face["w"] * .75), int(face["y"] + face["h"] * .8)
+    m = a[y0:y1, x0:x1].reshape(-1, 3).mean(0)
+    return tuple(float(v) for v in m / max(m.sum(), 1))
+
+
+def grade(im: Image.Image, share: tuple[float, float, float] | None) -> tuple[Image.Image, float]:
+    import numpy as np
+    if not share:
+        return im, 0.0
+    k = float(min(1.0, max(0.0, (sum(abs(a - b) for a, b in zip(share, SKIN)) - 0.2) / 0.25)))
+    if k == 0:
+        return im, 0.0
+    a = np.asarray(im.convert("RGBA")).astype(np.float32)
+    lum = a[..., 0] * .299 + a[..., 1] * .587 + a[..., 2] * .114
+    mono = np.stack([np.clip(lum * t, 0, 255) for t in TINT], -1)
+    a[..., :3] = a[..., :3] * (1 - k) + mono * k
+    return Image.fromarray(a.astype(np.uint8), "RGBA"), round(k, 2)
+
+
 def square(im: Image.Image, face: dict) -> Image.Image:
     w, h = im.size
     cx = face["x"] + face["w"] / 2
@@ -280,13 +320,33 @@ def crop() -> int:
             return 1e9
         return min((abs((taken_at[pid] - taken_at[q]).total_seconds()) for q in frames(cands[vid]) if q != pid and q in taken_at), default=1e9)
 
+    def company(pid: str, vid: str) -> int:
+        """his own frames within NEAR seconds, less everyone else's"""
+        if pid not in taken_at:
+            return 0
+        near = [q for q in taken_at if q != pid and q in owner and abs((taken_at[pid] - taken_at[q]).total_seconds()) <= NEAR]
+        return sum(1 for q in near if vid in owner[q]) - sum(1 for q in near if vid not in owner[q])
+
+    def face_of(pid: str, side: str | None) -> dict | None:
+        fs = clear(f"flickr-{pid}.jpg", boxes) or faces_of(f"flickr-{pid}.jpg", boxes)
+        if side and len(fs) >= 2:
+            pair = sorted(fs[:2], key=lambda f: f["x"])
+            return pair[0] if side == "L" else pair[1]
+        return fs[0] if fs else None
+
+    def cast(pid: str, side: str | None) -> float:
+        """how far the light on his face is from natural, in steps of 0.1 (so session company still leads)"""
+        share = skin_share(Image.open(PHOTOS / f"flickr-{pid}.jpg"), face_of(pid, side))
+        return round(sum(abs(a - b) for a, b in zip(share, SKIN)), 1) if share else 0.0
+
+    jobs = []
     for vid, v in cands.items():
         sides = {p: s for p, s in v["pairs"]}
         options = frames(v)
         if not options and vid not in hand:
             continue
         verdicts = {pid: verdict(f"flickr-{pid}.jpg", boxes, 2 if pid in sides else 1) for pid in options}
-        clean = sorted((pid for pid in options if verdicts[pid] is None), key=lambda q: (q in sides, -gap(q, vid)[0]))
+        clean = sorted((pid for pid in options if verdicts[pid] is None), key=lambda q: (q in sides, -company(q, vid), cast(q, sides.get(q)), -gap(q, vid)[0]))
         h = hand.get(vid, {})
         pid = h.get("id") or (clean[0] if clean else options[0])
         side = h.get("side") or sides.get(pid)
@@ -305,18 +365,8 @@ def crop() -> int:
         if h.get("note"):
             notes.append(h["note"])
         sure = confirmed or (bool(clean) and verdicts.get(pid) is None and not doubtful and not side and not h.get("unsure"))
-        fs = clear(f"flickr-{pid}.jpg", boxes) or faces_of(f"flickr-{pid}.jpg", boxes)
-        if side and len(fs) >= 2:
-            pair = sorted(fs[:2], key=lambda f: f["x"])
-            face = pair[0] if side == "L" else pair[1]
-        else:
-            face = fs[0] if fs else None
-        im = Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGB")
-        if face:
-            square(im, face).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
-        else:
-            s = min(im.size)
-            im.crop(((im.width - s) // 2, 0, (im.width + s) // 2, s)).resize((SIDE, SIDE), Image.LANCZOS).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
+        face = face_of(pid, side)
+        jobs.append((vid, pid, face))
         out[vid] = {"face": f"/events/los-angeles-2023/event-{vid}.webp", "ign": v["ign"], "photo": pid, "side": side,
                     "taken": taken_at[pid].isoformat() if pid in taken_at else None, "sure": sure, "confirmed": confirmed,
                     "note": "；".join(notes) or None,
@@ -324,8 +374,32 @@ def crop() -> int:
                     "license": "All Rights Reserved (Riot Games)", "author": urls.get(pid, {}).get("author") or "Riot Games"}
         if not sure:
             unsure.append(v["ign"])
+    # cut every pick out in one Vision run, then crop the cut-out square around the face
+    CUT.mkdir(parents=True, exist_ok=True)
+    args = []
+    for vid, pid, face in jobs:
+        im = Image.open(PHOTOS / f"flickr-{pid}.jpg")
+        x, y = (face["x"] + face["w"] / 2, face["y"] + face["h"] / 2) if face else (im.width / 2, im.height / 3)
+        args += [str(PHOTOS / f"flickr-{pid}.jpg"), str(CUT / f"{vid}.png"), f"{x:.1f}", f"{y:.1f}"]
+    run = subprocess.run(["swift", str(ROOT / "scripts" / "person_cutout.swift"), *args], capture_output=True, text=True, check=True)
+    how = {Path(json.loads(l)["out"]).stem: json.loads(l).get("how") for l in run.stdout.splitlines() if l.startswith("{") and "out" in l}
+    for vid, pid, face in jobs:
+        cut = CUT / f"{vid}.png"
+        im = Image.open(cut).convert("RGBA") if how.get(vid) in ("person", "foreground") and cut.exists() else Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGBA")
+        if how.get(vid) not in ("person", "foreground"):
+            out[vid]["note"] = "；".join(filter(None, [out[vid]["note"], "没能把人从背景里抠出来，用的是原图"]))
+            out[vid]["sure"] = False
+            unsure.append(out[vid]["ign"])
+        out[vid]["cutout"] = how.get(vid) in ("person", "foreground")
+        im, out[vid]["graded"] = grade(im, skin_share(Image.open(PHOTOS / f"flickr-{pid}.jpg"), face))
+        if face:
+            square(im, face).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=70, method=6)
+        else:
+            s = min(im.size)
+            im.crop(((im.width - s) // 2, 0, (im.width + s) // 2, s)).resize((SIDE, SIDE), Image.LANCZOS).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=70, method=6)
     FACES.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", "utf-8")
-    print(f"{len(out)} faces cropped; unsure ({len(unsure)}): {', '.join(unsure) or 'none'}", flush=True)
+    unsure = sorted(set(unsure), key=unsure.index)
+    print(f"{len(out)} faces cropped, {sum(1 for v in out.values() if v.get('cutout'))} cut out; unsure ({len(unsure)}): {', '.join(unsure) or 'none'}", flush=True)
     return 0
 
 

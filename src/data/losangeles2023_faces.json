@@ -2,41 +2,47 @@
  "26171": {
   "face": "/events/los-angeles-2023/event-26171.webp",
   "ign": "Demon1",
-  "photo": "53101191480",
+  "photo": "53100970849",
   "side": null,
-  "taken": "2023-08-03T21:30:28",
+  "taken": "2023-08-03T21:34:10",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53101191480/",
+  "source": "https://www.flickr.com/photos/valorantesports/53100970849/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3993": {
   "face": "/events/los-angeles-2023/event-3993.webp",
   "ign": "jawgemo",
-  "photo": "53100779721",
+  "photo": "53101189990",
   "side": null,
-  "taken": "2023-08-03T22:03:23",
+  "taken": "2023-08-03T22:58:11",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53100779721/",
+  "source": "https://www.flickr.com/photos/valorantesports/53101189990/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "619": {
   "face": "/events/los-angeles-2023/event-619.webp",
   "ign": "C0M",
-  "photo": "53100779396",
+  "photo": "53101281398",
   "side": null,
-  "taken": "2023-08-03T22:20:35",
+  "taken": "2023-08-03T22:19:32",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53100779396/",
+  "source": "https://www.flickr.com/photos/valorantesports/53101281398/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "11225": {
   "face": "/events/los-angeles-2023/event-11225.webp",
@@ -49,20 +55,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53101190505/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "604": {
   "face": "/events/los-angeles-2023/event-604.webp",
   "ign": "Boostio",
-  "photo": "53101281188",
-  "side": "L",
-  "taken": "2023-08-03T22:51:57",
+  "photo": "53101281088",
+  "side": "R",
+  "taken": "2023-08-03T22:56:01",
   "sure": false,
   "confirmed": false,
-  "note": "双人照，按说明取左边的人",
-  "source": "https://www.flickr.com/photos/valorantesports/53101281188/",
+  "note": "双人照，按说明取右边的人",
+  "source": "https://www.flickr.com/photos/valorantesports/53101281088/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "9803": {
   "face": "/events/los-angeles-2023/event-9803.webp",
@@ -75,7 +85,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53105512495/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "17086": {
   "face": "/events/los-angeles-2023/event-17086.webp",
@@ -88,20 +100,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53105604663/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "9801": {
   "face": "/events/los-angeles-2023/event-9801.webp",
   "ign": "f0rsakeN",
-  "photo": "53104532447",
+  "photo": "53105604948",
   "side": null,
-  "taken": "2023-08-02T13:42:50",
+  "taken": "2023-08-02T13:44:08",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53104532447/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105604948/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "7378": {
   "face": "/events/los-angeles-2023/event-7378.webp",
@@ -114,33 +130,39 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53105604568/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "9800": {
   "face": "/events/los-angeles-2023/event-9800.webp",
   "ign": "mindfreak",
-  "photo": "53105304769",
+  "photo": "53104532462",
   "side": null,
-  "taken": "2023-08-02T14:39:47",
+  "taken": "2023-08-02T14:37:20",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105304769/",
+  "source": "https://www.flickr.com/photos/valorantesports/53104532462/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "8480": {
   "face": "/events/los-angeles-2023/event-8480.webp",
   "ign": "aspas",
-  "photo": "53098778595",
+  "photo": "53098394136",
   "side": null,
-  "taken": "2023-08-02T22:53:51",
+  "taken": "2023-08-02T21:13:02",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098778595/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098394136/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 1.0
  },
  "8447": {
   "face": "/events/los-angeles-2023/event-8447.webp",
@@ -153,20 +175,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098787510/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "6193": {
   "face": "/events/los-angeles-2023/event-6193.webp",
   "ign": "cauanzin",
-  "photo": "53098570114",
+  "photo": "53098883503",
   "side": null,
-  "taken": "2023-08-02T21:27:36",
+  "taken": "2023-08-02T21:27:19",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098570114/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098883503/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2408": {
   "face": "/events/los-angeles-2023/event-2408.webp",
@@ -179,7 +205,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098792755/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "727": {
   "face": "/events/los-angeles-2023/event-727.webp",
@@ -192,7 +220,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53097820752/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1380": {
   "face": "/events/los-angeles-2023/event-1380.webp",
@@ -205,7 +235,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53102548262/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "9810": {
   "face": "/events/los-angeles-2023/event-9810.webp",
@@ -218,20 +250,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53102548697/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "5022": {
   "face": "/events/los-angeles-2023/event-5022.webp",
   "ign": "Derke",
-  "photo": "53103314254",
+  "photo": "53102549007",
   "side": null,
-  "taken": "2023-08-02T20:26:53",
+  "taken": "2023-08-02T19:32:29",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53103314254/",
+  "source": "https://www.flickr.com/photos/valorantesports/53102549007/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "438": {
   "face": "/events/los-angeles-2023/event-438.webp",
@@ -244,33 +280,39 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53103524815/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "458": {
   "face": "/events/los-angeles-2023/event-458.webp",
   "ign": "Chronicle",
-  "photo": "53103618388",
+  "photo": "53103315199",
   "side": null,
-  "taken": "2023-08-02T20:22:04",
+  "taken": "2023-08-02T19:29:14",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53103618388/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103315199/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4462": {
   "face": "/events/los-angeles-2023/event-4462.webp",
   "ign": "MaKo",
-  "photo": "53097854742",
+  "photo": "53097856042",
   "side": null,
-  "taken": "2023-08-04T21:38:52",
+  "taken": "2023-08-04T21:36:54",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53097854742/",
+  "source": "https://www.flickr.com/photos/valorantesports/53097856042/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "772": {
   "face": "/events/los-angeles-2023/event-772.webp",
@@ -283,7 +325,9 @@
   "note": "双人照，按说明取右边的人；只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53098603304/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "804": {
   "face": "/events/los-angeles-2023/event-804.webp",
@@ -296,20 +340,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098915538/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "485": {
   "face": "/events/los-angeles-2023/event-485.webp",
   "ign": "stax",
-  "photo": "53098599824",
+  "photo": "53098819510",
   "side": null,
-  "taken": "2023-08-04T21:51:30",
+  "taken": "2023-08-04T21:50:45",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098599824/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098819510/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "488": {
   "face": "/events/los-angeles-2023/event-488.webp",
@@ -322,98 +370,114 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098822625/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "15559": {
   "face": "/events/los-angeles-2023/event-15559.webp",
   "ign": "CHICHOO",
-  "photo": "53105771130",
+  "photo": "53104793167",
   "side": null,
-  "taken": "2023-08-04T22:33:01",
+  "taken": "2023-08-04T22:32:11",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105771130/",
+  "source": "https://www.flickr.com/photos/valorantesports/53104793167/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3520": {
   "face": "/events/los-angeles-2023/event-3520.webp",
   "ign": "ZmjjKK",
-  "photo": "53104791947",
+  "photo": "53105563909",
   "side": null,
-  "taken": "2023-08-04T23:33:51",
+  "taken": "2023-08-04T23:34:05",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53104791947/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105563909/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3017": {
   "face": "/events/los-angeles-2023/event-3017.webp",
   "ign": "nobody",
-  "photo": "53105862318",
-  "side": "R",
-  "taken": "2023-08-04T22:29:23",
+  "photo": "53104793322",
+  "side": "L",
+  "taken": "2023-08-04T22:29:55",
   "sure": false,
   "confirmed": false,
-  "note": "双人照，按说明取右边的人",
-  "source": "https://www.flickr.com/photos/valorantesports/53105862318/",
+  "note": "双人照，按说明取左边的人",
+  "source": "https://www.flickr.com/photos/valorantesports/53104793322/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4742": {
   "face": "/events/los-angeles-2023/event-4742.webp",
   "ign": "Smoggy",
-  "photo": "53105863503",
+  "photo": "53105772160",
   "side": null,
-  "taken": "2023-08-04T22:36:16",
+  "taken": "2023-08-04T22:35:39",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105863503/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105772160/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4720": {
   "face": "/events/los-angeles-2023/event-4720.webp",
   "ign": "Haodong",
-  "photo": "53105564589",
+  "photo": "53105360481",
   "side": null,
-  "taken": "2023-08-04T23:21:47",
+  "taken": "2023-08-04T23:21:41",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105564589/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105360481/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4885": {
   "face": "/events/los-angeles-2023/event-4885.webp",
   "ign": "whzy",
-  "photo": "53102991504",
+  "photo": "53103202395",
   "side": null,
-  "taken": "2023-08-02T16:35:41",
+  "taken": "2023-08-02T16:31:46",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102991504/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103202395/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "6022": {
   "face": "/events/los-angeles-2023/event-6022.webp",
   "ign": "yosemite",
-  "photo": "53102793341",
+  "photo": "53102793251",
   "side": null,
-  "taken": "2023-08-02T16:14:55",
+  "taken": "2023-08-02T16:16:28",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102793341/",
+  "source": "https://www.flickr.com/photos/valorantesports/53102793251/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3021": {
   "face": "/events/los-angeles-2023/event-3021.webp",
@@ -426,33 +490,39 @@
   "note": "这张和写着 whzy 的照片只隔 21 秒拍，可能是同一组照片里说明写串了",
   "source": "https://www.flickr.com/photos/valorantesports/53103297258/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4774": {
   "face": "/events/los-angeles-2023/event-4774.webp",
   "ign": "Knight",
-  "photo": "53102226487",
+  "photo": "53102226507",
   "side": null,
-  "taken": "2023-08-02T16:21:18",
+  "taken": "2023-08-02T16:20:48",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102226487/",
+  "source": "https://www.flickr.com/photos/valorantesports/53102226507/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3024": {
   "face": "/events/los-angeles-2023/event-3024.webp",
   "ign": "DK",
-  "photo": "53103297568",
+  "photo": "53103202610",
   "side": "R",
-  "taken": "2023-08-02T16:26:17",
+  "taken": "2023-08-02T16:27:37",
   "sure": false,
   "confirmed": false,
   "note": "双人照，按说明取右边的人",
-  "source": "https://www.flickr.com/photos/valorantesports/53103297568/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103202610/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "8044": {
   "face": "/events/los-angeles-2023/event-8044.webp",
@@ -465,7 +535,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53100897475/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1139": {
   "face": "/events/los-angeles-2023/event-1139.webp",
@@ -478,20 +550,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53100486631/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "6510": {
   "face": "/events/los-angeles-2023/event-6510.webp",
   "ign": "AtaKaptan",
-  "photo": "53100675614",
+  "photo": "53100985263",
   "side": null,
-  "taken": "2023-08-02T12:47:29",
+  "taken": "2023-08-02T12:48:09",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53100675614/",
+  "source": "https://www.flickr.com/photos/valorantesports/53100985263/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3604": {
   "face": "/events/los-angeles-2023/event-3604.webp",
@@ -504,7 +580,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53100896970/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "10125": {
   "face": "/events/los-angeles-2023/event-10125.webp",
@@ -517,20 +595,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53100675659/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2858": {
   "face": "/events/los-angeles-2023/event-2858.webp",
   "ign": "SUYGETSU",
-  "photo": "53097961251",
+  "photo": "53098452183",
   "side": null,
-  "taken": "2023-08-04T15:59:29",
+  "taken": "2023-08-04T15:55:49",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53097961251/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098452183/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "573": {
   "face": "/events/los-angeles-2023/event-573.webp",
@@ -543,20 +625,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53097963436/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "384": {
   "face": "/events/los-angeles-2023/event-384.webp",
   "ign": "Shao",
-  "photo": "53097965401",
+  "photo": "53097396932",
   "side": null,
-  "taken": "2023-08-04T15:45:50",
+  "taken": "2023-08-04T15:47:25",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53097965401/",
+  "source": "https://www.flickr.com/photos/valorantesports/53097396932/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "11": {
   "face": "/events/los-angeles-2023/event-11.webp",
@@ -569,20 +655,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53097959306/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "109": {
   "face": "/events/los-angeles-2023/event-109.webp",
   "ign": "ANGE1",
-  "photo": "53098137109",
+  "photo": "53097391647",
   "side": null,
-  "taken": "2023-08-04T16:42:34",
+  "taken": "2023-08-04T16:39:24",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098137109/",
+  "source": "https://www.flickr.com/photos/valorantesports/53097391647/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "261": {
   "face": "/events/los-angeles-2023/event-261.webp",
@@ -595,20 +685,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53102796386/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4164": {
   "face": "/events/los-angeles-2023/event-4164.webp",
   "ign": "s0m",
-  "photo": "53102229012",
+  "photo": "53103205055",
   "side": null,
-  "taken": "2023-08-03T18:55:05",
+  "taken": "2023-08-03T18:55:21",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102229012/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103205055/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "98": {
   "face": "/events/los-angeles-2023/event-98.webp",
@@ -621,33 +715,39 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53102229412/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4": {
   "face": "/events/los-angeles-2023/event-4.webp",
   "ign": "crashies",
-  "photo": "53102795606",
+  "photo": "53103300073",
   "side": null,
-  "taken": "2023-08-03T18:42:31",
+  "taken": "2023-08-03T18:43:06",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102795606/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103300073/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "817": {
   "face": "/events/los-angeles-2023/event-817.webp",
   "ign": "FNS",
-  "photo": "53102795091",
+  "photo": "53103205675",
   "side": null,
-  "taken": "2023-08-03T19:14:06",
+  "taken": "2023-08-03T18:15:35",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53102795091/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103205675/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4545": {
   "face": "/events/los-angeles-2023/event-4545.webp",
@@ -660,7 +760,9 @@
   "note": "这张和写着 xeta 的照片只隔 5 秒拍，可能是同一组照片里说明写串了；只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53101020858/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "474": {
   "face": "/events/los-angeles-2023/event-474.webp",
@@ -673,7 +775,9 @@
   "note": "这张和写着 Sayaplayer 的照片只隔 5 秒拍，可能是同一组照片里说明写串了；只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53099960142/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2489": {
   "face": "/events/los-angeles-2023/event-2489.webp",
@@ -686,7 +790,9 @@
   "note": "这张和写着 carpe 的照片只隔 10 秒拍，可能是同一组照片里说明写串了；只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53099960297/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "5129": {
   "face": "/events/los-angeles-2023/event-5129.webp",
@@ -699,7 +805,9 @@
   "note": "只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53101021208/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "31207": {
   "face": "/events/los-angeles-2023/event-31207.webp",
@@ -712,20 +820,24 @@
   "note": "这张和写着 xeta 的照片只隔 5 秒拍，可能是同一组照片里说明写串了；只有一张写着他名字的照片",
   "source": "https://www.flickr.com/photos/valorantesports/53100521686/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4181": {
   "face": "/events/los-angeles-2023/event-4181.webp",
   "ign": "Cloud",
-  "photo": "53105568264",
+  "photo": "53105568304",
   "side": null,
-  "taken": "2023-08-04T15:16:34",
+  "taken": "2023-08-04T15:16:25",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105568264/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105568304/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2690": {
   "face": "/events/los-angeles-2023/event-2690.webp",
@@ -738,20 +850,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53105867808/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "292": {
   "face": "/events/los-angeles-2023/event-292.webp",
   "ign": "Fit1nho",
-  "photo": "53105776620",
+  "photo": "53105776750",
   "side": null,
-  "taken": "2023-08-04T14:52:47",
+  "taken": "2023-08-04T14:52:09",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105776620/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105776750/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "10": {
   "face": "/events/los-angeles-2023/event-10.webp",
@@ -764,20 +880,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53104797962/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "3070": {
   "face": "/events/los-angeles-2023/event-3070.webp",
   "ign": "nukkye",
-  "photo": "53105366266",
+  "photo": "53105570609",
   "side": null,
-  "taken": "2023-08-04T14:37:50",
+  "taken": "2023-08-04T14:38:29",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105366266/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105570609/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "312": {
   "face": "/events/los-angeles-2023/event-312.webp",
@@ -790,7 +910,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098436293/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "457": {
   "face": "/events/los-angeles-2023/event-457.webp",
@@ -803,7 +925,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098439413/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "101": {
   "face": "/events/los-angeles-2023/event-101.webp",
@@ -816,46 +940,54 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53098126839/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "9780": {
   "face": "/events/los-angeles-2023/event-9780.webp",
   "ign": "Jamppi",
-  "photo": "53098345360",
+  "photo": "53098345470",
   "side": null,
-  "taken": "2023-08-02T17:33:42",
+  "taken": "2023-08-02T17:32:49",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098345360/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098345470/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1427": {
   "face": "/events/los-angeles-2023/event-1427.webp",
   "ign": "Redgar",
-  "photo": "53098349285",
+  "photo": "53098129969",
   "side": null,
-  "taken": "2023-08-02T17:07:48",
+  "taken": "2023-08-02T17:10:03",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53098349285/",
+  "source": "https://www.flickr.com/photos/valorantesports/53098129969/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "19530": {
   "face": "/events/los-angeles-2023/event-19530.webp",
   "ign": "AAAAY",
-  "photo": "53100964809",
+  "photo": "53100774581",
   "side": null,
-  "taken": "2023-08-04T00:26:18",
+  "taken": "2023-08-04T00:25:04",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53100964809/",
+  "source": "https://www.flickr.com/photos/valorantesports/53100774581/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "37489": {
   "face": "/events/los-angeles-2023/event-37489.webp",
@@ -868,7 +1000,9 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53100772961/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 1.0
  },
  "11218": {
   "face": "/events/los-angeles-2023/event-11218.webp",
@@ -876,25 +1010,29 @@
   "photo": "53101185945",
   "side": "L",
   "taken": "2023-08-04T00:19:53",
-  "sure": false,
-  "confirmed": false,
-  "note": "双人照，按说明取左边的人",
+  "sure": true,
+  "confirmed": true,
+  "note": "主人确认是 Yuicaw 本人（2026-10-18）；抠图去掉了旁边的 BerLIN",
   "source": "https://www.flickr.com/photos/valorantesports/53101185945/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "4880": {
   "face": "/events/los-angeles-2023/event-4880.webp",
   "ign": "TZH",
-  "photo": "53100211177",
+  "photo": "53100214472",
   "side": null,
-  "taken": "2023-08-04T00:30:17",
+  "taken": "2023-08-04T00:31:02",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53100211177/",
+  "source": "https://www.flickr.com/photos/valorantesports/53100214472/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "7857": {
   "face": "/events/los-angeles-2023/event-7857.webp",
@@ -907,98 +1045,114 @@
   "note": "这张和写着 TZH 的照片只隔 78 秒拍，可能是同一组照片里说明写串了",
   "source": "https://www.flickr.com/photos/valorantesports/53101183990/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2462": {
   "face": "/events/los-angeles-2023/event-2462.webp",
   "ign": "keznit",
-  "photo": "53105093646",
+  "photo": "53105093676",
   "side": null,
-  "taken": "2023-08-03T16:57:46",
+  "taken": "2023-08-03T16:55:25",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105093646/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105093676/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2764": {
   "face": "/events/los-angeles-2023/event-2764.webp",
   "ign": "DaveeyS",
-  "photo": "53105093551",
+  "photo": "53105598093",
   "side": null,
-  "taken": "2023-08-03T17:11:11",
+  "taken": "2023-08-03T17:33:07",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105093551/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105598093/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1294": {
   "face": "/events/los-angeles-2023/event-1294.webp",
   "ign": "NagZ",
-  "photo": "53105298999",
+  "photo": "53105093991",
   "side": null,
-  "taken": "2023-08-03T16:38:49",
+  "taken": "2023-08-03T16:35:39",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105298999/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105093991/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "2610": {
   "face": "/events/los-angeles-2023/event-2610.webp",
   "ign": "Klaus",
-  "photo": "53105093386",
+  "photo": "53105298494",
   "side": null,
-  "taken": "2023-08-03T17:42:13",
+  "taken": "2023-08-03T17:41:23",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105093386/",
+  "source": "https://www.flickr.com/photos/valorantesports/53105298494/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1311": {
   "face": "/events/los-angeles-2023/event-1311.webp",
   "ign": "Melser",
-  "photo": "53105598398",
+  "photo": "53104526282",
   "side": null,
-  "taken": "2023-08-03T16:46:43",
+  "taken": "2023-08-03T16:47:11",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53105598398/",
+  "source": "https://www.flickr.com/photos/valorantesports/53104526282/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "424": {
   "face": "/events/los-angeles-2023/event-424.webp",
   "ign": "Dep",
-  "photo": "53103620158",
+  "photo": "53103115111",
   "side": null,
-  "taken": "2023-08-04T18:06:05",
+  "taken": "2023-08-04T18:01:46",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53103620158/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103115111/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "999": {
   "face": "/events/los-angeles-2023/event-999.webp",
   "ign": "Laz",
-  "photo": "53103115081",
+  "photo": "53103115416",
   "side": null,
-  "taken": "2023-08-04T19:00:07",
+  "taken": "2023-08-04T17:53:55",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53103115081/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103115416/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1395": {
   "face": "/events/los-angeles-2023/event-1395.webp",
@@ -1011,20 +1165,24 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53103115556/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "6668": {
   "face": "/events/los-angeles-2023/event-6668.webp",
   "ign": "SugarZ3ro",
-  "photo": "53103115291",
+  "photo": "53103115316",
   "side": null,
-  "taken": "2023-08-04T17:58:33",
+  "taken": "2023-08-04T17:56:54",
   "sure": true,
   "confirmed": false,
   "note": null,
-  "source": "https://www.flickr.com/photos/valorantesports/53103115291/",
+  "source": "https://www.flickr.com/photos/valorantesports/53103115316/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  },
  "1000": {
   "face": "/events/los-angeles-2023/event-1000.webp",
@@ -1037,6 +1195,8 @@
   "note": null,
   "source": "https://www.flickr.com/photos/valorantesports/53103316614/",
   "license": "All Rights Reserved (Riot Games)",
-  "author": "VALORANT Champions Tour Photos"
+  "author": "VALORANT Champions Tour Photos",
+  "cutout": true,
+  "graded": 0.0
  }
 }

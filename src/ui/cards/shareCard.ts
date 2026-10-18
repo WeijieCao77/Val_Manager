@@ -610,26 +610,22 @@ function paintLosAngelesSeat(
   ctx.lineWidth = Math.max(1, W(0.3))
   ctx.strokeText('23', X(3), Y(11))
 
-  // the portrait window (.la-photo): toned, faded top, foot and sides
+  // the portrait (.la-photo): the cut-out player, toned and rim-lit, faded only into the foot
   const pb = { x: X(9), y: Y(17), w: W(93), h: H(65) }
   if (face) {
     const off = document.createElement('canvas')
     off.width = Math.ceil(pb.w)
     off.height = Math.ceil(pb.h)
     const o = off.getContext('2d')!
-    o.filter = 'saturate(.48) sepia(.2) contrast(1.08)'
+    o.filter = `saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 ${W(1.6)}px rgba(255,154,92,.4))`
     const scale = Math.max(pb.w / face.width, pb.h / face.height)
     const fw = face.width * scale, fh = face.height * scale
     o.drawImage(face, (pb.w - fw) / 2, (pb.h - fh) * 0.3, fw, fh)
     o.filter = 'none'
     o.globalCompositeOperation = 'destination-in'
     const vt = o.createLinearGradient(0, 0, 0, pb.h)
-    vt.addColorStop(0, 'rgba(0,0,0,0)'); vt.addColorStop(0.12, '#000'); vt.addColorStop(0.65, '#000'); vt.addColorStop(0.99, 'rgba(0,0,0,0)')
+    vt.addColorStop(0.62, '#000'); vt.addColorStop(0.97, 'rgba(0,0,0,0)')
     o.fillStyle = vt
-    o.fillRect(0, 0, pb.w, pb.h)
-    const hz = o.createLinearGradient(0, 0, pb.w, 0)
-    hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.17, '#000'); hz.addColorStop(0.85, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)')
-    o.fillStyle = hz
     o.fillRect(0, 0, pb.w, pb.h)
     ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
   }

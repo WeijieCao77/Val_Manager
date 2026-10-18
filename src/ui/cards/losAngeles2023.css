@@ -16,8 +16,12 @@
 .la-card .evo-mark{font-style:normal;margin-left:.15em;color:#8ff0bf}
 .la-rating span{font-size:2.6cqw;letter-spacing:.06em}
 .la-player footer{font-size:2.2cqw}
-/* the photo window: Features Day frames are cropped square around the face (losangeles2023_faces.py) */
-.la-photo img{object-position:50% 30%}
+/* the photo: each player is cut out of his frame (losangeles2023_faces.py), so he stands on the card's own
+   sunset — no window tint (it coloured the art behind him as a box), only a fade into the foot; the warm
+   rim light ties the cutout to the sun behind it */
+.la-photo{mask-image:linear-gradient(#000 62%,transparent 97%);-webkit-mask-image:linear-gradient(#000 62%,transparent 97%);mask-composite:add}
+.la-photo:after{display:none}
+.la-photo img{object-position:50% 30%;filter:saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 1.6cqw #ff9a5c66) drop-shadow(0 2cqw 3cqw #17131e99)}
 /* ---- 抽卡 shelf, reveal and gallery */
 .la-shelf{display:flex;gap:28px;align-items:center;padding:28px 32px;margin:0 0 20px;background:radial-gradient(ellipse at 15% 0,#a8563a40,transparent 70%),#17131e;border:1px solid #c79a6a;color:#fff0d5;border-radius:8px;overflow:hidden}
 .la-shelf-art{position:relative;min-width:180px;width:180px;height:216px;flex-shrink:0}

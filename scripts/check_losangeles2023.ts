@@ -26,6 +26,10 @@ ok('16 支战队，每队五人', LOS_ANGELES_TEAMS.length === 16 && LOS_ANGELES
 ok('每张卡都查得到、有照片、有出场、有位置', LOS_ANGELES_CARDS.every(c => cardById(c.id) === c && !!c.face && existsSync(`public${c.face}`)
   && c.losAngeles!.maps > 0 && c.roles.length > 0))
 ok('照片是洛杉矶冠军赛的', LOS_ANGELES_CARDS.every(c => c.face!.startsWith('/events/los-angeles-2023/') && losAngelesFace(c.losAngeles!.vlrId)?.source?.includes('flickr.com/photos/valorantesports/')))
+const faces = LOS_ANGELES_CARDS.map(c => losAngelesFace(c.losAngeles!.vlrId) as { cutout?: boolean; photo?: string; confirmed?: boolean })
+ok('每张照片都把人从背景里抠出来了（只剩选手本人站在卡面上）', faces.every(f => f.cutout === true))
+ok('whzy 用的是他自己那组照片（16:31），不是被说明写成 whz 的 Biank（16:35 那张）', faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'whzy')].photo !== '53102991504')
+ok('Yuicaw 那张双人照主人确认过，抠图后只剩他', !!faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Yuicaw')].confirmed)
 ok('队名按当届：DRX、Giants（不是后来的 KRX、GX）', by('MaKo').clubTag === 'DRX' && by('Cloud').clubTag === 'GIA'
   && !LOS_ANGELES_CARDS.some(c => c.clubTag === 'KRX' || c.clubTag === 'GX'))
 ok('ID 按当届写：FNS、TZH、C0M', ['FNS', 'TZH', 'C0M'].every(i => !!by(i)))
