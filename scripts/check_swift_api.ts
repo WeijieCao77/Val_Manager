@@ -58,6 +58,15 @@ assert.equal(s.match?.id, id); assert.equal(s.match.kind, 'live')
 assert.equal(s.match.opponent.name, '乙')
 assert.equal((await call('', { id: B })).match.opponent.name, '甲')
 assert((await call('/queue', { id: A })).already, '比赛中再排队不会开第二场')
+{
+  // a player who queued and closed the page is not paired live
+  await call('/queue', { id: C })
+  now += 8000
+  await call('/queue', { id: NEW })
+  const gone = await call('', { id: NEW })
+  assert(!gone.match, '离开页面的排队玩家不会被配成真人对局')
+  await call('/leave', { id: C }); await call('/leave', { id: NEW })
+}
 console.log('ok  排队、配对、比赛中不能再排')
 
 // ---------------------------------------------------------------- a round waits for both

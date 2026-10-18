@@ -25,7 +25,8 @@ export const DRAFT_BID_SEC = 25
 export const DRAFT_POSITIONS: readonly Role[] = ['决斗者', '先锋', '控场', '哨卫', '自由人']
 export const DRAFT_ROUNDS = DRAFT_POSITIONS.length
 
-const POOL: readonly PlayerCard[] = PLAYER_CARDS.filter((c) => !c.former && !c.retired)
+// today's cards and the 彩卡; not retired players (their own series) or a 彩蛋卡
+const POOL: readonly PlayerCard[] = PLAYER_CARDS.filter((c) => !c.former && !c.retired && c.event !== 'egg' && c.event !== 'retired')
 
 /**
  * One round's lot: `size` cards of the round's position, one from each band

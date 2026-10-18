@@ -63,6 +63,8 @@ create table if not exists swift_queue (
   strength real not null,
   joined   timestamptz not null default now()
 );
+-- the last time the queued page asked: only players still on the page are paired live
+alter table swift_queue add column if not exists seen timestamptz;
 create table if not exists swift_players (
   id_hash  text primary key,
   name     text,
@@ -114,6 +116,8 @@ export function makeSwiftApi(sql, {
     const cards = rows[0].cards && typeof rows[0].cards === 'object' ? rows[0].cards : {}
     if (slots.length < 5 || slots.some((s) => !s)) return { why: '先凑齐五个人。' }
     if (slots.some((s) => !cards[s]) || (coach && !cards[coach])) return { why: '阵容里有卡不在收藏里了，刷新后再试。' }
+    const cap = engine.retiredLimit(slots)
+    if (!cap.ok) return { why: cap.why }
     const people = new Set()
     for (const s of slots) {
       const c = engine.cardById(s)
@@ -255,8 +259,10 @@ export function makeSwiftApi(sql, {
       if (!mine) return null
       const waited = (now - ms(mine.joined)) / 1000
       const band = 3 + Math.max(0, waited) * 0.6
+      await db`update swift_queue set seen = ${new Date(now)} where id_hash = ${me}`
       const other = (await db`
         select * from swift_queue where id_hash <> ${me} and abs(strength - ${mine.strength}) <= ${band}
+           and seen > ${new Date(now - 6000)}
          order by joined limit 1`)[0]
       const seed = freshSeed()
       let row
@@ -351,8 +357,8 @@ export function makeSwiftApi(sql, {
     if (got.why) { json(res, 200, { ok: false, why: got.why }); return }
     const strength = engine.sideStrength(got.side)
     const side = { ...got.side, strength }
-    await sql`insert into swift_queue (id_hash, name, side, strength, joined) values (${me}, ${got.name}, ${sql.json(side)}::jsonb, ${strength}, ${new Date(clock())})
-      on conflict (id_hash) do update set side = excluded.side, strength = excluded.strength, name = excluded.name`
+    await sql`insert into swift_queue (id_hash, name, side, strength, joined, seen) values (${me}, ${got.name}, ${sql.json(side)}::jsonb, ${strength}, ${new Date(clock())}, ${new Date(clock())})
+      on conflict (id_hash) do update set side = excluded.side, strength = excluded.strength, name = excluded.name, seen = excluded.seen`
     const id = await match(me, clock())
     json(res, 200, { ok: true, match: id ?? undefined })
   }

@@ -668,7 +668,7 @@ export const swiftRoles: readonly Role[] = ROLES
 const CLUB_FIVES: { id: string; name: string; tag: string; slots: string[] }[] = (() => {
   const byClub = new Map<string, PlayerCard[]>()
   for (const c of PLAYER_CARDS) {
-    if (c.legend || c.former || !c.clubId) continue
+    if (c.legend || c.former || c.retired || c.event || !c.clubId) continue
     const xs = byClub.get(c.clubId) ?? []
     xs.push(c)
     byClub.set(c.clubId, xs)
