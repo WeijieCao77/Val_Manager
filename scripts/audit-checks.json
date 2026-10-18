@@ -919,5 +919,20 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_egg_cards.ts"
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_swift.ts",
+    "estimatedSeconds": 20
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_swift_api.ts",
+    "estimatedSeconds": 15
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_draft.ts",
+    "estimatedSeconds": 10
   }
 ]
