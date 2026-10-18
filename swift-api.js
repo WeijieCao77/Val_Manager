@@ -17,9 +17,9 @@
  * The finish, under the same lock: a rating for each player in the match
  * (Elo, ghosts and the AI held at their own number), the player's calls folded
  * into their habit, the five kept as their ghost, and — for the first
- * SWIFT_PAID_WINS wins of a Shanghai day, on an account that may trade — coins
- * by mail. The mail row and the day counter move in the same statement chain,
- * so a retried finish pays nothing twice.
+ * SWIFT_PAID_GAMES finished matches of a Shanghai day, win or lose, on an
+ * account that may trade — coins by mail. It runs once: the match row is
+ * locked and moves to 'done' in the same transaction.
  */
 import { createHash, randomBytes } from 'node:crypto'
 import { isVerified } from './phone-api.js'
@@ -30,11 +30,18 @@ const freshSeed = () => randomBytes(4).readUInt32LE(0)
 
 /** seconds alone in the queue before a ghost is dealt */
 export const SWIFT_WAIT_SEC = 12
-/** wins a day that pay, and what each pays */
-export const SWIFT_PAID_WINS = 3
+/**
+ * Every finished match pays — a win more than a loss — for the first SWIFT_PAID_GAMES a Shanghai day.
+ * A side that called fewer than half its rounds itself (the clock called the rest) is paid nothing,
+ * and neither is the side that gave the match up; neither uses one of the day's paid games.
+ */
+export const SWIFT_PAID_GAMES = 5
 export const SWIFT_WIN_COINS = 100
+export const SWIFT_LOSS_COINS = 30
 /** grace on top of a phase's clock for a slow phone */
 const GRACE_MS = 2500
+/** a match past its clock this long with nobody reading it is called by the sweep */
+const STALE_MS = 60_000
 const K = 24
 
 export const SWIFT_SCHEMA = `
@@ -65,6 +72,8 @@ create table if not exists swift_queue (
 );
 -- the last time the queued page asked: only players still on the page are paired live
 alter table swift_queue add column if not exists seen timestamptz;
+-- 快速 (first to 5) and 完整 (first to 13) queue apart
+alter table swift_queue add column if not exists format text not null default 'quick';
 create table if not exists swift_players (
   id_hash  text primary key,
   name     text,
@@ -78,6 +87,8 @@ create table if not exists swift_players (
   updated  timestamptz not null default now()
 );
 create index if not exists swift_players_rating_idx on swift_players (rating desc);
+-- paid games today (wins and losses), beside the day's wins
+alter table swift_players add column if not exists day_games int not null default 0;
 `
 
 export function makeSwiftApi(sql, {
@@ -141,7 +152,9 @@ export function makeSwiftApi(sql, {
     return Math.max(0, Math.floor(Number(r[0].pulls ?? 0))) >= TRADE_PULLS && Math.max(0, Number(r[0].wait) || 0) <= 0
   }
 
-  const deadlineOf = (state, now) => new Date(now + (state.phase === 'recon' ? engine.SWIFT_RECON_SEC : engine.SWIFT_CHOOSE_SEC) * 1000 + GRACE_MS)
+  // a round just played gets its replay on screen before the next call's clock starts
+  const deadlineOf = (state, now) => new Date(now + (state.phase === 'recon' ? engine.SWIFT_RECON_SEC
+    : engine.SWIFT_CHOOSE_SEC + (state.log?.length ? engine.SWIFT_REPLAY_SEC : 0)) * 1000 + GRACE_MS)
 
   // ------------------------------------------------------------ the robot side of a ghost or AI match
 
@@ -198,20 +211,28 @@ export function makeSwiftApi(sql, {
       const habit = engine.addHabit(byId.get(h)?.habit ?? null, state, t)
       const side = { ...state.sides[t], strength: engine.sideStrength(state.sides[t]) }
       const name = t === 0 ? row.a_name : row.b_name
+      // paid: called at least half its rounds itself, did not resign, and has a paid game left today
+      const calls = state.calls?.[t] ?? 0
+      const earns = calls * 2 >= state.log.length && state.resigned !== t
       const got = await db`
-        insert into swift_players (id_hash, name, rating, played, won, habit, side, day, day_wins, updated)
-        values (${h}, ${name ?? null}, ${1000 + delta[t]}, 1, ${won}, ${db.json(habit)}::jsonb, ${db.json(side)}::jsonb, ${day}, ${won}, now())
+        insert into swift_players (id_hash, name, rating, played, won, habit, side, day, day_wins, day_games, updated)
+        values (${h}, ${name ?? null}, ${1000 + delta[t]}, 1, ${won}, ${db.json(habit)}::jsonb, ${db.json(side)}::jsonb, ${day}, ${won}, ${earns ? 1 : 0}, now())
         on conflict (id_hash) do update set
           name = coalesce(excluded.name, swift_players.name), rating = swift_players.rating + ${delta[t]},
           played = swift_players.played + 1, won = swift_players.won + ${won}, habit = excluded.habit, side = excluded.side,
           day_wins = case when swift_players.day = ${day} then swift_players.day_wins + ${won} else ${won} end,
+          day_games = case when swift_players.day = ${day} then swift_players.day_games + ${earns ? 1 : 0} else ${earns ? 1 : 0} end,
           day = ${day}, updated = now()
-        returning rating, day_wins`
+        returning rating, day_wins, day_games`
       ratings[t] = { before: rating[t], after: got[0].rating, delta: delta[t] }
-      if (won && got[0].day_wins <= SWIFT_PAID_WINS && (await mayEarn(db, h))) {
+      if (!earns) ratings[t].unpaid = state.resigned === t ? 'resigned' : 'idle'
+      else if (got[0].day_games > SWIFT_PAID_GAMES) ratings[t].unpaid = 'cap'
+      else if (!(await mayEarn(db, h))) ratings[t].unpaid = 'gate'
+      else {
+        const coins = won ? SWIFT_WIN_COINS : SWIFT_LOSS_COINS
         await db`insert into card_mail (to_h, kind, coins, body)
-          values (${h}, 'swift', ${SWIFT_WIN_COINS}, ${db.json({ match: String(row.id), win: got[0].day_wins })}::jsonb)`
-        ratings[t].coins = SWIFT_WIN_COINS
+          values (${h}, 'swift', ${coins}, ${db.json({ match: String(row.id), won: !!won, game: got[0].day_games })}::jsonb)`
+        ratings[t].coins = coins
       }
     }
     await db`update swift_matches set status = 'done', finished = now(), ratings = ${db.json(ratings)}::jsonb where id = ${row.id}`
@@ -236,7 +257,8 @@ export function makeSwiftApi(sql, {
       let ratings = row.ratings
       let deadline = row.deadline
       if (JSON.stringify(state) !== before) {
-        deadline = deadlineOf(state, now)
+        // the clock restarts only when the round or the phase moves on — not on one side's call or a pause
+        if (state.round !== row.state.round || state.phase !== row.state.phase) deadline = deadlineOf(state, now)
         await db`update swift_matches set state = ${db.json(state)}::jsonb, deadline = ${deadline} where id = ${row.id}`
         if (state.phase === 'done' && row.status === 'live') ratings = await finish(db, row, state, now)
       }
@@ -262,14 +284,14 @@ export function makeSwiftApi(sql, {
       await db`update swift_queue set seen = ${new Date(now)} where id_hash = ${me}`
       const other = (await db`
         select * from swift_queue where id_hash <> ${me} and abs(strength - ${mine.strength}) <= ${band}
-           and seen > ${new Date(now - 6000)}
+           and seen > ${new Date(now - 6000)} and format = ${mine.format}
          order by joined limit 1`)[0]
       const seed = freshSeed()
       let row
       if (other) {
         // the earlier in the queue is side 0
         const [a, b] = ms(other.joined) <= ms(mine.joined) ? [other, mine] : [mine, other]
-        const state = engine.newSwiftMatch(seed, a.side, b.side)
+        const state = engine.newSwiftMatch(seed, a.side, b.side, mine.format)
         row = (await db`insert into swift_matches (a_hash, b_hash, kind, state, deadline)
           values (${a.id_hash}, ${b.id_hash}, 'live', ${db.json(state)}::jsonb, ${deadlineOf(state, now)}) returning id::text as id`)[0]
         await db`delete from swift_queue where id_hash in (${a.id_hash}, ${b.id_hash})`
@@ -285,10 +307,10 @@ export function makeSwiftApi(sql, {
       let state, kind = 'ai', ghostOf = null, habit = null
       if (near.length) {
         const g = near[seed % near.length]
-        state = engine.newSwiftMatch(seed, mine.side, g.side)
+        state = engine.newSwiftMatch(seed, mine.side, g.side, mine.format)
         kind = 'ghost'; ghostOf = g.id_hash; habit = g.habit ?? null
       } else {
-        state = engine.newSwiftMatch(seed, mine.side, engine.aiSide(seed, mine.strength))
+        state = engine.newSwiftMatch(seed, mine.side, engine.aiSide(seed, mine.strength), mine.format)
       }
       row = (await db`insert into swift_matches (a_hash, b_hash, kind, ghost_of, habit, state, deadline)
         values (${me}, null, ${kind}, ${ghostOf}, ${habit ? db.json(habit) : null}::jsonb, ${db.json(state)}::jsonb, ${deadlineOf(state, now)}) returning id::text as id`)[0]
@@ -322,26 +344,36 @@ export function makeSwiftApi(sql, {
   }
 
   async function state(req, res, bucket) {
-    if (guard(res, `sw:${bucket}`, 240)) return
+    if (guard(res, `sw:${bucket}`, 600)) return
     const { body, me } = await readMe(req)
     const now = clock()
-    const out = { ok: true, now, waitSec: SWIFT_WAIT_SEC, paidWins: SWIFT_PAID_WINS, winCoins: SWIFT_WIN_COINS, board: await top(now) }
+    const out = { ok: true, now, waitSec: SWIFT_WAIT_SEC, paidGames: SWIFT_PAID_GAMES, winCoins: SWIFT_WIN_COINS, lossCoins: SWIFT_LOSS_COINS, board: await top(now) }
     if (me) {
       let id = matchId(body?.match) ?? await liveFor(me)
       if (!id) {
-        const q = (await sql`select joined from swift_queue where id_hash = ${me}`)[0]
+        const q = (await sql`select joined, format from swift_queue where id_hash = ${me}`)[0]
         if (q) {
           id = await match(me, now)
-          if (!id) out.queue = { since: ms(q.joined) }
+          if (!id) out.queue = { since: ms(q.joined), format: q.format }
         }
       }
       if (id) {
         const got = await withMatch(id, null, now)
         if (got && (got.row.a_hash === me || got.row.b_hash === me)) out.match = matchView(got.row, me)
       }
+      // a match that ended while the page was away (the sweep, a reload): its result, for fifteen minutes
+      if (!out.match) {
+        const last = (await sql`select id::text as id from swift_matches where status = 'done' and (a_hash = ${me} or b_hash = ${me})
+          and finished > now() - interval '15 minutes' order by finished desc limit 1`)[0]
+        if (last) {
+          const got = await withMatch(last.id, null, now)
+          if (got) out.recent = matchView(got.row, me)
+        }
+      }
       // read after the match: a finish just written shows in the totals
-      const p = (await sql`select rating, played, won, day, day_wins from swift_players where id_hash = ${me}`)[0]
-      out.me = { rating: p?.rating ?? 1000, played: p?.played ?? 0, won: p?.won ?? 0, dayWins: p && p.day === dayOf(now) ? p.day_wins : 0, h: me.slice(0, 8) }
+      const p = (await sql`select rating, played, won, day, day_wins, day_games from swift_players where id_hash = ${me}`)[0]
+      const today = p && p.day === dayOf(now)
+      out.me = { rating: p?.rating ?? 1000, played: p?.played ?? 0, won: p?.won ?? 0, dayWins: today ? p.day_wins : 0, dayGames: today ? p.day_games : 0, h: me.slice(0, 8) }
     }
     json(res, 200, out)
   }
@@ -357,8 +389,18 @@ export function makeSwiftApi(sql, {
     if (got.why) { json(res, 200, { ok: false, why: got.why }); return }
     const strength = engine.sideStrength(got.side)
     const side = { ...got.side, strength }
-    await sql`insert into swift_queue (id_hash, name, side, strength, joined, seen) values (${me}, ${got.name}, ${sql.json(side)}::jsonb, ${strength}, ${new Date(clock())}, ${new Date(clock())})
-      on conflict (id_hash) do update set side = excluded.side, strength = excluded.strength, name = excluded.name, seen = excluded.seen`
+    const format = engine.isFormat(body?.format) ? body.format : 'quick'
+    // under the lock matching takes, so a pairing in flight and this re-queue cannot both make a match
+    const queued = await tx(async (db) => {
+      await db`select pg_advisory_xact_lock(7735301)`
+      const live = await db`select 1 as ok from swift_matches where status = 'live' and (a_hash = ${me} or b_hash = ${me}) limit 1`
+      if (live.length) return false
+      await db`insert into swift_queue (id_hash, name, side, strength, joined, seen, format) values (${me}, ${got.name}, ${db.json(side)}::jsonb, ${strength}, ${new Date(clock())}, ${new Date(clock())}, ${format})
+        on conflict (id_hash) do update set side = excluded.side, strength = excluded.strength, name = excluded.name, seen = excluded.seen,
+          format = excluded.format, joined = case when swift_queue.format = excluded.format then swift_queue.joined else excluded.joined end`
+      return true
+    })
+    if (!queued) { json(res, 200, { ok: true, already: true }); return }
     const id = await match(me, clock())
     json(res, 200, { ok: true, match: id ?? undefined })
   }
@@ -375,7 +417,7 @@ export function makeSwiftApi(sql, {
         if (row.status !== 'live' || (row.a_hash !== me && row.b_hash !== me)) return null
         const t = row.a_hash === me ? 0 : 1
         const score = state.score.slice()
-        score[1 - t] = engine.SWIFT_WIN
+        score[1 - t] = Math.max(score[1 - t], score[t] + 1)
         return { state: { ...state, score, phase: 'done', winner: 1 - t, pending: [null, null], resigned: t } }
       })
     }
@@ -396,7 +438,10 @@ export function makeSwiftApi(sql, {
       if (what === 'call') {
         if (state.phase !== 'choose' || state.pending[t]) { why = '这一回合已经定了。'; return null }
         if (Number(body?.round) !== state.round) { why = '回合已经过了，刷新一下。'; return null }
-        return { state: engine.submitChoice(state, t, body?.choice) }
+        const next = engine.submitChoice(state, t, body?.choice)
+        const calls = (state.calls ?? [0, 0]).slice()
+        calls[t]++
+        return { state: { ...next, calls } }
       }
       if (what === 'recon') {
         if (state.phase !== 'recon' || !state.recon[t]) { why = '现在不能改打法。'; return null }
@@ -407,7 +452,8 @@ export function makeSwiftApi(sql, {
       return { state: p }
     })
     if (!got) { json(res, 200, { ok: false, why: '找不到这场比赛。' }); return }
-    if (why) { json(res, 200, { ok: false, why, match: matchView(got.row, me) }); return }
+    const mine = got.row.a_hash === me || got.row.b_hash === me
+    if (why) { json(res, 200, { ok: false, why, ...(mine ? { match: matchView(got.row, me) } : {}) }); return }
     json(res, 200, { ok: true, match: matchView(got.row, me) })
   }
 
@@ -418,14 +464,10 @@ export function makeSwiftApi(sql, {
     if (sweeping) return
     sweeping = true
     try {
-      // matches nobody reads any more: let the clock play them out
-      const stale = await bg`select id::text as id from swift_matches where status = 'live' and deadline < ${new Date(now - 5000)} order by deadline limit 20`
-      for (const r of stale) {
-        for (let i = 0; i < 12; i++) {
-          const got = await withMatch(r.id, null, now + i * 60_000)
-          if (!got || got.row.status === 'done') break
-        }
-      }
+      // matches nobody has read for a while: the clock calls one phase a tick, at the real time, so a phone
+      // that locked for half a minute comes back to its match, and an abandoned one still ends
+      const stale = await bg`select id::text as id from swift_matches where status = 'live' and deadline < ${new Date(now - STALE_MS)} order by deadline limit 40`
+      for (const r of stale) await withMatch(r.id, null, now)
       // a queue entry whose page has gone quiet
       await bg`delete from swift_queue where joined < ${new Date(now - 10 * 60_000)}`
       await bg`delete from swift_matches where status = 'done' and finished < now() - interval '14 days'`

@@ -8,7 +8,7 @@
 import {
   ATTACK_PLANS, DEFENSE_PLANS, PLAN_EDGE, EVEN_HABIT, LOSS_CREDITS, MAX_CREDITS, PISTOL_CREDITS, SWIFT_HALF, SWIFT_WIN, ULT_COST,
   aiChoice, aiRecon, attackerOf, cleanChoice, habitFrom, addHabit, loadoutFor, newSwiftMatch, submitChoice, submitRecon, swiftSide,
-  swiftView, takePause, autoChoice,
+  swiftView, takePause, autoChoice, OT_CREDITS, OT_LIMIT, SWIFT_FORMATS, attackerOf as sideAt, matchOver,
 } from '../src/engine/swift'
 import type { AttackPlan, DefensePlan, SwiftMatch, SwiftSide, Choice } from '../src/engine/swift'
 import { PLAYER_CARDS } from '../src/engine/cards'
@@ -102,11 +102,11 @@ check('a five with an empty seat is refused', swiftSide('x', 'x', [fiveA[0], nul
 // ---------------------------------------------------------------- whole matches
 type Policy = (m: SwiftMatch, team: 0 | 1, rng: Rng) => Choice
 const ai: Policy = (m, t, rng) => aiChoice(m, t, rng)
-function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy) {
-  let m = newSwiftMatch(seed, a, b)
+function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy, format: 'quick' | 'full' = 'quick') {
+  let m = newSwiftMatch(seed, a, b, format)
   const rng = new Rng(seed ^ 0x5bd1e995)
   let guard = 0
-  while (m.phase !== 'done' && guard++ < 40) {
+  while (m.phase !== 'done' && guard++ < 80) {
     if (m.phase === 'choose') {
       m = submitChoice(m, 0, pa(m, 0, rng))
       m = submitChoice(m, 1, pb(m, 1, rng))
@@ -231,6 +231,13 @@ function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy) 
   const b = submitChoice(a, 1, { buy: 'full', plan: attackerOf(m) === 1 ? 'B' : 'stackB', lead: 0, ult: null })
   check('a 侦察 stops the round for a second look', b.phase === 'recon' && b.recon[0] && !b.recon[1])
   check('the scout sees the plan, the other side sees only that it waits', swiftView(b, 0).scouted === (attackerOf(m) === 1 ? 'B' : 'stackB') && swiftView(b, 1).waitingRecon && swiftView(b, 1).scouted === null)
+  // both scout: the second to answer still sees the plan from before the first one changed
+  const both = submitChoice(submitChoice(m, 0, { buy: 'full', plan: attackerOf(m) === 0 ? 'A' : 'stackA', lead: 0, ult: scout }), 1, { buy: 'full', plan: attackerOf(m) === 1 ? 'B' : 'stackB', lead: 0, ult: m.sides[1].seats.findIndex((x) => x.role === '先锋') })
+  if (both.phase === 'recon' && both.recon[0] && both.recon[1]) {
+    const firstAnswer = submitRecon(both, 0, attackerOf(m) === 0 ? 'split' : 'even')
+    check('a 侦察 shows the plan from when the round stopped, not the other scout\'s new one', swiftView(firstAnswer, 1).scouted === (attackerOf(m) === 0 ? 'A' : 'stackA'))
+  }
+  check('the round log never shows the other side\'s money', swiftView(b, 0).log.every((r) => r.credits[1].length === 0))
   const changed = submitRecon(b, 0, attackerOf(m) === 0 ? 'A' : 'stackB')
   check('the round is played after the second look, and the change is on the log', changed.log.length === 1 && changed.phase !== 'recon')
   check('a used ultimate starts the bar again', changed.econ[0].ult < ULT_COST && changed.econ[1].ult === ULT_COST)
@@ -261,6 +268,47 @@ function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy) 
   const again = play(withIgl, sideB, 21, ai, ai)
   check('the same calls and seed play the same match', JSON.stringify(again.log) === JSON.stringify(m.log))
   check('a finished match takes no more calls', submitChoice(m, 0, { buy: 'full', plan: 'A', lead: 0, ult: null }) === m)
+}
+
+// ---------------------------------------------------------------- 完整: first to 13, overtime
+{
+  const F = SWIFT_FORMATS.full
+  const N = 800
+  let rounds = 0, longest = 0, ot = 0, okOt = true, okSwap = true, okEnd = true
+  for (let s = 0; s < N; s++) {
+    const m = play(sideA, sideB, 300_000 + s, ai, ai, 'full')
+    rounds += m.log.length
+    longest = Math.max(longest, m.log.length)
+    const [a, b] = m.score
+    if (m.log.length > 2 * F.half) {
+      ot++
+      // every OT round starts on 5000 a head, sides swapping each round
+      for (let i = 2 * F.half; i < m.log.length; i++) {
+        const r = m.log[i], prev = m.log[i - 1]
+        if (i > 2 * F.half && r.attacker === prev.attacker) okOt = false
+      }
+      if (!(Math.abs(a - b) >= 2 || (a + b - 2 * F.half >= OT_LIMIT && a !== b))) okEnd = false
+    } else if (Math.max(a, b) !== F.win) okEnd = false
+    const r13 = m.log[F.half]
+    if (r13 && (!r13.pistol || r13.attacker === m.log[0].attacker)) okSwap = false
+  }
+  if (report) console.log(`  ${N} full matches: ${(rounds / N).toFixed(1)} rounds, longest ${longest}, overtime ${pct(ot / N)}`)
+  check('完整 lasts about 22 rounds (19–25 on average)', rounds / N >= 19 && rounds / N <= 25, (rounds / N).toFixed(1))
+  check('完整 never runs past 24 + the overtime limit', longest <= 2 * F.half + OT_LIMIT, String(longest))
+  check('完整 swaps sides after 12 and opens the half on a pistol round', okSwap)
+  check('完整 ends at 13, or in overtime on a two-round lead or the sudden-death round', okEnd)
+  check('overtime swaps sides every round', okOt)
+  check('some matches go to overtime (5–25%)', ot / N > 0.05 && ot / N < 0.25, pct(ot / N))
+  // overtime money, by hand: a match at 12:12
+  let m = newSwiftMatch(5, sideA, sideB, 'full')
+  m = { ...m, round: 24, score: [12, 11] }
+  const lost = submitChoice(submitChoice(m, 0, { buy: 'eco', plan: sideAt(m) === 0 ? 'A' : 'stackA', lead: 0, ult: null }), 1, { buy: 'full', plan: sideAt(m) === 1 ? 'B' : 'stackB', lead: 0, ult: null })
+  if (lost.score[0] === 12 && lost.score[1] === 12) {
+    check('12:12 goes to overtime, everyone on 5000', lost.phase === 'choose' && lost.econ.every((e) => e.credits.every((c) => c === OT_CREDITS)))
+    check('overtime is not a pistol round', !swiftView(lost, 0).pistol && swiftView(lost, 0).overtime)
+  } else check('13:11 ends the match', lost.phase === 'done' && lost.winner === 0)
+  check('a one-round overtime lead is not a win', !matchOver(m, [14, 13]) && matchOver(m, [15, 13]) && matchOver(m, [15, 14]) === true)
+  check('quick format has no overtime: 5:4 ends it', matchOver(newSwiftMatch(1, sideA, sideB), [5, 4]))
 }
 
 console.log(fails ? `\n${fails} check(s) failed` : '\nall 抢五 checks passed')

@@ -49,7 +49,7 @@ export const PROFILE_KEYS = {
 // 抢五 (swift-api.js): the round-by-round match, its AI and its ghosts
 export {
   newSwiftMatch, submitChoice, submitRecon, takePause, swiftView, swiftSide, sideStrength, autoChoice, aiChoice, aiRecon,
-  aiSide, habitFrom, addHabit, SWIFT_WIN, SWIFT_CHOOSE_SEC, SWIFT_RECON_SEC,
+  aiSide, habitFrom, addHabit, SWIFT_WIN, SWIFT_CHOOSE_SEC, SWIFT_RECON_SEC, SWIFT_REPLAY_SEC, isFormat,
 } from './swift'
 export { Rng, hashStr } from './rng'
 

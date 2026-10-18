@@ -1,7 +1,7 @@
 /** The 抢五 page's side of swift-api.js. Nothing here touches the account: wins pay through the inbox. */
 import { api } from './account'
 import { rememberedId } from './cardid'
-import type { Choice, Plan, SwiftView } from './swift'
+import type { Choice, Plan, SwiftFormat, SwiftView } from './swift'
 import type { CupPick } from './openCupClient'
 
 export interface SwiftBoardRow { rank: number; name: string; tag: string; rating: number; played: number; won: number; h: string }
@@ -13,14 +13,17 @@ export interface SwiftMatchView {
   deadline: number | null
   opponent: { name: string; tag: string }
   view: SwiftView
-  ratings: { before: number; after: number; delta: number; coins?: number } | null
+  /** unpaid: why a finished match paid nothing — resigned, idle (the clock called most rounds), cap (the day's paid games are used), gate (account too new) */
+  ratings: { before: number; after: number; delta: number; coins?: number; unpaid?: 'resigned' | 'idle' | 'cap' | 'gate' } | null
 }
 export interface SwiftState {
-  ok: true; now: number; waitSec: number; paidWins: number; winCoins: number
+  ok: true; now: number; waitSec: number; paidGames: number; winCoins: number; lossCoins: number
   board: SwiftBoardRow[]
-  me?: { rating: number; played: number; won: number; dayWins: number; h: string }
-  queue?: { since: number }
+  me?: { rating: number; played: number; won: number; dayWins: number; dayGames: number; h: string }
+  queue?: { since: number; format: SwiftFormat }
   match?: SwiftMatchView
+  /** the last match, ended within fifteen minutes, when none is live */
+  recent?: SwiftMatchView
 }
 type Fail = { ok: false; why?: string; match?: SwiftMatchView }
 
@@ -33,7 +36,7 @@ async function post<T>(path: string, body: Record<string, unknown> = {}): Promis
   } catch { return { ok: false, why: '连不上服务器。' } }
 }
 export const swiftState = (match?: string) => post<SwiftState>('swift', match ? { match } : {})
-export const swiftQueue = (squad: CupPick) => post<{ ok: true; match?: string; already?: boolean }>('swift/queue', { squad })
+export const swiftQueue = (squad: CupPick, format: SwiftFormat) => post<{ ok: true; match?: string; already?: boolean }>('swift/queue', { squad, format })
 export const swiftLeave = (match?: string, resign = false) => post<{ ok: true }>('swift/leave', { match, resign })
 export const swiftCall = (match: string, round: number, choice: Choice) => post<{ ok: true; match: SwiftMatchView }>('swift/call', { match, round, choice })
 export const swiftRecon = (match: string, plan: Plan) => post<{ ok: true; match: SwiftMatchView }>('swift/recon', { match, plan })

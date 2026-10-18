@@ -4,10 +4,10 @@ import { Panel } from '../common'
 import { serverNow } from '../../engine/account'
 import { cardById, isPlayerCard } from '../../engine/cards'
 import {
-  BUY_CN, PLAN_CN, SHIELDS, ULT_CN, ULT_COST, ULT_HINT, ULT_OF, WEAPONS, SWIFT_WIN, SWIFT_HALF,
+  BUY_CN, PLAN_CN, SHIELDS, ULT_CN, ULT_COST, ULT_HINT, ULT_OF, WEAPONS, SWIFT_FORMATS, SWIFT_REPLAY_SEC, OT_CREDITS,
   loadoutFor, swiftSide, sideStrength,
 } from '../../engine/swift'
-import type { Buy, Choice, Plan, RoundLog, SwiftView, Ult } from '../../engine/swift'
+import type { Buy, Choice, Plan, RoundLog, SwiftFormat, SwiftView, Ult } from '../../engine/swift'
 import { swiftCall, swiftLeave, swiftPause, swiftQueue, swiftRecon, swiftState } from '../../engine/swiftClient'
 import type { SwiftMatchView, SwiftState } from '../../engine/swiftClient'
 import './swift.css'
@@ -20,6 +20,12 @@ const PLAN_HINT: Record<Plan, string> = {
 const KIND_CN = { live: '真人', ghost: '影子', ai: 'AI' } as const
 const gun = (w: number, s: number) => `${WEAPONS[w].name}${s ? `·${SHIELDS[s].name}` : ''}`
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
+const FORMAT_KEY = 'valmanager:swift:format'
+const SEEN_KEY = 'valmanager:swift:seen'
+const seenResult = (): string | null => { try { return localStorage.getItem(SEEN_KEY) } catch { return null } }
+const markSeen = (id: string) => { try { localStorage.setItem(SEEN_KEY, id) } catch { /* private window */ } }
+const savedFormat = (): SwiftFormat => { try { return localStorage.getItem(FORMAT_KEY) === 'full' ? 'full' : 'quick' } catch { return 'quick' } }
+const UNPAID: Record<string, string> = { resigned: '认输没有奖励', idle: '一半以上回合是系统代出的，没有奖励', cap: '今天的 5 场奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
 
 /**
  * 抢五: a round-by-round match the player calls.
@@ -34,6 +40,8 @@ export default function Swift() {
   const [st, setSt] = useState<SwiftState | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<SwiftMatchView | null>(null)
+  const [format, setFormatRaw] = useState<SwiftFormat>(savedFormat)
+  const setFormat = (f: SwiftFormat) => { setFormatRaw(f); try { localStorage.setItem(FORMAT_KEY, f) } catch { /* private window */ } }
   const matchRef = useRef<string | null>(null)
 
   const pull = useCallback(async () => {
@@ -43,6 +51,9 @@ export default function Swift() {
     if (r.match) {
       matchRef.current = r.match.id
       if (r.match.status === 'done') { setDone(r.match); matchRef.current = null; void collect(true) }
+    } else if (r.recent && r.recent.id !== seenResult()) {
+      // it ended while the page was away
+      setDone(r.recent); void collect(true)
     }
   }, [collect])
   useEffect(() => { void pull() }, [pull])
@@ -62,7 +73,7 @@ export default function Swift() {
     if (!mine) { toast('先凑齐五个人。'); go('squad'); return }
     setBusy(true)
     await commit(true)
-    const r = await swiftQueue({ slots: g.squad.slots.slice(0, 5), coach: g.squad.coach })
+    const r = await swiftQueue({ slots: g.squad.slots.slice(0, 5), coach: g.squad.coach }, format)
     setBusy(false)
     if (!r.ok) { toast(r.why ?? '没排上，稍后再试。'); return }
     setDone(null)
@@ -89,7 +100,7 @@ export default function Swift() {
 
   return (
     <div className="swift">
-      {done && <Result m={done} onClose={() => setDone(null)} />}
+      {done && <Result m={done} onClose={() => { markSeen(done.id); setDone(null) }} />}
       <Panel>
         <p className="small">用你的卡组打一场先赢 5 回合的比赛。每回合你和对手同时决定：买什么、打哪里、谁去拿首杀。</p>
         <ul className="swift-rules small muted">
@@ -97,17 +108,22 @@ export default function Swift() {
           <li>打法互相克制，没有永远对的选择。看对手的习惯，读他下一回合。</li>
           <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，看对手的钱。</li>
           <li>{st.waitSec} 秒没匹配到真人，就打一个其他玩家的影子（按他的习惯出招）。</li>
+          <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜。</li>
         </ul>
         {st.me && <div className="swift-me">
           <div><b>{st.me.rating}</b><span>抢五分</span></div>
           <div><b>{st.me.won}/{st.me.played}</b><span>胜/场</span></div>
-          <div><b>{Math.min(st.me.dayWins, st.paidWins)}/{st.paidWins}</b><span>今日奖励</span></div>
+          <div><b>{Math.min(st.me.dayGames, st.paidGames)}/{st.paidGames}</b><span>今日奖励</span></div>
         </div>}
-        <p className="tiny muted">每天前 {st.paidWins} 场胜利各得 {st.winCoins} 金币（开过 50 张卡、账号满 3 天）。</p>
+        <p className="tiny muted">每天前 {st.paidGames} 场有奖励：赢 {st.winCoins}、输 {st.lossCoins} 金币。要自己出一半以上的回合；开过 50 张卡、账号满 3 天。</p>
+        <div className="swift-opts" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', marginTop: 10 }}>
+          {(['quick', 'full'] as SwiftFormat[]).map((f) => <button key={f} className={format === f ? 'primary' : ''} disabled={queued} onClick={() => setFormat(f)}>
+            {SWIFT_FORMATS[f].name} · 先赢 {SWIFT_FORMATS[f].win}<small>{SWIFT_FORMATS[f].minutes}</small></button>)}
+        </div>
         <SquadStrip slots={g.squad.slots.slice(0, 5)} strength={mine ? sideStrength(mine) : null} />
         <div className="row" style={{ marginTop: 12, gap: 8 }}>
           {queued
-            ? <><button disabled>匹配中 <Waited since={st.queue!.since} /></button><button className="ghost" onClick={() => void cancel()}>取消</button></>
+            ? <><button disabled>{SWIFT_FORMATS[st.queue!.format ?? 'quick'].name}匹配中 <Waited since={st.queue!.since} /></button><button className="ghost" onClick={() => void cancel()}>取消</button></>
             : <button className="primary" disabled={busy} onClick={() => void start()}>开始匹配</button>}
         </div>
       </Panel>
@@ -161,6 +177,21 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
   const [busy, setBusy] = useState(false)
   const [quit, setQuit] = useState(false)
   const lastRound = useRef(0)
+  // the round just played plays out before the next call opens
+  const [replayUntil, setReplayUntil] = useState(0)
+  const [, tick] = useState(0)
+  const seenLog = useRef(v.log.length)
+  useEffect(() => {
+    if (v.log.length > seenLog.current) setReplayUntil(Date.now() + SWIFT_REPLAY_SEC * 1000)
+    seenLog.current = v.log.length
+  }, [v.log.length])
+  useEffect(() => {
+    if (replayUntil <= Date.now()) return
+    const t = setTimeout(() => tick((x) => x + 1), replayUntil - Date.now() + 20)
+    return () => clearTimeout(t)
+  }, [replayUntil])
+  const replaying = replayUntil > Date.now()
+  const f = SWIFT_FORMATS[v.format]
   // a new round: sensible defaults again
   useEffect(() => {
     if (lastRound.current === v.round) return
@@ -192,7 +223,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
       <div className="swift-score panel">
         <div className="swift-team"><b>{ours.name}</b><span>{v.attacking ? '进攻' : '防守'}</span></div>
         <div className="swift-nums"><b>{v.score[me]}</b><i>:</i><b>{v.score[them]}</b>
-          <small>第 {v.round} 回合{v.pistol ? ' · 手枪局' : ''}{v.round === SWIFT_HALF ? ' · 半场前最后一回合' : ''}</small></div>
+          <small>{f.name} · 第 {v.round} 回合{v.pistol ? ' · 手枪局' : ''}{v.overtime ? ' · 加时' : ''}{v.lastOfHalf ? ' · 换边前最后一回合' : ''}</small></div>
         <div className="swift-team right"><b>{m.opponent.name}<i className="tiny muted"> {m.opponent.tag}</i></b><span>{KIND_CN[m.kind]} · {v.attacking ? '防守' : '进攻'}</span></div>
       </div>
       <RoundDots log={v.log} me={me} />
@@ -243,7 +274,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
               </div> : <p className="tiny muted">击杀、阵亡各 1 点，下包 2 点。</p>}
             </div>
             <div className="row" style={{ gap: 8, marginTop: 10 }}>
-              <button className="primary" disabled={busy} onClick={() => void send()}>确定</button>
+              <button className="primary" disabled={busy || replaying} onClick={() => void send()}>{replaying ? '回放中…' : '确定'}</button>
               {canPause && <button disabled={busy} onClick={() => void pause()}>战术暂停（看对手的钱）</button>}
             </div>
           </>}
@@ -253,7 +284,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
         {quit ? <><span className="small muted">认输算输，不给奖励。</span><button className="warn sm" onClick={onResign}>确认认输</button><button className="ghost sm" onClick={() => setQuit(false)}>算了</button></>
           : <button className="ghost sm" onClick={() => setQuit(true)}>认输</button>}
       </div>
-      <p className="tiny muted">先赢 {SWIFT_WIN} 回合获胜，打满 {SWIFT_HALF} 回合换边，换边后第一回合也是手枪局。</p>
+      <p className="tiny muted">先赢 {f.win} 回合获胜，打满 {f.half} 回合换边，换边后第一回合也是手枪局。{f.ot ? ` ${f.half}:${f.half} 进加时，每回合每人 ${OT_CREDITS}，领先 2 回合获胜。` : ''}</p>
     </div>
   )
 }
@@ -300,7 +331,7 @@ function Result({ m, onClose }: { m: SwiftMatchView; onClose: () => void }) {
   const won = v.winner === v.me
   return <Panel className={`swift-result ${won ? 'won' : 'lost'}`} title={won ? '赢了' : '输了'} actions={<button className="ghost sm" onClick={onClose}>关闭</button>}>
     <p><b className="swift-final">{v.score[v.me]} : {v.score[1 - v.me]}</b> 对 {m.opponent.name}{m.kind !== 'live' ? `（${KIND_CN[m.kind]}）` : ''}{v.resigned !== null ? (v.resigned === v.me ? ' · 你认输了' : ' · 对方认输') : ''}</p>
-    {m.ratings && <p className="small">抢五分 {m.ratings.before} → <b>{m.ratings.after}</b>（{m.ratings.delta >= 0 ? '+' : ''}{m.ratings.delta}）{m.ratings.coins ? ` · 奖励 ${m.ratings.coins} 金币已进信箱` : ''}</p>}
+    {m.ratings && <p className="small">抢五分 {m.ratings.before} → <b>{m.ratings.after}</b>（{m.ratings.delta >= 0 ? '+' : ''}{m.ratings.delta}）{m.ratings.coins ? ` · 奖励 ${m.ratings.coins} 金币已进信箱` : m.ratings.unpaid ? ` · ${UNPAID[m.ratings.unpaid]}` : ''}</p>}
     <RoundDots log={v.log} me={v.me} />
   </Panel>
 }

@@ -38,12 +38,28 @@ import type { Role } from './types'
 
 // ------------------------------------------------------------ the format
 
-/** first to this many rounds */
+/** first to this many rounds (the quick format; see SWIFT_FORMATS) */
 export const SWIFT_WIN = 5
 /** rounds in a half; sides swap after it */
 export const SWIFT_HALF = 4
-/** the most a match can last */
-export const SWIFT_MAX_ROUNDS = SWIFT_WIN * 2 - 1
+
+/**
+ * Two formats, two queues. 快速 is VALORANT's 极速模式, first to five. 完整 is
+ * 竞技模式: first to thirteen, sides swap after twelve, and at 12:12 overtime —
+ * every OT round each man has OT_CREDITS, sides swap every round, a two-round
+ * lead wins, and after OT_LIMIT rounds without one the next round decides.
+ */
+export type SwiftFormat = 'quick' | 'full'
+export const SWIFT_FORMATS: Record<SwiftFormat, { win: number; half: number; ot: boolean; name: string; minutes: string }> = {
+  quick: { win: 5, half: 4, ot: false, name: '快速', minutes: '约 2–3 分钟' },
+  full: { win: 13, half: 12, ot: true, name: '完整', minutes: '约 5–8 分钟' },
+}
+export const OT_CREDITS = 5000
+export const OT_LIMIT = 5
+export const isFormat = (v: unknown): v is SwiftFormat => v === 'quick' || v === 'full'
+export const formatOf = (m: { format?: SwiftFormat }) => SWIFT_FORMATS[m.format ?? 'quick']
+/** seconds after a reveal before the next call can be made: the round plays out on screen */
+export const SWIFT_REPLAY_SEC = 4
 /** seconds to call a round, and to change a plan after a 侦察 */
 export const SWIFT_CHOOSE_SEC = 20
 export const SWIFT_RECON_SEC = 10
@@ -194,6 +210,12 @@ export interface SwiftMatch {
   firstPlan?: [Plan | null, Plan | null]
   /** the side that gave the match up (swift-api.js) */
   resigned?: 0 | 1
+  /** absent on matches made before formats: quick */
+  format?: SwiftFormat
+  /** rounds each side called itself, not by the clock (swift-api.js: a side that sat it out is not paid) */
+  calls?: [number, number]
+  /** both plans as they stood when a 侦察 stopped the round: what a scout is shown, whoever answers first */
+  reconSeen?: [Plan, Plan]
 }
 
 // ------------------------------------------------------------ building a side
@@ -222,21 +244,38 @@ const freshEcon = (side: SwiftSide): TeamEcon => ({
   pauses: side.igl ? 1 : 0, coachPause: side.coach ? 1 : 0,
 })
 
-export function newSwiftMatch(seed: number, a: SwiftSide, b: SwiftSide): SwiftMatch {
+export function newSwiftMatch(seed: number, a: SwiftSide, b: SwiftSide, format: SwiftFormat = 'quick'): SwiftMatch {
   return {
     v: 1, seed: seed >>> 0, sides: [a, b], firstAttack: (hashStr(`swift:side:${seed >>> 0}`) & 1) as 0 | 1,
     round: 1, score: [0, 0], econ: [freshEcon(a), freshEcon(b)], log: [],
     pending: [null, null], phase: 'choose', recon: [false, false], paused: [false, false], winner: null,
+    format, calls: [0, 0],
   }
 }
 
 // ------------------------------------------------------------ reading the state
 
-export const isPistol = (round: number): boolean => round === 1 || round === SWIFT_HALF + 1
-export const secondHalf = (round: number): boolean => round > SWIFT_HALF
-/** the team attacking this round */
-export const attackerOf = (m: SwiftMatch, round = m.round): 0 | 1 =>
-  (secondHalf(round) ? 1 - m.firstAttack : m.firstAttack) as 0 | 1
+export const isPistol = (m: SwiftMatch, round = m.round): boolean => round === 1 || round === formatOf(m).half + 1
+/** 0 first half, 1 second, 2 overtime */
+export const periodOf = (m: SwiftMatch, round = m.round): 0 | 1 | 2 => {
+  const h = formatOf(m).half
+  return round <= h ? 0 : round <= 2 * h ? 1 : 2
+}
+export const isOvertime = (m: SwiftMatch, round = m.round): boolean => periodOf(m, round) === 2
+/** the team attacking this round: first half, then swapped, then overtime swapping every round */
+export const attackerOf = (m: SwiftMatch, round = m.round): 0 | 1 => {
+  const p = periodOf(m, round)
+  if (p === 0) return m.firstAttack
+  if (p === 1) return (1 - m.firstAttack) as 0 | 1
+  return ((round - 2 * formatOf(m).half - 1) % 2 === 0 ? m.firstAttack : 1 - m.firstAttack) as 0 | 1
+}
+/** whether this score ends the match */
+export function matchOver(m: SwiftMatch, score: readonly [number, number]): boolean {
+  const f = formatOf(m)
+  const [a, b] = score
+  if (f.ot && a + b >= 2 * f.half) return Math.abs(a - b) >= 2 || (a + b - 2 * f.half >= OT_LIMIT && a !== b)
+  return a >= f.win || b >= f.win
+}
 export const plansFor = (m: SwiftMatch, team: 0 | 1): readonly Plan[] =>
   attackerOf(m) === team ? ATTACK_PLANS : DEFENSE_PLANS
 /** the ultimate a seat holds, and whether it is charged */
@@ -331,7 +370,7 @@ export function submitChoice(m: SwiftMatch, team: 0 | 1, raw: unknown): SwiftMat
   const ultA = a.ult !== null ? ultOf(m, 0, a.ult) : null
   const ultB = b.ult !== null ? ultOf(m, 1, b.ult) : null
   const recon: [boolean, boolean] = [ultA === 'recon' && ultB !== 'smoke', ultB === 'recon' && ultA !== 'smoke']
-  if (recon[0] || recon[1]) return { ...next, phase: 'recon', recon }
+  if (recon[0] || recon[1]) return { ...next, phase: 'recon', recon, reconSeen: [a.plan, b.plan] }
   return playRound(next)
 }
 
@@ -387,7 +426,7 @@ function playRound(m: SwiftMatch): SwiftMatch {
   const choices: [Choice, Choice] = [ca, cb]
   const atk = attackerOf(m)
   const def = (1 - atk) as 0 | 1
-  const pistol = isPistol(m.round)
+  const pistol = isPistol(m)
   const rng = new Rng(roundSeed(m))
   const ults: [Ult | null, Ult | null] = [
     ca.ult !== null ? ultOf(m, 0, ca.ult) : null,
@@ -477,10 +516,11 @@ function playRound(m: SwiftMatch): SwiftMatch {
     credits: [econ[0].credits.slice(), econ[1].credits.slice()], pistol,
   }
   const score: [number, number] = [m.score[0] + (winner === 0 ? 1 : 0), m.score[1] + (winner === 1 ? 1 : 0)]
-  const done = score[0] >= SWIFT_WIN || score[1] >= SWIFT_WIN
+  const done = matchOver(m, score)
   const round = m.round + 1
+  const f = formatOf(m)
   // the swap: everybody back to 800 and a classic; ult points stay, as they do in the game
-  if (!done && round === SWIFT_HALF + 1) {
+  if (!done && round === f.half + 1) {
     for (const t of [0, 1] as const) {
       econ[t] = {
         ...econ[t], credits: [0, 0, 0, 0, 0].map(() => PISTOL_CREDITS), weapon: [0, 0, 0, 0, 0], shield: [0, 0, 0, 0, 0], streak: 0,
@@ -488,12 +528,23 @@ function playRound(m: SwiftMatch): SwiftMatch {
       }
     }
   }
+  // overtime: every round starts on the same money; the caller gets a pause for it
+  if (!done && isOvertime(m, round)) {
+    for (const t of [0, 1] as const) {
+      econ[t] = {
+        ...econ[t], credits: [0, 0, 0, 0, 0].map(() => OT_CREDITS), streak: 0,
+        pauses: round === 2 * f.half + 1 ? (m.sides[t].igl ? 1 : 0) : econ[t].pauses,
+      }
+    }
+  }
   const out: SwiftMatch = {
-    v: 1, seed: m.seed, sides: m.sides, firstAttack: m.firstAttack,
+    ...m, firstPlan: undefined,
     round: done ? m.round : round, score, econ, log: [...m.log, log],
     pending: [null, null], phase: done ? 'done' : 'choose', recon: [false, false], paused: [false, false],
     winner: done ? (score[0] > score[1] ? 0 : 1) : null,
   }
+  delete out.firstPlan
+  delete out.reconSeen
   return out
 }
 
@@ -520,14 +571,15 @@ export const EVEN_HABIT: Habit = {
 
 /** what a team should buy — the way pros do it, with a habit's lean */
 export function aiBuy(m: SwiftMatch, team: 0 | 1, rng: Rng, force = EVEN_HABIT.force): Buy {
-  if (isPistol(m.round)) return rng.chance(0.25) ? 'force' : 'full'
+  if (isPistol(m)) return rng.chance(0.25) ? 'force' : 'full'
   const e = m.econ[team]
   const avg = e.credits.reduce((s, c) => s + c, 0) / 5
   const rifles = e.weapon.filter((w) => w >= 3).length
   if (avg >= 3900 || (avg >= 3000 && rifles >= 2)) return 'full'
   const theirs = m.score[1 - team]
-  // one round from losing the match, or the half: no point saving
-  const lastChance = theirs === SWIFT_WIN - 1 || m.round === SWIFT_HALF
+  const f = formatOf(m)
+  // one round from losing the match, the last round of a half, or overtime: no point saving
+  const lastChance = theirs === f.win - 1 || m.round === f.half || m.round === 2 * f.half || isOvertime(m)
   if (lastChance) return 'force'
   // the round after the pistol, lost: save for a full buy next round
   const nextLoss = LOSS_CREDITS[Math.min(e.streak + 1, LOSS_CREDITS.length) - 1]
@@ -545,7 +597,7 @@ export function aiChoice(m: SwiftMatch, team: 0 | 1, rng: Rng, habit: Habit = EV
   const attacking = attackerOf(m) === team
   let plan: Plan
   // what the other side did on this side of the map this half
-  const half = m.log.filter((r) => secondHalf(r.round) === secondHalf(m.round))
+  const half = m.log.filter((r) => periodOf(m, r.round) === periodOf(m, m.round) && r.attacker === attackerOf(m))
   const seen = half.map((r) => r.choices[1 - team].plan)
   if (attacking) {
     const w = { ...habit.attack }
@@ -630,6 +682,10 @@ export interface SwiftView {
   score: [number, number]
   attacking: boolean
   pistol: boolean
+  format: SwiftFormat
+  overtime: boolean
+  /** the last round before the sides swap */
+  lastOfHalf: boolean
   phase: SwiftMatch['phase']
   winner: 0 | 1 | null
   mine: TeamEcon
@@ -651,13 +707,16 @@ export function swiftView(m: SwiftMatch, me: 0 | 1): SwiftView {
   const them = (1 - me) as 0 | 1
   const o = m.econ[them]
   return {
-    me, sides: m.sides, round: m.round, score: m.score, attacking: attackerOf(m) === me, pistol: isPistol(m.round),
+    me, sides: m.sides, round: m.round, score: m.score, attacking: attackerOf(m) === me, pistol: isPistol(m),
+    format: m.format ?? 'quick', overtime: isOvertime(m), lastOfHalf: m.round === formatOf(m).half || m.round === 2 * formatOf(m).half,
     phase: m.phase, winner: m.winner, mine: m.econ[me],
     theirs: { credits: m.paused[me] ? o.credits : null, weapon: o.weapon, shield: o.shield, ult: o.ult, streak: o.streak },
     plans: plansFor(m, me), locked: !!m.pending[me], theyLocked: !!m.pending[them],
-    scouted: m.phase === 'recon' && m.recon[me] ? m.pending[them]!.plan : null,
+    scouted: m.phase === 'recon' && m.recon[me] ? (m.reconSeen?.[them] ?? m.pending[them]!.plan) : null,
     waitingRecon: m.phase === 'recon' && !m.recon[me],
-    paused: m.paused[me], log: m.log, resigned: m.resigned ?? null,
+    // the other side's money is shown only through a pause — never through the round log
+    paused: m.paused[me], log: m.log.map((r) => ({ ...r, credits: (me === 0 ? [r.credits[0], []] : [[], r.credits[1]]) as [number[], number[]] })),
+    resigned: m.resigned ?? null,
   }
 }
 

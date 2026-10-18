@@ -16,7 +16,7 @@ import { newGacha } from '../src/engine/gacha'
 import { CUP_TEAMS } from '../src/engine/cupTeams'
 
 const { CARD_SCHEMA, engine } = await import('../cards-api.js')
-const { SWIFT_SCHEMA, SWIFT_WAIT_SEC, SWIFT_PAID_WINS, SWIFT_WIN_COINS, makeSwiftApi } = await import('../swift-api.js')
+const { SWIFT_SCHEMA, SWIFT_WAIT_SEC, SWIFT_PAID_GAMES, SWIFT_WIN_COINS, SWIFT_LOSS_COINS, makeSwiftApi } = await import('../swift-api.js')
 const { displayName } = await import('../names.js')
 const db = new PGlite(), sql = makeSql(db)
 await db.exec(CARD_SCHEMA); await db.exec(SWIFT_SCHEMA)
@@ -78,16 +78,28 @@ assert.match((await call('/call', { id: A, match: id, round: va.round, choice: c
 const vb = (await call('', { id: B })).match.view
 assert(vb.theyLocked && !vb.locked, '对面看得到你已经定了，看不到你定的什么')
 assert.equal(JSON.stringify(vb).includes('"pending"'), false, '视图里没有对方的选择')
+const d0 = (await sql`select deadline from swift_matches where id = ${id}`)[0].deadline
+now += 3000
 r = await call('/call', { id: B, match: id, round: vb.round, choice: choiceFor(vb) })
 assert.equal(r.match.view.log.length, 1, '两边都定了就打这一回合')
+assert.deepEqual(r.match.view.log[0].credits[0], [], '回合记录里看不到对方的钱')
+assert(r.match.view.log[0].credits[1].length === 5, '自己的钱看得到')
+const outsider = await call('/call', { id: C, match: id, round: 2, choice: choiceFor(vb) })
+assert(!outsider.ok && outsider.match === undefined, '外人拿不到这场比赛的视图')
+const nobody = await call('/call', { id: 'VM-NOPE-0000-0000-0000-0000', match: id, round: 2, choice: choiceFor(vb) })
+assert(nobody.match === undefined)
 assert.match((await call('/call', { id: B, match: id, round: 1, choice: choiceFor(vb) })).why, /回合已经过了|已经定了/)
 assert.match((await call('/call', { id: C, match: id, round: 2, choice: choiceFor(vb) })).why, /不是你的比赛/)
 console.log('ok  一回合等两边、看不到对方的选择、别人不能替你出')
 
 // ---------------------------------------------------------------- the clock calls for a side that does not
 va = (await call('', { id: A })).match.view
+const before = (await sql`select deadline from swift_matches where id = ${id}`)[0].deadline
+now += 5000
 await call('/call', { id: A, match: id, round: va.round, choice: choiceFor(va) })
-now += (engine.SWIFT_CHOOSE_SEC + 5) * 1000
+assert.equal(+(await sql`select deadline from swift_matches where id = ${id}`)[0].deadline, +before, '一方出招不会给双方重新计时')
+void d0
+now += (engine.SWIFT_CHOOSE_SEC + engine.SWIFT_REPLAY_SEC) * 1000
 s = await call('', { id: A })
 assert.equal(s.match.view.log.length, 2, '对方超时，系统替他出')
 console.log('ok  超时代出')
@@ -105,13 +117,15 @@ for (let guard = 0; guard < 30; guard++) {
 const endA = (await call('', { id: A, match: id })).match, endB = (await call('', { id: B, match: id })).match
 assert.equal(endA.status, 'done')
 const winnerHash = endA.view.winner === 0 ? hash(A) : hash(B)
-const mail = await sql`select to_h, coins, kind from card_mail where kind = 'swift'`
-assert.equal(mail.length, 1); assert.equal(mail[0].to_h, winnerHash); assert.equal(mail[0].coins, SWIFT_WIN_COINS)
+const mail = await sql`select to_h, coins, kind from card_mail where kind = 'swift' order by coins desc`
+assert.equal(mail.length, 2, '赢的输的都有')
+assert.equal(mail[0].to_h, winnerHash); assert.equal(mail[0].coins, SWIFT_WIN_COINS)
+assert.equal(mail[1].coins, SWIFT_LOSS_COINS)
 assert(endA.ratings.delta === -endB.ratings.delta && endA.ratings.delta !== 0, '分数一涨一跌')
 const players = await sql`select id_hash, rating, played, won, habit, side from swift_players order by id_hash`
 assert.equal(players.length, 2); assert(players.every((p: any) => p.played === 1 && p.habit && p.side?.seats?.length === 5))
 assert.equal((await call('', { id: A })).match, undefined, '比完了，页面回到排队前')
-console.log('ok  打完：赢的一方收到金币、分数变化、习惯和阵容存下来当影子')
+console.log(`ok  打完：赢的 ${SWIFT_WIN_COINS}、输的 ${SWIFT_LOSS_COINS} 金币，分数变化，习惯和阵容存下来当影子`)
 
 // ---------------------------------------------------------------- a lone player gets a ghost, then the AI
 await call('/queue', { id: C })
@@ -151,25 +165,43 @@ async function playOut(who: string) {
   }
   throw new Error('match did not end')
 }
-let wins = 0
-for (let i = 0; i < 14 && wins < SWIFT_PAID_WINS + 2; i++) { const m = await playOut(C); if (m.view.winner === 0) wins++ }
-assert(wins > SWIFT_PAID_WINS, `赢了 ${wins} 场`)
-const paid = (await sql`select count(*)::int as n from card_mail where to_h = ${hash(C)} and kind = 'swift'`)[0].n
-assert.equal(paid, SWIFT_PAID_WINS, `一天只有前 ${SWIFT_PAID_WINS} 场胜利发金币`)
+let games = 0   // the first playOut finishes the AI match started above
+let w = 0
+for (let i = 0; i < SWIFT_PAID_GAMES + 1; i++) { const m = await playOut(C); games++; if (m.view.winner === 0) w++ }
+const paid = await sql`select coins, body from card_mail where to_h = ${hash(C)} and kind = 'swift'`
+assert.equal(paid.length, SWIFT_PAID_GAMES, `一天只有前 ${SWIFT_PAID_GAMES} 场发金币（打了 ${games} 场）`)
+assert(paid.every((m: any) => m.coins === (m.body.won ? SWIFT_WIN_COINS : SWIFT_LOSS_COINS)), '赢输金额对')
 const day = (await call('', { id: C })).me
-assert.equal(day.dayWins, wins)
+assert.equal(day.dayGames, games); assert(day.dayWins >= w)
 for (let i = 0; i < 8; i++) { const m = await playOut(NEW); if (m.view.winner === 0) break }
 assert.equal((await sql`select count(*)::int as n from card_mail where to_h = ${hash(NEW)}`)[0].n, 0, '没开够卡的新号赢了也不发金币')
-console.log(`ok  每天前 ${SWIFT_PAID_WINS} 场胜利发 ${SWIFT_WIN_COINS} 金币，新号不发`)
+console.log(`ok  每天前 ${SWIFT_PAID_GAMES} 场有奖励（赢 ${SWIFT_WIN_COINS}、输 ${SWIFT_LOSS_COINS}），认输不发，新号不发`)
 
 // ---------------------------------------------------------------- the sweep finishes what nobody reads
 await call('/queue', { id: A })
 now += (SWIFT_WAIT_SEC + 1) * 1000
 const left = (await call('', { id: A })).match.id
-now += 10 * 60_000
+const mailBefore = (await sql`select count(*)::int as n from card_mail where to_h = ${hash(A)}`)[0].n
+now += 40_000
 await api.sweep(now)
-assert.equal((await sql`select status from swift_matches where id = ${left}`)[0].status, 'done', '没人看的比赛会被打完')
+assert.equal((await sql`select jsonb_array_length(state->'log') as n from swift_matches where id = ${left}`)[0].n, 0, '离开半分钟（锁屏）不会被系统打掉')
+for (let i = 0; i < 80; i++) { now += 30_000; await api.sweep(now); if ((await sql`select status from swift_matches where id = ${left}`)[0].status === 'done') break }
+const idle = (await sql`select status, ratings from swift_matches where id = ${left}`)[0]
+assert.equal(idle.status, 'done', '没人看的比赛会被打完')
+assert.equal(idle.ratings['0'].unpaid, 'idle', '一回合都没自己出的不发奖励')
+assert.equal((await sql`select count(*)::int as n from card_mail where to_h = ${hash(A)}`)[0].n, mailBefore)
+assert.equal((await call('', { id: A })).recent?.id, left, '刷新后还能看到刚结束那场的结果')
+// two formats queue apart
+await call('/queue', { id: A, format: 'quick' })
+await call('/queue', { id: B, format: 'full' })
+assert(!(await call('', { id: A })).match && !(await call('', { id: B })).match, '快速和完整不会配到一起')
+now += (SWIFT_WAIT_SEC + 1) * 1000
+const fa = (await call('', { id: A })).match, fb = (await call('', { id: B })).match
+const fmtOf = async (mid: string) => (await sql`select state->>'format' as f from swift_matches where id = ${mid}`)[0].f
+assert.equal(await fmtOf(fa.id), 'quick'); assert.equal(await fmtOf(fb.id), 'full')
+assert.equal(fb.view.format, 'full')
+await call('/leave', { id: A, match: fa.id, resign: true }); await call('/leave', { id: B, match: fb.id, resign: true })
 const board = (await call('', {})).board
 assert(Array.isArray(board))
-console.log('ok  无人比赛自动打完，排行榜可读')
+console.log('ok  无人比赛自动打完且不发奖励，快速/完整分开排，排行榜可读')
 console.log('\nall 抢五 server checks passed')
