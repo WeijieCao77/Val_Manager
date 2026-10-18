@@ -45,17 +45,3 @@ export const PROFILE_KEYS = {
   endings: ENDINGS.map(({ key }) => key),
   achievements: ACHIEVEMENTS.map(({ key }) => key),
 }
-
-// 抢五 (swift-api.js): the round-by-round match, its AI and its ghosts
-export {
-  newSwiftMatch, submitChoice, submitRecon, takePause, swiftView, swiftSide, sideStrength, autoChoice, aiChoice, aiRecon,
-  aiSide, habitFrom, addHabit, SWIFT_WIN, SWIFT_CHOOSE_SEC, SWIFT_RECON_SEC,
-} from './swift'
-export { Rng, hashStr } from './rng'
-
-// 选秀夜 (draft-api.js)
-export {
-  dealLot, cleanBid, settleRound, roundRobin, draftMatchSeed, draftTable, roomCode, cleanCode,
-  DRAFT_MIN, DRAFT_MAX, DRAFT_BUDGET, DRAFT_BID_SEC, DRAFT_POSITIONS, DRAFT_ROUNDS,
-} from './draft'
-export { personOf } from './cards'

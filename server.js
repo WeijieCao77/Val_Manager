@@ -31,8 +31,6 @@ import { makeSiteApi } from './site-api.js'
 import { makeMarketApi } from './market-api.js'
 import { makeOpenCupApi } from './opencup-api.js'
 import { makeTeamCupApi } from './teamcup-api.js'
-import { makeSwiftApi } from './swift-api.js'
-import { makeDraftApi } from './draft-api.js'
 import { makePhoneApi } from './phone-api.js'
 import { validatePhoneSecrets } from './phone-config.js'
 import { releaseFingerprint } from './release-fingerprint.js'
@@ -620,12 +618,6 @@ const teamCupApi = () => (_teamCupApi ??= makeTeamCupApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, fast: TEAM_CUP_FAST, bg: sqlBg, cardPoolVersion: ENGINE_SHA256,
 }))
 let _teamCupApi = null
-// 抢五 (swift-api.js): live matches, ghosts and the AI; a sweep finishes matches nobody reads
-const swiftApi = () => (_swiftApi ??= makeSwiftApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine, bg: sqlBg }))
-let _swiftApi = null
-// 选秀夜 (draft-api.js): friends' rooms, blind bids, a round robin on its own worker
-const draftApi = () => (_draftApi ??= makeDraftApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine, bg: sqlBg }))
-let _draftApi = null
 
 /** Which formats are worth compressing — the rest are already compressed. */
 const TEXTY = new Set(['.js', '.css', '.html', '.json', '.svg', '.map', '.txt', '.webmanifest'])
@@ -715,7 +707,7 @@ createServer((req, res) => {
   // …and so does the market's settler: it used to start with the first visit to the market
   const startJobs = () => {
     if (!schemaReady || !sql) return false
-    openCupApi(); teamCupApi(); swiftApi(); draftApi(); marketApi(); return true
+    openCupApi(); teamCupApi(); marketApi(); return true
   }
   const bootJobs = setInterval(() => { if (startJobs()) clearInterval(bootJobs) }, OPEN_CUP_FAST ? 500 : 1000)
   bootJobs.unref?.()
@@ -897,26 +889,6 @@ function handle(req, res) {
       if (!handled) json(res, 404, { ok: false })
     }).catch((err) => {
       console.warn('teamcup: route failed', err.message)
-      if (!res.headersSent) json(res, 500, { ok: false })
-    })
-    return
-  }
-  if (path === '/api/card/draft' || path.startsWith('/api/card/draft/')) {
-    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
-    void draftApi().route(req, res, path, bucketOf(req)).then((handled) => {
-      if (!handled) json(res, 404, { ok: false })
-    }).catch((err) => {
-      console.error('draft failed:', err?.message)
-      if (!res.headersSent) json(res, 500, { ok: false })
-    })
-    return
-  }
-  if (path === '/api/card/swift' || path.startsWith('/api/card/swift/')) {
-    if (req.method !== 'POST') { json(res, 405, { ok: false }); return }
-    void swiftApi().route(req, res, path, bucketOf(req)).then((handled) => {
-      if (!handled) json(res, 404, { ok: false })
-    }).catch((err) => {
-      console.error('swift failed:', err?.message)
       if (!res.headersSent) json(res, 500, { ok: false })
     })
     return

@@ -9,8 +9,6 @@ import { SITE_SCHEMA } from './site-api.js'
 import { ROLLUP_SCHEMA } from './rollup.js'
 import { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA } from './opencup-api.js'
 import { TEAM_CUP_SCHEMA } from './teamcup-api.js'
-import { SWIFT_SCHEMA } from './swift-api.js'
-import { DRAFT_SCHEMA } from './draft-api.js'
 
 /**
  * Bring the schema up to date on boot, without letting that take the game down.
@@ -34,7 +32,7 @@ import { DRAFT_SCHEMA } from './draft-api.js'
  */
 /** the ladder board and rival pool tables, kept by a trigger on card_accounts (account-projection.js) */
 export const PROJECTION_SCHEMA = projectionSchema(BOARDS)
-export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROJECTION_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, CHAMPIONS_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, TEAM_CUP_SCHEMA, SWIFT_SCHEMA, DRAFT_SCHEMA]
+export const SCHEMAS = [SCHEMA, CARD_SCHEMA, PROJECTION_SCHEMA, PROFILE_SCHEMA, SITE_SCHEMA, CHAMPIONS_SCHEMA, ROLLUP_SCHEMA, OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, TEAM_CUP_SCHEMA]
 /** any constant, as long as every deploy of this service uses the same one */
 const SCHEMA_LOCK = 5150409
 

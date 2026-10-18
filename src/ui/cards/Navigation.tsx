@@ -10,11 +10,9 @@ export const CARD_PAGES = [
   { key: 'challenge', label: '挑战', group: '赛事', description: '挑战职业战队，赢取阵容成长奖励。', icon: 'target' },
   { key: 'ladder', label: '天梯', group: '赛事', description: '检验你的阵容，向更高段位进发。', icon: 'rank' },
   { key: 'cup', label: '杯赛', group: '赛事', description: '报名赛事，带领你的卡组争夺冠军。', icon: 'cup' },
-  { key: 'swift', label: '抢五', group: '赛事', description: '先赢 5 回合。每回合自己定经济、打法和首杀。', icon: 'swift', beta: true },
   { key: 'bangkok', label: '曼谷征途', group: '赛事', description: '重走曼谷 2025 大师赛的晋级之路。', icon: 'route' },
   { key: 'history', label: '历代强队', group: '赛事', description: '带五名退役选手，挑战拿过世界冠军的队伍。', icon: 'cup' },
   { key: 'minigames', label: '小游戏', group: '发现', description: '来一场小挑战，赢取位置奖励包。', icon: 'game', beta: true },
-  { key: 'draft', label: '选秀夜', group: '发现', description: '和朋友开房间，暗标抢人组五人，自动循环赛。', icon: 'draft', beta: true },
   { key: 'predict', label: '预测', group: '发现', description: '做出你的赛事预测，关注比赛进展。', icon: 'predict', beta: true },
   { key: 'friends', label: '好友', group: '发现', description: '找到好友，交流阵容与比赛。', icon: 'friends' },
   { key: 'dossier', label: '资料库', group: '发现', description: '查阅职业选手与战队资料。', icon: 'book' },
@@ -38,8 +36,6 @@ const paths: Record<string, string> = {
   evolve: 'M7 4h10v16H7z M12 16V9 M9 11.5 12 8.5l3 3',
   cheer: 'M4 10v4h3l5 4V6l-5 4z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11',
   predict: 'M4 20h16 M6 16l4-5 3 3 5-7 M15 7h3v3',
-  swift: 'M4 5h16v14H4z M12 5v14 M7 10h2 M15 10h2 M7 14l2-1.5 M17 14l-2-1.5',
-  draft: 'M5 4h10v16H5z M15 8h4v12h-4 M8 9h4 M8 13h4 M8 17h2',
   more: 'M4 4h5v5H4z M15 4h5v5h-5z M4 15h5v5H4z M15 15h5v5h-5z',
 }
 export function NavIcon({ name }: { name: string }) {
