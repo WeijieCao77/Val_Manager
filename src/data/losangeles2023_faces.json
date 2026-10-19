@@ -157,13 +157,14 @@
   "side": null,
   "taken": "2023-08-02T21:13:02",
   "sure": true,
-  "confirmed": false,
-  "note": null,
+  "confirmed": true,
+  "note": "主人选的正脸（2026-10-18）；原图是 LOUD 的绿色灯光，去掉绿光调成暖色",
   "source": "https://www.flickr.com/photos/valorantesports/53098394136/",
   "license": "All Rights Reserved (Riot Games)",
   "author": "VALORANT Champions Tour Photos",
   "style": "soft",
-  "cutout": true
+  "cutout": true,
+  "toned": "warm"
  },
  "8447": {
   "face": "/events/los-angeles-2023/event-8447.webp",

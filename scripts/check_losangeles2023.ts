@@ -31,6 +31,8 @@ const jinggg = faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Jinggg')]
 ok('Jinggg 固定为第一版：原图、第一版卡面效果，不抠图不调色', !!jinggg.keep && jinggg.style === 'raw' && jinggg.cutout === false && jinggg.photo === '53105604568')
 ok('其余 79 张都是柔和融合（人原色，背景压成落日色），都抠出了人', faces.filter(f => !f.keep).every(f => f.style === 'soft' && f.cutout === true))
 ok('whzy 用的是他自己那组照片（16:31），不是被说明写成 whz 的 Biank（16:35 那张）', faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'whzy')].photo !== '53102991504')
+{ const a = faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'aspas')] as { photo?: string; toned?: string; confirmed?: boolean }
+  ok('aspas 用主人选的正脸，绿光去掉调成暖色', a.photo === '53098394136' && a.toned === 'warm' && !!a.confirmed) }
 ok('Yuicaw 那张双人照主人确认过，抠图后只剩他', !!faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Yuicaw')].confirmed)
 ok('队名按当届：DRX、Giants（不是后来的 KRX、GX）', by('MaKo').clubTag === 'DRX' && by('Cloud').clubTag === 'GIA'
   && !LOS_ANGELES_CARDS.some(c => c.clubTag === 'KRX' || c.clubTag === 'GX'))

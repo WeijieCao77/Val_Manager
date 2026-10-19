@@ -26,7 +26,8 @@ cutout didn't look right either, 柔和融合 chosen of five): the player as sho
 scripts/person_cutout.swift (Vision's person instance mask, the person under the face), over his own frame
 mapped into the sunset palette, darkened and dissolving outward; teammates are masked out of it.
 Overrides by hand: scripts/cache/losangeles2023_face_picks.json
-({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "keep": true?, "note": ... } }).
+({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "keep": true?, "tone": "warm"?, "note": ... } }).
+`tone: "warm"` tones a colour-lit frame out (luminance, warm tint) before it is softened (aspas).
 `keep` is the owner pinning a card as it is (Jinggg, 2026-10-18): his first-version image — the frame as
 shot, no cutout, no grade — and the first-version face style (`style: "raw"`). Never change a kept card.
 """
@@ -258,6 +259,10 @@ def sheet() -> int:
 # The light on a player's face, read off the middle of the face box (a jersey's colour doesn't count),
 # against the median skin of all 80 frames: the picker prefers the most naturally lit frame of a session.
 SKIN = (0.4385, 0.3075, 0.255)
+# a face this far from natural skin was lit in a colour (aspas's three frames under LOUD's green light read
+# 0.5–1.3): such a frame only wins when the player has no naturally lit one — the 柔和融合 keeps his colours
+# as shot, so a green face stays green on the card (owner, 2026-10-18: 为什么aspas脸是绿的)
+CAST_MAX = 0.35
 
 
 def skin_share(photo: Image.Image, face: dict | None) -> tuple[float, float, float] | None:
@@ -275,6 +280,13 @@ def skin_share(photo: Image.Image, face: dict | None) -> tuple[float, float, flo
 # frame — its light kept, its colour mapped into the card's night-plum-to-peach sunset and darkened, fading out
 # from the middle so the art shows around him. Anyone else in the frame is taken out of that background.
 PALETTE = ((23, 19, 30), (70, 32, 58), (168, 74, 66), (236, 150, 98), (255, 222, 170))
+
+
+def warm(photo: Image.Image) -> Image.Image:
+    """a frame lit in a colour, toned out: its luminance with a warm skin tint (picks `tone: "warm"`, aspas)"""
+    import numpy as np
+    lum = np.asarray(photo.convert("RGB")).astype(np.float32) @ np.array([.299, .587, .114], np.float32)
+    return Image.fromarray(np.stack([np.clip(lum * t, 0, 255) for t in (1.12, 0.92, 0.78)], -1).astype(np.uint8))
 
 
 def soften(raw: Image.Image, cut: Image.Image, others: Image.Image | None) -> Image.Image:
@@ -361,7 +373,7 @@ def crop() -> int:
         if not options and vid not in hand:
             continue
         verdicts = {pid: verdict(f"flickr-{pid}.jpg", boxes, 2 if pid in sides else 1) for pid in options}
-        clean = sorted((pid for pid in options if verdicts[pid] is None), key=lambda q: (q in sides, -company(q, vid), cast(q, sides.get(q)), -gap(q, vid)[0]))
+        clean = sorted((pid for pid in options if verdicts[pid] is None), key=lambda q: (q in sides, cast(q, sides.get(q)) > CAST_MAX, -company(q, vid), cast(q, sides.get(q)), -gap(q, vid)[0]))
         h = hand.get(vid, {})
         pid = h.get("id") or (clean[0] if clean else options[0])
         side = h.get("side") or sides.get(pid)
@@ -377,6 +389,9 @@ def crop() -> int:
             notes.append("候选照片都不是干净的照片：" + "；".join(f"{p} {w}" for p, w in verdicts.items()))
         elif len(options) < 2:
             notes.append("只有一张写着他名字的照片")
+        if not h.get("id") and clean and pid != sorted(clean, key=lambda q: (q in sides, -company(q, vid)))[0] and company(pid, vid) <= 0 and not confirmed:
+            notes.append("同组的照片打了彩色光，换成了光线正常的这张，它不在同一组里，请确认是他")
+            doubtful = True
         if h.get("note"):
             notes.append(h["note"])
         sure = confirmed or (bool(clean) and verdicts.get(pid) is None and not doubtful and not side and not h.get("unsure"))
@@ -414,6 +429,9 @@ def crop() -> int:
             (square(photo, face) if face else photo.resize((SIDE, SIDE))).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
             continue
         out[vid].update(style="soft", cutout=True)
+        if hand.get(vid, {}).get("tone") == "warm":
+            photo = warm(photo)
+            out[vid]["toned"] = "warm"
         rest = CUT / f"{vid}-others.png"
         soften(square(photo, face), square(Image.open(cut).convert("RGBA"), face),
                square(Image.open(rest), face) if rest.exists() else None).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=100, method=6)
