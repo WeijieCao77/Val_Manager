@@ -14,6 +14,8 @@
  *   - the cups' hourly prune: `cup_id in (select …)` hash-joined both cup tables; now probes the keys.
  *   - the 对战码 lookups: `left(id_hash, $1)` and a bound `like` prefix are not card_code_idx's expression,
  *     and a generic plan of either reads every account; now `left(id_hash, 8)`.
+ *   - the board's own place (boardOwn, every look at the board): one count over `ahead or tied` went to the heap
+ *     of account_ladder for every row ahead; on the open board it is now two index-only ranges.
  *
  * The real code is run against a production-shaped fixture (scripts/pg/scan-fixture.ts) and every statement it
  * sends is captured and EXPLAINed twice — with its own parameters, and as the generic plan postgres.js's
@@ -30,7 +32,7 @@ import { buildScanFixture } from './pg/scan-fixture'
 
 const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
 const { PROJECTION_SCHEMA } = await import('../db-schema.js')
-const { rivalSample } = await import('../account-projection.js')
+const { boardOwn, rivalSample } = await import('../account-projection.js')
 const { OPEN_CUP_SCHEMA, OPEN_CUP_V2_SCHEMA, makeOpenCupApi } = await import('../opencup-api.js')
 const { displayName } = await import('../names.js')
 const engine = await import('../src/engine/server.ts')
@@ -96,6 +98,12 @@ function seqScans(plan: any, out: string[] = []): string[] {
   for (const p of plan.Plans ?? []) seqScans(p, out)
   return out
 }
+/** every node that reads `rel`, as its node type */
+function readsOf(plan: any, rel: string, out: string[] = []): string[] {
+  if (plan['Relation Name'] === rel) out.push(`${plan['Node Type']} (${plan.Alias})`)
+  for (const p of plan.Plans ?? []) readsOf(p, rel, out)
+  return out
+}
 const planOf = (j: any) => (Array.isArray(j) ? j[0].Plan : j.Plan)
 const explainable = (t: string) => /^\s*(with|select|insert|update|delete)\b/i.test(t) && !/^\s*select\s+(pg_|set_config|1\s*$)/i.test(t)
 
@@ -137,9 +145,20 @@ const OLD: [string, string, unknown[]][] = [
      join account_rivals r on r.id_hash = p.id_hash join card_accounts a on a.id_hash = p.id_hash where p.n <= $1`, [80]],
   ['cup prune', `delete from open_cup_entries where cup_id in (select id from open_cups where status in ('done', 'void') and starts < $1)`,
     [new Date(Date.now() - 14 * 86_400_000)]],
+  ['own place', `select l.id_hash, 1 + (select count(*)::int from account_ladder o where o.league = $2 and o.season = $3 and not o.suspect
+       and ($2 = 'open' or o.wins + o.losses > 0)
+       and ((o.div, o.points, o.stars, o.wins) > (l.div, l.points, l.stars, l.wins)
+         or ((o.div, o.points, o.stars, o.wins) = (l.div, l.points, l.stars, l.wins) and o.id_hash < l.id_hash))) as rk
+     from account_ladder l where l.id_hash = $1 and l.league = $2`, ['x', 'open', '1']],
   ['对战码 by bound length', `select id_hash, name from card_accounts where left(id_hash, $1) = $2 limit 2`, [8, 'abcdef01']],
 ]
 for (const [what, text, params] of OLD) {
+  if (what === 'own place') {
+    // account_ladder is not one of the two, and is not seq-scanned: the old count's sin was the heap behind the index
+    const reads = [...readsOf(planOf(await explainJson(text, params)), 'account_ladder'), ...readsOf(planOf(await explainJson(text, null)), 'account_ladder')]
+    check('control: the old own-place count reads account_ladder past its index', reads.some((r) => /\(o\)/.test(r) && !r.startsWith('Index Only Scan')), reads.join(', '))
+    continue
+  }
   const custom = seqScans(planOf(await explainJson(text, params))).filter((r) => HOT.includes(r))
   const generic = seqScans(planOf(await explainJson(text, null))).filter((r) => HOT.includes(r))
   check(`control: the old ${what} statement scans here`, custom.length + generic.length > 0,
@@ -162,6 +181,21 @@ const call = async (api: any, path: string, body: unknown) => {
 }
 const [someone] = await exec(`select id_hash from open_cup_entries e join open_cups c on c.id = e.cup_id where c.status = 'live' limit 1`)
 
+{
+  // an account near the bottom of the open board: nearly everybody is ahead of it
+  const [low] = await exec(`select id_hash, season from account_ladder where league = 'open' and not suspect
+    order by div, points, stars, wins, id_hash desc limit 1 offset 20`)
+  log.length = 0
+  taping = true
+  const own = await boardOwn(sql, low.id_hash, 'open', low.season).finally(() => { taping = false })
+  const sent = log.splice(0).filter((x) => x.text.includes('from account_ladder o'))
+  const reads: string[] = []
+  for (const x of sent) {
+    for (const params of [x.params, null]) reads.push(...readsOf(planOf(await explainJson(x.text, params)), 'account_ladder').filter((r) => !/\(l\)/.test(r)))
+  }
+  check('own place on the open board counts on the index alone', own?.row?.rk > 1 && reads.length === 4 && reads.every((r) => r.startsWith('Index Only Scan')),
+    `rank ${own?.row?.rk} · ${reads.join(', ')}`)
+}
 {
   const r = await scansOf(() => rivalSample(sql, 80))
   check('rival pool reads no hot table end to end', r.sent > 0 && !r.found.length, show(r.found))

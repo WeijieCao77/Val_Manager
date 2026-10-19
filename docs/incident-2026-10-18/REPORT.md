@@ -12,8 +12,9 @@
 | 天梯对手池 `account-projection.js` rivalSample | 有天梯对局时每分钟一次 | 规划器估 `n <= 80` 留下三分之一行，选哈希连接：**整表扫 card_accounts**，account_rivals 再扫一遍 | 抽中的几百个 id 经 `offset 0` 的 lateral 子查询按主键取 | 14,152 → 7,082 缓冲；card_accounts 从 11,514 页整读变成 720 次主键查找 |
 | 杯赛每小时清理 `opencup-api.js` prune | 每小时 | `cup_id in (select id from open_cups …)`：哈希半连接，**整表扫 open_cup_entries**（和 open_cup_matches） | `cup_id = any(array(select …))`，按主键探测 | 整表 → 约 10 页 |
 | 对战码查找 `cards-api.js` friend / friend_cards，`market-guard.js` byCode | 每次查好友对战码；站长按码查人 | `left(id_hash, $1)` 和参数化 `like` 前缀都不是 card_code_idx 的表达式，**通用计划整表扫 card_accounts**（自定义计划没事；预备语句一旦落到通用计划就扫） | 统一写成 `left(id_hash, 8) = $1` | 通用计划：整表 → 索引 |
+| 排行榜「我的名次」`account-projection.js` boardOwn | 每次看榜 | 一个 count 覆盖「排在前面或同分更小」，旁边还有 `$league = 'open' or wins + losses > 0`：位图 OR，前面每一行都回堆读 account_ladder | 拆成两段索引范围（严格在前 + 同分 id 更小）；公开榜不带 losses 条件，两段都是只读索引；其他赛道仍要回堆读 losses | 名次靠后的账号：1,935（堆 1,134）→ 809（只读索引），61 ms → 4 ms |
 
-检查：`scripts/check_scan_plans.ts`（已进审计清单）。跑真实代码路径，抓下发出的每条语句，按自带参数和 `GENERIC_PLAN` 各 EXPLAIN 一次，两张热表不许出现 Seq Scan；旧写法作对照，必须在这份数据上仍然扫描。把四个源文件改回旧版时三项失败。真实 PG：`PG_TEST_URL=… npx tsx scripts/check_scan_plans.ts`。
+检查：`scripts/check_scan_plans.ts`（已进审计清单）。跑真实代码路径（「我的名次」另查公开榜上两段计数都是 Index Only Scan），抓下发出的每条语句，按自带参数和 `GENERIC_PLAN` 各 EXPLAIN 一次，两张热表不许出现 Seq Scan；旧写法作对照，必须在这份数据上仍然扫描。把四个源文件改回旧版时三项失败。真实 PG：`PG_TEST_URL=… npx tsx scripts/check_scan_plans.ts`。
 
 ## 没能确认的：card_accounts 每 20 秒一次
 
@@ -28,4 +29,6 @@ select count(*), min(at), max(at), left(min(why), 160) from account_projection_d
 select calls, shared_blks_read, left(query, 160) from pg_stat_statements order by shared_blks_read desc limit 15;
 ```
 
-另外两件和这次范围外、但会读同类数据的：自动 ANALYZE 对 card_accounts 采样 3 万行，在 1.06 万页的表上几乎是整读，这部分算在 heap_blks_read 里但不算 seq_scan；排行榜的「我的名次」（boardOwn）每次看榜都要数一遍排在前面的 account_ladder 行，名次靠后的账号约读 1,700 页。
+「我的名次」改写后，和旧扫描逐个账号比过名次（check_account_projection，所有榜共 8,386 次，0 次不一致）。
+
+还有一件范围外的：自动 ANALYZE 对 card_accounts 采样 3 万行，在 1.06 万页的表上几乎是整读，这部分算在 heap_blks_read 里但不算 seq_scan。

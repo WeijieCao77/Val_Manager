@@ -302,20 +302,41 @@ export async function boardTop(db, league, season, limit = 100) {
  * plus the rows ahead of it under the board's order. `at` is the account's
  * ladder_at, so a caller can tell whether a cached board predates its last
  * write. Null when the account does not exist.
+ *
+ * The rows ahead are counted as two ranges of account_ladder_board_idx — strictly ahead on the four numbers,
+ * then the ties with a smaller hash — and on the open board with nothing outside the index, so both are
+ * index-only. One count over `ahead or tied-and-smaller`, with `$league = 'open' or wins + losses > 0` beside
+ * it, was a bitmap OR that went to the heap for every row ahead: ~1,100 heap pages for an account near the
+ * bottom, on every look at the board (2026-10-18). The other ladders still need `losses` from the heap.
  */
 export async function boardOwn(db, mine, league, season) {
-  const [r] = await db`
+  const [r] = league === 'open'
+    ? await db`
     select a.ladder_at, a.name, l.id_hash, l.div, l.points, l.stars, l.wins, l.losses,
-      case when l.id_hash is null then null else 1 + (
-        select count(*)::int from account_ladder o
-        where o.league = ${league} and o.season = ${season} and not o.suspect
-          and (${league} = 'open' or o.wins + o.losses > 0)
-          and ((o.div, o.points, o.stars, o.wins) > (l.div, l.points, l.stars, l.wins)
-            or ((o.div, o.points, o.stars, o.wins) = (l.div, l.points, l.stars, l.wins) and o.id_hash < l.id_hash))
-      ) end as rk
+      case when l.id_hash is null then null else 1
+        + (select count(*)::int from account_ladder o
+           where o.league = ${league} and o.season = ${season} and not o.suspect
+             and (o.div, o.points, o.stars, o.wins) > (l.div, l.points, l.stars, l.wins))
+        + (select count(*)::int from account_ladder o
+           where o.league = ${league} and o.season = ${season} and not o.suspect
+             and o.div = l.div and o.points = l.points and o.stars = l.stars and o.wins = l.wins and o.id_hash < l.id_hash)
+      end as rk
+    from card_accounts a
+    left join account_ladder l on l.id_hash = a.id_hash and l.league = ${league} and l.season = ${season} and not l.suspect
+    where a.id_hash = ${mine}`
+    : await db`
+    select a.ladder_at, a.name, l.id_hash, l.div, l.points, l.stars, l.wins, l.losses,
+      case when l.id_hash is null then null else 1
+        + (select count(*)::int from account_ladder o
+           where o.league = ${league} and o.season = ${season} and not o.suspect and o.wins + o.losses > 0
+             and (o.div, o.points, o.stars, o.wins) > (l.div, l.points, l.stars, l.wins))
+        + (select count(*)::int from account_ladder o
+           where o.league = ${league} and o.season = ${season} and not o.suspect and o.wins + o.losses > 0
+             and o.div = l.div and o.points = l.points and o.stars = l.stars and o.wins = l.wins and o.id_hash < l.id_hash)
+      end as rk
     from card_accounts a
     left join account_ladder l on l.id_hash = a.id_hash and l.league = ${league} and l.season = ${season}
-      and not l.suspect and (${league} = 'open' or l.wins + l.losses > 0)
+      and not l.suspect and l.wins + l.losses > 0
     where a.id_hash = ${mine}`
   if (!r) return null
   const at = r.ladder_at ? new Date(r.ladder_at).getTime() : 0

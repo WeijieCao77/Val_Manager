@@ -3,7 +3,7 @@
  *
  * Sized off prod's pg_stat_user_tables that day: ~74k accounts in an ~83 MB heap (most saves small enough to
  * stay inline, the big collections toasted), ~33k cup entries over a fortnight of 全服杯 (one every two hours,
- * ~200 a cup; the cups themselves are kept for good), one rival row per account with a whole five. The plans
+ * ~200 a cup; the cups themselves are kept for good), one rival row per account with a whole five, an open-ladder row for every account that has played. The plans
  * are what the scripts read, so the row counts and the statistics matter, not the card ids.
  */
 export const FIXTURE = { accounts: 74_000, cupsKept: 168, cupsTotal: 380, perCup: 200 }
@@ -33,6 +33,11 @@ export async function buildScanFixture(exec: (q: string) => Promise<unknown>, sc
     insert into account_rivals (id_hash, div, points, squad, cards, suspect)
     select id_hash, (state->'ladder'->>'div')::int, (state->'ladder'->>'points')::int, state->'squad', '{}'::jsonb, suspect
       from card_accounts where jsonb_typeof(state->'squad'->'slots') = 'array'`)
+  await exec(`
+    insert into account_ladder (id_hash, league, season, div, points, stars, wins, losses, suspect)
+    select id_hash, 'open', state->>'season', (state->'ladder'->>'div')::int, (state->'ladder'->>'points')::int,
+      (state->'ladder'->>'stars')::int, (state->'ladder'->>'wins')::int, (state->'ladder'->>'losses')::int, suspect
+      from card_accounts where (state->'ladder'->>'wins')::int > 0`)
   // a fortnight of entries, every cup since the 全服杯 began
   await exec(`
     insert into open_cups (starts, status, round, rounds, entrants, champion, finished, format_version, phase)
@@ -60,5 +65,5 @@ export async function buildScanFixture(exec: (q: string) => Promise<unknown>, sc
     select id, champion, 'champ', '{"slots":["c1","c2","c3","c4","c5"],"coach":"k1"}', 99, 1 from open_cups
      where champion is not null and starts >= (select min(starts) from (select starts from open_cups order by starts desc limit ${n.cupsKept}) s)
     on conflict (cup_id, id_hash) do update set place = 1`)
-  await exec(`vacuum analyze card_accounts, account_rivals, open_cups, open_cup_entries`)
+  await exec(`vacuum analyze card_accounts, account_rivals, account_ladder, open_cups, open_cup_entries`)
 }

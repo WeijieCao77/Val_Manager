@@ -113,4 +113,4 @@ npx tsx scripts/check_scan_plans.ts                                             
 PG_TEST_URL=postgres://postgres@127.0.0.1:55439/postgres npx tsx scripts/check_scan_plans.ts   # 真实 PG，独立 verify_* 库
 ```
 
-`scan-fixture.ts` 按 10-18 生产的规模造数据：7.4 万账号（堆约 90 MB）、半个月 3.4 万条全服杯报名、5.5 万条对手投影。脚本跑真实代码（对手池、全服杯公开页、杯赛时钟和每小时清理、对战码查找），抓下发出的每条语句，各按自带参数和 `GENERIC_PLAN` 各 EXPLAIN 一次，card_accounts 和 open_cup_entries 不许出现 Seq Scan。旧写法作对照，必须在这份数据上仍然整表扫描；改回旧代码时三项失败。真实 PG 下用 postgres.js 的 `debug` 钩子抓语句，PGlite 下包一层 `query`。
+`scan-fixture.ts` 按 10-18 生产的规模造数据：7.4 万账号（堆约 90 MB）、半个月 3.4 万条全服杯报名、5.5 万条对手投影。脚本跑真实代码（对手池、全服杯公开页、杯赛时钟和每小时清理、对战码查找），抓下发出的每条语句，各按自带参数和 `GENERIC_PLAN` 各 EXPLAIN 一次，card_accounts 和 open_cup_entries 不许出现 Seq Scan；排行榜「我的名次」在公开榜上的两段计数必须是 Index Only Scan。旧写法作对照，必须在这份数据上仍然整表扫描；改回旧代码时三项失败。真实 PG 下用 postgres.js 的 `debug` 钩子抓语句，PGlite 下包一层 `query`。
