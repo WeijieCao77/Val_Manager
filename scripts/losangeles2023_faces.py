@@ -21,9 +21,10 @@ within NEAR seconds and the fewest of anyone else's (BLG's lone 16:35 「whz」 
 Biank — the owner caught it). A pick within NEAR seconds of someone else's frame, and nearer to it than to
 his own, is marked unsure, as on 曼谷. A pair frame is always unsure.
 
-Every pick is cut out of its background (scripts/person_cutout.swift: the person under the face, macOS
-Vision's person instance mask), so the card shows the player alone on its own sunset — a frame's wall,
-crowd or teammate never sits on the art (owner, 2026-10-18: 背景和卡面底板融合得不自然).
+Every pick is softened into the card (see soften(): owner, 2026-10-18 — 背景和卡面底板融合得不自然, a plain
+cutout didn't look right either, 柔和融合 chosen of five): the player as shot, cut out with
+scripts/person_cutout.swift (Vision's person instance mask, the person under the face), over his own frame
+mapped into the sunset palette, darkened and dissolving outward; teammates are masked out of it.
 Overrides by hand: scripts/cache/losangeles2023_face_picks.json
 ({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "keep": true?, "note": ... } }).
 `keep` is the owner pinning a card as it is (Jinggg, 2026-10-18): his first-version image — the frame as
@@ -254,12 +255,9 @@ def sheet() -> int:
     return 0
 
 
-# A few frames were lit in a strong colour (aspas under LOUD's green, f0rsakeN magenta, Lysoar deep orange);
-# on the sunset they read as a different picture. The light is read off the face — the middle of the face
-# box, so a jersey's colour doesn't count — against the median skin of all 80 frames; how far it sits
-# decides how much of the player becomes a warm monochrome. Natural light (Jinggg) stays as shot.
+# The light on a player's face, read off the middle of the face box (a jersey's colour doesn't count),
+# against the median skin of all 80 frames: the picker prefers the most naturally lit frame of a session.
 SKIN = (0.4385, 0.3075, 0.255)
-TINT = (1.08, 0.94, 0.80)
 
 
 def skin_share(photo: Image.Image, face: dict | None) -> tuple[float, float, float] | None:
@@ -273,18 +271,33 @@ def skin_share(photo: Image.Image, face: dict | None) -> tuple[float, float, flo
     return tuple(float(v) for v in m / max(m.sum(), 1))
 
 
-def grade(im: Image.Image, share: tuple[float, float, float] | None) -> tuple[Image.Image, float]:
+# The 柔和融合 treatment (owner's pick of five, 2026-10-18): the player as shot over a softened copy of his own
+# frame — its light kept, its colour mapped into the card's night-plum-to-peach sunset and darkened, fading out
+# from the middle so the art shows around him. Anyone else in the frame is taken out of that background.
+PALETTE = ((23, 19, 30), (70, 32, 58), (168, 74, 66), (236, 150, 98), (255, 222, 170))
+
+
+def soften(raw: Image.Image, cut: Image.Image, others: Image.Image | None) -> Image.Image:
     import numpy as np
-    if not share:
-        return im, 0.0
-    k = float(min(1.0, max(0.0, (sum(abs(a - b) for a, b in zip(share, SKIN)) - 0.2) / 0.25)))
-    if k == 0:
-        return im, 0.0
-    a = np.asarray(im.convert("RGBA")).astype(np.float32)
-    lum = a[..., 0] * .299 + a[..., 1] * .587 + a[..., 2] * .114
-    mono = np.stack([np.clip(lum * t, 0, 255) for t in TINT], -1)
-    a[..., :3] = a[..., :3] * (1 - k) + mono * k
-    return Image.fromarray(a.astype(np.uint8), "RGBA"), round(k, 2)
+    from PIL import ImageFilter
+    rgb = np.asarray(raw.convert("RGB")).astype(np.float32)
+    alpha = np.asarray(cut.split()[-1].filter(ImageFilter.GaussianBlur(5))).astype(np.float32)[..., None] / 255
+    lum = (rgb @ np.array([.299, .587, .114], np.float32)) / 255
+    pal = np.array(PALETTE, np.float32)
+    x = np.clip(lum * .55, 0, 1) * (len(pal) - 1)
+    i = np.clip(x.astype(int), 0, len(pal) - 2)
+    t = (x - i)[..., None]
+    bg = pal[i] * (1 - t) + pal[i + 1] * t
+    h, w = lum.shape
+    yy, xx = np.mgrid[0:h, 0:w]
+    dist = np.sqrt(((xx - w / 2) / (w / 2)) ** 2 + ((yy - h * .45) / (h / 2)) ** 2)[..., None]
+    bga = np.clip(1.15 - dist * .9, 0, 1) * .85
+    if others is not None:
+        o = others.convert("L").filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(8))
+        bga = bga * (1 - np.asarray(o).astype(np.float32)[..., None] / 255)
+    comp = rgb * alpha + bg * (1 - alpha)
+    a = alpha + (1 - alpha) * bga
+    return Image.fromarray(np.clip(np.concatenate([comp, a * 255], -1), 0, 255).astype(np.uint8), "RGBA")
 
 
 def square(im: Image.Image, face: dict) -> Image.Image:
@@ -388,23 +401,22 @@ def crop() -> int:
     for vid, pid, face in jobs:
         if hand.get(vid, {}).get("keep"):
             # pinned by the owner: the first version, exactly — the frame as shot, cropped square, no cutout or grade
-            out[vid].update(cutout=False, graded=0.0, style="raw", keep=True)
+            out[vid].update(cutout=False, style="raw", keep=True)
             square(Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGB"), face).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
             continue
-        out[vid]["style"] = "cut"
         cut = CUT / f"{vid}.png"
-        im = Image.open(cut).convert("RGBA") if how.get(vid) in ("person", "foreground") and cut.exists() else Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGBA")
-        if how.get(vid) not in ("person", "foreground"):
+        photo = Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGB")
+        if how.get(vid) not in ("person", "foreground") or not cut.exists() or not face:
+            out[vid].update(style="raw", cutout=False)
             out[vid]["note"] = "；".join(filter(None, [out[vid]["note"], "没能把人从背景里抠出来，用的是原图"]))
             out[vid]["sure"] = False
             unsure.append(out[vid]["ign"])
-        out[vid]["cutout"] = how.get(vid) in ("person", "foreground")
-        im, out[vid]["graded"] = grade(im, skin_share(Image.open(PHOTOS / f"flickr-{pid}.jpg"), face))
-        if face:
-            square(im, face).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=70, method=6)
-        else:
-            s = min(im.size)
-            im.crop(((im.width - s) // 2, 0, (im.width + s) // 2, s)).resize((SIDE, SIDE), Image.LANCZOS).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=70, method=6)
+            (square(photo, face) if face else photo.resize((SIDE, SIDE))).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
+            continue
+        out[vid].update(style="soft", cutout=True)
+        rest = CUT / f"{vid}-others.png"
+        soften(square(photo, face), square(Image.open(cut).convert("RGBA"), face),
+               square(Image.open(rest), face) if rest.exists() else None).save(OUT / f"event-{vid}.webp", "WEBP", quality=80, alpha_quality=100, method=6)
     FACES.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", "utf-8")
     unsure = sorted(set(unsure), key=unsure.index)
     print(f"{len(out)} faces cropped, {sum(1 for v in out.values() if v.get('cutout'))} cut out; unsure ({len(unsure)}): {', '.join(unsure) or 'none'}", flush=True)

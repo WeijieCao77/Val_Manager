@@ -22,7 +22,7 @@ export interface LosAngelesPlayer {
   evolved?: boolean
   /** the team's caller: an IGL tag after the team */
   igl?: boolean
-  /** how the photo sits on the art: 'cut' (the player cut out of his frame) or 'raw' (the frame as shot, the first version's window) */
+  /** how the photo sits on the art: 'soft' (the player over his frame softened into the sunset) or 'raw' (the frame as shot, the first version's window) */
   photoStyle?: string
 }
 const tiers = { gold: '金卡', silver: '银卡', bronze: '铜卡' }

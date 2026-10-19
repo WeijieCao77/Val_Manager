@@ -29,7 +29,7 @@ ok('照片是洛杉矶冠军赛的', LOS_ANGELES_CARDS.every(c => c.face!.starts
 const faces = LOS_ANGELES_CARDS.map(c => losAngelesFace(c.losAngeles!.vlrId) as { cutout?: boolean; photo?: string; confirmed?: boolean; keep?: boolean; style?: string })
 const jinggg = faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Jinggg')]
 ok('Jinggg 固定为第一版：原图、第一版卡面效果，不抠图不调色', !!jinggg.keep && jinggg.style === 'raw' && jinggg.cutout === false && jinggg.photo === '53105604568')
-ok('其余每张照片都有处理方式', faces.every(f => f.style === 'raw' || f.style === 'cut'))
+ok('其余 79 张都是柔和融合（人原色，背景压成落日色），都抠出了人', faces.filter(f => !f.keep).every(f => f.style === 'soft' && f.cutout === true))
 ok('whzy 用的是他自己那组照片（16:31），不是被说明写成 whz 的 Biank（16:35 那张）', faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'whzy')].photo !== '53102991504')
 ok('Yuicaw 那张双人照主人确认过，抠图后只剩他', !!faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Yuicaw')].confirmed)
 ok('队名按当届：DRX、Giants（不是后来的 KRX、GX）', by('MaKo').clubTag === 'DRX' && by('Cloud').clubTag === 'GIA'

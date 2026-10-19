@@ -610,7 +610,7 @@ function paintLosAngelesSeat(
   ctx.lineWidth = Math.max(1, W(0.3))
   ctx.strokeText('23', X(3), Y(11))
 
-  // the portrait (.la-photo): the cut-out player, toned and rim-lit, faded only into the foot
+  // the portrait (.la-photo): a softened frame fades only into the foot; a first-version one on every side
   const pb = { x: X(9), y: Y(17), w: W(93), h: H(65) }
   if (face) {
     const off = document.createElement('canvas')
@@ -618,8 +618,8 @@ function paintLosAngelesSeat(
     off.height = Math.ceil(pb.h)
     const o = off.getContext('2d')!
     // a kept first-version card (style 'raw') is the frame as shot, toned and faded on every side as .la-photo-raw is
-    const raw = (losAngelesFace(entry.vlrId) as { style?: string } | undefined)?.style !== 'cut'
-    o.filter = raw ? 'saturate(.48) sepia(.2) contrast(1.08)' : `saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 ${W(1.6)}px rgba(255,154,92,.4))`
+    const raw = (losAngelesFace(entry.vlrId) as { style?: string } | undefined)?.style !== 'soft'
+    o.filter = raw ? 'saturate(.48) sepia(.2) contrast(1.08)' : 'saturate(.8) contrast(1.04)'
     const scale = Math.max(pb.w / face.width, pb.h / face.height)
     const fw = face.width * scale, fh = face.height * scale
     o.drawImage(face, (pb.w - fw) / 2, (pb.h - fh) * 0.3, fw, fh)
