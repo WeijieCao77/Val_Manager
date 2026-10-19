@@ -19,9 +19,10 @@
 /* the photo: each player is cut out of his frame (losangeles2023_faces.py), so he stands on the card's own
    sunset — no window tint (it coloured the art behind him as a box), only a fade into the foot; the warm
    rim light ties the cutout to the sun behind it */
-.la-photo{mask-image:linear-gradient(#000 62%,transparent 97%);-webkit-mask-image:linear-gradient(#000 62%,transparent 97%);mask-composite:add}
-.la-photo:after{display:none}
-.la-photo img{object-position:50% 30%;filter:saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 1.6cqw #ff9a5c66) drop-shadow(0 2cqw 3cqw #17131e99)}
+.la-photo-cut{mask-image:linear-gradient(#000 62%,transparent 97%);-webkit-mask-image:linear-gradient(#000 62%,transparent 97%);mask-composite:add}
+.la-photo-cut:after{display:none}
+.la-photo-raw img{object-position:50% 30%}
+.la-photo-cut img{object-position:50% 30%;filter:saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 1.6cqw #ff9a5c66) drop-shadow(0 2cqw 3cqw #17131e99)}
 /* ---- 抽卡 shelf, reveal and gallery */
 .la-shelf{display:flex;gap:28px;align-items:center;padding:28px 32px;margin:0 0 20px;background:radial-gradient(ellipse at 15% 0,#a8563a40,transparent 70%),#17131e;border:1px solid #c79a6a;color:#fff0d5;border-radius:8px;overflow:hidden}
 .la-shelf-art{position:relative;min-width:180px;width:180px;height:216px;flex-shrink:0}

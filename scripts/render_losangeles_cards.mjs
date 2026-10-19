@@ -32,7 +32,7 @@ await build({
         const p = c.losAngeles, f = losAngelesFace(p.vlrId)
         const player = {
           ign: c.ign, team: c.clubTag, nation: (natCountry(c.nat) ?? '').toUpperCase(), number: String(p.number).padStart(3, '0') + ' / ' + String(cards.length).padStart(3, '0'),
-          photo: c.face, rating: c.rating, acs: p.acs, kd: p.kd, maps: p.maps, label: c.role.slice(0, 2), igl: c.isIgl,
+          photo: c.face, rating: c.rating, acs: p.acs, kd: p.kd, maps: p.maps, label: c.role.slice(0, 2), igl: c.isIgl, photoStyle: f?.style,
         }
         return {
           ign: c.ign, team: c.clubTag, number: p.number, maps: p.maps, vlr: p.rating, rating: c.rating, rarity: c.rarity, igl: c.isIgl,

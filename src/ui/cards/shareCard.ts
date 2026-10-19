@@ -17,7 +17,7 @@ import { squadTeamIdentity, teamBackdrop } from '../../engine/teamIdentity'
 import { MAX_LEVEL, RARITY_CN, cardById, isPlayerCard } from '../../engine/cards'
 import type { Card, CoachCard, PlayerCard, Rarity, Squad } from '../../engine/cards'
 import { crestUrl } from '../../engine/dossier'
-import { LOS_ANGELES_TOTAL } from '../../engine/losangeles2023'
+import { LOS_ANGELES_TOTAL, losAngelesFace } from '../../engine/losangeles2023'
 import { qrMatrix } from '../../engine/qr'
 
 export const SHARE_URL = 'https://vctgames.com'
@@ -617,16 +617,25 @@ function paintLosAngelesSeat(
     off.width = Math.ceil(pb.w)
     off.height = Math.ceil(pb.h)
     const o = off.getContext('2d')!
-    o.filter = `saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 ${W(1.6)}px rgba(255,154,92,.4))`
+    // a kept first-version card (style 'raw') is the frame as shot, toned and faded on every side as .la-photo-raw is
+    const raw = (losAngelesFace(entry.vlrId) as { style?: string } | undefined)?.style !== 'cut'
+    o.filter = raw ? 'saturate(.48) sepia(.2) contrast(1.08)' : `saturate(.72) sepia(.12) contrast(1.05) drop-shadow(0 0 ${W(1.6)}px rgba(255,154,92,.4))`
     const scale = Math.max(pb.w / face.width, pb.h / face.height)
     const fw = face.width * scale, fh = face.height * scale
     o.drawImage(face, (pb.w - fw) / 2, (pb.h - fh) * 0.3, fw, fh)
     o.filter = 'none'
     o.globalCompositeOperation = 'destination-in'
     const vt = o.createLinearGradient(0, 0, 0, pb.h)
-    vt.addColorStop(0.62, '#000'); vt.addColorStop(0.97, 'rgba(0,0,0,0)')
+    if (raw) { vt.addColorStop(0, 'rgba(0,0,0,0)'); vt.addColorStop(0.12, '#000'); vt.addColorStop(0.65, '#000'); vt.addColorStop(0.99, 'rgba(0,0,0,0)') }
+    else { vt.addColorStop(0.62, '#000'); vt.addColorStop(0.97, 'rgba(0,0,0,0)') }
     o.fillStyle = vt
     o.fillRect(0, 0, pb.w, pb.h)
+    if (raw) {
+      const hz = o.createLinearGradient(0, 0, pb.w, 0)
+      hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.17, '#000'); hz.addColorStop(0.85, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)')
+      o.fillStyle = hz
+      o.fillRect(0, 0, pb.w, pb.h)
+    }
     ctx.drawImage(off, pb.x, pb.y, pb.w, pb.h)
   }
   // the shade rising from the foot (.la-front-shade)

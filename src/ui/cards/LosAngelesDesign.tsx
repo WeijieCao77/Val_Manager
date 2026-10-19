@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CardFaceProps } from '../Card'
 import type { PlayerCard } from '../../engine/cards'
-import { LOS_ANGELES_META, LOS_ANGELES_TOTAL } from '../../engine/losangeles2023'
+import { LOS_ANGELES_META, LOS_ANGELES_TOTAL, losAngelesFace } from '../../engine/losangeles2023'
 import { natCountry } from '../../engine/nat'
 import './losAngeles2023.css'
 
@@ -22,6 +22,8 @@ export interface LosAngelesPlayer {
   evolved?: boolean
   /** the team's caller: an IGL tag after the team */
   igl?: boolean
+  /** how the photo sits on the art: 'cut' (the player cut out of his frame) or 'raw' (the frame as shot, the first version's window) */
+  photoStyle?: string
 }
 const tiers = { gold: '金卡', silver: '银卡', bronze: '铜卡' }
 
@@ -38,7 +40,7 @@ export function LosAngelesCard({ player, rarity = 'gold', blank = false, footer 
   return <article className={`la-card la-front la-${rarity}`} aria-label={`${player.ign} 洛杉矶 2023 ${tiers[rarity]}`}>
     <Scene /><div className="la-year" aria-hidden="true">23</div>
     <header className="la-front-header"><span>CHAMPIONS<br /><b>LOS ANGELES</b></span><LosAngelesEmblem /></header>
-    <div className="la-photo">{showPhoto ? <img src={player.photo} alt={player.ign} onError={() => setFailed(player.photo)} /> : <div className="la-placeholder">PLAYER PORTRAIT<span>选手照片预留</span></div>}</div>
+    <div className={`la-photo la-photo-${player.photoStyle ?? 'raw'}`}>{showPhoto ? <img src={player.photo} alt={player.ign} onError={() => setFailed(player.photo)} /> : <div className="la-placeholder">PLAYER PORTRAIT<span>选手照片预留</span></div>}</div>
     <span className="la-vertical">ONE MORE / 再进一步</span>
     <div className="la-front-shade" />
     <div className="la-rating"><b>{player.rating ?? '—'}</b><span>{player.label ?? '总评'}{player.evolved && <i className="evo-mark" title="进修过">↑</i>}</span></div>
@@ -65,6 +67,7 @@ export function LosAngelesFace({ card, level = 0, evolved = false, dupes = 0, se
     nation: (natCountry(card.nat) ?? '').toUpperCase(), number: `${pad(e.number)} / ${pad(LOS_ANGELES_TOTAL)}`,
     photo: card.face ?? undefined, rating: card.rating, acs: e.acs, kd: e.kd, maps: e.maps,
     label: `${card.role.slice(0, 2)}${level > 0 ? ` +${level}` : ''}`, evolved, igl: card.isIgl,
+    photoStyle: (losAngelesFace(e.vlrId) as { style?: string } | undefined)?.style,
   }
   return <div className={`la-face${selected ? ' sel' : ''}${dimmed ? ' dim' : ''}${onClick ? ' tap' : ''}`}
     onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}

@@ -25,7 +25,9 @@ Every pick is cut out of its background (scripts/person_cutout.swift: the person
 Vision's person instance mask), so the card shows the player alone on its own sunset — a frame's wall,
 crowd or teammate never sits on the art (owner, 2026-10-18: 背景和卡面底板融合得不自然).
 Overrides by hand: scripts/cache/losangeles2023_face_picks.json
-({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "note": ... } }).
+({ vlrId: { "id": <photo>, "side": "L"|"R"?, "confirmed": true, "keep": true?, "note": ... } }).
+`keep` is the owner pinning a card as it is (Jinggg, 2026-10-18): his first-version image — the frame as
+shot, no cutout, no grade — and the first-version face style (`style: "raw"`). Never change a kept card.
 """
 from __future__ import annotations
 
@@ -384,6 +386,12 @@ def crop() -> int:
     run = subprocess.run(["swift", str(ROOT / "scripts" / "person_cutout.swift"), *args], capture_output=True, text=True, check=True)
     how = {Path(json.loads(l)["out"]).stem: json.loads(l).get("how") for l in run.stdout.splitlines() if l.startswith("{") and "out" in l}
     for vid, pid, face in jobs:
+        if hand.get(vid, {}).get("keep"):
+            # pinned by the owner: the first version, exactly — the frame as shot, cropped square, no cutout or grade
+            out[vid].update(cutout=False, graded=0.0, style="raw", keep=True)
+            square(Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGB"), face).save(OUT / f"event-{vid}.webp", "WEBP", quality=84)
+            continue
+        out[vid]["style"] = "cut"
         cut = CUT / f"{vid}.png"
         im = Image.open(cut).convert("RGBA") if how.get(vid) in ("person", "foreground") and cut.exists() else Image.open(PHOTOS / f"flickr-{pid}.jpg").convert("RGBA")
         if how.get(vid) not in ("person", "foreground"):
