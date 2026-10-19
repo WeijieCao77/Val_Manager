@@ -8,6 +8,7 @@ import raw from '../src/data/funPool.json'
 import world from '../src/data/world.json'
 import prospects from '../src/data/prospects.json'
 import retired from '../src/data/retired.json'
+import retiredCards from '../src/data/retired_cards.json'
 import { createNewGame } from '../src/engine/world'
 import { WORLD_TEAMS } from '../src/engine/teams'
 import { advanceDay, continuePastFive, setupSeason } from '../src/engine/season'
@@ -30,6 +31,7 @@ const rows = (raw as unknown as { players: FunRow[] }).players
 const club = (tag: string) => WORLD_TEAMS.find((t) => t.tag === tag)!.id
 const fresh = (seed = 7, tag = 'EDG') => { const g = createNewGame(club(tag), '审计', seed, undefined, { fun: rows }); setupSeason(g); return g }
 const pin = (g: GameState) => { g.boardConfidence = 100; g.onNotice = false; g.missedStreak = 0; if (g.midReview) continuePastFive(g) }
+const cardOf = (pid: string) => (retiredCards as unknown as { normals: { playerId: string; rating: number }[] }).normals.find((c) => c.playerId === pid)
 const by = (g: GameState, ign: string) => Object.values(g.players).find((p) => p.ign === ign && p.comeback)!
 
 // ---- the pool
@@ -39,12 +41,20 @@ const taken = new Set([...(world as { players: { id: string }[] }).players.map((
 const coaches = new Set((retired as unknown as { players: { id: string; coach: boolean }[] }).players.filter((p) => p.coach).map((p) => p.id))
 check('名单不重复，不和现役、新人撞 id', new Set(ids).size === ids.length && ids.every((id) => !taken.has(id)))
 check('现在在当教练的退役选手不进名单', ids.every((id) => !coaches.has(id)))
-for (const [ign, kind, fame] of [['TenZ', 'retired', 3], ['Sacy', 'retired', 2], ['yay', 'retired', 2], ['Babyblue', 'retired', 2],
+for (const [ign, kind, fame] of [['TenZ', 'retired', 3], ['Sacy', 'retired', 2], ['yay', 'retired', 2], ['Babyblue', 'streamer', 2],
   ['tarik', 'streamer', 3], ['TryTryz', 'streamer', 1]] as const) {
   const r = rows.find((x) => x.ign === ign)
   check(`${ign} 在名单里：${kind === 'retired' ? '退役' : '主播'}，人气 ${fame}`, !!r && r.kind === kind && r.fame === fame)
 }
 check('退役选手带着最后一季的真实能力', rows.filter((r) => r.kind === 'retired').every((r) => r.lastYear && r.overall && r.attrs))
+{
+  // since 2026-10-18 a retired man with a 退役普卡 comes back at that card: same eight numbers, same rating
+  const withCard = rows.filter((r) => r.kind === 'retired' && cardOf(r.id))
+  const off = withCard.filter((r) => { const c = cardOf(r.id)!; const p = { ...r, attrs: { ...r.attrs } } as unknown as Player
+    return recomputeOverall(p) !== c.rating || r.overall !== c.rating })
+  check('有退役卡的复出选手：能力就是退役卡的分', withCard.length >= 160 && !off.length, `${withCard.length} 人，不一致 ${off.map((r) => r.ign).join(' ')}`)
+  check('2020–22 年退役的也在（SicK、ShahZaM、zombs）', ['SicK', 'ShahZaM', 'zombs'].every((n) => rows.some((r) => r.ign === n && r.kind === 'retired')))
+}
 
 // ---- a fun career
 const g = fresh()
@@ -56,15 +66,15 @@ check('历史档不能开娱乐模式', !Object.values(createNewGame(club('EDG')
 
 const tenz = by(g, 'TenZ')
 {
-  // TenZ: last season 2024, two years without a team, 24, streams — mechanics barely rusted, team play most
+  // TenZ: last match 2025 (the retired series' study), one year without a team, 24, streams — mechanics not rusted, team play most
   const row = rows.find((r) => r.ign === 'TenZ')!
   const rust = tenz.comeback!.rust
-  check('TenZ 生锈：配合类每项 −4，枪法反应只 −1', rust.teamwork === 4 && rust.communication === 4 && rust.utility === 4 && (rust.aim ?? 0) === 1 && (rust.reaction ?? 0) === 1,
+  check('TenZ 生锈一年：配合类每项 −2，枪法反应不掉', rust.teamwork === 2 && rust.communication === 2 && rust.utility === 2 && (rust.aim ?? 0) === 0 && (rust.reaction ?? 0) === 0,
     JSON.stringify(rust))
   const restored = { ...tenz, attrs: { ...tenz.attrs } } as Player
   for (const [k, v] of Object.entries(rust)) restored.attrs[k as keyof Player['attrs']] += v ?? 0
   const back = recomputeOverall(restored)
-  check('TenZ 找回状态后回到最后一季的水平（24 岁没有年龄衰退）', back === row.overall, `${back} vs ${row.overall}`)
+  check('TenZ 找回状态后回到退役卡的能力（24 岁没有年龄衰退）', back === row.overall && back === cardOf('Hv9')?.rating, `${back} vs ${row.overall}`)
   check('TenZ 上限 = 巅峰 + 年轻余量', tenz.potential === Math.max(back, row.peak ?? back) + headroomFor(tenz.age), `${tenz.potential}`)
   check('TenZ 复出时比巅峰低，也不是一个废人', tenz.overall < back && tenz.overall >= back - 4, `${tenz.overall} → ${back}`)
 }

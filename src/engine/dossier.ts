@@ -18,6 +18,7 @@
  * placements, winnings) and Liquipedia's team history.
  */
 import RAW from '../data/dossier.json'
+import FUN_FACES_RAW from '../data/fun_faces.json'
 
 export interface DossierEntry {
   img?: string
@@ -77,13 +78,12 @@ export interface LegendPhoto {
 export const DOSSIER = RAW as unknown as DossierFile
 
 /**
- * 娱乐模式's streamers who never had a season in our worlds (build_fun_pool.py):
- * their vlr photo, kept beside the others in public/faces. tarik's vlr page
- * has none, so he has none here.
+ * 娱乐模式's people who never had a season in our worlds (build_fun_pool.py
+ * writes fun_faces.json): the streamers' vlr photos and the 2020–22 retirees'
+ * card faces, kept beside the others in public/faces. tarik's vlr page has
+ * none, so he has none here.
  */
-const FUN_FACES: Record<string, DossierEntry> = {
-  Hv3018: { img: 'Hv3018.webp' } as DossierEntry,
-}
+const FUN_FACES = FUN_FACES_RAW as unknown as Record<string, DossierEntry>
 
 export const dossierOf = (playerId: string): DossierEntry | undefined =>
   DOSSIER.players[playerId] ?? DOSSIER.hist?.[playerId] ?? FUN_FACES[playerId]

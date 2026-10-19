@@ -18,7 +18,7 @@ each man is put in one of four groups by what vlr.gg and The Spike show today:
 `gone` and `bench` are the candidates for a 退役卡包; `peak` is the best overall
 he had in any year's world and `tier1` the years he was on a tier-one roster.
 """
-import json, os
+import json, os, re
 from datetime import date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,18 +68,50 @@ rows.sort(key=lambda r: (-(len(r["tier1"]) > 0), -(r["peak"] or 0)))
 # Sacy and the rest with no club, whose last games are show matches and
 # national sides, count) — with a photograph on file. One man
 # with two vlr pages (overrides `samePerson`, wqc = cb) is not retired at all.
+#
+# Since 2026-10-18 the retired series' study (analysis/rating/history_v16, the
+# same one src/data/retired_cards.json is built from) has the last word on who
+# is retired: it read every man's own vlr page on 2026-10-09, and a third of
+# the `idle` group turned out to be still playing below the leagues the game
+# models — they leave the list. Its early retirees (2020–22 internationals:
+# SicK, zombs, ShahZaM…) join it, and a man with a 退役普卡 is shown at that
+# card's number (`rating`) and its roles.
 same = set((J("data-raw", "overrides.json").get("samePerson") or {}).keys())
 dossier_hist = J("src", "data", "dossier.json").get("hist") or {}
 worlds = {y: {p["id"]: p for p in J("src", "data", f"world_{y}.json")["players"]} for y in (2023, 2024, 2025)}
+V16 = {r["vlrId"]: r for r in J("analysis", "rating", "history_v16", "players.json")}
+CARDS = {c["vlrId"]: c for c in J("src", "data", "retired_cards.json")["normals"]}
+STATUS = J("analysis", "rating", "history_v16", "status_verified.json")
+# birthdates for the early retirees, who are in no world and so not in people.json:
+# Liquipedia infoboxes (scripts/fetch_liquipedia_people.py --titles, 2026-10-18), by handle
+LP = {k.lower(): v for k, v in J("scripts", "cache", "liquipedia_births_hist.json").items()}
+LP.update({k.lower(): v for k, v in J("scripts", "cache", "liquipedia_people.json").items() if v.get("page")})
+
+
+def age_on_2026(birth):
+    """age on 1 January 2026 from a full date; None for a partial or missing one"""
+    m = re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})", birth or "")
+    if not m:
+        return None, None
+    y, mo, d = (int(x) for x in m.groups())
+    return f"{y}-{mo:02d}-{d:02d}", 2026 - y - (1 if (mo, d) > (1, 1) else 0)
+
+
+def face_ok(face):
+    return bool(face) and os.path.exists(os.path.join(ROOT, "public", "faces", face))
+
+
 shown = []
 for r in rows:
     pid = "Hv" + r["vlr"]
     face = (dossier_hist.get(pid) or {}).get("img")
-    if r["group"] not in ("gone", "bench", "idle") or r["vlr"] in same or not face \
-            or not os.path.exists(os.path.join(ROOT, "public", "faces", face)):
+    cls = (V16.get(r["vlr"]) or {}).get("class")
+    if r["group"] not in ("gone", "bench", "idle") or r["vlr"] in same or not face_ok(face) or cls == "still-playing":
         continue
     last = max(r["years"])
-    peak_rec = worlds.get(r["peakYear"], {}).get(pid) or {}
+    # peak off the year worlds, which are on the card scale (the registry keeps the old ruler)
+    best = max((y for y in r["years"] if pid in worlds.get(y, {})), key=lambda y: (worlds[y][pid]["overall"], y == r["peakYear"]), default=None)
+    peak_rec = worlds[best][pid] if best else {}
     last_rec = worlds.get(last, {}).get(pid) or peak_rec
     birth = (people.get(r["vlr"]) or {}).get("birth")
     if birth:
@@ -88,21 +120,47 @@ for r in rows:
     else:
         # as the historical world had him, carried to 1 January 2026
         age, est = (last_rec.get("age") or 0) + (2026 - last), True
+    card = CARDS.get(r["vlr"])
     shown.append({
         "id": pid, "ign": r["ign"], "real": r["real"], "nat": r["nat"], "region": r["region"] or last_rec.get("region"),
         "birth": birth, "age": age, "ageEstimated": est,
-        "role": peak_rec.get("role") or last_rec.get("role"), "roles": peak_rec.get("roles") or last_rec.get("roles"),
-        "peak": r["peak"], "peakYear": r["peakYear"], "peakClub": r["peakClub"], "lastYear": last,
-        "lastClub": reg[r["vlr"]]["years"][str(last)].get("club"), "tier1": bool(r["tier1"]),
-        "coach": r["group"] == "bench", "img": face,
+        "role": card["role"] if card else peak_rec.get("role") or last_rec.get("role"),
+        "roles": card["roles"] if card else peak_rec.get("roles") or last_rec.get("roles"),
+        "peak": peak_rec.get("overall", r["peak"]), "peakYear": best or r["peakYear"],
+        "peakClub": reg[r["vlr"]]["years"][str(best)].get("club") if best else r["peakClub"],
+        "lastYear": last, "lastClub": reg[r["vlr"]]["years"][str(last)].get("club"), "tier1": bool(r["tier1"]),
+        "coach": cls == "coach-now" if cls else r["group"] == "bench", "img": face,
+        "rating": card["rating"] if card else None, "v": (dossier_hist.get(pid) or {}).get("v"),
     })
-# peaks are read off the year worlds, so they are on whatever ruler those are
+have = {x["id"] for x in shown}
+early = []
+for vid, card in CARDS.items():
+    if "Hv" + vid in have or (V16.get(vid) or {}).get("class") != "retired" or not face_ok(card.get("faceFile")):
+        continue
+    st, lp = STATUS.get(vid) or {}, LP.get(card["ign"].lower()) or {}
+    birth, age = age_on_2026(lp.get("birth"))
+    est = age is None
+    if est:
+        y = re.match(r"^(\d{4})", lp.get("birth") or "")
+        # a birth year alone, or nothing: 21 in his first season, the way most of them started
+        age = 2025 - int(y.group(1)) if y else 21 + (2026 - card["span"][0])
+    v = V16[vid]
+    shown.append({
+        "id": card["playerId"], "ign": card["ign"], "real": st.get("real") or card.get("realName"), "nat": st.get("nat") or card.get("nat"),
+        "region": card["region"], "birth": birth, "age": age, "ageEstimated": est, "role": card["role"], "roles": card["roles"],
+        "peak": card["rating"], "peakYear": v.get("peakYear") or card["span"][1], "peakClub": card["clubTag"],
+        "lastYear": int(card["last"][:4]), "lastClub": card["clubTag"], "tier1": True, "coach": False,
+        "img": card["faceFile"], "rating": card["rating"], "v": card.get("faceV"),
+    })
+    early.append(card["ign"])
+shown.sort(key=lambda x: (-x["tier1"], -(x["rating"] or x["peak"] or 0)))
 SCALE = J("src", "data", "world_2025.json")["meta"].get("ratingScale")
 json.dump({"_note": "built by scripts/build_retired.py — retired players with a photograph, ages on 2026-01-01",
            **({"ratingScale": SCALE} if SCALE else {}), "players": shown},
           open(os.path.join(ROOT, "src", "data", "retired.json"), "w"), ensure_ascii=False, indent=1)
 print("src/data/retired.json:", len(shown), "shown,", sum(1 for x in shown if x["tier1"]), "tier-one,",
-      sum(1 for x in shown if x["ageEstimated"]), "ages estimated")
+      sum(1 for x in shown if x["ageEstimated"]), "ages estimated,", sum(1 for x in shown if x["rating"]), "with a 退役普卡,",
+      sum(1 for x in shown if x["coach"]), "coaching;", len(early), "early retirees:", ", ".join(early))
 json.dump(rows, open(os.path.join(ROOT, "analysis", "people", "retired.json"), "w"), ensure_ascii=False, indent=1)
 
 CN = {"bench": "转教练 / 幕后", "gone": "退役或一年以上无比赛", "idle": "无队（近一年有过比赛，含国家队、表演赛）", "playing": "仍在打（游戏没收录的队伍）"}

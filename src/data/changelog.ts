@@ -28,6 +28,15 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-18',
+    title: '电竞经理：退役选手更新',
+    changes: [
+      { kind: '调整', text: '<b>娱乐模式</b>的退役选手改用<b>退役卡的能力</b>（生涯平均）：TenZ、Leo、Sacy 90，ScreaM 89，yay 88。复出后找回状态，就是开瓦包里那张退役卡的数值。' },
+      { kind: '新增', text: '加入 35 位 2020–22 年打过世界赛的早期退役选手（SicK、zombs、ShahZaM、nitr0、Hiko 等），娱乐模式都能签，有照片的也进了资料库和每日挑战。' },
+      { kind: '调整', text: '退役名单按 10 月重新核实：近一年还在打比赛的 80 人移出（资料库、每日挑战、娱乐模式）。Babyblue 改为主播身份，娱乐模式里照样能签。' },
+    ],
+  },
+  {
+    date: '2026-10-18',
     title: '上海冠军赛结束，应援入口下线',
     changes: [
       { kind: '调整', text: '冠军赛已结束：打开网站不再弹今日赛程提醒，开瓦包的「上海应援」和首页的冠军赛入口已撤下。' },

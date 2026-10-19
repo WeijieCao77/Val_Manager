@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { WORLD_PLAYERS } from '../engine/world'
 import { WORLD_TEAMS } from '../engine/teams'
-import { RETIRED } from '../engine/retired'
+import { RETIRED, retiredRating } from '../engine/retired'
 import type { RetiredPlayer } from '../engine/retired'
 import { DOSSIER, dossierOf, faceUrl, honoursOf, loadRecords, placementsOf, recordsNow, tenuresOf, titleCount } from '../engine/dossier'
 import type { Records } from '../engine/dossier'
@@ -62,7 +62,7 @@ export default function Dossier({
         const hay = `${r.ign} ${r.real ?? ''} ${r.peakClub ?? ''} ${r.lastClub ?? ''} ${natName(r.nat)} ${r.nat ?? ''}`
         return hay.toLowerCase().includes(text)
       })
-      .sort((a, b) => (sort === 'age' ? a.age - b.age : 0) || b.peak - a.peak)
+      .sort((a, b) => (sort === 'age' ? a.age - b.age : 0) || retiredRating(b) - retiredRating(a))
   }, [q, region, role, sort])
 
   const rows = useMemo(() => {
@@ -197,18 +197,18 @@ function RetiredGrid({ list }: { list: RetiredPlayer[] }) {
   return (
     <>
       <p className="tiny faint" style={{ marginTop: 0 }}>
-        2023–2025 年打过 VCT 或次级联赛、如今已退役、转做教练或没有战队的选手。能力分是 Beta 预估值，还在调整。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、按当年资料推算的。
+        2020–2025 年打过 VCT 或次级联赛、如今已退役或转做教练的选手。能力是退役卡的评分；没有退役卡的标「预估」。年龄按 2026 年 1 月 1 日计，标「约」的是查不到生日、推算的。
       </p>
       <div className="retired-grid">
         {list.map((r) => (
           <article className="retired-card" key={r.id}>
-            <img src={faceUrl(r.img, DOSSIER.hist?.[r.id]?.v)} alt={r.ign} loading="lazy" />
+            <img src={faceUrl(r.img, r.v ?? DOSSIER.hist?.[r.id]?.v)} alt={r.ign} loading="lazy" />
             <div className="retired-body">
               <div><b>{r.ign}</b>{r.coach && <span className="tag t2" style={{ marginLeft: 5 }}>转教练</span>}</div>
               <div className="tiny muted">{r.real ?? '—'}</div>
               <div className="small"><Flag nat={r.nat} /> {natName(r.nat)} · {REGION_CN[r.region] ?? r.region}</div>
               <div className="small">{r.ageEstimated ? '约 ' : ''}{r.age} 岁 · {r.role}</div>
-              <div className="tiny faint">预估能力 {r.peak}</div>
+              <div className="tiny faint">{r.rating != null ? `能力 ${r.rating}` : `预估能力 ${r.peak}`}</div>
             </div>
           </article>
         ))}

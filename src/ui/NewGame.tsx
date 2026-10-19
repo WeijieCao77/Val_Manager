@@ -459,7 +459,7 @@ export default function NewGame({ onHome,
         <span>
           <b>娱乐模式</b> <span className="tag t2">beta</span>
           <span className="muted">
-            {' '}— 自由人里多出两百多位退役选手和主播（TenZ、Sacy、yay、Babyblue、tarik、TryTryz 等），只愿意为你复出，
+            {' '}— 自由人里多出一百七十多位退役选手和主播（TenZ、Sacy、SicK、yay、Babyblue、tarik 等），能力和退役卡一致，只愿意为你复出，
             AI 俱乐部不会签他们。复出要找回状态，主播带人气、直播合同更值钱，但要价更高、训练少一些。
             {startYear !== DEFAULT_START_YEAR && ' 只能从 2026 赛季开档。'}
           </span>

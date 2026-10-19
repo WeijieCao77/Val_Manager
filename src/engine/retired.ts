@@ -1,9 +1,10 @@
 /**
  * Retired players the game can show: in a 2023–2025 world, not in the 2026
  * one, no club and no match for a year (or on a bench now), and a photograph
- * on file. Built by scripts/build_retired.py from people.json and the
- * historical worlds; nobody here is invented, and an age without a birthdate
- * on any site is carried from the historical world and marked estimated.
+ * on file — plus the 2020–22 internationals of the retired series. Built by
+ * scripts/build_retired.py from people.json, the historical worlds and the
+ * retired series' study, which settles who is retired; nobody here is
+ * invented, and an age without a birthdate on any site is marked estimated.
  *
  * Used by the 资料库's 退役 list and by the 每日挑战 player pool, which had
  * been answered from the same 2026 rosters long enough to be learned by heart.
@@ -35,7 +36,14 @@ export interface RetiredPlayer {
   /** on a staff now rather than simply gone */
   coach: boolean
   img: string
+  /** his 退役普卡's number (retired_cards.json); null for a man without one (most coaches) */
+  rating: number | null
+  /** face file version, for the cache-busting query */
+  v?: string | null
 }
+
+/** the number the game shows for him: the card's, or the estimate from his best year */
+export const retiredRating = (r: RetiredPlayer): number => r.rating ?? r.peak
 
 export const RETIRED: RetiredPlayer[] = (RAW as unknown as { players: RetiredPlayer[] }).players ?? []
 export const RETIRED_BY_ID = new Map(RETIRED.map((r) => [r.id, r]))

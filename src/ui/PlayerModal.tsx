@@ -123,8 +123,10 @@ export default function PlayerModal(
           {p.comeback && (
             <p className="tiny muted" style={{ margin: '-4px 0 12px', lineHeight: 1.7 }}>
               {p.comeback.kind === 'retired'
-                ? `退役复出${p.comeback.lastClub ? `，上一站 ${p.comeback.lastClub}（${p.comeback.lastYear}）` : ''}。离开赛场的几年，配合和道具丢得最多；进队后每周找回一部分状态。`
-                : '主播，没有职业联赛经历，按同水平联赛选手的数据定能力。'}
+                ? `退役复出${p.comeback.lastClub ? `，上一站 ${p.comeback.lastClub}（${p.comeback.lastYear}）` : ''}。${p.vlr ? '' : '能力按退役卡（生涯平均）。'}离开赛场的几年，配合和道具丢得最多；进队后每周找回一部分状态。`
+                : p.comeback.lastClub
+                  ? `主播，职业生涯最后一站 ${p.comeback.lastClub}（${p.comeback.lastYear}）。`
+                  : '主播，没有职业联赛经历，按同水平联赛选手的数据定能力。'}
               {p.comeback.fame > 0 && ` ${FAME_LABEL[p.comeback.fame]}：直播合同更值钱，在队时俱乐部声望慢慢上涨；要价更高，训练少一些。`}
               {!p.teamId && ' 只愿意为你复出，AI 俱乐部不会签他。'}
             </p>

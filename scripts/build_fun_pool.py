@@ -12,9 +12,14 @@ src/engine/fun.ts. Nobody here is invented; every row is a real person.
 Two kinds of row:
 
   retired   everyone in src/data/retired.json who is not on a bench now
-            (`coach`), with the record from the last year he played
-            (world_<lastYear>.json): attributes, roles, agents, traits, all on
-            the card scale (v15). fun.ts adds the rust of the years away.
+            (`coach`), plus a 退役普卡 holder with no photograph. Since
+            2026-10-18 a man with a 退役普卡 (src/data/retired_cards.json)
+            comes back at that card: its eight attributes, its roles, its
+            number (overall and peak), his last club and the year of his last
+            match. The record from the last year he played
+            (world_<lastYear>.json) still gives traits and agents; the early
+            retirees (2020–22) have no such year and get the card's agents.
+            fun.ts adds the rust of the years away.
 
   streamer  people with no top-flight season in any of our worlds, entered by
             hand in STREAMERS below with where each number came from. Their
@@ -26,7 +31,10 @@ Two kinds of row:
 retired players who stream to a large audience: 3 顶流, 2 知名, 1 主播. It is
 only ever used for the 娱乐模式 sponsorship and wage effects in fun.ts.
 """
-import json, os, statistics
+import json, os, statistics, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sync_world_ratings as sw  # noqa: E402  (raw / recompute: player.ts recomputeOverall)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 J = lambda *p: json.load(open(os.path.join(ROOT, *p)))
@@ -42,6 +50,19 @@ FAME = {"tenz": 3, "sacy": 2, "yay": 2, "babyblue": 2}
 
 # the whole year-world record but where he was and when he joined: he arrives without a club
 DROP = {"teamId", "joined", "contractYears"}
+
+
+def bare(r, card):
+    """a whole record for a man in no world year (the 2020–22 retirees): who he is, and the card's agents"""
+    agents = [AGENT_NAME.get(a, a.capitalize()) for a in card.get("agents") or []]
+    return {
+        "id": r["id"], "vlrId": card["vlrId"], "ign": r["ign"], "region": r.get("region") or card["region"],
+        "nat": r.get("nat") or card.get("nat"), "realName": r.get("real") or card.get("realName"), "birth": r.get("birth"),
+        "role": card["role"], "roles": card["roles"], "flex": len(card["roles"]) > 1, "traits": [],
+        "agentPool": agents, "agentUse": {a: 1 for a in card.get("agents") or []}, "isIgl": bool(card.get("isIgl")),
+        "attrs": dict(card["attrs"]), "overall": card["rating"], "rounds": 0, "stageBonus": 0.0, "potential": None,
+        "form": 70, "morale": 70, "fatigue": 0, "salary": 0, "value": 0, "loyalty": 50, "ambition": 55,
+    }
 
 
 def neighbours(region, tier, rating, acs, roles=None, k=8, years=(2023, 2024, 2025)):
@@ -94,19 +115,67 @@ STREAMERS = [
     },
 ]
 
+# 人气 players the owner named who still play below the modelled leagues (the
+# v16 status check, 2026-10-09): they come as streamers, from their last world year
+NAMED = [("Hv15302", 2025)]  # Babyblue
+
+cards = {c["playerId"]: c for c in J("src", "data", "retired_cards.json")["normals"]}
+# career rounds from the same study: experience (confidentRating, milestones) reads them
+V16_ROUNDS = {r["vlrId"]: int(r.get("rounds") or 0) for r in J("analysis", "rating", "history_v16", "players.json")}
+# agents.json names (Jett, KAY/O…) by the lower-case id the cards use
+AGENT_NAME = {"".join(ch for ch in a.lower() if ch.isalpha()): a
+              for w in worlds.values() for p in w["players"] for a in p.get("agentPool") or []}
+
+
+def from_card(row, card):
+    """the 退役普卡's numbers on top of whatever record there is: attrs, roles, the call, overall"""
+    row.update({"attrs": dict(card["attrs"]), "role": card["role"], "roles": card["roles"], "flex": len(card["roles"]) > 1,
+                "isIgl": bool(card.get("isIgl")), "stageBonus": 0.0, "overall": card["rating"], "peak": card["rating"],
+                "lastYear": int(card["last"][:4]), "lastClub": card["clubTag"],
+                "rounds": max(V16_ROUNDS.get(card["vlrId"], 0), row.get("rounds") or 0)})
+    # the card's number is its own (the 2026-10-11 squeeze moved the top), so what the
+    # role weights do not reach sits on stageBonus, as sync_world_ratings does at 99
+    if sw.recompute(row) != card["rating"]:
+        row["stageBonus"] = round(card["rating"] - sw.raw(row), 4)
+    if sw.recompute(row) != card["rating"]:
+        raise SystemExit(f"{card['ign']}: attributes read {sw.recompute(row)}, card says {card['rating']}")
+    # the vlr line was his last season; the numbers now are the career's
+    row.pop("vlr", None)
+    return row
+
+
 rows, report = [], []
+listed = set()
 for r in retired["players"]:
     if r.get("coach"):
         continue  # on a bench now: the same man cannot be a club's coach and a free agent
-    rec = by_id[r["lastYear"]].get(r["id"])
-    if not rec:
-        raise SystemExit(f"{r['ign']}: no {r['lastYear']} record")
-    row = {k: v for k, v in rec.items() if k not in DROP}
+    card = cards.get(r["id"])
+    rec = by_id.get(r["lastYear"], {}).get(r["id"])
+    if not rec and not card:
+        raise SystemExit(f"{r['ign']}: no {r['lastYear']} record and no card")
+    row = {k: v for k, v in rec.items() if k not in DROP} if rec else bare(r, card)
     row.update({
         "kind": "retired", "age": r["age"], "ageEstimated": r.get("ageEstimated", False), "birth": r.get("birth"),
         "lastYear": r["lastYear"], "lastClub": r["lastClub"], "peak": r["peak"], "tier1": r["tier1"],
         "fame": FAME.get(r["ign"].lower(), 0), "img": r.get("img"),
     })
+    rows.append(from_card(row, card) if card else row)
+    listed.add(r["id"])
+# a card holder with no photograph is not in the 资料库 grid, but he can still come back
+for pid, card in cards.items():
+    if pid in listed:
+        continue
+    row = bare({"id": pid, "ign": card["ign"], "real": card.get("realName"), "nat": card.get("nat"), "region": card["region"]}, card)
+    row.update({"kind": "retired", "age": 21 + (2026 - card["span"][0]), "ageEstimated": True, "birth": None,
+                "tier1": True, "fame": FAME.get(card["ign"].lower(), 0), "img": None})
+    rows.append(from_card(row, card))
+for pid, year in NAMED:
+    rec = by_id[year][pid]
+    row = {k: v for k, v in rec.items() if k not in DROP}
+    row.update({"kind": "streamer", "age": rec["age"] + (2026 - year), "ageEstimated": rec.get("ageEstimated", False),
+                "lastYear": year, "lastClub": team_of[year][rec["teamId"]]["tag"] if rec.get("teamId") in team_of[year] else None,
+                "peak": rec["overall"], "tier1": True, "fame": FAME.get(rec["ign"].lower(), 0), "img": f"{pid}.webp"})
+    row.pop("vlr", None)  # the page would call it 生涯数据; it was one season
     rows.append(row)
 
 for s in STREAMERS:
@@ -133,6 +202,17 @@ out = {
     "players": rows,
 }
 json.dump(out, open(os.path.join(ROOT, "src", "data", "funPool.json"), "w"), ensure_ascii=False, separators=(",", ":"))
+# faces for the men the dossier does not know (no season in any of our worlds): dossier.ts FUN_FACES
+dossier = J("src", "data", "dossier.json")
+known = set(dossier.get("players") or {}) | set(dossier.get("hist") or {})
+faces = {}
+for r in rows:
+    if r["id"] in known or not r.get("img") or not os.path.exists(os.path.join(ROOT, "public", "faces", r["img"])):
+        continue
+    v = (cards.get(r["id"]) or {}).get("faceV")
+    faces[r["id"]] = {"img": r["img"], **({"v": v} if v else {})}
+json.dump(faces, open(os.path.join(ROOT, "src", "data", "fun_faces.json"), "w"), ensure_ascii=False, separators=(",", ":"))
+print(f"fun_faces.json: {len(faces)} faces the dossier does not have")
 print(f"{len(rows)} rows: {sum(r['kind'] == 'retired' for r in rows)} retired, {sum(r['kind'] == 'streamer' for r in rows)} streamers")
 for line in report:
     print(line)

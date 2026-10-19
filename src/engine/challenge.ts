@@ -26,7 +26,7 @@ import { WORLD_PLAYERS } from './world'
 import { cardRatingOf } from './cards'
 import { WORLD_TEAMS } from './teams'
 import { DOSSIER } from './dossier'
-import { RETIRED, RETIRED_BY_ID } from './retired'
+import { RETIRED, RETIRED_BY_ID, retiredRating } from './retired'
 import { REGION_CN } from './types'
 import type { Region } from './types'
 // type-only, so this file has no runtime dependency on gacha.ts — the
@@ -294,7 +294,9 @@ const same = (a: unknown, b: unknown): HintMark => (a === b ? 'hit' : 'miss')
 export function imgOf(kind: ChallengeKind, id: string): string | undefined {
   if (kind === 'player') {
     const d = DOSSIER.players?.[id] ?? DOSSIER.hist?.[id]
-    return d?.img ? `faces/${d.img}` : undefined
+    // the 2020–22 retirees are in no world, so not in the dossier: their face is on the row
+    const img = d?.img ?? RETIRED_BY_ID.get(id)?.img
+    return img ? `faces/${img}` : undefined
   }
   return kind === 'team' ? `logos/${id}.webp`
     : kind === 'map' ? `maps/${id}.webp`
@@ -304,8 +306,8 @@ export function imgOf(kind: ChallengeKind, id: string): string | undefined {
 /**
  * The facts a player row is marked on, for a 2026 player or a retired one.
  * A retired man's club is 「退役」, his age is on 1 January 2026 like
- * everybody else's, and his 能力 is an estimate (his best historical overall
- * for now — Beta, to be recalculated), shown as 「约」.
+ * everybody else's, and his 能力 is his 退役普卡's number — or, for a man
+ * without one (most who coach now), his best historical overall, shown as 「约」.
  */
 interface Person {
   id: string; ign: string; region: string; teamId: string | null; teamTag: string
@@ -324,7 +326,7 @@ function personOf(id: string): Person | null {
   const r = RETIRED_BY_ID.get(id)
   return r ? {
     id: r.id, ign: r.ign, region: r.region, teamId: 'retired', teamTag: '退役',
-    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: r.peak,
+    role: r.role, roles: r.roles, nat: r.nat, age: r.age, overall: retiredRating(r),
   } : null
 }
 
@@ -378,8 +380,8 @@ export function evaluate(kind: ChallengeKind, answerId: string, guessId: string)
             : natCountry(g.nat) && natCountry(g.nat) === natCountry(a.nat) ? 'near' : 'miss',
         },
         { label: '年龄', value: String(g.age), mark: num(g.age, a.age, 1) },
-        // a retired man's number is an estimate for now (Beta), and says so
-        { label: '能力', value: g.teamId === 'retired' ? `约${g.overall}` : String(g.overall), mark: num(g.overall, a.overall, 2) },
+        // a retired man without a 退役普卡 is an estimate, and says so
+        { label: '能力', value: g.teamId === 'retired' && RETIRED_BY_ID.get(g.id)?.rating == null ? `约${g.overall}` : String(g.overall), mark: num(g.overall, a.overall, 2) },
       ],
     }
   }
