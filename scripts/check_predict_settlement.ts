@@ -16,7 +16,9 @@ import { newGacha } from '../src/engine/gacha'
 import { runAction } from '../src/engine/cardActions'
 import {
   CHAMPIONS_2026 as EV, PREDICT_RESULTS, confirmedResult, predictionReward, predictScore, predictBoard, lockAt,
+  playoffPlayed, playoffFinal,
 } from '../src/engine/predict'
+import { CHAMPIONS_2026_PLAYOFFS as PO, PLAYOFF_KEY, P_SLOTS } from '../src/engine/predictPlayoffs'
 
 let bad = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -227,6 +229,198 @@ for (const group of EV.groups) {
       JSON.stringify(b))
     check('接口：自己的名次单独返回，不回传账号 ID', b?.mine?.rank === 2 && b.mine.correct === 5 && !JSON.stringify(b).includes('VM-PRED'))
   } finally { Date.now = realNow; await db.close() }
+}
+
+// ================= 淘汰赛 =================
+// The real playoffs, copied from vlr.gg/event/matches/2766 on 2026-10-19 and
+// checked line by line against thespike.gg's results page for the event (the
+// same fourteen scorelines); Wikipedia has LOUD 3–1 Vitality in the final.
+// [stage, team, score, team, score], names as vlr writes them.
+const PO_PLAYED: [string, string, number, string, number][] = [
+  ['Upper Quarterfinals', 'NRG', 2, 'T1', 0],
+  ['Upper Quarterfinals', 'Paper Rex', 0, 'LOUD', 2],
+  ['Upper Quarterfinals', '100 Thieves', 0, 'G2 Esports', 2],
+  ['Upper Quarterfinals', 'Team Vitality', 2, 'Nongshim RedForce', 1],
+  ['Lower Round 1', 'T1', 2, 'Paper Rex', 1],
+  ['Lower Round 1', '100 Thieves', 2, 'Nongshim RedForce', 1],
+  ['Upper Semifinals', 'NRG', 1, 'LOUD', 2],
+  ['Upper Semifinals', 'G2 Esports', 0, 'Team Vitality', 2],
+  ['Lower Round 2', 'NRG', 0, '100 Thieves', 2],
+  ['Lower Round 2', 'G2 Esports', 2, 'T1', 1],
+  ['Upper Final', 'Team Vitality', 1, 'LOUD', 2],
+  ['Lower Round 3', '100 Thieves', 2, 'G2 Esports', 1],
+  ['Lower Final', 'Team Vitality', 3, '100 Thieves', 1],
+  ['Grand Final', 'LOUD', 3, 'Team Vitality', 1],
+]
+// the grand final started 2026-10-18 06:40 UTC (thespike), best of five
+const GF_STARTED = Date.parse('2026-10-18T06:40:00Z')
+const poNow = Date.parse('2026-10-19T00:00:00Z')
+{
+  const games = PO_PLAYED.map(([stage, a, sa, b, sb]) => {
+    const bo = stage === 'Lower Final' || stage === 'Grand Final' ? 5 : 3
+    if (sa === sb || Math.max(sa, sb) !== (bo + 1) / 2) throw new Error(`${stage} ${a}–${b}: not a finished BO${bo}`)
+    return { stage, a: tagOf(a), b: tagOf(b), win: sa > sb ? tagOf(a) : tagOf(b), lose: sa > sb ? tagOf(b) : tagOf(a) }
+  })
+  check('淘汰赛 14 场队名都认得', games.every(m => !m.a.startsWith('?') && !m.b.startsWith('?')))
+  // 100T and G2 met twice (quarterfinal, lower round 3), so a match is found by who met whom in which round
+  const meet = (stage: string, x?: string, y?: string) =>
+    games.find(m => m.stage === stage && ((m.a === x && m.b === y) || (m.a === y && m.b === x)))
+  // the draw from the group places: A1–C2, B1–D2, D1–A2, C1–B2
+  const R = PREDICT_RESULTS[EV.id]
+  const draw = [[R.A.first, R.C.second], [R.B.first, R.D.second], [R.D.first, R.A.second], [R.C.first, R.B.second]]
+  check('发布的八强对阵就是小组名次交叉出来的那四场', JSON.stringify(PO.quarters) === JSON.stringify(draw), JSON.stringify(PO.quarters))
+  // walk the bracket by hand, each match found among vlr's scorelines by who met whom
+  const [q1, q2, q3, q4] = draw.map(([x, y]) => meet('Upper Quarterfinals', x, y))
+  const s1 = meet('Upper Semifinals', q1?.win, q2?.win), s2 = meet('Upper Semifinals', q3?.win, q4?.win)
+  const l1a = meet('Lower Round 1', q1?.lose, q2?.lose), l1b = meet('Lower Round 1', q3?.lose, q4?.lose)
+  const l2a = meet('Lower Round 2', s2?.lose, l1a?.win), l2b = meet('Lower Round 2', s1?.lose, l1b?.win)
+  const uf = meet('Upper Final', s1?.win, s2?.win), l3 = meet('Lower Round 3', l2a?.win, l2b?.win)
+  const lf = meet('Lower Final', uf?.lose, l3?.win), gf = meet('Grand Final', uf?.win, lf?.win)
+  const bySlot = { q1, q2, q3, q4, s1, s2, l1a, l1b, l2a, l2b, uf, l3, lf, gf }
+  const missing = Object.entries(bySlot).filter(([, m]) => !m).map(([k]) => k)
+  check('按对阵手推的 14 场都在 vlr 的赛果里，轮次对得上，一场不多一场不少',
+    missing.length === 0 && new Set(Object.values(bySlot)).size === 14, missing.join(' '))
+  const derived = Object.fromEntries(Object.entries(bySlot).map(([k, m]) => [k, m!.win])) as Record<string, string>
+  const shipped = playoffPlayed(PO, poNow)
+  check('发布的 14 场胜者与 vlr 一致', !!shipped && P_SLOTS.every(k => shipped[k] === derived[k]) && Object.keys(shipped).length === 14,
+    `${JSON.stringify(shipped)} vs ${JSON.stringify(derived)}`)
+  const champion = gf!.win, runnerUp = gf!.lose, third = lf!.lose, fourth = l3!.lose
+  check('冠军 LOUD、亚军 VIT、季军 100T、殿军 G2', `${champion} ${runnerUp} ${third} ${fourth}` === 'LOUD VIT 100T G2')
+  check('引擎结算的冠亚军就是这两队', JSON.stringify(playoffFinal(PO, poNow)) === JSON.stringify({ champion, runnerUp }))
+  const confirmedAt = Date.parse('2026-10-18T12:00:00Z')
+  check('赛果在总决赛开打之后确认，此刻已生效', playoffPlayed(PO, confirmedAt) !== null && confirmedAt > GF_STARTED
+    && P_SLOTS.every(k => PO.at[k] < confirmedAt))
+  check('确认时刻之前不结算、不能领', playoffPlayed(PO, confirmedAt - 1) === null && playoffFinal(PO, confirmedAt - 1) === null)
+
+  // ---- every bracket a player could have saved, against the rule text on the page:
+  //  冠亚全对 3 十连 · 冠军对 2 十连 · 亚军对 1 十连 · 决赛两队都中但颠倒 5 选拔 · 只中一支决赛队 3 选拔
+  const ruleText = (c?: string, r?: string) => {
+    if (c === champion && r === runnerUp) return { elite: 0, ten: 3 }
+    if (c === champion) return { elite: 0, ten: 2 }
+    if (r === runnerUp) return { elite: 0, ten: 1 }
+    const hit = [c, r].filter(t => t && (t === champion || t === runnerUp)).length
+    return hit === 2 ? { elite: 5, ten: 0 } : hit === 1 ? { elite: 3, ten: 0 } : { elite: 0, ten: 0 }
+  }
+  // who plays each slot on a set of picks, by hand again (a pick that is not one of the two sides counts as none)
+  const sidesBy = (p: Record<string, string>) => {
+    const s: Record<string, [string?, string?]> = {}
+    const win = (k: string) => (s[k]?.[0] && s[k]?.[1] && s[k]!.includes(p[k]) ? p[k] : undefined)
+    const lose = (k: string) => { const w = win(k); return w ? (w === s[k]![0] ? s[k]![1] : s[k]![0]) : undefined }
+    draw.forEach(([x, y], i) => { s[`q${i + 1}`] = [x, y] })
+    s.s1 = [win('q1'), win('q2')]; s.s2 = [win('q3'), win('q4')]
+    s.l1a = [lose('q1'), lose('q2')]; s.l1b = [lose('q3'), lose('q4')]
+    s.l2a = [lose('s2'), win('l1a')]; s.l2b = [lose('s1'), win('l1b')]
+    s.uf = [win('s1'), win('s2')]; s.l3 = [win('l2a'), win('l2b')]
+    s.lf = [lose('uf'), win('l3')]; s.gf = [win('uf'), win('lf')]
+    return { s, champ: win('gf'), second: lose('gf') }
+  }
+  const order = ['q1', 'q2', 'q3', 'q4', 's1', 's2', 'l1a', 'l1b', 'l2a', 'l2b', 'uf', 'l3', 'lf', 'gf']
+  const full: Record<string, string>[] = []
+  const walk = (i: number, cur: Record<string, string>) => {
+    if (i === order.length) { full.push(cur); return }
+    for (const t of sidesBy(cur).s[order[i]]) if (t) walk(i + 1, { ...cur, [order[i]]: t })
+  }
+  walk(0, {})
+  // and partial ones: every full bracket with a different slot left out, the rest kept as typed
+  const partial = full.filter((_, i) => i % 7 === 0).map((b, i) => {
+    const drop = order[i % order.length]
+    const { [drop]: _gone, ...rest } = b
+    return rest
+  })
+  let mismatch = 0, scoreMiss = 0, claimMiss = 0, paid = 0
+  const tally: Record<string, number> = {}
+  const before = PO.deadline - 60_000
+  for (const picks of [...full, ...partial]) {
+    const hand = sidesBy(picks)
+    const want = ruleText(hand.champ, hand.second)
+    if (picks === full[0] || full.includes(picks)) tally[`${want.ten}十连/${want.elite}选拔`] = (tally[`${want.ten}十连/${want.elite}选拔`] ?? 0) + 1
+    // matches right by hand: a pick only stands if the team is in that match on the picks before it
+    const stands = (k: string) => { const sd = hand.s[k]; return !!sd?.[0] && !!sd?.[1] && sd.includes(picks[k]) }
+    const right = order.filter(k => stands(k) && picks[k] === derived[k]).length
+    const sc = predictScore(PO.id, { [PLAYOFF_KEY]: { picks, at: before } }, poNow)
+    const placesRight = Number(hand.champ === champion) + Number(hand.second === runnerUp)
+    if (!sc || sc.correct !== right || sc.total !== 14 || sc.places !== placesRight) { scoreMiss++; if (scoreMiss < 4) console.log('   score', JSON.stringify(picks), sc, right) }
+    const g = newGacha('VM-SETTLE-PO', '结算', '2026-09-20')
+    const was = { elite: g.packs.elite ?? 0, ten: g.packs.ten ?? 0 }
+    const saved = runAction(g, 'predict', { event: PO.id, group: PLAYOFF_KEY, picks }, { now: before, today: '2026-10-07', seed: 1 })
+    const env = { now: poNow, today: '2026-10-19', seed: 1 }
+    const c1 = runAction(g, 'predict_claim', { event: PO.id, group: PLAYOFF_KEY }, env)
+    const c2 = runAction(g, 'predict_claim', { event: PO.id, group: PLAYOFF_KEY }, env)
+    const got = c1.ok ? (c1.result as { reward: { elite: number; ten: number } }).reward : { elite: 0, ten: 0 }
+    if (JSON.stringify(got) !== JSON.stringify(want)) { mismatch++; if (mismatch < 4) console.log('   ', JSON.stringify(picks), got, want) }
+    const ok = saved.ok && c1.ok === (want.ten + want.elite > 0) && !c2.ok
+      && (g.packs.ten ?? 0) === was.ten + want.ten && (g.packs.elite ?? 0) === was.elite + want.elite
+      && (c1.ok ? g.predict?.[PO.id]?.[PLAYOFF_KEY]?.claimedAt === poNow : !g.predict?.[PO.id]?.[PLAYOFF_KEY]?.claimedAt)
+    if (!ok) { claimMiss++; if (claimMiss < 4) console.log('   claim', JSON.stringify(picks), c1, c2, g.packs) }
+    if (c1.ok) paid++
+  }
+  check(`淘汰赛 ${full.length} 种完整预测 + ${partial.length} 种缺一场的预测，奖励档位与规则原文一致`,
+    full.length === 16384 && mismatch === 0, `${mismatch} 处不一致`)
+  check('淘汰赛每种预测的猜对场次、冠亚军名次与手算一致', scoreMiss === 0, `${scoreMiss} 处不一致`)
+  check('淘汰赛走真实领取：只领一次，入库数量正好，记下领取时间', claimMiss === 0, `${claimMiss} 处不一致；${paid} 种有奖`)
+  console.log('     ', Object.entries(tally).map(([k, n]) => `${k}×${n}`).join('  '))
+  {
+    const g = newGacha('VM-SETTLE-PO-LATE', '结算', '2026-09-20')
+    g.predict = { [PO.id]: { [PLAYOFF_KEY]: { picks: derived, at: PO.deadline } } }
+    const ten0 = g.packs.ten ?? 0
+    const r = runAction(g, 'predict_claim', { event: PO.id, group: PLAYOFF_KEY }, { now: poNow, today: '2026-10-19', seed: 1 })
+    check('截止后才有的满分淘汰赛预测：不能领、不计分', !r.ok && (g.packs.ten ?? 0) === ten0
+      && predictScore(PO.id, g.predict[PO.id], poNow) === null, `${r.ok ? '' : r.why} ten ${ten0}→${g.packs.ten}`)
+  }
+  {
+    const g = newGacha('VM-SETTLE-PO-BOTH', '结算', '2026-09-20')
+    const C = EV.groups.find(x => x.key === 'C')!
+    runAction(g, 'predict', { event: EV.id, group: 'C', picks: PREDICT_RESULTS[EV.id].C.winners }, { now: lockAt(C) - 60_000, today: '2026-09-24', seed: 1 })
+    runAction(g, 'predict', { event: PO.id, group: PLAYOFF_KEY, picks: derived }, { now: before, today: '2026-10-07', seed: 1 })
+    const ten0 = g.packs.ten ?? 0
+    const env = { now: poNow, today: '2026-10-19', seed: 1 }
+    const a = runAction(g, 'predict_claim', { event: PO.id, group: PLAYOFF_KEY }, env)
+    const b = runAction(g, 'predict_claim', { event: EV.id, group: 'C' }, env)
+    const again = [runAction(g, 'predict_claim', { event: PO.id, group: PLAYOFF_KEY }, env), runAction(g, 'predict_claim', { event: EV.id, group: 'C' }, env)]
+    check('同一账号的小组赛奖励和淘汰赛奖励各领各的，各只领一次（3 + 2 个十连包）',
+      a.ok && b.ok && again.every(r => !r.ok) && (g.packs.ten ?? 0) === ten0 + 5, JSON.stringify(g.packs))
+  }
+
+  // ---- through the real server: two taps at once, a replayed request, a client save trying to undo the claim
+  process.env.PHONE_GATE = '0'
+  const { CARD_SCHEMA, makeCardApi, normalizeId } = await import('../cards-api.js')
+  const db = new PGlite(), sql = makeSql(db)
+  try {
+    await db.exec(CARD_SCHEMA)
+    const id = normalizeId('VM-PRED-PXCA-2222-3333-4444') as string
+    const h = createHash('sha256').update(id).digest('hex')
+    const g0 = newGacha(id, '领奖', '2026-09-20')
+    runAction(g0, 'predict', { event: PO.id, group: PLAYOFF_KEY, picks: derived }, { now: before, today: '2026-10-07', seed: 1 })
+    await sql`insert into card_accounts (id_hash, name, state) values (${h}, '领奖', ${sql.json(g0)})`
+    const res = () => ({ code: 0, body: {} as any })
+    const api = makeCardApi(sql, {
+      rateLimited: () => false, readBody: async (req: { body: string }) => req.body,
+      json: (r: { code: number; body: unknown }, code: number, body: unknown) => { r.code = code; r.body = body },
+    } as never)
+    const act = async (requestId: string) => {
+      const r = res()
+      await api.route({ method: 'POST', body: JSON.stringify({ id, action: 'predict_claim', args: { event: PO.id, group: PLAYOFF_KEY }, client: {}, requestId }) } as never, r as never, '/api/card/act', 'settle')
+      return r.body
+    }
+    const ten0 = g0.packs.ten ?? 0
+    const [x, y] = await Promise.all([act('claim-tap-one-0000001'), act('claim-tap-two-0000002')])
+    const replay = await act('claim-tap-one-0000001')
+    const read = async () => (await sql`select state from card_accounts where id_hash = ${h}` as unknown as { state: any }[])[0].state
+    let st = await read()
+    check('服务器：同时点两次只有一次领到，3 个十连包只入库一次', [x, y].filter(r => r?.ok).length === 1 && (st.packs.ten ?? 0) === ten0 + 3
+      && !!st.predict[PO.id][PLAYOFF_KEY].claimedAt, `${JSON.stringify([x?.ok, x?.why, y?.ok, y?.why])} ten=${st.packs.ten}`)
+    check('服务器：重发同一个请求号只回放结果，不再发', (st.packs.ten ?? 0) === ten0 + 3 && (replay?.ok ? true : !!replay?.why), JSON.stringify(replay?.why ?? replay?.ok))
+    // a client save that sends the predictions back without claimedAt
+    const r = res()
+    const cur = await sql`select rev from card_accounts where id_hash = ${h}` as unknown as { rev: number }[]
+    const forged = { ...st, packs: { ...st.packs, ten: 0 }, predict: { [PO.id]: { [PLAYOFF_KEY]: { picks: derived, at: before } } } }
+    await api.route({ method: 'POST', body: JSON.stringify({ id, client: forged, baseRev: cur[0].rev }) } as never, r as never, '/api/card/save', 'settle')
+    st = await read()
+    const third = await act('claim-tap-three-000003')
+    st = await read()
+    check('服务器：客户端存档抹不掉领取记录，再领被拒', !third?.ok && (st.packs.ten ?? 0) === ten0 + 3 && !!st.predict[PO.id][PLAYOFF_KEY].claimedAt,
+      `${third?.why} ten=${st.packs.ten}`)
+  } finally { await db.close() }
 }
 
 console.log(bad ? `\n${bad} 项不对` : '\n全部通过')

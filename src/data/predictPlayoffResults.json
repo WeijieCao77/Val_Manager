@@ -1,3 +1,21 @@
 {
-  "champions-2026-playoffs": null
+  "champions-2026-playoffs": {
+    "winners": {
+      "q1": "G2",
+      "q2": "VIT",
+      "q3": "NRG",
+      "q4": "LOUD",
+      "s1": "VIT",
+      "s2": "LOUD",
+      "l1a": "100T",
+      "l1b": "T1",
+      "l2a": "100T",
+      "l2b": "G2",
+      "uf": "LOUD",
+      "l3": "100T",
+      "lf": "VIT",
+      "gf": "LOUD"
+    },
+    "confirmedAt": 1792324800000
+  }
 }

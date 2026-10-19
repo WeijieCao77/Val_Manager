@@ -309,6 +309,7 @@ function Playoffs() {
   const dirty = JSON.stringify(draft) !== savedKey
   const played = playoffPlayed(PO, now)
   const final = playoffFinal(PO, now)
+  const realPlace = final && played ? playoffPlacing(PO, played) : null
   const reward = final ? playoffReward(playoffPlacing(PO, JSON.parse(savedKey) as PPicks), final) : null
   const valid = !!row && row.at < PO.deadline
   const claimed = !!row?.claimedAt
@@ -366,7 +367,9 @@ function Playoffs() {
           8 队双败淘汰，输两场出局。败者组决赛和总决赛 BO5，其余 BO3。胜者组八强对阵在小组赛结束后确定。
         </p>
         <p className="small muted" style={{ margin: 0, lineHeight: 1.8 }}>
-          {ready
+          {final
+            ? <>比赛已结束：<b>{final.champion}</b> 夺冠，亚军 {final.runnerUp}{realPlace ? `，季军 ${realPlace.third}，殿军 ${realPlace.fourth}` : ''}。{valid && !claimed && !!(reward?.elite || reward?.ten) ? '下方领取预测奖励。' : ''}</>
+            : ready
             ? <>点队伍选谁赢，整张对阵一起保存，北京时间 <b>10 月 7 日 16:00</b> 截止，此后不能修改。已保存 <b>{count}</b> / 14 场。</>
             : <>小组赛 10 月 4 日打完、八强对阵确定后开放，北京时间 10 月 7 日 16:00 截止。</>}
         </p>
@@ -409,7 +412,7 @@ function Playoffs() {
         {locked && (
           <div className="pd-settlement">
             {final ? <>
-              <span className="small">实际：冠军 {final.champion} · 亚军 {final.runnerUp}</span>
+              <span className="small">实际：冠军 {final.champion} · 亚军 {final.runnerUp}{realPlace ? ` · 季军 ${realPlace.third} · 殿军 ${realPlace.fourth}` : ''}</span>
               {valid ? <>
                 <span className="small">{claimed ? '已领取：' : '奖励：'}{rewardText}</span>
                 {!!(reward?.elite || reward?.ten) && <button className="primary sm" disabled={claimed || busy || !cloud} onClick={() => void claim()}>

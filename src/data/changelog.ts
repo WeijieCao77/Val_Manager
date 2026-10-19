@@ -27,6 +27,14 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-19',
+    title: '赛事预测：淘汰赛结算，可以领奖了',
+    changes: [
+      { kind: '新增', text: '上海冠军赛淘汰赛结果已录入：<b>LOUD</b> 3–1 VIT 夺冠，季军 100T，殿军 G2。到 <b>预测 → 淘汰赛</b> 看每场对错和正确率排行。' },
+      { kind: '新增', text: '10/7 截止前保存过淘汰赛预测的，猜中决赛队伍就能在页面底部领奖，卡包直接入库，每个账号只能领一次。小组赛奖励没领的也还能领。' },
+    ],
+  },
+  {
     date: '2026-10-18',
     title: '电竞经理：退役选手更新',
     changes: [
