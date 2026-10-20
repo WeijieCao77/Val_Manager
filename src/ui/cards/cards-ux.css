@@ -270,6 +270,11 @@
 .team-board-title p { font-size:12px; margin:6px 0 0; color:#b5c3d6; }
 .team-board-title > b { color:var(--team-color); font-size:clamp(24px,5vw,60px); opacity:.65; letter-spacing:-.05em; }
 .team-board-content { position:relative; }
+/* 同期阵容: five from one time — gold rule, a glow in the club's colour */
+.team-board-era { border-color:#f4d58d; box-shadow:0 0 0 1px color-mix(in srgb, var(--team-color) 55%, transparent), 0 10px 40px color-mix(in srgb, var(--team-color) 30%, transparent); }
+.team-board-era .team-board-title span { color:#f4d58d; letter-spacing:.04em; }
+.team-board-era .team-board-title > b { opacity:.9; text-shadow:0 0 24px color-mix(in srgb, var(--team-color) 60%, transparent); }
+.team-board-era .team-board-watermark { opacity:.18; }
 @media(max-width:720px) { .team-board { padding:14px; } .team-board-title { gap:10px; padding-bottom:18px; } .team-board-title > img { width:44px;height:44px; } .team-board-title > b { display:none; } }
 
 /* 进修 (Evolve.tsx): eight attribute buttons, a five-slot tray */

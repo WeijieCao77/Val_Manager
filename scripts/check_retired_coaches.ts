@@ -2,7 +2,8 @@
  * 退役教练 (owner, 2026-10-20): 70 retired coaches as cards, carried by rank onto
  * the live coaches' ruler, dealt only by the 退役教练包.
  */
-import { COACH_CARDS, RETIRED_COACH_CARDS, cardById, coachRating, isCoachCard } from '../src/engine/cards'
+import { BASE_PLAYER_CARDS, COACH_CARDS, RETIRED_COACH_CARDS, SEOUL_CARDS, cardById, chemistry, coachRating, isCoachCard, personOf } from '../src/engine/cards'
+import { squadTeamIdentity } from '../src/engine/teamIdentity'
 import { FREE_COINS, FULL_SET_CARDS, PACKS, PACK_ORDER, migrateGacha, newGacha, openPack } from '../src/engine/gacha'
 import { matchesFilter, EMPTY_FILTER } from '../src/engine/cardFilter'
 
@@ -29,6 +30,24 @@ ok('退役教练包在商店里，一张，不出彩卡', PACK_ORDER.includes('r
   const dealt = [...got].map((x) => cardById(x))
   ok('退役教练包只出退役教练', dealt.every((c) => isCoachCard(c) && !!c.retired), [...got].filter((x) => !x.startsWith('rc:')).join(','))
   ok('开 400 包能见到大多数人', got.size >= 50, `${got.size}`)
+}
+{
+  // 2026-10-20: a retired coach is his club's coach by tag — 同队默契 and the full-team plate
+  const chet = RETIRED_COACH_CARDS.find((c) => c.name === 'Chet')!
+  const nrg = BASE_PLAYER_CARDS.filter((p) => p.clubTag === chet.clubTag).slice(0, 5)
+  const sq = { slots: nrg.map((p) => p.id), coach: chet.id }
+  ok('退役教练和他那支队的选手是同队默契', chemistry(sq as never).coachLinks.filter((l) => l.why === 'club').length === 5)
+  ok('五名同队选手配退役教练能亮完整战队底板', squadTeamIdentity(sq as never)?.tag === 'NRG')
+  // 同期阵容: one time → era; a mix of years → none
+  const edgCoach = COACH_CARDS.find((c) => c.clubTag === 'EDG' && !c.legend)!
+  const live = BASE_PLAYER_CARDS.filter((p) => p.clubTag === 'EDG').slice(0, 5)
+  const seoul = SEOUL_CARDS.filter((p) => p.clubTag === 'EDG').slice(0, 5)
+  const mixed = seoul.slice(0, 3); const used = new Set(mixed.map(personOf))
+  for (const p of BASE_PLAYER_CARDS.filter((q) => q.clubTag === 'EDG')) if (mixed.length < 5 && !used.has(personOf(p))) { mixed.push(p); used.add(personOf(p)) }
+  const era = (five: typeof live) => squadTeamIdentity({ slots: five.map((p) => p.id), coach: edgCoach.id } as never)?.era
+  ok('现役五人是同期阵容（2026）', era(live)?.year === 2026)
+  ok('首尔 EDG 五人是同期阵容（2024 首尔冠军赛）', era(seoul)?.label === '2024 首尔冠军赛')
+  ok('首尔卡和现役卡混搭不是同期阵容', mixed.length === 5 && era(mixed) === null)
 }
 if (bad) { console.error(`${bad} 项没过`); process.exit(1) }
 console.log('全部通过')

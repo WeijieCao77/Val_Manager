@@ -808,8 +808,10 @@ export function chemistry(squad: Squad): ChemReport {
   const coachLinks: CoachLink[] = []
   if (isCoachCard(coach)) {
     const players = cards.filter(isPlayerCard)
+    // a retired coach's club is its own `H:` id too, so he is matched by tag — Chet with NRG's men,
+    // live or retired, is NRG's coach (owner, 2026-10-20: 「退役教练没有同队默契」)
     const atClub = (p: PlayerCard): boolean => !!(p.clubId && p.clubId === coach.clubId)
-      || (retiredLegend(p) && sameTag(p, coach))
+      || ((retiredLegend(p) || !!coach.retired) && sameTag(p, coach))
     const sameClub = players.filter(atClub).length
     // Men this coach has actually coached before, somewhere: a staff role at a
     // club in months the player was on it. Not everyone who has ever passed

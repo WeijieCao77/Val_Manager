@@ -1322,7 +1322,7 @@ export async function paintShare(canvas: HTMLCanvasElement, model: ShareModel): 
 
   const team = squadTeamIdentity(model.squad)
   if (team) {
-    const art = await load(teamBackdrop(team.color))
+    const art = await load(teamBackdrop(team.color, team.era))
     if (art) ctx.drawImage(art, 0, 0, L.width, L.height)
     const logo = await load(team.crest)
     if (logo) {
