@@ -191,6 +191,19 @@ export const LEGENDS: Legend[] = [
     rating: 95,
     note: 'LEV 3–2 Paper Rex，平均年龄 19.6 岁，拉美赛区首个大师赛冠军。',
   },
+  // Champions Shanghai 2026: LOUD 3–1 Vitality, the first club to win two Champions. Riot named erde,
+  // eighteen and LOUD's caller, the event's MVP (The Spike; Liquipedia). His Shanghai line, vlr event 2766:
+  // 18 maps, 398 rounds, R 1.21, ACS 224, K/D 1.28, KAST 77%, ADR 149.7. Photo: Lee Aiksoon / Riot Games,
+  // flickr.com/photos/valorantesports/55597381795 (with the trophy, after the final).
+  {
+    id: 'L:erde-champions-2026',
+    ign: 'erde', title: '2026 上海冠军赛 MVP', short: '26 上海 MVP',
+    year: 2026, kind: 'fmvp', clubId: 'T8', clubTag: 'LOUD',
+    rating: 95,
+    isIgl: true,
+    attrs: { igl: 95 },
+    note: 'LOUD 3–1 Vitality，第一支两夺冠军赛的队伍。18 岁的指挥拿下赛事 MVP：18 张图 R 1.21、ACS 224、K/D 1.28。',
+  },
 
   // ---------------------------------------------------------------- 社区 MVP
   {

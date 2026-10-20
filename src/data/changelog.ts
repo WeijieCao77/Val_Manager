@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-20',
+    title: '新彩卡：erde · 2026 上海冠军赛 MVP',
+    changes: [
+      { kind: '新增', text: '<b>erde · 2026 上海冠军赛 MVP</b>（95，LOUD）。LOUD 3–1 Vitality 夺冠，18 岁的指挥拿下赛事 MVP。卡包里能抽到。' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: '彩卡出率提高',
     changes: [
       { kind: '调整', text: '每种卡包的彩卡概率提高到原来的 1.5 倍。<b>彩卡保底从 1200 抽缩短到 800 抽</b>，退役彩卡保底从 600 抽缩短到 400 抽，之前攒的抽数照算。' },
