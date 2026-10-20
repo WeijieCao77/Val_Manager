@@ -126,7 +126,7 @@ export const PACKS: Record<PackKind, PackDef> = {
   retired: {
     kind: 'retired', name: '退役选手包', pool: 'retired',
     blurb: '三张退役选手卡，至少一张银卡，可能出退役彩卡（单独保底）。',
-    cost: 3000, draws: 3, mythic: 0.0004, gold: 0.16, silver: 0.38, floor: 'silver', shop: true,
+    cost: 3000, draws: 3, mythic: 0.0006, gold: 0.16, silver: 0.38, floor: 'silver', shop: true,
   },
   seoul2024: {
     kind: 'seoul2024', name: '首尔 2024 冠军赛包', pool: 'seoul2024',
@@ -138,12 +138,12 @@ export const PACKS: Record<PackKind, PackDef> = {
   scout: {
     kind: 'scout', name: '试训包', pool: 'player',
     blurb: '一张选手卡。多是铜卡，也出金卡。',
-    cost: 750, draws: 1, mythic: 0.0001, gold: 0.03, silver: 0.26, shop: true,
+    cost: 750, draws: 1, mythic: 0.00015, gold: 0.03, silver: 0.26, shop: true,
   },
   elite: {
     kind: 'elite', name: '选拔包', pool: 'player',
     blurb: '三张选手卡，至少一张银卡起。',
-    cost: 2400, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2400, draws: 3, mythic: 0.0006, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   ten: {
     kind: 'ten', name: '十连包', pool: 'player',
@@ -155,7 +155,7 @@ export const PACKS: Record<PackKind, PackDef> = {
     // is roughly half and half: 1/852 draws measured against 1/636 before, and
     // the progress bar means something. The odds screen measures the engine
     // rather than reading this number, so it followed on its own.
-    cost: 5000, draws: 10, mythic: 0.0006, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
+    cost: 5000, draws: 10, mythic: 0.0009, gold: 0.06, silver: 0.34, floor: 'gold', shop: false,
   },
   // The series packs: same three cards as a 选拔包 and the same odds, priced a
   // little above it. What you are buying is not volume, it is aim — a 中国包
@@ -164,22 +164,22 @@ export const PACKS: Record<PackKind, PackDef> = {
   cn: {
     kind: 'cn', name: '中国包', pool: 'China',
     blurb: '只出中国赛区的选手卡。三张，至少一张银卡起。',
-    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2600, draws: 3, mythic: 0.0006, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   pac: {
     kind: 'pac', name: '太平洋包', pool: 'Pacific',
     blurb: '只出太平洋赛区的选手卡。三张，至少一张银卡起。',
-    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2600, draws: 3, mythic: 0.0006, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   ame: {
     kind: 'ame', name: '美洲包', pool: 'Americas',
     blurb: '只出美洲赛区的选手卡。三张，至少一张银卡起。',
-    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2600, draws: 3, mythic: 0.0006, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   emea: {
     kind: 'emea', name: 'EMEA 包', pool: 'EMEA',
     blurb: '只出欧非中东赛区的选手卡。三张，至少一张银卡起。',
-    cost: 2600, draws: 3, mythic: 0.0004, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
+    cost: 2600, draws: 3, mythic: 0.0006, gold: 0.08, silver: 0.38, floor: 'silver', shop: true,
   },
   // The 彩卡包. One card, always a 彩卡, dealt from every legend in the game
   // — players and the booth alike. It is what finishing the whole 图鉴 pays
@@ -196,7 +196,7 @@ export const PACKS: Record<PackKind, PackDef> = {
     // A彩卡 used to be a night somebody PLAYED, so this pack had none. Muggle
     // did not play a map of the 2024 final and is one of the reasons it was
     // won, and a booth is where that card belongs.
-    cost: 1200, draws: 1, mythic: 0.0004, gold: 0.12, silver: 0.42, shop: true,
+    cost: 1200, draws: 1, mythic: 0.0006, gold: 0.12, silver: 0.42, shop: true,
   },
   // The position packs. One card that plays the position, a little kinder
   // than a 试训包 because it was earned in a game rather than bought, and no
@@ -268,7 +268,8 @@ export const HARD_PITY = 45
  * packs and seven eighths of them came from here. Lowering the published rate
  * without moving this would have changed almost nothing.
  */
-export const MYTHIC_FLOOR = 1200
+// 2026-10-20 (owner, 关服前「彩卡爆率稍微调高一点」): 1200 → 800, and every pack's rate ×1.5
+export const MYTHIC_FLOOR = 800
 
 /**
  * The 退役选手包's own 彩卡 floor (owner, 2026-10-10): 600 of its draws, about
@@ -276,7 +277,7 @@ export const MYTHIC_FLOOR = 1200
  * on cheap 试训包 draws cannot be cashed in on the retired eight, and the
  * retired pack never touches the 1200 above.
  */
-export const RETIRED_FLOOR = 600
+export const RETIRED_FLOOR = 400
 
 // ---------------------------------------------------------------- the day
 
