@@ -781,8 +781,8 @@
     2025
    ],
    "lastEvent": null,
-   "face": null,
-   "faceV": null,
+   "face": "rc-665.webp",
+   "faceV": "e16ddce2",
    "v16": {
     "rating": 72,
     "tactics": 72,
@@ -1321,8 +1321,8 @@
     2026
    ],
    "lastEvent": "2024-08-25",
-   "face": null,
-   "faceV": null,
+   "face": "rc-3323.webp",
+   "faceV": "8b6a88cc",
    "v16": {
     "rating": 83,
     "tactics": 81,
@@ -1753,8 +1753,8 @@
     2026
    ],
    "lastEvent": "2026-09-06",
-   "face": null,
-   "faceV": null,
+   "face": "rc-12224.webp",
+   "faceV": "53c7a409",
    "v16": {
     "rating": 77,
     "tactics": 80,

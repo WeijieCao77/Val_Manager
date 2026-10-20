@@ -31,6 +31,13 @@ FACES = ROOT / "public" / "faces"
 SIDE = 192
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/128 Safari/537.36"
 ATTRS = ("tactics", "development", "motivation")
+# faces found by hand where v16 had none (2026-10-20): vlr player pages, and Riot's valorantesports Flickr
+# (mini at Masters Tokyo 2023, Mt Fuji hat and all). `crop` is a box in the source image.
+MANUAL = {
+    "fluyr": {"url": "https://owcdn.net/img/62d0735887613.png"},
+    "Warbirds": {"url": "https://owcdn.net/img/6821f79304fbe.png"},
+    "mini": {"url": "https://live.staticflickr.com/65535/52990745900_e7f7051d25_b.jpg", "page": "https://www.flickr.com/photos/valorantesports/52990745900/", "crop": [275, 60, 735, 520]},
+}
 
 
 def ranks(values: list[float]) -> list[float]:
@@ -69,7 +76,7 @@ def teams_index() -> dict[str, tuple[str, str]]:
     return idx
 
 
-def face(url: str, vid: str) -> tuple[str, str] | None:
+def face(url: str, vid: str, crop: list[int] | None = None) -> tuple[str, str] | None:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         raw = urllib.request.urlopen(req, timeout=30).read()
@@ -78,6 +85,8 @@ def face(url: str, vid: str) -> tuple[str, str] | None:
         return None
     im = Image.open(io.BytesIO(raw))
     im = im.convert("RGBA") if im.mode in ("RGBA", "LA", "P") else im.convert("RGB")
+    if crop:
+        im = im.crop(tuple(crop))
     w, h = im.size
     side = min(w, h)
     left, top = (w - side) // 2, 0 if h > w else (h - side) // 2
@@ -146,10 +155,10 @@ def main() -> int:
         slug = c["vlrId"] or "n-" + "".join(ch for ch in unicodedata.normalize("NFKD", c["name"]).lower() if ch.isascii() and ch.isalnum())
         handle = tenures.get(c["key"], {}).get("handle") or ""
         plain = unicodedata.normalize("NFKD", c["name"]).encode("ascii", "ignore").decode().lower()
-        ph = photos.get(c["name"]) or photos.get(c["name"].lower()) or photos.get(handle) or photos.get(plain)
+        ph = MANUAL.get(c["name"]) or photos.get(c["name"]) or photos.get(c["name"].lower()) or photos.get(handle) or photos.get(plain)
         got = None
         if ph:
-            got = face(ph["url"], slug)
+            got = face(ph["url"], slug, ph.get("crop"))
             time.sleep(2.0 if "liquipedia" in ph["url"] else 1.0)
         if not got:
             # a coach the game once had keeps the face the 资料库 already holds
