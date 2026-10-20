@@ -4,7 +4,7 @@
  *   npx tsx scripts/check_retired_pack.ts [packs]
  *
  * - the 退役选手包 deals only retired cards, and its 彩卡 only the retired eight;
- * - its 彩卡 floor is its own (RETIRED_FLOOR = 400 since 2026-10-20): it never moves or spends the
+ * - its 彩卡 floor is its own (RETIRED_FLOOR = 250 since 2026-10-20): it never moves or spends the
  *   shared MYTHIC_FLOOR counter, and no other pack moves its counter;
  * - no other pack deals a retired card; the 全图鉴 does not count them;
  * - ids are unique, a 彩卡 is the same person as his 普卡 (personOf);
@@ -70,8 +70,8 @@ for (const kind of PACK_ORDER.filter((k) => k !== 'retired') as PackKind[]) {
 }
 check(leaked === 0, '其他卡包抽不到退役卡', `${leaked}`)
 check(h.retiredDry === 123, '其他卡包不动退役彩卡保底', `${h.retiredDry}`)
-check(PACKS.retired.cost === 3000 && PACKS.retired.gold === 0.16 && PACKS.retired.mythic === 0.0006 && MYTHIC_FLOOR === 800,
-  '出率按站长定的：3000 金币、金 16%、彩卡每抽 0.06%，现役保底 800（2026-10-20 关服前调高）')
+check(PACKS.retired.cost === 3000 && PACKS.retired.gold === 0.16 && PACKS.retired.mythic === 0.0009 && MYTHIC_FLOOR === 500,
+  '出率按站长定的：3000 金币、金 16%、彩卡每抽 0.09%，现役保底 500（2026-10-20 关服前两次调高）')
 
 // the launch week (owner, 2026-10-10): China-time 10-11 is day one, days 1–3 85折, 4–7 9折
 const prices = ['2026-10-10', '2026-10-11', '2026-10-13', '2026-10-14', '2026-10-17', '2026-10-18'].map((d) => packCost('retired', d))
