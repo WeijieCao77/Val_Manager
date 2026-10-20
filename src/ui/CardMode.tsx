@@ -18,6 +18,8 @@ const Predict = lazy(() => import('./cards/Predict'))
 const BangkokRoute = lazy(() => import('./cards/BangkokRoute'))
 const HistoryTeams = lazy(() => import('./cards/HistoryTeams'))
 const Evolve = lazy(() => import('./cards/Evolve'))
+const Swift = lazy(() => import('./cards/Swift'))
+const Draft = lazy(() => import('./cards/Draft'))
 import AccountScreen, { copyText } from './cards/Account'
 import Dossier from './Dossier'
 import OddsFab from './cards/OddsFab'
@@ -353,6 +355,8 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     bangkok: BangkokRoute,
     history: HistoryTeams,
     evolve: Evolve,
+    swift: Swift,
+    draft: Draft,
   } as Record<string, ComponentType>)[tab]
 
   const signOut = () => {

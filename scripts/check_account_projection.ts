@@ -462,7 +462,7 @@ check('删号连带删投影，没有孤儿行', Number(orphans) === 0, `${orpha
   let applied
   try { applied = await applySchema(sql2) } finally { console.log = log }
   const [t] = await sql2`select count(*)::int as n from pg_trigger where tgname = 'card_accounts_projection_v2'`
-  check('启动迁移发现缺触发器，只补这一份', applied?.ready === true && t.n === 1 && logs.some((l) => l.includes('1 of 10')), logs.join(' | '))
+  check('启动迁移发现缺触发器，只补这一份', applied?.ready === true && t.n === 1 && logs.some((l) => /1 of \d+ schema/.test(l)), logs.join(' | '))
   await db2.close()
 }
 
