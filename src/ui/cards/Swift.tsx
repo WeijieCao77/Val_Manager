@@ -102,14 +102,15 @@ export default function Swift() {
     <div className="swift">
       {done && <Result m={done} onClose={() => { markSeen(done.id); setDone(null) }} />}
       <Panel>
-        <p className="small">用你的卡组打一场先赢 5 回合的比赛。每回合你和对手同时决定：买什么、打哪里、谁去拿首杀。</p>
+        <p className="small">用你的卡组和对手一回合一回合打。每回合双方同时决定：买什么、打哪里、谁去拿首杀。</p>
+        <details className="swift-howto" open={(st.me?.played ?? 0) < 3}><summary className="small">玩法说明</summary>
         <ul className="swift-rules small muted">
           <li>经济照搬无畏契约：手枪局 800，赢一回合 3000，连输 1900 / 2400 / 2900，下包 300，击杀 200，活下来的人留着枪。</li>
           <li>打法互相克制，没有永远对的选择。看对手的习惯，读他下一回合。</li>
           <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，看对手的钱。</li>
           <li>{st.waitSec} 秒没匹配到真人，就打一个其他玩家的影子（按他的习惯出招）。</li>
           <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜。</li>
-        </ul>
+        </ul></details>
         {st.me && <div className="swift-me">
           <div><b>{st.me.rating}</b><span>读点分</span></div>
           <div><b>{st.me.won}/{st.me.played}</b><span>胜/场</span></div>

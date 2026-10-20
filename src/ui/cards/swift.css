@@ -1,6 +1,8 @@
 /* 读点 (Swift.tsx) */
 .swift { display: flex; flex-direction: column; gap: 12px; }
 .swift-rules { margin: 8px 0 12px; padding-left: 18px; line-height: 1.7; }
+.swift-howto { margin: 6px 0 4px; }
+.swift-howto summary { cursor: pointer; color: var(--muted); }
 .swift-me { display: flex; gap: 10px; margin: 10px 0 6px; }
 .swift-me > div { flex: 1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; }
 .swift-me b { font-size: 20px; font-variant-numeric: tabular-nums; }

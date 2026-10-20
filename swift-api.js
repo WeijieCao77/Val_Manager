@@ -416,9 +416,8 @@ export function makeSwiftApi(sql, {
       await withMatch(id, (state, row) => {
         if (row.status !== 'live' || (row.a_hash !== me && row.b_hash !== me)) return null
         const t = row.a_hash === me ? 0 : 1
-        const score = state.score.slice()
-        score[1 - t] = Math.max(score[1 - t], score[t] + 1)
-        return { state: { ...state, score, phase: 'done', winner: 1 - t, pending: [null, null], resigned: t } }
+        // the score stays as played; the result says who gave it up
+        return { state: { ...state, phase: 'done', winner: 1 - t, pending: [null, null], resigned: t } }
       })
     }
     json(res, 200, { ok: true })
