@@ -79,6 +79,7 @@ ok('之前和之后都是 3000', packCost('bangkok2025', '2026-09-30') === 3000 
 }
 ok('首尔包 10-07 还能买，10-08 起下线', !packRetired('seoul2024', SEOUL_LAST_DAY) && packRetired('seoul2024', '2026-10-08')
   && !packRetired('bangkok2025', '2027-01-01'))
+ok('首尔包 10-20 返场', packRetired('seoul2024', '2026-10-19') && !packRetired('seoul2024', '2026-10-20') && !packRetired('seoul2024', '2026-10-21'))
 {
   const s = newGacha('SEOUL-GONE', '下线', '2026-10-08'); s.coins = 10_000; s.packs.seoul2024 = 1
   let refused = ''

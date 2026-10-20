@@ -1650,6 +1650,8 @@ export const BANGKOK_LAUNCH = '2026-10-01'
 export const BANGKOK_SALE_LAST = '2026-10-03'
 export const BANGKOK_SALE_OFF = 0.15
 export const SEOUL_LAST_DAY = '2026-10-07'
+/** back on the shelf for the last days before the site closes (owner, 2026-10-20) */
+export const SEOUL_RETURN = '2026-10-20'
 
 export const bangkokOnSale = (today?: string): boolean =>
   !!today && today >= BANGKOK_LAUNCH && today <= BANGKOK_SALE_LAST
@@ -1668,7 +1670,7 @@ export const retiredSale = (today?: string): { last: string; off: number } | nul
 
 /** A pack the shop no longer sells. */
 export const packRetired = (kind: PackKind, today?: string): boolean =>
-  kind === 'seoul2024' && !!today && today > SEOUL_LAST_DAY
+  kind === 'seoul2024' && !!today && today > SEOUL_LAST_DAY && today < SEOUL_RETURN
 
 /** What a pack costs today — the featured series is off by a fifth, the new 曼谷包 by 15% for three days, the 退役选手包 by its launch week. */
 export function packCost(kind: PackKind, today?: string): number {

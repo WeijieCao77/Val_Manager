@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-20',
+    title: '关服前：金币无限，首尔包返场',
+    changes: [
+      { kind: '新增', text: '关服前开瓦包<b>金币无限</b>，开包、出价、拆解都不花钱。<b>首尔包返场</b>，「抽卡」页可以买。' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: '停服公告',
     pinned: true,
     changes: [
