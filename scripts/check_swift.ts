@@ -309,6 +309,11 @@ function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy, 
   } else check('13:11 ends the match', lost.phase === 'done' && lost.winner === 0)
   check('a one-round overtime lead is not a win', !matchOver(m, [14, 13]) && matchOver(m, [15, 13]) && matchOver(m, [15, 14]) === true)
   check('quick format has no overtime: 5:4 ends it', matchOver(newSwiftMatch(1, sideA, sideB), [5, 4]))
+  // 快速 at 4:4: round 9 is a second-half round on the money as it stands, not overtime
+  let q = newSwiftMatch(9, sideA, sideB)
+  q = { ...q, round: 9, score: [4, 4], econ: [{ ...q.econ[0], credits: [1234, 1234, 1234, 1234, 1234] }, { ...q.econ[1], credits: [999, 999, 999, 999, 999] }] }
+  const v9 = swiftView(q, 0)
+  check('快速 round 9 is not overtime and keeps the money', !v9.overtime && v9.mine.credits[0] === 1234 && sideAt(q) === sideAt(q, 5))
 }
 
 console.log(fails ? `\n${fails} check(s) failed` : '\nall 读点 checks passed')

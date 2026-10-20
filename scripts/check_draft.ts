@@ -50,6 +50,19 @@ import { cardById, isPlayerCard, personOf } from '../src/engine/cards'
   assert.equal(roundRobin(6).length, 15)
   const t = draftTable(3, [{ a: 0, b: 1, aWon: true, mapsA: 2, mapsB: 0 }, { a: 0, b: 2, aWon: false, mapsA: 1, mapsB: 2 }, { a: 1, b: 2, aWon: true, mapsA: 2, mapsB: 1 }])
   assert.deepEqual(t.map((x) => [x.seat, x.wins, x.place]), [[0, 1, 1], [2, 1, 2], [1, 1, 3]], '同胜看净胜图')
+  // a three-way cycle, all level: drawn by the room's seed, not by seat order (the host is seat 0)
+  const cycle = [{ a: 0, b: 1, aWon: true, mapsA: 2, mapsB: 1 }, { a: 1, b: 2, aWon: true, mapsA: 2, mapsB: 1 }, { a: 2, b: 0, aWon: true, mapsA: 2, mapsB: 1 }]
+  const firsts = new Set<number>()
+  for (let seed = 0; seed < 30; seed++) firsts.add(draftTable(3, cycle, seed)[0].seat)
+  assert.equal(firsts.size, 3, '三方循环相克时抽签，不按座位号')
+  assert.deepEqual(draftTable(3, cycle, 7), draftTable(3, cycle, 7), '同一房间结果一样')
+  // two level seats: the match between them decides
+  // seats 0 and 1: two wins, +2 maps each; 1 beat 0
+  const two = [
+    { a: 0, b: 1, aWon: false, mapsA: 1, mapsB: 2 }, { a: 0, b: 2, aWon: true, mapsA: 2, mapsB: 0 }, { a: 0, b: 3, aWon: true, mapsA: 2, mapsB: 1 },
+    { a: 1, b: 2, aWon: false, mapsA: 1, mapsB: 2 }, { a: 1, b: 3, aWon: true, mapsA: 2, mapsB: 0 }, { a: 2, b: 3, aWon: false, mapsA: 0, mapsB: 2 },
+  ]
+  for (let seed = 0; seed < 10; seed++) { const r = draftTable(4, two, seed); assert.deepEqual([r[0].seat, r[1].seat], [1, 0], '两人同分看直接交手') }
   console.log('ok  暗标结算、同价抽签、出价清洗、房间码、积分榜')
 }
 
@@ -144,7 +157,8 @@ now = t0 + plan.games[2] + 1
 s = await call('', { id: P1 })
 assert(s.room.games.length === 3 && s.room.final && s.room.final.maps.length === 0, '循环赛出完，决赛开始')
 assert(raw.final.maps.length >= 3 && raw.final.maps.length <= 5, '决赛 BO5')
-const top2 = draftTable(3, raw.games).slice(0, 2).map((t) => t.seat).sort()
+const seedRow = (await sql`select seed from draft_rooms where code = ${code}`)[0]
+const top2 = draftTable(3, raw.games, Number(seedRow.seed)).slice(0, 2).map((t) => t.seat).sort()
 assert.deepEqual([raw.final.a, raw.final.b].sort(), top2, '循环赛前两名打决赛')
 now = t0 + plan.final[0]
 assert.equal((await call('', { id: P1 })).room.final.maps.length, 1, '决赛一张图一张图出')
@@ -183,6 +197,18 @@ const r2 = await room([H, P1, P2])
 assert.equal(r2.status, 'done'); assert(r2.reward.coins > 0, `同一天第 ${DRAFT_PAID_ROOMS} 个房间还有奖励`)
 const r3 = await room([H, P1, P2])
 assert(r3.reward.coins === 0 && r3.reward.unpaid === 'cap', `每天只有前 ${DRAFT_PAID_ROOMS} 个房间有奖励`)
+// a room where nobody bids: the clock drafts for them, and nobody is paid
+{
+  for (const p of [ids[0], ids[1], ids[2]]) await call('/leave', { id: p })
+  const c = (await call('/create', { id: ids[0] })).code
+  for (const p of [ids[1], ids[2]]) await call('/join', { id: p, code: c })
+  await call('/start', { id: ids[0] })
+  for (let r = 0; r < DRAFT_ROUNDS + 1; r++) { now += (DRAFT_BID_SEC + 2) * 1000; await call('', { id: ids[0] }) }
+  now += 10 * 60_000
+  const idleRoom = (await call('', { id: ids[1] })).room
+  assert.equal(idleRoom.status, 'done')
+  assert.equal(idleRoom.reward.unpaid, 'idle', '一轮都没自己出价的不发奖励')
+}
 const two = await room([ids[3], ids[4]])
 assert(two.reward.unpaid === 'small' && two.games.length === 0 && two.final.maps.length >= 3, '两个人只打决赛，没有奖励')
 const fresh = await room([ids[5], ids[6], ids[3]])

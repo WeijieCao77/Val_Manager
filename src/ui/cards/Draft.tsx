@@ -10,7 +10,7 @@ import './swift.css'
 
 const POS_CN: Record<string, string> = { 决斗者: '决斗者', 先锋: '先锋', 控场: '控场', 哨卫: '哨卫', 自由人: '任意位置', 教练: '教练' }
 const ign = (id: string) => { const c = cardById(id); return isPlayerCard(c) ? c.ign : c?.kind === 'coach' ? c.name : id }
-const UNPAID: Record<string, string> = { small: '3 人以上的房间才有奖励', cap: '今天的房间奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
+const UNPAID: Record<string, string> = { idle: '六轮里自己出价不到 4 轮，没有奖励', small: '3 人以上的房间才有奖励', cap: '今天的房间奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
 
 /**
  * 抢人大战: a room of friends drafts from one shared pool and plays a round robin.
@@ -62,9 +62,9 @@ export default function Draft() {
           <li>六轮：决斗者、先锋、控场、哨卫、任意位置，最后一轮选教练。</li>
           <li>每轮亮出 人数+1 张卡，从顶级到冷门。每人暗中选一张出价，整场预算 {st.budget}。</li>
           <li>出价高的先拿；被抢走的人免费拿剩下最好的一张。</li>
-          <li>选完打循环赛（每场 BO3，一场一场直播），前两名再打 BO5 决赛。</li>
+          <li>选完打循环赛（每场 BO3，一场一场直播），前两名再打 BO5 决赛；只有 2 人就直接打决赛。</li>
           <li>卡池是全卡库（含彩卡），不用你的收藏，选到的卡也不会进收藏。</li>
-          <li>奖励：第一名 {st.prizes[0]}、第二名 {st.prizes[1]}、其他 {st.prizes[2]} 金币。{st.paidMin} 人以上的房间才有，每天前 {st.paidRooms} 个房间。</li>
+          <li>奖励：第一名 {st.prizes[0]}、第二名 {st.prizes[1]}、其他 {st.prizes[2]} 金币。{st.paidMin} 人以上的房间才有，每天前 {st.paidRooms} 个房间；六轮里要自己出价至少 4 轮。</li>
         </ul>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="primary" disabled={busy} onClick={() => void run(draftCreate())}>开房间</button>
@@ -100,7 +100,7 @@ function Lobby({ room, st, busy, onStart }: { room: DraftRoom; st: DraftState; b
       {room.seats.map((s) => <li key={s.seat} className={s.me ? 'me' : ''}><span className="r">{s.seat + 1}</span><span className="n">{s.name}<i>{s.tag}</i></span><span className="s">{s.host ? '房主' : ''}</span><span /></li>)}
     </ol>
     {room.host
-      ? <div className="row" style={{ marginTop: 10, gap: 8 }}><button className="primary" disabled={busy || room.seats.length < st.min} onClick={onStart}>开始选秀</button><span className="small muted">{room.seats.length}/{st.max} 人</span></div>
+      ? <div className="row" style={{ marginTop: 10, gap: 8 }}><button className="primary" disabled={busy || room.seats.length < st.min} onClick={onStart}>开始抢人</button><span className="small muted">{room.seats.length}/{st.max} 人</span></div>
       : <p className="small muted">等房主开始。</p>}
   </>
 }

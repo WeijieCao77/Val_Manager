@@ -42,6 +42,8 @@ export const SWIFT_LOSS_COINS = 30
 const GRACE_MS = 2500
 /** a match past its clock this long with nobody reading it is called by the sweep */
 const STALE_MS = 60_000
+/** clock-called rounds in a row before a side forfeits the match */
+export const FORFEIT_ROUNDS = 3
 const K = 24
 
 export const SWIFT_SCHEMA = `
@@ -180,7 +182,23 @@ export function makeSwiftApi(sql, {
     let m = state
     for (let guard = 0; guard < 3 && m.phase !== 'done' && ms(row.deadline) <= now; guard++) {
       if (m.phase === 'choose') {
-        for (const t of [0, 1]) if (!m.pending[t]) m = engine.submitChoice(m, t, engine.autoChoice(m, t))
+        for (const t of [0, 1]) {
+          // a ghost or the AI is side 1 and answers for itself (robot, below); it never runs the clock down
+          if (m.pending[t] || (row.kind !== 'live' && t === 1)) continue
+          // the clock calls it; the round stays out of this player's habit, and three in a row is a forfeit
+          const autos = [(m.autos?.[0] ?? []).slice(), (m.autos?.[1] ?? []).slice()]
+          autos[t].push(m.round)
+          const idle = (m.idle ?? [0, 0]).slice()
+          idle[t]++
+          m = { ...engine.submitChoice(m, t, engine.autoChoice(m, t)), autos, idle }
+        }
+        if (row.kind !== 'live') m = robot(m, row)
+        const gone = [0, 1].filter((t) => (m.idle?.[t] ?? 0) >= FORFEIT_ROUNDS)
+        if (gone.length && m.phase !== 'done') {
+          // both gone: the one behind is the one who left
+          const t = gone.length === 2 ? (m.score[0] <= m.score[1] ? 0 : 1) : gone[0]
+          m = { ...m, phase: 'done', winner: 1 - t, pending: [null, null], recon: [false, false], resigned: t, forfeit: true }
+        }
       } else if (m.phase === 'recon') {
         for (const t of [0, 1]) if (m.recon[t]) m = engine.submitRecon(m, t, m.pending[t].plan)
       }
@@ -201,7 +219,10 @@ export function makeSwiftApi(sql, {
     const ghostRating = row.kind === 'ghost' && row.ghost_of
       ? (await db`select rating from swift_players where id_hash = ${row.ghost_of}`)[0]?.rating ?? 1000 : 1000
     const rating = [byId.get(row.a_hash)?.rating ?? 1000, humans[1] ? byId.get(humans[1])?.rating ?? 1000 : ghostRating]
-    const delta = [0, 1].map((t) => Math.round(K * ((state.winner === t ? 1 : 0) - expected(rating[t], rating[1 - t]))))
+    // a match given up (or walked away from) before the target score's worth of rounds counts for nothing:
+    // no rating either way and no coins — otherwise two accounts trade instant resignations for wins
+    const short = state.log.length < engine.formatOf(state).win
+    const delta = [0, 1].map((t) => (short ? 0 : Math.round(K * ((state.winner === t ? 1 : 0) - expected(rating[t], rating[1 - t])))))
     const day = dayOf(now)
     const ratings = {}
     for (const t of [0, 1]) {
@@ -211,21 +232,24 @@ export function makeSwiftApi(sql, {
       const habit = engine.addHabit(byId.get(h)?.habit ?? null, state, t)
       const side = { ...state.sides[t], strength: engine.sideStrength(state.sides[t]) }
       const name = t === 0 ? row.a_name : row.b_name
-      // paid: called at least half its rounds itself, did not resign, and has a paid game left today
+      // paid: a full match, called at least half its rounds itself, not given up, and a paid game left today.
+      // Giving a match up still uses one of the day's paid games, so a bad start is not re-rolled for free.
       const calls = state.calls?.[t] ?? 0
-      const earns = calls * 2 >= state.log.length && state.resigned !== t
+      const gaveUp = state.resigned === t
+      const earns = !short && calls * 2 >= state.log.length && !gaveUp
+      const slot = earns || gaveUp
       const got = await db`
         insert into swift_players (id_hash, name, rating, played, won, habit, side, day, day_wins, day_games, updated)
-        values (${h}, ${name ?? null}, ${1000 + delta[t]}, 1, ${won}, ${db.json(habit)}::jsonb, ${db.json(side)}::jsonb, ${day}, ${won}, ${earns ? 1 : 0}, now())
+        values (${h}, ${name ?? null}, ${1000 + delta[t]}, 1, ${won}, ${db.json(habit)}::jsonb, ${db.json(side)}::jsonb, ${day}, ${won}, ${slot ? 1 : 0}, now())
         on conflict (id_hash) do update set
           name = coalesce(excluded.name, swift_players.name), rating = swift_players.rating + ${delta[t]},
           played = swift_players.played + 1, won = swift_players.won + ${won}, habit = excluded.habit, side = excluded.side,
           day_wins = case when swift_players.day = ${day} then swift_players.day_wins + ${won} else ${won} end,
-          day_games = case when swift_players.day = ${day} then swift_players.day_games + ${earns ? 1 : 0} else ${earns ? 1 : 0} end,
+          day_games = case when swift_players.day = ${day} then swift_players.day_games + ${slot ? 1 : 0} else ${slot ? 1 : 0} end,
           day = ${day}, updated = now()
         returning rating, day_wins, day_games`
       ratings[t] = { before: rating[t], after: got[0].rating, delta: delta[t] }
-      if (!earns) ratings[t].unpaid = state.resigned === t ? 'resigned' : 'idle'
+      if (!earns) ratings[t].unpaid = gaveUp ? (state.forfeit ? 'forfeit' : 'resigned') : short ? 'short' : 'idle'
       else if (got[0].day_games > SWIFT_PAID_GAMES) ratings[t].unpaid = 'cap'
       else if (!(await mayEarn(db, h))) ratings[t].unpaid = 'gate'
       else {
@@ -366,8 +390,9 @@ export function makeSwiftApi(sql, {
         const last = (await sql`select id::text as id from swift_matches where status = 'done' and (a_hash = ${me} or b_hash = ${me})
           and finished > now() - interval '15 minutes' order by finished desc limit 1`)[0]
         if (last) {
-          const got = await withMatch(last.id, null, now)
-          if (got) out.recent = matchView(got.row, me)
+          const row = (await sql`select m.*, (select name from card_accounts where id_hash = m.a_hash) as a_name,
+            (select name from card_accounts where id_hash = m.b_hash) as b_name from swift_matches m where id = ${last.id}`)[0]
+          if (row) out.recent = matchView(row, me)
         }
       }
       // read after the match: a finish just written shows in the totals
@@ -414,7 +439,8 @@ export function makeSwiftApi(sql, {
     const id = matchId(body?.match)
     if (id && body?.resign) {
       await withMatch(id, (state, row) => {
-        if (row.status !== 'live' || (row.a_hash !== me && row.b_hash !== me)) return null
+        // the clock may have ended it inside this same lock: a finished match is not given up afterwards
+        if (row.status !== 'live' || state.phase === 'done' || (row.a_hash !== me && row.b_hash !== me)) return null
         const t = row.a_hash === me ? 0 : 1
         // the score stays as played; the result says who gave it up
         return { state: { ...state, phase: 'done', winner: 1 - t, pending: [null, null], resigned: t } }
@@ -440,7 +466,9 @@ export function makeSwiftApi(sql, {
         const next = engine.submitChoice(state, t, body?.choice)
         const calls = (state.calls ?? [0, 0]).slice()
         calls[t]++
-        return { state: { ...next, calls } }
+        const idle = (state.idle ?? [0, 0]).slice()
+        idle[t] = 0
+        return { state: { ...next, calls, idle } }
       }
       if (what === 'recon') {
         if (state.phase !== 'recon' || !state.recon[t]) { why = '现在不能改打法。'; return null }

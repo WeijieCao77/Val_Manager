@@ -18,7 +18,7 @@ export interface DraftRoom {
   nextAt: number | null
   failed: boolean
   /** a finished room: my place and what it paid; unpaid says why not (small, cap, gate) */
-  reward: { place: number | null; coins: number; unpaid: 'small' | 'cap' | 'gate' | null } | null
+  reward: { place: number | null; coins: number; unpaid: 'idle' | 'small' | 'cap' | 'gate' | null } | null
 }
 export interface DraftState {
   ok: true; now: number; min: number; max: number; budget: number; bidSec: number; positions: (Role | '教练')[]

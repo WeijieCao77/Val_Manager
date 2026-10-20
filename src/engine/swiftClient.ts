@@ -14,7 +14,7 @@ export interface SwiftMatchView {
   opponent: { name: string; tag: string }
   view: SwiftView
   /** unpaid: why a finished match paid nothing — resigned, idle (the clock called most rounds), cap (the day's paid games are used), gate (account too new) */
-  ratings: { before: number; after: number; delta: number; coins?: number; unpaid?: 'resigned' | 'idle' | 'cap' | 'gate' } | null
+  ratings: { before: number; after: number; delta: number; coins?: number; unpaid?: 'resigned' | 'forfeit' | 'short' | 'idle' | 'cap' | 'gate' } | null
 }
 export interface SwiftState {
   ok: true; now: number; waitSec: number; paidGames: number; winCoins: number; lossCoins: number

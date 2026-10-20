@@ -49,7 +49,7 @@ export const PROFILE_KEYS = {
 // 读点 (swift-api.js): the round-by-round match, its AI and its ghosts
 export {
   newSwiftMatch, submitChoice, submitRecon, takePause, swiftView, swiftSide, sideStrength, autoChoice, aiChoice, aiRecon,
-  aiSide, habitFrom, addHabit, SWIFT_WIN, SWIFT_CHOOSE_SEC, SWIFT_RECON_SEC, SWIFT_REPLAY_SEC, isFormat,
+  aiSide, habitFrom, addHabit, SWIFT_WIN, SWIFT_CHOOSE_SEC, SWIFT_RECON_SEC, SWIFT_REPLAY_SEC, isFormat, formatOf,
 } from './swift'
 export { Rng, hashStr } from './rng'
 
@@ -57,6 +57,6 @@ export { Rng, hashStr } from './rng'
 export {
   dealLot, cleanBid, settleRound, roundRobin, draftMatchSeed, draftTable, roomCode, cleanCode,
   DRAFT_MIN, DRAFT_MAX, DRAFT_BUDGET, DRAFT_BID_SEC, DRAFT_POSITIONS, DRAFT_ROUNDS,
-  draftSchedule, draftPlaces, draftPrize, DRAFT_PAID_MIN, DRAFT_PAID_ROOMS,
+  draftSchedule, draftPlaces, draftPrize, DRAFT_PAID_MIN, DRAFT_PAID_ROOMS, DRAFT_OWN_BIDS,
 } from './draft'
 export { personOf } from './cards'

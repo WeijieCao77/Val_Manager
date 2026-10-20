@@ -153,7 +153,7 @@ export function makeDraftApi(sql, {
           games.push({ a, b, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] })
         }
       }
-      const top = members.length > 2 ? engine.draftTable(members.length, games).slice(0, 2).map((t) => t.seat) : [0, 1]
+      const top = members.length > 2 ? engine.draftTable(members.length, games, seed).slice(0, 2).map((t) => t.seat) : [0, 1]
       const [fa, fb] = top
       const r = await simulate([squad(members[fa]), squad(members[fb]), true, engine.draftMatchSeed(seed, 100 + fa, 100 + fb)])
       if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft final')
@@ -182,18 +182,23 @@ export function makeDraftApi(sql, {
   /** The broadcast has run: places, and the purse — once, under the room's lock. */
   async function finish(code, now = clock()) {
     await tx(async (db) => {
+      // one room's purse at a time, so a member finishing two rooms at once cannot pass the day's cap twice
+      await db`select pg_advisory_xact_lock(7735302)`
       const room = (await db`select * from draft_rooms where code = ${code} for update`)[0]
       if (!room || room.status !== 'showing') return
       const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0)
       if (now - ms(room.reveal_at) < plan.end) return
       const members = await db`select id_hash, seat from draft_members where code = ${code} order by seat`
-      const table = engine.draftTable(members.length, room.games)
+      const table = engine.draftTable(members.length, room.games, Number(room.seed))
       const places = engine.draftPlaces(table, room.final)
       const day = dayOf(now)
       for (const m of members) {
         const place = places.get(m.seat) ?? members.length
         let paid = null, unpaid = null
+        // the rounds this member bid in, not left to the clock
+        const own = (room.history ?? []).filter((h) => h.bids?.[m.seat] && !h.bids[m.seat].auto).length
         if (members.length < engine.DRAFT_PAID_MIN) unpaid = 'small'
+        else if (own < engine.DRAFT_OWN_BIDS) unpaid = 'idle'
         else if ((await db`select count(*)::int as n from draft_members where id_hash = ${m.id_hash} and paid_day = ${day}`)[0].n >= engine.DRAFT_PAID_ROOMS) unpaid = 'cap'
         else if (!(await mayEarn(db, m.id_hash))) unpaid = 'gate'
         else {
@@ -241,7 +246,7 @@ export function makeDraftApi(sql, {
       lot: room.lot, deadline: room.deadline ? ms(room.deadline) : null, host: room.host === me,
       seats, mySeat: mine?.seat ?? null, myBid: mine?.bid ?? null,
       history: room.history, games, final, nextAt, failed: room.failed,
-      table: games ? engine.draftTable(members.length, games) : null,
+      table: games && games.length ? engine.draftTable(members.length, games, Number(room.seed)) : null,
       reward: room.status === 'done' && mine ? { place: mine.place ?? null, coins: mine.paid ?? 0, unpaid: mine.unpaid ?? null } : null,
     }
   }
@@ -330,7 +335,7 @@ export function makeDraftApi(sql, {
         await db`update draft_members set gone = true where code = ${code} and id_hash = ${me}`
         return { ok: true, hide: true }
       }
-      if (room.status !== 'lobby') return { why: '选秀已经开始，打完才能走。' }
+      if (room.status !== 'lobby') return { why: '已经开始了，打完才能走。' }
       await db`delete from draft_members where code = ${code} and id_hash = ${me}`
       const left = await db`select id_hash from draft_members where code = ${code} order by seat`
       if (!left.length) { await db`delete from draft_rooms where code = ${code}`; return { ok: true } }

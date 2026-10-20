@@ -34,6 +34,8 @@ export const DRAFT_PRIZE: Record<number, number> = { 1: 150, 2: 100 }
 export const DRAFT_PRIZE_REST = 50
 export const DRAFT_PAID_MIN = 3
 export const DRAFT_PAID_ROOMS = 2
+/** bids a member must place themselves (of six) to be paid: a seat left to the clock earns nothing */
+export const DRAFT_OWN_BIDS = 4
 export const draftPrize = (place: number): number => DRAFT_PRIZE[place] ?? DRAFT_PRIZE_REST
 
 // today's cards and the 彩卡; not retired players (their own series) or a 彩蛋卡
@@ -113,17 +115,31 @@ export const draftMatchSeed = (seed: number, a: number, b: number): number => ha
 export interface DraftGame { a: number; b: number; aWon: boolean; mapsA: number; mapsB: number }
 export interface DraftStanding { seat: number; wins: number; losses: number; maps: number; place: number }
 
-/** The table: wins, then map difference, then who beat whom; equal on all three share a place. */
-export function draftTable(n: number, games: readonly DraftGame[]): DraftStanding[] {
+/**
+ * The table: wins, then map difference; two seats still level go by the match between them; anything
+ * left level (a three-way cycle) is drawn by the room's seed — never by seat order, which would hand
+ * the host the final. Places are distinct: the top two play the final.
+ */
+export function draftTable(n: number, games: readonly DraftGame[], seed = 0): DraftStanding[] {
   const rows = Array.from({ length: n }, (_, seat) => ({ seat, wins: 0, losses: 0, maps: 0, place: 0 }))
   for (const g of games) {
     rows[g.a].maps += g.mapsA - g.mapsB; rows[g.b].maps += g.mapsB - g.mapsA
     if (g.aWon) { rows[g.a].wins++; rows[g.b].losses++ } else { rows[g.b].wins++; rows[g.a].losses++ }
   }
   const beat = (x: number, y: number) => games.some((g) => (g.a === x && g.b === y && g.aWon) || (g.a === y && g.b === x && !g.aWon))
-  const cmp = (x: DraftStanding, y: DraftStanding) => y.wins - x.wins || y.maps - x.maps || (beat(x.seat, y.seat) ? -1 : beat(y.seat, x.seat) ? 1 : 0)
+  const level = (x: DraftStanding, y: DraftStanding) => x.wins === y.wins && x.maps === y.maps
+  const coin = (seat: number) => hashStr(`draft:table:${seed >>> 0}:${seat}`) >>> 0
+  const cmp = (x: DraftStanding, y: DraftStanding) => {
+    if (!level(x, y)) return y.wins - x.wins || y.maps - x.maps
+    // head-to-head only when exactly these two are level
+    if (rows.filter((r) => level(r, x)).length === 2) {
+      if (beat(x.seat, y.seat)) return -1
+      if (beat(y.seat, x.seat)) return 1
+    }
+    return coin(x.seat) - coin(y.seat)
+  }
   rows.sort(cmp)
-  rows.forEach((r, i) => { r.place = i > 0 && cmp(rows[i - 1], r) === 0 ? rows[i - 1].place : i + 1 })
+  rows.forEach((r, i) => { r.place = i + 1 })
   return rows
 }
 

@@ -216,6 +216,12 @@ export interface SwiftMatch {
   calls?: [number, number]
   /** both plans as they stood when a 侦察 stopped the round: what a scout is shown, whoever answers first */
   reconSeen?: [Plan, Plan]
+  /** rounds the clock called for each side (swift-api.js): left out of that player's habit */
+  autos?: [number[], number[]]
+  /** clock-called rounds in a row, per side: three and the side forfeits */
+  idle?: [number, number]
+  /** the match ended because a side stopped calling (resigned is that side) */
+  forfeit?: boolean
 }
 
 // ------------------------------------------------------------ building a side
@@ -258,8 +264,9 @@ export function newSwiftMatch(seed: number, a: SwiftSide, b: SwiftSide, format: 
 export const isPistol = (m: SwiftMatch, round = m.round): boolean => round === 1 || round === formatOf(m).half + 1
 /** 0 first half, 1 second, 2 overtime */
 export const periodOf = (m: SwiftMatch, round = m.round): 0 | 1 | 2 => {
-  const h = formatOf(m).half
-  return round <= h ? 0 : round <= 2 * h ? 1 : 2
+  const f = formatOf(m)
+  // 快速 has no overtime: 4:4 goes to a ninth round in the second half, on the money as it stands
+  return round <= f.half ? 0 : round <= 2 * f.half || !f.ot ? 1 : 2
 }
 export const isOvertime = (m: SwiftMatch, round = m.round): boolean => periodOf(m, round) === 2
 /** the team attacking this round: first half, then swapped, then overtime swapping every round */
@@ -656,11 +663,14 @@ export function habitFrom(counts: { attack?: Partial<Record<AttackPlan, number>>
 
 /** One match's rounds folded into a player's habit counts. */
 export function addHabit(counts: Record<string, unknown> | null | undefined, m: SwiftMatch, team: 0 | 1): Record<string, unknown> {
+  const skip = new Set(m.autos?.[team] ?? [])
   const c = (counts && typeof counts === 'object' ? JSON.parse(JSON.stringify(counts)) : {}) as {
     attack?: Record<string, number>; defense?: Record<string, number>; force?: number; buys?: number
   }
   c.attack ??= {}; c.defense ??= {}
   for (const r of m.log) {
+    // a round the clock called is the AI's habit, not this player's
+    if (skip.has(r.round)) continue
     const ch = r.choices[team]
     const plan = r.firstPlan?.[team] ?? ch.plan
     if (r.attacker === team) c.attack[plan] = (c.attack[plan] ?? 0) + 1
@@ -715,7 +725,12 @@ export function swiftView(m: SwiftMatch, me: 0 | 1): SwiftView {
     scouted: m.phase === 'recon' && m.recon[me] ? (m.reconSeen?.[them] ?? m.pending[them]!.plan) : null,
     waitingRecon: m.phase === 'recon' && !m.recon[me],
     // the other side's money is shown only through a pause — never through the round log
-    paused: m.paused[me], log: m.log.map((r) => ({ ...r, credits: (me === 0 ? [r.credits[0], []] : [[], r.credits[1]]) as [number[], number[]] })),
+    // (nor through what they spent: their kit and the round's rewards are public, as on a real scoreboard)
+    paused: m.paused[me], log: m.log.map((r) => ({
+      ...r,
+      credits: (me === 0 ? [r.credits[0], []] : [[], r.credits[1]]) as [number[], number[]],
+      spent: (me === 0 ? [r.spent[0], -1] : [-1, r.spent[1]]) as [number, number],
+    })),
     resigned: m.resigned ?? null,
   }
 }

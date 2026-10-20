@@ -25,7 +25,10 @@ const SEEN_KEY = 'valmanager:swift:seen'
 const seenResult = (): string | null => { try { return localStorage.getItem(SEEN_KEY) } catch { return null } }
 const markSeen = (id: string) => { try { localStorage.setItem(SEEN_KEY, id) } catch { /* private window */ } }
 const savedFormat = (): SwiftFormat => { try { return localStorage.getItem(FORMAT_KEY) === 'full' ? 'full' : 'quick' } catch { return 'quick' } }
-const UNPAID: Record<string, string> = { resigned: '认输没有奖励', idle: '一半以上回合是系统代出的，没有奖励', cap: '今天的 5 场奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
+const UNPAID: Record<string, string> = {
+  resigned: '认输没有奖励', forfeit: '连着三回合没出，判负', short: '比赛没打满就结束了，不计分也没有奖励',
+  idle: '一半以上回合是系统代出的，没有奖励', cap: '今天的 5 场奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励',
+}
 
 /**
  * 读点: a round-by-round match the player calls.
@@ -62,7 +65,7 @@ export default function Swift() {
   // a second in a live match or the queue, otherwise only on the clock running out
   useEffect(() => {
     const fast = queued || live?.kind === 'live' || (live && (live.view.locked || live.view.waitingRecon))
-    const every = fast ? 1000 : live ? 4000 : 30_000
+    const every = fast ? 1000 : live ? 2000 : 30_000
     const t = setInterval(() => { if (document.visibilityState !== 'hidden') void pull() }, every)
     return () => clearInterval(t)
   }, [queued, live, pull])
@@ -107,9 +110,10 @@ export default function Swift() {
         <ul className="swift-rules small muted">
           <li>经济照搬无畏契约：手枪局 800，赢一回合 3000，连输 1900 / 2400 / 2900，下包 300，击杀 200，活下来的人留着枪。</li>
           <li>打法互相克制，没有永远对的选择。看对手的习惯，读他下一回合。</li>
-          <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，看对手的钱。</li>
+          <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，带教练每场再多一次，看对手每个人的钱。</li>
+          <li>连着三回合不出算判负。比赛没打满（快速 5 回合、完整 13 回合）就有人认输，不计分也没有奖励。</li>
           <li>{st.waitSec} 秒没匹配到真人，就打一个其他玩家的影子（按他的习惯出招）。</li>
-          <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜。</li>
+          <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜；加时第 5 回合定胜负。</li>
         </ul></details>
         {st.me && <div className="swift-me">
           <div><b>{st.me.rating}</b><span>读点分</span></div>
@@ -223,9 +227,9 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
     <div className="swift">
       <div className="swift-score panel">
         <div className="swift-team"><b>{ours.name}</b><span>{v.attacking ? '进攻' : '防守'}</span></div>
-        <div className="swift-nums"><b>{v.score[me]}</b><i>:</i><b>{v.score[them]}</b>
-          <small>{f.name} · 第 {v.round} 回合{v.pistol ? ' · 手枪局' : ''}{v.overtime ? ' · 加时' : ''}{v.lastOfHalf ? ' · 换边前最后一回合' : ''}</small></div>
+        <div className="swift-nums"><b>{v.score[me]}</b><i>:</i><b>{v.score[them]}</b></div>
         <div className="swift-team right"><b>{m.opponent.name}<i className="tiny muted"> {m.opponent.tag}</i></b><span>{KIND_CN[m.kind]} · {v.attacking ? '防守' : '进攻'}</span></div>
+        <small className="swift-round">{f.name} · 第 {v.round} 回合{v.pistol ? ' · 手枪局' : ''}{v.overtime ? ' · 加时' : ''}{v.lastOfHalf ? ' · 换边前最后一回合' : ''}</small>
       </div>
       <RoundDots log={v.log} me={me} />
 
@@ -285,7 +289,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
         {quit ? <><span className="small muted">认输算输，不给奖励。</span><button className="warn sm" onClick={onResign}>确认认输</button><button className="ghost sm" onClick={() => setQuit(false)}>算了</button></>
           : <button className="ghost sm" onClick={() => setQuit(true)}>认输</button>}
       </div>
-      <p className="tiny muted">先赢 {f.win} 回合获胜，打满 {f.half} 回合换边，换边后第一回合也是手枪局。{f.ot ? ` ${f.half}:${f.half} 进加时，每回合每人 ${OT_CREDITS}，领先 2 回合获胜。` : ''}</p>
+      <p className="tiny muted">先赢 {f.win} 回合获胜，打满 {f.half} 回合换边，换边后第一回合也是手枪局。{f.ot ? ` ${f.half}:${f.half} 进加时，每回合每人 ${OT_CREDITS}，领先 2 回合获胜；加时第 5 回合定胜负。` : ''}</p>
     </div>
   )
 }

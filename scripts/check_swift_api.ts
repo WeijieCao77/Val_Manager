@@ -16,7 +16,7 @@ import { newGacha } from '../src/engine/gacha'
 import { CUP_TEAMS } from '../src/engine/cupTeams'
 
 const { CARD_SCHEMA, engine } = await import('../cards-api.js')
-const { SWIFT_SCHEMA, SWIFT_WAIT_SEC, SWIFT_PAID_GAMES, SWIFT_WIN_COINS, SWIFT_LOSS_COINS, makeSwiftApi } = await import('../swift-api.js')
+const { SWIFT_SCHEMA, SWIFT_WAIT_SEC, SWIFT_PAID_GAMES, SWIFT_WIN_COINS, SWIFT_LOSS_COINS, FORFEIT_ROUNDS, makeSwiftApi } = await import('../swift-api.js')
 const { displayName } = await import('../names.js')
 const db = new PGlite(), sql = makeSql(db)
 await db.exec(CARD_SCHEMA); await db.exec(SWIFT_SCHEMA)
@@ -127,6 +127,40 @@ assert.equal(players.length, 2); assert(players.every((p: any) => p.played === 1
 assert.equal((await call('', { id: A })).match, undefined, '比完了，页面回到排队前')
 console.log(`ok  打完：赢的 ${SWIFT_WIN_COINS}、输的 ${SWIFT_LOSS_COINS} 金币，分数变化，习惯和阵容存下来当影子`)
 
+// ---------------------------------------------------------------- giving a match up early counts for nothing
+{
+  const mailA = (await sql`select count(*)::int as n from card_mail where to_h = ${hash(A)}`)[0].n
+  const ra = (await sql`select rating from swift_players where id_hash = ${hash(A)}`)[0].rating
+  await call('/queue', { id: A }); now += 1000
+  const q2 = await call('/queue', { id: B })
+  assert(q2.match, '配上了')
+  const gamesB = (await call('', { id: B })).me.dayGames
+  await call('/leave', { id: B, match: q2.match, resign: true })
+  const after = (await call('', { id: A, match: q2.match })).match
+  assert(after.status === 'done' && after.view.winner === 0)
+  assert.equal(after.ratings.delta, 0, '没打满就认输：分数不动')
+  assert.equal(after.ratings.unpaid, 'short')
+  assert.equal((await sql`select count(*)::int as n from card_mail where to_h = ${hash(A)}`)[0].n, mailA, '对面马上认输，赢家也没有金币（防小号互送）')
+  assert.equal((await sql`select rating from swift_players where id_hash = ${hash(A)}`)[0].rating, ra)
+  assert.equal((await call('', { id: B })).me.dayGames, gamesB + 1, '认输占用一场当天的奖励次数')
+  // a resign after the clock already ended it changes nothing
+  const done = (await sql`select state->>'winner' as w from swift_matches where id = ${q2.match}`)[0].w
+  await call('/leave', { id: A, match: q2.match, resign: true })
+  assert.equal((await sql`select state->>'winner' as w from swift_matches where id = ${q2.match}`)[0].w, done, '已经结束的比赛不能再认输改结果')
+  // a live opponent who stops calling forfeits after three rounds
+  await call('/queue', { id: A }); now += 1000
+  const q3 = await call('/queue', { id: B })
+  for (let i = 0; i < FORFEIT_ROUNDS + 2; i++) {
+    const v = (await call('', { id: A, match: q3.match })).match
+    if (v.status === 'done') break
+    if (!v.view.locked) await call('/call', { id: A, match: q3.match, round: v.view.round, choice: choiceFor(v.view) })
+    now += 30_000
+  }
+  const f = (await call('', { id: A, match: q3.match })).match
+  assert(f.status === 'done' && f.view.winner === 0 && f.view.resigned === 1, '对面连着三回合不出就判负')
+  console.log('ok  没打满就认输不计分不发奖励、认输占奖励次数、结束后不能再认输、挂机三回合判负')
+}
+
 // ---------------------------------------------------------------- a lone player gets a ghost, then the AI
 await call('/queue', { id: C })
 s = await call('', { id: C })
@@ -188,7 +222,8 @@ assert.equal((await sql`select jsonb_array_length(state->'log') as n from swift_
 for (let i = 0; i < 80; i++) { now += 30_000; await api.sweep(now); if ((await sql`select status from swift_matches where id = ${left}`)[0].status === 'done') break }
 const idle = (await sql`select status, ratings from swift_matches where id = ${left}`)[0]
 assert.equal(idle.status, 'done', '没人看的比赛会被打完')
-assert.equal(idle.ratings['0'].unpaid, 'idle', '一回合都没自己出的不发奖励')
+assert.equal(idle.ratings['0'].unpaid, 'forfeit', '连着三回合没出就判负，不发奖励')
+assert.equal((await sql`select jsonb_array_length(state->'log') as n from swift_matches where id = ${left}`)[0].n, FORFEIT_ROUNDS, '三回合就结束，不用等系统打完一整场')
 assert.equal((await sql`select count(*)::int as n from card_mail where to_h = ${hash(A)}`)[0].n, mailBefore)
 assert.equal((await call('', { id: A })).recent?.id, left, '刷新后还能看到刚结束那场的结果')
 // two formats queue apart
