@@ -28,6 +28,16 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-19',
+    title: '预告：洛杉矶冠军赛系列上架、普卡数值更新、曼谷包下架',
+    pinned: true,
+    changes: [
+      { kind: '新增', text: '<b>10 月 21 日（周三）上架洛杉矶冠军赛系列卡</b>。' },
+      { kind: '调整', text: '<b>10 月 23 日（周五）更新普卡数值</b>（铜、银、金卡），加入上海冠军赛的数据。' },
+      { kind: '调整', text: '<b>曼谷包 10 月 23 日下架</b>，之后不能再用金币买；库存里的曼谷包照样能开。' },
+    ],
+  },
+  {
+    date: '2026-10-19',
     title: '赛事预测：淘汰赛结算，可以领奖了',
     changes: [
       { kind: '新增', text: '上海冠军赛淘汰赛结果已录入：<b>LOUD</b> 3–1 VIT 夺冠，季军 100T，殿军 G2。到 <b>预测 → 淘汰赛</b> 看每场对错和正确率排行。' },
