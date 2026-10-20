@@ -5,6 +5,8 @@ import { BangkokPackArtwork } from './BangkokDesign'
 import { paintBangkokPack } from './bangkokPackTexture'
 import { paintRetiredPack } from './retiredPackTexture'
 import { RetiredPackArtwork } from './RetiredDesign'
+import { LosAngelesPack } from './LosAngelesDesign'
+import { paintLosAngelesPack } from './losAngelesPackTexture'
 import { POSITION_PACKS, positionPackStyle } from './positionPackDesign'
 import type { PackPosition } from './positionPackDesign'
 import type { Card } from '../../engine/cards'
@@ -14,8 +16,11 @@ const BANGKOK_PRINT = { paint: paintBangkokPack, edgeColor: 0x9475b5 }
 /** the 余晖 print for the 退役选手包 */
 const RETIRED_PRINT = { paint: paintRetiredPack, edgeColor: 0x826447 }
 
-export default function PackPouch({ count, kind, position, progress, torn, pose, seoul, bangkok, retired }: {
-  seoul?: boolean; bangkok?: boolean; retired?: boolean; count: number; kind: Card['kind']; position?: PackPosition; progress: number; torn: boolean; pose: { x: number; y: number }
+/** the 洛杉矶 2023 print (losAngelesPackTexture, after Codex's LosAngelesPack) */
+const LOS_ANGELES_PRINT = { paint: paintLosAngelesPack, edgeColor: 0xc79a6a }
+
+export default function PackPouch({ count, kind, position, progress, torn, pose, seoul, bangkok, losAngeles, retired }: {
+  seoul?: boolean; bangkok?: boolean; losAngeles?: boolean; retired?: boolean; count: number; kind: Card['kind']; position?: PackPosition; progress: number; torn: boolean; pose: { x: number; y: number }
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const motion = useRef<PouchMotion>({ progress, torn, pose })
@@ -29,17 +34,17 @@ export default function PackPouch({ count, kind, position, progress, torn, pose,
     void import('./pouchRenderer').then(({ createPouchRenderer }) => {
       if (cancelled || !canvas.current) return
       try {
-        const renderer = createPouchRenderer(canvas.current, count, kind, () => motion.current, () => setReady(false), position, seoul, bangkok ? BANGKOK_PRINT : retired ? RETIRED_PRINT : undefined)
+        const renderer = createPouchRenderer(canvas.current, count, kind, () => motion.current, () => setReady(false), position, seoul, bangkok ? BANGKOK_PRINT : losAngeles ? LOS_ANGELES_PRINT : retired ? RETIRED_PRINT : undefined)
         dispose = renderer.dispose
         requestFrame.current = renderer.invalidate
         setReady(true)
       } catch { /* The seal still opens when WebGL isn't available. */ }
     }).catch(() => { /* A failed optional renderer must not trap a paid pack. */ })
     return () => { cancelled = true; requestFrame.current = null; dispose?.() }
-  }, [count, kind, position, seoul, bangkok, retired])
+  }, [count, kind, position, seoul, bangkok, losAngeles, retired])
   useEffect(() => { requestFrame.current?.() }, [progress, torn, pose])
-  return <div className={`pack-pouch pack-pouch-${kind}${seoul ? ' pack-pouch-seoul' : ''}${bangkok ? ' pack-pouch-bangkok' : ''}${retired ? ' pack-pouch-retired' : ''}${position ? ' pack-pouch-position' : ''}${ready ? ' ready' : ''}`} style={positionPackStyle(position)} aria-hidden="true">
-    <div className="pack-pouch-fallback">{bangkok ? <BangkokPackArtwork /> : retired ? <RetiredPackArtwork /> : seoul ? <SeoulPackArtwork /> : <><span>VAL MANAGER</span><b>{kind === 'coach' ? '教练包' : position ? `${POSITION_PACKS[position].label}包` : '开瓦包'}</b><small>{count} 张收藏卡</small></>}</div>
+  return <div className={`pack-pouch pack-pouch-${kind}${seoul ? ' pack-pouch-seoul' : ''}${bangkok ? ' pack-pouch-bangkok' : ''}${losAngeles ? ' pack-pouch-losangeles' : ''}${retired ? ' pack-pouch-retired' : ''}${position ? ' pack-pouch-position' : ''}${ready ? ' ready' : ''}`} style={positionPackStyle(position)} aria-hidden="true">
+    <div className="pack-pouch-fallback">{losAngeles ? <LosAngelesPack /> : bangkok ? <BangkokPackArtwork /> : retired ? <RetiredPackArtwork /> : seoul ? <SeoulPackArtwork /> : <><span>VAL MANAGER</span><b>{kind === 'coach' ? '教练包' : position ? `${POSITION_PACKS[position].label}包` : '开瓦包'}</b><small>{count} 张收藏卡</small></>}</div>
     <canvas ref={canvas} />
   </div>
 }

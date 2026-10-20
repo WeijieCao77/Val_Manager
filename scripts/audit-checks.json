@@ -681,6 +681,16 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_losangeles_route.ts",
+    "estimatedSeconds": 5
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_losangeles2023.ts",
+    "estimatedSeconds": 5
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_free_coins.ts",
     "estimatedSeconds": 3
   },

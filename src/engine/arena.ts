@@ -10,6 +10,7 @@
  */
 import { seoulArenaPlayer } from './seoul2024'
 import { bangkokArenaPlayer } from './bangkok2025'
+import { losAngelesArenaPlayer } from './losangeles2023'
 import { createNewGame } from './world'
 import { WORLD_TEAMS } from './teams'
 import { cupTeam } from './cupTeams'
@@ -221,7 +222,7 @@ function seatSquad(
     seated.add(personOf(card))
     // a card that carries its own agents (退役, 历代强队) is its own record: the
     // world may hold the same man from another year, on another role
-    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? legendArenaPlayer(card)
+    const src = seoulArenaPlayer(card) ?? bangkokArenaPlayer(card) ?? losAngelesArenaPlayer(card) ?? legendArenaPlayer(card)
       ?? (card.agents ? cardArenaPlayer(card) : undefined) ?? state.players[card.playerId] ?? cardArenaPlayer(card)
     const id = `${prefix}${i}`
     const misfit = !card.roles.includes(SQUAD_SLOTS[i]) && SQUAD_SLOTS[i] !== '自由人'

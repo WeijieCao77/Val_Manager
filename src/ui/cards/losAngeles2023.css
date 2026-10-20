@@ -1,0 +1,78 @@
+.la-card,.la-pack{--foil:#f4ce95;--ink:#fff0d5;position:relative;isolation:isolate;overflow:hidden;box-sizing:border-box;background:#17131e;color:var(--ink);font-family:Arial,'PingFang SC',sans-serif;container-type:inline-size}.la-card{width:100%;aspect-ratio:63/88;border:1px solid #e5b88180;border-radius:2%;box-shadow:0 20px 40px #0007}.la-silver{--foil:#cbd7eb;--ink:#eef1ff;border-color:#cbd7eb90}.la-bronze{--foil:#d79973;--ink:#f5dfcc;border-color:#d7997390}.la-sunset{position:absolute;inset:0;z-index:-3;background:url('/events/los-angeles-2023/sunset-art.webp') center/cover no-repeat}.la-perspective{position:absolute;inset:0;width:100%;height:100%;z-index:-1;fill:none;stroke:#ffdda6;stroke-width:.7;opacity:.23}.la-emblem{display:block;width:17%;height:auto}.la-front .la-sunset{opacity:.75}.la-front .la-perspective{opacity:.2}.la-front-header{position:absolute;top:5%;left:7%;right:7%;display:flex;align-items:start;justify-content:space-between;z-index:4;font-size:2.7cqw;letter-spacing:.12em;line-height:1.6}.la-front-header b{font-size:2.2cqw;font-weight:400;letter-spacing:.17em}.la-front-header .la-emblem{width:13%;margin-top:.5cqw}.la-year{position:absolute;top:11%;left:3%;font:400 47cqw/1 Impact,'Arial Narrow',sans-serif;color:transparent;-webkit-text-stroke:1px #ffd59a60;letter-spacing:-.03em;z-index:-1}.la-photo{position:absolute;inset:17% -2% 18% 9%;mask-image:linear-gradient(transparent,#000 12%,#000 65%,transparent 99%),linear-gradient(90deg,transparent,#000 17%,#000 85%,transparent);mask-composite:intersect}.la-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;filter:saturate(.48) sepia(.2) contrast(1.08)}.la-photo:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,#e4714333,transparent 40%,#793a5840);mix-blend-mode:color}.la-front-shade{position:absolute;inset:0;background:linear-gradient(0deg,#17131e 0,#17131efa 14%,#17131e75 33%,transparent 58%);pointer-events:none}.la-vertical{position:absolute;left:4.5%;top:32%;writing-mode:vertical-rl;transform:rotate(180deg);font-size:2.1cqw;letter-spacing:.24em;color:var(--foil);z-index:4}.la-rating{position:absolute;right:7%;top:13%;display:flex;flex-direction:column;align-items:end;color:var(--foil);z-index:4}.la-rating b{font:400 11cqw/1 Impact,sans-serif}.la-rating span{font-size:2.2cqw}.la-player{position:absolute;left:7%;right:7%;bottom:5%;z-index:4}.la-team{font-size:2.4cqw;letter-spacing:.12em;color:var(--foil);display:flex;justify-content:space-between;align-items:center}.la-team span{font-size:2cqw}.la-player h2{font:400 italic 18cqw/.98 Impact,'Arial Narrow',sans-serif;letter-spacing:-.025em;margin:2.5cqw 0 4cqw;transform:rotate(-6deg);transform-origin:left center;text-shadow:0 3px 15px #17131e}.la-stats{display:flex;gap:4cqw;background:var(--foil);color:#211922;padding:2.4cqw 3cqw}.la-stats span{display:flex;gap:2cqw;align-items:center;font-size:2cqw;flex:1;white-space:nowrap}.la-stats b{font-size:3.5cqw}.la-player footer{display:flex;justify-content:space-between;margin-top:3cqw;font-size:1.7cqw;color:#c7b8b6;letter-spacing:.04em}.la-placeholder{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3cqw;font-size:3.8cqw;letter-spacing:.12em;color:var(--foil)}.la-placeholder span{font-size:2.4cqw}.la-back .la-sunset{background-position:64% center}.la-back:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#17131e 0,transparent 39%,#17131e30 80%);z-index:-2}.la-back header{position:absolute;top:5%;left:7%;right:7%;display:flex;align-items:center;justify-content:space-between;font-size:2.1cqw;letter-spacing:.13em}.la-back header .la-emblem{width:13%}.la-back-type{position:absolute;top:13%;left:-2%;right:-2%;font:400 27cqw/.86 Impact,'Arial Narrow',sans-serif;letter-spacing:-.025em;transform:rotate(-8deg);color:#f7d8a6}.la-back-type>span{display:block}.la-back-type>span:first-child{padding-left:7%}.la-back-type>span:last-child{padding-left:12%;font-size:24cqw;color:transparent;-webkit-text-stroke:1px #ffe5ba}.la-period{color:#f7d8a6;-webkit-text-stroke:0}.la-back-location{position:absolute;left:8%;bottom:25%;font:400 9cqw/.95 Impact,'Arial Narrow',sans-serif;letter-spacing:.01em}.la-back-location span{display:block;font:400 1.8cqw Arial,sans-serif;letter-spacing:.14em;margin-top:3cqw;color:#f4c6a4}.la-back-bottom{position:absolute;left:8%;right:8%;bottom:6%;display:flex;flex-direction:column;align-items:start;gap:2.5cqw;padding-top:3cqw;border-top:1px solid #f4ce9566}.la-back-bottom b{font-size:3.6cqw;letter-spacing:.16em;font-weight:400}.la-back-bottom>span{font-size:2.1cqw;letter-spacing:.1em;color:#d7bbc0}.la-back-bottom small{font-size:1.5cqw;letter-spacing:.1em;color:#b9a5b2}.la-pack{width:100%;aspect-ratio:2/3;clip-path:polygon(1% 0,99% 0,100% 3%,98.5% 97%,99% 100%,1% 100%,2% 97%,0 3%);box-shadow:inset 4px 0 6px #fff3,inset -6px 0 10px #000}.la-pack .la-sunset{background-position:55% center}.la-pack .la-perspective{opacity:.3;transform:scaleX(-1)}.la-pack:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#17131e 5%,transparent 40%,#17131e20);z-index:-2}.la-seal{position:absolute;top:0;left:0;right:0;height:3.8%;background:repeating-linear-gradient(90deg,#b98b70 0,#e2b997 1px,#65505a 2px,#a88376 4px);border-bottom:1px solid #dfbca3}.la-seal-bottom{top:auto;bottom:0;transform:rotate(180deg)}.la-pack header{position:absolute;left:8%;right:8%;top:7%;display:flex;align-items:center;gap:3cqw;font-size:2cqw;line-height:1.35;letter-spacing:.13em}.la-pack header .la-emblem{width:13%}.la-pack header b{font-size:3.4cqw;font-weight:400;margin-left:auto}.la-pack-title{position:absolute;top:17%;left:8%;right:0}.la-pack-title>span{font-size:3cqw;letter-spacing:.45em}.la-pack-title h2{font:400 24cqw/.85 Impact,'Arial Narrow',sans-serif;letter-spacing:-.025em;margin:4cqw 0;transform:rotate(-7deg);transform-origin:left top}.la-pack-title h2 i{font-style:normal;display:inline-block;font-size:19cqw;color:transparent;-webkit-text-stroke:1px #ffe3b8}.la-pack-campaign{position:absolute;left:8%;bottom:27%;font:400 6cqw Impact,sans-serif;letter-spacing:.06em;background:#f3cf9f;color:#241824;padding:2cqw 3cqw;transform:rotate(-7deg)}.la-pack-bottom{position:absolute;left:8%;right:8%;bottom:8%;border-top:1px solid #f4ce9555;padding-top:4cqw;display:flex;justify-content:space-between;align-items:end}.la-pack-bottom div>span{font-size:2cqw;letter-spacing:.1em;display:block;color:#d6b7b6}.la-pack-bottom strong{font-size:3.6cqw;letter-spacing:.08em;display:block;margin-top:3cqw;font-weight:400}.la-pack-bottom>b{font:400 11cqw/.85 Impact,sans-serif;display:flex;flex-direction:column;gap:2cqw}.la-pack-bottom small{font:400 2cqw Arial,sans-serif;letter-spacing:.1em}.la-pack-sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(102deg,transparent 2%,#fff3 3%,transparent 5%,transparent 90%,#fff2 96%,#0008 99%)}
+.la-pack .la-perspective{transform:none;opacity:.19}.la-perspective{mask-image:linear-gradient(#0009,#000 50%,#0004)}
+/* ---- in the game: the face is drawn on a 720×1008 canvas (Card.tsx) and scaled like every card, so the
+   container-unit type stays above a phone's minimum font size; hairlines are set in cqw to survive the scale */
+.la-face{position:relative;width:100%;height:100%}
+.la-face .la-card{width:100%;height:100%;aspect-ratio:auto;border-width:.35cqw;box-shadow:0 2cqw 4cqw #0007}
+.la-face .la-year{-webkit-text-stroke-width:.3cqw}
+.la-face .la-perspective{stroke-width:1.6}
+.la-face.tap{cursor:pointer}
+.la-face.dim{opacity:.42;filter:grayscale(.4)}
+.la-face.sel .la-card{box-shadow:0 0 0 2.4cqw var(--accent,#ff4655),0 2cqw 4cqw #0007}
+.la-dupes{position:absolute;top:3%;right:4%;z-index:8;background:#17131ee6;color:#fff0d5;border:.4cqw solid #e5b881;border-radius:999px;font:700 5.4cqw/1 Arial,sans-serif;padding:1.6cqw 3.2cqw}
+.la-face{container-type:inline-size}
+.la-team b{font-weight:400;display:flex;align-items:center;gap:1.4cqw}
+.la-igl{font-style:normal;font-size:2.4cqw;font-weight:800;line-height:1;padding:.6cqw 1.2cqw;border-radius:.6cqw;background:var(--foil);color:#211922;letter-spacing:.06em}
+.la-card .evo-mark{font-style:normal;margin-left:.15em;color:#8ff0bf}
+.la-rating span{font-size:2.6cqw;letter-spacing:.06em}
+.la-player footer{font-size:2.2cqw}
+/* the photo, two ways (losangeles2023_faces.py `style`): 'soft' — the player as shot over his own frame
+   already softened into the sunset (柔和融合), so the window only fades into the foot and keeps his colour;
+   'raw' — the frame as shot in the first version's window (Jinggg, pinned by the owner) */
+.la-photo-soft{mask-image:linear-gradient(#000 62%,transparent 97%);-webkit-mask-image:linear-gradient(#000 62%,transparent 97%);mask-composite:add}
+.la-photo-soft:after{display:none}
+.la-photo-soft img{object-position:50% 30%;filter:saturate(.8) contrast(1.04)}
+.la-photo-raw img{object-position:50% 30%}
+/* ---- 抽卡 shelf, reveal and gallery */
+.la-shelf{display:flex;gap:28px;align-items:center;padding:28px 32px;margin:0 0 20px;background:radial-gradient(ellipse at 15% 0,#a8563a40,transparent 70%),#17131e;border:1px solid #c79a6a;color:#fff0d5;border-radius:8px;overflow:hidden}
+.la-shelf-art{position:relative;min-width:180px;width:180px;height:216px;flex-shrink:0}
+.la-shelf-art .pack-pouch-object{width:140px;position:absolute;left:10px;transform:rotate(-8deg)}
+.la-shelf-art .la-shelf-back{position:absolute;width:108px;right:-6px;bottom:2px;transform:rotate(10deg)}
+.la-shelf-art .la-shelf-back .card-img{width:100%}
+.la-shelf-copy{flex:1}
+.la-shelf h3{font-size:27px;margin:8px 0 12px;color:#fff0d5}
+.la-shelf p{font-size:12px;color:#cdb9a6;line-height:1.8;margin:8px 0}
+.la-shelf .row{margin-top:17px;gap:8px;flex-wrap:wrap}
+.la-shelf a{color:#f4ce95;font-size:12px}
+.la-shelf button{background:#f4ce95;color:#211922;border-color:#f4ce95}
+.la-shelf button:disabled{opacity:.4}
+.la-shelf .la-shelf-secondary{background:transparent;color:#f4dcb6;border-color:#8a6a55}
+.la-eyebrow{font-size:10px;letter-spacing:.2em;color:#d9a878}
+.la-sale{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:4px;background:#d3efa4;color:#161024;font-size:11px;font-weight:700;vertical-align:middle}
+.la-shelf s{opacity:.55;margin-left:4px;font-weight:400}
+@media(max-width:620px){.la-shelf{padding:22px 18px;gap:12px;flex-wrap:wrap}.la-shelf-art{min-width:140px;width:140px;height:190px;margin:auto}.la-shelf-art .pack-pouch-object{width:120px;left:0}}
+.pack-pouch-losangeles .pack-pouch-fallback{padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;justify-content:center}
+.pack-pouch-losangeles .pack-pouch-fallback .la-pack{width:74%}
+.pack-tear-losangeles{--pack-accent:#f4ce95;--pack-ink:#f4ce95}
+.pack-tear-losangeles .pack-tear-kicker{color:#f4ce95}
+.la-sources{margin:40px 0 0;color:#cdb9a6;font-size:13px;line-height:1.8}
+.la-sources summary{cursor:pointer;color:#fff0d5}
+.la-sources a{color:#f4ce95}
+/* /los-angeles-2023: the 首尔 exhibit's layout (seoul2024.css), recoloured */
+.la-exhibit{background:#120e16;color:#fff0d5}
+.la-exhibit .seoul-eyebrow,.la-exhibit .seoul-hero h1 span{color:#f4ce95}
+.la-exhibit .seoul-cta{border-color:#f4ce95;color:#fff0d5}
+.la-exhibit .seoul-card-grid .card-img,.la-exhibit .seoul-object-back .card-img{width:100%}
+.la-exhibit .seoul-object-front .card-img{width:188px}
+.la-exhibit .la-object-pack{width:236px}
+.la-exhibit .la-object-pack .pack-pouch-object{width:100%}
+@media(max-width:620px){.la-exhibit .la-object-pack{width:194px}.la-exhibit .seoul-object-front .card-img{width:150px}}
+/* 评分怎么算 on /los-angeles-2023 */
+.la-rules{margin:56px 0 0;scroll-margin-top:16px}
+.la-rules ol{margin:18px 0 28px;padding-left:22px;color:#e9dccb;font-size:14px;line-height:1.9;max-width:760px}
+.la-rules h3{font-size:18px;margin:8px 0 6px;color:#fff0d5}
+.la-rules-hint{color:#cdb9a6;font-size:13px;margin:0 0 12px}
+.la-rules-pick{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.la-rules-pick select{background:#1d1722;color:#fff0d5;border:1px solid #5a4652;border-radius:6px;padding:8px 10px;font-size:14px;min-width:180px}
+.la-rules-table{border-collapse:collapse;width:100%;max-width:760px;font-size:14px}
+.la-rules-table th,.la-rules-table td{padding:9px 10px;border-bottom:1px solid #3a2e36;text-align:left;vertical-align:top}
+.la-rules-table thead th{color:#f4ce95;font-size:16px}
+.la-rules-table th small{display:block;color:#a8968c;font-size:11px;font-weight:400;margin-top:2px}
+.la-rules-table tbody th{color:#cdb9a6;font-weight:400;width:44%}
+.la-rules-table td{color:#fff0d5;font-variant-numeric:tabular-nums}
+.la-rules-table td.up{color:#f4ce95;font-weight:700}
+.la-rules-total td b{font-size:20px;color:#f4ce95}
+.la-exhibit .la-cta-rules{margin-left:10px}
+@media(max-width:620px){.la-rules-table{font-size:13px}.la-rules-table th,.la-rules-table td{padding:8px 6px}.la-rules-pick select{min-width:0;flex:1}.la-exhibit .la-cta-rules{margin-left:0;margin-top:10px}}
+.la-rules-table th,.la-rules-table td{text-transform:none;letter-spacing:normal;font-family:inherit}
+.la-rules-pick select{width:auto;max-width:280px}

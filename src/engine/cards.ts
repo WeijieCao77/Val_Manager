@@ -14,6 +14,8 @@ import { buildBangkokCards } from './bangkok2025'
 import type { BangkokEntry } from './bangkok2025'
 import { buildEggCards } from './eggCards'
 import type { EggInfo } from './eggCards'
+import { buildLosAngelesCards } from './losangeles2023'
+import type { LosAngelesEntry } from './losangeles2023'
 import { natCountry } from './nat'
 import { WORLD_PLAYERS } from './world'
 import { WORLD_TEAMS, WORLD_ANALYSTS } from './teams'
@@ -88,9 +90,10 @@ export interface PlayerCard {
   /** Set only by the reviewed catalogue; counts toward the normal two-retiree cap. */
   retired?: boolean
   /** a series card: its own pack, outside the 全图鉴 and the club sets */
-  event?: 'seoul-2024' | 'bangkok-2025' | 'retired' | 'egg'
+  event?: 'seoul-2024' | 'bangkok-2025' | 'los-angeles-2023' | 'retired' | 'egg'
   seoul?: SeoulEntry
   bangkok?: BangkokEntry
+  losAngeles?: LosAngelesEntry
   /** 彩蛋卡 (engine/eggCards.ts): its own art and the joke */
   egg?: EggInfo
   id: string
@@ -496,10 +499,11 @@ export const LEGEND_CARDS: PlayerCard[] = buildLegendCards(ANY_BASE)
 export const PLAYER_CARDS: PlayerCard[] = [...BASE_PLAYER_CARDS, ...LEGEND_CARDS]
 export const SEOUL_CARDS: PlayerCard[] = buildSeoulCards(ANY_BASE)
 export const BANGKOK_CARDS: PlayerCard[] = buildBangkokCards(ANY_BASE)
+export const LOS_ANGELES_CARDS: PlayerCard[] = buildLosAngelesCards(ANY_BASE)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
-export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
+export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...LOS_ANGELES_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
 /** 彩蛋卡: handed out by the owner, never dealt or counted — looked up like the former cards */
 export const EGG_CARDS: PlayerCard[] = buildEggCards(ANY_BASE)
 

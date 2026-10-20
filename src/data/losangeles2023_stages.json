@@ -1,0 +1,652 @@
+{
+ "weights": {
+  "groups": 1,
+  "firstPlayoffRounds": 1.5,
+  "upperSemifinalToLowerFinal": 2,
+  "grandFinal": 3
+ },
+ "source": "https://www.vlr.gg/event/matches/1657/valorant-champions-2023/?series_id=all",
+ "retrieved": "2026-10-18",
+ "players": {
+  "4": {
+   "ign": "crashies",
+   "rating": 0.764,
+   "acs": 153.3,
+   "kast": 57,
+   "kpr": 0.692,
+   "apr": 0.338
+  },
+  "10": {
+   "ign": "rhyme",
+   "rating": 0.939,
+   "acs": 173.8,
+   "kast": 73.9,
+   "kpr": 0.584,
+   "apr": 0.54
+  },
+  "11": {
+   "ign": "Zyppan",
+   "rating": 0.886,
+   "acs": 197.7,
+   "kast": 68.6,
+   "kpr": 0.667,
+   "apr": 0.289
+  },
+  "98": {
+   "ign": "ardiis",
+   "rating": 0.771,
+   "acs": 175.5,
+   "kast": 56.3,
+   "kpr": 0.815,
+   "apr": 0.246
+  },
+  "101": {
+   "ign": "soulcas",
+   "rating": 0.788,
+   "acs": 131.3,
+   "kast": 65.4,
+   "kpr": 0.478,
+   "apr": 0.272
+  },
+  "109": {
+   "ign": "ANGE1",
+   "rating": 0.781,
+   "acs": 178.3,
+   "kast": 70,
+   "kpr": 0.588,
+   "apr": 0.436
+  },
+  "261": {
+   "ign": "Victor",
+   "rating": 0.871,
+   "acs": 183.1,
+   "kast": 60,
+   "kpr": 0.815,
+   "apr": 0.192
+  },
+  "292": {
+   "ign": "Fit1nho",
+   "rating": 1.07,
+   "acs": 235,
+   "kast": 75.7,
+   "kpr": 0.807,
+   "apr": 0.193
+  },
+  "312": {
+   "ign": "Sayf",
+   "rating": 1.079,
+   "acs": 222.3,
+   "kast": 72.8,
+   "kpr": 0.75,
+   "apr": 0.283
+  },
+  "384": {
+   "ign": "Shao",
+   "rating": 1.01,
+   "acs": 171.4,
+   "kast": 72.2,
+   "kpr": 0.618,
+   "apr": 0.343
+  },
+  "424": {
+   "ign": "Dep",
+   "rating": 0.621,
+   "acs": 160.2,
+   "kast": 39.3,
+   "kpr": 0.886,
+   "apr": 0.076
+  },
+  "438": {
+   "ign": "Boaster",
+   "rating": 0.926,
+   "acs": 175.2,
+   "kast": 71,
+   "kpr": 0.594,
+   "apr": 0.426
+  },
+  "457": {
+   "ign": "nAts",
+   "rating": 1.081,
+   "acs": 222.2,
+   "kast": 76.4,
+   "kpr": 0.761,
+   "apr": 0.152
+  },
+  "458": {
+   "ign": "Chronicle",
+   "rating": 0.891,
+   "acs": 165.4,
+   "kast": 69.4,
+   "kpr": 0.563,
+   "apr": 0.396
+  },
+  "474": {
+   "ign": "xeta",
+   "rating": 0.978,
+   "acs": 185.2,
+   "kast": 70.7,
+   "kpr": 0.636,
+   "apr": 0.264
+  },
+  "485": {
+   "ign": "stax",
+   "rating": 0.909,
+   "acs": 172,
+   "kast": 67.5,
+   "kpr": 0.624,
+   "apr": 0.343
+  },
+  "488": {
+   "ign": "Rb",
+   "rating": 0.834,
+   "acs": 156.9,
+   "kast": 63.5,
+   "kpr": 0.542,
+   "apr": 0.149
+  },
+  "573": {
+   "ign": "cNed",
+   "rating": 1.094,
+   "acs": 217.3,
+   "kast": 73.5,
+   "kpr": 0.799,
+   "apr": 0.167
+  },
+  "604": {
+   "ign": "Boostio",
+   "rating": 0.889,
+   "acs": 190.5,
+   "kast": 71.5,
+   "kpr": 0.642,
+   "apr": 0.27
+  },
+  "619": {
+   "ign": "C0M",
+   "rating": 1.05,
+   "acs": 192.4,
+   "kast": 74.1,
+   "kpr": 0.706,
+   "apr": 0.305
+  },
+  "727": {
+   "ign": "saadhak",
+   "rating": 0.946,
+   "acs": 187.3,
+   "kast": 74.6,
+   "kpr": 0.6,
+   "apr": 0.517
+  },
+  "772": {
+   "ign": "Zest",
+   "rating": 1.02,
+   "acs": 203.2,
+   "kast": 66.8,
+   "kpr": 0.695,
+   "apr": 0.32
+  },
+  "804": {
+   "ign": "BuZz",
+   "rating": 1.021,
+   "acs": 230.7,
+   "kast": 71.5,
+   "kpr": 0.789,
+   "apr": 0.191
+  },
+  "817": {
+   "ign": "FiNESSE",
+   "rating": 0.656,
+   "acs": 141,
+   "kast": 57.8,
+   "kpr": 0.515,
+   "apr": 0.408
+  },
+  "999": {
+   "ign": "Laz",
+   "rating": 0.429,
+   "acs": 94.8,
+   "kast": 33.1,
+   "kpr": 0.608,
+   "apr": 0.139
+  },
+  "1000": {
+   "ign": "crow",
+   "rating": 0.303,
+   "acs": 69.3,
+   "kast": 34.2,
+   "kpr": 0.367,
+   "apr": 0.291
+  },
+  "1139": {
+   "ign": "qRaxs",
+   "rating": 0.94,
+   "acs": 187.9,
+   "kast": 70.4,
+   "kpr": 0.645,
+   "apr": 0.389
+  },
+  "1294": {
+   "ign": "NagZ",
+   "rating": 0.786,
+   "acs": 149.6,
+   "kast": 61.3,
+   "kpr": 0.478,
+   "apr": 0.322
+  },
+  "1311": {
+   "ign": "Melser",
+   "rating": 0.692,
+   "acs": 143.2,
+   "kast": 69,
+   "kpr": 0.489,
+   "apr": 0.267
+  },
+  "1380": {
+   "ign": "Leo",
+   "rating": 1.222,
+   "acs": 210.5,
+   "kast": 81.7,
+   "kpr": 0.744,
+   "apr": 0.44
+  },
+  "1395": {
+   "ign": "TENNN",
+   "rating": 0.426,
+   "acs": 106.3,
+   "kast": 32.9,
+   "kpr": 0.557,
+   "apr": 0.114
+  },
+  "1427": {
+   "ign": "Redgar",
+   "rating": 0.741,
+   "acs": 165.3,
+   "kast": 68.6,
+   "kpr": 0.533,
+   "apr": 0.348
+  },
+  "2408": {
+   "ign": "tuyz",
+   "rating": 0.957,
+   "acs": 160.1,
+   "kast": 73.8,
+   "kpr": 0.58,
+   "apr": 0.485
+  },
+  "2462": {
+   "ign": "keznit",
+   "rating": 1.215,
+   "acs": 267.6,
+   "kast": 67.7,
+   "kpr": 0.878,
+   "apr": 0.233
+  },
+  "2489": {
+   "ign": "Munchkin",
+   "rating": 0.973,
+   "acs": 207.7,
+   "kast": 63.6,
+   "kpr": 0.698,
+   "apr": 0.225
+  },
+  "2610": {
+   "ign": "Klaus",
+   "rating": 0.745,
+   "acs": 156.3,
+   "kast": 64.5,
+   "kpr": 0.544,
+   "apr": 0.278
+  },
+  "2690": {
+   "ign": "hoody",
+   "rating": 1.082,
+   "acs": 206.3,
+   "kast": 72.7,
+   "kpr": 0.702,
+   "apr": 0.46
+  },
+  "2764": {
+   "ign": "DaveeyS",
+   "rating": 1.06,
+   "acs": 184.1,
+   "kast": 72.2,
+   "kpr": 0.644,
+   "apr": 0.167
+  },
+  "2858": {
+   "ign": "SUYGETSU",
+   "rating": 1.117,
+   "acs": 194,
+   "kast": 74.6,
+   "kpr": 0.725,
+   "apr": 0.167
+  },
+  "3017": {
+   "ign": "nobody",
+   "rating": 0.978,
+   "acs": 198.2,
+   "kast": 71.3,
+   "kpr": 0.685,
+   "apr": 0.325
+  },
+  "3021": {
+   "ign": "Biank",
+   "rating": 0.956,
+   "acs": 196.4,
+   "kast": 71.1,
+   "kpr": 0.659,
+   "apr": 0.363
+  },
+  "3024": {
+   "ign": "DK",
+   "rating": 0.775,
+   "acs": 144.8,
+   "kast": 66.1,
+   "kpr": 0.513,
+   "apr": 0.346
+  },
+  "3070": {
+   "ign": "nukkye",
+   "rating": 0.926,
+   "acs": 189.8,
+   "kast": 65.1,
+   "kpr": 0.652,
+   "apr": 0.193
+  },
+  "3520": {
+   "ign": "ZmjjKK",
+   "rating": 0.991,
+   "acs": 224.7,
+   "kast": 64.2,
+   "kpr": 0.788,
+   "apr": 0.188
+  },
+  "3604": {
+   "ign": "MOJJ",
+   "rating": 0.926,
+   "acs": 182,
+   "kast": 65.6,
+   "kpr": 0.617,
+   "apr": 0.258
+  },
+  "3993": {
+   "ign": "jawgemo",
+   "rating": 1.087,
+   "acs": 231.5,
+   "kast": 74.1,
+   "kpr": 0.809,
+   "apr": 0.319
+  },
+  "4164": {
+   "ign": "s0m",
+   "rating": 0.806,
+   "acs": 143.1,
+   "kast": 58.6,
+   "kpr": 0.677,
+   "apr": 0.408
+  },
+  "4181": {
+   "ign": "Cloud",
+   "rating": 1.152,
+   "acs": 211.3,
+   "kast": 74.3,
+   "kpr": 0.764,
+   "apr": 0.385
+  },
+  "4462": {
+   "ign": "MaKo",
+   "rating": 1.035,
+   "acs": 185.4,
+   "kast": 72.9,
+   "kpr": 0.647,
+   "apr": 0.503
+  },
+  "4545": {
+   "ign": "Sayaplayer",
+   "rating": 1.113,
+   "acs": 230.7,
+   "kast": 66,
+   "kpr": 0.814,
+   "apr": 0.116
+  },
+  "4720": {
+   "ign": "Haodong",
+   "rating": 0.884,
+   "acs": 167,
+   "kast": 73.9,
+   "kpr": 0.578,
+   "apr": 0.478
+  },
+  "4742": {
+   "ign": "Smoggy",
+   "rating": 0.983,
+   "acs": 206.5,
+   "kast": 69.4,
+   "kpr": 0.747,
+   "apr": 0.219
+  },
+  "4774": {
+   "ign": "Knight",
+   "rating": 0.921,
+   "acs": 191.9,
+   "kast": 71.1,
+   "kpr": 0.673,
+   "apr": 0.317
+  },
+  "4880": {
+   "ign": "nizhaoTZH",
+   "rating": 0.752,
+   "acs": 137.9,
+   "kast": 65.9,
+   "kpr": 0.494,
+   "apr": 0.271
+  },
+  "4885": {
+   "ign": "whzy",
+   "rating": 1.1,
+   "acs": 251.3,
+   "kast": 70.4,
+   "kpr": 0.882,
+   "apr": 0.164
+  },
+  "5022": {
+   "ign": "Derke",
+   "rating": 1.032,
+   "acs": 213.8,
+   "kast": 65,
+   "kpr": 0.749,
+   "apr": 0.165
+  },
+  "5129": {
+   "ign": "ban",
+   "rating": 0.862,
+   "acs": 177.1,
+   "kast": 66,
+   "kpr": 0.62,
+   "apr": 0.333
+  },
+  "6022": {
+   "ign": "yosemite",
+   "rating": 1.029,
+   "acs": 206,
+   "kast": 73.1,
+   "kpr": 0.712,
+   "apr": 0.269
+  },
+  "6193": {
+   "ign": "cauanzin",
+   "rating": 1.121,
+   "acs": 218.6,
+   "kast": 75.8,
+   "kpr": 0.767,
+   "apr": 0.4
+  },
+  "6510": {
+   "ign": "AtaKaptan",
+   "rating": 0.963,
+   "acs": 193.2,
+   "kast": 68.5,
+   "kpr": 0.619,
+   "apr": 0.516
+  },
+  "6668": {
+   "ign": "SugarZ3ro",
+   "rating": 0.415,
+   "acs": 81.6,
+   "kast": 40.4,
+   "kpr": 0.481,
+   "apr": 0.304
+  },
+  "7378": {
+   "ign": "Jinggg",
+   "rating": 0.978,
+   "acs": 236.9,
+   "kast": 70.6,
+   "kpr": 0.779,
+   "apr": 0.253
+  },
+  "7857": {
+   "ign": "BerLIN",
+   "rating": 0.677,
+   "acs": 155.1,
+   "kast": 64.8,
+   "kpr": 0.471,
+   "apr": 0.341
+  },
+  "8044": {
+   "ign": "MrFaliN",
+   "rating": 1.129,
+   "acs": 210.8,
+   "kast": 71.1,
+   "kpr": 0.734,
+   "apr": 0.328
+  },
+  "8447": {
+   "ign": "Less",
+   "rating": 1.138,
+   "acs": 223.5,
+   "kast": 72.9,
+   "kpr": 0.806,
+   "apr": 0.198
+  },
+  "8480": {
+   "ign": "aspas",
+   "rating": 1.168,
+   "acs": 241.8,
+   "kast": 76.3,
+   "kpr": 0.884,
+   "apr": 0.153
+  },
+  "9780": {
+   "ign": "Jamppi",
+   "rating": 0.782,
+   "acs": 169.9,
+   "kast": 55.5,
+   "kpr": 0.609,
+   "apr": 0.065
+  },
+  "9800": {
+   "ign": "mindfreak",
+   "rating": 0.937,
+   "acs": 161.9,
+   "kast": 69.8,
+   "kpr": 0.582,
+   "apr": 0.359
+  },
+  "9801": {
+   "ign": "f0rsakeN",
+   "rating": 0.965,
+   "acs": 203.4,
+   "kast": 68.4,
+   "kpr": 0.693,
+   "apr": 0.337
+  },
+  "9803": {
+   "ign": "d4v41",
+   "rating": 1.059,
+   "acs": 191.3,
+   "kast": 76.3,
+   "kpr": 0.676,
+   "apr": 0.426
+  },
+  "9810": {
+   "ign": "Alfajer",
+   "rating": 1.174,
+   "acs": 228.1,
+   "kast": 71.8,
+   "kpr": 0.838,
+   "apr": 0.122
+  },
+  "10125": {
+   "ign": "qw1",
+   "rating": 0.829,
+   "acs": 185.4,
+   "kast": 61.6,
+   "kpr": 0.68,
+   "apr": 0.08
+  },
+  "11218": {
+   "ign": "Yuicaw",
+   "rating": 0.906,
+   "acs": 207,
+   "kast": 65.8,
+   "kpr": 0.694,
+   "apr": 0.153
+  },
+  "11225": {
+   "ign": "Ethan",
+   "rating": 1.026,
+   "acs": 187.8,
+   "kast": 77.7,
+   "kpr": 0.646,
+   "apr": 0.56
+  },
+  "15559": {
+   "ign": "CHICHOO",
+   "rating": 1.069,
+   "acs": 194.2,
+   "kast": 71.6,
+   "kpr": 0.68,
+   "apr": 0.299
+  },
+  "17086": {
+   "ign": "something",
+   "rating": 1.071,
+   "acs": 211.1,
+   "kast": 71.3,
+   "kpr": 0.75,
+   "apr": 0.196
+  },
+  "19530": {
+   "ign": "AAAAY",
+   "rating": 1.226,
+   "acs": 230,
+   "kast": 72.9,
+   "kpr": 0.894,
+   "apr": 0.188
+  },
+  "26171": {
+   "ign": "Demon1",
+   "rating": 1.279,
+   "acs": 243.4,
+   "kast": 73.6,
+   "kpr": 0.92,
+   "apr": 0.183
+  },
+  "31207": {
+   "ign": "carpe",
+   "rating": 0.682,
+   "acs": 152.9,
+   "kast": 60.4,
+   "kpr": 0.543,
+   "apr": 0.248
+  },
+  "37489": {
+   "ign": "Lysoar",
+   "rating": 0.942,
+   "acs": 207.8,
+   "kast": 71.6,
+   "kpr": 0.706,
+   "apr": 0.165
+  }
+ }
+}

@@ -55,7 +55,12 @@ def _both(cell: str):
 
 def parse_match(html: str) -> list[dict]:
     maps = []
-    blocks = re.findall(r'<div class="vm-stats-game ?" data-game-id="(\d+)"(.*?)(?=<div class="vm-stats-game |<div class="vm-stats-container-end|$)', html, re.S)
+    # Map tabs may add mod-active (or other classes) to a numeric game.
+    # Split at every game container, including the nonnumeric all-maps tab.
+    game_start = re.compile(r'<div\b(?=[^>]*\bclass="(?:[^"\s]+\s+)*vm-stats-game(?:\s+[^"\s]+)*\s*")(?=[^>]*\bdata-game-id="([^"]+)")[^>]*>', re.S)
+    starts = list(game_start.finditer(html))
+    blocks = [(start.group(1), html[start.end():starts[i + 1].start() if i + 1 < len(starts) else len(html)])
+              for i, start in enumerate(starts) if start.group(1).isdigit()]
     for gid, body in blocks:
         head = body.split('<div style="text-align: center; margin-top: 15px;">')[0]
         teams = [re.sub(r"\s+", " ", t).strip() for t in re.findall(r'team-name">\s*(.*?)\s*</div>', head, re.S)]

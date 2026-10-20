@@ -19,7 +19,7 @@
 import {
   FEATURE_OFF, PACKS, PACK_ORDER, SERIES, SERIES_REWARDS,
   claimSeries, featuredSeries, newGacha, openPack, packCost, seriesProgress,
-  bangkokOnSale, retiredSale, BANGKOK_SALE_OFF,
+  bangkokOnSale, retiredSale, BANGKOK_SALE_OFF, losAngelesOnSale,
 } from '../src/engine/gacha'
 import type { Series } from '../src/engine/gacha'
 import { REGION_CN } from '../src/engine/types'
@@ -136,13 +136,13 @@ for (let d = 0; d < 364; d++) {
     last = r
   }
   // only the featured pack is discounted, and only the series packs at all —
-  // besides the 曼谷包's own launch sale (check_bangkok2025.ts owns that one)
+  // besides the event packs' own launch sales (check_bangkok2025.ts and check_losangeles2023.ts own those)
   // and the 退役选手包's launch week (check_retired_pack.ts owns that one)
   for (const kind of PACK_ORDER) {
     const price = packCost(kind, date)
     const base = PACKS[kind].cost
     const isHot = kind === seriesProgress(fresh0).find((p) => p.region === r)!.pack
-    const launch = kind === 'bangkok2025' && bangkokOnSale(date)
+    const launch = (kind === 'bangkok2025' && bangkokOnSale(date)) || (kind === 'losangeles2023' && losAngelesOnSale(date))
     const retiredOff = kind === 'retired' ? retiredSale(date)?.off ?? 0 : 0
     check(price === (isHot ? Math.round(base * (1 - FEATURE_OFF)) : launch ? Math.round(base * (1 - BANGKOK_SALE_OFF))
       : retiredOff ? Math.round(base * (1 - retiredOff)) : base),

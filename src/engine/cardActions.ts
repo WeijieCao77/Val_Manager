@@ -54,6 +54,8 @@ import { SEOUL_TEAMS } from './seoul2024'
 import { SEOUL_FIVES, SEOUL_POOL, SEOUL_ROUTES, quitRoute, recordRoute, routeState, startRoute } from './seoulRoute'
 import { BANGKOK_FIVES, BANGKOK_POOL, BANGKOK_ROUTES, bangkokRouteState, quitBangkokRoute, recordBangkokRoute, startBangkokRoute } from './bangkokRoute'
 import { BANGKOK_TEAMS } from './bangkok2025'
+import { LOS_ANGELES_FIVES, LOS_ANGELES_POOL, LOS_ANGELES_ROUTES, losAngelesRouteState, quitLosAngelesRoute, recordLosAngelesRoute, startLosAngelesRoute } from './losAngelesRoute'
+import { LOS_ANGELES_TEAMS } from './losangeles2023'
 
 /** What the server knows that the rules need. */
 export interface ActEnv {
@@ -96,7 +98,7 @@ export const ACTIONS = [
   'open', 'checkin', 'quest', 'series', 'collect', 'fullset', 'salvage', 'salvage_dupes', 'salvage_bulk', 'upgrade',
   'ladder_draw', 'ladder', 'cup_enter', 'cup_play', 'cup_clear', 'enc_enter', 'enc_play', 'challenge', 'challenge_hour', 'mail_seen',
   'minigame_start', 'minigame_finish', 'dismantle', 'evolve', 'evo_wash', 'predict', 'predict_claim', 'seoul_start', 'seoul_play', 'seoul_quit',
-  'bangkok_start', 'bangkok_play', 'bangkok_quit', 'history_play', 'redeem',
+  'bangkok_start', 'bangkok_play', 'bangkok_quit', 'la_start', 'la_play', 'la_quit', 'history_play', 'redeem',
 ] as const
 export type ActionName = (typeof ACTIONS)[number]
 
@@ -523,6 +525,32 @@ function dispatch(
     }
     case 'bangkok_quit': {
       quitBangkokRoute(g)
+      return { ok: true }
+    }
+    // ---- 洛杉矶征途: the same, on Champions 2023 — engine/losAngelesRoute.ts
+    case 'la_start': {
+      const out = startLosAngelesRoute(g, a.team, env.now)
+      return out.ok ? { ok: true, result: { route: g.losAngelesRoute } } : out
+    }
+    case 'la_play': {
+      const run = losAngelesRouteState(g).run
+      if (!run) return { ok: false, why: '先选一支队出发' }
+      const st = LOS_ANGELES_ROUTES[run.team][run.stage]
+      const name = (tag: string) => LOS_ANGELES_TEAMS.find((t) => t.tag === tag)?.name ?? tag
+      const res = playRivalMatch(
+        { ...LOS_ANGELES_FIVES[run.team], name: name(run.team), tag: run.team }, () => 0,
+        { ...LOS_ANGELES_FIVES[st.opp], name: name(st.opp), tag: st.opp, levels: {}, div: 0, points: 0 },
+        st.bo, env.seed, LOS_ANGELES_POOL,
+      )
+      const out = recordLosAngelesRoute(g, {
+        won: res.mapsWon,
+        lost: res.mapsLost,
+        maps: res.result.maps.map((m) => `${m.map} ${m.scoreA}:${m.scoreB}`),
+      }, env.now)
+      return { ok: true, result: { res, out } }
+    }
+    case 'la_quit': {
+      quitLosAngelesRoute(g)
       return { ok: true }
     }
     // ---- 历代强队: a retired five against the twelve — engine/historyTeams.ts

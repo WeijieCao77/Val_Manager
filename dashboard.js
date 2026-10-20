@@ -297,6 +297,7 @@ export const dashboardHtml = () => `<!doctype html>
           <option value="emea">EMEA 包</option>
           <option value="seoul2024">首尔 2024 冠军赛包</option>
           <option value="bangkok2025">曼谷 2025 大师赛包</option>
+          <option value="losangeles2023">洛杉矶 2023 冠军赛包</option>
           <option value="retired">退役选手包</option>
           <option value="legend">彩卡包（只出彩卡）</option>
         </select>
@@ -516,8 +517,8 @@ function matured(cohorts, n, key) {
 }
 const pctOr = (v) => (v == null ? '<span class="muted">—</span>' : v + '<small>%</small>')
 
-const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', retired: '退役选手包', legend: '彩卡包' }
-const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途' }
+const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', losangeles2023: '洛杉矶包', retired: '退役选手包', legend: '彩卡包' }
+const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途', la: '洛杉矶征途' }
 const LEAGUE_CN = { open: '公开赛', gold: '金卡赛', silver: '银卡赛', bronze: '铜卡赛', hof: '名人堂', retired: '传奇联赛', mixed: '全系列赛' }
 const DIV_CN = ['青铜', '白银', '黄金', '铂金', '钻石', '大师']
 const SWAP_CN = { done: '换成了', open: '等对方回', declined: '被拒绝', cancelled: '撤回', expired: '过期' }

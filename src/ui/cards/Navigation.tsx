@@ -11,7 +11,7 @@ export const CARD_PAGES = [
   { key: 'ladder', label: '天梯', group: '赛事', description: '检验你的阵容，向更高段位进发。', icon: 'rank' },
   { key: 'cup', label: '杯赛', group: '赛事', description: '报名赛事，带领你的卡组争夺冠军。', icon: 'cup' },
   { key: 'swift', label: '读点', group: '赛事', description: '快速先赢 5 回合，完整先赢 13 回合。每回合自己定经济、打法和首杀。', icon: 'swift', beta: true },
-  { key: 'bangkok', label: '曼谷征途', group: '赛事', description: '重走曼谷 2025 大师赛的晋级之路。', icon: 'route' },
+  { key: 'la', label: '洛杉矶征途', group: '赛事', description: '重走洛杉矶 2023 冠军赛的晋级之路。', icon: 'route' },
   { key: 'history', label: '历代强队', group: '赛事', description: '带五名退役选手，挑战拿过世界冠军的队伍。', icon: 'cup' },
   { key: 'minigames', label: '小游戏', group: '发现', description: '来一场小挑战，赢取位置奖励包。', icon: 'game', beta: true },
   { key: 'draft', label: '抢人大战', group: '发现', description: '和朋友开房间，暗标抢五名选手和一名教练，比赛直播看结果。', icon: 'draft', beta: true },
@@ -44,9 +44,9 @@ export function NavIcon({ name }: { name: string }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] ?? paths.pack} /></svg>
 }
 const primary = ['packs', 'collection', 'squad', 'ladder']
-// 首尔征途 was replaced by 曼谷征途 (2026-10-01); a saved #seoul link lands on the road that took its place
-// and the 口令领卡 link from the groups (#redeem) opens 账号, where it sits at the top
-const HASH_ALIAS: Record<string, string> = { '#seoul': '#bangkok', '#redeem': '#account' }
+// 首尔征途 gave way to 曼谷征途 (2026-10-01) and 曼谷征途 to 洛杉矶征途 (2026-10-20); a saved #seoul or #bangkok link
+// lands on the road that took their place, and the 口令领卡 link from the groups (#redeem) opens 账号
+const HASH_ALIAS: Record<string, string> = { '#seoul': '#la', '#bangkok': '#la', '#redeem': '#account' }
 export const cardPageFromHash = () => CARD_PAGES.find(p => `#${p.key}` === (HASH_ALIAS[window.location.hash] ?? window.location.hash))?.key ?? 'packs'
 
 export default function CardNavigation({ current, onNavigate, onExit }: { current: string; onNavigate: (key: string) => void; onExit: () => void }) {

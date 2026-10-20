@@ -1,0 +1,21 @@
+{
+ "_README": "Hand overrides for losangeles2023_faces.py crop: { vlrId: { id, side?, confirmed?, note? } }. `confirmed` = the owner looked at the card.",
+ "11218": {
+  "id": "53101185945",
+  "side": "L",
+  "confirmed": true,
+  "note": "主人确认是 Yuicaw 本人（2026-10-18）；抠图去掉了旁边的 BerLIN"
+ },
+ "7378": {
+  "id": "53105604568",
+  "confirmed": true,
+  "keep": true,
+  "note": "主人：Jinggg 保持第一版的样子（原图、第一版卡面效果），以后也不要改（2026-10-18）"
+ },
+ "8480": {
+  "id": "53098394136",
+  "confirmed": true,
+  "tone": "warm",
+  "note": "主人选的正脸（2026-10-18）；原图是 LOUD 的绿色灯光，去掉绿光调成暖色"
+ }
+}

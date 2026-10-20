@@ -2,6 +2,7 @@ import { SeoulCard, SeoulCardBack } from './cards/SeoulDesign'
 import { BangkokCardBack, BangkokFace } from './cards/BangkokDesign'
 import { RetiredCardBack, RetiredFace } from './cards/RetiredDesign'
 import { EggFace } from './cards/EggDesign'
+import { LosAngelesBack, LosAngelesFace } from './cards/LosAngelesDesign'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ATTR_CN } from '../engine/types'
@@ -118,6 +119,9 @@ export const CARD_H = 224
  */
 const BANGKOK_W = 480
 const BANGKOK_H = 672
+/** The 洛杉矶 2023 face is container-unit type too, with smaller print than 曼谷's (Codex's 1.5–2cqw), so its canvas is larger again. */
+const LOS_ANGELES_W = 720
+const LOS_ANGELES_H = 1008
 /** the back is drawn for the pack reveal's 184px card; same 5:7, so it covers the face exactly */
 const BACK_W = 184
 const BACK_H = 257.6
@@ -205,6 +209,9 @@ export default function CardFace({
   }
   if (isPlayerCard(card) && card.event === 'bangkok-2025') {
     return <CardScale size={size} w={BANGKOK_W} h={BANGKOK_H}><BangkokFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
+  }
+  if (isPlayerCard(card) && card.event === 'los-angeles-2023') {
+    return <CardScale size={size} w={LOS_ANGELES_W} h={LOS_ANGELES_H}><LosAngelesFace {...{ card, level, evolved, dupes, selected, dimmed, onClick, footer }} /></CardScale>
   }
   // The base rating, always: the number on the face says which card this is
   // (the 2024 EDG ZmjjKK is a 97 whatever you have done to it), the +N
@@ -387,10 +394,11 @@ export function PositionCrest({ position }: { position: PackPosition }) {
   </svg>
 }
 
-export function CardBack({ kind = 'player', position, seoul, bangkok, retired }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean; retired?: boolean }) {
+export function CardBack({ kind = 'player', position, seoul, bangkok, losAngeles, retired }: { kind?: Card['kind']; position?: PackPosition; seoul?: boolean; bangkok?: boolean; losAngeles?: boolean; retired?: boolean }) {
   if (seoul) return <CardScale size="lg" w={BACK_W} h={BACK_H}><SeoulCardBack /></CardScale>
   if (retired) return <CardScale size="lg" w={BANGKOK_W} h={BANGKOK_H}><RetiredCardBack /></CardScale>
   if (bangkok) return <CardScale size="lg" w={BANGKOK_W} h={BANGKOK_H}><BangkokCardBack /></CardScale>
+  if (losAngeles) return <CardScale size="lg" w={LOS_ANGELES_W} h={LOS_ANGELES_H}><div className="la-face"><LosAngelesBack /></div></CardScale>
   const coach = kind === 'coach'
   const design = !coach && position ? POSITION_PACKS[position] : undefined
   return (

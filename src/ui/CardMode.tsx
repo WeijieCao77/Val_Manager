@@ -17,6 +17,7 @@ const Cup = lazy(() => import('./cards/Cup'))
 const Predict = lazy(() => import('./cards/Predict'))
 const BangkokRoute = lazy(() => import('./cards/BangkokRoute'))
 const HistoryTeams = lazy(() => import('./cards/HistoryTeams'))
+const LosAngelesRoute = lazy(() => import('./cards/LosAngelesRoute'))
 const Evolve = lazy(() => import('./cards/Evolve'))
 const Swift = lazy(() => import('./cards/Swift'))
 const Draft = lazy(() => import('./cards/Draft'))
@@ -354,6 +355,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
     predict: Predict,
     bangkok: BangkokRoute,
     history: HistoryTeams,
+    la: LosAngelesRoute,
     evolve: Evolve,
     swift: Swift,
     draft: Draft,
