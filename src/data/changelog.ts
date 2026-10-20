@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-20',
+    title: '洛杉矶系列卡面照片更新',
+    changes: [
+      { kind: '调整', text: '洛杉矶系列 14 张卡换成同届的官方原片，不再切头、缺肩；其余卡逐张调了照片和卡面的融合。Jinggg 不变，数值不变。' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: '新彩卡：erde · 2026 上海冠军赛 MVP',
     changes: [
       { kind: '新增', text: '<b>erde · 2026 上海冠军赛 MVP</b>（95，LOUD）。LOUD 3–1 Vitality 夺冠，18 岁的指挥拿下赛事 MVP。卡包里能抽到。' },

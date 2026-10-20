@@ -29,7 +29,10 @@ ok('照片是洛杉矶冠军赛的', LOS_ANGELES_CARDS.every(c => c.face!.starts
 const faces = LOS_ANGELES_CARDS.map(c => losAngelesFace(c.losAngeles!.vlrId) as { cutout?: boolean; photo?: string; confirmed?: boolean; keep?: boolean; style?: string })
 const jinggg = faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'Jinggg')]
 ok('Jinggg 固定为第一版：原图、第一版卡面效果，不抠图不调色', !!jinggg.keep && jinggg.style === 'raw' && jinggg.cutout === false && jinggg.photo === '53105604568')
-ok('其余 79 张都是柔和融合（人原色，背景压成落日色），都抠出了人', faces.filter(f => !f.keep).every(f => f.style === 'soft' && f.cutout === true))
+// 2026-10-20 the other 79 are Codex's per-player retouch, baked from its review page (style 'baked', with the box it was cut from)
+ok('其余 79 张都是 Codex 的逐张融合版（已合成好的照片层，带自己的照片框）', faces.filter(f => !f.keep).every(f => f.style === 'baked'
+  && Array.isArray((f as { box?: number[] }).box) && (f as { box?: number[] }).box!.length === 4))
+ok('Codex 换掉的 14 张都换成了同届的 Flickr 原片', faces.filter(f => (f as { replaced?: string }).replaced).length === 14)
 ok('whzy 用的是他自己那组照片（16:31），不是被说明写成 whz 的 Biank（16:35 那张）', faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'whzy')].photo !== '53102991504')
 { const a = faces[LOS_ANGELES_CARDS.findIndex(c => c.ign === 'aspas')] as { photo?: string; toned?: string; confirmed?: boolean }
   ok('aspas 用主人选的正脸，绿光去掉调成暖色', a.photo === '53098394136' && a.toned === 'warm' && !!a.confirmed) }

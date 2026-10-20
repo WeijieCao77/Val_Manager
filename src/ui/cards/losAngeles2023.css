@@ -76,3 +76,8 @@
 @media(max-width:620px){.la-rules-table{font-size:13px}.la-rules-table th,.la-rules-table td{padding:8px 6px}.la-rules-pick select{min-width:0;flex:1}.la-exhibit .la-cta-rules{margin-left:0;margin-top:10px}}
 .la-rules-table th,.la-rules-table td{text-transform:none;letter-spacing:normal;font-family:inherit}
 .la-rules-pick select{width:auto;max-width:280px}
+/* 'baked' (2026-10-20): Codex's per-player retouch, taken from its review page with the mask, feather and grade
+   already in the picture — shown as it is, in the box it was cut from (inline inset) */
+.la-photo-baked{mask-image:none;-webkit-mask-image:none}
+.la-photo-baked:after{display:none}
+.la-photo-baked img{object-fit:fill;object-position:center;filter:none}

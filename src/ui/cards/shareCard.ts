@@ -614,8 +614,14 @@ function paintLosAngelesSeat(
   ctx.strokeText('23', X(3), Y(11))
 
   // the portrait (.la-photo): a softened frame fades only into the foot; a first-version one on every side
+  const look = losAngelesFace(entry.vlrId) as { style?: string; box?: number[] } | undefined
+  if (face && look?.style === 'baked' && look.box) {
+    // Codex's retouch: the picture already carries its mask and grade, in its own box
+    const [t, r, bt, l] = look.box
+    ctx.drawImage(face, X(l), Y(t), W(100 - l - r), H(100 - t - bt))
+  }
   const pb = { x: X(9), y: Y(17), w: W(93), h: H(65) }
-  if (face) {
+  if (face && look?.style !== 'baked') {
     const off = document.createElement('canvas')
     off.width = Math.ceil(pb.w)
     off.height = Math.ceil(pb.h)
