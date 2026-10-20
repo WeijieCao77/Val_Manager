@@ -149,10 +149,19 @@ assert.equal(s.room.games.length, 0, '直播刚开始，一场都还没出')
 assert.equal(s.room.final, null)
 assert(s.room.nextAt > now, '页面知道下一场什么时候出')
 const raw = (await sql`select games, final from draft_rooms where code = ${code}`)[0]
-const plan = draftSchedule(raw.games.length, raw.final.maps.length)
+const plan = draftSchedule(raw.games.length, raw.final.maps.length, 3, 0)
+assert.equal(plan.intro, 3 * 5000, '先亮三家阵容，每家 5 秒')
+assert.equal(s.room.nextAt, s.room.revealAt + plan.intro, '亮完阵容才出第一场')
 const t0 = now
+assert.equal(s.room.live, null, '亮阵容的时候没有比赛在打')
+now = t0 + plan.intro + 100
+let lv = (await call('', { id: P1 })).room
+assert(lv.live && lv.live.a === raw.games[0].a && lv.live.b === raw.games[0].b && lv.games.length === 0, '正在打的是第一场，列表里还没有它')
 now = t0 + plan.games[0]
-assert.equal((await call('', { id: P1 })).room.games.length, 1, '一场一场出')
+lv = (await call('', { id: P1 })).room
+assert.equal(lv.games.length, 1, '一场一场出')
+assert(lv.live.a === raw.games[1].a && lv.live.b === raw.games[1].b && lv.live.from === lv.revealAt + plan.games[0], '下一场接着上')
+assert.equal(JSON.stringify(lv.live).includes('aWon'), false, '直播中的比赛不直接给结果')
 now = t0 + plan.games[2] + 1
 s = await call('', { id: P1 })
 assert(s.room.games.length === 3 && s.room.final && s.room.final.maps.length === 0, '循环赛出完，决赛开始')
@@ -208,6 +217,21 @@ assert(r3.reward.coins === 0 && r3.reward.unpaid === 'cap', `每天只有前 ${D
   const idleRoom = (await call('', { id: ids[1] })).room
   assert.equal(idleRoom.status, 'done')
   assert.equal(idleRoom.reward.unpaid, 'idle', '一轮都没自己出价的不发奖励')
+}
+// four players: placement matches, so everyone plays as many matches as the finalists
+{
+  const four = await room([ids[0], ids[1], ids[2], ids[3]])
+  assert.equal(four.status, 'done')
+  assert.equal(four.games.length, 6); assert.equal(four.placements.length, 1)
+  const count = [0, 0, 0, 0]
+  for (const g of [...four.games, ...four.placements, four.final]) { count[g.a]++; count[g.b]++ }
+  assert.deepEqual(count, [4, 4, 4, 4], `四个人每人打 4 场（${count.join('/')}）`)
+  const places = four.seats.map((x: any) => x.place).sort()
+  assert.deepEqual(places, [1, 2, 3, 4], '名次 1–4 各一个')
+  const pm = four.placements[0]
+  assert.equal(pm.place, 3)
+  assert.equal(four.seats[pm.aWon ? pm.a : pm.b].place, 3, '名次赛赢家第三')
+  console.log('ok  四人房：循环赛 + 三四名赛 + 决赛，每人一样多场，名次按名次赛定')
 }
 const two = await room([ids[3], ids[4]])
 assert(two.reward.unpaid === 'small' && two.games.length === 0 && two.final.maps.length >= 3, '两个人只打决赛，没有奖励')

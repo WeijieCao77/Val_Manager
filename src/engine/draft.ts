@@ -26,9 +26,12 @@ export const DRAFT_BUDGET = 100
 export const DRAFT_BID_SEC = 30
 export const DRAFT_POSITIONS: readonly (Role | '教练')[] = ['决斗者', '先锋', '控场', '哨卫', '自由人', '教练']
 export const DRAFT_ROUNDS = DRAFT_POSITIONS.length
-/** the broadcast: seconds a round-robin match is on screen before the next, and a final map */
+/** the broadcast: each lineup's entrance, a round-robin or placement match, a final map — seconds on screen */
+export const DRAFT_INTRO_SEC = 5
 export const DRAFT_GAME_SEC = 10
 export const DRAFT_MAP_SEC = 8
+/** each seat's colour, from the entrance to the table */
+export const SEAT_COLORS = ['#ff4655', '#3d8fd6', '#f0c14b', '#3dd68c', '#8b7bff', '#ff8a3d'] as const
 /** what a finished room pays by place, in rooms of at least DRAFT_PAID_MIN; the first DRAFT_PAID_ROOMS a day */
 export const DRAFT_PRIZE: Record<number, number> = { 1: 150, 2: 100 }
 export const DRAFT_PRIZE_REST = 50
@@ -155,21 +158,44 @@ export const cleanCode = (v: unknown): string | null => {
   return /^[A-HJ-NP-Z2-9]{5}$/.test(s) ? s : null
 }
 
-/** the room's final places: the final decides first and second, the table the rest */
-export function draftPlaces(table: readonly DraftStanding[], final: DraftGame | null): Map<number, number> {
+/**
+ * Placement matches after the round robin, so the room is not split into those who play one match more
+ * (the final) and those who do not: third plays fourth, fifth plays sixth. An odd room's last seat has no
+ * one left to play. Each is [a, b, the place the winner takes].
+ */
+export function placementPairs(table: readonly DraftStanding[]): [number, number, number][] {
+  const out: [number, number, number][] = []
+  for (let i = 2; i + 1 < table.length; i += 2) out.push([table[i].seat, table[i + 1].seat, i + 1])
+  return out
+}
+
+export interface DraftPlacement extends DraftGame { place: number }
+
+/** the room's final places: the final decides first and second, the placement matches the rest, the table any seat left over */
+export function draftPlaces(table: readonly DraftStanding[], final: DraftGame | null, placements: readonly DraftPlacement[] = []): Map<number, number> {
   const out = new Map<number, number>()
   if (final) {
     out.set(final.aWon ? final.a : final.b, 1)
     out.set(final.aWon ? final.b : final.a, 2)
   }
+  for (const p of placements) {
+    out.set(p.aWon ? p.a : p.b, p.place)
+    out.set(p.aWon ? p.b : p.a, p.place + 1)
+  }
   for (const r of table) if (!out.has(r.seat)) out.set(r.seat, final ? Math.max(3, r.place) : r.place)
   return out
 }
 
-/** When each part of the broadcast is on screen, from its start: one time per round-robin match, one per final map. */
-export function draftSchedule(games: number, finalMaps: number): { games: number[]; final: number[]; end: number } {
-  const g = Array.from({ length: games }, (_, i) => (i + 1) * DRAFT_GAME_SEC * 1000)
-  const base = games * DRAFT_GAME_SEC * 1000
+/**
+ * When each part of the broadcast is on screen, from its start: every lineup's entrance, then one time per
+ * round-robin match, per placement match, and per final map.
+ */
+export function draftSchedule(games: number, finalMaps: number, seats = 0, placements = 0): { intro: number; games: number[]; placements: number[]; final: number[]; end: number } {
+  const intro = seats * DRAFT_INTRO_SEC * 1000
+  const g = Array.from({ length: games }, (_, i) => intro + (i + 1) * DRAFT_GAME_SEC * 1000)
+  const afterGames = intro + games * DRAFT_GAME_SEC * 1000
+  const p = Array.from({ length: placements }, (_, i) => afterGames + (i + 1) * DRAFT_GAME_SEC * 1000)
+  const base = afterGames + placements * DRAFT_GAME_SEC * 1000
   const f = Array.from({ length: finalMaps }, (_, i) => base + (i + 1) * DRAFT_MAP_SEC * 1000)
-  return { games: g, final: f, end: (f.length ? f[f.length - 1] : base) + 2000 }
+  return { intro, games: g, placements: p, final: f, end: (f.length ? f[f.length - 1] : base) + 2000 }
 }

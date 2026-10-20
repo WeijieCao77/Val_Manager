@@ -16,6 +16,13 @@ export interface DraftRoom {
   final: (Partial<DraftGameRow> & { a: number; b: number; maps: { map: string; a: number; b: number }[]; done?: boolean }) | null
   /** when the broadcast shows its next match or map */
   nextAt: number | null
+  /** 3rd v 4th, 5th v 6th, as far as the broadcast has shown them */
+  placements: (DraftGameRow & { place: number })[] | null
+  /** the match on air: its maps play out on screen between from and to (the final: one map at a time, mapsDone already shown) */
+  live: { label: string; a: number; b: number; maps: { map: string; a: number; b: number }[]; mapsDone: number; from: number; to: number } | null
+  /** the lineups' entrance: when the broadcast began, seconds per seat */
+  revealAt: number | null
+  introSec: number
   failed: boolean
   /** a finished room: my place and what it paid; unpaid says why not (small, cap, gate) */
   reward: { place: number | null; coins: number; unpaid: 'idle' | 'small' | 'cap' | 'gate' | null } | null

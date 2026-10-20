@@ -57,6 +57,8 @@ alter table draft_rooms add column if not exists final jsonb;
 alter table draft_rooms add column if not exists reveal_at timestamptz;
 alter table draft_rooms add column if not exists tries int not null default 0;
 alter table draft_rooms add column if not exists failed boolean not null default false;
+-- 3rd v 4th and 5th v 6th after the round robin, so everyone plays the same number of matches as the finalists
+alter table draft_rooms add column if not exists placements jsonb;
 -- the place a member finished, and the coins it paid (on which Shanghai day)
 alter table draft_members add column if not exists place int;
 alter table draft_members add column if not exists paid int;
@@ -153,12 +155,19 @@ export function makeDraftApi(sql, {
           games.push({ a, b, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] })
         }
       }
-      const top = members.length > 2 ? engine.draftTable(members.length, games, seed).slice(0, 2).map((t) => t.seat) : [0, 1]
-      const [fa, fb] = top
+      const table = members.length > 2 ? engine.draftTable(members.length, games, seed) : null
+      const placements = []
+      for (const [a, b, place] of table ? engine.placementPairs(table) : []) {
+        const r = await simulate([squad(members[a]), squad(members[b]), false, engine.draftMatchSeed(seed, 200 + a, 200 + b)])
+        if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft placement')
+        placements.push({ a, b, place, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] })
+      }
+      const [fa, fb] = table ? table.slice(0, 2).map((t) => t.seat) : [0, 1]
       const r = await simulate([squad(members[fa]), squad(members[fb]), true, engine.draftMatchSeed(seed, 100 + fa, 100 + fb)])
       if (!r || typeof r.aWon !== 'boolean') throw new Error('invalid draft final')
       const final = { a: fa, b: fb, aWon: r.aWon, mapsA: r.mapsA, mapsB: r.mapsB, maps: r.detail?.maps ?? [] }
-      await sql`update draft_rooms set status = 'showing', games = ${sql.json(games)}::jsonb, final = ${sql.json(final)}::jsonb, reveal_at = ${new Date(clock())}
+      await sql`update draft_rooms set status = 'showing', games = ${sql.json(games)}::jsonb, final = ${sql.json(final)}::jsonb,
+        placements = ${sql.json(placements)}::jsonb, reveal_at = ${new Date(clock())}
         where code = ${code} and status = 'playing'`
     } catch (err) {
       const t = await sql`update draft_rooms set tries = tries + 1 where code = ${code} and status = 'playing' returning tries`
@@ -186,11 +195,11 @@ export function makeDraftApi(sql, {
       await db`select pg_advisory_xact_lock(7735302)`
       const room = (await db`select * from draft_rooms where code = ${code} for update`)[0]
       if (!room || room.status !== 'showing') return
-      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0)
-      if (now - ms(room.reveal_at) < plan.end) return
       const members = await db`select id_hash, seat from draft_members where code = ${code} order by seat`
+      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0, members.length, room.placements?.length ?? 0)
+      if (now - ms(room.reveal_at) < plan.end) return
       const table = engine.draftTable(members.length, room.games, Number(room.seed))
-      const places = engine.draftPlaces(table, room.final)
+      const places = engine.draftPlaces(table, room.final, room.placements ?? [])
       const day = dayOf(now)
       for (const m of members) {
         const place = places.get(m.seat) ?? members.length
@@ -231,21 +240,42 @@ export function makeDraftApi(sql, {
     const mine = members.find((m) => m.id_hash === me)
     const seats = members.map((m) => ({ seat: m.seat, ...who(m.name, m.id_hash), budget: m.budget, picks: m.picks, bidIn: m.bid_in, me: m.id_hash === me, host: m.id_hash === room.host, place: m.place ?? null }))
     // the broadcast: only what has been on screen so far
-    let games = room.games, final = room.final, nextAt = null
+    let games = room.games, final = room.final, placements = room.placements ?? [], nextAt = null, live = null
     if (room.status === 'showing') {
-      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0)
+      const plan = engine.draftSchedule(room.games.length, room.final?.maps?.length ?? 0, members.length, placements.length)
       const t = now - ms(room.reveal_at)
       games = room.games.filter((_, i) => plan.games[i] <= t)
+      placements = placements.filter((_, i) => plan.placements[i] <= t)
       const maps = plan.final.filter((at) => at <= t).length
-      final = games.length < room.games.length ? null : { a: room.final.a, b: room.final.b, maps: room.final.maps.slice(0, maps), done: false }
-      const upcoming = [...plan.games, ...plan.final, plan.end].find((at) => at > t)
+      final = t < plan.games.concat(plan.placements).reduce((a, b) => Math.max(a, b), plan.intro) ? null
+        : { a: room.final.a, b: room.final.b, maps: room.final.maps.slice(0, maps), done: false }
+      const upcoming = [plan.intro, ...plan.games, ...plan.placements, ...plan.final, plan.end].find((at) => at > t)
       nextAt = upcoming !== undefined ? ms(room.reveal_at) + upcoming : null
+      // the match on air: the screen plays its maps out until it lands in the list — only this one, nothing later
+      const at = ms(room.reveal_at)
+      const gamesEnd = plan.games.length ? plan.games[plan.games.length - 1] : plan.intro
+      const placeEnd = plan.placements.length ? plan.placements[plan.placements.length - 1] : gamesEnd
+      const gi = plan.games.findIndex((x) => x > t)
+      const pi = plan.placements.findIndex((x) => x > t)
+      const fi = plan.final.findIndex((x) => x > t)
+      const pick = (g) => ({ a: g.a, b: g.b, maps: g.maps })
+      if (t >= plan.intro) {
+        if (gi >= 0) live = { label: '循环赛', ...pick(room.games[gi]), mapsDone: 0, from: at + (gi ? plan.games[gi - 1] : plan.intro), to: at + plan.games[gi] }
+        else if (pi >= 0) {
+          const p = room.placements[pi]
+          live = { label: `第 ${p.place}–${p.place + 1} 名`, ...pick(p), mapsDone: 0, from: at + (pi ? plan.placements[pi - 1] : gamesEnd), to: at + plan.placements[pi] }
+        } else if (fi >= 0) {
+          live = { label: '决赛', a: room.final.a, b: room.final.b, maps: room.final.maps.slice(0, fi + 1), mapsDone: fi, from: at + (fi ? plan.final[fi - 1] : placeEnd), to: at + plan.final[fi] }
+        }
+      }
     }
     return {
       code: room.code, status: room.status, round: room.round, rounds: engine.DRAFT_ROUNDS, position: engine.DRAFT_POSITIONS[room.round] ?? null,
       lot: room.lot, deadline: room.deadline ? ms(room.deadline) : null, host: room.host === me,
       seats, mySeat: mine?.seat ?? null, myBid: mine?.bid ?? null,
-      history: room.history, games, final, nextAt, failed: room.failed,
+      history: room.history, games, final, placements, live, nextAt, failed: room.failed,
+      // the lineups' entrance: when the broadcast began and how long each seat is on stage
+      revealAt: room.reveal_at ? ms(room.reveal_at) : null, introSec: engine.DRAFT_INTRO_SEC,
       table: games && games.length ? engine.draftTable(members.length, games, Number(room.seed)) : null,
       reward: room.status === 'done' && mine ? { place: mine.place ?? null, coins: mine.paid ?? 0, unpaid: mine.unpaid ?? null } : null,
     }
