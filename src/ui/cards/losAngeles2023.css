@@ -57,3 +57,22 @@
 .la-exhibit .la-object-pack{width:236px}
 .la-exhibit .la-object-pack .pack-pouch-object{width:100%}
 @media(max-width:620px){.la-exhibit .la-object-pack{width:194px}.la-exhibit .seoul-object-front .card-img{width:150px}}
+/* 评分怎么算 on /los-angeles-2023 */
+.la-rules{margin:56px 0 0;scroll-margin-top:16px}
+.la-rules ol{margin:18px 0 28px;padding-left:22px;color:#e9dccb;font-size:14px;line-height:1.9;max-width:760px}
+.la-rules h3{font-size:18px;margin:8px 0 6px;color:#fff0d5}
+.la-rules-hint{color:#cdb9a6;font-size:13px;margin:0 0 12px}
+.la-rules-pick{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.la-rules-pick select{background:#1d1722;color:#fff0d5;border:1px solid #5a4652;border-radius:6px;padding:8px 10px;font-size:14px;min-width:180px}
+.la-rules-table{border-collapse:collapse;width:100%;max-width:760px;font-size:14px}
+.la-rules-table th,.la-rules-table td{padding:9px 10px;border-bottom:1px solid #3a2e36;text-align:left;vertical-align:top}
+.la-rules-table thead th{color:#f4ce95;font-size:16px}
+.la-rules-table th small{display:block;color:#a8968c;font-size:11px;font-weight:400;margin-top:2px}
+.la-rules-table tbody th{color:#cdb9a6;font-weight:400;width:44%}
+.la-rules-table td{color:#fff0d5;font-variant-numeric:tabular-nums}
+.la-rules-table td.up{color:#f4ce95;font-weight:700}
+.la-rules-total td b{font-size:20px;color:#f4ce95}
+.la-exhibit .la-cta-rules{margin-left:10px}
+@media(max-width:620px){.la-rules-table{font-size:13px}.la-rules-table th,.la-rules-table td{padding:8px 6px}.la-rules-pick select{min-width:0;flex:1}.la-exhibit .la-cta-rules{margin-left:0;margin-top:10px}}
+.la-rules-table th,.la-rules-table td{text-transform:none;letter-spacing:normal;font-family:inherit}
+.la-rules-pick select{width:auto;max-width:280px}

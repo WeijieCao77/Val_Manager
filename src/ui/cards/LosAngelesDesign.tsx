@@ -79,7 +79,7 @@ export function LosAngelesFace({ card, level = 0, evolved = false, dupes = 0, se
 }
 
 export function LosAngelesSources() {
-  return <details className="la-sources"><summary>赛事资料与设计说明</summary><p>收录本届实际登场的 {LOS_ANGELES_TOTAL} 位选手，编号固定为 001–{pad(LOS_ANGELES_TOTAL)}，队名按当届（DRX、Giants）。英雄和 ACS / K/D / 地图数采用当届记录。卡面大号能力值为游戏数值，和首尔、曼谷系列同一套换算：后面的轮次权重更高，指挥和先锋位另有加分，赛事 MVP Demon1 另加 5。头像为 Riot Games 在洛杉矶冠军赛 Features Day 拍摄的照片（T1 没有参加 Features Day，用的是 8 月 5 日小组赛场馆的照片）。</p><p><a href={LOS_ANGELES_META.eventSource} target="_blank" rel="noreferrer">Riot 官方赛事介绍</a> · <a href={LOS_ANGELES_META.rosterSource} target="_blank" rel="noreferrer">VLR 当届登场名单与数据</a> · <a href="https://www.flickr.com/photos/valorantesports/" target="_blank" rel="noreferrer">Riot Games 赛事相册（头像）</a></p><p>ONE MORE 为当届官方主题；「逐日」、落日光弧标记和洛杉矶落日底图为本项目的收藏卡设计，赛事标识及选手资料来自对应权利方。</p></details>
+  return <details className="la-sources"><summary>赛事资料与设计说明</summary><p>收录本届实际登场的 {LOS_ANGELES_TOTAL} 位选手，编号固定为 001–{pad(LOS_ANGELES_TOTAL)}，队名按当届（DRX、Giants）。英雄和 ACS / K/D / 地图数采用当届记录。卡面大号能力值为游戏数值，和首尔、曼谷系列同一套换算，另外 ACS 占三成（见上面的「评分怎么算」）。头像为 Riot Games 在洛杉矶冠军赛 Features Day 拍摄的照片（T1 没有参加 Features Day，用的是 8 月 5 日小组赛场馆的照片）。</p><p><a href={LOS_ANGELES_META.eventSource} target="_blank" rel="noreferrer">Riot 官方赛事介绍</a> · <a href={LOS_ANGELES_META.rosterSource} target="_blank" rel="noreferrer">VLR 当届登场名单与数据</a> · <a href="https://www.flickr.com/photos/valorantesports/" target="_blank" rel="noreferrer">Riot Games 赛事相册（头像）</a></p><p>ONE MORE 为当届官方主题；「逐日」、落日光弧标记和洛杉矶落日底图为本项目的收藏卡设计，赛事标识及选手资料来自对应权利方。</p></details>
 }
 
 export function LosAngelesBack() {

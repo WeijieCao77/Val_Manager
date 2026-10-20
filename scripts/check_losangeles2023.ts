@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { ALL_CARDS, LOS_ANGELES_CARDS, BASE_PLAYER_CARDS, cardById, personOf } from '../src/engine/cards'
-import { LOS_ANGELES_TEAMS, losAngelesFace } from '../src/engine/losangeles2023'
+import { ACS_WEIGHT, LOS_ANGELES_TEAMS, losAngelesBreakdown, losAngelesFace } from '../src/engine/losangeles2023'
 import {
   PACKS, PACK_ORDER, MYTHIC_FLOOR, HARD_PITY, BANGKOK_SALE_OFF, LOS_ANGELES_LAUNCH, LOS_ANGELES_SALE_LAST,
   newGacha, openPack, openPacks, packCost, packRetired, migrateGacha, setSlot, personTaken, seriesProgress, fullSetProgress,
@@ -43,9 +43,11 @@ ok('十六支队各一个当年的指挥（TL 是 Redgar，不是后来的 nAts�
   'ANGE1', 'FNS', 'Munchkin', 'rhyme', 'Redgar', 'BerLIN', 'Klaus', 'Laz'].sort().join()
   && LOS_ANGELES_TEAMS.every(t => LOS_ANGELES_CARDS.filter(c => c.clubTag === t.tag && c.isIgl).length === 1), callers.join())
 const counts = ['gold', 'silver', 'bronze'].map(r => LOS_ANGELES_CARDS.filter(c => c.rarity === r).length)
-ok('金 / 银 / 铜 = 20 / 53 / 7，没有彩卡', counts.join('/') === '20/53/7' && !LOS_ANGELES_CARDS.some(c => c.rarity === 'mythic'), counts.join('/'))
-ok('赛事 MVP Demon1 加 5 分，到顶 96', by('Demon1').rating === 96 && by('Demon1').rarity === 'gold', `${by('Demon1').rating}`)
-ok('首尔、曼谷的公式：Leo 91、Chronicle 78、crow 69', by('Leo').rating === 91 && by('Chronicle').rating === 78 && by('crow').rating === 69)
+ok('金 / 银 / 铜 = 20 / 54 / 6，没有彩卡', counts.join('/') === '20/54/6' && !LOS_ANGELES_CARDS.some(c => c.rarity === 'mythic'), counts.join('/'))
+ok('赛事 MVP Demon1 加 5 分：95', by('Demon1').rating === 95 && by('Demon1').rarity === 'gold' && losAngelesBreakdown(by('Demon1').losAngeles!.vlrId)!.mvp === 5, `${by('Demon1').rating}`)
+ok('首尔、曼谷的公式加 ACS 三成：Leo 90、Chronicle 77、crow 69', ACS_WEIGHT === 0.3 && by('Leo').rating === 90 && by('Chronicle').rating === 77 && by('crow').rating === 69)
+ok('ACS 算进去后 ZmjjKK 82、CHICHOO 83（只看 Rating 是 81、84）', by('ZmjjKK').rating === 82 && by('CHICHOO').rating === 83)
+ok('评分拆解和卡面一致', LOS_ANGELES_CARDS.every(c => losAngelesBreakdown(c.losAngeles!.vlrId)!.total === c.rating))
 ok('没有人打得比队友少到算替补', LOS_ANGELES_TEAMS.every(t => new Set(LOS_ANGELES_CARDS.filter(c => c.clubTag === t.tag).map(c => c.losAngeles!.maps)).size === 1))
 ok('进了全部卡牌，系列筛选出 80 张', LOS_ANGELES_CARDS.every(c => ALL_CARDS.includes(c))
   && ALL_CARDS.filter(c => matchesFilter(c, { ...EMPTY_FILTER, series: 'los-angeles-2023' })).length === 80)

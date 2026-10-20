@@ -7,9 +7,10 @@ import { MVP_BONUS } from './seoul2024'
 import { emptyStats } from './types'
 
 /**
- * 洛杉矶 2023 — the VALORANT Champions 2023 series, built exactly like 首尔 2024
+ * 洛杉矶 2023 — the VALORANT Champions 2023 series, built like 首尔 2024
  * (engine/seoul2024.ts) and 曼谷 2025: the same settling, stage weights, caller and
- * initiator bonuses, MVP honour and rarity lines, on vlr event 1657's 80 players.
+ * initiator bonuses, MVP honour and rarity lines, on vlr event 1657's 80 players —
+ * with ACS mixed into the combat number (ACS_WEIGHT).
  *
  * Dealt only by the 洛杉矶包 (gacha.ts), never by a base pack.
  */
@@ -65,30 +66,75 @@ const KAST_Z = standing('kast'), APR_Z = standing('apr')
 // The event MVP: Demon1 (vlr 26171), named by Riot at the final; 首尔's MVP honour (seoul2024.ts MVP_BONUS).
 const MVP = '26171'
 
+// ACS counts for 30% of the combat number, the rest is VLR Rating 2.0 (owner, 2026-10-20: 稍微调高一点 ACS 的占比 —
+// ZmjjKK's 227 ACS read 81 under CHICHOO's 84 on Rating alone). Both settled stats are put on one scale (the
+// field's spread, map-weighted) before they are mixed, so the blend is still in rating units. 首尔 and 曼谷
+// stay on Rating alone.
+export const ACS_WEIGHT = 0.3
+const spread = (k: Stat) => {
+  const xs = RAW.players.map(p => [settled(p, k), p.maps] as const)
+  const mean = xs.reduce((s, [x, m]) => s + x * m, 0) / MAPS
+  return { mean, sd: Math.sqrt(xs.reduce((s, [x, m]) => s + (x - mean) ** 2 * m, 0) / MAPS) }
+}
+const RATING_SPREAD = spread('rating'), ACS_SPREAD = spread('acs')
+
 type Face = { face?: string; sure?: boolean; confirmed?: boolean; note?: string | null; source?: string }
 /** the Features Day portrait and how sure the caption match is (scripts/losangeles2023_faces.py) */
 export const losAngelesFace = (vlrId: string): Face | undefined => (FACES as Record<string, Face>)[vlrId]
 
-/** seoul2024.ts's buildSeoulCards, formula for formula. */
+/** Every step from the event's numbers to the card's, for the /los-angeles-2023 rules section. */
+export interface LosAngelesBreakdown {
+  maps: number
+  /** as the event page prints them */
+  rating: number; acs: number
+  /** later rounds weighted more (groups 1, first playoff rounds 1.5, upper semi–lower final 2, grand final 3) */
+  stageRating: number; stageAcs: number
+  /** pulled toward the field by six maps' worth of it */
+  settledRating: number; settledAcs: number
+  /** the 70/30 mix of the two, in rating units */
+  mixed: number
+  combat: number
+  call: number; lift: number; mvp: number; sub: number
+  total: number
+}
+
+function breakdownOf(p: LosAngelesEntry): LosAngelesBreakdown & { usage: Map<Role, number>; isIgl: boolean } {
+  const team = LOS_ANGELES_TEAMS.find(t => t.tag === p.team)!
+  const usage = new Map<Role, number>()
+  for (const [agent, share] of Object.entries(p.agentUsage)) {
+    const role = roleAgents[agent]
+    if (role) usage.set(role, (usage.get(role) ?? 0) + (share ?? 0))
+  }
+  const s = (k: Stat) => settled(p, k)
+  const zr = (s('rating') - RATING_SPREAD.mean) / RATING_SPREAD.sd
+  const za = (s('acs') - ACS_SPREAD.mean) / ACS_SPREAD.sd
+  const mixed = RATING_SPREAD.mean + ((1 - ACS_WEIGHT) * zr + ACS_WEIGHT * za) * RATING_SPREAD.sd
+  const combat = 70 + (mixed - .75) * 45
+  const isIgl = callers.has(p.vlrId)
+  const call = isIgl ? CALL_BONUS[team.placement] ?? 0 : 0
+  const opener = (usage.get('先锋') ?? 0) / ([...usage.values()].reduce((a, b) => a + b, 0) || 1)
+  const lift = Math.round(opener * Math.max(0, Math.min(3, KAST_Z(s('kast')) + APR_Z(s('apr')))))
+  const sub = isSub(p) ? SUB_PENALTY : 0
+  const mvp = p.vlrId === MVP ? MVP_BONUS : 0
+  return {
+    usage, isIgl, maps: p.maps, rating: p.rating, acs: p.acs,
+    stageRating: played(p, 'rating'), stageAcs: played(p, 'acs'), settledRating: s('rating'), settledAcs: s('acs'),
+    mixed, combat, call, lift, mvp, sub, total: bounded(combat + call + lift + mvp - sub),
+  }
+}
+export const losAngelesBreakdown = (vlrId: string): LosAngelesBreakdown | undefined => {
+  const p = RAW.players.find(x => x.vlrId === vlrId)
+  return p ? breakdownOf(p) : undefined
+}
+
+/** seoul2024.ts's buildSeoulCards, formula for formula, with ACS mixed into the combat number (ACS_WEIGHT). */
 export function buildLosAngelesCards(base: readonly PlayerCard[]): PlayerCard[] {
   return RAW.players.map(p => {
     const live = p.playerId ? base.find(c => c.playerId === p.playerId && !c.legend) : undefined
     const team = LOS_ANGELES_TEAMS.find(t => t.tag === p.team)!
-    const usage = new Map<Role, number>()
-    for (const [agent, share] of Object.entries(p.agentUsage)) {
-      const role = roleAgents[agent]
-      if (role) usage.set(role, (usage.get(role) ?? 0) + (share ?? 0))
-    }
+    const { usage, isIgl, combat, call, sub, total: rating } = breakdownOf(p)
     const roles = [...usage].sort((a, b) => b[1] - a[1]).map(([role]) => role)
     const s = (k: Stat) => settled(p, k)
-    const combat = 70 + (s('rating') - .75) * 45
-    const isIgl = callers.has(p.vlrId)
-    const call = isIgl ? CALL_BONUS[team.placement] ?? 0 : 0
-    const opener = (usage.get('先锋') ?? 0) / ([...usage.values()].reduce((a, b) => a + b, 0) || 1)
-    const lift = Math.round(opener * Math.max(0, Math.min(3, KAST_Z(s('kast')) + APR_Z(s('apr')))))
-    const sub = isSub(p) ? SUB_PENALTY : 0
-    const mvp = p.vlrId === MVP ? MVP_BONUS : 0
-    const rating = bounded(combat + call + lift + mvp - sub)
     const attrs: Attrs = {
       aim: bounded(55 + s('acs') * .145 - sub), reaction: bounded(52 + s('kpr') * 42 - sub),
       awareness: bounded(20 + s('kast') * .85 - sub), utility: bounded(62 + s('apr') * 58 - sub),
