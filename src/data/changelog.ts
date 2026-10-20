@@ -28,6 +28,14 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-20',
+    title: '停服公告',
+    pinned: true,
+    changes: [
+      { kind: '调整', text: '收到律师函，游戏只能做到这里了，会在 10 月 22 日 2:00 关服，感谢大家的支持。后续我们会推出一个自己打造的 IP 游戏，老玩家在里面会有回馈的，大家可以在群里等候通知。感谢大家支持，江湖有缘再见！' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: '欢迎关注抖音 @点点点点点点点点',
     pinned: true,
     changes: [

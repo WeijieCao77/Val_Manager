@@ -389,7 +389,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
               two-tone split the career's mark has. The English keeps the .by
               line it inherited, which is where the career puts its credit. */}
           <div className="brand" aria-label="开瓦包">开<span>瓦包</span><em className="by">VAL CARDS</em></div>
-          <div className="chip" title="金币">🪙 <b>{g.coins.toLocaleString('en-US')}</b></div>
+          <div className="chip" title="金币">🪙 <b>{g.coins >= 900_000_000 ? '无限' : g.coins.toLocaleString('en-US')}</b></div>
           <StaminaChip g={g} onTick={() => setNow(serverNow())} />
           <div className="chip cm-rank" title="段位">
             {/* the rung, not the division — and past 大师 the score IS the rank */}

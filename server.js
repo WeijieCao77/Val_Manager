@@ -843,6 +843,57 @@ function handle(req, res) {
     return
   }
 
+  // Every table, as one consistent snapshot, streamed as NDJSON (owner, read only).
+  //
+  // Taken 2026-10-20 before the farewell's unlimited coins went live, so the
+  // real balances and collections are kept for whatever comes next. One
+  // repeatable-read transaction, so the accounts, the mail and the market all
+  // read as of the same instant; rows come through a cursor, so the process
+  // never holds a table in memory, and the stats pool's 120 s statement limit
+  // is lifted for this transaction only. card_requests (retry keys, forgotten
+  // after three days) is left out unless asked for with ?all=1.
+  if (path === '/api/admin/backup') {
+    if (!tokenOk(tokenFrom(req, url), TOKEN)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); return }
+    if (!sqlStats) { json(res, 503, { ok: false, why: 'no database' }); return }
+    const line = (o) => JSON.stringify(o, (_, v) => typeof v === 'bigint' ? v.toString() : v) + '\n'
+    // a download that is dropped must not leave the transaction open waiting for a drain that never comes
+    let gone = false
+    res.on('close', () => { if (!res.writableFinished) { gone = true; res.emit('drain') } })
+    const send = async (s) => {
+      if (gone) throw new Error('download dropped')
+      if (!res.write(s)) await new Promise((ok) => res.once('drain', ok))
+    }
+    void (async () => {
+      await sqlStats.begin(async (tx) => {
+        await tx`set transaction isolation level repeatable read, read only`
+        if (sqlStats.reserve) await tx`set local statement_timeout = 0`
+        const names = (await tx`select relname as name from pg_stat_user_tables order by relname`)
+          .map((t) => t.name).filter((n) => url.searchParams.get('all') === '1' || n !== 'card_requests')
+        res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' })
+        await send(line({ backup: { at: new Date().toISOString(), tables: names } }))
+        const counts = {}
+        for (const name of names) {
+          counts[name] = 0
+          const q = tx`select * from ${tx(name)}`
+          if (typeof q.cursor === 'function') {
+            for await (const rows of q.cursor(500)) {
+              for (const r of rows) { counts[name]++; await send(line({ t: name, r })) }
+            }
+          } else {
+            for (const r of await q) { counts[name]++; await send(line({ t: name, r })) }
+          }
+        }
+        await send(line({ done: true, counts }))
+      })
+      res.end()
+    })().catch((err) => {
+      console.warn('backup failed —', err.message)
+      if (!res.headersSent) json(res, 500, { ok: false, why: err.message })
+      else res.end(line({ failed: err.message }))
+    })
+    return
+  }
+
   // Give card_requests' file back to the disk (owner, POST; GET is a dry run).
   //
   // Deleting rows only frees room inside the table, and VACUUM FULL writes a

@@ -3043,6 +3043,9 @@ tr.other td .club span { color: var(--faint); }
 }
 .domain-notice .update-body { flex-basis: 100%; }
 .domain-notice code { font-size: var(--t-body); color: var(--text); }
+/* 停服公告: same shape, above the domain notice */
+.shutdown-notice { z-index: 87; }
+.shutdown-notice .update-body { flex-basis: auto; }
 
 /* a picked map chip: the familiarity number stays readable on the red */
 button.primary .faint, button.primary .muted { color: rgba(255, 255, 255, .78); }

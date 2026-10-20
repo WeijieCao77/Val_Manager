@@ -2944,6 +2944,15 @@ export const clampState = (g: GachaState): GachaState => {
  * it, so a row written by a client from any earlier week has every field the
  * rules expect.
  */
+/**
+ * 告别期 (owner, 2026-10-20): the site closes at 2:00 on 2026-10-22 (Beijing),
+ * and until then coins are unlimited. Every read of an account fills the
+ * purse back to `balance`, so anything bought costs nothing by the next
+ * action. The real balances were backed up before this went live.
+ * cards-api.js switches it on in production; tests and the browser leave it off.
+ */
+export const FREE_COINS = { on: false, balance: 999_999_999 }
+
 export function migrateGacha(state: GachaState, id: string): GachaState {
   const g = state as GachaState & { version?: number }
   g.version = GACHA_VERSION
@@ -2951,6 +2960,7 @@ export function migrateGacha(state: GachaState, id: string): GachaState {
   g.name = typeof g.name === 'string' ? g.name : '经理'
   g.createdAt = typeof g.createdAt === 'string' ? g.createdAt : new Date().toISOString().slice(0, 10)
   g.coins = typeof g.coins === 'number' && Number.isFinite(g.coins) ? g.coins : 0
+  if (FREE_COINS.on && g.coins < FREE_COINS.balance) g.coins = FREE_COINS.balance
   g.cards = cleanOwnedCards(g.cards)
   g.packs = g.packs && typeof g.packs === 'object' ? g.packs : {}
   g.pity = typeof g.pity === 'number' ? g.pity : 0

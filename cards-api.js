@@ -38,6 +38,10 @@ async function loadEngine() {
   return import('./src/engine/server.ts')
 }
 export const engine = await loadEngine()
+// 告别期: unlimited coins until the site closes (see FREE_COINS in gacha.ts). Live in production only once the
+// backup is taken (/api/admin/backup); FREE_COINS=1 turns it on locally, FREE_COINS=0 turns it off anywhere.
+const FREE_COINS_LIVE = false
+if (engine.FREE_COINS && (process.env.FREE_COINS === '1' || (FREE_COINS_LIVE && !!process.env.RAILWAY_PROJECT_ID && process.env.FREE_COINS !== '0'))) engine.FREE_COINS.on = true
 
 /**
  * The 体力 arithmetic the honesty checks run on, taken from the engine so the

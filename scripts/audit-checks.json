@@ -681,6 +681,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_free_coins.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_seoul_route.ts",
     "estimatedSeconds": 9
   },

@@ -10,7 +10,7 @@ export { runAction, wantsRival, squadForPlay, ladderScore, ACTIONS, encRegistrat
 export { retiredStarters, retiredLimit, RETIRED_STARTER_LIMIT } from './retirementRules'
 export type { ActEnv, ActResult } from './cardActions'
 export {
-  newGacha, migrateGacha, mergeClientFields, takeServerFields, clampState, refreshDaily,
+  newGacha, migrateGacha, FREE_COINS, mergeClientFields, takeServerFields, clampState, refreshDaily,
   primeStamina, pendingOpponent, SERVER_KEYS, CLIENT_KEYS, STARTER_COINS, GACHA_VERSION,
   masterPoints, oppBumpFor, canPlay, spendPlay, chargeStamina, SMS_LOGIN_STAMINA, STAMINA_COST, STAMINA_MAX, STAMINA_REGEN_MS,
 } from './gacha'
