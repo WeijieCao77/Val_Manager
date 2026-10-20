@@ -1,5 +1,5 @@
 /**
- * 抢五 — storage, matching and the clock for the rules in src/engine/swift.ts.
+ * 读点 — storage, matching and the clock for the rules in src/engine/swift.ts.
  *
  * A player queues with a five. Another player in the queue whose five is close
  * enough is a live match; after SWIFT_WAIT_SEC alone the queue hands over a

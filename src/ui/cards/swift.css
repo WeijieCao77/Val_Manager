@@ -1,4 +1,4 @@
-/* 抢五 (Swift.tsx) */
+/* 读点 (Swift.tsx) */
 .swift { display: flex; flex-direction: column; gap: 12px; }
 .swift-rules { margin: 8px 0 12px; padding-left: 18px; line-height: 1.7; }
 .swift-me { display: flex; gap: 10px; margin: 10px 0 6px; }
@@ -75,7 +75,7 @@
   .swift-nums b { font-size: 24px; }
 }
 
-/* 选秀夜 (Draft.tsx) */
+/* 抢人大战 (Draft.tsx) */
 .draft-code { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .draft-code b { font-size: 28px; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .draft-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }

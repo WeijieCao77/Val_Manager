@@ -1,5 +1,5 @@
 /**
- * 抢五 (engine/swift.ts): the money is VALORANT's, no plan is right every
+ * 读点 (engine/swift.ts): the money is VALORANT's, no plan is right every
  * round, and a match lasts a few minutes.
  *
  *   npx tsx scripts/check_swift.ts            # the checks
@@ -311,5 +311,5 @@ function play(a: SwiftSide, b: SwiftSide, seed: number, pa: Policy, pb: Policy, 
   check('quick format has no overtime: 5:4 ends it', matchOver(newSwiftMatch(1, sideA, sideB), [5, 4]))
 }
 
-console.log(fails ? `\n${fails} check(s) failed` : '\nall 抢五 checks passed')
+console.log(fails ? `\n${fails} check(s) failed` : '\nall 读点 checks passed')
 process.exit(fails ? 1 : 0)

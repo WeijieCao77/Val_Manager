@@ -1,5 +1,5 @@
 /**
- * 抢五 on the real server module (swift-api.js) over an in-process database:
+ * 读点 on the real server module (swift-api.js) over an in-process database:
  * the queue pairs two players, a round waits for both or for the clock, a
  * lone player gets a ghost and then the AI, the finish rates and pays once
  * per win up to the day's cap, and nobody can call someone else's match.
@@ -204,4 +204,4 @@ await call('/leave', { id: A, match: fa.id, resign: true }); await call('/leave'
 const board = (await call('', {})).board
 assert(Array.isArray(board))
 console.log('ok  无人比赛自动打完且不发奖励，快速/完整分开排，排行榜可读')
-console.log('\nall 抢五 server checks passed')
+console.log('\nall 读点 server checks passed')

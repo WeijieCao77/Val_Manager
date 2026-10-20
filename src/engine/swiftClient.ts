@@ -1,4 +1,4 @@
-/** The 抢五 page's side of swift-api.js. Nothing here touches the account: wins pay through the inbox. */
+/** The 读点 page's side of swift-api.js. Nothing here touches the account: wins pay through the inbox. */
 import { api } from './account'
 import { rememberedId } from './cardid'
 import type { Choice, Plan, SwiftFormat, SwiftView } from './swift'

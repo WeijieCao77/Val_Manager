@@ -1,4 +1,4 @@
-/** The 选秀夜 page's side of draft-api.js. Nothing drafted reaches the collection. */
+/** The 抢人大战 page's side of draft-api.js. Nothing drafted reaches the collection. */
 import { api } from './account'
 import { rememberedId } from './cardid'
 import type { DraftAward, DraftBid, DraftStanding } from './draft'

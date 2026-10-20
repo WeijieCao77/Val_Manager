@@ -1,5 +1,5 @@
 /**
- * Three test accounts with cards and a five each, for trying 抢五 and 选秀夜 on a local server
+ * Three test accounts with cards and a five each, for trying 读点 and 抢人大战 on a local server
  * (DATABASE_URL=pglite:// — wiped on every restart, so run this after each start).
  *
  *   PORT=8098 node scripts/seed_swift_local.mjs

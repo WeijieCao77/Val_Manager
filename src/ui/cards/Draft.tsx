@@ -13,7 +13,7 @@ const ign = (id: string) => { const c = cardById(id); return isPlayerCard(c) ? c
 const UNPAID: Record<string, string> = { small: '3 人以上的房间才有奖励', cap: '今天的房间奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
 
 /**
- * 选秀夜: a room of friends drafts from one shared pool and plays a round robin.
+ * 抢人大战: a room of friends drafts from one shared pool and plays a round robin.
  *
  * The room lives on the server (draft-api.js); the page reads it every second
  * and a half while a draft is on, and sends the one blind bid a round.
@@ -56,7 +56,7 @@ export default function Draft() {
   if (!st) return <Panel><p className="muted">读取中…</p></Panel>
   if (!room) return (
     <div className="swift">
-      <Panel title="选秀夜">
+      <Panel title="抢人大战">
         <p className="small">和朋友开一个房间（{st.min}–{st.max} 人），从同一个卡池里抢人组五人，选完自动打循环赛。</p>
         <ul className="swift-rules small muted">
           <li>六轮：决斗者、先锋、控场、哨卫、任意位置，最后一轮选教练。</li>
@@ -92,7 +92,7 @@ export default function Draft() {
 
 function Lobby({ room, st, busy, onStart }: { room: DraftRoom; st: DraftState; busy: boolean; onStart: () => void }) {
   const { toast } = useCards()
-  const share = `来开瓦包玩选秀夜，房间码 ${room.code}：${location.origin}/cards#draft`
+  const share = `来开瓦包玩抢人大战，房间码 ${room.code}：${location.origin}/cards#draft`
   const copy = async () => { try { await navigator.clipboard.writeText(share); toast('复制好了，发给朋友。') } catch { toast(share) } }
   return <>
     <div className="draft-code"><b>{room.code}</b><button className="sm" onClick={() => void copy()}>复制邀请</button></div>

@@ -620,10 +620,10 @@ const teamCupApi = () => (_teamCupApi ??= makeTeamCupApi(sql, {
   readBody, json, normalizeId, displayName, rateLimited, engine, fast: TEAM_CUP_FAST, bg: sqlBg, cardPoolVersion: ENGINE_SHA256,
 }))
 let _teamCupApi = null
-// 抢五 (swift-api.js): live matches, ghosts and the AI; a sweep finishes matches nobody reads
+// 读点 (swift-api.js): live matches, ghosts and the AI; a sweep finishes matches nobody reads
 const swiftApi = () => (_swiftApi ??= makeSwiftApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine, bg: sqlBg }))
 let _swiftApi = null
-// 选秀夜 (draft-api.js): friends' rooms, blind bids, a round robin on its own worker
+// 抢人大战 (draft-api.js): friends' rooms, blind bids, a round robin on its own worker
 const draftApi = () => (_draftApi ??= makeDraftApi(sql, { readBody, json, normalizeId, displayName, rateLimited, engine, bg: sqlBg }))
 let _draftApi = null
 

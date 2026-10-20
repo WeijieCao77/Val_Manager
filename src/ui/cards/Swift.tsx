@@ -28,7 +28,7 @@ const savedFormat = (): SwiftFormat => { try { return localStorage.getItem(FORMA
 const UNPAID: Record<string, string> = { resigned: '认输没有奖励', idle: '一半以上回合是系统代出的，没有奖励', cap: '今天的 5 场奖励已经领完', gate: '开过 50 张卡、账号满 3 天后才有奖励' }
 
 /**
- * 抢五: a round-by-round match the player calls.
+ * 读点: a round-by-round match the player calls.
  *
  * The page only shows and sends: the server (swift-api.js) holds the match,
  * plays each round when both sides have called it, and runs the clock. A
@@ -111,7 +111,7 @@ export default function Swift() {
           <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜。</li>
         </ul>
         {st.me && <div className="swift-me">
-          <div><b>{st.me.rating}</b><span>抢五分</span></div>
+          <div><b>{st.me.rating}</b><span>读点分</span></div>
           <div><b>{st.me.won}/{st.me.played}</b><span>胜/场</span></div>
           <div><b>{Math.min(st.me.dayGames, st.paidGames)}/{st.paidGames}</b><span>今日奖励</span></div>
         </div>}
@@ -127,7 +127,7 @@ export default function Swift() {
             : <button className="primary" disabled={busy} onClick={() => void start()}>开始匹配</button>}
         </div>
       </Panel>
-      {st.board.length > 0 && <Panel title="抢五排行">
+      {st.board.length > 0 && <Panel title="读点排行">
         <ol className="swift-board">
           {st.board.map((r) => <li key={r.h} className={st.me?.h === r.h ? 'me' : ''}>
             <span className="r">{r.rank}</span><span className="n">{r.name}<i>{r.tag}</i></span><span className="s">{r.rating}</span><span className="w">{r.won}/{r.played}</span>
@@ -331,7 +331,7 @@ function Result({ m, onClose }: { m: SwiftMatchView; onClose: () => void }) {
   const won = v.winner === v.me
   return <Panel className={`swift-result ${won ? 'won' : 'lost'}`} title={won ? '赢了' : '输了'} actions={<button className="ghost sm" onClick={onClose}>关闭</button>}>
     <p><b className="swift-final">{v.score[v.me]} : {v.score[1 - v.me]}</b> 对 {m.opponent.name}{m.kind !== 'live' ? `（${KIND_CN[m.kind]}）` : ''}{v.resigned !== null ? (v.resigned === v.me ? ' · 你认输了' : ' · 对方认输') : ''}</p>
-    {m.ratings && <p className="small">抢五分 {m.ratings.before} → <b>{m.ratings.after}</b>（{m.ratings.delta >= 0 ? '+' : ''}{m.ratings.delta}）{m.ratings.coins ? ` · 奖励 ${m.ratings.coins} 金币已进信箱` : m.ratings.unpaid ? ` · ${UNPAID[m.ratings.unpaid]}` : ''}</p>}
+    {m.ratings && <p className="small">读点分 {m.ratings.before} → <b>{m.ratings.after}</b>（{m.ratings.delta >= 0 ? '+' : ''}{m.ratings.delta}）{m.ratings.coins ? ` · 奖励 ${m.ratings.coins} 金币已进信箱` : m.ratings.unpaid ? ` · ${UNPAID[m.ratings.unpaid]}` : ''}</p>}
     <RoundDots log={v.log} me={v.me} />
   </Panel>
 }

@@ -1,5 +1,5 @@
 /**
- * 抢五 — a 3–5 minute match your five plays round by round, with you calling it.
+ * 读点 — a 3–5 minute match your five plays round by round, with you calling it.
  *
  * Every other match in the card mode is handed in and simulated whole. Here the
  * two sides decide every round, at the same time and blind, the three things a

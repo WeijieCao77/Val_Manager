@@ -1,5 +1,5 @@
 /**
- * 选秀夜 (engine/draft.ts + draft-api.js): lots spread from a star to a long
+ * 抢人大战 (engine/draft.ts + draft-api.js): lots spread from a star to a long
  * shot with nobody twice, the highest bid gets its card and the outbid take
  * the best left for free, budgets hold, the round robin is played once and the
  * table is right — on the real server module over an in-process database.
@@ -211,4 +211,4 @@ console.log(`ok  每天前 ${DRAFT_PAID_ROOMS} 个房间有奖励、至少 3 人
   assert((await bcall('/leave', { id: ids[3] })).ok)
   console.log('ok  比赛一直打不出来时房间会结束，不会把人卡住')
 }
-console.log('\nall 选秀夜 checks passed')
+console.log('\nall 抢人大战 checks passed')

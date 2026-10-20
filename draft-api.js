@@ -1,5 +1,5 @@
 /**
- * 选秀夜 — rooms for the rules in src/engine/draft.ts.
+ * 抢人大战 — rooms for the rules in src/engine/draft.ts.
  *
  * A host opens a room and shares its five-character code; up to six join. The
  * host starts it: the room deals the first lot and runs a clock of

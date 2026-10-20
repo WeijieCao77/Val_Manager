@@ -1,5 +1,5 @@
 /**
- * 选秀夜 — a room of friends drafts five each from one shared pool, then the
+ * 抢人大战 — a room of friends drafts five each from one shared pool, then the
  * fives play every other five once.
  *
  * Nobody brings their collection: every room is dealt from the whole card
