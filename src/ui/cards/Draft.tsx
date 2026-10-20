@@ -108,6 +108,12 @@ export default function Draft() {
     <div className="swift">
       <Panel title="抢人大战">
         <p className="small">和朋友开一个房间（{st.min}–{st.max} 人），从同一个卡池里抢人组五人，选完自动打比赛。</p>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button className="primary" disabled={busy} onClick={() => void run(draftCreate())}>开房间</button>
+          <input value={code} maxLength={5} placeholder="房间码" style={{ width: 110, textTransform: 'uppercase' }} onChange={(e) => setCode(e.target.value)} />
+          <button disabled={busy || code.trim().length !== 5} onClick={() => void run(draftJoin(code))}>加入</button>
+        </div>
+        <details className="swift-howto"><summary className="small">玩法说明</summary>
         <ul className="swift-rules small muted">
           <li>六轮：决斗者、先锋、控场、哨卫、任意位置，最后一轮选教练。</li>
           <li>每轮亮出 人数+1 张卡，从顶级到冷门。每人暗中选一张出价，整场预算 {st.budget}。</li>
@@ -116,11 +122,7 @@ export default function Draft() {
           <li>卡池是全卡库（含彩卡），不用你的收藏，选到的卡也不会进收藏。</li>
           <li>奖励：第一名 {st.prizes[0]}、第二名 {st.prizes[1]}、其他 {st.prizes[2]} 金币。{st.paidMin} 人以上的房间才有，每天前 {st.paidRooms} 个房间；六轮里要自己出价至少 4 轮。</li>
         </ul>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button className="primary" disabled={busy} onClick={() => void run(draftCreate())}>开房间</button>
-          <input value={code} maxLength={5} placeholder="房间码" style={{ width: 110, textTransform: 'uppercase' }} onChange={(e) => setCode(e.target.value)} />
-          <button disabled={busy || code.trim().length !== 5} onClick={() => void run(draftJoin(code))}>加入</button>
-        </div>
+        </details>
       </Panel>
     </div>
   )
@@ -144,7 +146,7 @@ export default function Draft() {
 function RoundPop({ won, got, wanted, paid, auto, onClose }: { won: boolean; got: string; wanted?: string; paid: number; auto: boolean; onClose: () => void }) {
   const info = pickInfo(got)
   return <div className="draft-pop-back" onClick={onClose} role="dialog" aria-live="assertive">
-    <div className={`draft-pop ${won ? 'won' : 'lost'}`}>
+    <div className={`draft-pop ${auto ? 'auto' : won ? 'won' : 'lost'}`}>
       <div className="draft-pop-head">{auto ? '这一轮你没出价' : won ? `抢到了！花了 ${paid}` : `没抢到 ${ign(wanted)}`}</div>
       <div className="draft-pop-body">
         <span className="tiny muted">{won ? '' : '分配到'}</span>
@@ -182,11 +184,16 @@ function Bidding({ room, busy, onBid }: { room: DraftRoom; busy: boolean; onBid:
   const me = room.seats.find((s) => s.me)!
   const [card, setCard] = useState(0)
   const [amount, setAmount] = useState(0)
-  useEffect(() => { setCard(0); setAmount(0) }, [room.round])
+  const top = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    setCard(0); setAmount(0)
+    // a phone: a new round brings the lot and the bid buttons to the top of the screen, so nobody scrolls on the clock
+    try { if (window.matchMedia('(max-width: 560px)').matches) top.current?.scrollIntoView({ block: 'start' }) } catch { /* old browsers */ }
+  }, [room.round])
   const lot = room.lot ?? []
   const left = room.rounds - room.round
   return <>
-    <div className="draft-head">
+    <div className="draft-head" ref={top}>
       <b>第 {room.round + 1}/{room.rounds} 轮 · {POS_CN[room.position ?? '自由人']}</b>
       <span className="small muted">预算 {me.budget} · 还剩 {left} 轮</span>
       <Clock deadline={room.deadline} />

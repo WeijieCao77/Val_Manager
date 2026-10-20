@@ -106,15 +106,7 @@ export default function Swift() {
       {done && <Result m={done} onClose={() => { markSeen(done.id); setDone(null) }} />}
       <Panel>
         <p className="small">用你的卡组和对手一回合一回合打。每回合双方同时决定：买什么、打哪里、谁去拿首杀。</p>
-        <details className="swift-howto" open={(st.me?.played ?? 0) < 3}><summary className="small">玩法说明</summary>
-        <ul className="swift-rules small muted">
-          <li>经济照搬无畏契约：手枪局 800，赢一回合 3000，连输 1900 / 2400 / 2900，下包 300，击杀 200，活下来的人留着枪。</li>
-          <li>打法互相克制，没有永远对的选择。看对手的习惯，读他下一回合。</li>
-          <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，带教练每场再多一次，看对手每个人的钱。</li>
-          <li>连着三回合不出算判负。比赛没打满（快速 5 回合、完整 13 回合）就有人认输，不计分也没有奖励。</li>
-          <li>{st.waitSec} 秒没匹配到真人，就打一个其他玩家的影子（按他的习惯出招）。</li>
-          <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜；加时第 5 回合定胜负。</li>
-        </ul></details>
+
         {st.me && <div className="swift-me">
           <div><b>{st.me.rating}</b><span>读点分</span></div>
           <div><b>{st.me.won}/{st.me.played}</b><span>胜/场</span></div>
@@ -131,6 +123,15 @@ export default function Swift() {
             ? <><button disabled>{SWIFT_FORMATS[st.queue!.format ?? 'quick'].name}匹配中 <Waited since={st.queue!.since} /></button><button className="ghost" onClick={() => void cancel()}>取消</button></>
             : <button className="primary" disabled={busy} onClick={() => void start()}>开始匹配</button>}
         </div>
+        <details className="swift-howto" open={(st.me?.played ?? 0) < 3}><summary className="small">玩法说明</summary>
+        <ul className="swift-rules small muted">
+          <li>经济照搬无畏契约：手枪局 800，赢一回合 3000，连输 1900 / 2400 / 2900，下包 300，击杀 200，活下来的人留着枪。</li>
+          <li>打法互相克制，没有永远对的选择。看对手的习惯，读他下一回合。</li>
+          <li>击杀和阵亡给全队攒大招：先锋侦察、控场封烟、哨卫锁点、决斗者强突。有指挥卡每半场能暂停一次，带教练每场再多一次，看对手每个人的钱。</li>
+          <li>连着三回合不出算判负。比赛没打满（快速 5 回合、完整 13 回合）就有人认输，不计分也没有奖励。</li>
+          <li>{st.waitSec} 秒没匹配到真人，就打一个其他玩家的影子（按他的习惯出招）。</li>
+          <li>完整赛制先赢 13 回合，12 回合换边；12:12 进加时，每回合每人 {OT_CREDITS}，领先 2 回合获胜；加时第 5 回合定胜负。</li>
+        </ul></details>
       </Panel>
       {st.board.length > 0 && <Panel title="读点排行">
         <ol className="swift-board">
@@ -196,6 +197,20 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
     return () => clearTimeout(t)
   }, [replayUntil])
   const replaying = replayUntil > Date.now()
+  // a phone: the round's result while it replays, then straight to the call — no scrolling on the clock
+  const scoreRef = useRef<HTMLDivElement>(null)
+  const callRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let phone = false
+    try { phone = window.matchMedia('(max-width: 560px)').matches } catch { /* old browsers */ }
+    if (!phone) return
+    if (replayUntil > Date.now()) {
+      scoreRef.current?.scrollIntoView({ block: 'start' })
+      const t = setTimeout(() => callRef.current?.scrollIntoView({ block: 'start' }), replayUntil - Date.now())
+      return () => clearTimeout(t)
+    }
+    callRef.current?.scrollIntoView({ block: 'start' })
+  }, [replayUntil])
   const f = SWIFT_FORMATS[v.format]
   // a new round: sensible defaults again
   useEffect(() => {
@@ -225,7 +240,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
 
   return (
     <div className="swift">
-      <div className="swift-score panel">
+      <div className="swift-score panel" ref={scoreRef}>
         <div className="swift-team"><b>{ours.name}</b><span>{v.attacking ? '进攻' : '防守'}</span></div>
         <div className="swift-nums"><b>{v.score[me]}</b><i>:</i><b>{v.score[them]}</b></div>
         <div className="swift-team right"><b>{m.opponent.name}<i className="tiny muted"> {m.opponent.tag}</i></b><span>{KIND_CN[m.kind]} · {v.attacking ? '防守' : '进攻'}</span></div>
@@ -235,6 +250,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
 
       {last && <RoundReveal key={last.round} r={last} me={me} v={v} />}
 
+      <div ref={callRef} className="swift-call-anchor" />
       <Panel title={v.phase === 'recon' ? '侦察' : `第 ${v.round} 回合`} actions={<Clock deadline={m.deadline} />}>
         {v.scouted ? <div className="swift-recon">
           <p>侦察到对方：<b>{PLAN_CN[v.scouted]}</b>。要改打法吗？</p>
@@ -250,10 +266,11 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
                   return <button key={b} className={buy === b ? 'primary' : ''} onClick={() => setBuy(b)}>
                     {v.pistol ? (b === 'full' ? '轻甲+技能' : b === 'force' ? '买鬼魅' : '不买') : BUY_CN[b]}
                     <small>花 {sum(k.spend)}</small>
+                    {!v.pistol && b === 'full' && !k.weapon.some((w) => w >= 3) && <small>买不起暴徒</small>}
                   </button>
                 })}
               </div>
-              <div className="swift-kit">{ours.seats.map((s, i) => <span key={i}><b>{s.ign}</b>{gun(preview.weapon[i], preview.shield[i])}<i>{v.mine.credits[i] - preview.spend[i]}</i></span>)}</div>
+              <div className="swift-kit mine">{ours.seats.map((s, i) => <span key={i}><b>{s.ign}</b>{gun(preview.weapon[i], preview.shield[i])}<i>{v.mine.credits[i] - preview.spend[i]}</i></span>)}</div>
             </div>
             <div className="swift-block">
               <h4>{v.attacking ? '进攻打法' : '防守站位'}</h4>
@@ -276,7 +293,7 @@ function MatchScreen({ m, apply, onResign }: { m: SwiftMatchView; apply: (r: { o
                   const u = ULT_OF[s.role] as Ult | undefined
                   return u ? <button key={i} className={ult === i ? 'primary' : ''} title={ULT_HINT[u]} onClick={() => setUlt(i)}>{s.ign} · {ULT_CN[u]}<small>{ULT_HINT[u]}</small></button> : null
                 })}
-              </div> : <p className="tiny muted">击杀、阵亡各 1 点，下包 2 点。</p>}
+              </div> : <p className="tiny muted swift-ult-hint">击杀、阵亡各 1 点，下包 2 点。</p>}
             </div>
             <div className="row" style={{ gap: 8, marginTop: 10 }}>
               <button className="primary" disabled={busy || replaying} onClick={() => void send()}>{replaying ? '回放中…' : '确定'}</button>

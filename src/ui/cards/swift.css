@@ -73,8 +73,18 @@
 
 @media (max-width: 560px) {
   .swift-opts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .swift-opts.five, .swift-kit, .swift-squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .swift-kit, .swift-squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .swift-nums b { font-size: 24px; }
+  /* the call fits one screen: no per-player gear under the buy (the buttons say what it costs), five first-duel picks in a row */
+  .swift-call-anchor, .swift-score { scroll-margin-top: 4px; }
+  .swift-ult-hint { display: none; }
+  .swift-kit.mine { display: none; }
+  .swift-block { margin-top: 8px; }
+  .swift-block h4 { margin-bottom: 4px; }
+  .swift-opts button { padding: 6px 2px; }
+  .swift-opts.five { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .swift-opts.five button { font-size: 11px; overflow: hidden; }
+  .swift-opts.five button small { font-size: 10px; }
 }
 
 /* 抢人大战 (Draft.tsx) */
@@ -125,6 +135,7 @@
 .draft-pop-head { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
 .draft-pop.won .draft-pop-head { color: var(--win); }
 .draft-pop.lost .draft-pop-head { color: var(--warn); }
+.draft-pop.auto { border-color: var(--line-hi); }
 .draft-pop-body { display: flex; flex-direction: column; gap: 2px; }
 .draft-pop-body b { font-size: 22px; }
 .draft-pop-body small { color: var(--muted); }
@@ -164,7 +175,12 @@
 .draft-final { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 15px; margin: 0 0 6px; }
 .draft-final > span { font-size: 22px; font-variant-numeric: tabular-nums; font-weight: 650; }
 @media (max-width: 560px) {
-  .draft-pick, .draft-intro-card { width: calc((100% - 20px) / 3); }
+  /* the lot as one row that swipes sideways, so the bid buttons sit right under it */
+  .draft-head { scroll-margin-top: 4px; }
+  .draft-lot { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; padding: 2px 2px 6px; gap: 8px; }
+  .draft-pick { flex: 0 0 27vw; width: 27vw; scroll-snap-align: start; }
+  .draft-bid input { font-size: 16px; }
+  .draft-intro-card { width: calc((100% - 20px) / 3); }
   .draft-intro-cards { gap: 8px; }
   .draft-intro-head b { font-size: 24px; }
   .draft-seats { grid-template-columns: 1fr; }

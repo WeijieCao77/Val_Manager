@@ -28,7 +28,7 @@ export const DRAFT_POSITIONS: readonly (Role | '教练')[] = ['决斗者', '先�
 export const DRAFT_ROUNDS = DRAFT_POSITIONS.length
 /** the broadcast: each lineup's entrance, a round-robin or placement match, a final map — seconds on screen */
 export const DRAFT_INTRO_SEC = 5
-export const DRAFT_GAME_SEC = 10
+export const DRAFT_GAME_SEC = 12
 export const DRAFT_MAP_SEC = 8
 /** each seat's colour, from the entrance to the table */
 export const SEAT_COLORS = ['#ff4655', '#3d8fd6', '#f0c14b', '#3dd68c', '#8b7bff', '#ff8a3d'] as const
