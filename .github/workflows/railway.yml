@@ -3,7 +3,18 @@ name: Build and deploy
 on:
   push:
     branches: [main]
+    # Notes and reports never reach the build; a push of only these would just
+    # restart the live server for nothing.
+    paths-ignore:
+      - 'analysis/**'
+      - '*.md'
   workflow_dispatch:
+
+# A newer push supersedes an older run: its audit is wasted, and its deploy
+# could land after the newer one and put an older build live.
+concurrency:
+  group: main-deploy
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -37,9 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
-      fail-fast: true
+      # Every shard runs to the end, so one red check never hides another.
+      # Shard estimates come from scripts/audit-estimates.mjs over CI reports.
+      fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,7 +65,7 @@ jobs:
           name: tested-build
       # Independent machines isolate databases, ports and filesystem fixtures.
       # Every manifest entry runs in exactly one shard with its original args/env.
-      - run: npm run audit:ci -- --shard ${{ matrix.shard }}/4 --report audit-results/shard-${{ matrix.shard }}.json
+      - run: npm run audit:ci -- --shard ${{ matrix.shard }}/8 --keep-going --report audit-results/shard-${{ matrix.shard }}.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

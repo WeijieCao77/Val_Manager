@@ -1,185 +1,225 @@
 [
   {
     "runtime": "python3",
-    "file": "scripts/audit_data.py"
+    "file": "scripts/audit_data.py",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/audit_feedback.ts",
     "args": [
       "3"
-    ]
+    ],
+    "estimatedSeconds": 12
   },
   {
     "runtime": "tsx",
-    "file": "scripts/smoke.ts"
+    "file": "scripts/smoke.ts",
+    "estimatedSeconds": 7
   },
   {
     "runtime": "tsx",
     "file": "scripts/smoke.ts",
     "env": {
       "RULESET": "vct-2026"
-    }
+    },
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_stats_sql.ts"
+    "file": "scripts/check_stats_sql.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_rollup.ts"
+    "file": "scripts/check_rollup.ts",
+    "estimatedSeconds": 11
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_telemetry.ts"
+    "file": "scripts/check_telemetry.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_arena_report.ts",
     "args": [
       "20"
-    ]
+    ],
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cards_api.ts"
+    "file": "scripts/check_cards_api.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_phone.ts"
+    "file": "scripts/check_phone.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cheat.ts"
+    "file": "scripts/check_cheat.ts",
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_site_api.ts"
+    "file": "scripts/check_site_api.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_market.ts"
+    "file": "scripts/check_market.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_market_sweep.ts"
+    "file": "scripts/check_market_sweep.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_refund_repair.ts"
+    "file": "scripts/check_refund_repair.ts",
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_authority.ts"
+    "file": "scripts/check_authority.ts",
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_swap.ts"
+    "file": "scripts/check_swap.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_traded_level.ts"
+    "file": "scripts/check_traded_level.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_dismantle.ts"
+    "file": "scripts/check_dismantle.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_predict.ts"
+    "file": "scripts/check_predict.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_fun_mode.ts"
+    "file": "scripts/check_fun_mode.ts",
+    "estimatedSeconds": 11
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_staff_poach.ts"
+    "file": "scripts/check_staff_poach.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_live_lines.ts"
+    "file": "scripts/check_live_lines.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_arrivals.ts",
-    "estimatedSeconds": 40
+    "estimatedSeconds": 9
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_predict_settlement.ts"
+    "file": "scripts/check_predict_settlement.ts",
+    "estimatedSeconds": 18
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_predict_playoffs.ts"
+    "file": "scripts/check_predict_playoffs.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_share_playoff.ts"
+    "file": "scripts/check_share_playoff.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cup_path.ts"
+    "file": "scripts/check_cup_path.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cup_repair.ts"
+    "file": "scripts/check_cup_repair.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_power_growth.ts",
-    "estimatedSeconds": 40
+    "estimatedSeconds": 70
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_coach_values.ts"
+    "file": "scripts/check_coach_values.ts",
+    "estimatedSeconds": 36
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_atomic.ts"
+    "file": "scripts/check_atomic.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_imports.ts"
+    "file": "scripts/check_imports.ts",
+    "estimatedSeconds": 32
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_mailbox.ts"
+    "file": "scripts/check_mailbox.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_rules_panel.ts"
+    "file": "scripts/check_rules_panel.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_loyalty.ts",
     "args": [
       "3"
-    ]
+    ],
+    "estimatedSeconds": 13
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_names.ts"
+    "file": "scripts/check_names.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_challenge.ts"
+    "file": "scripts/check_challenge.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_challenge_hour.ts"
+    "file": "scripts/check_challenge_hour.ts",
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_minigame.ts"
+    "file": "scripts/check_minigame.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_ladder.ts"
+    "file": "scripts/check_ladder.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_title_pack.ts"
+    "file": "scripts/check_title_pack.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
@@ -187,7 +227,7 @@
     "args": [
       "40"
     ],
-    "estimatedSeconds": 55
+    "estimatedSeconds": 107
   },
   {
     "runtime": "tsx",
@@ -195,86 +235,102 @@
     "args": [
       "1500"
     ],
-    "estimatedSeconds": 30
+    "estimatedSeconds": 45
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_fullset.ts"
+    "file": "scripts/check_fullset.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_ladder_pin.ts"
+    "file": "scripts/check_ladder_pin.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_rewards.ts"
+    "file": "scripts/check_rewards.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_pack_rng.ts",
     "args": [
       "400"
-    ]
+    ],
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_series.ts",
     "args": [
       "600"
-    ]
+    ],
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_offline_save.ts"
+    "file": "scripts/check_offline_save.ts",
+    "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cross_device.ts"
+    "file": "scripts/check_cross_device.ts",
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_salvage_bulk.ts"
+    "file": "scripts/check_salvage_bulk.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_leagues.ts"
+    "file": "scripts/check_leagues.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_two_origins.ts"
+    "file": "scripts/check_two_origins.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_save_size.ts",
     "args": [
       "2"
-    ]
+    ],
+    "estimatedSeconds": 13
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_endings.ts"
+    "file": "scripts/check_endings.ts",
+    "estimatedSeconds": 63
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_tenure.ts"
+    "file": "scripts/check_tenure.ts",
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_lineups.ts",
     "args": [
       "1"
-    ]
+    ],
+    "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_invariants.ts",
     "args": [
       "3"
-    ]
+    ],
+    "estimatedSeconds": 18
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_map_agents.ts"
+    "file": "scripts/check_map_agents.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
@@ -282,27 +338,32 @@
     "args": [
       "600"
     ],
-    "estimatedSeconds": 25
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_drill_rates.ts"
+    "file": "scripts/check_drill_rates.ts",
+    "estimatedSeconds": 9
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_midreview.ts"
+    "file": "scripts/check_midreview.ts",
+    "estimatedSeconds": 15
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_titles.ts"
+    "file": "scripts/check_titles.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_lifetime.ts"
+    "file": "scripts/check_lifetime.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_profile.ts"
+    "file": "scripts/check_profile.ts",
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
@@ -310,533 +371,633 @@
     "args": [
       "6"
     ],
-    "estimatedSeconds": 65
+    "estimatedSeconds": 348
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_prospects.ts"
+    "file": "scripts/check_prospects.ts",
+    "estimatedSeconds": 41
   },
   {
     "runtime": "tsx",
-    "file": "scripts/card_check.ts"
+    "file": "scripts/card_check.ts",
+    "estimatedSeconds": 59
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_auto_igl.ts"
+    "file": "scripts/check_auto_igl.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_agents.ts"
+    "file": "scripts/check_agents.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_ai_growth.ts",
-    "estimatedSeconds": 80
+    "estimatedSeconds": 268
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_audit_p0.ts"
+    "file": "scripts/check_audit_p0.ts",
+    "estimatedSeconds": 7
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_audit_p1.ts"
+    "file": "scripts/check_audit_p1.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_audit_p2.ts"
+    "file": "scripts/check_audit_p2.ts",
+    "estimatedSeconds": 14
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_autosave.ts"
+    "file": "scripts/check_autosave.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_comp.ts"
+    "file": "scripts/check_comp.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_contracts.ts",
-    "estimatedSeconds": 15
+    "estimatedSeconds": 46
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_dashboard.ts"
+    "file": "scripts/check_dashboard.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_admin_highlights.ts"
+    "file": "scripts/check_admin_highlights.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_economy.ts"
+    "file": "scripts/check_economy.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_finals.ts"
+    "file": "scripts/check_finals.ts",
+    "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_format.ts"
+    "file": "scripts/check_format.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_calendar.ts"
+    "file": "scripts/check_calendar.ts",
+    "estimatedSeconds": 6
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_calendar_gaps.ts"
+    "file": "scripts/check_calendar_gaps.ts",
+    "estimatedSeconds": 28
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_tier2_path.ts",
     "args": [
       "3"
-    ]
+    ],
+    "estimatedSeconds": 67
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_draws.ts",
     "args": [
       "1"
-    ]
+    ],
+    "estimatedSeconds": 45
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_group_feedback.ts"
+    "file": "scripts/check_group_feedback.ts",
+    "estimatedSeconds": 14
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_igl.ts"
+    "file": "scripts/check_igl.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_caller_sync.ts"
+    "file": "scripts/check_caller_sync.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_next_round.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_injury_physio.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_midgame.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_milestones.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_odd_league.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_odds.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_rollover_clock.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_roster.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_saves.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_training.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_training_advice.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_patch_notice.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_honours.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_disputes.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_manager_life.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_birthdays.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_potential_jitter.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_history_world.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_2023.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_window.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_ai_parity.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_pool_deadlock.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_schema_boot.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_qr.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_share_card.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_client_ip.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_urls.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_poster.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_style.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_veto_edge.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_agent_pro.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_mythic_floor.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_agent_drill.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_checkin.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_coached.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_seoul2024.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_bangkok2025.ts",
-    "estimatedSeconds": 8
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_seoul_route.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_bangkok_route.ts",
-    "estimatedSeconds": 6
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_card_integrity.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_cup_registration.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_cup_fairness.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_cup_double.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_ladder_match.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_ladder_offtx.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_account_projection.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_projection_upgrade.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_manager_turn_abort.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_squad_sync.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_guard.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_protect.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_player_proxy.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_team_cup.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_cup_clock.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_open_cup.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_card_score_odds.ts",
-    "estimatedSeconds": 75
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_career_contract_fixes.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_phone_atomic.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_profile_bounds.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_limits.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_save_integrity.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_starter_availability.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_job_handoff.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_home_metadata.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_home_bundle.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_coach_identity.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_homonyms.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_people.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_pglite_sql.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_browser_apis.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_balance_v2.ts",
-    "estimatedSeconds": 100
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_load_race.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_idempotency.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_shelf.ts",
-    "estimatedSeconds": 100
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_phone_config.ts"
-  },
-  {
-    "runtime": "node",
-    "file": "scripts/check_db_transactions.mjs"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_open_cup_swiss.ts",
-    "estimatedSeconds": 22
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_open_cup_worker.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_open_cup_archive.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_open_cup_v2.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_release_readiness.ts"
-  },
-  {
-    "runtime": "node",
-    "file": "scripts/pg/check_history_maintenance.mjs"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_participating.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_prediction_rewards.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_scouting.ts",
-    "estimatedSeconds": 20
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_market_history.ts",
-    "estimatedSeconds": 8
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_champions.ts"
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_save_race.ts",
+    "file": "scripts/check_next_round.ts",
     "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_pouch_geometry.ts",
-    "estimatedSeconds": 2
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_club_sets.ts",
-    "estimatedSeconds": 2
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_promotion.ts",
-    "estimatedSeconds": 2
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_board_verdict.ts",
+    "file": "scripts/check_injury_physio.ts",
     "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_coach_effect.ts",
-    "estimatedSeconds": 35
+    "file": "scripts/check_midgame.ts",
+    "estimatedSeconds": 7
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_cup_seed.ts",
-    "estimatedSeconds": 3
-  },
-  {
-    "runtime": "tsx",
-    "file": "scripts/check_map_comps.ts",
+    "file": "scripts/check_milestones.ts",
     "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_market_transfer.ts",
+    "file": "scripts/check_odd_league.ts",
+    "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_odds.ts",
     "estimatedSeconds": 8
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_seasons.ts",
+    "file": "scripts/check_rollover_clock.ts",
+    "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_roster.ts",
+    "estimatedSeconds": 8
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_saves.ts",
+    "estimatedSeconds": 9
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_training.ts",
+    "estimatedSeconds": 11
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_training_advice.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_patch_notice.ts",
+    "estimatedSeconds": 5
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_honours.ts",
+    "estimatedSeconds": 7
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_disputes.ts",
+    "estimatedSeconds": 11
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_manager_life.ts",
+    "estimatedSeconds": 11
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_birthdays.ts",
+    "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_potential_jitter.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_history_world.ts",
+    "estimatedSeconds": 9
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_2023.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_window.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_ai_parity.ts",
     "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_enc.ts",
+    "file": "scripts/check_pool_deadlock.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_schema_boot.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_qr.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_share_card.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_client_ip.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_urls.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_poster.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_style.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_veto_edge.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_agent_pro.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_mythic_floor.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_agent_drill.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_checkin.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_coached.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_seoul2024.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_bangkok2025.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_seoul_route.ts",
+    "estimatedSeconds": 9
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_bangkok_route.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_card_integrity.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_registration.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_fairness.ts",
+    "estimatedSeconds": 27
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_double.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_ladder_match.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_ladder_offtx.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_account_projection.ts",
+    "estimatedSeconds": 20
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_projection_upgrade.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_manager_turn_abort.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_squad_sync.ts",
+    "estimatedSeconds": 9
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_guard.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_protect.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_player_proxy.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_team_cup.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_clock.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_open_cup.ts",
+    "estimatedSeconds": 12
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_card_score_odds.ts",
+    "estimatedSeconds": 249
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_career_contract_fixes.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_phone_atomic.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_profile_bounds.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_limits.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_save_integrity.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_starter_availability.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_job_handoff.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_home_metadata.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_home_bundle.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_coach_identity.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_homonyms.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_people.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_pglite_sql.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_browser_apis.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_balance_v2.ts",
+    "estimatedSeconds": 238
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_load_race.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_idempotency.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_shelf.ts",
+    "estimatedSeconds": 135
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_phone_config.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "node",
+    "file": "scripts/check_db_transactions.mjs",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_open_cup_swiss.ts",
+    "estimatedSeconds": 39
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_open_cup_worker.ts",
+    "estimatedSeconds": 2
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_open_cup_archive.ts",
+    "estimatedSeconds": 5
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_open_cup_v2.ts",
+    "estimatedSeconds": 15
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_release_readiness.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "node",
+    "file": "scripts/pg/check_history_maintenance.mjs",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_participating.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_prediction_rewards.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_scouting.ts",
+    "estimatedSeconds": 65
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_history.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_champions.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_save_race.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_pouch_geometry.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_club_sets.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_promotion.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_board_verdict.ts",
+    "estimatedSeconds": 12
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_coach_effect.ts",
+    "estimatedSeconds": 74
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_cup_seed.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_map_comps.ts",
     "estimatedSeconds": 6
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_market_transfer.ts",
+    "estimatedSeconds": 3
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_seasons.ts",
+    "estimatedSeconds": 1
+  },
+  {
+    "runtime": "tsx",
+    "file": "scripts/check_enc.ts",
+    "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_rename.ts",
-    "estimatedSeconds": 3
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_last_season.ts",
-    "estimatedSeconds": 3
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_evolve.ts",
-    "estimatedSeconds": 6
+    "estimatedSeconds": 4
   },
   {
     "runtime": "tsx",
@@ -856,72 +1017,86 @@
   {
     "runtime": "tsx",
     "file": "scripts/check_guard_owner.ts",
-    "estimatedSeconds": 4
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_transfer_news.ts",
-    "estimatedSeconds": 10
+    "estimatedSeconds": 17
   },
   {
     "runtime": "tsx",
     "file": "scripts/check_breakthrough.ts",
-    "estimatedSeconds": 12
+    "estimatedSeconds": 5
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_series_full.ts"
+    "file": "scripts/check_series_full.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_card_archive.ts"
+    "file": "scripts/check_card_archive.ts",
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_ten_floor_pity.ts"
+    "file": "scripts/check_ten_floor_pity.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_club_rename.ts"
+    "file": "scripts/check_club_rename.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_retired_pack.ts"
+    "file": "scripts/check_retired_pack.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_collect_rewards.ts"
+    "file": "scripts/check_collect_rewards.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_retired_leagues.ts"
+    "file": "scripts/check_retired_leagues.ts",
+    "estimatedSeconds": 41
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_history_teams.ts"
+    "file": "scripts/check_history_teams.ts",
+    "estimatedSeconds": 2
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_coach_is_player.ts"
+    "file": "scripts/check_coach_is_player.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_retired_card_life.ts"
+    "file": "scripts/check_retired_card_life.ts",
+    "estimatedSeconds": 3
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_retirement_cap.ts"
+    "file": "scripts/check_retirement_cap.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_presets.ts"
+    "file": "scripts/check_presets.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_egg_cards.ts"
+    "file": "scripts/check_egg_cards.ts",
+    "estimatedSeconds": 1
   },
   {
     "runtime": "tsx",
-    "file": "scripts/check_scan_plans.ts"
+    "file": "scripts/check_scan_plans.ts",
+    "estimatedSeconds": 58
   }
 ]

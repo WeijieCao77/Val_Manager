@@ -31,7 +31,7 @@ export function commandFor(check) {
   throw new Error(`Unknown audit runtime: ${check.runtime}`)
 }
 
-export async function runChecks(selected) {
+export async function runChecks(selected, { keepGoing = false } = {}) {
   const results = []
   for (const check of selected) {
     const name = label(check)
@@ -47,14 +47,14 @@ export async function runChecks(selected) {
     results.push(result)
     console.log(`${result.code === 0 ? 'PASS' : 'FAIL'} ${name} (${result.seconds}s)`)
     if (process.env.GITHUB_ACTIONS) console.log('::endgroup::')
-    if (result.code !== 0) break
+    if (result.code !== 0 && !keepGoing) break
   }
   return results
 }
 
 export async function main(args) {
   let selected = checks, shard = 'all', report
-  let list = false
+  let list = false, keepGoing = false
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--shard') {
       shard = args[++i]
@@ -65,11 +65,12 @@ export async function main(args) {
       report = args[++i]
       if (!report || report.startsWith('--')) throw new Error('--report needs a file path')
     } else if (args[i] === '--list') list = true
+    else if (args[i] === '--keep-going') keepGoing = true
     else throw new Error(`Unknown argument: ${args[i]}`)
   }
   if (list) { console.log(selected.map(label).join('\n')); return 0 }
   console.log(`Audit ${shard}: ${selected.length}/${checks.length} checks`)
-  const results = await runChecks(selected)
+  const results = await runChecks(selected, { keepGoing })
   const passed = results.length === selected.length && results.every(result => result.code === 0)
   if (report) {
     mkdirSync(dirname(resolve(report)), { recursive: true })
@@ -78,6 +79,8 @@ export async function main(args) {
   const summary = `### Audit ${shard}: ${passed ? 'passed' : 'FAILED'} (${results.length}/${selected.length})\n\n| Check | Seconds | Result |\n| --- | ---: | --- |\n` +
     [...results].sort((a, b) => b.seconds - a.seconds).map(r => `| ${r.name} | ${r.seconds} | ${r.code === 0 ? 'pass' : 'FAIL'} |`).join('\n') + '\n'
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+  // Every failure named at the end of the log, and as an annotation on the run page.
+  for (const r of results.filter(r => r.code !== 0)) console.log(process.env.GITHUB_ACTIONS ? `::error title=Audit check failed::${r.name}` : `FAILED ${r.name}`)
   console.log(`Audit ${shard}: ${passed ? 'passed' : 'FAILED'}; ${results.length}/${selected.length} checks completed`)
   return passed ? 0 : 1
 }

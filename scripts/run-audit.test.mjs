@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { checks, label, planShards, commandFor, runChecks, main } from './run-audit.mjs'
 
-test('all checks occur exactly once across four nonempty deterministic shards', () => {
-  const shards = planShards(checks, 4)
+test('all checks occur exactly once across eight nonempty deterministic shards', () => {
+  const shards = planShards(checks, 8)
   assert.ok(shards.every(shard => shard.length > 0))
   assert.deepEqual(shards.flat().map(label).sort(), checks.map(label).sort())
   assert.equal(new Set(checks.map(label)).size, checks.length)
-  assert.deepEqual(shards, planShards(checks, 4))
+  assert.deepEqual(shards, planShards(checks, 8))
   assert.deepEqual(planShards(checks, 1), [checks])
   for (const check of checks) {
     assert.ok(existsSync(check.file), check.file)
@@ -46,6 +46,12 @@ test('runner preserves args/env, records timing and stops on a failing child', a
     assert.deepEqual(results.map(result => result.code), [0, 7])
     assert.ok(results.every(result => result.seconds >= 0))
     assert.equal(existsSync(marker), false)
+    const kept = await runChecks([
+      { runtime: 'node', file: fixture, args: ['fail'] },
+      { runtime: 'node', file: fixture, args: [marker] },
+    ], { keepGoing: true })
+    assert.deepEqual(kept.map(result => result.code), [7, 0])
+    assert.equal(existsSync(marker), true)
     const missing = await runChecks([{ runtime: 'node', file: join(dir, 'missing.mjs') }])
     assert.notEqual(missing[0].code, 0)
   } finally { rmSync(dir, { recursive: true, force: true }) }
