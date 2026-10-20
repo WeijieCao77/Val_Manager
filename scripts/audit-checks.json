@@ -1071,6 +1071,11 @@
   },
   {
     "runtime": "tsx",
+    "file": "scripts/check_retired_coaches.ts",
+    "estimatedSeconds": 4
+  },
+  {
+    "runtime": "tsx",
     "file": "scripts/check_collect_rewards.ts",
     "estimatedSeconds": 1
   },

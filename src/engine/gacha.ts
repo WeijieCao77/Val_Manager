@@ -20,7 +20,7 @@ import type { SeoulRouteState } from './seoulRoute'
 import type { HistoryState } from './historyTeams'
 import type { EventRouteState } from './eventRoute'
 import {
-  ALL_CARDS, ownableCard, SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS, LOS_ANGELES_CARDS, COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
+  ALL_CARDS, ownableCard, SEOUL_CARDS, BANGKOK_CARDS, RETIRED_CARDS, LOS_ANGELES_CARDS, COACH_CARDS, RETIRED_COACH_CARDS, COINS_FOR, DUPES_FOR, LEGEND_CARDS, LEGEND_COACH_CARDS, MAX_LEVEL, RARITY_CN, cardName, PLAYER_CARDS,
   SALVAGE, SQUAD_SLOTS, cardById, cardPower, emptySquad, isPlayerCard, personOf, rarityRank, ratingAt,
   squadRating, squadPower, EVO_LEVEL_ROOM,
 } from './cards'
@@ -55,6 +55,8 @@ export type PackKind =
   | 'scout' | 'elite' | 'ten' | 'coach' | 'seoul2024' | 'bangkok2025' | 'losangeles2023'
   // the 退役 series: its own pool, its own 彩卡 floor (RETIRED_FLOOR)
   | 'retired'
+  // 退役教练 (2026-10-20): one retired coach, its own pool
+  | 'retiredCoach'
   // one 彩卡, nothing else — the reward for a full 图鉴; never sold
   | 'legend'
   // one per series — same three cards, drawn only from that region
@@ -94,7 +96,7 @@ export interface PackDef {
    */
   shop?: boolean
   /** coach packs deal from a different deck; a series deals from one region; a position from its players; 'legend' is every 彩卡 */
-  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'losangeles2023' | 'retired' | 'legend' | Series | PackPosition
+  pool: 'player' | 'coach' | 'seoul2024' | 'bangkok2025' | 'losangeles2023' | 'retired' | 'retiredCoach' | 'legend' | Series | PackPosition
 }
 
 /**
@@ -198,6 +200,12 @@ export const PACKS: Record<PackKind, PackDef> = {
     // won, and a booth is where that card belongs.
     cost: 1200, draws: 1, mythic: 0.0009, gold: 0.12, silver: 0.42, shop: true,
   },
+  // 退役教练 (owner, 2026-10-20): the 教练包's shape, drawn only from the retired coaches; no 彩卡
+  retiredCoach: {
+    kind: 'coach', name: '退役教练包', pool: 'retiredCoach',
+    blurb: '一名退役教练，卡上写着他带得最久的队。',
+    cost: 1200, draws: 1, mythic: 0, gold: 0.12, silver: 0.42, shop: true,
+  },
   // The position packs. One card that plays the position, a little kinder
   // than a 试训包 because it was earned in a game rather than bought, and no
   // 彩卡: five of these a day is the ceiling and a legend behind a reaction
@@ -243,7 +251,7 @@ export const seriesOfPack = (kind: PackKind): Series | null =>
         : kind === 'emea' ? 'EMEA' : null
 
 export const PACK_ORDER: PackKind[] = [
-  'scout', 'elite', 'ten', 'coach', 'cn', 'pac', 'ame', 'emea', 'retired', 'seoul2024', 'bangkok2025', 'losangeles2023',
+  'scout', 'elite', 'ten', 'coach', 'retiredCoach', 'cn', 'pac', 'ame', 'emea', 'retired', 'seoul2024', 'bangkok2025', 'losangeles2023',
 ]
 
 /**
@@ -1172,6 +1180,12 @@ const POOLS = {
     mythic: [...LEGEND_CARDS, ...LEGEND_COACH_CARDS] as Card[],
     gold: [] as Card[], silver: [] as Card[], bronze: [] as Card[],
   },
+  retiredCoach: {
+    mythic: [] as Card[],
+    gold: RETIRED_COACH_CARDS.filter((c) => c.rarity === 'gold'),
+    silver: RETIRED_COACH_CARDS.filter((c) => c.rarity === 'silver'),
+    bronze: RETIRED_COACH_CARDS.filter((c) => c.rarity === 'bronze'),
+  },
   coach: {
     mythic: LEGEND_COACH_CARDS,
     gold: COACH_CARDS.filter((c) => c.rarity === 'gold'),
@@ -1872,7 +1886,7 @@ export function claimCollect(g: GachaState, series: CollectSeries): string | nul
  * one you hold if you hold it already.
  */
 export const FULL_SET_CARDS: ReadonlySet<string> = new Set(
-  ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event)).map((c) => c.id),
+  ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event) && !(c.kind === 'coach' && c.retired)).map((c) => c.id),
 )
 export const FULL_SET_REWARD = { pack: 'legend' as PackKind, count: 1 }
 

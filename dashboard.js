@@ -291,6 +291,7 @@ export const dashboardHtml = () => `<!doctype html>
           <option value="elite" selected>选拔包</option>
           <option value="ten">十连包</option>
           <option value="coach">教练包</option>
+          <option value="retiredCoach">退役教练包</option>
           <option value="cn">中国包</option>
           <option value="pac">太平洋包</option>
           <option value="ame">美洲包</option>
@@ -517,7 +518,7 @@ function matured(cohorts, n, key) {
 }
 const pctOr = (v) => (v == null ? '<span class="muted">—</span>' : v + '<small>%</small>')
 
-const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', losangeles2023: '洛杉矶包', retired: '退役选手包', legend: '彩卡包' }
+const PACK_CN = { scout: '试训包', elite: '选拔包', ten: '十连包', coach: '教练包', retiredCoach: '退役教练包', seoul2024: '首尔包', bangkok2025: '曼谷包', losangeles2023: '洛杉矶包', retired: '退役选手包', legend: '彩卡包' }
 const MODE_CN = { ladder: '天梯', cup: '杯赛', seoul: '首尔征途', bangkok: '曼谷征途', la: '洛杉矶征途' }
 const LEAGUE_CN = { open: '公开赛', gold: '金卡赛', silver: '银卡赛', bronze: '铜卡赛', hof: '名人堂', retired: '传奇联赛', mixed: '全系列赛' }
 const DIV_CN = ['青铜', '白银', '黄金', '铂金', '钻石', '大师']

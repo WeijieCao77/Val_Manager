@@ -28,6 +28,13 @@ export interface ChangeEntry {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-10-20',
+    title: '新卡包：退役教练包',
+    changes: [
+      { kind: '新增', text: '<b>退役教练包</b>：70 位不再执教的教练，每包一名，「抽卡」页可以买。卡上写着他带得最久的队；分数按现役教练的尺子换算，两边能直接比。退役教练不算进首发的退役名额，也不算全图鉴。' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: '洛杉矶系列卡面照片更新',
     changes: [
       { kind: '调整', text: '洛杉矶系列 14 张卡换成同届的官方原片，不再切头、缺肩；其余卡逐张调了照片和卡面的融合。Jinggg 不变，数值不变。' },

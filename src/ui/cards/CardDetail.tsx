@@ -143,7 +143,7 @@ export default function CardDetail({ cardId, onClose, actions }: {
                 </>
               ) : (
                 <div className="small muted" style={{ lineHeight: 1.9 }}>
-                  {sel.clubTag ?? '自由身'} 的教练{sel.spec ? '组分析师' : ''}
+                  {sel.retired ? `退役教练 · 带得最久的队 ${sel.clubTag ?? '—'}` : `${sel.clubTag ?? '自由身'} 的教练${sel.spec ? '组分析师' : ''}`}
                   <br />战术 {sel.tactics} · 培养 {sel.development} · 激励 {sel.motivation}
                   <br />
                   <span className="tiny">带同队或同赛区的选手时默契更高。</span>

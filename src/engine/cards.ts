@@ -27,6 +27,7 @@ import COACHED_JSON from '../data/coached.json'
 import RATED from '../data/card_ratings.json'
 import ARCHIVE from '../data/card_archive.json'
 import RETIRED_JSON from '../data/retired_cards.json'
+import RETIRED_COACHES_JSON from '../data/retired_coaches.json'
 import HISTORY_JSON from '../data/history_teams.json'
 import type { Legend } from './legends'
 import { clamp } from './rng'
@@ -474,6 +475,29 @@ function buildRetiredCards(): PlayerCard[] {
 export const RETIRED_CARDS: PlayerCard[] = buildRetiredCards()
 
 /**
+ * 退役教练 (owner, 2026-10-20): the 70 coaches v16 found no longer coaching
+ * (scripts/build_retired_coaches.py). Their three numbers were carried over by
+ * rank onto the live head coaches' ruler, so a retired and a live coach compare
+ * on one scale; the card number is coachRating over them, as every coach's is.
+ * The club is the one he is remembered by, kept as a former club (`H:` id).
+ * Dealt only by the 退役教练包; outside the 全图鉴 and the 教练包.
+ */
+type RetiredCoachRow = {
+  id: string; name: string; realName: string | null; nat: string | null; clubTag: string; region: Region | null
+  tactics: number; development: number; motivation: number; face: string | null; faceV: string | null
+}
+export const RETIRED_COACH_CARDS: CoachCard[] = (RETIRED_COACHES_JSON as unknown as { coaches: RetiredCoachRow[] }).coaches.map((r) => {
+  const rating = coachRating(r)
+  return {
+    kind: 'coach' as const, id: r.id, retired: true, name: r.name, realName: r.realName, nat: r.nat,
+    face: r.face ? faceUrl(r.face, r.faceV ?? undefined) : null,
+    clubId: histClub(r.clubTag), clubTag: r.clubTag, region: r.region,
+    tactics: r.tactics, development: r.development, motivation: r.motivation,
+    rating, rarity: coachRarityOf(rating),
+  }
+})
+
+/**
  * 历代强队: the twelve opponents' fives as they were that week
  * (scripts/rating/build_history_teams.py — era ratings, own attribute shapes).
  * Cards only so a match can seat them: never dealt, never counted, never owned —
@@ -503,7 +527,7 @@ export const LOS_ANGELES_CARDS: PlayerCard[] = buildLosAngelesCards(ANY_BASE)
 export const LEGEND_COACH_CARDS: CoachCard[] = buildLegendCoachCards()
 export const COACH_CARDS: CoachCard[] = [...LIVE_COACH_CARDS, ...LEGEND_COACH_CARDS]
 /** everything a pack can deal and the 图鉴 counts; former cards are looked up, never listed here */
-export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...LOS_ANGELES_CARDS, ...RETIRED_CARDS, ...COACH_CARDS]
+export const ALL_CARDS: Card[] = [...PLAYER_CARDS, ...SEOUL_CARDS, ...BANGKOK_CARDS, ...LOS_ANGELES_CARDS, ...RETIRED_CARDS, ...COACH_CARDS, ...RETIRED_COACH_CARDS]
 /** 彩蛋卡: handed out by the owner, never dealt or counted — looked up like the former cards */
 export const EGG_CARDS: PlayerCard[] = buildEggCards(ANY_BASE)
 

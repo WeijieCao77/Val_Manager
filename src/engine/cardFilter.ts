@@ -43,7 +43,7 @@ export const SERIES_CN: Record<CardSeries, string> = { base: '常规卡', 'seoul
 const SERIES_KEYS = Object.keys(SERIES_CN) as CardSeries[]
 
 export const seriesOf = (card: Card): CardSeries =>
-  isPlayerCard(card) && card.event ? card.event : 'base'
+  isPlayerCard(card) && card.event ? card.event : card.kind === 'coach' && card.retired ? 'retired' : 'base'
 
 export const EMPTY_FILTER: CardFilter = { rarity: 'all', region: 'all', role: 'all', club: 'all', series: 'all', nat: 'all' }
 

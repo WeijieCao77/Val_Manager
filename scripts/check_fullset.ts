@@ -47,8 +47,9 @@ assert.equal(g.mythicDry, 0)
 
 // the full set
 const h = newGacha('FULLSET2', '审计', '2026-09-12')
-// since 2026-10-01: 选手卡 and coaches only — no 彩卡, no 首尔/曼谷/洛杉矶 series cards
-assert.equal(FULL_SET_CARDS.size, ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event)).length)
+// since 2026-10-01: 选手卡 and coaches only — no 彩卡, no 首尔/曼谷/洛杉矶 series cards; since 2026-10-20 no 退役教练 either
+assert.equal(FULL_SET_CARDS.size, ALL_CARDS.filter((c) => c.rarity !== 'mythic' && !(c.kind === 'player' && c.event) && !(c.kind === 'coach' && c.retired)).length)
+assert.equal(FULL_SET_CARDS.size, 613, '退役教练不改变全图鉴的张数')
 assert(!FULL_SET_CARDS.has(LEGEND_CARDS[0].id))
 assert(!FULL_SET_CARDS.has(SEOUL_CARDS[0].id) && !FULL_SET_CARDS.has(BANGKOK_CARDS[0].id) && !FULL_SET_CARDS.has(LOS_ANGELES_CARDS[0].id), 'series cards are not in the set')
 assert(BASE_PLAYER_CARDS.every((c) => FULL_SET_CARDS.has(c.id)) && COACH_CARDS.every((c) => c.rarity === 'mythic' || FULL_SET_CARDS.has(c.id)))

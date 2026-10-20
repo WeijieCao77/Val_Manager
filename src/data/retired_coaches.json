@@ -1,0 +1,1901 @@
+{
+ "meta": {
+  "built": "2026-10-20",
+  "source": "analysis/rating/history_v16/coaches.json (status inactive)",
+  "rule": "each attribute mapped by rank among the retired onto the live head coaches' distribution; rating = coachRating",
+  "liveHeads": 71,
+  "count": 70
+ },
+ "coaches": [
+  {
+   "id": "rc:30862",
+   "vlrId": "30862",
+   "name": "6fingers",
+   "realName": "Harry Tjahjadi Putra",
+   "nat": "id",
+   "clubTag": "BME",
+   "club": "BOOM Esports",
+   "region": "Pacific",
+   "tactics": 52,
+   "development": 66,
+   "motivation": 54,
+   "rating": 57,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-09",
+   "face": "rc-30862.webp",
+   "faceV": "d847d33e",
+   "v16": {
+    "rating": 68,
+    "tactics": 65,
+    "development": 72,
+    "motivation": 68
+   }
+  },
+  {
+   "id": "rc:27471",
+   "vlrId": "27471",
+   "name": "aer0z",
+   "realName": "Mark Ochoa",
+   "nat": "es",
+   "clubTag": "MKOI",
+   "club": "KOI",
+   "region": "EMEA",
+   "tactics": 74,
+   "development": 79,
+   "motivation": 57,
+   "rating": 71,
+   "span": [
+    2022,
+    2024
+   ],
+   "lastEvent": "2023-06-10",
+   "face": "rc-27471.webp",
+   "faceV": "c7dca525",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 73,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:12003",
+   "vlrId": "12003",
+   "name": "Anderzz",
+   "realName": "Martin Schelasin",
+   "nat": "us",
+   "clubTag": "G2",
+   "club": "G2 Esports",
+   "region": "Americas",
+   "tactics": 77,
+   "development": 84,
+   "motivation": 86,
+   "rating": 81,
+   "span": [
+    2021,
+    2025
+   ],
+   "lastEvent": "2025-10-05",
+   "face": "rc-12003.webp",
+   "faceV": "100c8696",
+   "v16": {
+    "rating": 77,
+    "tactics": 75,
+    "development": 78,
+    "motivation": 80
+   }
+  },
+  {
+   "id": "rc:29742",
+   "vlrId": "29742",
+   "name": "ANXiOS",
+   "realName": "Victor Troshkin",
+   "nat": "ru",
+   "clubTag": "XLG",
+   "club": "Xi Lai Gaming",
+   "region": "China",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 76,
+   "rating": 70,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:10585",
+   "vlrId": "10585",
+   "name": "Astell",
+   "realName": "Moon Ji-won (문지원)",
+   "nat": "kr",
+   "clubTag": "DFM",
+   "club": "DetonatioN FocusMe",
+   "region": "Pacific",
+   "tactics": 66,
+   "development": 56,
+   "motivation": 60,
+   "rating": 62,
+   "span": [
+    2022,
+    2024
+   ],
+   "lastEvent": "2023-06-04",
+   "face": "rc-10585.webp",
+   "faceV": "3c3ac85a",
+   "v16": {
+    "rating": 71,
+    "tactics": 71,
+    "development": 71,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:12871",
+   "vlrId": "12871",
+   "name": "Atom",
+   "realName": "Jorge Siero",
+   "nat": "gt",
+   "clubTag": "KRÜ",
+   "club": "KRÜ Esports",
+   "region": "Americas",
+   "tactics": 77,
+   "development": 56,
+   "motivation": 76,
+   "rating": 70,
+   "span": [
+    2021,
+    2026
+   ],
+   "lastEvent": "2025-08-31",
+   "face": "rc-12871.webp",
+   "faceV": "cc86b624",
+   "v16": {
+    "rating": 74,
+    "tactics": 75,
+    "development": 71,
+    "motivation": 74
+   }
+  },
+  {
+   "id": "rc:862",
+   "vlrId": "862",
+   "name": "b0i",
+   "realName": "Aaron Thao",
+   "nat": "us",
+   "clubTag": "TLN",
+   "club": "TALON",
+   "region": "Pacific",
+   "tactics": 80,
+   "development": 66,
+   "motivation": 76,
+   "rating": 75,
+   "span": [
+    2023,
+    2024
+   ],
+   "lastEvent": "2024-08-25",
+   "face": "rc-862.webp",
+   "faceV": "c9e63b82",
+   "v16": {
+    "rating": 75,
+    "tactics": 78,
+    "development": 72,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:15906",
+   "vlrId": "15906",
+   "name": "Bacon9",
+   "realName": "Jake Lloyd",
+   "nat": "gb",
+   "clubTag": "TL",
+   "club": "Team Liquid",
+   "region": "EMEA",
+   "tactics": 77,
+   "development": 81,
+   "motivation": 82,
+   "rating": 79,
+   "span": [
+    2021,
+    2026
+   ],
+   "lastEvent": "2025-09-09",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 75,
+    "tactics": 75,
+    "development": 74,
+    "motivation": 77
+   }
+  },
+  {
+   "id": "rc:813",
+   "vlrId": "813",
+   "name": "BARBARR",
+   "realName": "André Möller",
+   "nat": "se",
+   "clubTag": "MKOI",
+   "club": "KOI",
+   "region": "EMEA",
+   "tactics": 77,
+   "development": 56,
+   "motivation": 76,
+   "rating": 70,
+   "span": [
+    2021,
+    2024
+   ],
+   "lastEvent": "2023-07-23",
+   "face": "rc-813.webp",
+   "faceV": "79759ae0",
+   "v16": {
+    "rating": 73,
+    "tactics": 75,
+    "development": 71,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:14477",
+   "vlrId": "14477",
+   "name": "BigTime",
+   "realName": "Morgan Jay",
+   "nat": "gb",
+   "clubTag": "GE",
+   "club": "Global Esports",
+   "region": "Pacific",
+   "tactics": 54,
+   "development": 66,
+   "motivation": 60,
+   "rating": 59,
+   "span": [
+    2021,
+    2024
+   ],
+   "lastEvent": "2023-07-23",
+   "face": "rc-14477.webp",
+   "faceV": "b2b74b51",
+   "v16": {
+    "rating": 70,
+    "tactics": 67,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:940",
+   "vlrId": "940",
+   "name": "bzkA",
+   "realName": "Matheus Tarasconi",
+   "nat": "br",
+   "clubTag": "MIBR",
+   "club": "MIBR",
+   "region": "Americas",
+   "tactics": 62,
+   "development": 82,
+   "motivation": 83,
+   "rating": 73,
+   "span": [
+    2021,
+    2025
+   ],
+   "lastEvent": "2023-07-23",
+   "face": "rc-940.webp",
+   "faceV": "867f317a",
+   "v16": {
+    "rating": 73,
+    "tactics": 69,
+    "development": 76,
+    "motivation": 78
+   }
+  },
+  {
+   "id": "rc:n-carlao",
+   "vlrId": null,
+   "name": "Carlão",
+   "realName": null,
+   "nat": null,
+   "clubTag": "ZETA",
+   "club": "ZETA DIVISION",
+   "region": "Pacific",
+   "tactics": 77,
+   "development": 66,
+   "motivation": 57,
+   "rating": 69,
+   "span": [
+    2023,
+    2025
+   ],
+   "lastEvent": "2025-02-09",
+   "face": "rc-n-carlao.webp",
+   "faceV": "4cf5215c",
+   "v16": {
+    "rating": 73,
+    "tactics": 75,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:4012",
+   "vlrId": "4012",
+   "name": "Chet",
+   "realName": "Chet Singh",
+   "nat": "us",
+   "clubTag": "NRG",
+   "club": "NRG",
+   "region": "Americas",
+   "tactics": 88,
+   "development": 86,
+   "motivation": 93,
+   "rating": 89,
+   "span": [
+    2020,
+    2025
+   ],
+   "lastEvent": "2024-07-21",
+   "face": "rc-4012.webp",
+   "faceV": "fc6fbc6f",
+   "v16": {
+    "rating": 82,
+    "tactics": 82,
+    "development": 81,
+    "motivation": 85
+   }
+  },
+  {
+   "id": "rc:53761",
+   "vlrId": "53761",
+   "name": "Cody",
+   "realName": null,
+   "nat": "us",
+   "clubTag": "QOR",
+   "club": "QoR",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2025,
+    2026
+   ],
+   "lastEvent": null,
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:13033",
+   "vlrId": "13033",
+   "name": "Creative",
+   "realName": "In Moo-keun (인무근)",
+   "nat": "kr",
+   "clubTag": "TLN",
+   "club": "TALON",
+   "region": "Pacific",
+   "tactics": 80,
+   "development": 56,
+   "motivation": 69,
+   "rating": 70,
+   "span": [
+    2022,
+    2023
+   ],
+   "lastEvent": "2023-03-05",
+   "face": "rc-13033.webp",
+   "faceV": "01556de7",
+   "v16": {
+    "rating": 74,
+    "tactics": 78,
+    "development": 71,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:1000",
+   "vlrId": "1000",
+   "name": "crow",
+   "realName": "Maruoka Tomoaki",
+   "nat": "jp",
+   "clubTag": "ZETA",
+   "club": "ZETA DIVISION",
+   "region": "Pacific",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2023,
+    2024
+   ],
+   "lastEvent": null,
+   "face": "rc-1000.webp",
+   "faceV": "ab1b045d",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:11215",
+   "vlrId": "11215",
+   "name": "ddx",
+   "realName": "Alan Salvati",
+   "nat": "ar",
+   "clubTag": "KRÜ",
+   "club": "KRÜ Esports",
+   "region": "Americas",
+   "tactics": 84,
+   "development": 55,
+   "motivation": 88,
+   "rating": 76,
+   "span": [
+    2021,
+    2025
+   ],
+   "lastEvent": "2025-08-31",
+   "face": "rc-11215.webp",
+   "faceV": "d8095986",
+   "v16": {
+    "rating": 77,
+    "tactics": 79,
+    "development": 70,
+    "motivation": 81
+   }
+  },
+  {
+   "id": "rc:46597",
+   "vlrId": "46597",
+   "name": "Derly",
+   "realName": "Florentin Derly",
+   "nat": "fr",
+   "clubTag": "MAND",
+   "club": "Mandatory",
+   "region": "EMEA",
+   "tactics": 80,
+   "development": 50,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-10-26",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 73,
+    "tactics": 78,
+    "development": 66,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-ego",
+   "vlrId": null,
+   "name": "Ego",
+   "realName": null,
+   "nat": null,
+   "clubTag": "AG",
+   "club": "All Gamers",
+   "region": "China",
+   "tactics": 78,
+   "development": 66,
+   "motivation": 60,
+   "rating": 70,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": "rc-n-ego.webp",
+   "faceV": "ad7eb35e",
+   "v16": {
+    "rating": 74,
+    "tactics": 76,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:46598",
+   "vlrId": "46598",
+   "name": "Elevated",
+   "realName": "Donnie Chell",
+   "nat": "us",
+   "clubTag": "GE",
+   "club": "Global Esports",
+   "region": "Pacific",
+   "tactics": 57,
+   "development": 53,
+   "motivation": 54,
+   "rating": 55,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-08-31",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 68,
+    "tactics": 68,
+    "development": 68,
+    "motivation": 69
+   }
+  },
+  {
+   "id": "rc:19729",
+   "vlrId": "19729",
+   "name": "Elmapuddy",
+   "realName": "Chris Tebbit",
+   "nat": "au",
+   "clubTag": "GEN",
+   "club": "Gen.G",
+   "region": "Pacific",
+   "tactics": 63,
+   "development": 86,
+   "motivation": 83,
+   "rating": 75,
+   "span": [
+    2021,
+    2026
+   ],
+   "lastEvent": "2025-08-31",
+   "face": "rc-19729.webp",
+   "faceV": "51f363b5",
+   "v16": {
+    "rating": 75,
+    "tactics": 70,
+    "development": 81,
+    "motivation": 78
+   }
+  },
+  {
+   "id": "rc:n-emil",
+   "vlrId": null,
+   "name": "eMIL",
+   "realName": null,
+   "nat": null,
+   "clubTag": "TL",
+   "club": "Team Liquid",
+   "region": "EMEA",
+   "tactics": 57,
+   "development": 79,
+   "motivation": 81,
+   "rating": 70,
+   "span": [
+    2023,
+    2024
+   ],
+   "lastEvent": "2024-03-01",
+   "face": "rc-n-emil.webp",
+   "faceV": "7c98ae01",
+   "v16": {
+    "rating": 72,
+    "tactics": 68,
+    "development": 73,
+    "motivation": 76
+   }
+  },
+  {
+   "id": "rc:460",
+   "vlrId": "460",
+   "name": "Engh",
+   "realName": "Andrey Sholokhov",
+   "nat": "ru",
+   "clubTag": "KC",
+   "club": "Karmine Corp",
+   "region": "EMEA",
+   "tactics": 63,
+   "development": 53,
+   "motivation": 78,
+   "rating": 64,
+   "span": [
+    2020,
+    2026
+   ],
+   "lastEvent": "2026-08-31",
+   "face": "c-engh.webp",
+   "faceV": "410134e0",
+   "v16": {
+    "rating": 71,
+    "tactics": 70,
+    "development": 68,
+    "motivation": 75
+   }
+  },
+  {
+   "id": "rc:16576",
+   "vlrId": "16576",
+   "name": "Epic",
+   "realName": "Arda Yıldız",
+   "nat": "tr",
+   "clubTag": "BBL",
+   "club": "BBL Esports",
+   "region": "EMEA",
+   "tactics": 66,
+   "development": 66,
+   "motivation": 57,
+   "rating": 64,
+   "span": [
+    2022,
+    2024
+   ],
+   "lastEvent": "2023-07-23",
+   "face": "rc-16576.webp",
+   "faceV": "1209bb74",
+   "v16": {
+    "rating": 71,
+    "tactics": 71,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:9832",
+   "vlrId": "9832",
+   "name": "Eraser",
+   "realName": "Hong Chang-pyo (홍창표)",
+   "nat": "kr",
+   "clubTag": "GE",
+   "club": "Global Esports",
+   "region": "Pacific",
+   "tactics": 54,
+   "development": 55,
+   "motivation": 69,
+   "rating": 58,
+   "span": [
+    2021,
+    2024
+   ],
+   "lastEvent": "2023-07-23",
+   "face": "rc-9832.webp",
+   "faceV": "97ddc627",
+   "v16": {
+    "rating": 69,
+    "tactics": 67,
+    "development": 69,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:14482",
+   "vlrId": "14482",
+   "name": "faithz0r",
+   "realName": "Anderson Yabusaki",
+   "nat": "br",
+   "clubTag": "2G",
+   "club": "2GAME Esports",
+   "region": "Americas",
+   "tactics": 57,
+   "development": 66,
+   "motivation": 83,
+   "rating": 66,
+   "span": [
+    2021,
+    2026
+   ],
+   "lastEvent": "2025-09-07",
+   "face": "rc-14482.webp",
+   "faceV": "fb212dc1",
+   "v16": {
+    "rating": 72,
+    "tactics": 68,
+    "development": 72,
+    "motivation": 78
+   }
+  },
+  {
+   "id": "rc:42522",
+   "vlrId": "42522",
+   "name": "Fire3",
+   "realName": "Yang Yingjie (杨英杰)",
+   "nat": "cn",
+   "clubTag": "AG",
+   "club": "All Gamers",
+   "region": "China",
+   "tactics": 62,
+   "development": 66,
+   "motivation": 54,
+   "rating": 61,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": "rc-42522.webp",
+   "faceV": "088d92a3",
+   "v16": {
+    "rating": 70,
+    "tactics": 69,
+    "development": 72,
+    "motivation": 68
+   }
+  },
+  {
+   "id": "rc:n-fistie",
+   "vlrId": null,
+   "name": "fistie",
+   "realName": null,
+   "nat": null,
+   "clubTag": "KC",
+   "club": "Karmine Corp",
+   "region": "EMEA",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 76,
+   "rating": 70,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-fistie.webp",
+   "faceV": "0afe0fdd",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:665",
+   "vlrId": "665",
+   "name": "fluyr",
+   "realName": "Vinícius Menegatti",
+   "nat": "br",
+   "clubTag": "LEGA",
+   "club": "Legacy",
+   "region": null,
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2022,
+    2025
+   ],
+   "lastEvent": null,
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-fore",
+   "vlrId": null,
+   "name": "fore",
+   "realName": null,
+   "nat": null,
+   "clubTag": "NOVA",
+   "club": "Nova Esports",
+   "region": "China",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": "rc-n-fore.webp",
+   "faceV": "d250a079",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-frenya",
+   "vlrId": null,
+   "name": "frenya",
+   "realName": null,
+   "nat": null,
+   "clubTag": "100T",
+   "club": "100 Thieves",
+   "region": "Americas",
+   "tactics": 57,
+   "development": 66,
+   "motivation": 60,
+   "rating": 60,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-frenya.webp",
+   "faceV": "84feffd5",
+   "v16": {
+    "rating": 70,
+    "tactics": 68,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-gais",
+   "vlrId": null,
+   "name": "GAIS",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUT",
+   "club": "FUT Esports",
+   "region": "EMEA",
+   "tactics": 80,
+   "development": 79,
+   "motivation": 81,
+   "rating": 80,
+   "span": [
+    2023,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-gais.webp",
+   "faceV": "3125f903",
+   "v16": {
+    "rating": 76,
+    "tactics": 78,
+    "development": 73,
+    "motivation": 76
+   }
+  },
+  {
+   "id": "rc:n-goked",
+   "vlrId": null,
+   "name": "goked",
+   "realName": null,
+   "nat": null,
+   "clubTag": "M8",
+   "club": "Gentle Mates",
+   "region": "EMEA",
+   "tactics": 62,
+   "development": 66,
+   "motivation": 76,
+   "rating": 67,
+   "span": [
+    2023,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-goked.webp",
+   "faceV": "01dd0a95",
+   "v16": {
+    "rating": 71,
+    "tactics": 69,
+    "development": 72,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:n-gorilla",
+   "vlrId": null,
+   "name": "Gorilla",
+   "realName": null,
+   "nat": null,
+   "clubTag": "MKOI",
+   "club": "KOI",
+   "region": "EMEA",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 53,
+   "rating": 66,
+   "span": [
+    2023,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-gorilla.webp",
+   "faceV": "d06eb50c",
+   "v16": {
+    "rating": 71,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 67
+   }
+  },
+  {
+   "id": "rc:n-gugli",
+   "vlrId": null,
+   "name": "GUGLi",
+   "realName": null,
+   "nat": null,
+   "clubTag": "C9",
+   "club": "Cloud9",
+   "region": "Americas",
+   "tactics": 66,
+   "development": 66,
+   "motivation": 60,
+   "rating": 64,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-gugli.webp",
+   "faceV": "fc801d91",
+   "v16": {
+    "rating": 71,
+    "tactics": 71,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-jamezirl",
+   "vlrId": null,
+   "name": "JamezIRL",
+   "realName": null,
+   "nat": null,
+   "clubTag": "100T",
+   "club": "100 Thieves",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2023,
+    2023
+   ],
+   "lastEvent": "2023-03-05",
+   "face": "rc-n-jamezirl.webp",
+   "faceV": "5f7a3f28",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-jungledsl",
+   "vlrId": null,
+   "name": "jungleDSL",
+   "realName": null,
+   "nat": null,
+   "clubTag": "WOL",
+   "club": "Wolves Esports",
+   "region": "China",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2024,
+    2024
+   ],
+   "lastEvent": null,
+   "face": "rc-n-jungledsl.webp",
+   "faceV": "79f4a28f",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-junior",
+   "vlrId": null,
+   "name": "JUNiOR",
+   "realName": null,
+   "nat": null,
+   "clubTag": "ZETA",
+   "club": "ZETA DIVISION",
+   "region": "Pacific",
+   "tactics": 76,
+   "development": 79,
+   "motivation": 60,
+   "rating": 73,
+   "span": [
+    2023,
+    2024
+   ],
+   "lastEvent": "2023-05-28",
+   "face": "rc-n-junior.webp",
+   "faceV": "fec60c5b",
+   "v16": {
+    "rating": 73,
+    "tactics": 74,
+    "development": 73,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-juv3nile",
+   "vlrId": null,
+   "name": "Juv3nile",
+   "realName": null,
+   "nat": null,
+   "clubTag": "GE",
+   "club": "Global Esports",
+   "region": "Pacific",
+   "tactics": 62,
+   "development": 66,
+   "motivation": 57,
+   "rating": 62,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-09",
+   "face": "rc-n-juv3nile.webp",
+   "faceV": "0d77d081",
+   "v16": {
+    "rating": 70,
+    "tactics": 69,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:n-koy",
+   "vlrId": null,
+   "name": "Koy",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUR",
+   "club": "FURIA Esports",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2024,
+    2024
+   ],
+   "lastEvent": null,
+   "face": "rc-n-koy.webp",
+   "faceV": "dd313a4b",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-lateks",
+   "vlrId": null,
+   "name": "LATEKS",
+   "realName": null,
+   "nat": null,
+   "clubTag": "NAVI",
+   "club": "Natus Vincere",
+   "region": "EMEA",
+   "tactics": 76,
+   "development": 79,
+   "motivation": 57,
+   "rating": 72,
+   "span": [
+    2023,
+    2024
+   ],
+   "lastEvent": "2024-03-01",
+   "face": "rc-n-lateks.webp",
+   "faceV": "8a9ce8cd",
+   "v16": {
+    "rating": 73,
+    "tactics": 74,
+    "development": 73,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:n-lukzera",
+   "vlrId": null,
+   "name": "lukzera",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUR",
+   "club": "FURIA",
+   "region": "Americas",
+   "tactics": 66,
+   "development": 66,
+   "motivation": 60,
+   "rating": 64,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-lukzera.webp",
+   "faceV": "bfb36313",
+   "v16": {
+    "rating": 71,
+    "tactics": 71,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-madcoach",
+   "vlrId": null,
+   "name": "madcoach",
+   "realName": null,
+   "nat": null,
+   "clubTag": "M8",
+   "club": "Gentle Mates",
+   "region": "EMEA",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2024,
+    2024
+   ],
+   "lastEvent": null,
+   "face": "rc-n-madcoach.webp",
+   "faceV": "2245a5ca",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-marqnue",
+   "vlrId": null,
+   "name": "marqnue",
+   "realName": null,
+   "nat": null,
+   "clubTag": "BBL",
+   "club": "BBL Esports",
+   "region": "EMEA",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 69,
+   "rating": 70,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-marqnue.webp",
+   "faceV": "0cddaee1",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-mat",
+   "vlrId": null,
+   "name": "mat",
+   "realName": null,
+   "nat": null,
+   "clubTag": "LOUD",
+   "club": "LOUD",
+   "region": "Americas",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 69,
+   "rating": 70,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-mat.webp",
+   "faceV": "0f34667e",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-mcjuankar",
+   "vlrId": null,
+   "name": "McJuankar",
+   "realName": null,
+   "nat": null,
+   "clubTag": "M8",
+   "club": "Gentle Mates",
+   "region": "EMEA",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 69,
+   "rating": 70,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-mcjuankar.webp",
+   "faceV": "f55a86f7",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-meow",
+   "vlrId": null,
+   "name": "meow",
+   "realName": null,
+   "nat": null,
+   "clubTag": "TS",
+   "club": "Team Secret",
+   "region": "Pacific",
+   "tactics": 62,
+   "development": 66,
+   "motivation": 57,
+   "rating": 62,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-09",
+   "face": "rc-n-meow.webp",
+   "faceV": "631786ba",
+   "v16": {
+    "rating": 70,
+    "tactics": 69,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:19343",
+   "vlrId": "19343",
+   "name": "Mikes",
+   "realName": "Michael Hockom",
+   "nat": "us",
+   "clubTag": "100T",
+   "club": "100 Thieves",
+   "region": "Americas",
+   "tactics": 52,
+   "development": 56,
+   "motivation": 78,
+   "rating": 60,
+   "span": [
+    2021,
+    2025
+   ],
+   "lastEvent": "2025-05-03",
+   "face": "rc-19343.webp",
+   "faceV": "a835f5cc",
+   "v16": {
+    "rating": 70,
+    "tactics": 66,
+    "development": 71,
+    "motivation": 75
+   }
+  },
+  {
+   "id": "rc:3323",
+   "vlrId": "3323",
+   "name": "mini",
+   "realName": "Jacob Harris",
+   "nat": "gb",
+   "clubTag": "FNC",
+   "club": "FNATIC",
+   "region": "EMEA",
+   "tactics": 86,
+   "development": 88,
+   "motivation": 93,
+   "rating": 88,
+   "span": [
+    2020,
+    2026
+   ],
+   "lastEvent": "2024-08-25",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 83,
+    "tactics": 81,
+    "development": 84,
+    "motivation": 85
+   }
+  },
+  {
+   "id": "rc:n-nednagg",
+   "vlrId": null,
+   "name": "NEDNAGG",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUT",
+   "club": "FUT Esports",
+   "region": "EMEA",
+   "tactics": 77,
+   "development": 66,
+   "motivation": 69,
+   "rating": 72,
+   "span": [
+    2023,
+    2023
+   ],
+   "lastEvent": "2023-03-05",
+   "face": "rc-n-nednagg.webp",
+   "faceV": "6998f82c",
+   "v16": {
+    "rating": 73,
+    "tactics": 75,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:41740",
+   "vlrId": "41740",
+   "name": "nokaze37",
+   "realName": null,
+   "nat": "jp",
+   "clubTag": "ZETA",
+   "club": "ZETA DIVISION",
+   "region": "Pacific",
+   "tactics": 69,
+   "development": 56,
+   "motivation": 54,
+   "rating": 61,
+   "span": [
+    2023,
+    2026
+   ],
+   "lastEvent": "2025-08-24",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 71,
+    "tactics": 72,
+    "development": 71,
+    "motivation": 69
+   }
+  },
+  {
+   "id": "rc:n-oi",
+   "vlrId": null,
+   "name": "Oi",
+   "realName": null,
+   "nat": null,
+   "clubTag": "AG",
+   "club": "All Gamers",
+   "region": "China",
+   "tactics": 63,
+   "development": 66,
+   "motivation": 57,
+   "rating": 62,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": "rc-n-oi.webp",
+   "faceV": "3861504c",
+   "v16": {
+    "rating": 71,
+    "tactics": 70,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:n-peu",
+   "vlrId": null,
+   "name": "peu",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUR",
+   "club": "FURIA",
+   "region": "Americas",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 60,
+   "rating": 68,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-peu.webp",
+   "faceV": "42636b99",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-pm",
+   "vlrId": null,
+   "name": "pm",
+   "realName": null,
+   "nat": null,
+   "clubTag": "KC",
+   "club": "Karmine Corp",
+   "region": "EMEA",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 69,
+   "rating": 70,
+   "span": [
+    2023,
+    2023
+   ],
+   "lastEvent": "2023-05-28",
+   "face": "rc-n-pm.webp",
+   "faceV": "10175877",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-rudi",
+   "vlrId": null,
+   "name": "rudi",
+   "realName": null,
+   "nat": null,
+   "clubTag": "100T",
+   "club": "100 Thieves",
+   "region": "Americas",
+   "tactics": 57,
+   "development": 66,
+   "motivation": 60,
+   "rating": 60,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-rudi.webp",
+   "faceV": "c5112ece",
+   "v16": {
+    "rating": 70,
+    "tactics": 68,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-septem7",
+   "vlrId": null,
+   "name": "Septem7",
+   "realName": null,
+   "nat": null,
+   "clubTag": "AG",
+   "club": "All Gamers",
+   "region": "China",
+   "tactics": 63,
+   "development": 66,
+   "motivation": 57,
+   "rating": 62,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-01-25",
+   "face": "rc-n-septem7.webp",
+   "faceV": "41899f0c",
+   "v16": {
+    "rating": 71,
+    "tactics": 70,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:n-stk",
+   "vlrId": null,
+   "name": "stk",
+   "realName": null,
+   "nat": null,
+   "clubTag": "LOUD",
+   "club": "LOUD",
+   "region": "Americas",
+   "tactics": 78,
+   "development": 79,
+   "motivation": 81,
+   "rating": 79,
+   "span": [
+    2023,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-stk.webp",
+   "faceV": "77d30e59",
+   "v16": {
+    "rating": 76,
+    "tactics": 77,
+    "development": 73,
+    "motivation": 76
+   }
+  },
+  {
+   "id": "rc:n-strong",
+   "vlrId": null,
+   "name": "Strong",
+   "realName": null,
+   "nat": null,
+   "clubTag": "NRG",
+   "club": "NRG",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 60,
+   "rating": 66,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-strong.webp",
+   "faceV": "96d3c175",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-style",
+   "vlrId": null,
+   "name": "style",
+   "realName": null,
+   "nat": null,
+   "clubTag": "SE",
+   "club": "SaD Esports",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 54,
+   "rating": 64,
+   "span": [
+    2024,
+    2026
+   ],
+   "lastEvent": "2025-05-29",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 71,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 69
+   }
+  },
+  {
+   "id": "rc:n-sw4y",
+   "vlrId": null,
+   "name": "sw4y",
+   "realName": null,
+   "nat": null,
+   "clubTag": "FUT",
+   "club": "FUT Esports",
+   "region": "EMEA",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 69,
+   "rating": 68,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": "rc-n-sw4y.webp",
+   "faceV": "c3708ba6",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:1090",
+   "vlrId": "1090",
+   "name": "SyykoNT",
+   "realName": "Don Muir",
+   "nat": "us",
+   "clubTag": "SEN",
+   "club": "Sentinels",
+   "region": "Americas",
+   "tactics": 92,
+   "development": 82,
+   "motivation": 83,
+   "rating": 87,
+   "span": [
+    2020,
+    2025
+   ],
+   "lastEvent": "2023-03-05",
+   "face": "rc-1090.webp",
+   "faceV": "8eb0a9a2",
+   "v16": {
+    "rating": 80,
+    "tactics": 83,
+    "development": 76,
+    "motivation": 78
+   }
+  },
+  {
+   "id": "rc:n-temoc",
+   "vlrId": null,
+   "name": "temoc",
+   "realName": null,
+   "nat": null,
+   "clubTag": "MKOI",
+   "club": "KOI",
+   "region": "EMEA",
+   "tactics": 66,
+   "development": 66,
+   "motivation": 57,
+   "rating": 64,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-10",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 71,
+    "tactics": 71,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:n-trainer",
+   "vlrId": null,
+   "name": "trainer",
+   "realName": null,
+   "nat": null,
+   "clubTag": "NRG",
+   "club": "NRG",
+   "region": "Americas",
+   "tactics": 84,
+   "development": 79,
+   "motivation": 76,
+   "rating": 80,
+   "span": [
+    2023,
+    2023
+   ],
+   "lastEvent": "2023-05-28",
+   "face": "rc-n-trainer.webp",
+   "faceV": "f424a723",
+   "v16": {
+    "rating": 76,
+    "tactics": 79,
+    "development": 73,
+    "motivation": 74
+   }
+  },
+  {
+   "id": "rc:n-valanalysis",
+   "vlrId": null,
+   "name": "ValAnalysis",
+   "realName": null,
+   "nat": null,
+   "clubTag": "JDG",
+   "club": "JD Gaming",
+   "region": "China",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 76,
+   "rating": 72,
+   "span": [
+    2024,
+    2025
+   ],
+   "lastEvent": "2025-02-09",
+   "face": "rc-n-valanalysis.webp",
+   "faceV": "592978c6",
+   "v16": {
+    "rating": 73,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:12224",
+   "vlrId": "12224",
+   "name": "Warbirds",
+   "realName": "Evan Olzem",
+   "nat": "us",
+   "clubTag": "RRQ",
+   "club": "Rex Regum Qeon",
+   "region": "Pacific",
+   "tactics": 86,
+   "development": 81,
+   "motivation": 78,
+   "rating": 82,
+   "span": [
+    2020,
+    2026
+   ],
+   "lastEvent": "2026-09-06",
+   "face": null,
+   "faceV": null,
+   "v16": {
+    "rating": 77,
+    "tactics": 80,
+    "development": 74,
+    "motivation": 75
+   }
+  },
+  {
+   "id": "rc:n-xpz",
+   "vlrId": null,
+   "name": "Xpz",
+   "realName": null,
+   "nat": null,
+   "clubTag": "BLG",
+   "club": "Bilibili Gaming",
+   "region": "China",
+   "tactics": 57,
+   "development": 66,
+   "motivation": 69,
+   "rating": 63,
+   "span": [
+    2024,
+    2024
+   ],
+   "lastEvent": "2024-03-02",
+   "face": "rc-n-xpz.webp",
+   "faceV": "eca43d2c",
+   "v16": {
+    "rating": 70,
+    "tactics": 68,
+    "development": 72,
+    "motivation": 72
+   }
+  },
+  {
+   "id": "rc:n-yuchen",
+   "vlrId": null,
+   "name": "YuChEn",
+   "realName": null,
+   "nat": null,
+   "clubTag": "DRG",
+   "club": "Dragon Ranger Gaming",
+   "region": "China",
+   "tactics": 74,
+   "development": 66,
+   "motivation": 60,
+   "rating": 68,
+   "span": [
+    2024,
+    2024
+   ],
+   "lastEvent": "2024-03-02",
+   "face": "rc-n-yuchen.webp",
+   "faceV": "696b3be6",
+   "v16": {
+    "rating": 72,
+    "tactics": 73,
+    "development": 72,
+    "motivation": 71
+   }
+  },
+  {
+   "id": "rc:n-yushi",
+   "vlrId": null,
+   "name": "Yushi",
+   "realName": null,
+   "nat": null,
+   "clubTag": "2G",
+   "club": "2GAME Esports",
+   "region": "Americas",
+   "tactics": 69,
+   "development": 66,
+   "motivation": 57,
+   "rating": 65,
+   "span": [
+    2025,
+    2025
+   ],
+   "lastEvent": "2025-02-08",
+   "face": "rc-n-yushi.webp",
+   "faceV": "15137c9e",
+   "v16": {
+    "rating": 72,
+    "tactics": 72,
+    "development": 72,
+    "motivation": 70
+   }
+  },
+  {
+   "id": "rc:46135",
+   "vlrId": "46135",
+   "name": "Zeus",
+   "realName": "Jhian Vega",
+   "nat": "ph",
+   "clubTag": "TLN",
+   "club": "TALON",
+   "region": "Pacific",
+   "tactics": 88,
+   "development": 79,
+   "motivation": 76,
+   "rating": 82,
+   "span": [
+    2023,
+    2023
+   ],
+   "lastEvent": "2023-05-28",
+   "face": "rc-46135.webp",
+   "faceV": "c8e7d1c6",
+   "v16": {
+    "rating": 77,
+    "tactics": 82,
+    "development": 73,
+    "motivation": 73
+   }
+  },
+  {
+   "id": "rc:26482",
+   "vlrId": "26482",
+   "name": "Zikz",
+   "realName": "Anthony Gray",
+   "nat": "us",
+   "clubTag": "100T",
+   "club": "100 Thieves",
+   "region": "Americas",
+   "tactics": 77,
+   "development": 48,
+   "motivation": 84,
+   "rating": 70,
+   "span": [
+    2022,
+    2025
+   ],
+   "lastEvent": "2025-08-31",
+   "face": "rc-26482.webp",
+   "faceV": "449240c7",
+   "v16": {
+    "rating": 73,
+    "tactics": 75,
+    "development": 65,
+    "motivation": 79
+   }
+  }
+ ]
+}
