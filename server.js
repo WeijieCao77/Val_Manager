@@ -39,6 +39,7 @@ import { releaseFingerprint } from './release-fingerprint.js'
 import { releaseFeatures } from './release-readiness.js'
 import { createMatchComputer } from './match-worker.js'
 import { makePlayerProxy } from './player-proxy.js'
+import { closed, shutdownHtml, stillOpen } from './shutdown-page.js'
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { safeTransactions } from './db-transactions.js'
 import { createHistoryMaintenance } from './history-maintenance.js'
@@ -745,6 +746,20 @@ function handle(req, res) {
 
   // what this client will accept, for `json` — see the note on it
   res.acceptEncoding = req.headers['accept-encoding']
+
+  // 停服 (shutdown-page.js): past 2:00 on 10-22 the whole domain is one page.
+  // X-Site-Closed lets a tab that was open across the moment ask the server,
+  // not its own clock, whether to reload.
+  if (closed() && !stillOpen(path)) {
+    if (path.startsWith('/api/')) {
+      res.setHeader('X-Site-Closed', '1')
+      json(res, 410, { ok: false, closed: true, why: '游戏已暂停运营' })
+      return
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Site-Closed': '1' })
+    res.end(req.method === 'HEAD' ? undefined : shutdownHtml())
+    return
+  }
 
   // Railway's health check. Without one a deploy swaps containers the moment
   // the new process starts, and while it is still retrying the analytics
