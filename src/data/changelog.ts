@@ -27,6 +27,13 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-10-21',
+    title: '纪念分享图',
+    changes: [
+      { kind: '新增', text: '<b>电竞经理</b>顶栏和<b>开瓦包</b>每页右上角多了「生成纪念图」。经理模式用你的战队和首发五人；开瓦包从自己的收藏里挑五张卡（默认是当前卡组），配上抽卡、收藏和天梯记录。可以改署名和留言，保存成高清图片，停服后也能留着。' },
+    ],
+  },
+  {
     date: '2026-10-20',
     title: '退役教练同队默契、同期阵容底板',
     changes: [

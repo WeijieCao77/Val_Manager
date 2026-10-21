@@ -1,0 +1,41 @@
+.memento-trigger { white-space: nowrap; }
+.memento-dialog { --memento-accent: #aac0ff; width: min(1100px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid #333945; border-radius: 4px; background: #14161b; color: #edf0f7; overflow: auto; }
+.memento-dialog.memento-cards { --memento-accent: #cfb5f8; }
+.memento-dialog::backdrop { background: #03050bd9; backdrop-filter: blur(8px); }
+.memento-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.memento-preview { padding: 28px; background: #23272e; min-height: 260px; display: grid; align-content: center; color: #f3f5fc; }
+.memento-cards .memento-preview { background: #211d2b; }
+.memento-preview img { display: block; width: 100%; height: auto; box-shadow: 0 18px 48px #0007; }
+.memento-controls { padding: 32px; align-self: center; }
+.memento-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.memento-heading h2 { margin: 0; font-size: 25px; color: #fff; }
+.memento-controls p { line-height: 1.7; }
+.memento-controls label { display: block; margin-top: 24px; font-size: 14px; }
+.memento-controls input, .memento-controls textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 8px; font: inherit; background: #1d2027; color: #edf0f7; border: 1px solid #454b57; border-radius: 3px; padding: 12px; }
+.memento-controls textarea { resize: vertical; }
+.memento-count { display: block; text-align: right; font-size: 12px; margin-top: 4px; color: #a6adba; }
+.memento-note, .memento-record { font-size: 13px; color: #a6adba; }
+.memento-save { display: block; padding: 15px 20px; background: var(--memento-accent); color: #10131a; text-align: center; border-radius: 2px; text-decoration: none; font-weight: 700; margin-top: 24px; }
+.memento-save:hover { filter: brightness(1.1); }
+.memento-dialog :focus-visible { outline: 2px solid var(--memento-accent); outline-offset: 3px; }
+.memento-record summary { cursor: pointer; }
+.cm-page-tools:has(.memento-trigger) { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .memento-layout { grid-template-columns: minmax(0, 1fr); }
+  .memento-controls { padding: 22px; }
+  .memento-preview { padding: 16px; }
+  .memento-dialog { max-height: calc(100dvh - 20px); }
+}
+.memento-picker { border-top: 1px solid #454b57; padding-top: 18px; margin-top: 20px; }
+.memento-pick-heading, .memento-pages { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.memento-picked { display: flex; gap: 6px; flex-wrap: wrap; }
+.memento-picked button { font-size: 12px; padding: 5px 8px; }
+.memento-pick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0; max-height: 360px; overflow: auto; padding: 4px; }
+.memento-pick-card { min-width: 0; display: block; padding: 3px; border-radius: 3px; background: #20212b; border: 2px solid transparent; }
+.memento-pick-card .card-img { width: 100%; }
+.memento-pick-card > span { display: block; font-size: 11px; color: #e8dcff; padding: 5px 0; }
+.memento-pick-card[aria-pressed=true] { border-color: #cfb5f8; }
+.memento-pick-card:disabled { opacity: .55; }
+.memento-card-capture *, .memento-card-capture *::before, .memento-card-capture *::after { animation-play-state: paused !important; transition: none !important; }
+.memento-card-capture .card-img { width: 240px !important; }
+.memento-pages { font-size: 12px; }

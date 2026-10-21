@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import Memento from './ui/memento/Memento'
+import { managerMemento } from './ui/memento/model'
 import type { ComponentType } from 'react'
 import { GameCtx } from './ui/ctx'
 import NewGame from './ui/NewGame'
@@ -386,6 +388,7 @@ export default function ManagerGame({ onHome, testSaves = false }: { onHome: () 
           {game.mode === 'fun' && (
             <div className="chip small" title="娱乐模式：退役选手和主播在自由人里，只为你复出">娱乐模式 <span className="tag t2">beta</span></div>
           )}
+          <Memento getData={() => managerMemento(game)} />
           <div className="spacer" />
           <div className="chip" title="可用资金" aria-label="可用资金"><span aria-hidden="true">💰</span> <b>{money(game.finances.balance)}</b></div>
           <div

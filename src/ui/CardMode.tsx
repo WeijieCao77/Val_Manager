@@ -1,4 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import Memento from './memento/Memento'
+import { cardsMemento } from './memento/cards'
 import CardNavigation, { CARD_PAGES, cardPageFromHash } from './cards/Navigation'
 import './cards/cards-ux.css'
 import PhoneGate from './cards/PhoneGate'
@@ -413,7 +415,7 @@ export default function CardMode({ onExit }: { onExit: () => void }) {
         <div className="cm-workspace">
         <CardNavigation current={tab} onExit={() => { flushAccount(g); onExit() }} onNavigate={key => { setTab(key); if (key !== 'dossier') setDossierId(null) }} />
         <main className="cm-body" id="main" ref={mainRef} tabIndex={-1}>
-          <div className="cm-page-heading"><div><h1>{CARD_PAGES.find(p => p.key === tab)?.label}</h1><p>{CARD_PAGES.find(p => p.key === tab)?.description}</p></div><div className="cm-page-tools"><OddsFab /><Changelog /><Support /></div></div>
+          <div className="cm-page-heading"><div><h1>{CARD_PAGES.find(p => p.key === tab)?.label}</h1><p>{CARD_PAGES.find(p => p.key === tab)?.description}</p></div><div className="cm-page-tools"><Memento getData={() => cardsMemento(g)} /><OddsFab /><Changelog /><Support /></div></div>
           {!cloud && <div className="cm-offline" role="status">目前离线，可浏览已缓存的收藏。开包、领奖和比赛需要联网。<button className="sm" onClick={() => window.location.reload()}>重新连接</button></div>}
           {fresh && tab === 'account' && (
             <div className="panel" style={{ borderColor: 'var(--accent-line)', marginBottom: 14 }}>
