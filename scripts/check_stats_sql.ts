@@ -122,9 +122,10 @@ for (const [idh, ago, state, name] of [
   ['h1', '-60 days', { cards: { a: 1, b: 1, c: 1 }, pulls: 12, ladder: { div: 3 }, daily: { streak: 4 } }],
   ['h2', '-1 days', { cards: { a: 1 }, pulls: 2, ladder: { div: 0 }, daily: { streak: 1 } }],
   ['h3', '-1 days', { cards: 'nope', pulls: 'lots', ladder: 7, daily: null }],
-  // a day-old account claiming 121 matches: 体力 allows about 14 a day, so
-  // this one cannot have played what it says it played
-  ['h4', '-1 days', {
+  // an hour-old account claiming 121 matches: a full meter plus an hour of
+  // regen is about 30 at 2 minutes a point, so this one cannot have played
+  // what it says it played
+  ['h4', '-1 hours', {
     cards: { a: 1 }, pulls: 3,
     ladder: { div: 5, wins: 109, losses: 12 }, daily: { streak: 1 },
   }, '牛逼王'],
@@ -288,10 +289,10 @@ if (out) {
     c.accounts.accounts === 4 && c.accounts.fresh === 2, JSON.stringify(c.accounts))
 
   // 「这个人能打这么多场是不是开挂了」 is arithmetic, and the arithmetic has
-  // to be right in both directions: the one-day-old account with 121 matches
+  // to be right in both directions: the hour-old account with 121 matches
   // is flagged, the year-old one with the identical record is not.
   const over = c.overplayed || []
-  check('一天建的号打了 121 场会被标出来',
+  check('一小时前建的号打了 121 场会被标出来',
     over.some((r) => r.id_hash === 'h4'), JSON.stringify(over.map((r) => r.id_hash)))
   check('同样战绩但号很老的不会被标',
     !over.some((r) => r.id_hash === 'h5'), JSON.stringify(over.map((r) => r.id_hash)))
