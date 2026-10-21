@@ -334,7 +334,10 @@ export type PlayKind = keyof typeof STAMINA_COST
  * tomorrow. A trickle lets the same daily allowance be spent in two or three
  * visits instead of one.
  *
- * One every 30 minutes, cap 30 (2026-09-10, the owner's call; 20 from
+ * One every 2 minutes, cap 30 (2026-10-21, the owner's call for the last day
+ * before 停服): a full meter in an hour, so nobody waits on it.
+ *
+ * Before that, one every 30 minutes, cap 30 (2026-09-10, the owner's call; 20 from
  * 2026-09-06): a ladder match every hour sustained, fifteen in a row from a
  * full meter or six cups, 15 hours to fill it, and 48 points a day if you
  * check in through the day.
@@ -357,7 +360,7 @@ export type PlayKind = keyof typeof STAMINA_COST
  * than once, which is the behaviour worth paying for. The wait a player
  * actually feels, one ladder match, goes from two hours to 1h40m.
  */
-export const STAMINA_REGEN_MS = 30 * 60 * 1000
+export const STAMINA_REGEN_MS = 2 * 60 * 1000
 
 /**
  * "50 分钟" / "1 小时" — the interval in the largest whole unit that fits it.
